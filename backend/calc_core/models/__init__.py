@@ -10,6 +10,7 @@ from .operating import (
     DirectCostLine,
     FixedCostLine,
     OperatingPlan,
+    PaymentTerms,
     Product,
     SalesLine,
 )
@@ -30,6 +31,7 @@ __all__ = [
     "OperatingPlan",
     "Product",
     "SalesLine",
+    "PaymentTerms",
     "DirectCostLine",
     "FixedCostLine",
     "CostFunction",

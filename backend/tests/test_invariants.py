@@ -20,6 +20,7 @@ from calc_core.models import (
     InvestmentPlan,
     Loan,
     OperatingPlan,
+    PaymentTerms,
     Product,
     ProjectHeader,
     ProjectModel,
@@ -49,16 +50,26 @@ def _random_project(rng: random.Random) -> ProjectModel:
     def series(lo: int, hi: int) -> list[Decimal]:
         return [Decimal(rng.randint(lo, hi)) for _ in range(n)]
 
+    def terms() -> PaymentTerms:
+        return PaymentTerms(
+            prepayment_share=Decimal(rng.randint(0, 100)) / Decimal(100),
+            advance_lead_months=rng.randint(0, 3),
+            payment_delay_months=rng.randint(0, 4),
+        )
+
     sales = [
-        SalesLine(product_id=f"p{i}", volume=series(0, 200), price=series(10, 500))
+        SalesLine(product_id=f"p{i}", volume=series(0, 200), price=series(10, 500), payment=terms())
         for i in range(rng.randint(1, 3))
     ]
     direct = [
-        DirectCostLine(name="m", kind=DirectCostKind.MATERIALS, amount=series(0, 30000)),
-        DirectCostLine(name="w", kind=DirectCostKind.PIECE_WAGES, amount=series(0, 10000)),
+        DirectCostLine(name="m", kind=DirectCostKind.MATERIALS, amount=series(0, 30000),
+                       payment_delay_months=rng.randint(0, 4)),
+        DirectCostLine(name="w", kind=DirectCostKind.PIECE_WAGES, amount=series(0, 10000),
+                       payment_delay_months=rng.randint(0, 2)),
     ]
     fixed = [
-        FixedCostLine(name=f"f{i}", function=rng.choice(list(CostFunction)), amount=series(0, 20000))
+        FixedCostLine(name=f"f{i}", function=rng.choice(list(CostFunction)), amount=series(0, 20000),
+                      payment_delay_months=rng.randint(0, 3))
         for i in range(rng.randint(0, 3))
     ]
     assets = [

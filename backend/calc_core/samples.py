@@ -14,6 +14,7 @@ from .models import (
     InvestmentPlan,
     Loan,
     OperatingPlan,
+    PaymentTerms,
     Product,
     ProjectHeader,
     ProjectModel,
@@ -51,6 +52,12 @@ def build_sample_project() -> ProjectModel:
                     product_id="p1",
                     volume=[rub(100)] * n,
                     price=[rub("1000")] * n,
+                    # 30% предоплата за месяц до поставки, остаток — с отсрочкой 1 мес.
+                    payment=PaymentTerms(
+                        prepayment_share=rub("0.3"),
+                        advance_lead_months=1,
+                        payment_delay_months=1,
+                    ),
                 )
             ],
             direct_costs=[
@@ -58,6 +65,7 @@ def build_sample_project() -> ProjectModel:
                     name="Материалы",
                     kind=DirectCostKind.MATERIALS,
                     amount=[rub("40000")] * n,  # 400/ед × 100
+                    payment_delay_months=1,     # оплата поставщику с отсрочкой 1 мес.
                 ),
                 DirectCostLine(
                     name="Сдельная оплата",

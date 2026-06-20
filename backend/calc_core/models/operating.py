@@ -13,6 +13,19 @@ from pydantic import BaseModel, Field
 from .common import CostFunction, DirectCostKind
 
 
+class PaymentTerms(BaseModel):
+    """Условия оплаты продаж (SPEC §5).
+
+    Доля ``prepayment_share`` поступает предоплатой за ``advance_lead_months`` до поставки
+    (формирует авансы, B24). Остаток поступает через ``payment_delay_months`` после
+    поставки (формирует дебиторку, B2).
+    """
+
+    prepayment_share: Decimal = Field(default=Decimal(0), ge=0, le=1)
+    advance_lead_months: int = Field(default=0, ge=0)
+    payment_delay_months: int = Field(default=0, ge=0)
+
+
 class Product(BaseModel):
     id: str
     name: str
@@ -24,6 +37,7 @@ class SalesLine(BaseModel):
     product_id: str
     volume: list[Decimal] = Field(default_factory=list)  # натуральный объём по месяцам
     price: list[Decimal] = Field(default_factory=list)    # цена за единицу по месяцам
+    payment: PaymentTerms = PaymentTerms()
 
 
 class DirectCostLine(BaseModel):
@@ -32,6 +46,7 @@ class DirectCostLine(BaseModel):
     name: str
     kind: DirectCostKind = DirectCostKind.MATERIALS
     amount: list[Decimal] = Field(default_factory=list)
+    payment_delay_months: int = Field(default=0, ge=0)  # задержка оплаты → кредиторка (B23)
 
 
 class FixedCostLine(BaseModel):
@@ -40,6 +55,7 @@ class FixedCostLine(BaseModel):
     name: str
     function: CostFunction = CostFunction.ADMIN
     amount: list[Decimal] = Field(default_factory=list)
+    payment_delay_months: int = Field(default=0, ge=0)  # задержка оплаты → кредиторка (B23)
 
 
 class OperatingPlan(BaseModel):

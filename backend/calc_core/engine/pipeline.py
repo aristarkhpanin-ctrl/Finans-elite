@@ -1,11 +1,12 @@
-"""Конвейер расчёта v0 (см. CALC-ENGINE-SPEC.md §4).
+"""Конвейер расчёта (см. CALC-ENGINE-SPEC.md §4).
 
 Реализован согласованный (балансирующийся) срез функционала:
-сбыт (оплата = начисление), прямые/постоянные издержки, амортизация, налог на прибыль
-и имущество, займы (проценты + тело), акционерный капитал, дивиденды.
+сбыт и издержки с **условиями оплаты** (разрыв accrual/cash → дебиторка/кредиторка/
+авансы, §5.1a), амортизация, налог на прибыль и имущество, займы (проценты + тело),
+акционерный капитал, дивиденды.
 
-Эффекты оборотного капитала (дебиторка, запасы, НДС, авансы) и автоподбор добавляются
-в следующих фазах — каждый раз с сохранением балансового инварианта B20 = B34.
+Запасы и НДС добавляются следующими под-частями 5.1 — каждый раз с сохранением
+балансового инварианта B20 = B34.
 """
 from __future__ import annotations
 
@@ -21,6 +22,14 @@ from ..reports.statements import (
     build_profit_use,
 )
 from .errors import ModelError
+from .timing import cost_timing, sales_timing
+
+# Функции издержек, попадающие в «Общие издержки» (C5) и «Затраты на персонал» (C6).
+_STAFF_FUNCTIONS = {
+    CostFunction.STAFF_ADMIN,
+    CostFunction.STAFF_PRODUCTION,
+    CostFunction.STAFF_MARKETING,
+}
 
 
 def _pad(values: list[Decimal], n: int) -> list[Decimal]:
@@ -32,41 +41,63 @@ def _pad(values: list[Decimal], n: int) -> list[Decimal]:
     return out
 
 
-def _revenue(model: ProjectModel, n: int) -> list[Decimal]:
-    """Выручка (без НДС) = Σ объём·цена по продуктам, помесячно."""
-    rev = zeros(n)
+def _sales(model: ProjectModel, n: int):
+    """Сбыт → (I1 начисление, C1 деньги, B2 дебиторка, B24 авансы)."""
+    i1 = zeros(n)
+    c1 = zeros(n)
+    b2 = zeros(n)
+    b24 = zeros(n)
     for line in model.operating_plan.sales:
         vol = _pad(line.volume, n)
         price = _pad(line.price, n)
-        for t in range(n):
-            rev[t] += vol[t] * price[t]
-    return rev
+        revenue = [vol[t] * price[t] for t in range(n)]
+        cash, recv, adv = sales_timing(revenue, line.payment, n)
+        i1 = add(i1, revenue)
+        c1 = add(c1, cash)
+        b2 = add(b2, recv)
+        b24 = add(b24, adv)
+    return i1, c1, b2, b24
 
 
-def _direct_costs(model: ProjectModel, n: int) -> tuple[list[Decimal], list[Decimal]]:
-    """Прямые издержки → (материалы I5, сдельная зарплата I6)."""
-    materials = zeros(n)
-    wages = zeros(n)
+def _direct(model: ProjectModel, n: int):
+    """Прямые издержки → (I5, I6 начисление; C2, C3 деньги; кредиторка)."""
+    i5 = zeros(n)
+    i6 = zeros(n)
+    c2 = zeros(n)
+    c3 = zeros(n)
+    payables = zeros(n)
     for line in model.operating_plan.direct_costs:
         amt = _pad(line.amount, n)
-        target = materials if line.kind == DirectCostKind.MATERIALS else wages
-        for t in range(n):
-            target[t] += amt[t]
-    return materials, wages
+        cash, pay = cost_timing(amt, line.payment_delay_months, n)
+        payables = add(payables, pay)
+        if line.kind == DirectCostKind.MATERIALS:
+            i5 = add(i5, amt)
+            c2 = add(c2, cash)
+        else:
+            i6 = add(i6, amt)
+            c3 = add(c3, cash)
+    return i5, i6, c2, c3, payables
 
 
-def _fixed_costs(model: ProjectModel, n: int) -> dict[CostFunction, list[Decimal]]:
-    """Постоянные издержки, сгруппированные по функции (строки I10–I15)."""
+def _fixed(model: ProjectModel, n: int):
+    """Постоянные издержки → (группы начисления I10–I15; C5, C6 деньги; кредиторка)."""
     groups = {fn: zeros(n) for fn in CostFunction}
+    c5 = zeros(n)  # общие издержки
+    c6 = zeros(n)  # затраты на персонал
+    payables = zeros(n)
     for line in model.operating_plan.fixed_costs:
         amt = _pad(line.amount, n)
-        g = groups[line.function]
-        for t in range(n):
-            g[t] += amt[t]
-    return groups
+        cash, pay = cost_timing(amt, line.payment_delay_months, n)
+        groups[line.function] = add(groups[line.function], amt)
+        payables = add(payables, pay)
+        if line.function in _STAFF_FUNCTIONS:
+            c6 = add(c6, cash)
+        else:
+            c5 = add(c5, cash)
+    return groups, c5, c6, payables
 
 
-def _assets(model: ProjectModel, n: int) -> tuple[list[Decimal], list[Decimal]]:
+def _assets(model: ProjectModel, n: int):
     """Активы → (capex по месяцам, амортизация по месяцам)."""
     capex = zeros(n)
     dep = zeros(n)
@@ -81,29 +112,27 @@ def _assets(model: ProjectModel, n: int) -> tuple[list[Decimal], list[Decimal]]:
     return capex, dep
 
 
-def _loan_schedule(loan, n: int) -> tuple[list[Decimal], list[Decimal], list[Decimal]]:
+def _loan_schedule(loan, n: int):
     """График займа → (поступления, погашение тела, проценты), помесячно."""
     proceeds = zeros(n)
     principal = zeros(n)
     interest = zeros(n)
     m = loan.monthly_rate()
     s = loan.start_month
-    T = loan.term_months
+    term = loan.term_months
     bal = ZERO
-    if loan.repayment == RepaymentType.EQUAL_PRINCIPAL:
-        per = loan.amount / Decimal(T) if T > 0 else loan.amount
+    per = loan.amount / Decimal(term) if term > 0 else loan.amount
     for t in range(n):
-        interest[t] = bal * m                      # проценты на остаток на начало месяца
+        interest[t] = bal * m  # проценты на остаток на начало месяца
         if t == s:
             bal += loan.amount
             proceeds[t] = loan.amount
-        # погашение тела
         due = ZERO
         if loan.repayment == RepaymentType.EQUAL_PRINCIPAL:
-            if s < t <= s + T:
+            if s < t <= s + term:
                 due = per
         else:  # BULLET — весь возврат в конце срока
-            if t == s + T:
+            if t == s + term:
                 due = bal
         pay = min(due, bal)
         principal[t] = pay
@@ -133,13 +162,14 @@ def run_pipeline(model: ProjectModel):
 
     settings = model.settings
 
-    # --- производные ряды ---
-    revenue = _revenue(model, n)
-    materials, piece_wages = _direct_costs(model, n)
-    fixed = _fixed_costs(model, n)
-    capex, dep = _assets(model, n)
+    # --- операционный контур (accrual + cash + оборотный капитал) ---
+    i1, c1, b2, b24 = _sales(model, n)
+    i5, i6, c2, c3, pay_direct = _direct(model, n)
+    fixed, c5, c6, pay_fixed = _fixed(model, n)
+    b23 = add(pay_direct, pay_fixed)
 
-    # Основные средства: gross (B9), накопленная амортизация (B10), остаточная (B11=B14)
+    # --- инвестиции и амортизация ---
+    capex, dep = _assets(model, n)
     b9 = [sb.fixed_assets_net + c for c in cumulative(capex)]
     b10 = list(cumulative(dep))
     b11 = [b9[t] - b10[t] for t in range(n)]
@@ -148,7 +178,7 @@ def run_pipeline(model: ProjectModel):
     prop_monthly = settings.property_tax_rate / Decimal(12)
     i9 = [prop_monthly * b11[t] for t in range(n)]
 
-    # Займы (агрегировано по всем займам)
+    # --- займы ---
     loan_proceeds = zeros(n)
     loan_principal = zeros(n)
     loan_interest = zeros(n)
@@ -161,11 +191,11 @@ def run_pipeline(model: ProjectModel):
     equity_in = _equity(model, n)
     dividends = _pad(model.financing.dividends, n)
 
-    # --- Отчёт о прибылях и убытках ---
+    # --- Отчёт о прибылях и убытках (начисление) ---
     income_leaves = {
-        "I1": revenue,
-        "I5": materials,
-        "I6": piece_wages,
+        "I1": i1,
+        "I5": i5,
+        "I6": i6,
         "I9": i9,
         "I10": fixed[CostFunction.ADMIN],
         "I11": fixed[CostFunction.PRODUCTION],
@@ -179,27 +209,26 @@ def run_pipeline(model: ProjectModel):
     income = build_income(income_leaves, n, settings.profit_tax_rate)
 
     # --- Использование прибыли (нераспределённая прибыль = B32) ---
-    reserves = zeros(n)
     profit_use = build_profit_use(
         net_profit=income["I28"],
         dividends=dividends,
-        reserves=reserves,
+        reserves=zeros(n),
         opening_retained=sb.retained_earnings,
         n=n,
     )
     retained = profit_use["P7"]
 
-    # --- Кэш-фло ---
+    # --- Кэш-фло (оплата) ---
     c28 = zeros(n)
     if n > 0:
-        c28[0] = sb.cash  # опорное сальдо на начало
+        c28[0] = sb.cash
     taxes_cash = add(income["I27"], i9)  # налог на прибыль + имущество (v0: оплата в периоде)
     cashflow_leaves = {
-        "C1": revenue,
-        "C2": materials,
-        "C3": piece_wages,
-        "C5": add(fixed[CostFunction.ADMIN], fixed[CostFunction.PRODUCTION], fixed[CostFunction.MARKETING]),
-        "C6": add(fixed[CostFunction.STAFF_ADMIN], fixed[CostFunction.STAFF_PRODUCTION], fixed[CostFunction.STAFF_MARKETING]),
+        "C1": c1,
+        "C2": c2,
+        "C3": c3,
+        "C5": c5,
+        "C6": c6,
         "C12": taxes_cash,
         "C14": capex,
         "C21": equity_in,
@@ -216,9 +245,12 @@ def run_pipeline(model: ProjectModel):
     debt = [sb.debt + cumulative(loan_proceeds)[t] - cumulative(loan_principal)[t] for t in range(n)]
     balance_leaves = {
         "B1": cashflow["C29"],     # денежные средства = сальдо Кэш-фло
+        "B2": b2,                  # счета к получению (дебиторка)
         "B9": b9,
         "B10": b10,
         "B14": b11,                # остаточная стоимость → оборудование (v0)
+        "B23": b23,                # счета к оплате (кредиторка)
+        "B24": b24,                # полученные авансы
         "B26": debt,               # долгосрочные займы
         "B27": paid_in,            # обыкновенные акции
         "B32": retained,           # нераспределённая прибыль
