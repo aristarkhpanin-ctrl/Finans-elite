@@ -34,6 +34,19 @@ class EquityInjection(BaseModel):
     month: int = 0
 
 
+class AutoFinancing(BaseModel):
+    """Автоподбор финансирования: покрытие дефицита наличности кредитной линией.
+
+    Каждый период, если денег меньше ``min_balance``, привлекается заём до этого уровня;
+    при профиците задолженность гасится. Проценты влияют на прибыль и налог, поэтому
+    расчёт итеративный (см. SPEC §19).
+    """
+
+    enabled: bool = False
+    annual_rate: Decimal = Decimal("0.18")  # годовая ставка кредитной линии
+    min_balance: Decimal = Decimal("0")     # минимальный остаток денежных средств
+
+
 class Financing(BaseModel):
     loans: list[Loan] = Field(default_factory=list)
     equity: list[EquityInjection] = Field(default_factory=list)
@@ -41,3 +54,4 @@ class Financing(BaseModel):
     dividends: list[Decimal] = Field(default_factory=list)
     # Число обыкновенных акций (No) — для инвестиционных показателей «на акцию».
     common_shares: Decimal = Decimal(0)
+    auto_financing: AutoFinancing = AutoFinancing()

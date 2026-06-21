@@ -22,6 +22,7 @@ from ..reports.statements import (
     build_profit_use,
 )
 from .errors import ModelError
+from .financing_auto import AutoInjection
 from .inventory import finished_goods, purchase_schedule
 from .timing import cost_timing, sales_timing
 from .vat import settle_vat
@@ -204,10 +205,15 @@ def _equity(model: ProjectModel, n: int) -> list[Decimal]:
     return eq
 
 
-def run_pipeline(model: ProjectModel):
-    """Выполнить расчёт и вернуть (income, cashflow, balance, profit_use) Statement-ы."""
+def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
+    """Выполнить расчёт и вернуть (income, cashflow, balance, profit_use, warnings).
+
+    ``auto`` — инъекция автофинансирования (проценты в ОПУ и денежные потоки кредитной
+    линии); по умолчанию отсутствует.
+    """
     n = model.n
     sb = model.company.starting_balance
+    auto = auto or AutoInjection.zero(n)
 
     # Проверка сходимости стартового баланса (SPEC §16).
     if abs(sb.assets() - sb.liabilities_equity()) > Decimal("0.01"):
@@ -266,7 +272,7 @@ def run_pipeline(model: ProjectModel):
         "I14": fixed[CostFunction.STAFF_PRODUCTION],
         "I15": fixed[CostFunction.STAFF_MARKETING],
         "I17": dep,
-        "I18": loan_interest,
+        "I18": add(loan_interest, auto.pl_interest),
     }
     income = build_income(income_leaves, n, settings.profit_tax_rate)
 
@@ -299,9 +305,9 @@ def run_pipeline(model: ProjectModel):
         "C12": taxes_cash,
         "C14": capex_gross,
         "C21": equity_in,
-        "C22": loan_proceeds,
-        "C23": loan_principal,
-        "C24": loan_interest,
+        "C22": add(loan_proceeds, auto.cash_draws),
+        "C23": add(loan_principal, auto.cash_principal),
+        "C24": add(loan_interest, auto.cash_interest),
         "C26": dividends,
         "C28": c28,
     }
@@ -310,6 +316,10 @@ def run_pipeline(model: ProjectModel):
     # --- Баланс ---
     paid_in = [sb.paid_in_capital + e for e in cumulative(equity_in)]
     debt = [sb.debt + cumulative(loan_proceeds)[t] - cumulative(loan_principal)[t] for t in range(n)]
+    # Остаток кредитной линии автофинансирования → краткосрочные займы (B22)
+    auto_draws_cum = cumulative(auto.cash_draws)
+    auto_prin_cum = cumulative(auto.cash_principal)
+    auto_debt = [auto_draws_cum[t] - auto_prin_cum[t] for t in range(n)]
     balance_leaves = {
         "B1": cashflow["C29"],     # денежные средства = сальдо Кэш-фло
         "B2": b2,                  # счета к получению (дебиторка, с НДС)
@@ -319,6 +329,7 @@ def run_pipeline(model: ProjectModel):
         "B9": b9,
         "B10": b10,
         "B14": b11,                # остаточная стоимость → оборудование (v0)
+        "B22": auto_debt,          # краткосрочные займы (кредитная линия)
         "B23": b23,                # счета к оплате (кредиторка)
         "B24": b24,                # полученные авансы
         "B26": debt,               # долгосрочные займы

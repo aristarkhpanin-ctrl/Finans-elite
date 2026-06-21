@@ -13,6 +13,7 @@ import pytest
 from calc_core import run
 from calc_core.models import (
     Asset,
+    AutoFinancing,
     DirectCostLine,
     EquityInjection,
     Financing,
@@ -107,6 +108,11 @@ def _random_project(rng: random.Random) -> ProjectModel:
     ]
     dividends = [Decimal(rng.randint(0, 5000)) for _ in range(n)]
 
+    auto = AutoFinancing(
+        enabled=rng.random() < 0.5,
+        annual_rate=Decimal(rng.randint(0, 30)) / Decimal(100),
+        min_balance=Decimal(rng.randint(0, 5000)),
+    )
     return ProjectModel(
         header=ProjectHeader(duration_months=n),
         settings=ProjectSettings(
@@ -123,7 +129,7 @@ def _random_project(rng: random.Random) -> ProjectModel:
             fixed_costs=fixed,
         ),
         investment_plan=InvestmentPlan(assets=assets),
-        financing=Financing(loans=loans, equity=equity, dividends=dividends),
+        financing=Financing(loans=loans, equity=equity, dividends=dividends, auto_financing=auto),
     )
 
 

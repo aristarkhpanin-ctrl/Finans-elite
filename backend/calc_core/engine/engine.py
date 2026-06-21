@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from decimal import Decimal
 
 from ..metrics import (
     annual_to_monthly,
@@ -19,10 +20,15 @@ from ..models import ProjectModel
 from ..money import almost_equal
 from ..reports.ratios import compute_ratios
 from ..reports.result import CalcResult, InvestmentMetrics
-from ..series import add
+from ..series import add, zeros
 from ..version import ENGINE_VERSION
 from .errors import InvariantError
+from .financing_auto import AutoInjection, solve_credit_line
 from .pipeline import run_pipeline
+
+# Параметры сходимости автоподбора финансирования.
+_MAX_AUTOFIN_ITER = 100
+_AUTOFIN_EPS = Decimal("0.01")
 
 
 @dataclass
@@ -37,7 +43,7 @@ def run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
     options = options or CalcOptions()
     n = model.n
 
-    income, cashflow, balance, profit_use, warnings = run_pipeline(model)
+    income, cashflow, balance, profit_use, warnings = _solve(model)
 
     if options.check_invariants:
         _check_invariants(income, cashflow, balance, profit_use, n)
@@ -59,6 +65,40 @@ def run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
         ratios=ratios,
         warnings=warnings,
     )
+
+
+def _solve(model: ProjectModel):
+    """Расчёт с автоподбором финансирования (итеративно) либо без него."""
+    af = model.financing.auto_financing
+    if not af.enabled:
+        return run_pipeline(model)
+
+    n = model.n
+    opening_cash = model.company.starting_balance.cash
+    r = annual_to_monthly(af.annual_rate)
+
+    interest = zeros(n)
+    draws = zeros(n)
+    principal = zeros(n)
+    converged = False
+    for _ in range(_MAX_AUTOFIN_ITER):
+        # Прогон только с процентами в ОПУ (для налога), без денежных потоков автокредита.
+        probe = AutoInjection(interest, zeros(n), zeros(n), zeros(n))
+        _, cf, _, _, _ = run_pipeline(model, auto=probe)
+        base_flow = [cf["C13"][t] + cf["C20"][t] + cf["C27"][t] for t in range(n)]
+        draws, principal, new_interest = solve_credit_line(base_flow, opening_cash, af.min_balance, r)
+        if all(abs(new_interest[t] - interest[t]) <= _AUTOFIN_EPS for t in range(n)):
+            interest = new_interest
+            converged = True
+            break
+        interest = new_interest
+
+    # Финальный прогон: проценты в ОПУ и денежные потоки кредитной линии.
+    final = AutoInjection(interest, draws, principal, interest)
+    income, cashflow, balance, profit_use, warnings = run_pipeline(model, auto=final)
+    if not converged:
+        warnings = warnings + ["Автоподбор финансирования не сошёлся за отведённое число итераций"]
+    return income, cashflow, balance, profit_use, warnings
 
 
 def _check_invariants(income, cashflow, balance, profit_use, n: int) -> None:

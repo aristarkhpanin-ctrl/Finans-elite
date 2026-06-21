@@ -4,7 +4,7 @@ from __future__ import annotations
 from .common import CostFunction, DirectCostKind, RepaymentType
 from .company import Company, StartingBalance
 from .environment import Currency, Environment, InflationGroup, Tax
-from .financing import EquityInjection, Financing, Loan
+from .financing import AutoFinancing, EquityInjection, Financing, Loan
 from .investment import Asset, InvestmentPlan
 from .operating import (
     DirectCostLine,
@@ -41,5 +41,6 @@ __all__ = [
     "Financing",
     "Loan",
     "EquityInjection",
+    "AutoFinancing",
     "RepaymentType",
 ]
