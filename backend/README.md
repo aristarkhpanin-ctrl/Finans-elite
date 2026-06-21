@@ -69,7 +69,7 @@
   Кэш-фло и рассогласование (план − факт) в ответе `/calculate`.
 
 **Backend-контур функционально завершён.** Инфраструктура (шаг 8): ✅ 8.1 Alembic-миграции;
-⬜ 8.2 Docker/compose; ⬜ 8.3 CI. Затем фронтенд (React), деплой в РФ (архитектура §14).
+✅ 8.2 Docker/compose; ⬜ 8.3 CI. Затем фронтенд (React), деплой в РФ (архитектура §14).
 
 ### Тарифы и квоты (6.5a)
 | Тариф | Цена ₽/мес | Проекты | Участники |
@@ -194,3 +194,14 @@ alembic downgrade -1                            # откатить на шаг
 
 В dev/тестах таблицы создаются автоматически (`create_all`, идемпотентно); в продакшене
 перед запуском выполняется `alembic upgrade head`.
+
+## Docker
+
+`Dockerfile` собирает образ API (применяет миграции и запускает uvicorn);
+`docker-compose.yml` поднимает API + PostgreSQL. Переменные — см. `.env.example`.
+
+```bash
+cd backend
+cp .env.example .env          # заполнить секреты
+docker compose up --build     # API на :8000 (/docs), PostgreSQL на :5432
+```
