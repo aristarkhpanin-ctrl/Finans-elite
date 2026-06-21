@@ -18,6 +18,7 @@ from ..metrics import (
 )
 from ..models import ProjectModel
 from ..money import almost_equal
+from ..reports.actualization import actualize_cashflow
 from ..reports.breakeven import compute_break_even
 from ..reports.ratios import compute_ratios
 from ..reports.result import CalcResult, InvestmentMetrics
@@ -56,6 +57,14 @@ def run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
     )
     break_even = compute_break_even(income, n)
 
+    actualized_cashflow = None
+    cashflow_variance = None
+    act = model.actualization
+    if act.enabled:
+        actualized_cashflow, cashflow_variance = actualize_cashflow(
+            cashflow, act.actual_until, act.actuals, n,
+        )
+
     return CalcResult(
         engine_version=ENGINE_VERSION,
         n=n,
@@ -66,6 +75,8 @@ def run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
         metrics=metrics,
         ratios=ratios,
         break_even=break_even,
+        actualized_cashflow=actualized_cashflow,
+        cashflow_variance=cashflow_variance,
         warnings=warnings,
     )
 

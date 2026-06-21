@@ -9,6 +9,7 @@ from decimal import Decimal
 
 from pydantic import BaseModel, Field
 
+from .actualization import Actualization
 from .company import Company
 from .environment import Environment
 from .financing import Financing
@@ -44,6 +45,7 @@ class ProjectModel(BaseModel):
     investment_plan: InvestmentPlan = InvestmentPlan()
     operating_plan: OperatingPlan = OperatingPlan()
     financing: Financing = Financing()
+    actualization: Actualization = Actualization()
 
     @property
     def n(self) -> int:

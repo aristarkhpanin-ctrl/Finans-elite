@@ -56,6 +56,8 @@ class CalcResponse(BaseModel):
     metrics: MetricsOut
     ratios: RatiosOut
     break_even: BreakEvenOut
+    actualized_cashflow: Optional[StatementOut] = None
+    cashflow_variance: Optional[StatementOut] = None
     warnings: list[str]
 
 
@@ -261,5 +263,7 @@ def to_response(r: CalcResult) -> CalcResponse:
             break_even_revenue=r.break_even.break_even_revenue,
             margin_of_safety=r.break_even.margin_of_safety,
         ),
+        actualized_cashflow=_statement_out(r.actualized_cashflow) if r.actualized_cashflow else None,
+        cashflow_variance=_statement_out(r.cashflow_variance) if r.cashflow_variance else None,
         warnings=r.warnings,
     )

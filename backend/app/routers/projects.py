@@ -108,7 +108,7 @@ def calculate_project(project_id: str,
     project = _require(db, org_id, project_id)
     try:
         result = run(crud.load_model(project))
-    except ModelError as exc:
+    except (ModelError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return to_response(result)
 

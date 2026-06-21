@@ -50,8 +50,8 @@ def calculate(model: ProjectModel) -> CalcResponse:
     """Рассчитать проект: вернуть отчёты, показатели эффективности и коэффициенты."""
     try:
         result = run(model)
-    except ModelError as exc:
-        # Некорректные входные данные (например, несходящийся стартовый баланс).
+    except (ModelError, ValueError) as exc:
+        # Некорректные входные данные (несходящийся стартовый баланс, ошибка актуализации).
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return to_response(result)
 

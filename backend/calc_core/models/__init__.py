@@ -1,6 +1,7 @@
 """Типизированные модели входных данных проекта (Pydantic v2)."""
 from __future__ import annotations
 
+from .actualization import Actualization
 from .common import CostFunction, DirectCostKind, RepaymentType
 from .company import Company, StartingBalance
 from .environment import Currency, Environment, InflationGroup, Tax
@@ -43,4 +44,5 @@ __all__ = [
     "EquityInjection",
     "AutoFinancing",
     "RepaymentType",
+    "Actualization",
 ]
