@@ -15,12 +15,15 @@ from calc_core.models import (
     Company,
     Environment,
     Financing,
+    Loan,
     OperatingPlan,
     ProjectHeader,
     ProjectModel,
     ProjectSettings,
+    SalesLine,
     StartingBalance,
 )
+from calc_core.models.common import RepaymentType
 
 D = Decimal
 
@@ -71,6 +74,41 @@ def test_fx_gain_is_taxed_and_balance_holds():
     assert r.income["I27"] == [D(200)]                # налог на курсовую разницу
     assert r.income["I28"] == [D(800)]
     assert _balanced(r)
+
+
+def _loan_model(loan: Loan, fx_open: str, fx_rate, n: int) -> ProjectModel:
+    return ProjectModel(
+        header=ProjectHeader(name="loan-fx", start_date=date(2026, 1, 1), duration_months=n),
+        settings=ProjectSettings(discount_rate_annual=D("0"), profit_tax_rate=D("0"),
+                                 property_tax_rate=D("0"), vat_rate=D("0")),
+        environment=Environment(fx_open=D(fx_open), fx_rate=[D(x) for x in fx_rate]),
+        financing=Financing(loans=[loan], common_shares=D(100)),
+    )
+
+
+def test_foreign_loan_revaluation_is_a_loss_when_rate_rises():
+    """Валютный заём 100 ед.: курс 60→70 → долг в основной валюте растёт 6000→7000,
+    курсовая разница −1000 (убыток), баланс сходится."""
+    loan = Loan(name="Валютный", amount=D(100), start_month=0, term_months=12,
+                annual_rate=D("0"), repayment=RepaymentType.BULLET, foreign=True)
+    r = run(_loan_model(loan, fx_open="60", fx_rate=["60", "70"], n=2))
+    assert r.cashflow["C22"] == [D(6000), D(0)]       # поступление 100×60
+    assert r.balance["B26"] == [D(6000), D(7000)]     # долг переоценён по курсу
+    assert r.income["I25"] == [D(0), D(-1000)]        # курсовой убыток на остаток
+    assert r.balance["B1"] == [D(6000), D(6000)]      # деньги не двигались
+    assert _balanced(r)
+
+
+def test_foreign_loan_at_unit_fx_equals_base_loan():
+    """Валютный заём при курсе ≡1 тождественен обычному займу (проверка машинерии)."""
+    n = 6
+    common = dict(amount=D(50000), start_month=0, term_months=6, annual_rate=D("0.15"))
+    rf = run(_loan_model(Loan(name="f", foreign=True, **common), "1", ["1"] * n, n))
+    rb = run(_loan_model(Loan(name="b", foreign=False, **common), "1", ["1"] * n, n))
+    for line in ("I18", "I25"):
+        assert rf.income[line] == rb.income[line]
+    assert rf.balance["B26"] == rb.balance["B26"]
+    assert rf.cashflow["C24"] == rb.cashflow["C24"]   # проценты одинаковы
 
 
 def test_no_fx_rate_means_no_revaluation():

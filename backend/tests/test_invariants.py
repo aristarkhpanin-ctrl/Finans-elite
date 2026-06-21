@@ -109,6 +109,7 @@ def _random_project(rng: random.Random) -> ProjectModel:
             annual_rate=Decimal(rng.randint(0, 30)) / Decimal(100),
             repayment=rng.choice(list(RepaymentType)),
             interest_on_profit=rng.random() < 0.3,
+            foreign=rng.random() < 0.3,
         )
         for i in range(rng.randint(0, 2))
     ]

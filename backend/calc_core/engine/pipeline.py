@@ -13,7 +13,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from ..models import CostFunction, DirectCostKind, ProjectModel, RepaymentType, VatBasis
-from ..money import D, ZERO
+from ..money import D, ONE, ZERO
 from ..series import add, cumulative, zeros
 from ..reports.statements import (
     build_balance,
@@ -219,6 +219,46 @@ def _loan_schedule(loan, n: int):
     return proceeds, principal, interest
 
 
+def _loans(model: ProjectModel, n: int, fx: list[Decimal], fx_prev: list[Decimal]):
+    """Займы (основные и валютные) → потоки в основной валюте + переоценка долга.
+
+    Для валютного займа график (поступление, тело, проценты) считается в валюте займа и
+    пересчитывается в основную по ``fx[t]``; остаток долга = ``остаток_валюте · fx[t]``,
+    а его курсовая переоценка (на остаток начала периода) идёт в ``I25`` (рост курса →
+    убыток). Возвращает кортеж рядов в основной валюте.
+    """
+    proceeds = zeros(n)
+    principal = zeros(n)
+    interest_all = zeros(n)       # → C24 (касса)
+    interest_cost = zeros(n)      # → I18 (вычитаемые)
+    interest_profit = zeros(n)    # → I24 (невычитаемые)
+    debt = zeros(n)               # → B26 (вклад займов в долг, в основной валюте)
+    reval = zeros(n)              # → I25 (курсовая разница по долгу)
+    ones = [ONE] * n
+    for loan in model.financing.loans:
+        pr_f, pp_f, ii_f = _loan_schedule(loan, n)            # в валюте займа
+        rate, rate_prev = (fx, fx_prev) if loan.foreign else (ones, ones)
+        bal_f = cumulative([pr_f[t] - pp_f[t] for t in range(n)])  # остаток на конец периода
+        pr_b = [pr_f[t] * rate[t] for t in range(n)]
+        pp_b = [pp_f[t] * rate[t] for t in range(n)]
+        ii_b = [ii_f[t] * rate[t] for t in range(n)]
+        debt_b = [bal_f[t] * rate[t] for t in range(n)]
+        rev = zeros(n)
+        for t in range(n):
+            bal_start = bal_f[t - 1] if t > 0 else ZERO       # остаток на начало периода
+            rev[t] = -bal_start * (rate[t] - rate_prev[t])    # рост курса долга → убыток
+        proceeds = add(proceeds, pr_b)
+        principal = add(principal, pp_b)
+        interest_all = add(interest_all, ii_b)
+        if loan.interest_on_profit:
+            interest_profit = add(interest_profit, ii_b)
+        else:
+            interest_cost = add(interest_cost, ii_b)
+        debt = add(debt, debt_b)
+        reval = add(reval, rev)
+    return proceeds, principal, interest_all, interest_cost, interest_profit, debt, reval
+
+
 def _equity(model: ProjectModel, n: int) -> list[Decimal]:
     eq = zeros(n)
     for inj in model.financing.equity:
@@ -298,21 +338,9 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     prop_monthly = settings.property_tax_rate / Decimal(12)
     i9 = [prop_monthly * b11[t] for t in range(n)]
 
-    # --- займы ---
-    loan_proceeds = zeros(n)
-    loan_principal = zeros(n)
-    loan_interest = zeros(n)          # все проценты (денежная выплата, C24)
-    loan_interest_cost = zeros(n)     # проценты на себестоимость → I18 (вычитаемые)
-    loan_interest_profit = zeros(n)   # проценты за счёт прибыли → I24 (невычитаемые)
-    for loan in model.financing.loans:
-        pr, pp, ii = _loan_schedule(loan, n)
-        loan_proceeds = add(loan_proceeds, pr)
-        loan_principal = add(loan_principal, pp)
-        loan_interest = add(loan_interest, ii)
-        if loan.interest_on_profit:
-            loan_interest_profit = add(loan_interest_profit, ii)
-        else:
-            loan_interest_cost = add(loan_interest_cost, ii)
+    # --- займы (основные и валютные; валютные переоцениваются → I25) ---
+    (loan_proceeds, loan_principal, loan_interest, loan_interest_cost,
+     loan_interest_profit, loan_debt, loan_reval) = _loans(model, n, fx, fx_prev)
 
     equity_in = _equity(model, n)
     dividends = _pad(model.financing.dividends, n)
@@ -332,7 +360,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "I17": dep,
         "I18": add(loan_interest_cost, auto.pl_interest),
         "I24": add(i24_fixed, loan_interest_profit),
-        "I25": i25_fx,
+        "I25": add(i25_fx, loan_reval),
     }
     income = build_income(
         income_leaves, n, settings.profit_tax_rate, settings.profit_tax_benefit_share)
@@ -398,7 +426,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
 
     # --- Баланс ---
     paid_in = [sb.paid_in_capital + e for e in cumulative(equity_in)]
-    debt = [sb.debt + cumulative(loan_proceeds)[t] - cumulative(loan_principal)[t] for t in range(n)]
+    debt = [sb.debt + loan_debt[t] for t in range(n)]  # вклад займов в долг (валютные — по FX)
     # Остаток кредитной линии автофинансирования → краткосрочные займы (B22)
     auto_draws_cum = cumulative(auto.cash_draws)
     auto_prin_cum = cumulative(auto.cash_principal)

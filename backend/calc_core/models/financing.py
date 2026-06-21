@@ -23,6 +23,9 @@ class Loan(BaseModel):
     repayment: RepaymentType = RepaymentType.EQUAL_PRINCIPAL
     # Проценты «на прибыль» (невычитаемые): идут в I24, а не в I18 (см. SPEC §12, §22.1).
     interest_on_profit: bool = False
+    # Заём во 2-й валюте: сумма/проценты/тело в валюте, пересчёт по FX[t]; долг
+    # переоценивается → курсовая разница I25 (SPEC §22.3). По умолчанию — основная валюта.
+    foreign: bool = False
 
     def monthly_rate(self) -> Decimal:
         # эквивалентная месячная ставка: (1+R)^(1/12) - 1
