@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from decimal import Decimal
 
+from .breakeven import BreakEven
 from .ratios import FinancialRatios
 from .statements import Statement
 
@@ -31,4 +32,5 @@ class CalcResult:
     profit_use: Statement
     metrics: InvestmentMetrics = field(default_factory=InvestmentMetrics)
     ratios: FinancialRatios = field(default_factory=FinancialRatios)
+    break_even: BreakEven = field(default_factory=BreakEven)
     warnings: list[str] = field(default_factory=list)

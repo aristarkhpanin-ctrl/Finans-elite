@@ -41,6 +41,11 @@ class RatiosOut(BaseModel):
     investment: dict[str, list[Optional[Decimal]]]
 
 
+class BreakEvenOut(BaseModel):
+    break_even_revenue: list[Optional[Decimal]]
+    margin_of_safety: list[Optional[Decimal]]
+
+
 class CalcResponse(BaseModel):
     engine_version: str
     n: int
@@ -50,6 +55,7 @@ class CalcResponse(BaseModel):
     profit_use: StatementOut
     metrics: MetricsOut
     ratios: RatiosOut
+    break_even: BreakEvenOut
     warnings: list[str]
 
 
@@ -197,6 +203,10 @@ def to_response(r: CalcResult) -> CalcResponse:
             gearing=r.ratios.gearing,
             profitability=r.ratios.profitability,
             investment=r.ratios.investment,
+        ),
+        break_even=BreakEvenOut(
+            break_even_revenue=r.break_even.break_even_revenue,
+            margin_of_safety=r.break_even.margin_of_safety,
         ),
         warnings=r.warnings,
     )

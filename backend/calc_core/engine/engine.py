@@ -18,6 +18,7 @@ from ..metrics import (
 )
 from ..models import ProjectModel
 from ..money import almost_equal
+from ..reports.breakeven import compute_break_even
 from ..reports.ratios import compute_ratios
 from ..reports.result import CalcResult, InvestmentMetrics
 from ..series import add, zeros
@@ -53,6 +54,7 @@ def run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
         income, cashflow, balance, profit_use,
         model.financing.common_shares, n,
     )
+    break_even = compute_break_even(income, n)
 
     return CalcResult(
         engine_version=ENGINE_VERSION,
@@ -63,6 +65,7 @@ def run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
         profit_use=profit_use,
         metrics=metrics,
         ratios=ratios,
+        break_even=break_even,
         warnings=warnings,
     )
 
