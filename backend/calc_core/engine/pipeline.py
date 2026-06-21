@@ -252,8 +252,8 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     tp, tq = _volumes(model, n)
     mc, wc, c2, c3, b3, pay_direct, vat_in_mat, vat_in_paid_mat = _materials_and_wages(
         model, n, vat_rate)
-    # Готовая продукция: себестоимость (I5, I6) признаётся при продаже (SPEC §6)
-    i5, i6, b5, inv_warnings = finished_goods(tp, tq, mc, wc, n)
+    # Готовая продукция: себестоимость (I5, I6) признаётся при продаже (SPEC §6, §22.8)
+    i5, i6, b5, inv_warnings = finished_goods(tp, tq, mc, wc, n, settings.inventory_method)
     fixed, c5, c6, pay_fixed, vat_in_fixed, i24_fixed, vat_in_paid_fixed = _fixed(
         model, n, vat_rate)
     b23 = add(pay_direct, pay_fixed)

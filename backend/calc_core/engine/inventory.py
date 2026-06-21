@@ -8,13 +8,18 @@
 - сырьё:  ``B3 = cumulative(закупки) − cumulative(потребление)``;
 - готовая продукция: ``B5 = cumulative(производств. себестоимость) − cumulative(COGS)``.
 
+Оценка себестоимости ГП (SPEC §22.8): **средняя** (пул) либо **ФИФО** (по партиям выпуска).
+Оба метода сохраняют тождество выше (различается лишь распределение стоимости между
+себестоимостью проданного и остатком запаса), поэтому баланс сходится при любом методе.
+
 НЗП (B4) — отдельная под-часть (требует модели длительности производственного цикла) —
-пока не моделируется.
+пока не моделируется (Фаза B).
 """
 from __future__ import annotations
 
 from decimal import Decimal
 
+from ..models.common import InventoryMethod
 from ..money import ZERO
 from ..series import zeros
 
@@ -40,13 +45,22 @@ def purchase_schedule(consumption: list[Decimal], stock_lead: int, n: int):
 
 
 def finished_goods(produced_units: list[Decimal], sold_units: list[Decimal],
-                   materials_value: list[Decimal], wages_value: list[Decimal], n: int):
-    """Запас готовой продукции по средней себестоимости (агрегированный пул).
+                   materials_value: list[Decimal], wages_value: list[Decimal], n: int,
+                   method: InventoryMethod = InventoryMethod.AVERAGE):
+    """Запас готовой продукции: средняя себестоимость или ФИФО (SPEC §6, §22.8).
 
-    Стоимость производства (материалы + сдельная зарплата) поступает в пул при
-    производстве; при продаже признаётся себестоимость (COGS) пропорционально проданной
-    доле. Возвращает ``(cogs_materials, cogs_wages, b5, warnings)``.
+    Стоимость производства (материалы + сдельная зарплата) капитализуется при выпуске;
+    при продаже признаётся себестоимость (COGS). Возвращает
+    ``(cogs_materials, cogs_wages, b5, warnings)``.
     """
+    if method == InventoryMethod.FIFO:
+        return _finished_goods_fifo(produced_units, sold_units, materials_value, wages_value, n)
+    return _finished_goods_average(produced_units, sold_units, materials_value, wages_value, n)
+
+
+def _finished_goods_average(produced_units: list[Decimal], sold_units: list[Decimal],
+                            materials_value: list[Decimal], wages_value: list[Decimal], n: int):
+    """Средняя себестоимость (агрегированный пул): COGS пропорционально проданной доле."""
     cogs_m = zeros(n)
     cogs_w = zeros(n)
     b5 = zeros(n)
@@ -87,5 +101,55 @@ def finished_goods(produced_units: list[Decimal], sold_units: list[Decimal],
         vw -= cw
         units -= sold
         b5[t] = vm + vw
+
+    return cogs_m, cogs_w, b5, warnings
+
+
+def _finished_goods_fifo(produced_units: list[Decimal], sold_units: list[Decimal],
+                         materials_value: list[Decimal], wages_value: list[Decimal], n: int):
+    """ФИФО: продажи списывают самые ранние партии выпуска.
+
+    Каждый выпуск — партия ``[единицы, стоимость материалов, стоимость зарплаты]``. При
+    продаже партии расходуются с начала очереди (старейшие); внутри частично списанной
+    партии стоимость уменьшается пропорционально доле списанных единиц. Стоимость
+    производства без выпуска единиц признаётся себестоимостью сразу (как в средней).
+    """
+    cogs_m = zeros(n)
+    cogs_w = zeros(n)
+    b5 = zeros(n)
+    warnings: list[str] = []
+    layers: list[list[Decimal]] = []  # очередь партий [единицы, мат., зп], старейшие в начале
+
+    for t in range(n):
+        if produced_units[t] > 0:
+            layers.append([produced_units[t], materials_value[t], wages_value[t]])
+        else:
+            # стоимость без выпуска единиц → сразу в себестоимость (не оседает в запасе)
+            cogs_m[t] += materials_value[t]
+            cogs_w[t] += wages_value[t]
+
+        sold = sold_units[t]
+        if sold < 0:
+            sold = ZERO
+        available = sum((layer[0] for layer in layers), ZERO)
+        if sold > available:
+            warnings.append(f"Период {t}: продажи ({sold}) превышают доступный запас ({available})")
+            sold = available
+
+        remaining = sold
+        while remaining > 0 and layers:
+            lu, lm, lw = layers[0]
+            take = lu if remaining >= lu else remaining
+            frac = take / lu if lu > 0 else ZERO
+            cm, cw = lm * frac, lw * frac
+            cogs_m[t] += cm
+            cogs_w[t] += cw
+            if take >= lu:
+                layers.pop(0)
+            else:
+                layers[0] = [lu - take, lm - cm, lw - cw]
+            remaining -= take
+
+        b5[t] = sum((layer[1] + layer[2] for layer in layers), ZERO)
 
     return cogs_m, cogs_w, b5, warnings

@@ -10,7 +10,7 @@ from decimal import Decimal
 from pydantic import BaseModel, Field
 
 from .actualization import Actualization
-from .common import VatBasis
+from .common import InventoryMethod, VatBasis
 from .company import Company
 from .environment import Environment
 from .financing import Financing
@@ -36,6 +36,7 @@ class ProjectSettings(BaseModel):
     property_tax_rate: Decimal = Decimal("0")         # налог на имущество (база — B11)
     vat_rate: Decimal = Decimal("0")                  # ставка НДС (0 = НДС выключен)
     vat_basis: VatBasis = VatBasis.SHIPMENT           # момент признания НДС (SPEC §22.2)
+    inventory_method: InventoryMethod = InventoryMethod.AVERAGE  # оценка ГП (SPEC §22.8)
     min_cash_balance: Decimal = Decimal("0")          # мин. остаток (для автоподбора, далее)
 
 

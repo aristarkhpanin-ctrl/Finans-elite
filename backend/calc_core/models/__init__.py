@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from .actualization import Actualization
-from .common import CostFunction, DirectCostKind, RepaymentType, VatBasis
+from .common import CostFunction, DirectCostKind, InventoryMethod, RepaymentType, VatBasis
 from .company import Company, StartingBalance
 from .environment import Currency, Environment, InflationGroup, Tax
 from .financing import AutoFinancing, EquityInjection, Financing, Loan
@@ -40,6 +40,7 @@ __all__ = [
     "CostFunction",
     "DirectCostKind",
     "VatBasis",
+    "InventoryMethod",
     "Financing",
     "Loan",
     "EquityInjection",

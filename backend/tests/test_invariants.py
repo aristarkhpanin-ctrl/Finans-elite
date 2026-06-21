@@ -29,7 +29,13 @@ from calc_core.models import (
     ProjectSettings,
     SalesLine,
 )
-from calc_core.models.common import CostFunction, DirectCostKind, RepaymentType, VatBasis
+from calc_core.models.common import (
+    CostFunction,
+    DirectCostKind,
+    InventoryMethod,
+    RepaymentType,
+    VatBasis,
+)
 from calc_core.samples import build_sample_project
 
 EPS = Decimal("0.01")
@@ -123,6 +129,7 @@ def _random_project(rng: random.Random) -> ProjectModel:
             property_tax_rate=Decimal(rng.randint(0, 3)) / Decimal(100),
             vat_rate=rng.choice([Decimal(0), Decimal("0.10"), Decimal("0.20")]),
             vat_basis=rng.choice(list(VatBasis)),
+            inventory_method=rng.choice(list(InventoryMethod)),
         ),
         operating_plan=OperatingPlan(
             products=[Product(id=s.product_id, name=s.product_id) for s in sales],

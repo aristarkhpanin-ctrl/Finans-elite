@@ -1,10 +1,25 @@
 """Тесты запасов (5.1b): сырьё (B3) и готовая продукция (B5)."""
+from datetime import date
 from decimal import Decimal
 
 from calc_core import run
 from calc_core.engine.inventory import finished_goods, purchase_schedule
+from calc_core.models import (
+    DirectCostLine,
+    InventoryMethod,
+    OperatingPlan,
+    ProductionLine,
+    Product,
+    ProjectHeader,
+    ProjectModel,
+    ProjectSettings,
+    SalesLine,
+)
+from calc_core.models.common import DirectCostKind
 from calc_core.samples import build_sample_project
 from calc_core.series import cumulative, sub
+
+D = Decimal
 
 
 def test_purchase_schedule_lead():
@@ -72,3 +87,44 @@ def test_sample_has_inventory_and_sells_out():
     assert any(v != 0 for v in r.balance["B5"])  # готовая продукция
     # к концу горизонта всё произведённое продано (производство = сбыт суммарно)
     assert r.balance["B5"][r.n - 1] == Decimal(0)
+
+
+def test_fifo_vs_average_with_changing_cost():
+    """Партии с разной себестоимостью: ФИФО списывает раннюю, средняя — усредняет."""
+    args = dict(produced_units=[D(10), D(10), D(0)], sold_units=[D(0), D(10), D(10)],
+                materials_value=[D(100), D(200), D(0)], wages_value=[D(0), D(0), D(0)], n=3)
+    cm_f, _, b5_f, _ = finished_goods(**args, method=InventoryMethod.FIFO)
+    cm_a, _, b5_a, _ = finished_goods(**args, method=InventoryMethod.AVERAGE)
+    assert cm_f == [D(0), D(100), D(200)]    # ФИФО: сначала ранняя (дешёвая) партия
+    assert cm_a == [D(0), D(150), D(150)]    # средняя себестоимость
+    assert b5_f == [D(100), D(200), D(0)]    # t0: партия 100 ещё на складе
+    # тождество запаса B5 = cum(стоимость) − cum(COGS) сохраняется для ФИФО
+    assert b5_f == sub(cumulative([D(100), D(200), D(0)]), cumulative(cm_f))
+
+
+def _inv_method_project(method: InventoryMethod) -> ProjectModel:
+    """Выпуск 10/10/0 при себестоимости 100/200/0; продажи 0/10/10 (запас между периодами)."""
+    n = 3
+    return ProjectModel(
+        header=ProjectHeader(name="inv", start_date=date(2026, 1, 1), duration_months=n),
+        settings=ProjectSettings(profit_tax_rate=D("0"), vat_rate=D("0"),
+                                 inventory_method=method),
+        operating_plan=OperatingPlan(
+            products=[Product(id="p1", name="Изделие")],
+            sales=[SalesLine(product_id="p1", volume=[D(0), D(10), D(10)],
+                             price=[D(100), D(100), D(100)])],
+            production=[ProductionLine(product_id="p1", volume=[D(10), D(10), D(0)])],
+            direct_costs=[DirectCostLine(name="мат", kind=DirectCostKind.MATERIALS,
+                                         amount=[D(100), D(200), D(0)])],
+        ),
+    )
+
+
+def test_engine_inventory_method_changes_cogs_keeps_balance():
+    rf = run(_inv_method_project(InventoryMethod.FIFO))
+    ra = run(_inv_method_project(InventoryMethod.AVERAGE))
+    assert rf.income["I5"] == [D(0), D(100), D(200)]    # ФИФО
+    assert ra.income["I5"] == [D(0), D(150), D(150)]    # средняя
+    for r in (rf, ra):
+        for t in range(r.n):
+            assert abs(r.balance["B20"][t] - r.balance["B34"][t]) <= Decimal("0.01")
