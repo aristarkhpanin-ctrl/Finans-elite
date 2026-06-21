@@ -43,13 +43,14 @@ class Organization(Base):
 
 
 class User(Base):
-    """Пользователь. Поля аутентификации (пароль) добавляются в 6.3."""
+    """Пользователь. ``hashed_password`` отсутствует у приглашённых (без входа) до активации."""
 
     __tablename__ = "users"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True, nullable=False)
     full_name: Mapped[str] = mapped_column(String(255), default="")
+    hashed_password: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 

@@ -101,6 +101,31 @@ class MemberOut(BaseModel):
     role: str
 
 
+# --- Аутентификация (6.3) ---
+
+class RegisterRequest(BaseModel):
+    email: str
+    password: str
+    full_name: str = ""
+    organization_name: str
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class UserOut(BaseModel):
+    id: str
+    email: str
+    full_name: str
+
+
 def _statement_out(s: Statement) -> StatementOut:
     return StatementOut(
         lines=[LineOut(code=code, label=s.labels[code], values=s[code]) for code in s.order]

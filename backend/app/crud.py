@@ -28,35 +28,67 @@ def get_organization(db: Session, org_id: str) -> Organization | None:
 
 # --- Пользователи и членство ---
 
+def get_user(db: Session, user_id: str) -> User | None:
+    return db.get(User, user_id)
+
+
 def get_user_by_email(db: Session, email: str) -> User | None:
     return db.scalar(select(User).where(User.email == email))
+
+
+def create_user(db: Session, email: str, full_name: str = "",
+                hashed_password: str | None = None) -> User:
+    user = User(email=email, full_name=full_name, hashed_password=hashed_password)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
 
 
 def get_or_create_user(db: Session, email: str, full_name: str = "") -> User:
     user = get_user_by_email(db, email)
     if user is None:
-        user = User(email=email, full_name=full_name)
-        db.add(user)
-        db.commit()
-        db.refresh(user)
+        user = create_user(db, email, full_name)
     return user
+
+
+def add_membership(db: Session, org_id: str, user_id: str, role: str = "owner") -> Membership:
+    existing = db.scalar(
+        select(Membership).where(
+            Membership.organization_id == org_id, Membership.user_id == user_id
+        )
+    )
+    if existing is not None:
+        return existing
+    membership = Membership(organization_id=org_id, user_id=user_id, role=role)
+    db.add(membership)
+    db.commit()
+    db.refresh(membership)
+    return membership
 
 
 def add_member(db: Session, org_id: str, email: str, full_name: str = "",
                role: str = "owner") -> Membership:
     user = get_or_create_user(db, email, full_name)
-    existing = db.scalar(
-        select(Membership).where(
-            Membership.organization_id == org_id, Membership.user_id == user.id
+    return add_membership(db, org_id, user.id, role)
+
+
+def list_user_memberships(db: Session, user_id: str) -> list[Membership]:
+    return list(
+        db.scalars(
+            select(Membership)
+            .where(Membership.user_id == user_id)
+            .order_by(Membership.created_at)
         )
     )
-    if existing is not None:
-        return existing
-    membership = Membership(organization_id=org_id, user_id=user.id, role=role)
-    db.add(membership)
-    db.commit()
-    db.refresh(membership)
-    return membership
+
+
+def is_member(db: Session, org_id: str, user_id: str) -> bool:
+    return db.scalar(
+        select(Membership).where(
+            Membership.organization_id == org_id, Membership.user_id == user_id
+        )
+    ) is not None
 
 
 def list_members(db: Session, org_id: str) -> list[tuple[Membership, User]]:

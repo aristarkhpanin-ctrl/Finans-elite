@@ -34,7 +34,18 @@ def client():
 
 
 @pytest.fixture
-def org_headers(client):
-    """Создать организацию и вернуть заголовок арендатора."""
-    org = client.post("/api/v1/organizations", json={"name": "Орг"}).json()
-    return {"X-Organization-Id": org["id"]}
+def register(client):
+    """Фабрика: зарегистрировать пользователя (создаёт организацию) → заголовки Bearer."""
+    def _register(email: str = "owner@e.ru", org: str = "Орг") -> dict:
+        token = client.post("/api/v1/auth/register", json={
+            "email": email, "password": "secret123", "full_name": "Владелец",
+            "organization_name": org,
+        }).json()["access_token"]
+        return {"Authorization": f"Bearer {token}"}
+    return _register
+
+
+@pytest.fixture
+def auth_headers(register):
+    """Заголовки авторизации владельца новой организации."""
+    return register()
