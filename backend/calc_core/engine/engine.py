@@ -10,7 +10,7 @@ from decimal import Decimal
 
 from ..metrics import annual_to_monthly
 from ..models import ProjectModel
-from ..money import almost_equal
+from ..money import ONE, ZERO, almost_equal
 from ..reports.actualization import actualize_cashflow
 from ..reports.breakeven import compute_break_even
 from ..reports.ratios import compute_ratios
@@ -80,7 +80,14 @@ def run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
 
 
 def _solve(model: ProjectModel):
-    """Расчёт с автоподбором финансирования (итеративно) либо без него."""
+    """Расчёт с автоподбором финансирования (итеративно) либо без него.
+
+    Замкнутый контур «проценты → прибыль → налог → деньги → привлечение → проценты»
+    решается методом простой итерации с **адаптивным демпфированием** (SPEC §19/§22.5):
+    обычно шаг полный (быстрая сходимость сильной обратной связи через налог), но если
+    невязка перестаёт убывать — шаг уменьшается вдвое (защита от колебаний/расходимости).
+    Демпфирование не меняет неподвижную точку — только путь к ней.
+    """
     af = model.financing.auto_financing
     if not af.enabled:
         return run_pipeline(model)
@@ -92,18 +99,26 @@ def _solve(model: ProjectModel):
     interest = zeros(n)
     draws = zeros(n)
     principal = zeros(n)
+    damping = ONE              # шаг релаксации
+    prev_residual = None
     converged = False
     for _ in range(_MAX_AUTOFIN_ITER):
         # Прогон только с процентами в ОПУ (для налога), без денежных потоков автокредита.
         probe = AutoInjection(interest, zeros(n), zeros(n), zeros(n))
         _, cf, _, _, _ = run_pipeline(model, auto=probe)
         base_flow = [cf["C13"][t] + cf["C20"][t] + cf["C27"][t] for t in range(n)]
-        draws, principal, new_interest = solve_credit_line(base_flow, opening_cash, af.min_balance, r)
-        if all(abs(new_interest[t] - interest[t]) <= _AUTOFIN_EPS for t in range(n)):
-            interest = new_interest
+        draws, principal, target = solve_credit_line(base_flow, opening_cash, af.min_balance, r)
+
+        residual = max((abs(target[t] - interest[t]) for t in range(n)), default=ZERO)
+        if residual <= _AUTOFIN_EPS:
+            interest = target
             converged = True
             break
-        interest = new_interest
+        # Если невязка не убывает — демпфируем шаг (защита от расходимости).
+        if prev_residual is not None and residual >= prev_residual:
+            damping = damping / Decimal(2)
+        prev_residual = residual
+        interest = [interest[t] + damping * (target[t] - interest[t]) for t in range(n)]
 
     # Финальный прогон: проценты в ОПУ и денежные потоки кредитной линии.
     final = AutoInjection(interest, draws, principal, interest)

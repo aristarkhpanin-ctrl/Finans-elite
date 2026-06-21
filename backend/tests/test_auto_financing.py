@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from calc_core import run
 from calc_core.engine.financing_auto import solve_credit_line
+from calc_core.metrics import annual_to_monthly
 from calc_core.models import (
     AutoFinancing,
     DirectCostLine,
@@ -39,7 +40,7 @@ def test_solve_credit_line_no_deficit_no_draws():
     assert interest == [Decimal(0), Decimal(0)]
 
 
-def _deficit_project(auto: bool, min_balance: str = "0") -> ProjectModel:
+def _deficit_project(auto: bool, min_balance: str = "0", annual_rate: str = "0.18") -> ProjectModel:
     n = 12
     return ProjectModel(
         header=ProjectHeader(duration_months=n),
@@ -55,7 +56,7 @@ def _deficit_project(auto: bool, min_balance: str = "0") -> ProjectModel:
                                        amount=[Decimal(30000)] * n)],
         ),
         financing=Financing(auto_financing=AutoFinancing(
-            enabled=auto, annual_rate=Decimal("0.18"), min_balance=Decimal(min_balance))),
+            enabled=auto, annual_rate=Decimal(annual_rate), min_balance=Decimal(min_balance))),
     )
 
 
@@ -86,3 +87,35 @@ def test_auto_financing_generates_interest_and_short_term_debt():
 def test_auto_financing_converges_no_warning():
     r = run(_deficit_project(auto=True))
     assert not any("не сошёлся" in w for w in r.warnings)
+
+
+def test_solve_credit_line_draws_cover_accruing_interest():
+    # Постоянный долг + ставка: проценты на растущий остаток покрываются доп. привлечением
+    # (правило «сумма займа с учётом будущих процентов», SPEC §22.5).
+    draws, principal, interest = solve_credit_line(
+        [Decimal(-100), Decimal(0), Decimal(0)], Decimal(0), Decimal(0), Decimal("0.10")
+    )
+    assert draws[0] == Decimal(100)
+    assert interest[1] == Decimal(10)    # 100 × 10%
+    assert draws[1] == Decimal(10)       # привлекаем на покрытие процентов
+    assert interest[2] == Decimal(11)    # 110 × 10%
+    assert draws[2] == Decimal(11)
+
+
+def test_auto_financing_interest_equals_debt_times_rate():
+    # На неподвижной точке: проценты периода = остаток кредитной линии на начало × ставка.
+    r = run(_deficit_project(auto=True))
+    rate = annual_to_monthly(Decimal("0.18"))
+    for t in range(1, r.n):
+        expected = r.balance["B22"][t - 1] * rate    # B22 на конец t−1 = долг на начало t
+        assert abs(r.income["I18"][t] - expected) <= EPS
+    assert r.income["I18"][0] == Decimal(0)          # на начало проекта долга нет
+
+
+def test_auto_financing_converges_under_high_rate():
+    # Глубокий дефицит + очень высокая ставка 200%/год: всё равно сходится; деньги ≥ min.
+    r = run(_deficit_project(auto=True, min_balance="5000", annual_rate="2.0"))
+    assert not any("не сошёлся" in w for w in r.warnings)
+    for t in range(r.n):
+        assert r.cashflow["C29"][t] >= Decimal("5000") - EPS
+        assert abs(r.balance["B20"][t] - r.balance["B34"][t]) <= EPS
