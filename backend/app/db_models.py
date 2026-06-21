@@ -1,14 +1,20 @@
 """ORM-модели (SQLAlchemy 2.0).
 
-6.1 — хранение проектов. Привязка к организации/пользователю (organization_id) добавляется
-в 6.2 (мультиарендность).
+6.1 — проекты; 6.2 — мультиарендность (организации, пользователи, членство; проекты
+привязаны к организации). Изоляция данных — по ``organization_id`` (ARCHITECTURE §4).
 """
 from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, DateTime, String
+from sqlalchemy import (
+    DateTime,
+    ForeignKey,
+    JSON,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -26,12 +32,53 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+class Organization(Base):
+    """Арендатор (компания-клиент)."""
+
+    __tablename__ = "organizations"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class User(Base):
+    """Пользователь. Поля аутентификации (пароль) добавляются в 6.3."""
+
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    email: Mapped[str] = mapped_column(String(320), unique=True, index=True, nullable=False)
+    full_name: Mapped[str] = mapped_column(String(255), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class Membership(Base):
+    """Членство пользователя в организации с ролью (роли — RBAC, 6.4)."""
+
+    __tablename__ = "memberships"
+    __table_args__ = (UniqueConstraint("organization_id", "user_id", name="uq_org_user"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    role: Mapped[str] = mapped_column(String(32), default="owner")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
 class Project(Base):
-    """Проект финансовой модели (замена файла ``.pex``)."""
+    """Проект финансовой модели (замена файла ``.pex``), принадлежит организации."""
 
     __tablename__ = "projects"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     # Сериализованная ProjectModel (mode="json": Decimal → строка, даты → ISO).
     model: Mapped[dict] = mapped_column(JSONType, nullable=False)

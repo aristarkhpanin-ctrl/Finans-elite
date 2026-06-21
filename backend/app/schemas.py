@@ -76,6 +76,31 @@ class ProjectOut(ProjectSummary):
     model: ProjectModel
 
 
+# --- Организации, пользователи, членство (мультиарендность, 6.2) ---
+
+class OrganizationCreate(BaseModel):
+    name: str
+
+
+class OrganizationOut(BaseModel):
+    id: str
+    name: str
+    created_at: datetime
+
+
+class MemberCreate(BaseModel):
+    email: str
+    full_name: str = ""
+    role: str = "owner"
+
+
+class MemberOut(BaseModel):
+    user_id: str
+    email: str
+    full_name: str
+    role: str
+
+
 def _statement_out(s: Statement) -> StatementOut:
     return StatementOut(
         lines=[LineOut(code=code, label=s.labels[code], values=s[code]) for code in s.order]
