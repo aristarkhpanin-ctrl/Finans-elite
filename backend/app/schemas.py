@@ -194,6 +194,40 @@ class SensitivityResponse(BaseModel):
     points: list[SensitivityPointOut]
 
 
+# --- Монте-Карло (7.4) ---
+
+class DistributionIn(BaseModel):
+    kind: str  # uniform | normal | triangular
+    low: Optional[Decimal] = None
+    high: Optional[Decimal] = None
+    mean: Optional[Decimal] = None
+    std: Optional[Decimal] = None
+    mode: Optional[Decimal] = None
+
+
+class UncertainParamIn(BaseModel):
+    param: str
+    distribution: DistributionIn
+
+
+class MonteCarloRequest(BaseModel):
+    iterations: int = 500
+    seed: int = 42
+    uncertain: list[UncertainParamIn] = []
+
+
+class MonteCarloResponse(BaseModel):
+    iterations: int
+    npv_mean: Decimal
+    npv_std: Decimal
+    npv_min: Decimal
+    npv_max: Decimal
+    npv_p10: Decimal
+    npv_p50: Decimal
+    npv_p90: Decimal
+    probability_npv_positive: Decimal
+
+
 def _statement_out(s: Statement) -> StatementOut:
     return StatementOut(
         lines=[LineOut(code=code, label=s.labels[code], values=s[code]) for code in s.order]

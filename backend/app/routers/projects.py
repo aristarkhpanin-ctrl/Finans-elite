@@ -10,6 +10,12 @@ from sqlalchemy.orm import Session
 
 from calc_core import run
 from calc_core.engine import ModelError
+from calc_core.montecarlo import (
+    Distribution,
+    MonteCarloConfig,
+    UncertainParam,
+    run_monte_carlo,
+)
 from calc_core.sensitivity import SENSITIVITY_PARAMS, run_sensitivity
 
 from .. import billing, crud
@@ -19,6 +25,8 @@ from ..deps import require_permission
 from ..rbac import Perm
 from ..schemas import (
     CalcResponse,
+    MonteCarloRequest,
+    MonteCarloResponse,
     ProjectCreate,
     ProjectOut,
     ProjectSummary,
@@ -28,6 +36,9 @@ from ..schemas import (
     SensitivityResponse,
     to_response,
 )
+
+# Лимит итераций для синхронного Монте-Карло (большие N — фоновой задачей, ARCHITECTURE §9).
+_MAX_MC_ITERATIONS = 2000
 
 router = APIRouter(prefix="/api/v1/projects", tags=["projects"])
 
@@ -119,4 +130,33 @@ def sensitivity(project_id: str, body: SensitivityRequest,
         param=body.param,
         points=[SensitivityPointOut(factor=p.factor, npv=p.npv, irr_annual=p.irr_annual)
                 for p in points],
+    )
+
+
+@router.post("/{project_id}/monte-carlo", response_model=MonteCarloResponse)
+def monte_carlo(project_id: str, body: MonteCarloRequest,
+                org_id: str = Depends(require_permission(Perm.PROJECT_CALCULATE)),
+                db: Session = Depends(get_db)) -> MonteCarloResponse:
+    """Анализ Монте-Карло: статистика NPV и вероятность NPV>0 (синхронно, с лимитом N)."""
+    if not 1 <= body.iterations <= _MAX_MC_ITERATIONS:
+        raise HTTPException(status_code=422,
+                            detail=f"iterations должно быть от 1 до {_MAX_MC_ITERATIONS}")
+    config = MonteCarloConfig(
+        iterations=body.iterations,
+        seed=body.seed,
+        uncertain=[UncertainParam(param=u.param, distribution=Distribution(
+            kind=u.distribution.kind, low=u.distribution.low, high=u.distribution.high,
+            mean=u.distribution.mean, std=u.distribution.std, mode=u.distribution.mode))
+            for u in body.uncertain],
+    )
+    project = _require(db, org_id, project_id)
+    try:
+        res = run_monte_carlo(crud.load_model(project), config)
+    except (ModelError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return MonteCarloResponse(
+        iterations=res.iterations, npv_mean=res.npv_mean, npv_std=res.npv_std,
+        npv_min=res.npv_min, npv_max=res.npv_max, npv_p10=res.npv_p10,
+        npv_p50=res.npv_p50, npv_p90=res.npv_p90,
+        probability_npv_positive=res.probability_npv_positive,
     )
