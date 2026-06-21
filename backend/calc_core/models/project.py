@@ -35,6 +35,11 @@ class ProjectSettings(BaseModel):
     profit_tax_benefit_share: Decimal = Field(default=Decimal("0"), ge=0, le=1)
     # Страховые взносы с ФОТ (доля): загружают затраты на персонал (SPEC §8, §11).
     payroll_contribution_rate: Decimal = Field(default=Decimal("0"), ge=0)
+    # Годовая инфляция по группам (SPEC §3): индексирует введённые (базовые) суммы.
+    inflation_sales: Decimal = Decimal("0")      # цены сбыта
+    inflation_direct: Decimal = Decimal("0")     # прямые материальные издержки
+    inflation_wages: Decimal = Decimal("0")      # зарплата (сдельная + персонал)
+    inflation_general: Decimal = Decimal("0")    # общие (постоянные) издержки
     property_tax_rate: Decimal = Decimal("0")         # налог на имущество (база — B11)
     vat_rate: Decimal = Decimal("0")                  # ставка НДС (0 = НДС выключен)
     vat_basis: VatBasis = VatBasis.SHIPMENT           # момент признания НДС (SPEC §22.2)

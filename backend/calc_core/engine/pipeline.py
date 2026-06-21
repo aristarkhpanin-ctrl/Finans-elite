@@ -44,8 +44,26 @@ def _pad(values: list[Decimal], n: int) -> list[Decimal]:
     return out
 
 
+def _inflation_index(annual_rate, n: int) -> list[Decimal]:
+    """Накопленный индекс инфляции по месяцам (SPEC §3).
+
+    Период 0 — база (индекс 1); далее умножается на месячную ставку
+    ``(1+годовая)^(1/12)``. Нулевая ставка → ряд из единиц (без индексации).
+    """
+    r = D(annual_rate)
+    if r == ZERO:
+        return [ONE for _ in range(n)]
+    m = (ONE + r) ** (ONE / D(12)) - ONE
+    out = zeros(n)
+    idx = ONE
+    for t in range(n):
+        out[t] = idx
+        idx = idx * (ONE + m)
+    return out
+
+
 def _sales(model: ProjectModel, n: int, vat_rate: Decimal,
-           fx: list[Decimal], fx_prev: list[Decimal]):
+           fx: list[Decimal], fx_prev: list[Decimal], idx_sales: list[Decimal]):
     """Сбыт → (I1 нетто, C1 деньги с НДС, B2 дебиторка, B24 авансы, исходящий НДС, I25).
 
     ОПУ — без НДС (I1 = нетто-выручка); деньги и оборотный капитал — с НДС. Экспортные
@@ -64,7 +82,10 @@ def _sales(model: ProjectModel, n: int, vat_rate: Decimal,
     for line in model.operating_plan.sales:
         vol = _pad(line.volume, n)
         price = _pad(line.price, n)
-        revenue = [vol[t] * price[t] for t in range(n)]          # в валюте строки
+        if line.foreign:
+            revenue = [vol[t] * price[t] for t in range(n)]      # валюта: без рублёвой инфляции
+        else:
+            revenue = [vol[t] * price[t] * idx_sales[t] for t in range(n)]  # индексация цен
         if line.foreign:
             # Экспорт: без НДС; выручка/деньги/дебиторка в валюте → пересчёт по FX.
             cash, recv, adv = sales_timing(revenue, line.payment, n)
@@ -116,7 +137,8 @@ def _volumes(model: ProjectModel, n: int):
     return tp, tq
 
 
-def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal):
+def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal,
+                         idx_direct: list[Decimal], idx_wages: list[Decimal]):
     """Прямые издержки → (потребление MC, сдельная ЗП WC; деньги C2, C3 с НДС; сырьё B3;
     кредиторка с НДС; входной НДС по материалам).
 
@@ -133,7 +155,9 @@ def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal):
     vat_in_paid = zeros(n)   # входной НДС в оплаченных закупках (по оплате)
     one_plus = Decimal(1) + vat_rate
     for line in model.operating_plan.direct_costs:
-        amt = _pad(line.amount, n)
+        base = _pad(line.amount, n)
+        idx = idx_direct if line.kind == DirectCostKind.MATERIALS else idx_wages
+        amt = [base[t] * idx[t] for t in range(n)]               # индексация инфляцией
         if line.kind == DirectCostKind.MATERIALS:
             purchases, raw_inv = purchase_schedule(amt, line.stock_lead_months, n)
             gross = [purchases[t] * one_plus for t in range(n)]
@@ -155,7 +179,8 @@ def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal):
 
 
 def _fixed(model: ProjectModel, n: int, vat_rate: Decimal,
-           fx: list[Decimal], fx_prev: list[Decimal]):
+           fx: list[Decimal], fx_prev: list[Decimal],
+           idx_wages: list[Decimal], idx_general: list[Decimal]):
     """Постоянные издержки → (группы начисления I10–I15; C5, C6 деньги; кредиторка;
     входной НДС по общим издержкам; издержки за счёт прибыли I24; курсовая разница I25).
 
@@ -189,6 +214,9 @@ def _fixed(model: ProjectModel, n: int, vat_rate: Decimal,
             payables = add(payables, [pay_f[t] * fx[t] for t in range(n)])
             payable_f = add(payable_f, pay_f)
             continue
+        # Индексация инфляцией (ЗП — по группе зарплаты, прочее — по общей).
+        idx_inf = idx_wages if line.function in _STAFF_FUNCTIONS else idx_general
+        amt = [amt[t] * idx_inf[t] for t in range(n)]
         if line.from_profit:
             # За счёт прибыли: начисление → I24 (не в I10–I15); выплата без НДС.
             cash, pay = cost_timing(amt, line.payment_delay_months, n)
@@ -386,15 +414,22 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     b6_foreign = [fm * fx[t] for t in range(n)]
     i25_fx = [fm * (fx[t] - fx_prev[t]) for t in range(n)]
 
+    # --- индексы инфляции по группам (SPEC §3) ---
+    idx_sales = _inflation_index(settings.inflation_sales, n)
+    idx_direct = _inflation_index(settings.inflation_direct, n)
+    idx_wages = _inflation_index(settings.inflation_wages, n)
+    idx_general = _inflation_index(settings.inflation_general, n)
+
     # --- операционный контур (accrual + cash + оборотный капитал + запасы + НДС) ---
-    i1, c1, b2, b24, vat_out, vat_out_paid, i25_sales = _sales(model, n, vat_rate, fx, fx_prev)
+    i1, c1, b2, b24, vat_out, vat_out_paid, i25_sales = _sales(
+        model, n, vat_rate, fx, fx_prev, idx_sales)
     tp, tq = _volumes(model, n)
     mc, wc, c2, c3, b3, pay_direct, vat_in_mat, vat_in_paid_mat = _materials_and_wages(
-        model, n, vat_rate)
+        model, n, vat_rate, idx_direct, idx_wages)
     # Готовая продукция: себестоимость (I5, I6) признаётся при продаже (SPEC §6, §22.8)
     i5, i6, b5, inv_warnings = finished_goods(tp, tq, mc, wc, n, settings.inventory_method)
     fixed, c5, c6, pay_fixed, vat_in_fixed, i24_fixed, vat_in_paid_fixed, i25_fixed = _fixed(
-        model, n, vat_rate, fx, fx_prev)
+        model, n, vat_rate, fx, fx_prev, idx_wages, idx_general)
     b23 = add(pay_direct, pay_fixed)
 
     # --- инвестиции и амортизация (capex в баланс — по нетто; деньги — с НДС) ---
