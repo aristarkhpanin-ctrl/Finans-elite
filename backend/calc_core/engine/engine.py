@@ -17,6 +17,7 @@ from ..metrics import (
 )
 from ..models import ProjectModel
 from ..money import almost_equal
+from ..reports.ratios import compute_ratios
 from ..reports.result import CalcResult, InvestmentMetrics
 from ..series import add
 from ..version import ENGINE_VERSION
@@ -42,6 +43,10 @@ def run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
         _check_invariants(income, cashflow, balance, profit_use, n)
 
     metrics = _metrics(model, cashflow)
+    ratios = compute_ratios(
+        income, cashflow, balance, profit_use,
+        model.financing.common_shares, n,
+    )
 
     return CalcResult(
         engine_version=ENGINE_VERSION,
@@ -51,6 +56,7 @@ def run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
         balance=balance,
         profit_use=profit_use,
         metrics=metrics,
+        ratios=ratios,
         warnings=warnings,
     )
 

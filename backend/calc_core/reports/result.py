@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from decimal import Decimal
 
+from .ratios import FinancialRatios
 from .statements import Statement
 
 
@@ -29,4 +30,5 @@ class CalcResult:
     balance: Statement
     profit_use: Statement
     metrics: InvestmentMetrics = field(default_factory=InvestmentMetrics)
+    ratios: FinancialRatios = field(default_factory=FinancialRatios)
     warnings: list[str] = field(default_factory=list)

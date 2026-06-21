@@ -112,5 +112,6 @@ def build_sample_project() -> ProjectModel:
                 )
             ],
             dividends=[rub(0)] * n,
+            common_shares=rub(1000),  # для показателей «на акцию»
         ),
     )

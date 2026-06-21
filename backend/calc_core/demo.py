@@ -40,12 +40,23 @@ def main() -> None:
     for code in ("B1", "B11", "B20", "B26", "B33", "B34"):
         print(row(result.balance, code))
 
-    print("\n=== ПОКАЗАТЕЛИ (предварительные, v0) ===")
+    print("\n=== ПОКАЗАТЕЛИ ЭФФЕКТИВНОСТИ (предварительные, v0) ===")
     m = result.metrics
     print(f"NPV  = {quantize(m.npv)}")
     print(f"IRR  = {m.irr_annual if m.irr_annual is None else quantize(Decimal(m.irr_annual) * 100, 1)} %/год")
     print(f"PI   = {None if m.pi is None else quantize(m.pi, 3)}")
     print(f"PB   = {m.pb_months} мес.   DPB = {m.dpb_months} мес.")
+
+    print("\n=== ФИНАНСОВЫЕ КОЭФФИЦИЕНТЫ (последний месяц) ===")
+    last = n - 1
+    for group_name, group in (("Ликвидность", result.ratios.liquidity),
+                              ("Структура капитала", result.ratios.gearing),
+                              ("Рентабельность", result.ratios.profitability)):
+        print(f"  [{group_name}]")
+        for name, series in group.items():
+            v = series[last]
+            shown = "—" if v is None else str(quantize(v, 3))
+            print(f"    {name[:42]:<42} {shown}")
 
     # быстрая проверка инварианта для наглядности
     ok = all(abs(result.balance["B20"][t] - result.balance["B34"][t]) <= Decimal("0.01") for t in range(n))

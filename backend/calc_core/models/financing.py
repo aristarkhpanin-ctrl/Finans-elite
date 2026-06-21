@@ -39,3 +39,5 @@ class Financing(BaseModel):
     equity: list[EquityInjection] = Field(default_factory=list)
     # Явные выплаты дивидендов по месяцам (v0). Политика по доле прибыли — следующая фаза.
     dividends: list[Decimal] = Field(default_factory=list)
+    # Число обыкновенных акций (No) — для инвестиционных показателей «на акцию».
+    common_shares: Decimal = Decimal(0)
