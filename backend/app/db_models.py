@@ -113,6 +113,35 @@ class Payment(Base):
     )
 
 
+class Holding(Base):
+    """Холдинг: группа связанных проектов организации (PIC Holding, 9.3)."""
+
+    __tablename__ = "holdings"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class HoldingMember(Base):
+    """Участник холдинга: проект с ролью (parent — головная компания, subsidiary — дочерняя)."""
+
+    __tablename__ = "holding_members"
+    __table_args__ = (UniqueConstraint("holding_id", "project_id", name="uq_holding_project"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    holding_id: Mapped[str] = mapped_column(
+        ForeignKey("holdings.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    role: Mapped[str] = mapped_column(String(32), default="subsidiary")  # parent | subsidiary
+
+
 class Project(Base):
     """Проект финансовой модели (замена файла ``.pex``), принадлежит организации."""
 

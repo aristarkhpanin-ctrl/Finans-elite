@@ -266,6 +266,29 @@ class ConsolidateRequest(BaseModel):
     group_discount_rate: Decimal = Decimal("0.15")
 
 
+# --- PIC Holding (9.3) ---
+
+class HoldingCreate(BaseModel):
+    name: str
+
+
+class HoldingMemberCreate(BaseModel):
+    project_id: str
+    role: str = "subsidiary"  # parent | subsidiary
+
+
+class HoldingMemberOut(BaseModel):
+    project_id: str
+    role: str
+
+
+class HoldingOut(BaseModel):
+    id: str
+    name: str
+    created_at: datetime
+    members: list[HoldingMemberOut] = []
+
+
 def _statement_out(s: Statement) -> StatementOut:
     return StatementOut(
         lines=[LineOut(code=code, label=s.labels[code], values=s[code]) for code in s.order]

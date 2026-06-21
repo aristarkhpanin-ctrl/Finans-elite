@@ -9,7 +9,16 @@ from sqlalchemy.orm import Session
 
 from calc_core import ProjectModel
 
-from .db_models import Membership, Organization, Payment, Project, Subscription, User
+from .db_models import (
+    Holding,
+    HoldingMember,
+    Membership,
+    Organization,
+    Payment,
+    Project,
+    Subscription,
+    User,
+)
 from .plans import DEFAULT_PLAN
 
 
@@ -237,3 +246,57 @@ def delete_project(db: Session, project: Project) -> None:
 def load_model(project: Project) -> ProjectModel:
     """Десериализовать хранимую модель проекта в ProjectModel."""
     return ProjectModel.model_validate(project.model)
+
+
+# --- Холдинги (9.3) ---
+
+def create_holding(db: Session, org_id: str, name: str) -> Holding:
+    holding = Holding(organization_id=org_id, name=name)
+    db.add(holding)
+    db.commit()
+    db.refresh(holding)
+    return holding
+
+
+def list_holdings(db: Session, org_id: str) -> list[Holding]:
+    return list(
+        db.scalars(
+            select(Holding).where(Holding.organization_id == org_id).order_by(Holding.created_at.desc())
+        )
+    )
+
+
+def get_holding(db: Session, org_id: str, holding_id: str) -> Holding | None:
+    return db.scalar(
+        select(Holding).where(Holding.id == holding_id, Holding.organization_id == org_id)
+    )
+
+
+def delete_holding(db: Session, holding: Holding) -> None:
+    db.delete(holding)
+    db.commit()
+
+
+def add_holding_member(db: Session, holding_id: str, project_id: str,
+                       role: str = "subsidiary") -> HoldingMember:
+    existing = db.scalar(
+        select(HoldingMember).where(
+            HoldingMember.holding_id == holding_id, HoldingMember.project_id == project_id
+        )
+    )
+    if existing is not None:
+        existing.role = role
+        db.commit()
+        db.refresh(existing)
+        return existing
+    member = HoldingMember(holding_id=holding_id, project_id=project_id, role=role)
+    db.add(member)
+    db.commit()
+    db.refresh(member)
+    return member
+
+
+def list_holding_members(db: Session, holding_id: str) -> list[HoldingMember]:
+    return list(
+        db.scalars(select(HoldingMember).where(HoldingMember.holding_id == holding_id))
+    )
