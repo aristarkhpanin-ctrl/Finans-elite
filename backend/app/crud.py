@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from calc_core import ProjectModel
 
-from .db_models import Membership, Organization, Project, Subscription, User
+from .db_models import Membership, Organization, Payment, Project, Subscription, User
 from .plans import DEFAULT_PLAN
 
 
@@ -46,6 +46,42 @@ def set_plan(db: Session, org_id: str, plan_code: str, status: str = "active") -
     db.commit()
     db.refresh(sub)
     return sub
+
+
+# --- Платежи ---
+
+def create_payment(db: Session, org_id: str, plan_code: str, amount_rub: int,
+                   provider: str = "yookassa") -> Payment:
+    payment = Payment(organization_id=org_id, plan_code=plan_code, amount_rub=amount_rub,
+                      provider=provider, status="pending")
+    db.add(payment)
+    db.commit()
+    db.refresh(payment)
+    return payment
+
+
+def get_payment(db: Session, payment_id: str) -> Payment | None:
+    return db.get(Payment, payment_id)
+
+
+def get_payment_by_provider_id(db: Session, provider_payment_id: str) -> Payment | None:
+    return db.scalar(
+        select(Payment).where(Payment.provider_payment_id == provider_payment_id)
+    )
+
+
+def set_payment_provider_id(db: Session, payment: Payment, provider_payment_id: str) -> Payment:
+    payment.provider_payment_id = provider_payment_id
+    db.commit()
+    db.refresh(payment)
+    return payment
+
+
+def mark_payment(db: Session, payment: Payment, status: str) -> Payment:
+    payment.status = status
+    db.commit()
+    db.refresh(payment)
+    return payment
 
 
 def count_projects(db: Session, org_id: str) -> int:

@@ -1,11 +1,14 @@
-"""Биллинг: текущий тариф организации, контроль квот и абстракция платёжного провайдера.
+"""Биллинг: тариф организации, контроль квот и платёжный провайдер.
 
-6.5a — управление тарифом без внешних платежей (смена тарифа напрямую). Реальная
-интеграция (ЮKassa, вебхуки, 54-ФЗ) подключается в 6.5b через ``PaymentProvider``.
+- Квоты тарифа проверяются при создании проекта/добавлении участника (превышение → 402).
+- Смена тарифа: ручной провайдер (6.5a, мгновенно) или через платёж ЮKassa (6.5b).
+  Провайдер выбирается по окружению (``YOOKASSA_SHOP_ID``/``YOOKASSA_SECRET_KEY``).
 """
 from __future__ import annotations
 
+import os
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
@@ -40,20 +43,50 @@ def ensure_member_quota(db: Session, org_id: str) -> None:
         )
 
 
+@dataclass
+class CheckoutResult:
+    """Результат инициации смены тарифа."""
+
+    activated: bool                 # тариф активирован сразу (ручной провайдер)
+    payment_id: str | None = None
+    confirmation_url: str | None = None  # ссылка на оплату (ЮKassa)
+
+
 class PaymentProvider(ABC):
     """Абстракция платёжного провайдера (сменяемая реализация)."""
 
     @abstractmethod
-    def change_plan(self, db: Session, org_id: str, plan_code: str):
-        """Перевести организацию на тариф (возможно, через платёж)."""
+    def start_checkout(self, db: Session, org_id: str, plan: Plan, return_url: str,
+                       customer_email: str) -> CheckoutResult:
+        """Инициировать смену тарифа (сразу или через платёж)."""
+
+    def handle_webhook(self, db: Session, event: dict) -> None:
+        """Обработать уведомление провайдера (по умолчанию — игнор)."""
 
 
 class ManualPaymentProvider(PaymentProvider):
     """6.5a: смена тарифа без внешнего платежа (для разработки/тестов)."""
 
-    def change_plan(self, db: Session, org_id: str, plan_code: str):
-        return crud.set_plan(db, org_id, plan_code, status="active")
+    def start_checkout(self, db: Session, org_id: str, plan: Plan, return_url: str,
+                       customer_email: str) -> CheckoutResult:
+        crud.set_plan(db, org_id, plan.code, status="active")
+        return CheckoutResult(activated=True)
 
 
-# Текущий провайдер по умолчанию (в 6.5b заменяется на ЮKassa).
-provider: PaymentProvider = ManualPaymentProvider()
+def _build_provider() -> PaymentProvider:
+    """Выбрать провайдера по окружению: ЮKassa при наличии ключей, иначе ручной."""
+    shop_id = os.getenv("YOOKASSA_SHOP_ID")
+    secret = os.getenv("YOOKASSA_SECRET_KEY")
+    if shop_id and secret:
+        from .payments_yookassa import YooKassaClient, YooKassaPaymentProvider
+        return YooKassaPaymentProvider(YooKassaClient(shop_id, secret))
+    return ManualPaymentProvider()
+
+
+# Текущий провайдер.
+provider: PaymentProvider = _build_provider()
+
+
+def get_payment_provider() -> PaymentProvider:
+    """FastAPI-зависимость (переопределяемая в тестах)."""
+    return provider

@@ -158,6 +158,17 @@ class SubscriptionUpdate(BaseModel):
     plan_code: str
 
 
+class CheckoutRequest(BaseModel):
+    plan_code: str
+    return_url: str = "https://example.com/billing/return"
+
+
+class CheckoutResponse(BaseModel):
+    activated: bool
+    payment_id: Optional[str] = None
+    confirmation_url: Optional[str] = None
+
+
 def _statement_out(s: Statement) -> StatementOut:
     return StatementOut(
         lines=[LineOut(code=code, label=s.labels[code], values=s[code]) for code in s.order]

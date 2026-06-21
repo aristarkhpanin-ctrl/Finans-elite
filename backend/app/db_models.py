@@ -91,6 +91,28 @@ class Subscription(Base):
     )
 
 
+class Payment(Base):
+    """Платёж за смену тарифа (для интеграции с провайдером, 6.5b)."""
+
+    __tablename__ = "payments"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    provider: Mapped[str] = mapped_column(String(32), default="yookassa")
+    provider_payment_id: Mapped[str | None] = mapped_column(
+        String(64), unique=True, index=True, nullable=True
+    )
+    plan_code: Mapped[str] = mapped_column(String(32), nullable=False)
+    amount_rub: Mapped[int] = mapped_column(default=0)
+    status: Mapped[str] = mapped_column(String(32), default="pending")  # pending/succeeded/canceled
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_now, onupdate=_now
+    )
+
+
 class Project(Base):
     """Проект финансовой модели (замена файла ``.pex``), принадлежит организации."""
 
