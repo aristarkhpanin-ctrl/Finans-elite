@@ -7,19 +7,33 @@
 """
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException
 
 from calc_core import ENGINE_VERSION, ProjectModel, run
 from calc_core.engine import ModelError
 from calc_core.samples import build_sample_project
 
+from .database import init_db
+from .routers import projects
 from .schemas import CalcResponse, to_response
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()  # dev/test: создать таблицы (в продакшене — Alembic)
+    yield
+
 
 app = FastAPI(
     title="Финансовая модель — API",
     version=ENGINE_VERSION,
     description="Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
+    lifespan=lifespan,
 )
+
+app.include_router(projects.router)
 
 
 @app.get("/health", tags=["service"])

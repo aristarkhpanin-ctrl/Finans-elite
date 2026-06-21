@@ -4,11 +4,13 @@ Decimal сериализуется в JSON как строка (точность
 """
 from __future__ import annotations
 
+from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
 from pydantic import BaseModel
 
+from calc_core import ProjectModel
 from calc_core.reports.result import CalcResult
 from calc_core.reports.statements import Statement
 
@@ -49,6 +51,29 @@ class CalcResponse(BaseModel):
     metrics: MetricsOut
     ratios: RatiosOut
     warnings: list[str]
+
+
+# --- Проекты (персистентность, 6.1) ---
+
+class ProjectCreate(BaseModel):
+    name: str
+    model: ProjectModel
+
+
+class ProjectUpdate(BaseModel):
+    name: Optional[str] = None
+    model: Optional[ProjectModel] = None
+
+
+class ProjectSummary(BaseModel):
+    id: str
+    name: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class ProjectOut(ProjectSummary):
+    model: ProjectModel
 
 
 def _statement_out(s: Statement) -> StatementOut:
