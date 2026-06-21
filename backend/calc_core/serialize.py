@@ -55,6 +55,8 @@ def metrics_to_dict(m: InvestmentMetrics) -> dict[str, object]:
         "pi": _ratio(m.pi),
         "pb_months": m.pb_months,
         "dpb_months": m.dpb_months,
+        "pv_investments": _money(m.pv_investments),
+        "peak_financing_need": _money(m.peak_financing_need),
     }
 
 

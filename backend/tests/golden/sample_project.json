@@ -915,7 +915,7 @@
       "0.00"
     ]
   },
-  "engine_version": "0.6.0",
+  "engine_version": "0.7.0",
   "income": {
     "I1": [
       "100000.00",
@@ -1315,7 +1315,9 @@
     "irr_annual": null,
     "npv": "-152445.76",
     "pb_months": null,
-    "pi": "0.449867"
+    "peak_financing_need": "272243.35",
+    "pi": "0.438991",
+    "pv_investments": "271734.95"
   },
   "n": 12,
   "profit_use": {

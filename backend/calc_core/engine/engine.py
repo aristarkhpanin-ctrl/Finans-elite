@@ -8,20 +8,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 
-from ..metrics import (
-    annual_to_monthly,
-    discounted_payback_months,
-    irr_annual,
-    npv,
-    payback_months,
-    profitability_index,
-)
+from ..metrics import annual_to_monthly
 from ..models import ProjectModel
 from ..money import almost_equal
 from ..reports.actualization import actualize_cashflow
 from ..reports.breakeven import compute_break_even
 from ..reports.ratios import compute_ratios
-from ..reports.result import CalcResult, InvestmentMetrics
+from ..reports.result import CalcResult, InvestmentMetrics, build_investment_metrics
 from ..series import add, zeros
 from ..version import ENGINE_VERSION
 from .errors import InvariantError
@@ -136,13 +129,7 @@ def _check_invariants(income, cashflow, balance, profit_use, n: int) -> None:
 
 
 def _metrics(model: ProjectModel, cashflow) -> InvestmentMetrics:
-    # v0: поток до финансирования = операционная + инвестиционная деятельность (SPEC §17/§22).
+    # Поток до финансирования = операционная + инвестиционная деятельность (SPEC §17).
     net_flow = add(cashflow["C13"], cashflow["C20"])
     r_m = annual_to_monthly(model.settings.discount_rate_annual)
-    return InvestmentMetrics(
-        npv=npv(net_flow, r_m),
-        irr_annual=irr_annual(net_flow),
-        pi=profitability_index(net_flow, r_m),
-        pb_months=payback_months(net_flow),
-        dpb_months=discounted_payback_months(net_flow, r_m),
-    )
+    return build_investment_metrics(net_flow, r_m)

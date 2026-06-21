@@ -31,6 +31,8 @@ class MetricsOut(BaseModel):
     pi: Optional[Decimal] = None
     pb_months: Optional[int] = None
     dpb_months: Optional[int] = None
+    pv_investments: Optional[Decimal] = None
+    peak_financing_need: Optional[Decimal] = None
 
 
 class RatiosOut(BaseModel):
@@ -310,6 +312,8 @@ def to_response(r: CalcResult) -> CalcResponse:
             pi=r.metrics.pi,
             pb_months=r.metrics.pb_months,
             dpb_months=r.metrics.dpb_months,
+            pv_investments=r.metrics.pv_investments,
+            peak_financing_need=r.metrics.peak_financing_need,
         ),
         ratios=RatiosOut(
             liquidity=r.ratios.liquidity,
