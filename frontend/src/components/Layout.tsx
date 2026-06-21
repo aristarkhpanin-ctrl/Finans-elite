@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { getTheme, toggleTheme, type Theme } from "./theme";
 import { Button } from "./ui";
@@ -15,6 +15,14 @@ export function Layout() {
     <div className="app">
       <header className="appbar">
         <span className="brand">{t("app.title")}</span>
+        <nav className="nav">
+          <NavLink to="/projects" className={({ isActive }) => (isActive ? "nav-link nav-link--active" : "nav-link")}>
+            {t("nav.projects")}
+          </NavLink>
+          <NavLink to="/organization" className={({ isActive }) => (isActive ? "nav-link nav-link--active" : "nav-link")}>
+            Организация
+          </NavLink>
+        </nav>
         {organizations.length > 0 && (
           <select
             className="select"

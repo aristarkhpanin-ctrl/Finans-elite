@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { Layout } from "./components/Layout";
 import { LoginPage } from "./pages/LoginPage";
+import { OrganizationPage } from "./pages/OrganizationPage";
 import { ProjectEditorPage } from "./pages/ProjectEditorPage";
 import { ProjectsPage } from "./pages/ProjectsPage";
 import { RegisterPage } from "./pages/RegisterPage";
@@ -28,6 +29,7 @@ export function App() {
         }
       >
         <Route path="/projects" element={<ProjectsPage />} />
+        <Route path="/organization" element={<OrganizationPage />} />
         <Route path="/projects/:id" element={<ProjectEditorPage />} />
         <Route
           path="/projects/:id/results"

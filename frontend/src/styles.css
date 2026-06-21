@@ -96,6 +96,10 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 }
 .appbar .brand { font-weight: 700; }
 .appbar .spacer { flex: 1; }
+.nav { display: flex; gap: 4px; }
+.nav-link { padding: 6px 12px; border-radius: var(--radius-sm); color: var(--text-muted); font-weight: 600; }
+.nav-link:hover { background: var(--surface-2); text-decoration: none; color: var(--text); }
+.nav-link--active { color: var(--primary); background: var(--surface-2); }
 .content { flex: 1; padding: 24px; max-width: 1100px; width: 100%; margin: 0 auto; }
 
 .select {
