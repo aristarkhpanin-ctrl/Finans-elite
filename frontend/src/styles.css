@@ -103,8 +103,41 @@ h2 { font-size: 17px; margin: 0 0 12px; }
   border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: inherit;
 }
 
+/* Вкладки */
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 18px; flex-wrap: wrap; }
+.tab {
+  padding: 9px 14px; border: none; background: transparent; color: var(--text-muted);
+  font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.tab:hover { color: var(--text); }
+.tab--active { color: var(--primary); border-bottom-color: var(--primary); }
+
+/* Формы / строки */
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+.row-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; background: var(--surface); }
+.row-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.row-head .grow { flex: 1; }
+.section-head { display: flex; align-items: center; justify-content: space-between; margin: 4px 0 12px; }
+.toolbar { display: flex; gap: 10px; align-items: center; }
+.checkbox { display: flex; align-items: center; gap: 8px; }
+
+/* Помесячный ряд */
+.series { margin-top: 6px; }
+.series-label { font-size: 13px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px; display: flex; gap: 10px; align-items: center; }
+.series-row { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 4px; }
+.series-cell {
+  width: 64px; flex: 0 0 auto; height: 32px; text-align: right; padding: 0 6px;
+  border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text);
+  font-size: 13px; font-family: inherit;
+}
+.series-cell:focus { outline: none; border-color: var(--primary); }
+.link-btn { background: none; border: none; color: var(--primary); cursor: pointer; font: inherit; padding: 0; }
+
 /* Таблица/список */
 .list { display: grid; gap: 10px; }
+.list-item .actions { display: flex; gap: 8px; }
+.save-bar { position: sticky; bottom: 0; display: flex; gap: 12px; align-items: center; padding: 12px 0; background: var(--bg); }
 .list-item {
   display: flex; align-items: center; justify-content: space-between;
   padding: 14px 16px; background: var(--surface); border: 1px solid var(--border);
