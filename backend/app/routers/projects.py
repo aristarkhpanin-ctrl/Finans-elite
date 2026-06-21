@@ -17,6 +17,7 @@ from calc_core.montecarlo import (
     run_monte_carlo,
 )
 from calc_core.sensitivity import SENSITIVITY_PARAMS, run_sensitivity
+from calc_core.whatif import Scenario, ScenarioAdjustment, run_what_if
 
 from .. import billing, crud
 from ..database import get_db
@@ -31,9 +32,12 @@ from ..schemas import (
     ProjectOut,
     ProjectSummary,
     ProjectUpdate,
+    ScenarioResultOut,
     SensitivityPointOut,
     SensitivityRequest,
     SensitivityResponse,
+    WhatIfRequest,
+    WhatIfResponse,
     to_response,
 )
 
@@ -160,3 +164,24 @@ def monte_carlo(project_id: str, body: MonteCarloRequest,
         npv_p50=res.npv_p50, npv_p90=res.npv_p90,
         probability_npv_positive=res.probability_npv_positive,
     )
+
+
+@router.post("/{project_id}/what-if", response_model=WhatIfResponse)
+def what_if(project_id: str, body: WhatIfRequest,
+            org_id: str = Depends(require_permission(Perm.PROJECT_CALCULATE)),
+            db: Session = Depends(get_db)) -> WhatIfResponse:
+    """What-If: сравнить базовый и заданные сценарии по показателям эффективности."""
+    scenarios = [
+        Scenario(name=s.name,
+                 adjustments=[ScenarioAdjustment(param=a.param, factor=a.factor) for a in s.adjustments])
+        for s in body.scenarios
+    ]
+    project = _require(db, org_id, project_id)
+    try:
+        results = run_what_if(crud.load_model(project), scenarios, include_base=body.include_base)
+    except (ModelError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return WhatIfResponse(scenarios=[
+        ScenarioResultOut(name=r.name, npv=r.npv, irr_annual=r.irr_annual, pi=r.pi, pb_months=r.pb_months)
+        for r in results
+    ])

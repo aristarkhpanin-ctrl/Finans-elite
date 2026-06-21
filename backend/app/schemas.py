@@ -230,6 +230,35 @@ class MonteCarloResponse(BaseModel):
     probability_npv_positive: Decimal
 
 
+# --- What-If (9.1) ---
+
+class ScenarioAdjustmentIn(BaseModel):
+    param: str
+    factor: Decimal
+
+
+class ScenarioIn(BaseModel):
+    name: str
+    adjustments: list[ScenarioAdjustmentIn] = []
+
+
+class WhatIfRequest(BaseModel):
+    scenarios: list[ScenarioIn] = []
+    include_base: bool = True
+
+
+class ScenarioResultOut(BaseModel):
+    name: str
+    npv: Decimal
+    irr_annual: Optional[Decimal] = None
+    pi: Optional[Decimal] = None
+    pb_months: Optional[int] = None
+
+
+class WhatIfResponse(BaseModel):
+    scenarios: list[ScenarioResultOut]
+
+
 def _statement_out(s: Statement) -> StatementOut:
     return StatementOut(
         lines=[LineOut(code=code, label=s.labels[code], values=s[code]) for code in s.order]
