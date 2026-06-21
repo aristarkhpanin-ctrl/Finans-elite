@@ -68,8 +68,8 @@
 - ✅ **7.5** — актуализация (план-факт): факт по прошедшим периодам, актуализированный
   Кэш-фло и рассогласование (план − факт) в ответе `/calculate`.
 
-**Backend-контур функционально завершён.** Дальше — фронтенд (React) и инфраструктура
-(Alembic-миграции, Docker, CI, деплой в РФ по архитектуре §14).
+**Backend-контур функционально завершён.** Инфраструктура (шаг 8): ✅ 8.1 Alembic-миграции;
+⬜ 8.2 Docker/compose; ⬜ 8.3 CI. Затем фронтенд (React), деплой в РФ (архитектура §14).
 
 ### Тарифы и квоты (6.5a)
 | Тариф | Цена ₽/мес | Проекты | Участники |
@@ -175,8 +175,22 @@ backend/
 
 ```bash
 cd backend
-python -m pip install -e ".[dev]"   # или: pip install pydantic fastapi "uvicorn[standard]" pytest httpx
+python -m pip install -e ".[dev]"   # или: pip install pydantic fastapi "uvicorn[standard]" sqlalchemy alembic argon2-cffi PyJWT pytest httpx
 pytest -q                           # тесты
 python -m calc_core.demo            # демонстрационный расчёт (CLI)
+alembic upgrade head                # применить миграции БД
 uvicorn app.main:app --reload       # HTTP-API, документация на /docs
 ```
+
+## Миграции БД (Alembic)
+
+Схема БД управляется Alembic (источник истины в продакшене). URL — из `DATABASE_URL`.
+
+```bash
+alembic upgrade head                            # применить миграции
+alembic revision --autogenerate -m "описание"   # создать миграцию по изменениям моделей
+alembic downgrade -1                            # откатить на шаг
+```
+
+В dev/тестах таблицы создаются автоматически (`create_all`, идемпотентно); в продакшене
+перед запуском выполняется `alembic upgrade head`.

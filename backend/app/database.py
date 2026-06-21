@@ -35,6 +35,10 @@ def get_db():
 
 
 def init_db() -> None:
-    """Создать таблицы (dev/test). В продакшене — Alembic."""
+    """Создать таблицы (dev/test). Идемпотентно (checkfirst).
+
+    В продакшене источник истины по схеме — Alembic (``alembic upgrade head``);
+    ``create_all`` при существующих таблицах ничего не делает.
+    """
     from . import db_models  # noqa: F401 — регистрация моделей в метаданных
     Base.metadata.create_all(bind=engine)
