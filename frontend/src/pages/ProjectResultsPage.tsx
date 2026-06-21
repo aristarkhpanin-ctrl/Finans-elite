@@ -41,6 +41,7 @@ export function ProjectResultsPage() {
       <div className="toolbar" style={{ marginBottom: 14 }}>
         <button className="link-btn" onClick={() => navigate(`/projects/${id}`)}>← Редактор</button>
         <span style={{ flex: 1 }} />
+        <button className="link-btn" onClick={() => navigate(`/projects/${id}/analysis`)}>Анализ</button>
         <span className="muted">движок {data.engine_version}</span>
       </div>
       <h1>Результаты</h1>

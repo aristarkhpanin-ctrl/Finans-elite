@@ -7,9 +7,12 @@ import { ProjectEditorPage } from "./pages/ProjectEditorPage";
 import { ProjectsPage } from "./pages/ProjectsPage";
 import { RegisterPage } from "./pages/RegisterPage";
 
-// Страница результатов тянет recharts — грузим лениво (code-split).
+// Страницы с recharts грузим лениво (code-split).
 const ProjectResultsPage = lazy(() =>
   import("./pages/ProjectResultsPage").then((m) => ({ default: m.ProjectResultsPage })),
+);
+const ProjectAnalysisPage = lazy(() =>
+  import("./pages/ProjectAnalysisPage").then((m) => ({ default: m.ProjectAnalysisPage })),
 );
 
 export function App() {
@@ -31,6 +34,14 @@ export function App() {
           element={
             <Suspense fallback={<p className="muted">Загрузка…</p>}>
               <ProjectResultsPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/projects/:id/analysis"
+          element={
+            <Suspense fallback={<p className="muted">Загрузка…</p>}>
+              <ProjectAnalysisPage />
             </Suspense>
           }
         />
