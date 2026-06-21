@@ -1,0 +1,84 @@
+"""Pydantic-схемы ответа API и преобразование из ``CalcResult``.
+
+Decimal сериализуется в JSON как строка (точность сохраняется), ``None`` → ``null``.
+"""
+from __future__ import annotations
+
+from decimal import Decimal
+from typing import Optional
+
+from pydantic import BaseModel
+
+from calc_core.reports.result import CalcResult
+from calc_core.reports.statements import Statement
+
+
+class LineOut(BaseModel):
+    code: str
+    label: str
+    values: list[Decimal]
+
+
+class StatementOut(BaseModel):
+    lines: list[LineOut]
+
+
+class MetricsOut(BaseModel):
+    npv: Decimal
+    irr_annual: Optional[Decimal] = None
+    pi: Optional[Decimal] = None
+    pb_months: Optional[int] = None
+    dpb_months: Optional[int] = None
+
+
+class RatiosOut(BaseModel):
+    liquidity: dict[str, list[Optional[Decimal]]]
+    activity: dict[str, list[Optional[Decimal]]]
+    gearing: dict[str, list[Optional[Decimal]]]
+    profitability: dict[str, list[Optional[Decimal]]]
+    investment: dict[str, list[Optional[Decimal]]]
+
+
+class CalcResponse(BaseModel):
+    engine_version: str
+    n: int
+    income: StatementOut
+    cashflow: StatementOut
+    balance: StatementOut
+    profit_use: StatementOut
+    metrics: MetricsOut
+    ratios: RatiosOut
+    warnings: list[str]
+
+
+def _statement_out(s: Statement) -> StatementOut:
+    return StatementOut(
+        lines=[LineOut(code=code, label=s.labels[code], values=s[code]) for code in s.order]
+    )
+
+
+def to_response(r: CalcResult) -> CalcResponse:
+    """Преобразовать результат ядра в схему ответа API."""
+    return CalcResponse(
+        engine_version=r.engine_version,
+        n=r.n,
+        income=_statement_out(r.income),
+        cashflow=_statement_out(r.cashflow),
+        balance=_statement_out(r.balance),
+        profit_use=_statement_out(r.profit_use),
+        metrics=MetricsOut(
+            npv=r.metrics.npv,
+            irr_annual=r.metrics.irr_annual,
+            pi=r.metrics.pi,
+            pb_months=r.metrics.pb_months,
+            dpb_months=r.metrics.dpb_months,
+        ),
+        ratios=RatiosOut(
+            liquidity=r.ratios.liquidity,
+            activity=r.ratios.activity,
+            gearing=r.ratios.gearing,
+            profitability=r.ratios.profitability,
+            investment=r.ratios.investment,
+        ),
+        warnings=r.warnings,
+    )
