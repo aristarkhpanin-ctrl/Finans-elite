@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { Layout } from "./components/Layout";
+import { HoldingsPage } from "./pages/HoldingsPage";
 import { LoginPage } from "./pages/LoginPage";
 import { OrganizationPage } from "./pages/OrganizationPage";
 import { ProjectEditorPage } from "./pages/ProjectEditorPage";
@@ -29,6 +30,7 @@ export function App() {
         }
       >
         <Route path="/projects" element={<ProjectsPage />} />
+        <Route path="/holdings" element={<HoldingsPage />} />
         <Route path="/organization" element={<OrganizationPage />} />
         <Route path="/projects/:id" element={<ProjectEditorPage />} />
         <Route
