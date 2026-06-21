@@ -77,6 +77,17 @@ def test_vat_invariant_holds():
 
 
 def test_vat_in_taxes_line():
-    r = run(_vat_project("0.20"))
-    # НДС к уплате входит в строку «Налоги» C12 — суммарно положителен
+    # Изолируем НДС: продажи с НДС, без капвложений и налога на прибыль → C12 = НДС к уплате.
+    n = 3
+    m = ProjectModel(
+        header=ProjectHeader(name="НДС-C12", start_date=date(2026, 1, 1), duration_months=n),
+        settings=ProjectSettings(vat_rate=Decimal("0.20"), profit_tax_rate=Decimal("0")),
+        operating_plan=OperatingPlan(
+            products=[Product(id="p1", name="Товар")],
+            sales=[SalesLine(product_id="p1", volume=[Decimal(10)] * n, price=[Decimal(1000)] * n)],
+        ),
+    )
+    r = run(m)
+    # НДС к уплате (20% от 10000 = 2000/мес) входит в строку «Налоги» C12
+    assert r.cashflow["C12"][0] == Decimal("2000")
     assert total(r.cashflow["C12"]) > 0

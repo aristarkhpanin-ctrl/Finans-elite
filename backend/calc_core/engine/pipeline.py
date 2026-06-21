@@ -305,7 +305,8 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "I18": add(loan_interest_cost, auto.pl_interest),
         "I24": add(i24_fixed, loan_interest_profit),
     }
-    income = build_income(income_leaves, n, settings.profit_tax_rate)
+    income = build_income(
+        income_leaves, n, settings.profit_tax_rate, settings.profit_tax_benefit_share)
 
     # --- Использование прибыли (нераспределённая прибыль = B32) ---
     profit_use = build_profit_use(
