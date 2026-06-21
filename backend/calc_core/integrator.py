@@ -19,7 +19,7 @@ from .reports.lines import (
     PROFIT_USE_LINES,
 )
 from .reports.result import CalcResult, build_investment_metrics
-from .reports.statements import Statement
+from .reports.statements import Statement, opening_balance
 from .series import add
 from .version import ENGINE_VERSION
 
@@ -52,8 +52,17 @@ def consolidate(models: list[ProjectModel],
     net_flow = add(cashflow["C13"], cashflow["C20"])
     r_m = annual_to_monthly(group_discount_rate)
     metrics = build_investment_metrics(net_flow, r_m)
+    # Стартовый баланс группы = сумма стартовых балансов проектов (для средних в коэф-тах).
+    sbs = [m.company.starting_balance for m in models]
+    opening = opening_balance(
+        sum((sb.cash for sb in sbs), D(0)),
+        sum((sb.fixed_assets_net for sb in sbs), D(0)),
+        sum((sb.debt for sb in sbs), D(0)),
+        sum((sb.paid_in_capital for sb in sbs), D(0)),
+        sum((sb.retained_earnings for sb in sbs), D(0)),
+    )
     # Число акций по группе не определено → инвестиционные «на акцию» = None.
-    ratios = compute_ratios(income, cashflow, balance, profit_use, D(0), n)
+    ratios = compute_ratios(income, cashflow, balance, profit_use, D(0), n, opening)
     break_even = compute_break_even(income, n)
 
     return CalcResult(

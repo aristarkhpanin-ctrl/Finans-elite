@@ -15,6 +15,7 @@ from ..reports.actualization import actualize_cashflow
 from ..reports.breakeven import compute_break_even
 from ..reports.ratios import compute_ratios
 from ..reports.result import CalcResult, InvestmentMetrics, build_investment_metrics
+from ..reports.statements import opening_balance
 from ..series import add, zeros
 from ..version import ENGINE_VERSION
 from .errors import InvariantError
@@ -44,9 +45,13 @@ def run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
         _check_invariants(income, cashflow, balance, profit_use, n)
 
     metrics = _metrics(model, cashflow)
+    sb = model.company.starting_balance
+    opening = opening_balance(
+        sb.cash, sb.fixed_assets_net, sb.debt, sb.paid_in_capital, sb.retained_earnings,
+    )
     ratios = compute_ratios(
         income, cashflow, balance, profit_use,
-        model.financing.common_shares, n,
+        model.financing.common_shares, n, opening,
     )
     break_even = compute_break_even(income, n)
 

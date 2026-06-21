@@ -157,3 +157,22 @@ def build_balance(leaves: dict[str, list[Decimal]], n: int) -> Statement:
     # B34 = B25 + B26 + B33
     s["B34"] = add(s["B25"], s["B26"], s["B33"])
     return s
+
+
+def opening_balance(cash, fixed_assets_net, debt, paid_in_capital,
+                    retained_earnings) -> dict[str, Decimal]:
+    """Балансовые величины на начало проекта (t = −1) из стартового баланса.
+
+    Нужны для «средних за период» в коэффициентах (SPEC §18): среднее за период t = 0
+    берётся как (начало + конец)/2, где «начало» — этот стартовый баланс. Субтоталы
+    (B8, B11, B20, B33…) вычисляются теми же формулами, что и обычный баланс.
+    """
+    leaves = {
+        "B1": [cash],
+        "B14": [fixed_assets_net],   # остаточная стоимость ОС (v0 → оборудование)
+        "B26": [debt],
+        "B27": [paid_in_capital],
+        "B32": [retained_earnings],
+    }
+    s = build_balance(leaves, 1)
+    return {code: s[code][0] for code in s.order}
