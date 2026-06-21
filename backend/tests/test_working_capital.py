@@ -46,22 +46,24 @@ def test_zero_terms_cash_equals_accrual():
 
 
 def test_accrual_cash_identity_on_sample():
-    """cumulative(начисление) − cumulative(деньги) объясняется оборотным капиталом."""
+    """cumulative(начисление) − cumulative(деньги) объясняется оборотным капиталом и запасами."""
     r = run(build_sample_project())
-    n = r.n
     inc, cf, bal = r.income, r.cashflow, r.balance
 
     # Продажи: cum(I1) − cum(C1) == B2 − B24
     lhs = sub(cumulative(inc["I1"]), cumulative(cf["C1"]))
-    rhs = sub(bal["B2"], bal["B24"])
-    assert lhs == rhs
+    assert lhs == sub(bal["B2"], bal["B24"])
 
-    # Издержки: cum(accrual) − cum(cash) == B23 (кредиторка)
+    # Издержки (с учётом запасов 5.1b):
+    #   cum(себестоимость + пост.издержки) − cum(деньги) == B23 − B3 − B5
+    # (себестоимость I5/I6 признаётся при продаже; разрыв с деньгами объясняется
+    #  кредиторкой за вычетом запасов сырья и готовой продукции).
     accrual = add(inc["I5"], inc["I6"], inc["I10"], inc["I11"], inc["I12"],
                   inc["I13"], inc["I14"], inc["I15"])
     cash = add(cf["C2"], cf["C3"], cf["C5"], cf["C6"])
     lhs2 = sub(cumulative(accrual), cumulative(cash))
-    assert lhs2 == bal["B23"]
+    expected = sub(sub(bal["B23"], bal["B3"]), bal["B5"])
+    assert lhs2 == expected
 
 
 def test_sample_has_nonzero_working_capital():

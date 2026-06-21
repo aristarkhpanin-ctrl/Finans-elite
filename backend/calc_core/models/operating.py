@@ -40,13 +40,29 @@ class SalesLine(BaseModel):
     payment: PaymentTerms = PaymentTerms()
 
 
+class ProductionLine(BaseModel):
+    """План производства продукта (натуральный объём по месяцам).
+
+    Если для продукта план производства не задан, считается «производство под продажи»
+    (производство = сбыт), и запасы готовой продукции не образуются.
+    """
+
+    product_id: str
+    volume: list[Decimal] = Field(default_factory=list)
+
+
 class DirectCostLine(BaseModel):
-    """Прямая издержка (материалы или сдельная зарплата), помесячно."""
+    """Прямая издержка (материалы или сдельная зарплата), помесячно.
+
+    ``amount`` — стоимость, относимая к производству месяца (себестоимость капитализуется
+    в запасах готовой продукции и признаётся при продаже, SPEC §6).
+    """
 
     name: str
     kind: DirectCostKind = DirectCostKind.MATERIALS
     amount: list[Decimal] = Field(default_factory=list)
     payment_delay_months: int = Field(default=0, ge=0)  # задержка оплаты → кредиторка (B23)
+    stock_lead_months: int = Field(default=0, ge=0)     # опережающая закупка → сырьё (B3)
 
 
 class FixedCostLine(BaseModel):
@@ -61,5 +77,6 @@ class FixedCostLine(BaseModel):
 class OperatingPlan(BaseModel):
     products: list[Product] = Field(default_factory=list)
     sales: list[SalesLine] = Field(default_factory=list)
+    production: list[ProductionLine] = Field(default_factory=list)
     direct_costs: list[DirectCostLine] = Field(default_factory=list)
     fixed_costs: list[FixedCostLine] = Field(default_factory=list)

@@ -22,6 +22,7 @@ from calc_core.models import (
     OperatingPlan,
     PaymentTerms,
     Product,
+    ProductionLine,
     ProjectHeader,
     ProjectModel,
     ProjectSettings,
@@ -57,13 +58,21 @@ def _random_project(rng: random.Random) -> ProjectModel:
             payment_delay_months=rng.randint(0, 4),
         )
 
+    n_products = rng.randint(1, 3)
     sales = [
         SalesLine(product_id=f"p{i}", volume=series(0, 200), price=series(10, 500), payment=terms())
-        for i in range(rng.randint(1, 3))
+        for i in range(n_products)
+    ]
+    # план производства (для части продуктов) — образует запасы готовой продукции
+    production = [
+        ProductionLine(product_id=f"p{i}", volume=series(0, 200))
+        for i in range(n_products)
+        if rng.random() < 0.5
     ]
     direct = [
         DirectCostLine(name="m", kind=DirectCostKind.MATERIALS, amount=series(0, 30000),
-                       payment_delay_months=rng.randint(0, 4)),
+                       payment_delay_months=rng.randint(0, 4),
+                       stock_lead_months=rng.randint(0, 3)),
         DirectCostLine(name="w", kind=DirectCostKind.PIECE_WAGES, amount=series(0, 10000),
                        payment_delay_months=rng.randint(0, 2)),
     ]
@@ -108,6 +117,7 @@ def _random_project(rng: random.Random) -> ProjectModel:
         operating_plan=OperatingPlan(
             products=[Product(id=s.product_id, name=s.product_id) for s in sales],
             sales=sales,
+            production=production,
             direct_costs=direct,
             fixed_costs=fixed,
         ),

@@ -22,6 +22,7 @@ from ..reports.statements import (
     build_profit_use,
 )
 from .errors import ModelError
+from .inventory import finished_goods, purchase_schedule
 from .timing import cost_timing, sales_timing
 
 # Функции издержек, попадающие в «Общие издержки» (C5) и «Затраты на персонал» (C6).
@@ -59,24 +60,54 @@ def _sales(model: ProjectModel, n: int):
     return i1, c1, b2, b24
 
 
-def _direct(model: ProjectModel, n: int):
-    """Прямые издержки → (I5, I6 начисление; C2, C3 деньги; кредиторка)."""
-    i5 = zeros(n)
-    i6 = zeros(n)
+def _volumes(model: ProjectModel, n: int):
+    """Агрегированные объёмы → (производство TP, сбыт TQ).
+
+    Производство по продукту = его план производства, либо (по умолчанию) объём сбыта.
+    """
+    sales_by_prod: dict[str, list[Decimal]] = {}
+    for s in model.operating_plan.sales:
+        cur = sales_by_prod.get(s.product_id, zeros(n))
+        sales_by_prod[s.product_id] = add(cur, _pad(s.volume, n))
+
+    prod_by_prod = dict(sales_by_prod)  # по умолчанию — производство под продажи
+    for pl in model.operating_plan.production:
+        prod_by_prod[pl.product_id] = _pad(pl.volume, n)
+
+    tq = zeros(n)
+    for v in sales_by_prod.values():
+        tq = add(tq, v)
+    tp = zeros(n)
+    for v in prod_by_prod.values():
+        tp = add(tp, v)
+    return tp, tq
+
+
+def _materials_and_wages(model: ProjectModel, n: int):
+    """Прямые издержки → (потребление материалов MC, сдельная ЗП WC; деньги C2, C3;
+    сырьё B3; кредиторка). Стоимость относится к производству; в ОПУ попадёт как
+    себестоимость при продаже (через пул готовой продукции)."""
+    mc = zeros(n)  # стоимость материалов, потреблённых в производстве
+    wc = zeros(n)  # стоимость сдельной зарплаты в производстве
     c2 = zeros(n)
     c3 = zeros(n)
+    b3 = zeros(n)
     payables = zeros(n)
     for line in model.operating_plan.direct_costs:
         amt = _pad(line.amount, n)
-        cash, pay = cost_timing(amt, line.payment_delay_months, n)
-        payables = add(payables, pay)
         if line.kind == DirectCostKind.MATERIALS:
-            i5 = add(i5, amt)
+            purchases, raw_inv = purchase_schedule(amt, line.stock_lead_months, n)
+            cash, pay = cost_timing(purchases, line.payment_delay_months, n)
+            mc = add(mc, amt)
             c2 = add(c2, cash)
-        else:
-            i6 = add(i6, amt)
+            b3 = add(b3, raw_inv)
+            payables = add(payables, pay)
+        else:  # сдельная зарплата
+            cash, pay = cost_timing(amt, line.payment_delay_months, n)
+            wc = add(wc, amt)
             c3 = add(c3, cash)
-    return i5, i6, c2, c3, payables
+            payables = add(payables, pay)
+    return mc, wc, c2, c3, b3, payables
 
 
 def _fixed(model: ProjectModel, n: int):
@@ -162,9 +193,12 @@ def run_pipeline(model: ProjectModel):
 
     settings = model.settings
 
-    # --- операционный контур (accrual + cash + оборотный капитал) ---
+    # --- операционный контур (accrual + cash + оборотный капитал + запасы) ---
     i1, c1, b2, b24 = _sales(model, n)
-    i5, i6, c2, c3, pay_direct = _direct(model, n)
+    tp, tq = _volumes(model, n)
+    mc, wc, c2, c3, b3, pay_direct = _materials_and_wages(model, n)
+    # Готовая продукция: себестоимость (I5, I6) признаётся при продаже (SPEC §6)
+    i5, i6, b5, inv_warnings = finished_goods(tp, tq, mc, wc, n)
     fixed, c5, c6, pay_fixed = _fixed(model, n)
     b23 = add(pay_direct, pay_fixed)
 
@@ -246,6 +280,8 @@ def run_pipeline(model: ProjectModel):
     balance_leaves = {
         "B1": cashflow["C29"],     # денежные средства = сальдо Кэш-фло
         "B2": b2,                  # счета к получению (дебиторка)
+        "B3": b3,                  # сырьё, материалы и комплектующие
+        "B5": b5,                  # запасы готовой продукции
         "B9": b9,
         "B10": b10,
         "B14": b11,                # остаточная стоимость → оборудование (v0)
@@ -257,4 +293,4 @@ def run_pipeline(model: ProjectModel):
     }
     balance = build_balance(balance_leaves, n)
 
-    return income, cashflow, balance, profit_use
+    return income, cashflow, balance, profit_use, inv_warnings

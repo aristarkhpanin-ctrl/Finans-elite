@@ -16,6 +16,7 @@ from .models import (
     OperatingPlan,
     PaymentTerms,
     Product,
+    ProductionLine,
     ProjectHeader,
     ProjectModel,
     ProjectSettings,
@@ -60,17 +61,24 @@ def build_sample_project() -> ProjectModel:
                     ),
                 )
             ],
+            # Производство с опережением: 120 ед/мес в 1-м полугодии, 80 — во 2-м
+            # (итого 1200 ед = объём сбыта). Образуется запас готовой продукции (B5).
+            production=[
+                ProductionLine(product_id="p1", volume=[rub(120)] * 6 + [rub(80)] * 6),
+            ],
             direct_costs=[
                 DirectCostLine(
                     name="Материалы",
                     kind=DirectCostKind.MATERIALS,
-                    amount=[rub("40000")] * n,  # 400/ед × 100
-                    payment_delay_months=1,     # оплата поставщику с отсрочкой 1 мес.
+                    # 400/ед × объём производства
+                    amount=[rub("48000")] * 6 + [rub("32000")] * 6,
+                    payment_delay_months=1,  # оплата поставщику с отсрочкой 1 мес.
+                    stock_lead_months=1,     # закупка сырья за 1 мес. до потребления → B3
                 ),
                 DirectCostLine(
                     name="Сдельная оплата",
                     kind=DirectCostKind.PIECE_WAGES,
-                    amount=[rub("10000")] * n,
+                    amount=[rub("12000")] * 6 + [rub("8000")] * 6,  # 100/ед × производство
                 ),
             ],
             fixed_costs=[

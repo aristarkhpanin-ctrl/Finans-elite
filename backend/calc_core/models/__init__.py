@@ -12,6 +12,7 @@ from .operating import (
     OperatingPlan,
     PaymentTerms,
     Product,
+    ProductionLine,
     SalesLine,
 )
 from .project import ProjectHeader, ProjectModel, ProjectSettings
@@ -31,6 +32,7 @@ __all__ = [
     "OperatingPlan",
     "Product",
     "SalesLine",
+    "ProductionLine",
     "PaymentTerms",
     "DirectCostLine",
     "FixedCostLine",

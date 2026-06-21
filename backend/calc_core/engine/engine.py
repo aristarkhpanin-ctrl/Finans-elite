@@ -36,7 +36,7 @@ def run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
     options = options or CalcOptions()
     n = model.n
 
-    income, cashflow, balance, profit_use = run_pipeline(model)
+    income, cashflow, balance, profit_use, warnings = run_pipeline(model)
 
     if options.check_invariants:
         _check_invariants(income, cashflow, balance, profit_use, n)
@@ -51,6 +51,7 @@ def run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
         balance=balance,
         profit_use=profit_use,
         metrics=metrics,
+        warnings=warnings,
     )
 
 
