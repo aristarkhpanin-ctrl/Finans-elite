@@ -222,18 +222,44 @@ def _fixed(model: ProjectModel, n: int, vat_rate: Decimal,
 
 
 def _assets(model: ProjectModel, n: int):
-    """Активы → (capex по месяцам, амортизация по месяцам)."""
+    """Активы → (capex, амортизация, поступления от продажи C16, прочие доходы/издержки
+    I20/I21, выбытие первонач. стоимости и накопл. амортизации).
+
+    Продажа (``sale_month``): амортизация прекращается, остаточная стоимость списывается,
+    поступления идут в C16, финансовый результат (цена − остаточная) — в I20 (прибыль) или
+    I21 (убыток). Балансовый инвариант сохраняется (SPEC §9).
+    """
     capex = zeros(n)
     dep = zeros(n)
+    proceeds = zeros(n)        # → C16
+    other_income = zeros(n)    # → I20 (прибыль от продажи)
+    other_expense = zeros(n)   # → I21 (убыток от продажи)
+    b9_disposal = zeros(n)     # выбытие первоначальной стоимости
+    b10_disposal = zeros(n)    # выбытие накопленной амортизации
     for asset in model.investment_plan.assets:
         p = asset.purchase_month
         if 0 <= p < n:
             capex[p] += asset.cost
         d = asset.monthly_depreciation()
-        for t in range(p, min(p + asset.life_months, n)):
-            if t >= 0:
-                dep[t] += d
-    return capex, dep
+        end = min(p + asset.life_months, n)
+        sale_m = asset.sale_month
+        if sale_m is not None:
+            end = min(end, sale_m)              # амортизация прекращается в месяц продажи
+        acc_dep = ZERO
+        for t in range(max(p, 0), end):
+            dep[t] += d
+            acc_dep += d
+        if sale_m is not None and 0 <= sale_m < n:
+            residual = asset.cost - acc_dep
+            proceeds[sale_m] += asset.sale_price
+            gain = asset.sale_price - residual
+            if gain >= 0:
+                other_income[sale_m] += gain
+            else:
+                other_expense[sale_m] += -gain
+            b9_disposal[sale_m] += asset.cost
+            b10_disposal[sale_m] += acc_dep
+    return capex, dep, proceeds, other_income, other_expense, b9_disposal, b10_disposal
 
 
 def _loan_schedule(loan, n: int):
@@ -372,11 +398,11 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     b23 = add(pay_direct, pay_fixed)
 
     # --- инвестиции и амортизация (capex в баланс — по нетто; деньги — с НДС) ---
-    capex, dep = _assets(model, n)
+    capex, dep, asset_proceeds, asset_income, asset_expense, b9_disp, b10_disp = _assets(model, n)
     capex_gross = [capex[t] * (Decimal(1) + vat_rate) for t in range(n)]
     vat_in_capex = [capex[t] * vat_rate for t in range(n)]
-    b9 = [sb.fixed_assets_net + c for c in cumulative(capex)]
-    b10 = list(cumulative(dep))
+    b9 = [sb.fixed_assets_net + cumulative(capex)[t] - cumulative(b9_disp)[t] for t in range(n)]
+    b10 = [cumulative(dep)[t] - cumulative(b10_disp)[t] for t in range(n)]
     b11 = [b9[t] - b10[t] for t in range(n)]
 
     # Налог на имущество (база — остаточная стоимость, годовая ставка → помесячно)
@@ -403,6 +429,8 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "I14": fixed[CostFunction.STAFF_PRODUCTION],
         "I15": fixed[CostFunction.STAFF_MARKETING],
         "I17": dep,
+        "I20": asset_income,
+        "I21": asset_expense,
         "I18": add(loan_interest_cost, auto.pl_interest),
         "I24": add(i24_fixed, loan_interest_profit),
         "I25": add(i25_fx, loan_reval, i25_sales, i25_fixed),
@@ -460,6 +488,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "C6": c6,
         "C12": taxes_cash,
         "C14": capex_gross,
+        "C16": asset_proceeds,
         "C21": equity_in,
         "C22": add(loan_proceeds, auto.cash_draws),
         "C23": add(loan_principal, auto.cash_principal),

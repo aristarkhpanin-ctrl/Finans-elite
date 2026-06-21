@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -17,6 +18,9 @@ class Asset(BaseModel):
     cost: Decimal                  # стоимость приобретения (→ capex, C14)
     purchase_month: int = 0        # месяц приобретения (индекс t)
     life_months: int = 12          # срок службы для линейной амортизации
+    # Продажа актива: месяц и цена реализации (→ C16; фин. результат в I20/I21). SPEC §9.
+    sale_month: Optional[int] = None
+    sale_price: Decimal = Decimal(0)
 
     def monthly_depreciation(self) -> Decimal:
         if self.life_months <= 0:
