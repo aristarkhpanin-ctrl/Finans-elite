@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from . import crud
 from .database import get_db
 from .db_models import User
+from .rbac import Perm, has_permission
 from .security import decode_token
 
 _bearer = HTTPBearer(auto_error=True)
@@ -58,3 +59,38 @@ def require_membership(
     if not crud.is_member(db, org_id, user.id):
         raise HTTPException(status_code=403, detail="Нет доступа к организации")
     return org_id
+
+
+def require_permission(perm: Perm):
+    """Фабрика зависимостей: требовать право ``perm`` в текущей организации (из членства).
+
+    Для проектов: организация выводится из ``current_org_id``. Отдаёт ``organization_id``.
+    """
+
+    def dependency(
+        org_id: str = Depends(current_org_id),
+        user: User = Depends(current_user),
+        db: Session = Depends(get_db),
+    ) -> str:
+        role = crud.get_role(db, org_id, user.id)
+        if not has_permission(role, perm):
+            raise HTTPException(status_code=403, detail="Недостаточно прав")
+        return org_id
+
+    return dependency
+
+
+def require_org_permission(perm: Perm):
+    """Фабрика зависимостей: требовать право ``perm`` в организации **из пути** (``org_id``)."""
+
+    def dependency(
+        org_id: str,
+        user: User = Depends(current_user),
+        db: Session = Depends(get_db),
+    ) -> str:
+        role = crud.get_role(db, org_id, user.id)
+        if not has_permission(role, perm):
+            raise HTTPException(status_code=403, detail="Недостаточно прав")
+        return org_id
+
+    return dependency

@@ -83,12 +83,31 @@ def list_user_memberships(db: Session, user_id: str) -> list[Membership]:
     )
 
 
-def is_member(db: Session, org_id: str, user_id: str) -> bool:
+def get_membership(db: Session, org_id: str, user_id: str) -> Membership | None:
     return db.scalar(
         select(Membership).where(
             Membership.organization_id == org_id, Membership.user_id == user_id
         )
-    ) is not None
+    )
+
+
+def is_member(db: Session, org_id: str, user_id: str) -> bool:
+    return get_membership(db, org_id, user_id) is not None
+
+
+def get_role(db: Session, org_id: str, user_id: str) -> str | None:
+    membership = get_membership(db, org_id, user_id)
+    return membership.role if membership else None
+
+
+def list_user_organizations(db: Session, user_id: str) -> list[tuple[Organization, str]]:
+    rows = db.execute(
+        select(Organization, Membership.role)
+        .join(Membership, Membership.organization_id == Organization.id)
+        .where(Membership.user_id == user_id)
+        .order_by(Membership.created_at)
+    ).all()
+    return [(org, role) for org, role in rows]
 
 
 def list_members(db: Session, org_id: str) -> list[tuple[Membership, User]]:

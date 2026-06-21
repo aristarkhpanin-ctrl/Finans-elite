@@ -88,10 +88,17 @@ class OrganizationOut(BaseModel):
     created_at: datetime
 
 
+class OrganizationMembershipOut(BaseModel):
+    id: str
+    name: str
+    role: str
+    created_at: datetime
+
+
 class MemberCreate(BaseModel):
     email: str
     full_name: str = ""
-    role: str = "owner"
+    role: str = "viewer"
 
 
 class MemberOut(BaseModel):

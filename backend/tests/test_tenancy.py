@@ -33,7 +33,7 @@ def test_create_org_and_members(client, register, auth_headers):
     assert client.get(f"/api/v1/organizations/{org['id']}", headers=auth_headers).status_code == 200
     # добавить участника по email
     r = client.post(f"/api/v1/organizations/{org['id']}/members",
-                    json={"email": "new@e.ru", "full_name": "Новый", "role": "member"},
+                    json={"email": "new@e.ru", "full_name": "Новый", "role": "editor"},
                     headers=auth_headers)
     assert r.status_code == 201
     members = client.get(f"/api/v1/organizations/{org['id']}/members", headers=auth_headers).json()

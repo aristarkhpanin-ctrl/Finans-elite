@@ -14,7 +14,8 @@ from calc_core.engine import ModelError
 from .. import crud
 from ..database import get_db
 from ..db_models import Project
-from ..deps import current_org_id
+from ..deps import require_permission
+from ..rbac import Perm
 from ..schemas import (
     CalcResponse,
     ProjectCreate,
@@ -44,21 +45,23 @@ def _require(db: Session, org_id: str, project_id: str) -> Project:
 
 
 @router.post("", response_model=ProjectOut, status_code=status.HTTP_201_CREATED)
-def create_project(body: ProjectCreate, org_id: str = Depends(current_org_id),
+def create_project(body: ProjectCreate,
+                   org_id: str = Depends(require_permission(Perm.PROJECT_CREATE)),
                    db: Session = Depends(get_db)) -> ProjectOut:
-    """Создать проект в текущей организации."""
+    """Создать проект в текущей организации (право project.create)."""
     return _out(crud.create_project(db, org_id, body.name, body.model))
 
 
 @router.get("", response_model=list[ProjectSummary])
-def list_projects(org_id: str = Depends(current_org_id),
+def list_projects(org_id: str = Depends(require_permission(Perm.PROJECT_READ)),
                   db: Session = Depends(get_db)) -> list[ProjectSummary]:
     """Список проектов организации (метаданные)."""
     return [_summary(p) for p in crud.list_projects(db, org_id)]
 
 
 @router.get("/{project_id}", response_model=ProjectOut)
-def get_project(project_id: str, org_id: str = Depends(current_org_id),
+def get_project(project_id: str,
+                org_id: str = Depends(require_permission(Perm.PROJECT_READ)),
                 db: Session = Depends(get_db)) -> ProjectOut:
     """Получить проект с моделью."""
     return _out(_require(db, org_id, project_id))
@@ -66,24 +69,26 @@ def get_project(project_id: str, org_id: str = Depends(current_org_id),
 
 @router.put("/{project_id}", response_model=ProjectOut)
 def update_project(project_id: str, body: ProjectUpdate,
-                   org_id: str = Depends(current_org_id),
+                   org_id: str = Depends(require_permission(Perm.PROJECT_UPDATE)),
                    db: Session = Depends(get_db)) -> ProjectOut:
-    """Обновить имя и/или модель проекта."""
+    """Обновить имя и/или модель проекта (право project.update)."""
     project = _require(db, org_id, project_id)
     return _out(crud.update_project(db, project, name=body.name, model=body.model))
 
 
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_project(project_id: str, org_id: str = Depends(current_org_id),
+def delete_project(project_id: str,
+                   org_id: str = Depends(require_permission(Perm.PROJECT_DELETE)),
                    db: Session = Depends(get_db)) -> None:
-    """Удалить проект."""
+    """Удалить проект (право project.delete)."""
     crud.delete_project(db, _require(db, org_id, project_id))
 
 
 @router.post("/{project_id}/calculate", response_model=CalcResponse)
-def calculate_project(project_id: str, org_id: str = Depends(current_org_id),
+def calculate_project(project_id: str,
+                      org_id: str = Depends(require_permission(Perm.PROJECT_CALCULATE)),
                       db: Session = Depends(get_db)) -> CalcResponse:
-    """Рассчитать сохранённый проект."""
+    """Рассчитать сохранённый проект (право project.calculate)."""
     project = _require(db, org_id, project_id)
     try:
         result = run(crud.load_model(project))
