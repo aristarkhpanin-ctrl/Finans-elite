@@ -30,6 +30,7 @@ class ProjectSettings(BaseModel):
     discount_rate_annual: Decimal = Decimal("0.15")   # ставка дисконтирования (для NPV)
     profit_tax_rate: Decimal = Decimal("0.20")        # налог на прибыль
     property_tax_rate: Decimal = Decimal("0")         # налог на имущество (база — B11)
+    vat_rate: Decimal = Decimal("0")                  # ставка НДС (0 = НДС выключен)
     min_cash_balance: Decimal = Decimal("0")          # мин. остаток (для автоподбора, далее)
 
 
