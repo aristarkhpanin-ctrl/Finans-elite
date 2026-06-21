@@ -174,6 +174,7 @@ def _fixed(model: ProjectModel, n: int, vat_rate: Decimal,
     i24 = zeros(n)  # издержки, отнесённые на прибыль (невычитаемые)
     payable_f = zeros(n)  # валютная кредиторка (в валюте) — для переоценки
     one_plus = Decimal(1) + vat_rate
+    contrib = ONE + model.settings.payroll_contribution_rate  # загрузка ФОТ страховыми взносами
     for line in model.operating_plan.fixed_costs:
         amt = _pad(line.amount, n)
         if line.foreign:
@@ -195,12 +196,15 @@ def _fixed(model: ProjectModel, n: int, vat_rate: Decimal,
             payables = add(payables, pay)
             i24 = add(i24, amt)
             continue
-        groups[line.function] = add(groups[line.function], amt)
         if line.function in _STAFF_FUNCTIONS:
-            cash, pay = cost_timing(amt, line.payment_delay_months, n)
+            # Загруженная стоимость персонала = ЗП + страховые взносы (база — ФОТ).
+            loaded = [amt[t] * contrib for t in range(n)]
+            groups[line.function] = add(groups[line.function], loaded)
+            cash, pay = cost_timing(loaded, line.payment_delay_months, n)
             c6 = add(c6, cash)
             payables = add(payables, pay)
         else:
+            groups[line.function] = add(groups[line.function], amt)
             gross = [amt[t] * one_plus for t in range(n)]
             cash, pay = cost_timing(gross, line.payment_delay_months, n)
             vat_amt = [amt[t] * vat_rate for t in range(n)]

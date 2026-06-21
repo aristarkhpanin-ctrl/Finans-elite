@@ -140,6 +140,7 @@ def _random_project(rng: random.Random) -> ProjectModel:
             discount_rate_annual=Decimal("0.15"),
             profit_tax_rate=Decimal(rng.randint(0, 30)) / Decimal(100),
             profit_tax_benefit_share=Decimal(rng.randint(0, 50)) / Decimal(100),
+            payroll_contribution_rate=Decimal(rng.randint(0, 40)) / Decimal(100),
             property_tax_rate=Decimal(rng.randint(0, 3)) / Decimal(100),
             vat_rate=rng.choice([Decimal(0), Decimal("0.10"), Decimal("0.20")]),
             vat_basis=rng.choice(list(VatBasis)),
