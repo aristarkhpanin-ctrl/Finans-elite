@@ -259,6 +259,13 @@ class WhatIfResponse(BaseModel):
     scenarios: list[ScenarioResultOut]
 
 
+# --- Integrator (9.2) ---
+
+class ConsolidateRequest(BaseModel):
+    project_ids: list[str]
+    group_discount_rate: Decimal = Decimal("0.15")
+
+
 def _statement_out(s: Statement) -> StatementOut:
     return StatementOut(
         lines=[LineOut(code=code, label=s.labels[code], values=s[code]) for code in s.order]

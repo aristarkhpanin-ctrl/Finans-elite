@@ -16,7 +16,7 @@ from calc_core.engine import ModelError
 from calc_core.samples import build_sample_project
 
 from .database import init_db
-from .routers import auth, billing, organizations, projects
+from .routers import auth, billing, integrator, organizations, projects
 from .schemas import CalcResponse, to_response
 
 
@@ -35,6 +35,7 @@ app = FastAPI(
 
 app.include_router(auth.router)
 app.include_router(billing.router)
+app.include_router(integrator.router)
 app.include_router(organizations.router)
 app.include_router(projects.router)
 
