@@ -48,6 +48,7 @@ def run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
     sb = model.company.starting_balance
     opening = opening_balance(
         sb.cash, sb.fixed_assets_net, sb.debt, sb.paid_in_capital, sb.retained_earnings,
+        sb.foreign_monetary * model.environment.fx_open,
     )
     ratios = compute_ratios(
         income, cashflow, balance, profit_use,

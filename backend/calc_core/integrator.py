@@ -60,6 +60,8 @@ def consolidate(models: list[ProjectModel],
         sum((sb.debt for sb in sbs), D(0)),
         sum((sb.paid_in_capital for sb in sbs), D(0)),
         sum((sb.retained_earnings for sb in sbs), D(0)),
+        sum((m.company.starting_balance.foreign_monetary * m.environment.fx_open
+             for m in models), D(0)),
     )
     # Число акций по группе не определено → инвестиционные «на акцию» = None.
     ratios = compute_ratios(income, cashflow, balance, profit_use, D(0), n, opening)

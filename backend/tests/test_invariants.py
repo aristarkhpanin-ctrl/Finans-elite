@@ -14,7 +14,9 @@ from calc_core import run
 from calc_core.models import (
     Asset,
     AutoFinancing,
+    Company,
     DirectCostLine,
+    Environment,
     EquityInjection,
     Financing,
     FixedCostLine,
@@ -28,6 +30,7 @@ from calc_core.models import (
     ProjectModel,
     ProjectSettings,
     SalesLine,
+    StartingBalance,
 )
 from calc_core.models.common import (
     CostFunction,
@@ -120,8 +123,16 @@ def _random_project(rng: random.Random) -> ProjectModel:
         annual_rate=Decimal(rng.randint(0, 30)) / Decimal(100),
         min_balance=Decimal(rng.randint(0, 5000)),
     )
+    # Валютная позиция: опорный актив во 2-й валюте, уравновешенный капиталом; курс гуляет.
+    fx_open = Decimal(rng.randint(40, 80))
+    fx_rate = [Decimal(rng.randint(30, 100)) for _ in range(n)]
+    fm = Decimal(rng.randint(0, 1000))
+    company = Company(starting_balance=StartingBalance(
+        foreign_monetary=fm, paid_in_capital=fm * fx_open))
     return ProjectModel(
         header=ProjectHeader(duration_months=n),
+        company=company,
+        environment=Environment(fx_open=fx_open, fx_rate=fx_rate),
         settings=ProjectSettings(
             discount_rate_annual=Decimal("0.15"),
             profit_tax_rate=Decimal(rng.randint(0, 30)) / Decimal(100),

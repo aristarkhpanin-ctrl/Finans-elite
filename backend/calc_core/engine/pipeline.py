@@ -227,6 +227,23 @@ def _equity(model: ProjectModel, n: int) -> list[Decimal]:
     return eq
 
 
+def _fx_series(env, n: int) -> list[Decimal]:
+    """Курс второй валюты по периодам (основная валюта за единицу второй).
+
+    Недостающие хвосты ряда продлеваются последним известным курсом; пустой ряд —
+    постоянный стартовый курс (одна валюта, переоценки нет).
+    """
+    if not env.fx_rate:
+        return [D(env.fx_open) for _ in range(n)]
+    out = zeros(n)
+    last = D(env.fx_open)
+    for t in range(n):
+        if t < len(env.fx_rate):
+            last = D(env.fx_rate[t])
+        out[t] = last
+    return out
+
+
 def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     """Выполнить расчёт и вернуть (income, cashflow, balance, profit_use, warnings).
 
@@ -237,15 +254,26 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     sb = model.company.starting_balance
     auto = auto or AutoInjection.zero(n)
 
-    # Проверка сходимости стартового баланса (SPEC §16).
-    if abs(sb.assets() - sb.liabilities_equity()) > Decimal("0.01"):
+    # Валютный контур: курс второй валюты по периодам и опорная валютная позиция (SPEC §3).
+    env = model.environment
+    fx = _fx_series(env, n)
+    fx_prev = [D(env.fx_open)] + fx[:-1]          # курс предыдущего периода (t=0 — стартовый)
+    fm = sb.foreign_monetary                       # монетарный актив во 2-й валюте (ед. валюты)
+    opening_foreign = fm * D(env.fx_open)          # его стоимость в основной валюте на старте
+
+    # Проверка сходимости стартового баланса (SPEC §16), включая валютную позицию.
+    if abs(sb.assets() + opening_foreign - sb.liabilities_equity()) > Decimal("0.01"):
         raise ModelError(
-            f"Стартовый баланс не сходится: актив {sb.assets()} != пассив "
+            f"Стартовый баланс не сходится: актив {sb.assets() + opening_foreign} != пассив "
             f"{sb.liabilities_equity()}"
         )
 
     settings = model.settings
     vat_rate = settings.vat_rate
+
+    # Переоценка валютной позиции → курсовая разница (I25) и валютный актив (B6) (SPEC §22.3).
+    b6_foreign = [fm * fx[t] for t in range(n)]
+    i25_fx = [fm * (fx[t] - fx_prev[t]) for t in range(n)]
 
     # --- операционный контур (accrual + cash + оборотный капитал + запасы + НДС) ---
     i1, c1, b2, b24, vat_out, vat_out_paid = _sales(model, n, vat_rate)
@@ -304,6 +332,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "I17": dep,
         "I18": add(loan_interest_cost, auto.pl_interest),
         "I24": add(i24_fixed, loan_interest_profit),
+        "I25": i25_fx,
     }
     income = build_income(
         income_leaves, n, settings.profit_tax_rate, settings.profit_tax_benefit_share)
@@ -379,6 +408,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "B2": b2,                  # счета к получению (дебиторка, с НДС)
         "B3": b3,                  # сырьё, материалы и комплектующие
         "B5": b5,                  # запасы готовой продукции
+        "B6": b6_foreign,          # банковские вклады/валютная позиция (2-я валюта)
         "B7": b7,                  # краткосрочные предоплаченные расходы (НДС-кредит)
         "B21": b21,                # отсроченные налоговые платежи (отложенный исходящий НДС)
         "B9": b9,

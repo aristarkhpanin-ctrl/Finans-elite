@@ -16,6 +16,7 @@ class StartingBalance(BaseModel):
 
     cash: Decimal = Decimal(0)                 # → B1
     fixed_assets_net: Decimal = Decimal(0)     # → B11 (остаточная стоимость ОС)
+    foreign_monetary: Decimal = Decimal(0)     # монетарный актив во 2-й валюте, ед. валюты → B6
     debt: Decimal = Decimal(0)                 # → B26 (долгосрочные займы)
     paid_in_capital: Decimal = Decimal(0)      # → B27 (обыкновенные акции)
     retained_earnings: Decimal = Decimal(0)    # → B32 (нераспределённая прибыль)
