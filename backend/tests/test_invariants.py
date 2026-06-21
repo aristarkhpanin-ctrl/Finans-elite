@@ -70,7 +70,8 @@ def _random_project(rng: random.Random) -> ProjectModel:
 
     n_products = rng.randint(1, 3)
     sales = [
-        SalesLine(product_id=f"p{i}", volume=series(0, 200), price=series(10, 500), payment=terms())
+        SalesLine(product_id=f"p{i}", volume=series(0, 200), price=series(10, 500),
+                  payment=terms(), foreign=rng.random() < 0.3)
         for i in range(n_products)
     ]
     # план производства (для части продуктов) — образует запасы готовой продукции

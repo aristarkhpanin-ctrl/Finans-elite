@@ -44,10 +44,13 @@ def _pad(values: list[Decimal], n: int) -> list[Decimal]:
     return out
 
 
-def _sales(model: ProjectModel, n: int, vat_rate: Decimal):
-    """Сбыт → (I1 нетто, C1 деньги с НДС, B2 дебиторка, B24 авансы, исходящий НДС).
+def _sales(model: ProjectModel, n: int, vat_rate: Decimal,
+           fx: list[Decimal], fx_prev: list[Decimal]):
+    """Сбыт → (I1 нетто, C1 деньги с НДС, B2 дебиторка, B24 авансы, исходящий НДС, I25).
 
-    ОПУ — без НДС (I1 = нетто-выручка); деньги и оборотный капитал — с НДС.
+    ОПУ — без НДС (I1 = нетто-выручка); деньги и оборотный капитал — с НДС. Экспортные
+    (валютные) строки — без НДС, с пересчётом по ``fx[t]``; их дебиторка/авансы
+    переоцениваются → курсовая разница ``i25_sales`` (SPEC §22.3).
     """
     i1 = zeros(n)
     c1 = zeros(n)
@@ -55,22 +58,39 @@ def _sales(model: ProjectModel, n: int, vat_rate: Decimal):
     b24 = zeros(n)
     vat_out = zeros(n)        # исходящий НДС начислено (по отгрузке)
     vat_out_paid = zeros(n)   # исходящий НДС в полученных деньгах (по оплате)
+    recv_f = zeros(n)         # валютная дебиторка (в валюте) — для переоценки
+    adv_f = zeros(n)          # валютные авансы (в валюте) — для переоценки
     one_plus = Decimal(1) + vat_rate
     for line in model.operating_plan.sales:
         vol = _pad(line.volume, n)
         price = _pad(line.price, n)
-        revenue = [vol[t] * price[t] for t in range(n)]          # нетто (→ I1)
-        gross = [revenue[t] * one_plus for t in range(n)]        # с НДС (→ деньги/WC)
-        cash, recv, adv = sales_timing(gross, line.payment, n)
-        vat_amt = [revenue[t] * vat_rate for t in range(n)]
-        vat_cash, _, _ = sales_timing(vat_amt, line.payment, n)  # НДС в деньгах (та же схема)
-        i1 = add(i1, revenue)
-        c1 = add(c1, cash)
-        b2 = add(b2, recv)
-        b24 = add(b24, adv)
-        vat_out = add(vat_out, vat_amt)
-        vat_out_paid = add(vat_out_paid, vat_cash)
-    return i1, c1, b2, b24, vat_out, vat_out_paid
+        revenue = [vol[t] * price[t] for t in range(n)]          # в валюте строки
+        if line.foreign:
+            # Экспорт: без НДС; выручка/деньги/дебиторка в валюте → пересчёт по FX.
+            cash, recv, adv = sales_timing(revenue, line.payment, n)
+            i1 = add(i1, [revenue[t] * fx[t] for t in range(n)])      # начислено по курсу отгрузки
+            c1 = add(c1, [cash[t] * fx[t] for t in range(n)])        # деньги по курсу получения
+            b2 = add(b2, [recv[t] * fx[t] for t in range(n)])
+            b24 = add(b24, [adv[t] * fx[t] for t in range(n)])
+            recv_f = add(recv_f, recv)
+            adv_f = add(adv_f, adv)
+        else:
+            gross = [revenue[t] * one_plus for t in range(n)]        # с НДС (→ деньги/WC)
+            cash, recv, adv = sales_timing(gross, line.payment, n)
+            vat_amt = [revenue[t] * vat_rate for t in range(n)]
+            vat_cash, _, _ = sales_timing(vat_amt, line.payment, n)  # НДС в деньгах (та же схема)
+            i1 = add(i1, revenue)
+            c1 = add(c1, cash)
+            b2 = add(b2, recv)
+            b24 = add(b24, adv)
+            vat_out = add(vat_out, vat_amt)
+            vat_out_paid = add(vat_out_paid, vat_cash)
+    # Курсовая разница по валютным дебиторке/авансам (на остаток начала периода).
+    i25_sales = zeros(n)
+    for t in range(n):
+        net_start = (recv_f[t - 1] - adv_f[t - 1]) if t > 0 else ZERO
+        i25_sales[t] = net_start * (fx[t] - fx_prev[t])
+    return i1, c1, b2, b24, vat_out, vat_out_paid, i25_sales
 
 
 def _volumes(model: ProjectModel, n: int):
@@ -316,7 +336,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     i25_fx = [fm * (fx[t] - fx_prev[t]) for t in range(n)]
 
     # --- операционный контур (accrual + cash + оборотный капитал + запасы + НДС) ---
-    i1, c1, b2, b24, vat_out, vat_out_paid = _sales(model, n, vat_rate)
+    i1, c1, b2, b24, vat_out, vat_out_paid, i25_sales = _sales(model, n, vat_rate, fx, fx_prev)
     tp, tq = _volumes(model, n)
     mc, wc, c2, c3, b3, pay_direct, vat_in_mat, vat_in_paid_mat = _materials_and_wages(
         model, n, vat_rate)
@@ -360,7 +380,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "I17": dep,
         "I18": add(loan_interest_cost, auto.pl_interest),
         "I24": add(i24_fixed, loan_interest_profit),
-        "I25": add(i25_fx, loan_reval),
+        "I25": add(i25_fx, loan_reval, i25_sales),
     }
     income = build_income(
         income_leaves, n, settings.profit_tax_rate, settings.profit_tax_benefit_share)

@@ -38,6 +38,9 @@ class SalesLine(BaseModel):
     volume: list[Decimal] = Field(default_factory=list)  # натуральный объём по месяцам
     price: list[Decimal] = Field(default_factory=list)    # цена за единицу по месяцам
     payment: PaymentTerms = PaymentTerms()
+    # Экспорт во 2-й валюте: цена в валюте, пересчёт выручки/денег/дебиторки по FX[t]
+    # (без НДС); валютная дебиторка переоценивается → I25 (SPEC §22.3). По умолчанию — рубли.
+    foreign: bool = False
 
 
 class ProductionLine(BaseModel):

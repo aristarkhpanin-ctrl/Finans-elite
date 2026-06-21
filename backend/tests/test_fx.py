@@ -17,6 +17,8 @@ from calc_core.models import (
     Financing,
     Loan,
     OperatingPlan,
+    PaymentTerms,
+    Product,
     ProjectHeader,
     ProjectModel,
     ProjectSettings,
@@ -109,6 +111,31 @@ def test_foreign_loan_at_unit_fx_equals_base_loan():
         assert rf.income[line] == rb.income[line]
     assert rf.balance["B26"] == rb.balance["B26"]
     assert rf.cashflow["C24"] == rb.cashflow["C24"]   # проценты одинаковы
+
+
+def test_foreign_sales_receivable_revalues_on_collection():
+    """Экспорт 100 ед. в кредит: отгрузка по курсу 60 (выручка 6000), оплата по курсу 70
+    (деньги 7000); разница 1000 — курсовой доход на дебиторку. Баланс сходится."""
+    n = 2
+    m = ProjectModel(
+        header=ProjectHeader(name="export", start_date=date(2026, 1, 1), duration_months=n),
+        settings=ProjectSettings(discount_rate_annual=D("0"), profit_tax_rate=D("0"),
+                                 property_tax_rate=D("0"), vat_rate=D("0")),
+        environment=Environment(fx_open=D("60"), fx_rate=[D("60"), D("70")]),
+        operating_plan=OperatingPlan(
+            products=[Product(id="p1", name="Экспортный товар")],
+            sales=[SalesLine(product_id="p1", volume=[D(100), D(0)], price=[D(1), D(1)],
+                             payment=PaymentTerms(payment_delay_months=1), foreign=True)],
+        ),
+        financing=Financing(common_shares=D(100)),
+    )
+    r = run(m)
+    assert r.income["I1"] == [D(6000), D(0)]       # выручка по курсу отгрузки 60
+    assert r.cashflow["C1"] == [D(0), D(7000)]     # деньги по курсу получения 70
+    assert r.balance["B2"] == [D(6000), D(0)]      # дебиторка по курсу на конец периода
+    assert r.income["I25"] == [D(0), D(1000)]      # курсовой доход на дебиторку при оплате
+    assert r.balance["B32"] == [D(6000), D(7000)]  # прибыль = выручка + курсовая разница
+    assert _balanced(r)
 
 
 def test_no_fx_rate_means_no_revaluation():
