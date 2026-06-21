@@ -15,12 +15,14 @@ from calc_core.models import (
     Asset,
     AutoFinancing,
     Company,
+    Deposit,
     DirectCostLine,
     Environment,
     EquityInjection,
     Financing,
     FixedCostLine,
     InvestmentPlan,
+    Lease,
     Loan,
     OperatingPlan,
     PaymentTerms,
@@ -122,6 +124,17 @@ def _random_project(rng: random.Random) -> ProjectModel:
         EquityInjection(amount=Decimal(rng.randint(10000, 500000)), month=rng.randint(0, n - 1))
         for _ in range(rng.randint(0, 2))
     ]
+    leases = [
+        Lease(name=f"ls{i}", monthly_payment=Decimal(rng.randint(0, 20000)),
+              start_month=rng.randint(0, n - 1), term_months=rng.randint(1, 24))
+        for i in range(rng.randint(0, 2))
+    ]
+    deposits = [
+        Deposit(name=f"dp{i}", amount=Decimal(rng.randint(0, 200000)),
+                start_month=rng.randint(0, n - 1), term_months=rng.randint(1, 24),
+                annual_rate=Decimal(rng.randint(0, 20)) / Decimal(100))
+        for i in range(rng.randint(0, 2))
+    ]
     dividends = [Decimal(rng.randint(0, 5000)) for _ in range(n)]
 
     auto = AutoFinancing(
@@ -161,7 +174,8 @@ def _random_project(rng: random.Random) -> ProjectModel:
             fixed_costs=fixed,
         ),
         investment_plan=InvestmentPlan(assets=assets),
-        financing=Financing(loans=loans, equity=equity, dividends=dividends, auto_financing=auto),
+        financing=Financing(loans=loans, leases=leases, deposits=deposits, equity=equity,
+                            dividends=dividends, auto_financing=auto),
     )
 
 

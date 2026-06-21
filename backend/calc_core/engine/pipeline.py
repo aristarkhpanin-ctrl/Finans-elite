@@ -448,6 +448,29 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     (loan_proceeds, loan_principal, loan_interest, loan_interest_cost,
      loan_interest_profit, loan_debt, loan_reval) = _loans(model, n, fx, fx_prev)
 
+    # --- лизинг (операционный): платёж = издержка (I21) + отток (C25) ---
+    lease_payments = zeros(n)
+    for lease in model.financing.leases:
+        for t in range(lease.start_month, min(lease.start_month + lease.term_months, n)):
+            if t >= 0:
+                lease_payments[t] += lease.monthly_payment
+
+    # --- депозиты/ЦБ: вложение C8, доход C9 (= I20), тело в B6 ---
+    c8 = zeros(n)            # вложения в ЦБ (размещение +, возврат −)
+    c9 = zeros(n)            # доходы по ЦБ
+    deposit_bal = zeros(n)   # тело размещения на конец периода → B6
+    for deposit in model.financing.deposits:
+        rm = (ONE + deposit.annual_rate) ** (ONE / D(12)) - ONE
+        s = deposit.start_month
+        e = s + deposit.term_months
+        if 0 <= s < n:
+            c8[s] += deposit.amount          # размещение (отток)
+        if 0 <= e < n:
+            c8[e] -= deposit.amount          # возврат тела (приток)
+        for t in range(max(s, 0), min(e, n)):
+            deposit_bal[t] += deposit.amount
+            c9[t] += deposit.amount * rm     # доход за период держания
+
     equity_in = _equity(model, n)
     dividends = _pad(model.financing.dividends, n)
 
@@ -464,8 +487,8 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "I14": fixed[CostFunction.STAFF_PRODUCTION],
         "I15": fixed[CostFunction.STAFF_MARKETING],
         "I17": dep,
-        "I20": asset_income,
-        "I21": asset_expense,
+        "I20": add(asset_income, c9),               # прочие доходы + доход по ЦБ
+        "I21": add(asset_expense, lease_payments),  # прочие издержки + лизинговые платежи
         "I18": add(loan_interest_cost, auto.pl_interest),
         "I24": add(i24_fixed, loan_interest_profit),
         "I25": add(i25_fx, loan_reval, i25_sales, i25_fixed),
@@ -521,6 +544,8 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "C3": c3,
         "C5": c5,
         "C6": c6,
+        "C8": c8,
+        "C9": c9,
         "C12": taxes_cash,
         "C14": capex_gross,
         "C16": asset_proceeds,
@@ -528,6 +553,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "C22": add(loan_proceeds, auto.cash_draws),
         "C23": add(loan_principal, auto.cash_principal),
         "C24": add(loan_interest, auto.cash_interest),
+        "C25": lease_payments,
         "C26": dividends,
         "C28": c28,
     }
@@ -545,7 +571,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "B2": b2,                  # счета к получению (дебиторка, с НДС)
         "B3": b3,                  # сырьё, материалы и комплектующие
         "B5": b5,                  # запасы готовой продукции
-        "B6": b6_foreign,          # банковские вклады/валютная позиция (2-я валюта)
+        "B6": add(b6_foreign, deposit_bal),  # валютная позиция + депозиты/ЦБ
         "B7": b7,                  # краткосрочные предоплаченные расходы (НДС-кредит)
         "B21": b21,                # отсроченные налоговые платежи (отложенный исходящий НДС)
         "B9": b9,

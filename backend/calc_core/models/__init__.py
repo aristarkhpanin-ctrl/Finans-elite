@@ -5,7 +5,7 @@ from .actualization import Actualization
 from .common import CostFunction, DirectCostKind, InventoryMethod, RepaymentType, VatBasis
 from .company import Company, StartingBalance
 from .environment import Currency, Environment, InflationGroup, Tax
-from .financing import AutoFinancing, EquityInjection, Financing, Loan
+from .financing import AutoFinancing, Deposit, EquityInjection, Financing, Lease, Loan
 from .investment import Asset, InvestmentPlan
 from .operating import (
     DirectCostLine,
@@ -43,6 +43,8 @@ __all__ = [
     "InventoryMethod",
     "Financing",
     "Loan",
+    "Lease",
+    "Deposit",
     "EquityInjection",
     "AutoFinancing",
     "RepaymentType",

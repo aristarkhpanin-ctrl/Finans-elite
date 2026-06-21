@@ -39,6 +39,25 @@ class EquityInjection(BaseModel):
     month: int = 0
 
 
+class Lease(BaseModel):
+    """Операционный лизинг: периодический платёж (издержка I21 + отток C25). SPEC §10."""
+
+    name: str
+    monthly_payment: Decimal
+    start_month: int = 0
+    term_months: int = 12
+
+
+class Deposit(BaseModel):
+    """Размещение свободных средств: вложение C8, доход C9, тело в B6 (SPEC §10)."""
+
+    name: str
+    amount: Decimal                         # сумма размещения
+    start_month: int = 0                    # месяц размещения
+    term_months: int = 12                   # срок (возврат тела в start+term)
+    annual_rate: Decimal = Decimal("0")     # годовая ставка дохода
+
+
 class AutoFinancing(BaseModel):
     """Автоподбор финансирования: покрытие дефицита наличности кредитной линией.
 
@@ -54,6 +73,8 @@ class AutoFinancing(BaseModel):
 
 class Financing(BaseModel):
     loans: list[Loan] = Field(default_factory=list)
+    leases: list[Lease] = Field(default_factory=list)
+    deposits: list[Deposit] = Field(default_factory=list)
     equity: list[EquityInjection] = Field(default_factory=list)
     # Явные выплаты дивидендов по месяцам (v0). Политика по доле прибыли — следующая фаза.
     dividends: list[Decimal] = Field(default_factory=list)
