@@ -134,6 +134,31 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 .series-cell:focus { outline: none; border-color: var(--primary); }
 .link-btn { background: none; border: none; color: var(--primary); cursor: pointer; font: inherit; padding: 0; }
 
+/* Финансовая таблица */
+.fin-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.fin-table { border-collapse: collapse; font-size: 13px; width: max-content; min-width: 100%; }
+.fin-table th, .fin-table td { padding: 7px 12px; white-space: nowrap; border-bottom: 1px solid var(--border); }
+.fin-table thead th { background: var(--surface-2); color: var(--text-muted); font-weight: 600; text-align: right; position: sticky; top: 0; }
+.fin-table td.num, .fin-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.fin-table .label-col {
+  text-align: left; position: sticky; left: 0; background: var(--surface);
+  min-width: 230px; max-width: 320px; overflow: hidden; text-overflow: ellipsis;
+}
+.fin-table thead .label-col { background: var(--surface-2); z-index: 1; }
+.fin-table tr.subtotal td { font-weight: 700; background: var(--surface-2); }
+.fin-table tr.subtotal .label-col { background: var(--surface-2); }
+.fin-table .code { color: var(--text-muted); font-size: 11px; margin-right: 6px; }
+
+/* Метрики */
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.metric { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+.metric .m-label { color: var(--text-muted); font-size: 12px; font-weight: 600; }
+.metric .m-value { font-size: 22px; font-weight: 700; margin-top: 4px; }
+.chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+.chart-card h3 { margin: 0 0 12px; font-size: 15px; }
+.warnings { background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; border-radius: var(--radius); padding: 10px 14px; margin-bottom: 14px; font-size: 13px; }
+[data-theme="dark"] .warnings { background: #2a1d12; border-color: #553a1f; color: #fbbf77; }
+
 /* Таблица/список */
 .list { display: grid; gap: 10px; }
 .list-item .actions { display: flex; gap: 8px; }

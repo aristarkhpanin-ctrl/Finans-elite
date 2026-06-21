@@ -50,7 +50,16 @@ export function ProjectEditorPage() {
     <div>
       <div className="toolbar" style={{ marginBottom: 14 }}>
         <button className="link-btn" onClick={() => navigate("/projects")}>← Проекты</button>
-        <span className="spacer" style={{ flex: 1 }} />
+        <span style={{ flex: 1 }} />
+        <Button
+          variant="ghost"
+          onClick={async () => {
+            await save.mutateAsync();
+            navigate(`/projects/${id}/results`);
+          }}
+        >
+          Рассчитать →
+        </Button>
       </div>
       <h1>{model.header.name}</h1>
 
