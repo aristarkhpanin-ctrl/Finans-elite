@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from calc_core import run
 from calc_core.engine import ModelError
+from calc_core.sensitivity import SENSITIVITY_PARAMS, run_sensitivity
 
 from .. import billing, crud
 from ..database import get_db
@@ -22,6 +23,9 @@ from ..schemas import (
     ProjectOut,
     ProjectSummary,
     ProjectUpdate,
+    SensitivityPointOut,
+    SensitivityRequest,
+    SensitivityResponse,
     to_response,
 )
 
@@ -96,3 +100,23 @@ def calculate_project(project_id: str,
     except ModelError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return to_response(result)
+
+
+@router.post("/{project_id}/sensitivity", response_model=SensitivityResponse)
+def sensitivity(project_id: str, body: SensitivityRequest,
+                org_id: str = Depends(require_permission(Perm.PROJECT_CALCULATE)),
+                db: Session = Depends(get_db)) -> SensitivityResponse:
+    """Анализ чувствительности: варьировать параметр и наблюдать NPV/IRR."""
+    if body.param not in SENSITIVITY_PARAMS:
+        raise HTTPException(status_code=422,
+                            detail=f"Неизвестный параметр. Доступны: {sorted(SENSITIVITY_PARAMS)}")
+    project = _require(db, org_id, project_id)
+    try:
+        points = run_sensitivity(crud.load_model(project), body.param, body.factors)
+    except ModelError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return SensitivityResponse(
+        param=body.param,
+        points=[SensitivityPointOut(factor=p.factor, npv=p.npv, irr_annual=p.irr_annual)
+                for p in points],
+    )

@@ -175,6 +175,25 @@ class CheckoutResponse(BaseModel):
     confirmation_url: Optional[str] = None
 
 
+# --- Анализ чувствительности (7.3) ---
+
+class SensitivityRequest(BaseModel):
+    param: str
+    factors: list[Decimal] = [Decimal("0.8"), Decimal("0.9"), Decimal("1.0"),
+                              Decimal("1.1"), Decimal("1.2")]
+
+
+class SensitivityPointOut(BaseModel):
+    factor: Decimal
+    npv: Decimal
+    irr_annual: Optional[Decimal] = None
+
+
+class SensitivityResponse(BaseModel):
+    param: str
+    points: list[SensitivityPointOut]
+
+
 def _statement_out(s: Statement) -> StatementOut:
     return StatementOut(
         lines=[LineOut(code=code, label=s.labels[code], values=s[code]) for code in s.order]
