@@ -77,6 +77,9 @@ class FixedCostLine(BaseModel):
     payment_delay_months: int = Field(default=0, ge=0)  # задержка оплаты → кредиторка (B23)
     # «Из прибыли»: невычитаемая издержка — идёт в I24, не уменьшает налоговую базу.
     from_profit: bool = False
+    # Издержка во 2-й валюте (услуга, без НДС): пересчёт по FX[t], валютная кредиторка
+    # переоценивается → I25 (рост курса → убыток). По умолчанию — основная валюта.
+    foreign: bool = False
 
 
 class OperatingPlan(BaseModel):

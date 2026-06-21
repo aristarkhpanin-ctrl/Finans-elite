@@ -154,13 +154,16 @@ def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal):
     return mc, wc, c2, c3, b3, payables, vat_in, vat_in_paid
 
 
-def _fixed(model: ProjectModel, n: int, vat_rate: Decimal):
+def _fixed(model: ProjectModel, n: int, vat_rate: Decimal,
+           fx: list[Decimal], fx_prev: list[Decimal]):
     """Постоянные издержки → (группы начисления I10–I15; C5, C6 деньги; кредиторка;
-    входной НДС по общим издержкам; издержки за счёт прибыли I24).
+    входной НДС по общим издержкам; издержки за счёт прибыли I24; курсовая разница I25).
 
     Общие издержки (услуги) облагаются НДС; затраты на персонал — нет. Издержки с флагом
     «из прибыли» (невычитаемые, SPEC §12/§22.1) не попадают в I10–I15 (не уменьшают I23),
     а накапливаются в I24; их выплата проходит как общие издержки (в v0 — без НДС).
+    Валютные издержки (`foreign`, услуги без НДС) пересчитываются по ``fx[t]``; их
+    кредиторка переоценивается → ``i25_fixed`` (SPEC §22.3).
     """
     groups = {fn: zeros(n) for fn in CostFunction}
     c5 = zeros(n)  # общие издержки (с НДС)
@@ -169,9 +172,22 @@ def _fixed(model: ProjectModel, n: int, vat_rate: Decimal):
     vat_in = zeros(n)        # входной НДС начислено
     vat_in_paid = zeros(n)   # входной НДС в оплаченных издержках (по оплате)
     i24 = zeros(n)  # издержки, отнесённые на прибыль (невычитаемые)
+    payable_f = zeros(n)  # валютная кредиторка (в валюте) — для переоценки
     one_plus = Decimal(1) + vat_rate
     for line in model.operating_plan.fixed_costs:
         amt = _pad(line.amount, n)
+        if line.foreign:
+            # Валютная издержка (услуга, без НДС): пересчёт по FX; кредиторка переоценивается.
+            cash_f, pay_f = cost_timing(amt, line.payment_delay_months, n)
+            groups[line.function] = add(groups[line.function], [amt[t] * fx[t] for t in range(n)])
+            cash_b = [cash_f[t] * fx[t] for t in range(n)]
+            if line.function in _STAFF_FUNCTIONS:
+                c6 = add(c6, cash_b)
+            else:
+                c5 = add(c5, cash_b)
+            payables = add(payables, [pay_f[t] * fx[t] for t in range(n)])
+            payable_f = add(payable_f, pay_f)
+            continue
         if line.from_profit:
             # За счёт прибыли: начисление → I24 (не в I10–I15); выплата без НДС.
             cash, pay = cost_timing(amt, line.payment_delay_months, n)
@@ -193,7 +209,12 @@ def _fixed(model: ProjectModel, n: int, vat_rate: Decimal):
             payables = add(payables, pay)
             vat_in = add(vat_in, vat_amt)
             vat_in_paid = add(vat_in_paid, vat_cash)
-    return groups, c5, c6, payables, vat_in, i24, vat_in_paid
+    # Курсовая разница по валютной кредиторке (на остаток начала периода): рост курса → убыток.
+    i25_fixed = zeros(n)
+    for t in range(n):
+        pay_start = payable_f[t - 1] if t > 0 else ZERO
+        i25_fixed[t] = -pay_start * (fx[t] - fx_prev[t])
+    return groups, c5, c6, payables, vat_in, i24, vat_in_paid, i25_fixed
 
 
 def _assets(model: ProjectModel, n: int):
@@ -342,8 +363,8 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         model, n, vat_rate)
     # Готовая продукция: себестоимость (I5, I6) признаётся при продаже (SPEC §6, §22.8)
     i5, i6, b5, inv_warnings = finished_goods(tp, tq, mc, wc, n, settings.inventory_method)
-    fixed, c5, c6, pay_fixed, vat_in_fixed, i24_fixed, vat_in_paid_fixed = _fixed(
-        model, n, vat_rate)
+    fixed, c5, c6, pay_fixed, vat_in_fixed, i24_fixed, vat_in_paid_fixed, i25_fixed = _fixed(
+        model, n, vat_rate, fx, fx_prev)
     b23 = add(pay_direct, pay_fixed)
 
     # --- инвестиции и амортизация (capex в баланс — по нетто; деньги — с НДС) ---
@@ -380,7 +401,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "I17": dep,
         "I18": add(loan_interest_cost, auto.pl_interest),
         "I24": add(i24_fixed, loan_interest_profit),
-        "I25": add(i25_fx, loan_reval, i25_sales),
+        "I25": add(i25_fx, loan_reval, i25_sales, i25_fixed),
     }
     income = build_income(
         income_leaves, n, settings.profit_tax_rate, settings.profit_tax_benefit_share)

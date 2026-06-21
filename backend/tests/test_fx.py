@@ -15,6 +15,7 @@ from calc_core.models import (
     Company,
     Environment,
     Financing,
+    FixedCostLine,
     Loan,
     OperatingPlan,
     PaymentTerms,
@@ -25,7 +26,7 @@ from calc_core.models import (
     SalesLine,
     StartingBalance,
 )
-from calc_core.models.common import RepaymentType
+from calc_core.models.common import CostFunction, RepaymentType
 
 D = Decimal
 
@@ -135,6 +136,30 @@ def test_foreign_sales_receivable_revalues_on_collection():
     assert r.balance["B2"] == [D(6000), D(0)]      # дебиторка по курсу на конец периода
     assert r.income["I25"] == [D(0), D(1000)]      # курсовой доход на дебиторку при оплате
     assert r.balance["B32"] == [D(6000), D(7000)]  # прибыль = выручка + курсовая разница
+    assert _balanced(r)
+
+
+def test_foreign_cost_payable_revalues_on_payment():
+    """Валютная услуга 100 ед. в кредит: начислено по курсу 60 (6000), оплачено по 70
+    (7000); разница −1000 — курсовой убыток на кредиторку. Баланс сходится."""
+    n = 2
+    m = ProjectModel(
+        header=ProjectHeader(name="import", start_date=date(2026, 1, 1), duration_months=n),
+        settings=ProjectSettings(discount_rate_annual=D("0"), profit_tax_rate=D("0"),
+                                 property_tax_rate=D("0"), vat_rate=D("0")),
+        environment=Environment(fx_open=D("60"), fx_rate=[D("60"), D("70")]),
+        operating_plan=OperatingPlan(
+            fixed_costs=[FixedCostLine(name="Консалтинг", function=CostFunction.ADMIN,
+                                       amount=[D(100), D(0)], payment_delay_months=1,
+                                       foreign=True)],
+        ),
+        financing=Financing(common_shares=D(100)),
+    )
+    r = run(m)
+    assert r.income["I10"] == [D(6000), D(0)]      # издержка по курсу начисления 60
+    assert r.balance["B23"] == [D(6000), D(0)]     # кредиторка по курсу на конец периода
+    assert r.cashflow["C5"] == [D(0), D(7000)]     # оплата по курсу 70
+    assert r.income["I25"] == [D(0), D(-1000)]     # курсовой убыток на кредиторку при оплате
     assert _balanced(r)
 
 

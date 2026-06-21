@@ -89,7 +89,8 @@ def _random_project(rng: random.Random) -> ProjectModel:
     ]
     fixed = [
         FixedCostLine(name=f"f{i}", function=rng.choice(list(CostFunction)), amount=series(0, 20000),
-                      payment_delay_months=rng.randint(0, 3), from_profit=rng.random() < 0.3)
+                      payment_delay_months=rng.randint(0, 3), from_profit=rng.random() < 0.3,
+                      foreign=rng.random() < 0.3)
         for i in range(rng.randint(0, 3))
     ]
     assets = [
