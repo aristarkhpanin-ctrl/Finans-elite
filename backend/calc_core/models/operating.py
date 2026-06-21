@@ -72,6 +72,8 @@ class FixedCostLine(BaseModel):
     function: CostFunction = CostFunction.ADMIN
     amount: list[Decimal] = Field(default_factory=list)
     payment_delay_months: int = Field(default=0, ge=0)  # задержка оплаты → кредиторка (B23)
+    # «Из прибыли»: невычитаемая издержка — идёт в I24, не уменьшает налоговую базу.
+    from_profit: bool = False
 
 
 class OperatingPlan(BaseModel):

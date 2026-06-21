@@ -47,12 +47,13 @@ def build_income(leaves: dict[str, list[Decimal]], n: int, profit_tax_rate: Deci
     s["I19"] = add(s["I17"], s["I18"])                           # I17 + I18
     # I23 = I8 − I9 − I16 − I19 + I20 − I21
     s["I23"] = add(sub(sub(sub(s["I8"], s["I9"]), s["I16"]), s["I19"]), sub(s["I20"], s["I21"]))
-    # I26 = I23 + I24 + I25 − I22  (льготы — следующая фаза)
-    s["I26"] = sub(add(s["I23"], s["I24"], s["I25"]), s["I22"])
+    # I26 = I23 + I25 − I22  (льготы — следующая фаза).
+    # I24 (издержки за счёт прибыли) — НЕвычитаемые: не входят в I23 и не входят в базу.
+    s["I26"] = sub(add(s["I23"], s["I25"]), s["I22"])
     # I27 = max(0, I26) · ставка
     s["I27"] = [max(Decimal(0), v) * profit_tax_rate for v in s["I26"]]
-    # I28 = I23 + I25 − I27
-    s["I28"] = sub(add(s["I23"], s["I25"]), s["I27"])
+    # I28 = I23 + I25 − I24 − I27  (издержки за счёт прибыли уменьшают чистую прибыль).
+    s["I28"] = sub(sub(add(s["I23"], s["I25"]), s["I24"]), s["I27"])
     return s
 
 

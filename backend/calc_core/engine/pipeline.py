@@ -128,18 +128,28 @@ def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal):
 
 def _fixed(model: ProjectModel, n: int, vat_rate: Decimal):
     """Постоянные издержки → (группы начисления I10–I15; C5, C6 деньги; кредиторка;
-    входной НДС по общим издержкам).
+    входной НДС по общим издержкам; издержки за счёт прибыли I24).
 
-    Общие издержки (услуги) облагаются НДС; затраты на персонал — нет.
+    Общие издержки (услуги) облагаются НДС; затраты на персонал — нет. Издержки с флагом
+    «из прибыли» (невычитаемые, SPEC §12/§22.1) не попадают в I10–I15 (не уменьшают I23),
+    а накапливаются в I24; их выплата проходит как общие издержки (в v0 — без НДС).
     """
     groups = {fn: zeros(n) for fn in CostFunction}
     c5 = zeros(n)  # общие издержки (с НДС)
     c6 = zeros(n)  # затраты на персонал (без НДС)
     payables = zeros(n)
     vat_in = zeros(n)
+    i24 = zeros(n)  # издержки, отнесённые на прибыль (невычитаемые)
     one_plus = Decimal(1) + vat_rate
     for line in model.operating_plan.fixed_costs:
         amt = _pad(line.amount, n)
+        if line.from_profit:
+            # За счёт прибыли: начисление → I24 (не в I10–I15); выплата без НДС.
+            cash, pay = cost_timing(amt, line.payment_delay_months, n)
+            c5 = add(c5, cash)
+            payables = add(payables, pay)
+            i24 = add(i24, amt)
+            continue
         groups[line.function] = add(groups[line.function], amt)
         if line.function in _STAFF_FUNCTIONS:
             cash, pay = cost_timing(amt, line.payment_delay_months, n)
@@ -151,7 +161,7 @@ def _fixed(model: ProjectModel, n: int, vat_rate: Decimal):
             c5 = add(c5, cash)
             payables = add(payables, pay)
             vat_in = add(vat_in, [amt[t] * vat_rate for t in range(n)])
-    return groups, c5, c6, payables, vat_in
+    return groups, c5, c6, payables, vat_in, i24
 
 
 def _assets(model: ProjectModel, n: int):
@@ -231,7 +241,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     mc, wc, c2, c3, b3, pay_direct, vat_in_mat = _materials_and_wages(model, n, vat_rate)
     # Готовая продукция: себестоимость (I5, I6) признаётся при продаже (SPEC §6)
     i5, i6, b5, inv_warnings = finished_goods(tp, tq, mc, wc, n)
-    fixed, c5, c6, pay_fixed, vat_in_fixed = _fixed(model, n, vat_rate)
+    fixed, c5, c6, pay_fixed, vat_in_fixed, i24_fixed = _fixed(model, n, vat_rate)
     b23 = add(pay_direct, pay_fixed)
 
     # --- инвестиции и амортизация (capex в баланс — по нетто; деньги — с НДС) ---
@@ -249,12 +259,18 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     # --- займы ---
     loan_proceeds = zeros(n)
     loan_principal = zeros(n)
-    loan_interest = zeros(n)
+    loan_interest = zeros(n)          # все проценты (денежная выплата, C24)
+    loan_interest_cost = zeros(n)     # проценты на себестоимость → I18 (вычитаемые)
+    loan_interest_profit = zeros(n)   # проценты за счёт прибыли → I24 (невычитаемые)
     for loan in model.financing.loans:
         pr, pp, ii = _loan_schedule(loan, n)
         loan_proceeds = add(loan_proceeds, pr)
         loan_principal = add(loan_principal, pp)
         loan_interest = add(loan_interest, ii)
+        if loan.interest_on_profit:
+            loan_interest_profit = add(loan_interest_profit, ii)
+        else:
+            loan_interest_cost = add(loan_interest_cost, ii)
 
     equity_in = _equity(model, n)
     dividends = _pad(model.financing.dividends, n)
@@ -272,7 +288,8 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "I14": fixed[CostFunction.STAFF_PRODUCTION],
         "I15": fixed[CostFunction.STAFF_MARKETING],
         "I17": dep,
-        "I18": add(loan_interest, auto.pl_interest),
+        "I18": add(loan_interest_cost, auto.pl_interest),
+        "I24": add(i24_fixed, loan_interest_profit),
     }
     income = build_income(income_leaves, n, settings.profit_tax_rate)
 

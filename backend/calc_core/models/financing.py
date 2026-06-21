@@ -21,6 +21,8 @@ class Loan(BaseModel):
     term_months: int = 12                   # срок (месяцев)
     annual_rate: Decimal = Decimal("0.20")  # годовая ставка
     repayment: RepaymentType = RepaymentType.EQUAL_PRINCIPAL
+    # Проценты «на прибыль» (невычитаемые): идут в I24, а не в I18 (см. SPEC §12, §22.1).
+    interest_on_profit: bool = False
 
     def monthly_rate(self) -> Decimal:
         # эквивалентная месячная ставка: (1+R)^(1/12) - 1
