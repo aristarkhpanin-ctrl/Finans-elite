@@ -4,19 +4,22 @@
 """
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from calc_core import ProjectModel
 
-from .db_models import Membership, Organization, Project, User
+from .db_models import Membership, Organization, Project, Subscription, User
+from .plans import DEFAULT_PLAN
 
 
 # --- Организации ---
 
-def create_organization(db: Session, name: str) -> Organization:
+def create_organization(db: Session, name: str, plan_code: str = DEFAULT_PLAN) -> Organization:
     org = Organization(name=name)
     db.add(org)
+    db.flush()  # получить org.id до создания подписки
+    db.add(Subscription(organization_id=org.id, plan_code=plan_code))
     db.commit()
     db.refresh(org)
     return org
@@ -24,6 +27,37 @@ def create_organization(db: Session, name: str) -> Organization:
 
 def get_organization(db: Session, org_id: str) -> Organization | None:
     return db.get(Organization, org_id)
+
+
+# --- Подписки ---
+
+def get_subscription(db: Session, org_id: str) -> Subscription | None:
+    return db.scalar(select(Subscription).where(Subscription.organization_id == org_id))
+
+
+def set_plan(db: Session, org_id: str, plan_code: str, status: str = "active") -> Subscription:
+    sub = get_subscription(db, org_id)
+    if sub is None:
+        sub = Subscription(organization_id=org_id, plan_code=plan_code, status=status)
+        db.add(sub)
+    else:
+        sub.plan_code = plan_code
+        sub.status = status
+    db.commit()
+    db.refresh(sub)
+    return sub
+
+
+def count_projects(db: Session, org_id: str) -> int:
+    return db.scalar(
+        select(func.count()).select_from(Project).where(Project.organization_id == org_id)
+    ) or 0
+
+
+def count_members(db: Session, org_id: str) -> int:
+    return db.scalar(
+        select(func.count()).select_from(Membership).where(Membership.organization_id == org_id)
+    ) or 0
 
 
 # --- Пользователи и членство ---

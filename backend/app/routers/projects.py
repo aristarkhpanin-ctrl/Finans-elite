@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from calc_core import run
 from calc_core.engine import ModelError
 
-from .. import crud
+from .. import billing, crud
 from ..database import get_db
 from ..db_models import Project
 from ..deps import require_permission
@@ -48,7 +48,8 @@ def _require(db: Session, org_id: str, project_id: str) -> Project:
 def create_project(body: ProjectCreate,
                    org_id: str = Depends(require_permission(Perm.PROJECT_CREATE)),
                    db: Session = Depends(get_db)) -> ProjectOut:
-    """Создать проект в текущей организации (право project.create)."""
+    """Создать проект в текущей организации (право project.create; учёт квоты тарифа)."""
+    billing.ensure_project_quota(db, org_id)
     return _out(crud.create_project(db, org_id, body.name, body.model))
 
 

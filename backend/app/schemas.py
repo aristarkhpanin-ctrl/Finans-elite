@@ -133,6 +133,31 @@ class UserOut(BaseModel):
     full_name: str
 
 
+# --- Тарифы и подписка (биллинг, 6.5) ---
+
+class PlanOut(BaseModel):
+    code: str
+    name: str
+    price_rub: int
+    max_projects: Optional[int] = None
+    max_members: Optional[int] = None
+
+
+class SubscriptionOut(BaseModel):
+    plan_code: str
+    plan_name: str
+    status: str
+    current_period_end: Optional[datetime] = None
+    max_projects: Optional[int] = None
+    max_members: Optional[int] = None
+    used_projects: int
+    used_members: int
+
+
+class SubscriptionUpdate(BaseModel):
+    plan_code: str
+
+
 def _statement_out(s: Statement) -> StatementOut:
     return StatementOut(
         lines=[LineOut(code=code, label=s.labels[code], values=s[code]) for code in s.order]

@@ -71,6 +71,26 @@ class Membership(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
+class Subscription(Base):
+    """Подписка организации на тариф (одна на организацию)."""
+
+    __tablename__ = "subscriptions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), unique=True, index=True, nullable=False
+    )
+    plan_code: Mapped[str] = mapped_column(String(32), default="free")
+    status: Mapped[str] = mapped_column(String(32), default="active")  # active/trialing/past_due/canceled
+    current_period_end: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_now, onupdate=_now
+    )
+
+
 class Project(Base):
     """Проект финансовой модели (замена файла ``.pex``), принадлежит организации."""
 

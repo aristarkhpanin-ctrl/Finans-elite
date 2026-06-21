@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from .. import crud
+from .. import billing, crud
 from ..database import get_db
 from ..db_models import User
 from ..deps import current_user, require_membership, require_org_permission
@@ -53,6 +53,10 @@ def add_member(body: MemberCreate,
     """Добавить участника (право member.manage). Создаёт пользователя по email при необходимости."""
     if not is_valid_role(body.role):
         raise HTTPException(status_code=422, detail=f"Недопустимая роль: {body.role}")
+    # квота участников — только для нового члена (повторное добавление идемпотентно)
+    existing = crud.get_user_by_email(db, body.email)
+    if not (existing and crud.is_member(db, org_id, existing.id)):
+        billing.ensure_member_quota(db, org_id)
     membership = crud.add_member(db, org_id, body.email, body.full_name, body.role)
     user = crud.get_user_by_email(db, body.email)
     return MemberOut(user_id=user.id, email=user.email, full_name=user.full_name,
