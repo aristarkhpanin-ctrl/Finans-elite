@@ -27,3 +27,10 @@ class RepaymentType(str, Enum):
 
     EQUAL_PRINCIPAL = "equal_principal"  # равными долями тела
     BULLET = "bullet"                    # весь возврат в конце срока
+
+
+class VatBasis(str, Enum):
+    """Момент признания НДС к уплате/вычету (SPEC §11, §22.2)."""
+
+    SHIPMENT = "shipment"   # «по отгрузке»: НДС признаётся при начислении (по умолчанию)
+    PAYMENT = "payment"     # «по оплате»: НДС признаётся по факту движения денег

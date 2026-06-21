@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from ..models import CostFunction, DirectCostKind, ProjectModel, RepaymentType
+from ..models import CostFunction, DirectCostKind, ProjectModel, RepaymentType, VatBasis
 from ..money import D, ZERO
 from ..series import add, cumulative, zeros
 from ..reports.statements import (
@@ -53,7 +53,8 @@ def _sales(model: ProjectModel, n: int, vat_rate: Decimal):
     c1 = zeros(n)
     b2 = zeros(n)
     b24 = zeros(n)
-    vat_out = zeros(n)
+    vat_out = zeros(n)        # исходящий НДС начислено (по отгрузке)
+    vat_out_paid = zeros(n)   # исходящий НДС в полученных деньгах (по оплате)
     one_plus = Decimal(1) + vat_rate
     for line in model.operating_plan.sales:
         vol = _pad(line.volume, n)
@@ -61,12 +62,15 @@ def _sales(model: ProjectModel, n: int, vat_rate: Decimal):
         revenue = [vol[t] * price[t] for t in range(n)]          # нетто (→ I1)
         gross = [revenue[t] * one_plus for t in range(n)]        # с НДС (→ деньги/WC)
         cash, recv, adv = sales_timing(gross, line.payment, n)
+        vat_amt = [revenue[t] * vat_rate for t in range(n)]
+        vat_cash, _, _ = sales_timing(vat_amt, line.payment, n)  # НДС в деньгах (та же схема)
         i1 = add(i1, revenue)
         c1 = add(c1, cash)
         b2 = add(b2, recv)
         b24 = add(b24, adv)
-        vat_out = add(vat_out, [revenue[t] * vat_rate for t in range(n)])
-    return i1, c1, b2, b24, vat_out
+        vat_out = add(vat_out, vat_amt)
+        vat_out_paid = add(vat_out_paid, vat_cash)
+    return i1, c1, b2, b24, vat_out, vat_out_paid
 
 
 def _volumes(model: ProjectModel, n: int):
@@ -105,7 +109,8 @@ def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal):
     c3 = zeros(n)
     b3 = zeros(n)
     payables = zeros(n)
-    vat_in = zeros(n)
+    vat_in = zeros(n)        # входной НДС начислено (при закупке)
+    vat_in_paid = zeros(n)   # входной НДС в оплаченных закупках (по оплате)
     one_plus = Decimal(1) + vat_rate
     for line in model.operating_plan.direct_costs:
         amt = _pad(line.amount, n)
@@ -113,17 +118,20 @@ def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal):
             purchases, raw_inv = purchase_schedule(amt, line.stock_lead_months, n)
             gross = [purchases[t] * one_plus for t in range(n)]
             cash, pay = cost_timing(gross, line.payment_delay_months, n)
+            vat_amt = [purchases[t] * vat_rate for t in range(n)]
+            vat_cash, _ = cost_timing(vat_amt, line.payment_delay_months, n)
             mc = add(mc, amt)
             c2 = add(c2, cash)
             b3 = add(b3, raw_inv)            # запас сырья — по нетто-стоимости
             payables = add(payables, pay)
-            vat_in = add(vat_in, [purchases[t] * vat_rate for t in range(n)])
+            vat_in = add(vat_in, vat_amt)
+            vat_in_paid = add(vat_in_paid, vat_cash)
         else:  # сдельная зарплата — без НДС
             cash, pay = cost_timing(amt, line.payment_delay_months, n)
             wc = add(wc, amt)
             c3 = add(c3, cash)
             payables = add(payables, pay)
-    return mc, wc, c2, c3, b3, payables, vat_in
+    return mc, wc, c2, c3, b3, payables, vat_in, vat_in_paid
 
 
 def _fixed(model: ProjectModel, n: int, vat_rate: Decimal):
@@ -138,7 +146,8 @@ def _fixed(model: ProjectModel, n: int, vat_rate: Decimal):
     c5 = zeros(n)  # общие издержки (с НДС)
     c6 = zeros(n)  # затраты на персонал (без НДС)
     payables = zeros(n)
-    vat_in = zeros(n)
+    vat_in = zeros(n)        # входной НДС начислено
+    vat_in_paid = zeros(n)   # входной НДС в оплаченных издержках (по оплате)
     i24 = zeros(n)  # издержки, отнесённые на прибыль (невычитаемые)
     one_plus = Decimal(1) + vat_rate
     for line in model.operating_plan.fixed_costs:
@@ -158,10 +167,13 @@ def _fixed(model: ProjectModel, n: int, vat_rate: Decimal):
         else:
             gross = [amt[t] * one_plus for t in range(n)]
             cash, pay = cost_timing(gross, line.payment_delay_months, n)
+            vat_amt = [amt[t] * vat_rate for t in range(n)]
+            vat_cash, _ = cost_timing(vat_amt, line.payment_delay_months, n)
             c5 = add(c5, cash)
             payables = add(payables, pay)
-            vat_in = add(vat_in, [amt[t] * vat_rate for t in range(n)])
-    return groups, c5, c6, payables, vat_in, i24
+            vat_in = add(vat_in, vat_amt)
+            vat_in_paid = add(vat_in_paid, vat_cash)
+    return groups, c5, c6, payables, vat_in, i24, vat_in_paid
 
 
 def _assets(model: ProjectModel, n: int):
@@ -236,12 +248,14 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     vat_rate = settings.vat_rate
 
     # --- операционный контур (accrual + cash + оборотный капитал + запасы + НДС) ---
-    i1, c1, b2, b24, vat_out = _sales(model, n, vat_rate)
+    i1, c1, b2, b24, vat_out, vat_out_paid = _sales(model, n, vat_rate)
     tp, tq = _volumes(model, n)
-    mc, wc, c2, c3, b3, pay_direct, vat_in_mat = _materials_and_wages(model, n, vat_rate)
+    mc, wc, c2, c3, b3, pay_direct, vat_in_mat, vat_in_paid_mat = _materials_and_wages(
+        model, n, vat_rate)
     # Готовая продукция: себестоимость (I5, I6) признаётся при продаже (SPEC §6)
     i5, i6, b5, inv_warnings = finished_goods(tp, tq, mc, wc, n)
-    fixed, c5, c6, pay_fixed, vat_in_fixed, i24_fixed = _fixed(model, n, vat_rate)
+    fixed, c5, c6, pay_fixed, vat_in_fixed, i24_fixed, vat_in_paid_fixed = _fixed(
+        model, n, vat_rate)
     b23 = add(pay_direct, pay_fixed)
 
     # --- инвестиции и амортизация (capex в баланс — по нетто; деньги — с НДС) ---
@@ -304,8 +318,30 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     retained = profit_use["P7"]
 
     # --- Зачёт НДС (исходящий − входной − кредит → к уплате; избыток → B7) ---
-    vat_in_total = add(vat_in_mat, vat_in_fixed, vat_in_capex)
-    vat_to_budget, b7 = settle_vat(vat_out, vat_in_total, n)
+    # Капвложения оплачиваются в периоде приобретения (без отсрочки) → вход. НДС «по
+    # оплате» совпадает с начисленным.
+    vat_in_accrued = add(vat_in_mat, vat_in_fixed, vat_in_capex)
+    vat_in_paid = add(vat_in_paid_mat, vat_in_paid_fixed, vat_in_capex)
+
+    # Момент признания НДС (SPEC §22.2): «по отгрузке» — начисление; «по оплате» — деньги.
+    if settings.vat_basis == VatBasis.PAYMENT:
+        out_settle, in_settle = vat_out_paid, vat_in_paid
+    else:
+        out_settle, in_settle = vat_out, vat_in_accrued
+    vat_to_budget, credit_carry = settle_vat(out_settle, in_settle, n)
+
+    # Балансовые статьи НДС (разрывы начисление↔признание паркуются, инвариант сохраняется):
+    # B7 — входной НДС-актив (накоплен, ещё не зачтён); B21 — отложенный исходящий НДС.
+    cum_out_acc, cum_out_set = cumulative(vat_out), cumulative(out_settle)
+    cum_in_acc, cum_in_set = cumulative(vat_in_accrued), cumulative(in_settle)
+    b7 = zeros(n)
+    b21 = zeros(n)
+    for t in range(n):
+        deferred_out = cum_out_acc[t] - cum_out_set[t]   # начислен, но не признан к уплате
+        in_not_settled = cum_in_acc[t] - cum_in_set[t]   # начислен, но не предъявлен к вычету
+        b21[t] = max(ZERO, deferred_out)
+        # B7 = неиспользованный НДС-кредит + входной НДС вне зачёта + НДС с авансов выданных
+        b7[t] = credit_carry[t] + in_not_settled + max(ZERO, -deferred_out)
 
     # --- Кэш-фло (оплата, с НДС) ---
     c28 = zeros(n)
@@ -343,6 +379,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "B3": b3,                  # сырьё, материалы и комплектующие
         "B5": b5,                  # запасы готовой продукции
         "B7": b7,                  # краткосрочные предоплаченные расходы (НДС-кредит)
+        "B21": b21,                # отсроченные налоговые платежи (отложенный исходящий НДС)
         "B9": b9,
         "B10": b10,
         "B14": b11,                # остаточная стоимость → оборудование (v0)

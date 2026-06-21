@@ -29,7 +29,7 @@ from calc_core.models import (
     ProjectSettings,
     SalesLine,
 )
-from calc_core.models.common import CostFunction, DirectCostKind, RepaymentType
+from calc_core.models.common import CostFunction, DirectCostKind, RepaymentType, VatBasis
 from calc_core.samples import build_sample_project
 
 EPS = Decimal("0.01")
@@ -79,7 +79,7 @@ def _random_project(rng: random.Random) -> ProjectModel:
     ]
     fixed = [
         FixedCostLine(name=f"f{i}", function=rng.choice(list(CostFunction)), amount=series(0, 20000),
-                      payment_delay_months=rng.randint(0, 3))
+                      payment_delay_months=rng.randint(0, 3), from_profit=rng.random() < 0.3)
         for i in range(rng.randint(0, 3))
     ]
     assets = [
@@ -99,6 +99,7 @@ def _random_project(rng: random.Random) -> ProjectModel:
             term_months=rng.randint(1, 24),
             annual_rate=Decimal(rng.randint(0, 30)) / Decimal(100),
             repayment=rng.choice(list(RepaymentType)),
+            interest_on_profit=rng.random() < 0.3,
         )
         for i in range(rng.randint(0, 2))
     ]
@@ -120,6 +121,7 @@ def _random_project(rng: random.Random) -> ProjectModel:
             profit_tax_rate=Decimal(rng.randint(0, 30)) / Decimal(100),
             property_tax_rate=Decimal(rng.randint(0, 3)) / Decimal(100),
             vat_rate=rng.choice([Decimal(0), Decimal("0.10"), Decimal("0.20")]),
+            vat_basis=rng.choice(list(VatBasis)),
         ),
         operating_plan=OperatingPlan(
             products=[Product(id=s.product_id, name=s.product_id) for s in sales],
