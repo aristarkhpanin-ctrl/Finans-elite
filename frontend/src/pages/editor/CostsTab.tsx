@@ -7,7 +7,7 @@ import {
   type OperatingPlan,
 } from "../../api/model";
 import { MonthlySeries } from "../../components/MonthlySeries";
-import { Button } from "../../components/ui";
+import { Button, CheckField } from "../../components/ui";
 
 interface Props {
   n: number;
@@ -76,7 +76,14 @@ export function CostsTab({ n, operating, onChange }: Props) {
             </select>
             <Button variant="ghost" onClick={() => removeFixed(i)}>Удалить</Button>
           </div>
-          <MonthlySeries n={n} label="Сумма" values={f.amount} onChange={(amount) => updateFixed(i, { amount })} />
+          <MonthlySeries n={n} label={f.foreign ? "Сумма (валюта)" : "Сумма"} values={f.amount}
+                         onChange={(amount) => updateFixed(i, { amount })} />
+          <div className="toolbar" style={{ marginTop: 8, gap: 20 }}>
+            <CheckField label="Из прибыли (невычитаемая)" checked={f.from_profit ?? false}
+                        onChange={(from_profit) => updateFixed(i, { from_profit })} />
+            <CheckField label="Валютная (услуга, по курсу FX)" checked={f.foreign ?? false}
+                        onChange={(foreign) => updateFixed(i, { foreign })} />
+          </div>
         </div>
       ))}
     </div>

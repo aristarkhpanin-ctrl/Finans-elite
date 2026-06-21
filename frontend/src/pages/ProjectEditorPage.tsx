@@ -6,6 +6,7 @@ import { getProject, updateProject } from "../api/projects";
 import { Button } from "../components/ui";
 import { AssetsTab } from "./editor/AssetsTab";
 import { CostsTab } from "./editor/CostsTab";
+import { CurrencyTab } from "./editor/CurrencyTab";
 import { FinancingTab } from "./editor/FinancingTab";
 import { GeneralTab } from "./editor/GeneralTab";
 import { SalesTab } from "./editor/SalesTab";
@@ -16,6 +17,7 @@ const TABS = [
   ["costs", "Издержки"],
   ["assets", "Инвестиции"],
   ["financing", "Финансирование"],
+  ["currency", "Валюта и старт"],
 ] as const;
 
 export function ProjectEditorPage() {
@@ -97,6 +99,11 @@ export function ProjectEditorPage() {
       {tab === "financing" && (
         <FinancingTab financing={model.financing}
                       onChange={(financing) => setModel({ ...model, financing })} />
+      )}
+      {tab === "currency" && (
+        <CurrencyTab n={n} environment={model.environment} company={model.company}
+                     onEnvironment={(environment) => setModel({ ...model, environment })}
+                     onCompany={(company) => setModel({ ...model, company })} />
       )}
 
       <div className="save-bar">

@@ -1,6 +1,6 @@
 import type { OperatingPlan, Product, SalesLine } from "../../api/model";
 import { MonthlySeries } from "../../components/MonthlySeries";
-import { Button } from "../../components/ui";
+import { Button, CheckField } from "../../components/ui";
 
 interface Props {
   n: number;
@@ -54,8 +54,11 @@ export function SalesTab({ n, operating, onChange }: Props) {
           </div>
           <MonthlySeries n={n} label="Объём" values={line.volume}
                          onChange={(volume) => updateLine(i, { volume })} />
-          <MonthlySeries n={n} label="Цена" values={line.price}
+          <MonthlySeries n={n} label={line.foreign ? "Цена (валюта)" : "Цена"} values={line.price}
                          onChange={(price) => updateLine(i, { price })} />
+          <CheckField label="Экспорт (во 2-й валюте, без НДС, по курсу FX)"
+                      checked={line.foreign ?? false}
+                      onChange={(foreign) => updateLine(i, { foreign })} />
           <div className="form-grid" style={{ marginTop: 10 }}>
             <label className="field">
               <span>Предоплата (доля)</span>

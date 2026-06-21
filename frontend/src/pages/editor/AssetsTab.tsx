@@ -1,5 +1,5 @@
 import type { Asset, InvestmentPlan } from "../../api/model";
-import { Button } from "../../components/ui";
+import { Button, CheckField } from "../../components/ui";
 
 interface Props {
   investment: InvestmentPlan;
@@ -36,6 +36,17 @@ export function AssetsTab({ investment, onChange }: Props) {
             <label className="field"><span>Срок службы, мес.</span>
               <input className="input" type="number" value={a.life_months} onChange={(e) => upd(i, { life_months: parseInt(e.target.value || "1", 10) })} /></label>
           </div>
+          <CheckField label="Продаётся в течение проекта"
+                      checked={a.sale_month != null}
+                      onChange={(on) => upd(i, on ? { sale_month: a.purchase_month + 1, sale_price: a.sale_price ?? "0" } : { sale_month: null })} />
+          {a.sale_month != null && (
+            <div className="form-grid">
+              <label className="field"><span>Месяц продажи</span>
+                <input className="input" type="number" value={a.sale_month} onChange={(e) => upd(i, { sale_month: parseInt(e.target.value || "0", 10) })} /></label>
+              <label className="field"><span>Цена продажи</span>
+                <input className="input" type="number" value={a.sale_price ?? "0"} onChange={(e) => upd(i, { sale_price: e.target.value })} /></label>
+            </div>
+          )}
         </div>
       ))}
     </div>

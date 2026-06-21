@@ -1,5 +1,12 @@
-import type { EquityInjection, Financing, Loan, RepaymentType } from "../../api/model";
-import { Button } from "../../components/ui";
+import type {
+  Deposit,
+  EquityInjection,
+  Financing,
+  Lease,
+  Loan,
+  RepaymentType,
+} from "../../api/model";
+import { Button, CheckField } from "../../components/ui";
 
 interface Props {
   financing: Financing;
@@ -8,6 +15,8 @@ interface Props {
 
 export function FinancingTab({ financing, onChange }: Props) {
   const { loans, equity, auto_financing } = financing;
+  const leases = financing.leases ?? [];
+  const deposits = financing.deposits ?? [];
 
   const addEquity = () => onChange({ ...financing, equity: [...equity, { amount: "0", month: 0 }] });
   const updEquity = (i: number, patch: Partial<EquityInjection>) =>
@@ -19,6 +28,18 @@ export function FinancingTab({ financing, onChange }: Props) {
   const updLoan = (i: number, patch: Partial<Loan>) =>
     onChange({ ...financing, loans: loans.map((l, k) => (k === i ? { ...l, ...patch } : l)) });
   const rmLoan = (i: number) => onChange({ ...financing, loans: loans.filter((_, k) => k !== i) });
+
+  const addLease = () =>
+    onChange({ ...financing, leases: [...leases, { name: "Лизинг", monthly_payment: "0", start_month: 0, term_months: 12 }] });
+  const updLease = (i: number, patch: Partial<Lease>) =>
+    onChange({ ...financing, leases: leases.map((l, k) => (k === i ? { ...l, ...patch } : l)) });
+  const rmLease = (i: number) => onChange({ ...financing, leases: leases.filter((_, k) => k !== i) });
+
+  const addDeposit = () =>
+    onChange({ ...financing, deposits: [...deposits, { name: "Депозит", amount: "0", start_month: 0, term_months: 12, annual_rate: "0.08" }] });
+  const updDeposit = (i: number, patch: Partial<Deposit>) =>
+    onChange({ ...financing, deposits: deposits.map((d, k) => (k === i ? { ...d, ...patch } : d)) });
+  const rmDeposit = (i: number) => onChange({ ...financing, deposits: deposits.filter((_, k) => k !== i) });
 
   return (
     <div>
@@ -49,7 +70,7 @@ export function FinancingTab({ financing, onChange }: Props) {
             <Button variant="ghost" onClick={() => rmLoan(i)}>Удалить</Button>
           </div>
           <div className="form-grid">
-            <label className="field"><span>Сумма</span>
+            <label className="field"><span>{l.foreign ? "Сумма (валюта)" : "Сумма"}</span>
               <input className="input" type="number" value={l.amount} onChange={(e) => updLoan(i, { amount: e.target.value })} /></label>
             <label className="field"><span>Месяц получения</span>
               <input className="input" type="number" value={l.start_month} onChange={(e) => updLoan(i, { start_month: parseInt(e.target.value || "0", 10) })} /></label>
@@ -62,6 +83,56 @@ export function FinancingTab({ financing, onChange }: Props) {
                 <option value="equal_principal">Равными долями</option>
                 <option value="bullet">В конце срока</option>
               </select></label>
+          </div>
+          <div className="toolbar" style={{ marginTop: 8, gap: 20 }}>
+            <CheckField label="Валютный (по курсу FX)" checked={l.foreign ?? false}
+                        onChange={(foreign) => updLoan(i, { foreign })} />
+            <CheckField label="Проценты на прибыль (невычитаемые)" checked={l.interest_on_profit ?? false}
+                        onChange={(interest_on_profit) => updLoan(i, { interest_on_profit })} />
+          </div>
+        </div>
+      ))}
+
+      <div className="section-head" style={{ marginTop: 20 }}>
+        <h2>Лизинг</h2>
+        <Button onClick={addLease}>+ Лизинг</Button>
+      </div>
+      {leases.map((l, i) => (
+        <div className="row-card" key={i}>
+          <div className="row-head">
+            <input className="input grow" value={l.name} onChange={(e) => updLease(i, { name: e.target.value })} />
+            <Button variant="ghost" onClick={() => rmLease(i)}>Удалить</Button>
+          </div>
+          <div className="form-grid">
+            <label className="field"><span>Платёж в месяц</span>
+              <input className="input" type="number" value={l.monthly_payment} onChange={(e) => updLease(i, { monthly_payment: e.target.value })} /></label>
+            <label className="field"><span>Месяц начала</span>
+              <input className="input" type="number" value={l.start_month} onChange={(e) => updLease(i, { start_month: parseInt(e.target.value || "0", 10) })} /></label>
+            <label className="field"><span>Срок, мес.</span>
+              <input className="input" type="number" value={l.term_months} onChange={(e) => updLease(i, { term_months: parseInt(e.target.value || "1", 10) })} /></label>
+          </div>
+        </div>
+      ))}
+
+      <div className="section-head" style={{ marginTop: 20 }}>
+        <h2>Депозиты / ЦБ</h2>
+        <Button onClick={addDeposit}>+ Депозит</Button>
+      </div>
+      {deposits.map((d, i) => (
+        <div className="row-card" key={i}>
+          <div className="row-head">
+            <input className="input grow" value={d.name} onChange={(e) => updDeposit(i, { name: e.target.value })} />
+            <Button variant="ghost" onClick={() => rmDeposit(i)}>Удалить</Button>
+          </div>
+          <div className="form-grid">
+            <label className="field"><span>Сумма размещения</span>
+              <input className="input" type="number" value={d.amount} onChange={(e) => updDeposit(i, { amount: e.target.value })} /></label>
+            <label className="field"><span>Месяц размещения</span>
+              <input className="input" type="number" value={d.start_month} onChange={(e) => updDeposit(i, { start_month: parseInt(e.target.value || "0", 10) })} /></label>
+            <label className="field"><span>Срок, мес.</span>
+              <input className="input" type="number" value={d.term_months} onChange={(e) => updDeposit(i, { term_months: parseInt(e.target.value || "1", 10) })} /></label>
+            <label className="field"><span>Ставка дохода (год)</span>
+              <input className="input" type="number" step="0.01" value={d.annual_rate} onChange={(e) => updDeposit(i, { annual_rate: e.target.value })} /></label>
           </div>
         </div>
       ))}
