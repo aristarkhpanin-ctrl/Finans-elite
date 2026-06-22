@@ -23,10 +23,12 @@ export function GeneralTab({ header, settings, onHeader, onSettings }: Props) {
                      onChange={(v) => onHeader({ ...header, duration_months: Math.max(1, parseInt(v || "1", 10)) })} />
       </div>
 
-      <h2 style={{ marginTop: 20 }}>Дисконтирование</h2>
+      <h2 style={{ marginTop: 20 }}>Дисконтирование и оценка</h2>
       <div className="form-grid">
         <NumberField label="Ставка дисконтирования (год)" step="0.01" value={settings.discount_rate_annual}
                      onChange={(v) => set({ discount_rate_annual: v })} />
+        <NumberField label="Темп роста для оценки, g" step="0.01" value={settings.terminal_growth_rate ?? "0"}
+                     onChange={(v) => set({ terminal_growth_rate: v })} />
       </div>
 
       <h2 style={{ marginTop: 20 }}>Налоги</h2>
@@ -39,6 +41,8 @@ export function GeneralTab({ header, settings, onHeader, onSettings }: Props) {
                      onChange={(v) => set({ payroll_contribution_rate: v })} />
         <NumberField label="Налог на имущество (год)" step="0.001" value={settings.property_tax_rate}
                      onChange={(v) => set({ property_tax_rate: v })} />
+        <NumberField label="Налог с продаж" step="0.01" value={settings.sales_tax_rate ?? "0"}
+                     onChange={(v) => set({ sales_tax_rate: v })} />
       </div>
 
       <h2 style={{ marginTop: 20 }}>НДС и запасы</h2>

@@ -52,6 +52,25 @@ def test_calculate_stored_project(client, auth_headers):
     b34 = next(l for l in data["balance"]["lines"] if l["code"] == "B34")["values"]
     for a, b in zip(b20, b34):
         assert abs(Decimal(a) - Decimal(b)) <= Decimal("0.01")
+    # Поля, которые показывает UI результатов: оценка бизнеса и расширенные метрики.
+    assert "net_assets" in data["valuation"] and "gordon_value" in data["valuation"]
+    assert "pv_investments" in data["metrics"] and "peak_financing_need" in data["metrics"]
+
+
+def _calc_with_growth(client, auth_headers, g: str) -> dict:
+    model = _sample_model(client)
+    model["settings"]["terminal_growth_rate"] = g
+    pid = client.post("/api/v1/projects", json={"name": f"g={g}", "model": model},
+                      headers=auth_headers).json()["id"]
+    return client.post(f"/api/v1/projects/{pid}/calculate", headers=auth_headers).json()
+
+
+def test_terminal_growth_rate_drives_gordon_valuation(client, auth_headers):
+    """Темп роста g (вводится в UI) проходит в расчёт и меняет оценку по Гордону."""
+    base = _calc_with_growth(client, auth_headers, "0")["valuation"]["gordon_value"]
+    grown = _calc_with_growth(client, auth_headers, "0.05")["valuation"]["gordon_value"]
+    assert base is not None and grown is not None
+    assert Decimal(grown) != Decimal(base)   # g влияет на капитализацию (r−g в знаменателе)
 
 
 def test_create_invalid_model_422(client, auth_headers):

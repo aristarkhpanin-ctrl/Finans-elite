@@ -37,6 +37,7 @@ export function ProjectResultsPage() {
   const m = data.metrics;
   const val = data.valuation;
   const irr = m.irr_annual ? percent(m.irr_annual) : "—";
+  const months = (v: number | null) => (v == null ? "—" : `${v} мес.`);
   const tabs: [string, string][] = data.actualized_cashflow
     ? [...BASE_TABS, ["plan_fact", "План-факт"]]
     : BASE_TABS;
@@ -65,7 +66,9 @@ export function ProjectResultsPage() {
         <div className="metric"><div className="m-label">NPV</div><div className="m-value">{money(m.npv)}</div></div>
         <div className="metric"><div className="m-label">IRR</div><div className="m-value">{irr}</div></div>
         <div className="metric"><div className="m-label">PI</div><div className="m-value">{m.pi ? Number(m.pi).toFixed(2) : "—"}</div></div>
-        <div className="metric"><div className="m-label">Окупаемость</div><div className="m-value">{m.pb_months ?? "—"} мес.</div></div>
+        <div className="metric"><div className="m-label">Срок окупаемости</div><div className="m-value">{months(m.pb_months)}</div></div>
+        <div className="metric"><div className="m-label">Дисконт. окупаемость</div><div className="m-value">{months(m.dpb_months)}</div></div>
+        <div className="metric"><div className="m-label">Потребность в финанс.</div><div className="m-value">{m.peak_financing_need ? money(m.peak_financing_need) : "—"}</div></div>
       </div>
 
       <h3 style={{ marginTop: 18, marginBottom: 6 }}>Оценка бизнеса</h3>

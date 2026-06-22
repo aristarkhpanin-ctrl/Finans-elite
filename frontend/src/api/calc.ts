@@ -16,6 +16,8 @@ export interface MetricsOut {
   pi: string | null;
   pb_months: number | null;
   dpb_months: number | null;
+  pv_investments: string | null;
+  peak_financing_need: string | null;
 }
 
 export type RatioGroup = Record<string, (string | null)[]>;

@@ -142,10 +142,12 @@ export type InventoryMethod = "average" | "fifo";
 
 export interface ProjectSettings {
   discount_rate_annual: string;
+  terminal_growth_rate?: string;
   profit_tax_rate: string;
   profit_tax_benefit_share: string;
   payroll_contribution_rate: string;
   property_tax_rate: string;
+  sales_tax_rate?: string;
   vat_rate: string;
   vat_basis: VatBasis;
   inventory_method: InventoryMethod;
