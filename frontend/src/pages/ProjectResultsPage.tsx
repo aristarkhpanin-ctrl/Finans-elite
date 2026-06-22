@@ -5,6 +5,7 @@ import { calculateProject } from "../api/calc";
 import { ResultCharts } from "../components/ResultCharts";
 import { RatiosView } from "../components/RatiosView";
 import { StatementTable, SUBTOTALS } from "../components/StatementTable";
+import { downloadCsv, statementsToCsv } from "../export";
 import { money, percent } from "../format";
 
 const BASE_TABS: [string, string][] = [
@@ -44,6 +45,9 @@ export function ProjectResultsPage() {
       <div className="toolbar" style={{ marginBottom: 14 }}>
         <button className="link-btn" onClick={() => navigate(`/projects/${id}`)}>← Редактор</button>
         <span style={{ flex: 1 }} />
+        <button className="link-btn" onClick={() => downloadCsv("reports.csv", statementsToCsv(data))}>
+          Экспорт CSV
+        </button>
         <button className="link-btn" onClick={() => navigate(`/projects/${id}/analysis`)}>Анализ</button>
         <span className="muted">движок {data.engine_version}</span>
       </div>
