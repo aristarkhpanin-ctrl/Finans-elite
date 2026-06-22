@@ -475,8 +475,10 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     dividends = _pad(model.financing.dividends, n)
 
     # --- Отчёт о прибылях и убытках (начисление) ---
+    i3 = [i1[t] * settings.sales_tax_rate for t in range(n)]  # налог с продаж (база — I1)
     income_leaves = {
         "I1": i1,
+        "I3": i3,
         "I5": i5,
         "I6": i6,
         "I9": i9,
@@ -536,8 +538,8 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     c28 = zeros(n)
     if n > 0:
         c28[0] = sb.cash
-    # Налоги: прибыль + имущество + НДС к уплате (v0: прямые налоги — в периоде начисления)
-    taxes_cash = add(income["I27"], i9, vat_to_budget)
+    # Налоги: прибыль + имущество + налог с продаж + НДС к уплате (v0: в периоде начисления)
+    taxes_cash = add(income["I27"], i9, i3, vat_to_budget)
     cashflow_leaves = {
         "C1": c1,
         "C2": c2,

@@ -157,6 +157,7 @@ def _random_project(rng: random.Random) -> ProjectModel:
             profit_tax_rate=Decimal(rng.randint(0, 30)) / Decimal(100),
             profit_tax_benefit_share=Decimal(rng.randint(0, 50)) / Decimal(100),
             payroll_contribution_rate=Decimal(rng.randint(0, 40)) / Decimal(100),
+            sales_tax_rate=Decimal(rng.randint(0, 5)) / Decimal(100),
             inflation_sales=Decimal(rng.randint(0, 20)) / Decimal(100),
             inflation_direct=Decimal(rng.randint(0, 20)) / Decimal(100),
             inflation_wages=Decimal(rng.randint(0, 20)) / Decimal(100),
