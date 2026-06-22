@@ -915,7 +915,7 @@
       "0.00"
     ]
   },
-  "engine_version": "0.8.9",
+  "engine_version": "0.9.0",
   "income": {
     "I1": [
       "100000.00",
@@ -1725,6 +1725,10 @@
         "0.035462"
       ]
     }
+  },
+  "valuation": {
+    "gordon_value": "-949376.51",
+    "net_assets": "234225.91"
   },
   "warnings": []
 }

@@ -20,6 +20,7 @@ from .reports.breakeven import BreakEven
 from .reports.ratios import FinancialRatios
 from .reports.result import CalcResult, InvestmentMetrics
 from .reports.statements import Statement
+from .reports.valuation import BusinessValuation
 
 #: Точность денежных строк (копейки) и коэффициентов/ставок.
 MONEY_PLACES = 2
@@ -78,6 +79,13 @@ def break_even_to_dict(be: BreakEven) -> dict[str, list[Optional[str]]]:
     }
 
 
+def valuation_to_dict(v: BusinessValuation) -> dict[str, Optional[str]]:
+    return {
+        "net_assets": _money(v.net_assets),
+        "gordon_value": _money(v.gordon_value),
+    }
+
+
 def result_to_dict(result: CalcResult) -> dict[str, object]:
     """Полный канонический снимок результата расчёта (для golden-master и сравнения)."""
     snapshot: dict[str, object] = {
@@ -90,6 +98,7 @@ def result_to_dict(result: CalcResult) -> dict[str, object]:
         "metrics": metrics_to_dict(result.metrics),
         "ratios": ratios_to_dict(result.ratios),
         "break_even": break_even_to_dict(result.break_even),
+        "valuation": valuation_to_dict(result.valuation),
         "warnings": list(result.warnings),
     }
     if result.actualized_cashflow is not None:

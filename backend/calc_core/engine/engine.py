@@ -16,6 +16,7 @@ from ..reports.breakeven import compute_break_even
 from ..reports.ratios import compute_ratios
 from ..reports.result import CalcResult, InvestmentMetrics, build_investment_metrics
 from ..reports.statements import opening_balance
+from ..reports.valuation import compute_valuation
 from ..series import add, zeros
 from ..version import ENGINE_VERSION
 from .errors import InvariantError
@@ -55,6 +56,10 @@ def run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
         model.financing.common_shares, n, opening,
     )
     break_even = compute_break_even(income, n)
+    valuation = compute_valuation(
+        balance, cashflow,
+        model.settings.discount_rate_annual, model.settings.terminal_growth_rate, n,
+    )
 
     actualized_cashflow = None
     cashflow_variance = None
@@ -74,6 +79,7 @@ def run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
         metrics=metrics,
         ratios=ratios,
         break_even=break_even,
+        valuation=valuation,
         actualized_cashflow=actualized_cashflow,
         cashflow_variance=cashflow_variance,
         warnings=warnings,

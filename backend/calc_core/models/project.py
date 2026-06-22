@@ -30,6 +30,7 @@ class ProjectSettings(BaseModel):
     """Настройка расчёта (см. SPEC §11, §17)."""
 
     discount_rate_annual: Decimal = Decimal("0.15")   # ставка дисконтирования (для NPV)
+    terminal_growth_rate: Decimal = Decimal("0")      # темп роста g для модели Гордона (§20)
     profit_tax_rate: Decimal = Decimal("0.20")        # налог на прибыль
     # Доля налогооблагаемой прибыли, освобождаемая от налога (льгота, 0..1; SPEC §22.7).
     profit_tax_benefit_share: Decimal = Field(default=Decimal("0"), ge=0, le=1)

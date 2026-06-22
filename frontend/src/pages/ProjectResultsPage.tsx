@@ -35,6 +35,7 @@ export function ProjectResultsPage() {
   if (!data) return null;
 
   const m = data.metrics;
+  const val = data.valuation;
   const irr = m.irr_annual ? percent(m.irr_annual) : "—";
   const tabs: [string, string][] = data.actualized_cashflow
     ? [...BASE_TABS, ["plan_fact", "План-факт"]]
@@ -65,6 +66,18 @@ export function ProjectResultsPage() {
         <div className="metric"><div className="m-label">IRR</div><div className="m-value">{irr}</div></div>
         <div className="metric"><div className="m-label">PI</div><div className="m-value">{m.pi ? Number(m.pi).toFixed(2) : "—"}</div></div>
         <div className="metric"><div className="m-label">Окупаемость</div><div className="m-value">{m.pb_months ?? "—"} мес.</div></div>
+      </div>
+
+      <h3 style={{ marginTop: 18, marginBottom: 6 }}>Оценка бизнеса</h3>
+      <div className="metrics">
+        <div className="metric">
+          <div className="m-label">Чистые активы</div>
+          <div className="m-value">{money(val.net_assets)}</div>
+        </div>
+        <div className="metric">
+          <div className="m-label">По модели Гордона</div>
+          <div className="m-value">{val.gordon_value ? money(val.gordon_value) : "—"}</div>
+        </div>
       </div>
 
       <div className="tabs">

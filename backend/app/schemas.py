@@ -48,6 +48,11 @@ class BreakEvenOut(BaseModel):
     margin_of_safety: list[Optional[Decimal]]
 
 
+class ValuationOut(BaseModel):
+    net_assets: Decimal
+    gordon_value: Optional[Decimal] = None
+
+
 class CalcResponse(BaseModel):
     engine_version: str
     n: int
@@ -58,6 +63,7 @@ class CalcResponse(BaseModel):
     metrics: MetricsOut
     ratios: RatiosOut
     break_even: BreakEvenOut
+    valuation: ValuationOut
     actualized_cashflow: Optional[StatementOut] = None
     cashflow_variance: Optional[StatementOut] = None
     warnings: list[str]
@@ -325,6 +331,10 @@ def to_response(r: CalcResult) -> CalcResponse:
         break_even=BreakEvenOut(
             break_even_revenue=r.break_even.break_even_revenue,
             margin_of_safety=r.break_even.margin_of_safety,
+        ),
+        valuation=ValuationOut(
+            net_assets=r.valuation.net_assets,
+            gordon_value=r.valuation.gordon_value,
         ),
         actualized_cashflow=_statement_out(r.actualized_cashflow) if r.actualized_cashflow else None,
         cashflow_variance=_statement_out(r.cashflow_variance) if r.cashflow_variance else None,

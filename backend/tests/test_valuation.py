@@ -1,0 +1,63 @@
+"""Оценка бизнеса (SPEC §20): чистые активы (B33) и модель Гордона."""
+from __future__ import annotations
+
+from datetime import date
+from decimal import Decimal
+
+from calc_core import run
+from calc_core.money import quantize
+from calc_core.reports.valuation import BusinessValuation, compute_valuation
+from calc_core.models import (
+    OperatingPlan,
+    Product,
+    ProjectHeader,
+    ProjectModel,
+    ProjectSettings,
+    SalesLine,
+)
+
+D = Decimal
+
+
+def _project(discount: Decimal, growth: Decimal) -> ProjectModel:
+    """3 мес., продажи 1000/мес. по кассе, без затрат/налогов/инвестиций."""
+    n = 3
+    sales = SalesLine(product_id="p0", volume=[D(10)] * n, price=[D(100)] * n)
+    return ProjectModel(
+        header=ProjectHeader(name="val", start_date=date(2026, 1, 1), duration_months=n),
+        settings=ProjectSettings(discount_rate_annual=discount, terminal_growth_rate=growth,
+                                 profit_tax_rate=D("0"), property_tax_rate=D("0"), vat_rate=D("0")),
+        operating_plan=OperatingPlan(products=[Product(id="p0", name="p0")], sales=[sales]),
+    )
+
+
+def test_net_assets_equals_closing_equity():
+    """Чистые активы = собственный капитал на конец (B33): 3×1000 нераспределённой прибыли."""
+    r = run(_project(D("0.15"), D("0")))
+    assert quantize(r.valuation.net_assets) == D("3000.00")
+    assert quantize(r.balance["B33"][r.n - 1]) == D("3000.00")
+
+
+def test_gordon_no_growth():
+    """Поток 1000/мес → 12000/год; V = 12000/(0.15−0) = 80000."""
+    r = run(_project(D("0.15"), D("0")))
+    assert quantize(r.valuation.gordon_value) == D("80000.00")
+
+
+def test_gordon_with_growth():
+    """g=0.05: V = 12000·1.05/(0.15−0.05) = 126000."""
+    r = run(_project(D("0.15"), D("0.05")))
+    assert quantize(r.valuation.gordon_value) == D("126000.00")
+
+
+def test_gordon_none_when_rate_not_above_growth():
+    """r ≤ g — формула Гордона неприменима (нет конечной капитализации)."""
+    r = run(_project(D("0.10"), D("0.15")))
+    assert r.valuation.gordon_value is None
+    # чистые активы при этом считаются как обычно
+    assert quantize(r.valuation.net_assets) == D("3000.00")
+
+
+def test_empty_horizon_returns_default():
+    """Защитный возврат для n ≤ 0 (балансы/потоки не читаются)."""
+    assert compute_valuation(None, None, D("0.15"), D("0"), 0) == BusinessValuation()
