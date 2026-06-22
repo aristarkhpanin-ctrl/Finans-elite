@@ -5,10 +5,12 @@ import { calculateProject } from "../api/calc";
 import { ResultCharts } from "../components/ResultCharts";
 import { RatiosView } from "../components/RatiosView";
 import { StatementTable, SUBTOTALS } from "../components/StatementTable";
+import { SummaryView } from "../components/SummaryView";
 import { downloadCsv, downloadXlsx, statementsToCsv } from "../export";
 import { money, percent } from "../format";
 
 const BASE_TABS: [string, string][] = [
+  ["summary", "Сводка"],
   ["income", "Прибыли и убытки"],
   ["cashflow", "Кэш-фло"],
   ["balance", "Баланс"],
@@ -19,7 +21,7 @@ const BASE_TABS: [string, string][] = [
 export function ProjectResultsPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<string>("income");
+  const [tab, setTab] = useState<string>("summary");
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["calc", id],
@@ -91,6 +93,7 @@ export function ProjectResultsPage() {
         ))}
       </div>
 
+      {tab === "summary" && <SummaryView result={data} />}
       {tab === "income" && <StatementTable statement={data.income} n={data.n} subtotals={SUBTOTALS.income} />}
       {tab === "cashflow" && <StatementTable statement={data.cashflow} n={data.n} subtotals={SUBTOTALS.cashflow} />}
       {tab === "balance" && <StatementTable statement={data.balance} n={data.n} subtotals={SUBTOTALS.balance} />}

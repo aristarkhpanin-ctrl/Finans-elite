@@ -160,6 +160,10 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 .metric .m-value { font-size: 22px; font-weight: 700; margin-top: 4px; }
 .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
 .chart-card h3 { margin: 0 0 12px; font-size: 15px; }
+.summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+.summary-card .m-label { color: var(--text-muted); font-size: 12px; font-weight: 600; }
+.summary-card .m-value { font-size: 22px; font-weight: 700; margin-top: 4px; }
 .warnings { background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; border-radius: var(--radius); padding: 10px 14px; margin-bottom: 14px; font-size: 13px; }
 [data-theme="dark"] .warnings { background: #2a1d12; border-color: #553a1f; color: #fbbf77; }
 
