@@ -28,6 +28,7 @@ export function GeneralTab({ header, settings, onHeader, onSettings }: Props) {
         <NumberField label="Ставка дисконтирования (год)" step="0.01" value={settings.discount_rate_annual}
                      onChange={(v) => set({ discount_rate_annual: v })} />
         <NumberField label="Темп роста для оценки, g" step="0.01" value={settings.terminal_growth_rate ?? "0"}
+                     hint="Долгосрочный темп роста для модели Гордона; должен быть меньше ставки дисконтирования"
                      onChange={(v) => set({ terminal_growth_rate: v })} />
       </div>
 
@@ -36,6 +37,7 @@ export function GeneralTab({ header, settings, onHeader, onSettings }: Props) {
         <NumberField label="Налог на прибыль" step="0.01" value={settings.profit_tax_rate}
                      onChange={(v) => set({ profit_tax_rate: v })} />
         <NumberField label="Льгота по прибыли (доля)" step="0.01" value={settings.profit_tax_benefit_share ?? "0"}
+                     hint="Доля налогооблагаемой прибыли, освобождаемая от налога (0–1)"
                      onChange={(v) => set({ profit_tax_benefit_share: v })} />
         <NumberField label="Страховые взносы с ФОТ" step="0.01" value={settings.payroll_contribution_rate ?? "0"}
                      onChange={(v) => set({ payroll_contribution_rate: v })} />
@@ -57,6 +59,7 @@ export function GeneralTab({ header, settings, onHeader, onSettings }: Props) {
                      options={[["average", "Средняя"], ["fifo", "ФИФО"]]} />
         <NumberField label="Производственный цикл (мес.)" step="1"
                      value={settings.production_cycle_months ?? 0}
+                     hint="Задержка между запуском в производство и выпуском ГП → незавершённое производство (B4)"
                      onChange={(v) => set({ production_cycle_months: parseInt(v || "0", 10) || 0 })} />
       </div>
 

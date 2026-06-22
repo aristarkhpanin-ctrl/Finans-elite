@@ -1,6 +1,6 @@
 import type { OperatingPlan, Product, SalesLine } from "../../api/model";
 import { MonthlySeries } from "../../components/MonthlySeries";
-import { Button, CheckField } from "../../components/ui";
+import { Button, CheckField, Hint } from "../../components/ui";
 
 interface Props {
   n: number;
@@ -61,18 +61,18 @@ export function SalesTab({ n, operating, onChange }: Props) {
                       onChange={(foreign) => updateLine(i, { foreign })} />
           <div className="form-grid" style={{ marginTop: 10 }}>
             <label className="field">
-              <span>Предоплата (доля)</span>
-              <input className="input" type="number" step="0.05" value={line.payment.prepayment_share}
+              <span>Предоплата (доля)<Hint text="Доля выручки, поступающая авансом до поставки (0–1) → авансы полученные (B24)" /></span>
+              <input className="input" type="number" step="0.05" min="0" max="1" value={line.payment.prepayment_share}
                      onChange={(e) => updateLine(i, { payment: { ...line.payment, prepayment_share: e.target.value } })} />
             </label>
             <label className="field">
-              <span>Опережение предоплаты, мес.</span>
-              <input className="input" type="number" value={line.payment.advance_lead_months}
+              <span>Опережение предоплаты, мес.<Hint text="За сколько месяцев до поставки приходит предоплата" /></span>
+              <input className="input" type="number" min="0" value={line.payment.advance_lead_months}
                      onChange={(e) => updateLine(i, { payment: { ...line.payment, advance_lead_months: parseInt(e.target.value || "0", 10) } })} />
             </label>
             <label className="field">
-              <span>Отсрочка оплаты, мес.</span>
-              <input className="input" type="number" value={line.payment.payment_delay_months}
+              <span>Отсрочка оплаты, мес.<Hint text="Задержка оплаты после поставки → дебиторка (B2)" /></span>
+              <input className="input" type="number" min="0" value={line.payment.payment_delay_months}
                      onChange={(e) => updateLine(i, { payment: { ...line.payment, payment_delay_months: parseInt(e.target.value || "0", 10) } })} />
             </label>
           </div>

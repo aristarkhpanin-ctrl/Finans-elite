@@ -43,20 +43,31 @@ export function Card({
   );
 }
 
+/** Маленькая подсказка «?» с нативным тултипом (title). */
+export function Hint({ text }: { text: string }) {
+  return (
+    <span className="hint" title={text} aria-label={text} role="img">
+      ?
+    </span>
+  );
+}
+
 export function NumberField({
   label,
   value,
   onChange,
   step,
+  hint,
 }: {
   label: string;
   value: string | number;
   onChange: (v: string) => void;
   step?: string;
+  hint?: string;
 }) {
   return (
     <div className="field">
-      <label>{label}</label>
+      <label>{label}{hint && <Hint text={hint} />}</label>
       <input className="input" type="number" step={step} value={value}
              onChange={(e) => onChange(e.target.value)} />
     </div>

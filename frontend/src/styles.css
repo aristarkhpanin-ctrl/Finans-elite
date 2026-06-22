@@ -165,6 +165,10 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 .summary-card .m-label { color: var(--text-muted); font-size: 12px; font-weight: 600; }
 .summary-card .m-value { font-size: 22px; font-weight: 700; margin-top: 4px; }
 
+.hint { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px;
+  margin-left: 6px; border-radius: 50%; background: var(--border); color: var(--text-muted);
+  font-size: 10px; font-weight: 700; cursor: help; vertical-align: middle; }
+
 /* Печать / сохранение в PDF: показываем только печатный отчёт, прячем интерфейс. */
 .print-only { display: none; }
 @media print {

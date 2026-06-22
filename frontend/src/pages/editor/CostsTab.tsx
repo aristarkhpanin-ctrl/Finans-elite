@@ -7,7 +7,7 @@ import {
   type OperatingPlan,
 } from "../../api/model";
 import { MonthlySeries } from "../../components/MonthlySeries";
-import { Button, CheckField } from "../../components/ui";
+import { Button, CheckField, Hint } from "../../components/ui";
 
 interface Props {
   n: number;
@@ -58,6 +58,20 @@ export function CostsTab({ n, operating, onChange }: Props) {
           </div>
           <MonthlySeries n={n} label={d.foreign ? "Сумма (валюта)" : "Сумма"} values={d.amount}
                          onChange={(amount) => updateDirect(i, { amount })} />
+          <div className="form-grid" style={{ marginTop: 8 }}>
+            <label className="field">
+              <span>Отсрочка оплаты, мес.<Hint text="Задержка платежа поставщику — формирует кредиторку (B23)" /></span>
+              <input className="input" type="number" min="0" value={d.payment_delay_months}
+                     onChange={(e) => updateDirect(i, { payment_delay_months: parseInt(e.target.value || "0", 10) })} />
+            </label>
+            {d.kind === "materials" && (
+              <label className="field">
+                <span>Опережающая закупка, мес.<Hint text="Закупка сырья заранее под будущее потребление — формирует запас сырья (B3)" /></span>
+                <input className="input" type="number" min="0" value={d.stock_lead_months}
+                       onChange={(e) => updateDirect(i, { stock_lead_months: parseInt(e.target.value || "0", 10) })} />
+              </label>
+            )}
+          </div>
           {d.kind === "materials" && (
             <div className="toolbar" style={{ marginTop: 8 }}>
               <CheckField label="Валютный материал (по курсу закупки)" checked={d.foreign ?? false}
@@ -85,6 +99,13 @@ export function CostsTab({ n, operating, onChange }: Props) {
           </div>
           <MonthlySeries n={n} label={f.foreign ? "Сумма (валюта)" : "Сумма"} values={f.amount}
                          onChange={(amount) => updateFixed(i, { amount })} />
+          <div className="form-grid" style={{ marginTop: 8 }}>
+            <label className="field">
+              <span>Отсрочка оплаты, мес.<Hint text="Задержка платежа — формирует кредиторку (B23)" /></span>
+              <input className="input" type="number" min="0" value={f.payment_delay_months}
+                     onChange={(e) => updateFixed(i, { payment_delay_months: parseInt(e.target.value || "0", 10) })} />
+            </label>
+          </div>
           <div className="toolbar" style={{ marginTop: 8, gap: 20 }}>
             <CheckField label="Из прибыли (невычитаемая)" checked={f.from_profit ?? false}
                         onChange={(from_profit) => updateFixed(i, { from_profit })} />
