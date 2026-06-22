@@ -99,7 +99,7 @@ export function ProjectEditorPage() {
                    onChange={(investment_plan) => setModel({ ...model, investment_plan })} />
       )}
       {tab === "financing" && (
-        <FinancingTab financing={model.financing}
+        <FinancingTab n={n} financing={model.financing}
                       onChange={(financing) => setModel({ ...model, financing })} />
       )}
       {tab === "currency" && (

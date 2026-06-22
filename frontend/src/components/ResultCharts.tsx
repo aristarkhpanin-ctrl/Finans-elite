@@ -1,4 +1,5 @@
 import {
+  Area,
   Bar,
   CartesianGrid,
   Cell,
@@ -7,6 +8,7 @@ import {
   Line,
   Pie,
   PieChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -37,6 +39,14 @@ export function ResultCharts({ result }: { result: CalcResponse }) {
     profit: Number(i28[i] ?? 0),
   }));
 
+  // Накопленный поток до финансирования (C13+C20): пересечение нуля ≈ срок окупаемости.
+  let running = 0;
+  const cumulativeFlow = data.map((d) => {
+    running += d.operating + d.investing;
+    return { m: d.m, cum: running };
+  });
+  const pb = result.metrics.pb_months;
+
   const tooltip = { formatter: (v: number) => money(String(v)) } as const;
 
   // Структура издержек за весь период (для долёвки).
@@ -64,6 +74,24 @@ export function ResultCharts({ result }: { result: CalcResponse }) {
             <Bar dataKey="operating" name="Операционный" fill="#2563eb" />
             <Bar dataKey="investing" name="Инвестиционный" fill="#f59e0b" />
             <Line dataKey="cash" name="Остаток денег" stroke="#16a34a" strokeWidth={2} dot={false} />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="chart-card">
+        <h3>Накопленный денежный поток (окупаемость)</h3>
+        <ResponsiveContainer width="100%" height={240}>
+          <ComposedChart data={cumulativeFlow} margin={{ top: 6, right: 8, left: 8, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+            <XAxis dataKey="m" tick={{ fontSize: 12 }} />
+            <YAxis tickFormatter={compact} tick={{ fontSize: 12 }} width={56} />
+            <Tooltip {...tooltip} />
+            <ReferenceLine y={0} stroke="#dc2626" strokeDasharray="4 4" />
+            {pb != null && pb >= 1 && pb <= result.n && (
+              <ReferenceLine x={`М${pb}`} stroke="#16a34a" strokeDasharray="4 4"
+                             label={{ value: "окупаемость", fontSize: 11, fill: "#16a34a" }} />
+            )}
+            <Area dataKey="cum" name="Накопленный поток" stroke="#2563eb" fill="#2563eb" fillOpacity={0.15} strokeWidth={2} />
           </ComposedChart>
         </ResponsiveContainer>
       </div>

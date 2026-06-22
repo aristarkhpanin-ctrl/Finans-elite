@@ -6,14 +6,16 @@ import type {
   Loan,
   RepaymentType,
 } from "../../api/model";
+import { MonthlySeries } from "../../components/MonthlySeries";
 import { Button, CheckField } from "../../components/ui";
 
 interface Props {
+  n: number;
   financing: Financing;
   onChange: (f: Financing) => void;
 }
 
-export function FinancingTab({ financing, onChange }: Props) {
+export function FinancingTab({ n, financing, onChange }: Props) {
   const { loans, equity, auto_financing } = financing;
   const leases = financing.leases ?? [];
   const deposits = financing.deposits ?? [];
@@ -136,6 +138,17 @@ export function FinancingTab({ financing, onChange }: Props) {
           </div>
         </div>
       ))}
+
+      <h2 style={{ marginTop: 20 }}>Акции и дивиденды</h2>
+      <div className="row-card">
+        <div className="form-grid">
+          <label className="field"><span>Обыкновенных акций, шт.</span>
+            <input className="input" type="number" value={financing.common_shares}
+                   onChange={(e) => onChange({ ...financing, common_shares: e.target.value })} /></label>
+        </div>
+        <MonthlySeries n={n} label="Дивиденды по месяцам" values={financing.dividends}
+                       onChange={(dividends) => onChange({ ...financing, dividends })} />
+      </div>
 
       <h2 style={{ marginTop: 20 }}>Автоподбор финансирования</h2>
       <div className="row-card">
