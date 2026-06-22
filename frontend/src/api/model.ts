@@ -128,6 +128,11 @@ export interface ProjectHeader {
   duration_months: number;
 }
 
+export interface Actualization {
+  actual_until: number;
+  actuals: Record<string, string[]>;
+}
+
 export type VatBasis = "shipment" | "payment";
 export type InventoryMethod = "average" | "fifo";
 
@@ -175,7 +180,7 @@ export interface ProjectModel {
   operating_plan: OperatingPlan;
   investment_plan: InvestmentPlan;
   financing: Financing;
-  // Прочие разделы (actualization) проходят насквозь.
+  actualization: Actualization;
   [key: string]: unknown;
 }
 

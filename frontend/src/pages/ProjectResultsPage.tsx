@@ -7,13 +7,13 @@ import { RatiosView } from "../components/RatiosView";
 import { StatementTable, SUBTOTALS } from "../components/StatementTable";
 import { money, percent } from "../format";
 
-const TABS = [
+const BASE_TABS: [string, string][] = [
   ["income", "Прибыли и убытки"],
   ["cashflow", "Кэш-фло"],
   ["balance", "Баланс"],
   ["ratios", "Коэффициенты"],
   ["charts", "Графики"],
-] as const;
+];
 
 export function ProjectResultsPage() {
   const { id = "" } = useParams();
@@ -35,6 +35,9 @@ export function ProjectResultsPage() {
 
   const m = data.metrics;
   const irr = m.irr_annual ? percent(m.irr_annual) : "—";
+  const tabs: [string, string][] = data.actualized_cashflow
+    ? [...BASE_TABS, ["plan_fact", "План-факт"]]
+    : BASE_TABS;
 
   return (
     <div>
@@ -58,7 +61,7 @@ export function ProjectResultsPage() {
       </div>
 
       <div className="tabs">
-        {TABS.map(([key, label]) => (
+        {tabs.map(([key, label]) => (
           <button key={key} className={`tab ${tab === key ? "tab--active" : ""}`} onClick={() => setTab(key)}>
             {label}
           </button>
@@ -70,6 +73,18 @@ export function ProjectResultsPage() {
       {tab === "balance" && <StatementTable statement={data.balance} n={data.n} subtotals={SUBTOTALS.balance} />}
       {tab === "ratios" && <RatiosView ratios={data.ratios} n={data.n} />}
       {tab === "charts" && <ResultCharts result={data} />}
+      {tab === "plan_fact" && data.actualized_cashflow && (
+        <div>
+          <h3>Кэш-фло (факт за прошедшие периоды)</h3>
+          <StatementTable statement={data.actualized_cashflow} n={data.n} subtotals={SUBTOTALS.cashflow} />
+          {data.cashflow_variance && (
+            <>
+              <h3 style={{ marginTop: 16 }}>Отклонение (факт − план)</h3>
+              <StatementTable statement={data.cashflow_variance} n={data.n} subtotals={SUBTOTALS.cashflow} />
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

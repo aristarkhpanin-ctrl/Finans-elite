@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import type { ProjectModel } from "../api/model";
 import { getProject, updateProject } from "../api/projects";
 import { Button } from "../components/ui";
+import { ActualizationTab } from "./editor/ActualizationTab";
 import { AssetsTab } from "./editor/AssetsTab";
 import { CostsTab } from "./editor/CostsTab";
 import { CurrencyTab } from "./editor/CurrencyTab";
@@ -18,6 +19,7 @@ const TABS = [
   ["assets", "Инвестиции"],
   ["financing", "Финансирование"],
   ["currency", "Валюта и старт"],
+  ["actual", "Факт"],
 ] as const;
 
 export function ProjectEditorPage() {
@@ -104,6 +106,10 @@ export function ProjectEditorPage() {
         <CurrencyTab n={n} environment={model.environment} company={model.company}
                      onEnvironment={(environment) => setModel({ ...model, environment })}
                      onCompany={(company) => setModel({ ...model, company })} />
+      )}
+      {tab === "actual" && (
+        <ActualizationTab n={n} actualization={model.actualization}
+                          onChange={(actualization) => setModel({ ...model, actualization })} />
       )}
 
       <div className="save-bar">
