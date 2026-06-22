@@ -137,13 +137,41 @@ def _volumes(model: ProjectModel, n: int):
     return tp, tq
 
 
+def _foreign_material_schedule(amt_f: list[Decimal], stock_lead: int,
+                               fx: list[Decimal], n: int):
+    """Историческая (по курсу закупки) оценка валютного сырья.
+
+    Материал, потребляемый в периоде ``c``, закупается в ``p = max(0, c−lead)`` и до
+    потребления лежит в запасе по курсу закупки ``fx[p]`` (немонетарный актив — не
+    переоценивается). Возвращает ``(purchases_f, b3_hist, mc_hist)``: закупки в валюте
+    (для оплаты/кредиторки) и запас/потребление в основной валюте по исторической стоимости.
+    """
+    purchases_f = zeros(n)
+    b3_hist = zeros(n)
+    mc_hist = zeros(n)
+    for c in range(n):
+        q = amt_f[c]
+        if q == 0:
+            continue
+        p = max(0, c - stock_lead)
+        purchases_f[p] += q
+        mc_hist[c] += q * fx[p]              # потребление по курсу закупки
+        for t in range(p, c):               # запас сырья на конец [p, c−1] — по курсу закупки
+            b3_hist[t] += q * fx[p]
+    return purchases_f, b3_hist, mc_hist
+
+
 def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal,
+                         fx: list[Decimal], fx_prev: list[Decimal],
                          idx_direct: list[Decimal], idx_wages: list[Decimal]):
     """Прямые издержки → (потребление MC, сдельная ЗП WC; деньги C2, C3 с НДС; сырьё B3;
-    кредиторка с НДС; входной НДС по материалам).
+    кредиторка с НДС; входной НДС по материалам; курсовая разница I25 по валютному сырью).
 
     Себестоимость (нетто) попадёт в ОПУ при продаже через пул готовой продукции.
     НДС на материалы — входной (к вычету); сдельная зарплата НДС не облагается.
+    Валютные материалы (``foreign``, без НДС в v0): запас/себестоимость — по курсу закупки
+    (историческая стоимость, немонетарный актив), кредиторка — монетарная, переоценивается
+    по ``fx[t]`` → ``i25_materials`` (рост курса → убыток). Применяется к материалам.
     """
     mc = zeros(n)  # нетто-стоимость материалов, потреблённых в производстве
     wc = zeros(n)  # сдельная зарплата в производстве
@@ -153,9 +181,21 @@ def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal,
     payables = zeros(n)
     vat_in = zeros(n)        # входной НДС начислено (при закупке)
     vat_in_paid = zeros(n)   # входной НДС в оплаченных закупках (по оплате)
+    payable_f = zeros(n)     # валютная кредиторка по материалам (в валюте) — для переоценки
     one_plus = Decimal(1) + vat_rate
     for line in model.operating_plan.direct_costs:
         base = _pad(line.amount, n)
+        if line.kind == DirectCostKind.MATERIALS and line.foreign:
+            # Валютный материал: цена в валюте (без рублёвой инфляции, без НДS в v0).
+            purchases_f, b3_hist, mc_hist = _foreign_material_schedule(
+                base, line.stock_lead_months, fx, n)
+            cash_f, pay_f = cost_timing(purchases_f, line.payment_delay_months, n)
+            mc = add(mc, mc_hist)
+            b3 = add(b3, b3_hist)
+            c2 = add(c2, [cash_f[t] * fx[t] for t in range(n)])     # оплата по курсу периода
+            payables = add(payables, [pay_f[t] * fx[t] for t in range(n)])
+            payable_f = add(payable_f, pay_f)
+            continue
         idx = idx_direct if line.kind == DirectCostKind.MATERIALS else idx_wages
         amt = [base[t] * idx[t] for t in range(n)]               # индексация инфляцией
         if line.kind == DirectCostKind.MATERIALS:
@@ -175,7 +215,12 @@ def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal,
             wc = add(wc, amt)
             c3 = add(c3, cash)
             payables = add(payables, pay)
-    return mc, wc, c2, c3, b3, payables, vat_in, vat_in_paid
+    # Курсовая разница по валютной кредиторке материалов (на остаток начала периода).
+    i25_materials = zeros(n)
+    for t in range(n):
+        pay_start = payable_f[t - 1] if t > 0 else ZERO
+        i25_materials[t] = -pay_start * (fx[t] - fx_prev[t])
+    return mc, wc, c2, c3, b3, payables, vat_in, vat_in_paid, i25_materials
 
 
 def _fixed(model: ProjectModel, n: int, vat_rate: Decimal,
@@ -428,8 +473,8 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     i1, c1, b2, b24, vat_out, vat_out_paid, i25_sales = _sales(
         model, n, vat_rate, fx, fx_prev, idx_sales)
     tp, tq = _volumes(model, n)
-    mc, wc, c2, c3, b3, pay_direct, vat_in_mat, vat_in_paid_mat = _materials_and_wages(
-        model, n, vat_rate, idx_direct, idx_wages)
+    mc, wc, c2, c3, b3, pay_direct, vat_in_mat, vat_in_paid_mat, i25_materials = \
+        _materials_and_wages(model, n, vat_rate, fx, fx_prev, idx_direct, idx_wages)
     # Готовая продукция: себестоимость (I5, I6) признаётся при продаже (SPEC §6, §22.8)
     i5, i6, b5, inv_warnings = finished_goods(tp, tq, mc, wc, n, settings.inventory_method)
     fixed, c5, c6, pay_fixed, vat_in_fixed, i24_fixed, vat_in_paid_fixed, i25_fixed = _fixed(
@@ -500,7 +545,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "I21": add(asset_expense, lease_payments),  # прочие издержки + лизинговые платежи
         "I18": add(loan_interest_cost, auto.pl_interest),
         "I24": add(i24_fixed, loan_interest_profit),
-        "I25": add(i25_fx, loan_reval, i25_sales, i25_fixed),
+        "I25": add(i25_fx, loan_reval, i25_sales, i25_fixed, i25_materials),
     }
     income = build_income(
         income_leaves, n, settings.profit_tax_rate, settings.profit_tax_benefit_share)

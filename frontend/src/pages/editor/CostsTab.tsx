@@ -56,7 +56,14 @@ export function CostsTab({ n, operating, onChange }: Props) {
             </select>
             <Button variant="ghost" onClick={() => removeDirect(i)}>Удалить</Button>
           </div>
-          <MonthlySeries n={n} label="Сумма" values={d.amount} onChange={(amount) => updateDirect(i, { amount })} />
+          <MonthlySeries n={n} label={d.foreign ? "Сумма (валюта)" : "Сумма"} values={d.amount}
+                         onChange={(amount) => updateDirect(i, { amount })} />
+          {d.kind === "materials" && (
+            <div className="toolbar" style={{ marginTop: 8 }}>
+              <CheckField label="Валютный материал (по курсу закупки)" checked={d.foreign ?? false}
+                          onChange={(foreign) => updateDirect(i, { foreign })} />
+            </div>
+          )}
         </div>
       ))}
 

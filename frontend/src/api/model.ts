@@ -33,6 +33,7 @@ export interface DirectCostLine {
   amount: string[];
   payment_delay_months: number;
   stock_lead_months: number;
+  foreign?: boolean;
 }
 
 export type CostFunction =

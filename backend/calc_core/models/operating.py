@@ -66,6 +66,10 @@ class DirectCostLine(BaseModel):
     amount: list[Decimal] = Field(default_factory=list)
     payment_delay_months: int = Field(default=0, ge=0)  # задержка оплаты → кредиторка (B23)
     stock_lead_months: int = Field(default=0, ge=0)     # опережающая закупка → сырьё (B3)
+    # Материал во 2-й валюте (импорт, без НДС в v0): закупка/сырьё (B3) — по курсу закупки
+    # (немонетарный актив, историческая стоимость); валютная кредиторка переоценивается по
+    # FX[t] → I25 (рост курса → убыток). Применяется к материалам; по умолчанию — рубли.
+    foreign: bool = False
 
 
 class FixedCostLine(BaseModel):

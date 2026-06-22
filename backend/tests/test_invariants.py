@@ -85,7 +85,7 @@ def _random_project(rng: random.Random) -> ProjectModel:
     direct = [
         DirectCostLine(name="m", kind=DirectCostKind.MATERIALS, amount=series(0, 30000),
                        payment_delay_months=rng.randint(0, 4),
-                       stock_lead_months=rng.randint(0, 3)),
+                       stock_lead_months=rng.randint(0, 3), foreign=rng.random() < 0.3),
         DirectCostLine(name="w", kind=DirectCostKind.PIECE_WAGES, amount=series(0, 10000),
                        payment_delay_months=rng.randint(0, 2)),
     ]
