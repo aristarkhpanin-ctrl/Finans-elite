@@ -146,6 +146,7 @@ export interface ProjectSettings {
   vat_rate: string;
   vat_basis: VatBasis;
   inventory_method: InventoryMethod;
+  production_cycle_months?: number;
   inflation_sales: string;
   inflation_direct: string;
   inflation_wages: string;

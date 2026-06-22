@@ -6,14 +6,16 @@
 
 Доказанные тождества (см. комментарии в pipeline):
 - сырьё:  ``B3 = cumulative(закупки) − cumulative(потребление)``;
+- НЗП:    ``B4 = cumulative(запуск) − cumulative(выпуск)``;
 - готовая продукция: ``B5 = cumulative(производств. себестоимость) − cumulative(COGS)``.
 
 Оценка себестоимости ГП (SPEC §22.8): **средняя** (пул) либо **ФИФО** (по партиям выпуска).
 Оба метода сохраняют тождество выше (различается лишь распределение стоимости между
 себестоимостью проданного и остатком запаса), поэтому баланс сходится при любом методе.
 
-НЗП (B4) — отдельная под-часть (требует модели длительности производственного цикла) —
-пока не моделируется (Фаза B).
+НЗП (B4): при производственном цикле длиной ``cycle`` стоимость запуска (материалы+труд)
+и выпуск единиц сдвигаются на ``cycle`` месяцев вперёд (выпуск ГП происходит позже
+запуска); стоимость «в пути» копится в B4. При ``cycle = 0`` сдвиг тождественен (B4 ≡ 0).
 """
 from __future__ import annotations
 
@@ -21,7 +23,7 @@ from decimal import Decimal
 
 from ..models.common import InventoryMethod
 from ..money import ZERO
-from ..series import zeros
+from ..series import cumulative, zeros
 
 
 def purchase_schedule(consumption: list[Decimal], stock_lead: int, n: int):
@@ -42,6 +44,36 @@ def purchase_schedule(consumption: list[Decimal], stock_lead: int, n: int):
         for t in range(p, c):  # сырьё на складе на конец периодов [p, c-1]
             raw_inventory[t] += amt
     return purchases, raw_inventory
+
+
+def _shift(series: list[Decimal], cycle: int, n: int) -> list[Decimal]:
+    """Сдвиг ряда на ``cycle`` месяцев вперёд (значения до сдвига — нули)."""
+    out = zeros(n)
+    for t in range(n):
+        if t - cycle >= 0:
+            out[t] = series[t - cycle]
+    return out
+
+
+def work_in_progress(material_cost: list[Decimal], wage_cost: list[Decimal],
+                     produced_units: list[Decimal], cycle: int, n: int):
+    """Незавершённое производство (НЗП, B4): задержка выпуска на длину цикла.
+
+    Стоимость запуска в производство (материалы + сдельный труд) и выпуск единиц
+    сдвигаются на ``cycle`` месяцев — выпуск ГП происходит позже запуска. «В пути»
+    стоимость лежит в НЗП: ``B4 = cumulative(запуск) − cumulative(выпуск)``. Возвращает
+    ``(material_out, wage_out, produced_out, b4)`` — сдвинутые потоки для пула ГП и остаток
+    НЗП. При ``cycle = 0`` — тождественно (выпуск = запуск, B4 ≡ 0).
+    """
+    if cycle <= 0:
+        return material_cost, wage_cost, produced_units, zeros(n)
+    material_out = _shift(material_cost, cycle, n)
+    wage_out = _shift(wage_cost, cycle, n)
+    produced_out = _shift(produced_units, cycle, n)
+    started = cumulative([material_cost[t] + wage_cost[t] for t in range(n)])
+    finished = cumulative([material_out[t] + wage_out[t] for t in range(n)])
+    b4 = [started[t] - finished[t] for t in range(n)]
+    return material_out, wage_out, produced_out, b4
 
 
 def finished_goods(produced_units: list[Decimal], sold_units: list[Decimal],

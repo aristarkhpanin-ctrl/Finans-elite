@@ -169,6 +169,7 @@ def _random_project(rng: random.Random) -> ProjectModel:
             vat_rate=rng.choice([Decimal(0), Decimal("0.10"), Decimal("0.20")]),
             vat_basis=rng.choice(list(VatBasis)),
             inventory_method=rng.choice(list(InventoryMethod)),
+            production_cycle_months=rng.randint(0, 3),
         ),
         operating_plan=OperatingPlan(
             products=[Product(id=s.product_id, name=s.product_id) for s in sales],

@@ -51,6 +51,9 @@ export function GeneralTab({ header, settings, onHeader, onSettings }: Props) {
         <SelectField label="Оценка запасов ГП" value={settings.inventory_method ?? "average"}
                      onChange={(v) => set({ inventory_method: v as ProjectSettings["inventory_method"] })}
                      options={[["average", "Средняя"], ["fifo", "ФИФО"]]} />
+        <NumberField label="Производственный цикл (мес.)" step="1"
+                     value={settings.production_cycle_months ?? 0}
+                     onChange={(v) => set({ production_cycle_months: parseInt(v || "0", 10) || 0 })} />
       </div>
 
       <h2 style={{ marginTop: 20 }}>Инфляция (год)</h2>

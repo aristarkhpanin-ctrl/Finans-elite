@@ -23,7 +23,7 @@ from ..reports.statements import (
 )
 from .errors import ModelError
 from .financing_auto import AutoInjection
-from .inventory import finished_goods, purchase_schedule
+from .inventory import finished_goods, purchase_schedule, work_in_progress
 from .timing import cost_timing, sales_timing
 from .vat import settle_vat
 
@@ -475,8 +475,12 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     tp, tq = _volumes(model, n)
     mc, wc, c2, c3, b3, pay_direct, vat_in_mat, vat_in_paid_mat, i25_materials = \
         _materials_and_wages(model, n, vat_rate, fx, fx_prev, idx_direct, idx_wages)
+    # НЗП (B4): производственный цикл сдвигает выпуск и его стоимость на cycle мес. (SPEC §6)
+    mc_out, wc_out, tp_out, b4 = work_in_progress(
+        mc, wc, tp, settings.production_cycle_months, n)
     # Готовая продукция: себестоимость (I5, I6) признаётся при продаже (SPEC §6, §22.8)
-    i5, i6, b5, inv_warnings = finished_goods(tp, tq, mc, wc, n, settings.inventory_method)
+    i5, i6, b5, inv_warnings = finished_goods(
+        tp_out, tq, mc_out, wc_out, n, settings.inventory_method)
     fixed, c5, c6, pay_fixed, vat_in_fixed, i24_fixed, vat_in_paid_fixed, i25_fixed = _fixed(
         model, n, vat_rate, fx, fx_prev, idx_wages, idx_general)
     b23 = add(pay_direct, pay_fixed)
@@ -624,6 +628,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "B1": cashflow["C29"],     # денежные средства = сальдо Кэш-фло
         "B2": b2,                  # счета к получению (дебиторка, с НДС)
         "B3": b3,                  # сырьё, материалы и комплектующие
+        "B4": b4,                  # незавершённое производство (НЗП)
         "B5": b5,                  # запасы готовой продукции
         "B6": add(b6_foreign, deposit_bal),  # валютная позиция + депозиты/ЦБ
         "B7": b7,                  # краткосрочные предоплаченные расходы (НДС-кредит)
