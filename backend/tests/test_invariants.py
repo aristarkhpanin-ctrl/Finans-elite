@@ -35,6 +35,7 @@ from calc_core.models import (
     StartingBalance,
 )
 from calc_core.models.common import (
+    AssetCategory,
     CostFunction,
     DirectCostKind,
     InventoryMethod,
@@ -105,6 +106,7 @@ def _random_project(rng: random.Random) -> ProjectModel:
             cost=Decimal(rng.randint(10000, 500000)),
             purchase_month=pm,
             life_months=rng.randint(1, 36),
+            category=rng.choice(list(AssetCategory)),
             sale_month=(rng.randint(pm, n - 1) if sell else None),
             sale_price=(Decimal(rng.randint(0, 500000)) if sell else Decimal(0)),
             revaluation_month=(rng.randint(pm, n - 1) if reval else None),

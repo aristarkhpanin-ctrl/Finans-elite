@@ -110,11 +110,14 @@ export interface Financing {
   auto_financing: AutoFinancing;
 }
 
+export type AssetCategory = "equipment" | "buildings" | "land";
+
 export interface Asset {
   name: string;
   cost: string;
   purchase_month: number;
   life_months: number;
+  category?: AssetCategory;
   sale_month?: number | null;
   sale_price?: string;
 }

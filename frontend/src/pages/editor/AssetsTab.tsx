@@ -1,5 +1,5 @@
-import type { Asset, InvestmentPlan } from "../../api/model";
-import { Button, CheckField } from "../../components/ui";
+import type { Asset, AssetCategory, InvestmentPlan } from "../../api/model";
+import { Button, CheckField, SelectField } from "../../components/ui";
 
 interface Props {
   investment: InvestmentPlan;
@@ -35,6 +35,9 @@ export function AssetsTab({ investment, onChange }: Props) {
               <input className="input" type="number" value={a.purchase_month} onChange={(e) => upd(i, { purchase_month: parseInt(e.target.value || "0", 10) })} /></label>
             <label className="field"><span>Срок службы, мес.</span>
               <input className="input" type="number" value={a.life_months} onChange={(e) => upd(i, { life_months: parseInt(e.target.value || "1", 10) })} /></label>
+            <SelectField label="Группа ОС" value={a.category ?? "equipment"}
+                         onChange={(v) => upd(i, { category: v as AssetCategory })}
+                         options={[["equipment", "Оборудование"], ["buildings", "Здания"], ["land", "Земля (без амортизации)"]]} />
           </div>
           <CheckField label="Продаётся в течение проекта"
                       checked={a.sale_month != null}

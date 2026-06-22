@@ -12,7 +12,14 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from ..models import CostFunction, DirectCostKind, ProjectModel, RepaymentType, VatBasis
+from ..models import (
+    AssetCategory,
+    CostFunction,
+    DirectCostKind,
+    ProjectModel,
+    RepaymentType,
+    VatBasis,
+)
 from ..money import D, ONE, ZERO
 from ..series import add, cumulative, zeros
 from ..reports.statements import (
@@ -296,11 +303,13 @@ def _fixed(model: ProjectModel, n: int, vat_rate: Decimal,
 
 def _assets(model: ProjectModel, n: int):
     """Активы → (capex, амортизация, поступления от продажи C16, прочие доходы/издержки
-    I20/I21, выбытие первонач. стоимости и накопл. амортизации).
+    I20/I21, выбытие первонач. стоимости и накопл. амортизации, остаточная стоимость по
+    группам ОС).
 
     Продажа (``sale_month``): амортизация прекращается, остаточная стоимость списывается,
     поступления идут в C16, финансовый результат (цена − остаточная) — в I20 (прибыль) или
-    I21 (убыток). Балансовый инвариант сохраняется (SPEC §9).
+    I21 (убыток). Группа ОС (``category``) разносит остаточную стоимость по B12/B13/B14;
+    **земля не амортизируется**. Балансовый инвариант сохраняется (SPEC §9).
     """
     capex = zeros(n)
     dep = zeros(n)
@@ -310,22 +319,34 @@ def _assets(model: ProjectModel, n: int):
     b9_disposal = zeros(n)     # выбытие первоначальной стоимости
     b10_disposal = zeros(n)    # выбытие накопленной амортизации
     reval = zeros(n)           # дооценка → B9/остаточная и добавочный капитал B31
+    nbv = {cat: zeros(n) for cat in AssetCategory}  # остаточная стоимость по группам ОС
     for asset in model.investment_plan.assets:
+        cat = asset.category
         rm = asset.revaluation_month
-        if rm is not None and 0 <= rm < n:
+        revalued = rm is not None and 0 <= rm < n
+        if revalued:
             reval[rm] += asset.revaluation_amount
         p = asset.purchase_month
         if 0 <= p < n:
             capex[p] += asset.cost
-        d = asset.monthly_depreciation()
+        # Земля не амортизируется; прочие группы — линейно от стоимости.
+        d = ZERO if cat == AssetCategory.LAND else asset.monthly_depreciation()
         end = min(p + asset.life_months, n)
         sale_m = asset.sale_month
         if sale_m is not None:
             end = min(end, sale_m)              # амортизация прекращается в месяц продажи
         acc_dep = ZERO
-        for t in range(max(p, 0), end):
-            dep[t] += d
-            acc_dep += d
+        for t in range(max(p, 0), n):
+            if t < end:
+                dep[t] += d
+                acc_dep += d
+            # Остаточная стоимость группы на конец периода t (после выбытия — только дооценка,
+            # как и в агрегате B9: дооценка не реверсируется при продаже).
+            disposed = sale_m is not None and 0 <= sale_m <= t
+            book = ZERO if disposed else (asset.cost - acc_dep)
+            if revalued and t >= rm:
+                book += asset.revaluation_amount
+            nbv[cat][t] += book
         if sale_m is not None and 0 <= sale_m < n:
             residual = asset.cost - acc_dep
             proceeds[sale_m] += asset.sale_price
@@ -336,7 +357,8 @@ def _assets(model: ProjectModel, n: int):
                 other_expense[sale_m] += -gain
             b9_disposal[sale_m] += asset.cost
             b10_disposal[sale_m] += acc_dep
-    return capex, dep, proceeds, other_income, other_expense, b9_disposal, b10_disposal, reval
+    return (capex, dep, proceeds, other_income, other_expense,
+            b9_disposal, b10_disposal, reval, nbv)
 
 
 def _loan_schedule(loan, n: int):
@@ -486,19 +508,25 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     b23 = add(pay_direct, pay_fixed)
 
     # --- инвестиции и амортизация (capex в баланс — по нетто; деньги — с НДС) ---
-    capex, dep, asset_proceeds, asset_income, asset_expense, b9_disp, b10_disp, asset_reval = \
-        _assets(model, n)
+    (capex, dep, asset_proceeds, asset_income, asset_expense,
+     b9_disp, b10_disp, asset_reval, nbv) = _assets(model, n)
     capex_gross = [capex[t] * (Decimal(1) + vat_rate) for t in range(n)]
     vat_in_capex = [capex[t] * vat_rate for t in range(n)]
     reval_cum = cumulative(asset_reval)  # накопленная дооценка → B9/остаточная и B31
     b9 = [sb.fixed_assets_net + cumulative(capex)[t] - cumulative(b9_disp)[t] + reval_cum[t]
-          for t in range(n)]
-    b10 = [cumulative(dep)[t] - cumulative(b10_disp)[t] for t in range(n)]
-    b11 = [b9[t] - b10[t] for t in range(n)]
+          for t in range(n)]  # первоначальная стоимость (агрегат, B9)
+    b10 = [cumulative(dep)[t] - cumulative(b10_disp)[t] for t in range(n)]  # амортизация (B10)
+    # Остаточная стоимость по группам ОС (B12 земля / B13 здания / B14 оборудование).
+    # Стартовая остаточная стоимость без разбивки относится к оборудованию (B14).
+    b12 = nbv[AssetCategory.LAND]
+    b13 = nbv[AssetCategory.BUILDINGS]
+    b14 = [sb.fixed_assets_net + nbv[AssetCategory.EQUIPMENT][t] for t in range(n)]
+    # Σ(B12,B13,B14) = b9 − b10 (B11), поэтому баланс сходится как прежде.
 
-    # Налог на имущество (база — остаточная стоимость, годовая ставка → помесячно)
+    # Налог на имущество: база — амортизируемое имущество (здания+оборудование), без земли
+    # (земля облагается отдельным земельным налогом — вне v0). Годовая ставка → помесячно.
     prop_monthly = settings.property_tax_rate / Decimal(12)
-    i9 = [prop_monthly * b11[t] for t in range(n)]
+    i9 = [prop_monthly * (b13[t] + b14[t]) for t in range(n)]
 
     # --- займы (основные и валютные; валютные переоцениваются → I25) ---
     (loan_proceeds, loan_principal, loan_interest, loan_interest_cost,
@@ -635,7 +663,9 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "B21": b21,                # отсроченные налоговые платежи (отложенный исходящий НДС)
         "B9": b9,
         "B10": b10,
-        "B14": b11,                # остаточная стоимость → оборудование (v0)
+        "B12": b12,                # земля (не амортизируется)
+        "B13": b13,                # здания и сооружения
+        "B14": b14,                # оборудование (+ стартовая остаточная стоимость)
         "B22": auto_debt,          # краткосрочные займы (кредитная линия)
         "B23": b23,                # счета к оплате (кредиторка)
         "B24": b24,                # полученные авансы

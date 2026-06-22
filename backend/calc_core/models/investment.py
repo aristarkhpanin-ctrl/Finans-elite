@@ -10,6 +10,8 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from .common import AssetCategory
+
 
 class Asset(BaseModel):
     """Основное средство."""
@@ -18,6 +20,9 @@ class Asset(BaseModel):
     cost: Decimal                  # стоимость приобретения (→ capex, C14)
     purchase_month: int = 0        # месяц приобретения (индекс t)
     life_months: int = 12          # срок службы для линейной амортизации
+    # Группа ОС: разнос остаточной стоимости по балансу (B12 земля / B13 здания /
+    # B14 оборудование). Земля не амортизируется и вне базы налога на имущество (SPEC §9).
+    category: AssetCategory = AssetCategory.EQUIPMENT
     # Продажа актива: месяц и цена реализации (→ C16; фин. результат в I20/I21). SPEC §9.
     sale_month: Optional[int] = None
     sale_price: Decimal = Decimal(0)
