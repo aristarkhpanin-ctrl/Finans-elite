@@ -164,6 +164,21 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 .summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
 .summary-card .m-label { color: var(--text-muted); font-size: 12px; font-weight: 600; }
 .summary-card .m-value { font-size: 22px; font-weight: 700; margin-top: 4px; }
+
+/* Печать / сохранение в PDF: показываем только печатный отчёт, прячем интерфейс. */
+.print-only { display: none; }
+@media print {
+  .appbar, .screen-only, .save-bar { display: none !important; }
+  .print-only { display: block !important; }
+  .content { padding: 0 !important; }
+  body, .app { background: #fff !important; }
+  .print-report h1 { font-size: 20px; margin: 0 0 2px; }
+  .print-report h2 { font-size: 14px; margin: 16px 0 8px; page-break-after: avoid; }
+  .print-report table { font-size: 10px; page-break-inside: auto; }
+  .print-report .summary-card { break-inside: avoid; }
+  .print-report .summary-grid { grid-template-columns: repeat(3, 1fr); }
+  @page { margin: 12mm; }
+}
 .warnings { background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; border-radius: var(--radius); padding: 10px 14px; margin-bottom: 14px; font-size: 13px; }
 [data-theme="dark"] .warnings { background: #2a1d12; border-color: #553a1f; color: #fbbf77; }
 

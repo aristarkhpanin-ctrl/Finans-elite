@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { calculateProject } from "../api/calc";
+import { getProject } from "../api/projects";
+import { PrintReport } from "../components/PrintReport";
 import { ResultCharts } from "../components/ResultCharts";
 import { RatiosView } from "../components/RatiosView";
 import { StatementTable, SUBTOTALS } from "../components/StatementTable";
@@ -28,6 +30,7 @@ export function ProjectResultsPage() {
     queryFn: () => calculateProject(id),
     retry: false,
   });
+  const projectQuery = useQuery({ queryKey: ["project", id], queryFn: () => getProject(id) });
 
   if (isLoading) return <p className="muted">Расчёт…</p>;
   if (isError) {
@@ -44,8 +47,11 @@ export function ProjectResultsPage() {
     ? [...BASE_TABS, ["plan_fact", "План-факт"]]
     : BASE_TABS;
 
+  const title = projectQuery.data?.name ?? "Результаты";
+
   return (
     <div>
+      <div className="screen-only">
       <div className="toolbar" style={{ marginBottom: 14 }}>
         <button className="link-btn" onClick={() => navigate(`/projects/${id}`)}>← Редактор</button>
         <span style={{ flex: 1 }} />
@@ -55,6 +61,7 @@ export function ProjectResultsPage() {
         <button className="link-btn" onClick={() => { void downloadXlsx("reports.xlsx", data); }}>
           Экспорт XLSX
         </button>
+        <button className="link-btn" onClick={() => window.print()}>Печать / PDF</button>
         <button className="link-btn" onClick={() => navigate(`/projects/${id}/analysis`)}>Анализ</button>
         <span className="muted">движок {data.engine_version}</span>
       </div>
@@ -111,6 +118,9 @@ export function ProjectResultsPage() {
           )}
         </div>
       )}
+      </div>
+
+      <PrintReport data={data} title={title} />
     </div>
   );
 }
