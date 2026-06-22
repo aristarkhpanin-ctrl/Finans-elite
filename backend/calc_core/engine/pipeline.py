@@ -454,6 +454,51 @@ def _fx_series(env, n: int) -> list[Decimal]:
     return out
 
 
+def _leases(model: ProjectModel, n: int):
+    """Лизинг → (операц. издержка I21, отток C25, предмет фин. лизинга B19, обязательство
+    B26, проценты I18, амортизация I17).
+
+    Операционный лизинг: платёж целиком в издержки и отток. Финансовый: предмет
+    капитализируется по приведённой стоимости платежей (аннуитет по ``annual_rate``),
+    амортизируется линейно за срок (I17); платёж делится на проценты на остаток
+    обязательства (I18) и тело, гасящее обязательство (→ B26); отток платежа — в C25.
+    Амортизация предмета (B19↓) и амортизационная издержка (I17) взаимно гасятся в балансе,
+    а тождество ``платёж = проценты + тело`` обеспечивает сходимость (SPEC §10).
+    """
+    op_expense = zeros(n)   # → I21 (операционный лизинг)
+    cash = zeros(n)         # → C25 (все лизинговые платежи)
+    b19 = zeros(n)          # предмет финансового лизинга (нетто) → B19
+    liability = zeros(n)    # обязательство по финансовому лизингу → B26
+    interest = zeros(n)     # → I18
+    dep = zeros(n)          # → I17
+    for lease in model.financing.leases:
+        pay = D(lease.monthly_payment)
+        s = lease.start_month
+        term = lease.term_months
+        if term <= 0:
+            continue
+        end = min(s + term, n)
+        if not lease.finance:
+            for t in range(max(s, 0), end):
+                op_expense[t] += pay
+                cash[t] += pay
+            continue
+        # Финансовый лизинг: приведённая стоимость платежей = стоимость предмета и долга.
+        r = lease.monthly_rate()
+        pv = pay * D(term) if r == ZERO else pay * (ONE - (ONE + r) ** (-term)) / r
+        d = pv / D(term)            # линейная амортизация предмета за срок лизинга
+        bal = pv
+        for t in range(max(s, 0), end):
+            i_t = bal * r
+            bal = bal - (pay - i_t)                 # тело = платёж − проценты
+            interest[t] += i_t
+            dep[t] += d
+            cash[t] += pay
+            b19[t] += pv - d * D(t - s + 1)         # нетто-стоимость предмета на конец t
+            liability[t] += bal                      # остаток обязательства на конец t
+    return op_expense, cash, b19, liability, interest, dep
+
+
 def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     """Выполнить расчёт и вернуть (income, cashflow, balance, profit_use, warnings).
 
@@ -532,12 +577,9 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     (loan_proceeds, loan_principal, loan_interest, loan_interest_cost,
      loan_interest_profit, loan_debt, loan_reval) = _loans(model, n, fx, fx_prev)
 
-    # --- лизинг (операционный): платёж = издержка (I21) + отток (C25) ---
-    lease_payments = zeros(n)
-    for lease in model.financing.leases:
-        for t in range(lease.start_month, min(lease.start_month + lease.term_months, n)):
-            if t >= 0:
-                lease_payments[t] += lease.monthly_payment
+    # --- лизинг: операционный (I21+C25) и финансовый (B19/B26, I17/I18, C25) ---
+    (lease_op_expense, lease_cash, fl_b19, fl_liability,
+     fl_interest, fl_dep) = _leases(model, n)
 
     # --- депозиты/ЦБ: вложение C8, доход C9 (= I20), тело в B6 ---
     c8 = zeros(n)            # вложения в ЦБ (размещение +, возврат −)
@@ -572,10 +614,10 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "I13": fixed[CostFunction.STAFF_ADMIN],
         "I14": fixed[CostFunction.STAFF_PRODUCTION],
         "I15": fixed[CostFunction.STAFF_MARKETING],
-        "I17": dep,
+        "I17": add(dep, fl_dep),                    # амортизация ОС + предмета фин. лизинга
         "I20": add(asset_income, c9),               # прочие доходы + доход по ЦБ
-        "I21": add(asset_expense, lease_payments),  # прочие издержки + лизинговые платежи
-        "I18": add(loan_interest_cost, auto.pl_interest),
+        "I21": add(asset_expense, lease_op_expense),  # прочие издержки + операционный лизинг
+        "I18": add(loan_interest_cost, auto.pl_interest, fl_interest),  # проценты: займы + фин. лизинг
         "I24": add(i24_fixed, loan_interest_profit),
         "I25": add(i25_fx, loan_reval, i25_sales, i25_fixed, i25_materials),
     }
@@ -639,7 +681,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "C22": add(loan_proceeds, auto.cash_draws),
         "C23": add(loan_principal, auto.cash_principal),
         "C24": add(loan_interest, auto.cash_interest),
-        "C25": lease_payments,
+        "C25": lease_cash,
         "C26": dividends,
         "C28": c28,
     }
@@ -647,7 +689,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
 
     # --- Баланс ---
     paid_in = [sb.paid_in_capital + e for e in cumulative(equity_in)]
-    debt = [sb.debt + loan_debt[t] for t in range(n)]  # вклад займов в долг (валютные — по FX)
+    debt = [sb.debt + loan_debt[t] + fl_liability[t] for t in range(n)]  # займы (валютные по FX) + фин. лизинг
     # Остаток кредитной линии автофинансирования → краткосрочные займы (B22)
     auto_draws_cum = cumulative(auto.cash_draws)
     auto_prin_cum = cumulative(auto.cash_principal)
@@ -666,6 +708,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "B12": b12,                # земля (не амортизируется)
         "B13": b13,                # здания и сооружения
         "B14": b14,                # оборудование (+ стартовая остаточная стоимость)
+        "B19": fl_b19,             # имущество в финансовом лизинге (нетто)
         "B22": auto_debt,          # краткосрочные займы (кредитная линия)
         "B23": b23,                # счета к оплате (кредиторка)
         "B24": b24,                # полученные авансы

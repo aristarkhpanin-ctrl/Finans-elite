@@ -131,7 +131,8 @@ def _random_project(rng: random.Random) -> ProjectModel:
     ]
     leases = [
         Lease(name=f"ls{i}", monthly_payment=Decimal(rng.randint(0, 20000)),
-              start_month=rng.randint(0, n - 1), term_months=rng.randint(1, 24))
+              start_month=rng.randint(0, n - 1), term_months=rng.randint(1, 24),
+              finance=rng.random() < 0.5, annual_rate=Decimal(rng.randint(0, 30)) / Decimal(100))
         for i in range(rng.randint(0, 2))
     ]
     deposits = [

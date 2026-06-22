@@ -40,12 +40,24 @@ class EquityInjection(BaseModel):
 
 
 class Lease(BaseModel):
-    """Операционный лизинг: периодический платёж (издержка I21 + отток C25). SPEC §10."""
+    """Лизинг (SPEC §10).
+
+    **Операционный** (по умолчанию): платёж — целиком издержка (I21) и отток (C25).
+    **Финансовый** (``finance=True``): предмет лизинга капитализируется (B19) и
+    амортизируется (I17), обязательство (→ B26) гасится телом платежа, процентная часть —
+    в I18. Приведённая стоимость платежей дисконтируется по ``annual_rate`` (ставка 0 —
+    обязательство = сумме платежей без процентов).
+    """
 
     name: str
     monthly_payment: Decimal
     start_month: int = 0
     term_months: int = 12
+    finance: bool = False                   # финансовый лизинг (капитализация предмета)
+    annual_rate: Decimal = Decimal("0")     # ставка для финансового лизинга (PV платежей)
+
+    def monthly_rate(self) -> Decimal:
+        return (Decimal(1) + self.annual_rate) ** (Decimal(1) / Decimal(12)) - Decimal(1)
 
 
 class Deposit(BaseModel):

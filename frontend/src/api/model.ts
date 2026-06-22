@@ -79,6 +79,8 @@ export interface Lease {
   monthly_payment: string;
   start_month: number;
   term_months: number;
+  finance?: boolean;
+  annual_rate?: string;
 }
 
 export interface Deposit {

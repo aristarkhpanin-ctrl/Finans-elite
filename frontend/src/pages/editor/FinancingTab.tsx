@@ -7,7 +7,7 @@ import type {
   RepaymentType,
 } from "../../api/model";
 import { MonthlySeries } from "../../components/MonthlySeries";
-import { Button, CheckField } from "../../components/ui";
+import { Button, CheckField, Hint } from "../../components/ui";
 
 interface Props {
   n: number;
@@ -112,6 +112,16 @@ export function FinancingTab({ n, financing, onChange }: Props) {
               <input className="input" type="number" value={l.start_month} onChange={(e) => updLease(i, { start_month: parseInt(e.target.value || "0", 10) })} /></label>
             <label className="field"><span>Срок, мес.</span>
               <input className="input" type="number" value={l.term_months} onChange={(e) => updLease(i, { term_months: parseInt(e.target.value || "1", 10) })} /></label>
+            {l.finance && (
+              <label className="field">
+                <span>Ставка лизинга (год)<Hint text="Ставка для приведённой стоимости предмета финансового лизинга" /></span>
+                <input className="input" type="number" step="0.01" value={l.annual_rate ?? "0"}
+                       onChange={(e) => updLease(i, { annual_rate: e.target.value })} /></label>
+            )}
+          </div>
+          <div className="toolbar" style={{ marginTop: 8 }}>
+            <CheckField label="Финансовый лизинг (капитализация предмета → B19)" checked={l.finance ?? false}
+                        onChange={(finance) => updLease(i, { finance })} />
           </div>
         </div>
       ))}
