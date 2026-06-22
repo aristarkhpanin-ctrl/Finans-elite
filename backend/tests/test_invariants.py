@@ -99,6 +99,7 @@ def _random_project(rng: random.Random) -> ProjectModel:
     for i in range(rng.randint(0, 3)):
         pm = rng.randint(0, n - 1)
         sell = rng.random() < 0.3
+        reval = rng.random() < 0.3
         assets.append(Asset(
             name=f"a{i}",
             cost=Decimal(rng.randint(10000, 500000)),
@@ -106,6 +107,8 @@ def _random_project(rng: random.Random) -> ProjectModel:
             life_months=rng.randint(1, 36),
             sale_month=(rng.randint(pm, n - 1) if sell else None),
             sale_price=(Decimal(rng.randint(0, 500000)) if sell else Decimal(0)),
+            revaluation_month=(rng.randint(pm, n - 1) if reval else None),
+            revaluation_amount=(Decimal(rng.randint(-50000, 100000)) if reval else Decimal(0)),
         ))
     loans = [
         Loan(

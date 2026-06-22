@@ -21,6 +21,9 @@ class Asset(BaseModel):
     # Продажа актива: месяц и цена реализации (→ C16; фин. результат в I20/I21). SPEC §9.
     sale_month: Optional[int] = None
     sale_price: Decimal = Decimal(0)
+    # Переоценка: месяц и сумма дооценки (→ B9/остаточная и добавочный капитал B31). SPEC §9.
+    revaluation_month: Optional[int] = None
+    revaluation_amount: Decimal = Decimal(0)
 
     def monthly_depreciation(self) -> Decimal:
         if self.life_months <= 0:

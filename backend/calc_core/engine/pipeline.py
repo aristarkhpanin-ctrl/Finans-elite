@@ -264,7 +264,11 @@ def _assets(model: ProjectModel, n: int):
     other_expense = zeros(n)   # → I21 (убыток от продажи)
     b9_disposal = zeros(n)     # выбытие первоначальной стоимости
     b10_disposal = zeros(n)    # выбытие накопленной амортизации
+    reval = zeros(n)           # дооценка → B9/остаточная и добавочный капитал B31
     for asset in model.investment_plan.assets:
+        rm = asset.revaluation_month
+        if rm is not None and 0 <= rm < n:
+            reval[rm] += asset.revaluation_amount
         p = asset.purchase_month
         if 0 <= p < n:
             capex[p] += asset.cost
@@ -287,7 +291,7 @@ def _assets(model: ProjectModel, n: int):
                 other_expense[sale_m] += -gain
             b9_disposal[sale_m] += asset.cost
             b10_disposal[sale_m] += acc_dep
-    return capex, dep, proceeds, other_income, other_expense, b9_disposal, b10_disposal
+    return capex, dep, proceeds, other_income, other_expense, b9_disposal, b10_disposal, reval
 
 
 def _loan_schedule(loan, n: int):
@@ -433,10 +437,13 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     b23 = add(pay_direct, pay_fixed)
 
     # --- инвестиции и амортизация (capex в баланс — по нетто; деньги — с НДС) ---
-    capex, dep, asset_proceeds, asset_income, asset_expense, b9_disp, b10_disp = _assets(model, n)
+    capex, dep, asset_proceeds, asset_income, asset_expense, b9_disp, b10_disp, asset_reval = \
+        _assets(model, n)
     capex_gross = [capex[t] * (Decimal(1) + vat_rate) for t in range(n)]
     vat_in_capex = [capex[t] * vat_rate for t in range(n)]
-    b9 = [sb.fixed_assets_net + cumulative(capex)[t] - cumulative(b9_disp)[t] for t in range(n)]
+    reval_cum = cumulative(asset_reval)  # накопленная дооценка → B9/остаточная и B31
+    b9 = [sb.fixed_assets_net + cumulative(capex)[t] - cumulative(b9_disp)[t] + reval_cum[t]
+          for t in range(n)]
     b10 = [cumulative(dep)[t] - cumulative(b10_disp)[t] for t in range(n)]
     b11 = [b9[t] - b10[t] for t in range(n)]
 
@@ -584,6 +591,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "B24": b24,                # полученные авансы
         "B26": debt,               # долгосрочные займы
         "B27": paid_in,            # обыкновенные акции
+        "B31": reval_cum,          # добавочный капитал (переоценка ОС)
         "B32": retained,           # нераспределённая прибыль
     }
     balance = build_balance(balance_leaves, n)
