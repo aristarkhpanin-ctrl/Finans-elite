@@ -169,6 +169,13 @@ h2 { font-size: 17px; margin: 0 0 12px; }
   margin-left: 6px; border-radius: 50%; background: var(--border); color: var(--text-muted);
   font-size: 10px; font-weight: 700; cursor: help; vertical-align: middle; }
 
+.validation { display: flex; flex-direction: column; gap: 8px; margin: 6px 0 16px; }
+.validation-item { display: flex; gap: 8px; align-items: flex-start; padding: 9px 12px;
+  border-radius: var(--radius); font-size: 13px; border: 1px solid; }
+.validation-item--error { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+.validation-item--warn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+.validation-icon { font-weight: 700; }
+
 /* Печать / сохранение в PDF: показываем только печатный отчёт, прячем интерфейс. */
 .print-only { display: none; }
 @media print {

@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import type { ProjectModel } from "../api/model";
 import { getProject, updateProject } from "../api/projects";
 import { Button } from "../components/ui";
+import { ValidationPanel } from "../components/ValidationPanel";
 import { ActualizationTab } from "./editor/ActualizationTab";
 import { AssetsTab } from "./editor/AssetsTab";
 import { CostsTab } from "./editor/CostsTab";
@@ -69,6 +70,8 @@ export function ProjectEditorPage() {
         </Button>
       </div>
       <h1>{model.header.name}</h1>
+
+      <ValidationPanel model={model} />
 
       <div className="tabs">
         {TABS.map(([key, label]) => (
