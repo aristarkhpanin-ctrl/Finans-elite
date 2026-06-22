@@ -47,6 +47,21 @@ export function ResultCharts({ result }: { result: CalcResponse }) {
   });
   const pb = result.metrics.pb_months;
 
+  // Структура активов по периодам (точно тайлит B20 = деньги + дебиторка + запасы +
+  // финвложения + предоплаты + внеоборотные).
+  const balanceStructure = Array.from({ length: result.n }, (_, i) => {
+    const b = (code: string) => Number(line(result.balance, code)[i] ?? 0);
+    return {
+      m: `М${i + 1}`,
+      money: b("B1"),
+      receivables: b("B2"),
+      inventory: b("B3") + b("B4") + b("B5"),
+      investments: b("B6"),
+      prepaid: b("B7"),
+      fixed: b("B11") + b("B17") + b("B18") + b("B19"),
+    };
+  });
+
   const tooltip = { formatter: (v: number) => money(String(v)) } as const;
 
   // Структура издержек за весь период (для долёвки).
@@ -105,6 +120,25 @@ export function ResultCharts({ result }: { result: CalcResponse }) {
             <YAxis tickFormatter={compact} tick={{ fontSize: 12 }} width={56} />
             <Tooltip {...tooltip} />
             <Bar dataKey="profit" name="Чистая прибыль" fill="#7c3aed" />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="chart-card">
+        <h3>Структура активов</h3>
+        <ResponsiveContainer width="100%" height={280}>
+          <ComposedChart data={balanceStructure} margin={{ top: 6, right: 8, left: 8, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+            <XAxis dataKey="m" tick={{ fontSize: 12 }} />
+            <YAxis tickFormatter={compact} tick={{ fontSize: 12 }} width={56} />
+            <Tooltip {...tooltip} />
+            <Legend />
+            <Bar dataKey="money" stackId="a" name="Деньги" fill="#16a34a" />
+            <Bar dataKey="receivables" stackId="a" name="Дебиторка" fill="#2563eb" />
+            <Bar dataKey="inventory" stackId="a" name="Запасы" fill="#f59e0b" />
+            <Bar dataKey="investments" stackId="a" name="Финвложения" fill="#0891b2" />
+            <Bar dataKey="prepaid" stackId="a" name="Предоплаты" fill="#64748b" />
+            <Bar dataKey="fixed" stackId="a" name="Внеоборотные" fill="#7c3aed" />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
