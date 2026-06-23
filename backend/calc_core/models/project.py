@@ -33,6 +33,8 @@ class ProjectSettings(BaseModel):
     terminal_growth_rate: Decimal = Decimal("0")      # темп роста g для модели Гордона (§20)
     # Множитель к годовой чистой прибыли для оценки по мультипликатору (0 = выключено; §20).
     valuation_earnings_multiple: Decimal = Decimal("0")
+    # Доля возврата активов при ликвидации (0..1; 0 = метод выключен; §20).
+    liquidation_recovery_rate: Decimal = Decimal("0")
     profit_tax_rate: Decimal = Decimal("0.20")        # налог на прибыль
     # Доля налогооблагаемой прибыли, освобождаемая от налога (льгота, 0..1; SPEC §22.7).
     profit_tax_benefit_share: Decimal = Field(default=Decimal("0"), ge=0, le=1)

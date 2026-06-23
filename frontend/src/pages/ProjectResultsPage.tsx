@@ -98,6 +98,10 @@ export function ProjectResultsPage() {
           <div className="m-label">По мультипликатору</div>
           <div className="m-value">{val.earnings_multiple_value ? money(val.earnings_multiple_value) : "—"}</div>
         </div>
+        <div className="metric">
+          <div className="m-label">Ликвидационная</div>
+          <div className="m-value">{val.liquidation_value ? money(val.liquidation_value) : "—"}</div>
+        </div>
       </div>
 
       <div className="tabs">

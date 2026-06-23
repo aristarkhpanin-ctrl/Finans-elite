@@ -40,6 +40,7 @@ export interface ValuationOut {
   gordon_value: string | null;
   dividend_value: string | null;
   earnings_multiple_value: string | null;
+  liquidation_value: string | null;
 }
 
 export interface CalcResponse {

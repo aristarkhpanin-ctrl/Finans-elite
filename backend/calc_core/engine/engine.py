@@ -60,7 +60,7 @@ def run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
     valuation = compute_valuation(
         income, cashflow, balance,
         model.settings.discount_rate_annual, model.settings.terminal_growth_rate,
-        model.settings.valuation_earnings_multiple, n,
+        model.settings.valuation_earnings_multiple, model.settings.liquidation_recovery_rate, n,
     )
 
     actualized_cashflow = None

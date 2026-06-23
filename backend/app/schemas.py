@@ -53,6 +53,7 @@ class ValuationOut(BaseModel):
     gordon_value: Optional[Decimal] = None
     dividend_value: Optional[Decimal] = None
     earnings_multiple_value: Optional[Decimal] = None
+    liquidation_value: Optional[Decimal] = None
 
 
 class CalcResponse(BaseModel):
@@ -339,6 +340,7 @@ def to_response(r: CalcResult) -> CalcResponse:
             gordon_value=r.valuation.gordon_value,
             dividend_value=r.valuation.dividend_value,
             earnings_multiple_value=r.valuation.earnings_multiple_value,
+            liquidation_value=r.valuation.liquidation_value,
         ),
         actualized_cashflow=_statement_out(r.actualized_cashflow) if r.actualized_cashflow else None,
         cashflow_variance=_statement_out(r.cashflow_variance) if r.cashflow_variance else None,

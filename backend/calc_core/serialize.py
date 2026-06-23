@@ -85,6 +85,7 @@ def valuation_to_dict(v: BusinessValuation) -> dict[str, Optional[str]]:
         "gordon_value": _money(v.gordon_value),
         "dividend_value": _money(v.dividend_value),
         "earnings_multiple_value": _money(v.earnings_multiple_value),
+        "liquidation_value": _money(v.liquidation_value),
     }
 
 

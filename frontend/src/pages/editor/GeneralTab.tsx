@@ -33,6 +33,9 @@ export function GeneralTab({ header, settings, onHeader, onSettings }: Props) {
         <NumberField label="Мультипликатор прибыли" step="0.5" value={settings.valuation_earnings_multiple ?? "0"}
                      hint="Множитель к годовой чистой прибыли для оценки по мультипликатору (0 — выключено)"
                      onChange={(v) => set({ valuation_earnings_multiple: v })} />
+        <NumberField label="Доля возврата при ликвидации" step="0.05" value={settings.liquidation_recovery_rate ?? "0"}
+                     hint="Доля стоимости активов, возвращаемая при ликвидации (0–1; 0 — выключено)"
+                     onChange={(v) => set({ liquidation_recovery_rate: v })} />
       </div>
 
       <h2 style={{ marginTop: 20 }}>Налоги</h2>

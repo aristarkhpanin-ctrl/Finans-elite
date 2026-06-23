@@ -8,9 +8,11 @@
   дивидендах (C26). ``None`` при ``r ≤ g``.
 - **Мультипликатор прибыли**: ``V = множитель · годовая чистая прибыль`` (I28). ``None`` при
   нулевом множителе.
+- **Ликвидационная стоимость**: ``V = доля_возврата · активы − обязательства`` на конец
+  горизонта (``доля_возврата·B20 − (B20−B33)``); ``None`` при нулевой доле возврата.
 
-Нормализация — последние ≤12 месяцев, приведённые к году. Остальные методы (ликвидационная,
-рыночные чистые активы) и точные конвенции — к сверке по эталону.
+Нормализация — последние ≤12 месяцев, приведённые к году. Рыночные чистые активы и точные
+конвенции — к сверке по эталону.
 """
 from __future__ import annotations
 
@@ -28,6 +30,7 @@ class BusinessValuation:
     gordon_value: Optional[Decimal] = None          # капитализация свободного потока (Гордон)
     dividend_value: Optional[Decimal] = None        # капитализация дивидендов (DDM)
     earnings_multiple_value: Optional[Decimal] = None  # множитель × годовая прибыль
+    liquidation_value: Optional[Decimal] = None     # ликвидационная стоимость
 
 
 def _annualized(series: list[Decimal], n: int, k: int) -> Decimal:
@@ -38,7 +41,7 @@ def _annualized(series: list[Decimal], n: int, k: int) -> Decimal:
 
 def compute_valuation(income: Statement, cashflow: Statement, balance: Statement,
                       discount_rate_annual, growth_rate, earnings_multiple,
-                      n: int) -> BusinessValuation:
+                      liquidation_recovery, n: int) -> BusinessValuation:
     if n <= 0:
         return BusinessValuation()
     net_assets = balance["B33"][n - 1]
@@ -57,9 +60,16 @@ def compute_valuation(income: Statement, cashflow: Statement, balance: Statement
     mult = D(earnings_multiple)
     earnings_value = mult * annual_earnings if mult > 0 else None
 
+    # Ликвидация: возвратная стоимость активов за вычетом обязательств (B20−B33 = долг).
+    recovery = D(liquidation_recovery)
+    total_assets = balance["B20"][n - 1]
+    liabilities = total_assets - net_assets
+    liquidation = recovery * total_assets - liabilities if recovery > 0 else None
+
     return BusinessValuation(
         net_assets=net_assets,
         gordon_value=gordon,
         dividend_value=dividend,
         earnings_multiple_value=earnings_value,
+        liquidation_value=liquidation,
     )

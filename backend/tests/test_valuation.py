@@ -21,7 +21,7 @@ D = Decimal
 
 
 def _project(discount: Decimal, growth: Decimal, *, dividends=None,
-             multiple: Decimal = D("0")) -> ProjectModel:
+             multiple: Decimal = D("0"), liquidation: Decimal = D("0")) -> ProjectModel:
     """3 мес., продажи 1000/мес. по кассе, без затрат/налогов/инвестиций."""
     n = 3
     sales = SalesLine(product_id="p0", volume=[D(10)] * n, price=[D(100)] * n)
@@ -29,6 +29,7 @@ def _project(discount: Decimal, growth: Decimal, *, dividends=None,
         header=ProjectHeader(name="val", start_date=date(2026, 1, 1), duration_months=n),
         settings=ProjectSettings(discount_rate_annual=discount, terminal_growth_rate=growth,
                                  valuation_earnings_multiple=multiple,
+                                 liquidation_recovery_rate=liquidation,
                                  profit_tax_rate=D("0"), property_tax_rate=D("0"), vat_rate=D("0")),
         operating_plan=OperatingPlan(products=[Product(id="p0", name="p0")], sales=[sales]),
         financing=Financing(dividends=(dividends or [])),
@@ -75,6 +76,13 @@ def test_earnings_multiple():
     assert run(_project(D("0.15"), D("0"))).valuation.earnings_multiple_value is None
 
 
+def test_liquidation_value():
+    """Ликвидация: 80% активов (3000) − обязательства (0) = 2400; без доли возврата — None."""
+    r = run(_project(D("0.15"), D("0"), liquidation=D("0.8")))
+    assert quantize(r.valuation.liquidation_value) == D("2400.00")
+    assert run(_project(D("0.15"), D("0"))).valuation.liquidation_value is None
+
+
 def test_empty_horizon_returns_default():
     """Защитный возврат для n ≤ 0 (балансы/потоки не читаются)."""
-    assert compute_valuation(None, None, None, D("0.15"), D("0"), D("0"), 0) == BusinessValuation()
+    assert compute_valuation(None, None, None, D("0.15"), D("0"), D("0"), D("0"), 0) == BusinessValuation()
