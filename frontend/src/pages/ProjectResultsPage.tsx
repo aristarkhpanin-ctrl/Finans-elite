@@ -90,6 +90,14 @@ export function ProjectResultsPage() {
           <div className="m-label">По модели Гордона</div>
           <div className="m-value">{val.gordon_value ? money(val.gordon_value) : "—"}</div>
         </div>
+        <div className="metric">
+          <div className="m-label">DDM (дивиденды)</div>
+          <div className="m-value">{val.dividend_value ? money(val.dividend_value) : "—"}</div>
+        </div>
+        <div className="metric">
+          <div className="m-label">По мультипликатору</div>
+          <div className="m-value">{val.earnings_multiple_value ? money(val.earnings_multiple_value) : "—"}</div>
+        </div>
       </div>
 
       <div className="tabs">

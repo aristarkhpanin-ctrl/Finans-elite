@@ -28,8 +28,11 @@ export function GeneralTab({ header, settings, onHeader, onSettings }: Props) {
         <NumberField label="Ставка дисконтирования (год)" step="0.01" value={settings.discount_rate_annual}
                      onChange={(v) => set({ discount_rate_annual: v })} />
         <NumberField label="Темп роста для оценки, g" step="0.01" value={settings.terminal_growth_rate ?? "0"}
-                     hint="Долгосрочный темп роста для модели Гордона; должен быть меньше ставки дисконтирования"
+                     hint="Долгосрочный темп роста для модели Гордона и DDM; должен быть меньше ставки дисконтирования"
                      onChange={(v) => set({ terminal_growth_rate: v })} />
+        <NumberField label="Мультипликатор прибыли" step="0.5" value={settings.valuation_earnings_multiple ?? "0"}
+                     hint="Множитель к годовой чистой прибыли для оценки по мультипликатору (0 — выключено)"
+                     onChange={(v) => set({ valuation_earnings_multiple: v })} />
       </div>
 
       <h2 style={{ marginTop: 20 }}>Налоги</h2>

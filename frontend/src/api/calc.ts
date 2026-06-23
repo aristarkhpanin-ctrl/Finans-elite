@@ -38,6 +38,8 @@ export interface BreakEvenOut {
 export interface ValuationOut {
   net_assets: string;
   gordon_value: string | null;
+  dividend_value: string | null;
+  earnings_multiple_value: string | null;
 }
 
 export interface CalcResponse {

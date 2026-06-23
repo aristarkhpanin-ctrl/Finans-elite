@@ -57,8 +57,9 @@ def run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
     )
     break_even = compute_break_even(income, n)
     valuation = compute_valuation(
-        balance, cashflow,
-        model.settings.discount_rate_annual, model.settings.terminal_growth_rate, n,
+        income, cashflow, balance,
+        model.settings.discount_rate_annual, model.settings.terminal_growth_rate,
+        model.settings.valuation_earnings_multiple, n,
     )
 
     actualized_cashflow = None
