@@ -664,6 +664,11 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     c28 = zeros(n)
     if n > 0:
         c28[0] = sb.cash
+    # Стартовый оборотный капитал действующего предприятия: дебиторка инкассируется (приток
+    # в C1), кредиторка оплачивается (отток через C2) в первом месяце (SPEC §14).
+    if n > 0 and (sb.receivables or sb.payables):
+        c1 = list(c1); c1[0] += sb.receivables
+        c2 = list(c2); c2[0] += sb.payables
     # Налоги: прибыль + имущество + налог с продаж + НДС к уплате (v0: в периоде начисления)
     taxes_cash = add(income["I27"], i9, i3, vat_to_budget)
     cashflow_leaves = {

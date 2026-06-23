@@ -20,8 +20,9 @@ export function validateModel(m: ProjectModel): Issue[] {
 
   // Стартовый баланс должен сходиться, иначе расчёт вернёт ошибку (актив = пассив).
   const sb = m.company.starting_balance;
-  const assets = num(sb.cash) + num(sb.fixed_assets_net) + num(sb.foreign_monetary) * num(m.environment.fx_open);
-  const liab = num(sb.debt) + num(sb.paid_in_capital) + num(sb.retained_earnings);
+  const assets = num(sb.cash) + num(sb.fixed_assets_net) + num(sb.receivables)
+    + num(sb.foreign_monetary) * num(m.environment.fx_open);
+  const liab = num(sb.debt) + num(sb.payables) + num(sb.paid_in_capital) + num(sb.retained_earnings);
   if (Math.abs(assets - liab) > 0.01) {
     issues.push({
       severity: "error",

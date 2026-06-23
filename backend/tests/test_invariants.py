@@ -152,8 +152,12 @@ def _random_project(rng: random.Random) -> ProjectModel:
     fx_open = Decimal(rng.randint(40, 80))
     fx_rate = [Decimal(rng.randint(30, 100)) for _ in range(n)]
     fm = Decimal(rng.randint(0, 1000))
+    # Стартовый оборотный капитал: дебиторка/кредиторка, уравновешенные нераспределённой прибылью.
+    rec = Decimal(rng.randint(0, 5000))
+    pay = Decimal(rng.randint(0, 5000))
     company = Company(starting_balance=StartingBalance(
-        foreign_monetary=fm, paid_in_capital=fm * fx_open))
+        foreign_monetary=fm, paid_in_capital=fm * fx_open,
+        receivables=rec, payables=pay, retained_earnings=rec - pay))
     return ProjectModel(
         header=ProjectHeader(duration_months=n),
         company=company,

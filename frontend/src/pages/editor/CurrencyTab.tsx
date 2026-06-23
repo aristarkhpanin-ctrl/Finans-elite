@@ -19,8 +19,10 @@ export function CurrencyTab({ n, environment, company, onEnvironment, onCompany 
 
   // Стартовый баланс: актив (деньги + ОС + валютная позиция×курс) vs пассив (долг + капитал).
   const fxOpen = num(environment.fx_open) || 1;
-  const assets = num(sb.cash) + num(sb.fixed_assets_net) + num(sb.foreign_monetary) * fxOpen;
-  const liabilities = num(sb.debt) + num(sb.paid_in_capital) + num(sb.retained_earnings);
+  const assets = num(sb.cash) + num(sb.fixed_assets_net) + num(sb.receivables)
+    + num(sb.foreign_monetary) * fxOpen;
+  const liabilities = num(sb.debt) + num(sb.payables) + num(sb.paid_in_capital)
+    + num(sb.retained_earnings);
   const diff = Math.round((assets - liabilities) * 100) / 100;
 
   return (
@@ -45,6 +47,10 @@ export function CurrencyTab({ n, environment, company, onEnvironment, onCompany 
                      onChange={(v) => setSb({ fixed_assets_net: v })} />
         <NumberField label="Валютная позиция (ед. 2-й валюты)" value={sb.foreign_monetary ?? "0"}
                      onChange={(v) => setSb({ foreign_monetary: v })} />
+        <NumberField label="Дебиторка (счета к получению)" value={sb.receivables ?? "0"}
+                     onChange={(v) => setSb({ receivables: v })} />
+        <NumberField label="Кредиторка (счета к оплате)" value={sb.payables ?? "0"}
+                     onChange={(v) => setSb({ payables: v })} />
         <NumberField label="Долгосрочные займы" value={sb.debt ?? "0"}
                      onChange={(v) => setSb({ debt: v })} />
         <NumberField label="Акционерный капитал" value={sb.paid_in_capital ?? "0"}
