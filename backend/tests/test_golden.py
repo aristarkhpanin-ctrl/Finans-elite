@@ -25,15 +25,22 @@ from pathlib import Path
 import pytest
 
 from calc_core import run
-from calc_core.samples import build_sample_project, build_showcase_project
+from calc_core.samples import (
+    build_sample_project,
+    build_services_project,
+    build_showcase_project,
+    build_trade_project,
+)
 from calc_core.serialize import result_to_dict
 
 GOLDEN_DIR = Path(__file__).parent / "golden"
 
-# Реестр эталонных проектов: имя → фабрика модели.
+# Реестр эталонных проектов: имя → фабрика модели (отраслевые приёмочные сценарии, A9).
 CASES = {
     "sample_project": build_sample_project,
     "showcase_project": build_showcase_project,
+    "trade_project": build_trade_project,
+    "services_project": build_services_project,
 }
 
 

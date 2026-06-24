@@ -236,3 +236,81 @@ def build_showcase_project() -> ProjectModel:
             common_shares=d(1000),
         ),
     )
+
+
+def build_trade_project() -> ProjectModel:
+    """Оптовая торговля (приёмочный сценарий A9): закупка товара и перепродажа с наценкой.
+
+    Без производства (производство = продажам, мгновенно): «материалы» = себестоимость
+    закупленного товара (→ COGS при продаже). Действующее предприятие со складским запасом.
+    """
+    n = 12
+    d = Decimal
+    return ProjectModel(
+        header=ProjectHeader(name="Торговля: опт", start_date=date(2026, 1, 1), duration_months=n),
+        settings=ProjectSettings(
+            discount_rate_annual=d("0.15"), profit_tax_rate=d("0.20"),
+            property_tax_rate=d("0.022"), vat_rate=d("0.20"), vat_basis=VatBasis.SHIPMENT,
+            valuation_earnings_multiple=d("5"), liquidation_recovery_rate=d("0.8"),
+        ),
+        company=Company(starting_balance=StartingBalance(
+            cash=d(50000), finished_goods=d(80000), paid_in_capital=d(130000))),
+        operating_plan=OperatingPlan(
+            products=[Product(id="g1", name="Товар А")],
+            sales=[SalesLine(product_id="g1", volume=[d(100)] * n, price=[d(1000)] * n,
+                             payment=PaymentTerms(payment_delay_months=1))],
+            direct_costs=[
+                DirectCostLine(name="Себестоимость товара", kind=DirectCostKind.MATERIALS,
+                               amount=[d(60000)] * n, payment_delay_months=1),  # 600/ед закупка
+            ],
+            fixed_costs=[
+                FixedCostLine(name="Аренда склада", function=CostFunction.ADMIN, amount=[d(12000)] * n),
+                FixedCostLine(name="Зарплата", function=CostFunction.STAFF_MARKETING,
+                              amount=[d(18000)] * n),
+            ],
+        ),
+        financing=Financing(
+            loans=[Loan(name="Оборотный кредит", amount=d(100000), start_month=0, term_months=12,
+                        annual_rate=d("0.16"), repayment=RepaymentType.EQUAL_PRINCIPAL)],
+            dividends=[d(0)] * 6 + [d(8000)] * 6,
+            common_shares=d(1000),
+        ),
+    )
+
+
+def build_services_project() -> ProjectModel:
+    """Услуги (приёмочный сценарий A9): консалтинг без товара/материалов.
+
+    Продажи услуг (выручка без COGS-материалов); издержки — персонал и офис; немного ОС
+    (оргтехника). Проверяет режим «продажи с нулевой себестоимостью материалов».
+    """
+    n = 12
+    d = Decimal
+    return ProjectModel(
+        header=ProjectHeader(name="Услуги: консалтинг", start_date=date(2026, 1, 1), duration_months=n),
+        settings=ProjectSettings(
+            discount_rate_annual=d("0.15"), profit_tax_rate=d("0.20"),
+            property_tax_rate=d("0.022"), vat_rate=d("0.20"), vat_basis=VatBasis.SHIPMENT,
+            terminal_growth_rate=d("0.03"), payroll_contribution_rate=d("0.30"),
+        ),
+        company=Company(starting_balance=StartingBalance()),
+        operating_plan=OperatingPlan(
+            products=[Product(id="s1", name="Консультация")],
+            sales=[SalesLine(product_id="s1", volume=[d(50)] * n, price=[d(2000)] * n,
+                             payment=PaymentTerms(prepayment_share=d("0.5"), payment_delay_months=1))],
+            fixed_costs=[
+                FixedCostLine(name="Зарплата консультантов", function=CostFunction.STAFF_PRODUCTION,
+                              amount=[d(50000)] * n),
+                FixedCostLine(name="Офис и администрация", function=CostFunction.ADMIN,
+                              amount=[d(15000)] * n),
+            ],
+        ),
+        investment_plan=InvestmentPlan(assets=[
+            Asset(name="Оргтехника", cost=d(120000), purchase_month=0, life_months=36,
+                  category=AssetCategory.EQUIPMENT),
+        ]),
+        financing=Financing(
+            equity=[EquityInjection(amount=d(150000), month=0)],
+            dividends=[d(0)] * n, common_shares=d(500),
+        ),
+    )
