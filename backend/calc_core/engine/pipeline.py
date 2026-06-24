@@ -176,9 +176,10 @@ def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal,
 
     Себестоимость (нетто) попадёт в ОПУ при продаже через пул готовой продукции.
     НДС на материалы — входной (к вычету); сдельная зарплата НДС не облагается.
-    Валютные материалы (``foreign``, без НДС в v0): запас/себестоимость — по курсу закупки
-    (историческая стоимость, немонетарный актив), кредиторка — монетарная, переоценивается
-    по ``fx[t]`` → ``i25_materials`` (рост курса → убыток). Применяется к материалам.
+    Валютные материалы (``foreign``): запас/себестоимость — по курсу закупки (историческая
+    стоимость, немонетарный актив), кредиторка — монетарная, переоценивается по ``fx[t]`` →
+    ``i25_materials`` (рост курса → убыток). Импортный НДС начисляется на таможенную стоимость
+    и принимается к вычету (уплата на таможне при ввозе). Применяется к материалам.
     """
     mc = zeros(n)  # нетто-стоимость материалов, потреблённых в производстве
     wc = zeros(n)  # сдельная зарплата в производстве
@@ -193,15 +194,21 @@ def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal,
     for line in model.operating_plan.direct_costs:
         base = _pad(line.amount, n)
         if line.kind == DirectCostKind.MATERIALS and line.foreign:
-            # Валютный материал: цена в валюте (без рублёвой инфляции, без НДS в v0).
+            # Валютный материал (импорт): цена в валюте (без рублёвой инфляции). Импортный
+            # НДС начисляется на таможенную стоимость (закупка по курсу ввоза), принимается
+            # к вычету и уплачивается на таможне при ввозе (в месяце закупки).
             purchases_f, b3_hist, mc_hist = _foreign_material_schedule(
                 base, line.stock_lead_months, fx, n)
             cash_f, pay_f = cost_timing(purchases_f, line.payment_delay_months, n)
+            import_vat = [purchases_f[t] * fx[t] * vat_rate for t in range(n)]
             mc = add(mc, mc_hist)
             b3 = add(b3, b3_hist)
-            c2 = add(c2, [cash_f[t] * fx[t] for t in range(n)])     # оплата по курсу периода
+            # Оплата поставщику (нетто, по курсу периода) + импортный НДС на таможне (при ввозе).
+            c2 = add(c2, [cash_f[t] * fx[t] + import_vat[t] for t in range(n)])
             payables = add(payables, [pay_f[t] * fx[t] for t in range(n)])
             payable_f = add(payable_f, pay_f)
+            vat_in = add(vat_in, import_vat)            # импортный НДС к вычету (начислен при ввозе)
+            vat_in_paid = add(vat_in_paid, import_vat)  # уплачен на таможне при ввозе
             continue
         idx = idx_direct if line.kind == DirectCostKind.MATERIALS else idx_wages
         amt = [base[t] * idx[t] for t in range(n)]               # индексация инфляцией

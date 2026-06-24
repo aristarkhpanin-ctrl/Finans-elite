@@ -34,7 +34,8 @@ def _balanced(r) -> bool:
     return [quantize(v) for v in r.balance["B20"]] == [quantize(v) for v in r.balance["B34"]]
 
 
-def _model(material: DirectCostLine, fx_open: str, fx_rate, *, inflation_direct: str = "0"):
+def _model(material: DirectCostLine, fx_open: str, fx_rate, *, inflation_direct: str = "0",
+           vat: str = "0"):
     """Один материал; без продаж/производства → себестоимость признаётся сразу.
 
     Пустой стартовый баланс (отрицательная касса допустима — это разрыв финансирования).
@@ -43,12 +44,28 @@ def _model(material: DirectCostLine, fx_open: str, fx_rate, *, inflation_direct:
     return ProjectModel(
         header=ProjectHeader(name="mat", start_date=date(2026, 1, 1), duration_months=n),
         settings=ProjectSettings(discount_rate_annual=D("0"), profit_tax_rate=D("0"),
-                                 property_tax_rate=D("0"), vat_rate=D("0"),
+                                 property_tax_rate=D("0"), vat_rate=D(vat),
                                  inflation_direct=D(inflation_direct)),
         environment=Environment(fx_open=D(fx_open), fx_rate=[D(x) for x in fx_rate]),
         company=Company(starting_balance=StartingBalance()),
         operating_plan=OperatingPlan(direct_costs=[material]),
     )
+
+
+def test_foreign_material_import_vat():
+    """Импортный НДС 20%: начисляется на таможенную стоимость, к вычету (B7), уплата на таможне.
+
+    Закупка 100 валюты × курс 50 = 5000 таможенной стоимости → импортный НДС 1000.
+    C2 = 5000 (поставщик) + 1000 (таможня) = 6000; НДС-кредит 1000 в B7; себестоимость 5000
+    (НДС не входит в себестоимость).
+    """
+    mat = DirectCostLine(name="imp", kind=DirectCostKind.MATERIALS, foreign=True,
+                         amount=[D(100), D(0)], stock_lead_months=0, payment_delay_months=0)
+    r = run(_model(mat, "50", ["50", "50"], vat="0.20"))
+    assert [quantize(v) for v in r.cashflow["C2"]] == [D("6000.00"), D("0.00")]
+    assert [quantize(v) for v in r.balance["B7"]] == [D("1000.00"), D("1000.00")]
+    assert [quantize(v) for v in r.income["I5"]] == [D("5000.00"), D("0.00")]
+    assert _balanced(r)
 
 
 def test_foreign_material_payable_revalued():
