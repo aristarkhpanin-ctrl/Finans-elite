@@ -11,6 +11,9 @@
   --primary-contrast: #ffffff;
   --danger: #dc2626;
   --success: #16a34a;
+  /* Семантические токены для алертов (светлая тема) */
+  --danger-bg: #fef2f2; --danger-border: #fecaca; --danger-text: #b91c1c;
+  --warn: #d97706; --warn-bg: #fffbeb; --warn-border: #fde68a; --warn-text: #92400e;
   --radius: 10px;
   --radius-sm: 7px;
   --shadow: 0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 3px rgba(16, 24, 40, 0.1);
@@ -28,6 +31,9 @@
   --primary: #3b82f6;
   --primary-hover: #2563eb;
   --primary-contrast: #ffffff;
+  /* Алерты в тёмной теме: полупрозрачный фон + светлый текст */
+  --danger-bg: rgba(220, 38, 38, 0.15); --danger-border: rgba(220, 38, 38, 0.40); --danger-text: #fca5a5;
+  --warn: #f59e0b; --warn-bg: rgba(217, 119, 6, 0.15); --warn-border: rgba(217, 119, 6, 0.40); --warn-text: #fcd34d;
   --shadow: none;
   --shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.5);
 }
@@ -174,7 +180,7 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 .template-card { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 12px 14px;
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer;
   transition: border-color .15s, background .15s; }
-.template-card:hover:not(:disabled) { border-color: var(--accent, #2563eb); background: var(--surface-hover, rgba(37,99,235,0.04)); }
+.template-card:hover:not(:disabled) { border-color: var(--primary); background: var(--surface-2); }
 .template-card:disabled { opacity: .6; cursor: default; }
 .template-name { font-weight: 600; font-size: 14px; }
 .template-desc { font-size: 12px; color: var(--text-muted); }
@@ -182,8 +188,8 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 .validation { display: flex; flex-direction: column; gap: 8px; margin: 6px 0 16px; }
 .validation-item { display: flex; gap: 8px; align-items: flex-start; padding: 9px 12px;
   border-radius: var(--radius); font-size: 13px; border: 1px solid; }
-.validation-item--error { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
-.validation-item--warn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+.validation-item--error { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger-text); }
+.validation-item--warn { background: var(--warn-bg); border-color: var(--warn-border); color: var(--warn-text); }
 .validation-icon { font-weight: 700; }
 
 /* Печать / сохранение в PDF: показываем только печатный отчёт, прячем интерфейс. */
