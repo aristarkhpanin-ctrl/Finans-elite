@@ -44,7 +44,9 @@ export function SalesTab({ n, operating, onChange }: Props) {
         <h2>План сбыта</h2>
         <Button onClick={addProduct}>+ Продукт</Button>
       </div>
-      {sales.length === 0 && <p className="muted">Добавьте продукт.</p>}
+      {sales.length === 0 && (
+        <p className="muted">Добавьте продукт или услугу — объём и цена по месяцам формируют выручку.</p>
+      )}
       {sales.map((line, i) => (
         <div className="row-card" key={line.product_id}>
           <div className="row-head">

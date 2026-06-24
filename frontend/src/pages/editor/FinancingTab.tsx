@@ -49,6 +49,9 @@ export function FinancingTab({ n, financing, onChange }: Props) {
         <h2>Акционерный капитал</h2>
         <Button onClick={addEquity}>+ Взнос</Button>
       </div>
+      {equity.length === 0 && (
+        <p className="muted">Взносы собственников в капитал — источник собственного финансирования.</p>
+      )}
       {equity.map((e, i) => (
         <div className="row-card" key={i}>
           <div className="row-head">
@@ -65,6 +68,9 @@ export function FinancingTab({ n, financing, onChange }: Props) {
         <h2>Займы</h2>
         <Button onClick={addLoan}>+ Заём</Button>
       </div>
+      {loans.length === 0 && (
+        <p className="muted">Заёмное финансирование с процентами; график погашения — равными долями или в конце.</p>
+      )}
       {loans.map((l, i) => (
         <div className="row-card" key={i}>
           <div className="row-head">
@@ -99,6 +105,9 @@ export function FinancingTab({ n, financing, onChange }: Props) {
         <h2>Лизинг</h2>
         <Button onClick={addLease}>+ Лизинг</Button>
       </div>
+      {leases.length === 0 && (
+        <p className="muted">Лизинг оборудования/транспорта: операционный (издержка) или финансовый (капитализация).</p>
+      )}
       {leases.map((l, i) => (
         <div className="row-card" key={i}>
           <div className="row-head">
@@ -130,6 +139,9 @@ export function FinancingTab({ n, financing, onChange }: Props) {
         <h2>Депозиты / ЦБ</h2>
         <Button onClick={addDeposit}>+ Депозит</Button>
       </div>
+      {deposits.length === 0 && (
+        <p className="muted">Размещение свободных средств под процент (депозиты, ценные бумаги).</p>
+      )}
       {deposits.map((d, i) => (
         <div className="row-card" key={i}>
           <div className="row-head">

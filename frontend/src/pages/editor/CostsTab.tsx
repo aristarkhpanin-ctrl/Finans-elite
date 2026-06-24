@@ -45,6 +45,9 @@ export function CostsTab({ n, operating, onChange }: Props) {
         <h2>Прямые издержки</h2>
         <Button onClick={addDirect}>+ Прямая издержка</Button>
       </div>
+      {direct.length === 0 && (
+        <p className="muted">Материалы и сдельная оплата — формируют себестоимость продукции (COGS).</p>
+      )}
       {direct.map((d, i) => (
         <div className="row-card" key={i}>
           <div className="row-head">
@@ -85,6 +88,9 @@ export function CostsTab({ n, operating, onChange }: Props) {
         <h2>Постоянные издержки</h2>
         <Button onClick={addFixed}>+ Постоянная издержка</Button>
       </div>
+      {fixed.length === 0 && (
+        <p className="muted">Аренда, зарплата, реклама и пр. — не зависят от объёма выпуска.</p>
+      )}
       {fixed.map((f, i) => (
         <div className="row-card" key={i}>
           <div className="row-head">

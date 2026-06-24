@@ -21,7 +21,9 @@ export function AssetsTab({ investment, onChange }: Props) {
         <h2>Инвестиции (активы)</h2>
         <Button onClick={add}>+ Актив</Button>
       </div>
-      {assets.length === 0 && <p className="muted">Активы не заданы.</p>}
+      {assets.length === 0 && (
+        <p className="muted">Основные средства: капвложения, амортизация, продажа и переоценка. Добавьте, если есть.</p>
+      )}
       {assets.map((a, i) => (
         <div className="row-card" key={i}>
           <div className="row-head">
