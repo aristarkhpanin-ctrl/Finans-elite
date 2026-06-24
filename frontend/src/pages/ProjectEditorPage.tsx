@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import type { ProjectModel } from "../api/model";
 import { getProject, updateProject } from "../api/projects";
@@ -32,19 +32,38 @@ export function ProjectEditorPage() {
   const [model, setModel] = useState<ProjectModel | null>(null);
   const [tab, setTab] = useState<string>("general");
   const [saved, setSaved] = useState(false);
+  const savedSnapshot = useRef<string>("");
 
   useEffect(() => {
-    if (data) setModel(data.model);
+    if (data) {
+      setModel(data.model);
+      savedSnapshot.current = JSON.stringify(data.model);
+    }
   }, [data]);
 
   const save = useMutation({
     mutationFn: () => updateProject(id, model!.header.name, model!),
     onSuccess: () => {
+      savedSnapshot.current = JSON.stringify(model);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
       qc.invalidateQueries({ queryKey: ["projects"] });
     },
   });
+
+  const dirty = model != null && JSON.stringify(model) !== savedSnapshot.current;
+
+  // Предупреждение о несохранённых изменениях при закрытии/перезагрузке вкладки.
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (dirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty]);
 
   if (isLoading || !model) return <p className="muted">Загрузка…</p>;
   if (isError) return <p className="error">Не удалось загрузить проект</p>;
@@ -54,7 +73,9 @@ export function ProjectEditorPage() {
   return (
     <div>
       <div className="toolbar" style={{ marginBottom: 14 }}>
-        <button className="link-btn" onClick={() => navigate("/projects")}>← Проекты</button>
+        <button className="link-btn" onClick={() => {
+          if (!dirty || window.confirm("Есть несохранённые изменения. Уйти без сохранения?")) navigate("/projects");
+        }}>← Проекты</button>
         <span style={{ flex: 1 }} />
         <button className="link-btn" onClick={async () => { await save.mutateAsync(); navigate(`/projects/${id}/analysis`); }}>
           Анализ
@@ -116,9 +137,10 @@ export function ProjectEditorPage() {
       )}
 
       <div className="save-bar">
-        <Button onClick={() => save.mutate()} disabled={save.isPending}>
+        <Button onClick={() => save.mutate()} disabled={save.isPending || !dirty}>
           {save.isPending ? "Сохранение…" : "Сохранить"}
         </Button>
+        {dirty && !save.isPending && <span className="muted">● несохранённые изменения</span>}
         {saved && <span style={{ color: "var(--success)" }}>Сохранено ✓</span>}
         {save.isError && <span className="error">Ошибка сохранения</span>}
       </div>

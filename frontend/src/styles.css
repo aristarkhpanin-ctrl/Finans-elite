@@ -129,6 +129,7 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 /* Помесячный ряд */
 .series { margin-top: 6px; }
 .series-label { font-size: 13px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px; display: flex; gap: 10px; align-items: center; }
+.series-total { font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
 .series-row { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 4px; }
 .series-cell {
   width: 64px; flex: 0 0 auto; height: 32px; text-align: right; padding: 0 6px;
