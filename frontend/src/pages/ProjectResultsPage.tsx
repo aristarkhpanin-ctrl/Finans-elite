@@ -8,6 +8,7 @@ import { ResultCharts } from "../components/ResultCharts";
 import { RatiosView } from "../components/RatiosView";
 import { StatementTable, SUBTOTALS } from "../components/StatementTable";
 import { SummaryView } from "../components/SummaryView";
+import { Hint } from "../components/ui";
 import { downloadCsv, downloadXlsx, statementsToCsv } from "../export";
 import { money, percent } from "../format";
 
@@ -72,34 +73,34 @@ export function ProjectResultsPage() {
       )}
 
       <div className="metrics">
-        <div className="metric"><div className="m-label">NPV</div><div className="m-value">{money(m.npv)}</div></div>
-        <div className="metric"><div className="m-label">IRR</div><div className="m-value">{irr}</div></div>
-        <div className="metric"><div className="m-label">PI</div><div className="m-value">{m.pi ? Number(m.pi).toFixed(2) : "—"}</div></div>
-        <div className="metric"><div className="m-label">Срок окупаемости</div><div className="m-value">{months(m.pb_months)}</div></div>
-        <div className="metric"><div className="m-label">Дисконт. окупаемость</div><div className="m-value">{months(m.dpb_months)}</div></div>
-        <div className="metric"><div className="m-label">Потребность в финанс.</div><div className="m-value">{m.peak_financing_need ? money(m.peak_financing_need) : "—"}</div></div>
+        <div className="metric"><div className="m-label">NPV<Hint text="Чистая приведённая стоимость: сумма дисконтированных денежных потоков проекта. Больше 0 — проект создаёт стоимость." /></div><div className="m-value">{money(m.npv)}</div></div>
+        <div className="metric"><div className="m-label">IRR<Hint text="Внутренняя норма доходности: ставка, при которой NPV = 0. Сравните со ставкой дисконтирования: выше — проект выгоден." /></div><div className="m-value">{irr}</div></div>
+        <div className="metric"><div className="m-label">PI<Hint text="Индекс прибыльности: отдача на единицу вложенного капитала. Больше 1 — проект окупает вложения." /></div><div className="m-value">{m.pi ? Number(m.pi).toFixed(2) : "—"}</div></div>
+        <div className="metric"><div className="m-label">Срок окупаемости<Hint text="Месяц, в котором накопленный денежный поток до финансирования становится положительным." /></div><div className="m-value">{months(m.pb_months)}</div></div>
+        <div className="metric"><div className="m-label">Дисконт. окупаемость<Hint text="Срок окупаемости с учётом дисконтирования (стоимости денег во времени) — обычно дольше обычного." /></div><div className="m-value">{months(m.dpb_months)}</div></div>
+        <div className="metric"><div className="m-label">Потребность в финанс.<Hint text="Приведённая пиковая потребность в деньгах: сколько капитала нужно привлечь до выхода проекта в плюс." /></div><div className="m-value">{m.peak_financing_need ? money(m.peak_financing_need) : "—"}</div></div>
       </div>
 
       <h3 style={{ marginTop: 18, marginBottom: 6 }}>Оценка бизнеса</h3>
       <div className="metrics">
         <div className="metric">
-          <div className="m-label">Чистые активы</div>
+          <div className="m-label">Чистые активы<Hint text="Собственный капитал на конец горизонта (активы минус обязательства, B33)." /></div>
           <div className="m-value">{money(val.net_assets)}</div>
         </div>
         <div className="metric">
-          <div className="m-label">По модели Гордона</div>
+          <div className="m-label">По модели Гордона<Hint text="Капитализация бессрочного свободного денежного потока: CF·(1+g)/(r−g), где g — темп роста, r — ставка дисконтирования." /></div>
           <div className="m-value">{val.gordon_value ? money(val.gordon_value) : "—"}</div>
         </div>
         <div className="metric">
-          <div className="m-label">DDM (дивиденды)</div>
+          <div className="m-label">DDM (дивиденды)<Hint text="Капитализация дивидендов по модели Гордона: годовые дивиденды · (1+g)/(r−g)." /></div>
           <div className="m-value">{val.dividend_value ? money(val.dividend_value) : "—"}</div>
         </div>
         <div className="metric">
-          <div className="m-label">По мультипликатору</div>
+          <div className="m-label">По мультипликатору<Hint text="Годовая чистая прибыль, умноженная на заданный множитель (P/E-подход)." /></div>
           <div className="m-value">{val.earnings_multiple_value ? money(val.earnings_multiple_value) : "—"}</div>
         </div>
         <div className="metric">
-          <div className="m-label">Ликвидационная</div>
+          <div className="m-label">Ликвидационная<Hint text="Возвратная стоимость активов при ликвидации (доля возврата · активы) минус обязательства." /></div>
           <div className="m-value">{val.liquidation_value ? money(val.liquidation_value) : "—"}</div>
         </div>
       </div>
