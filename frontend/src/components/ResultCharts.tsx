@@ -64,6 +64,20 @@ export function ResultCharts({ result }: { result: CalcResponse }) {
 
   const tooltip = { formatter: (v: number) => money(String(v)) } as const;
 
+  // Оценка бизнеса: сравнение методов (показываем только заданные).
+  const v = result.valuation;
+  const valuationData = (
+    [
+      ["Чистые активы", v.net_assets],
+      ["Гордон", v.gordon_value],
+      ["DDM", v.dividend_value],
+      ["Мультипликатор", v.earnings_multiple_value],
+      ["Ликвидационная", v.liquidation_value],
+    ] as [string, string | null][]
+  )
+    .filter(([, val]) => val != null)
+    .map(([name, val]) => ({ name, value: Number(val) }));
+
   // Структура издержек за весь период (для долёвки).
   const costStructure = [
     { name: "Материалы", value: sumLine(result.income, "I5") },
@@ -142,6 +156,25 @@ export function ResultCharts({ result }: { result: CalcResponse }) {
           </ComposedChart>
         </ResponsiveContainer>
       </div>
+
+      {valuationData.length > 1 && (
+        <div className="chart-card">
+          <h3>Оценка бизнеса (сравнение методов)</h3>
+          <ResponsiveContainer width="100%" height={260}>
+            <ComposedChart data={valuationData} margin={{ top: 6, right: 8, left: 8, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} />
+              <YAxis tickFormatter={compact} tick={{ fontSize: 12 }} width={56} />
+              <Tooltip {...tooltip} />
+              <Bar dataKey="value" name="Стоимость" fill="#16a34a">
+                {valuationData.map((d, i) => (
+                  <Cell key={i} fill={d.value >= 0 ? "#16a34a" : "#dc2626"} />
+                ))}
+              </Bar>
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {costStructure.length > 0 && (
         <div className="chart-card">
