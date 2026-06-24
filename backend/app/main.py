@@ -10,10 +10,11 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 
 from calc_core import ENGINE_VERSION, ProjectModel, run
 from calc_core.engine import ModelError
-from calc_core.samples import build_sample_project
+from calc_core.samples import TEMPLATES, build_sample_project
 
 from .database import init_db
 from .routers import auth, billing, holdings, integrator, organizations, projects
@@ -62,3 +63,23 @@ def calculate(model: ProjectModel) -> CalcResponse:
 def sample() -> ProjectModel:
     """Демонстрационная модель проекта (готова к отправке в /calculate)."""
     return build_sample_project()
+
+
+class TemplateInfo(BaseModel):
+    id: str
+    name: str
+    description: str
+
+
+@app.get("/api/v1/templates", response_model=list[TemplateInfo], tags=["calc"])
+def templates() -> list[TemplateInfo]:
+    """Список шаблонов проектов для быстрого старта (по типам бизнеса)."""
+    return [TemplateInfo(id=k, name=v[0], description=v[1]) for k, v in TEMPLATES.items()]
+
+
+@app.get("/api/v1/templates/{template_id}", response_model=ProjectModel, tags=["calc"])
+def template(template_id: str) -> ProjectModel:
+    """Готовая модель шаблона (для создания проекта на её основе)."""
+    if template_id not in TEMPLATES:
+        raise HTTPException(status_code=404, detail="Шаблон не найден")
+    return TEMPLATES[template_id][2]()

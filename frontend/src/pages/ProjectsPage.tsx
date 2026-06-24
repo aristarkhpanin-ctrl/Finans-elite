@@ -2,7 +2,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { createProject, deleteProject, listProjects } from "../api/projects";
+import {
+  createProject,
+  createProjectFromTemplate,
+  deleteProject,
+  listProjects,
+  listTemplates,
+} from "../api/projects";
 import { Button, Card } from "../components/ui";
 
 export function ProjectsPage() {
@@ -12,9 +18,20 @@ export function ProjectsPage() {
   const [name, setName] = useState("");
 
   const { data, isLoading, isError } = useQuery({ queryKey: ["projects"], queryFn: listProjects });
+  const { data: templates } = useQuery({ queryKey: ["templates"], queryFn: listTemplates });
 
   const create = useMutation({
     mutationFn: () => createProject(name.trim() || "Новый проект"),
+    onSuccess: (p) => {
+      setName("");
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      navigate(`/projects/${p.id}`);
+    },
+  });
+
+  const fromTemplate = useMutation({
+    mutationFn: (tpl: { id: string; name: string }) =>
+      createProjectFromTemplate(tpl.id, name.trim() || tpl.name),
     onSuccess: (p) => {
       setName("");
       qc.invalidateQueries({ queryKey: ["projects"] });
@@ -42,9 +59,26 @@ export function ProjectsPage() {
             style={{ flex: 1 }}
           />
           <Button onClick={() => create.mutate()} disabled={create.isPending}>
-            Создать
+            Создать пустой
           </Button>
         </div>
+        {templates && templates.length > 0 && (
+          <div style={{ marginTop: 14 }}>
+            <div className="muted" style={{ fontSize: 13, marginBottom: 8 }}>
+              …или начните с готового шаблона:
+            </div>
+            <div className="template-grid">
+              {templates.map((tpl) => (
+                <button key={tpl.id} className="template-card"
+                        disabled={fromTemplate.isPending}
+                        onClick={() => fromTemplate.mutate({ id: tpl.id, name: tpl.name })}>
+                  <span className="template-name">{tpl.name}</span>
+                  <span className="template-desc">{tpl.description}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </Card>
 
       {isLoading && <p className="muted">{t("common.loading")}</p>}
