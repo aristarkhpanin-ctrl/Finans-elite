@@ -54,6 +54,17 @@ def test_opening_receivables_and_payables_unwind_to_cash():
     assert _balanced(r)
 
 
+def test_opening_inventory_is_static_standing_level():
+    """Стартовые запасы (сырьё 4000 + ГП 6000, уравновешены капиталом 10000) — поддерживаемый
+    уровень: остаются в B3/B5 постоянно, денежного потока не создают."""
+    sb = StartingBalance(raw_materials=D(4000), finished_goods=D(6000), paid_in_capital=D(10000))
+    r = run(_model(sb))
+    assert [q(v) for v in r.balance["B3"]] == [D("4000.00"), D("4000.00")]
+    assert [q(v) for v in r.balance["B5"]] == [D("6000.00"), D("6000.00")]
+    assert all(v == 0 for v in r.balance["B1"])   # запасы статичны — кассу не трогают
+    assert _balanced(r)
+
+
 def test_opening_working_capital_participates_in_convergence():
     """Старт, сходившийся без оборотного капитала, становится несходящимся с дебиторкой."""
     # касса 1000 = капитал 1000 — сходится; дебиторка 500 без покрытия — разрыв.

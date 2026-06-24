@@ -169,6 +169,8 @@ export interface StartingBalance {
   foreign_monetary: string;
   receivables?: string;
   payables?: string;
+  raw_materials?: string;
+  finished_goods?: string;
   debt: string;
   paid_in_capital: string;
   retained_earnings: string;
