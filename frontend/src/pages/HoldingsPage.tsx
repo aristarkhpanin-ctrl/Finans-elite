@@ -14,7 +14,7 @@ import { listProjects } from "../api/projects";
 import type { ProjectSummary } from "../api/types";
 import { RatiosView } from "../components/RatiosView";
 import { StatementTable, SUBTOTALS } from "../components/StatementTable";
-import { Button, Card } from "../components/ui";
+import { Button, Card, ErrorState, Loading } from "../components/ui";
 import { money, percent } from "../format";
 
 const holdingRole = (role: string) => HOLDING_ROLES.find(([k]) => k === role)?.[1] ?? role;
@@ -58,7 +58,11 @@ export function HoldingsPage() {
         {create.isError && <p className="error">Не удалось создать (нужны права / квота).</p>}
       </Card>
 
-      {list.length === 0 && <p className="muted">Холдингов пока нет.</p>}
+      {holdings.isLoading && <Loading />}
+      {holdings.isError && <ErrorState text="Не удалось загрузить холдинги." />}
+      {!holdings.isLoading && !holdings.isError && list.length === 0 && (
+        <p className="muted">Холдингов пока нет.</p>
+      )}
       <div className="list" style={{ marginBottom: 16 }}>
         {list.map((h) => (
           <div className="list-item" key={h.id}>

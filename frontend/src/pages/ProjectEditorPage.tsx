@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import type { ProjectModel } from "../api/model";
 import { getProject, updateProject } from "../api/projects";
-import { Button } from "../components/ui";
+import { Button, ErrorState, Loading } from "../components/ui";
 import { ValidationPanel } from "../components/ValidationPanel";
 import { ActualizationTab } from "./editor/ActualizationTab";
 import { AssetsTab } from "./editor/AssetsTab";
@@ -65,8 +65,8 @@ export function ProjectEditorPage() {
     return () => window.removeEventListener("beforeunload", handler);
   }, [dirty]);
 
-  if (isLoading || !model) return <p className="muted">Загрузка…</p>;
-  if (isError) return <p className="error">Не удалось загрузить проект</p>;
+  if (isLoading || !model) return <Loading />;
+  if (isError) return <ErrorState text="Не удалось загрузить проект." />;
 
   const n = model.header.duration_months;
 

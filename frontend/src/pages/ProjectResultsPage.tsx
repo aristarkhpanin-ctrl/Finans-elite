@@ -8,7 +8,7 @@ import { ResultCharts } from "../components/ResultCharts";
 import { RatiosView } from "../components/RatiosView";
 import { StatementTable, SUBTOTALS } from "../components/StatementTable";
 import { SummaryView } from "../components/SummaryView";
-import { Hint } from "../components/ui";
+import { ErrorState, Hint, Loading } from "../components/ui";
 import { downloadCsv, downloadXlsx, statementsToCsv } from "../export";
 import { money, percent } from "../format";
 
@@ -33,10 +33,10 @@ export function ProjectResultsPage() {
   });
   const projectQuery = useQuery({ queryKey: ["project", id], queryFn: () => getProject(id) });
 
-  if (isLoading) return <p className="muted">Расчёт…</p>;
+  if (isLoading) return <Loading text="Расчёт…" />;
   if (isError) {
     const detail = (error as any)?.response?.data?.detail;
-    return <p className="error">Ошибка расчёта: {detail || "не удалось рассчитать"}</p>;
+    return <ErrorState text={`Ошибка расчёта: ${detail || "не удалось рассчитать"}`} />;
   }
   if (!data) return null;
 

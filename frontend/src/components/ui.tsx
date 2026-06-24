@@ -52,6 +52,16 @@ export function Hint({ text }: { text: string }) {
   );
 }
 
+/** Единообразное состояние загрузки страницы. */
+export function Loading({ text = "Загрузка…" }: { text?: string }) {
+  return <p className="muted">{text}</p>;
+}
+
+/** Единообразное состояние ошибки загрузки. */
+export function ErrorState({ text = "Не удалось загрузить данные." }: { text?: string }) {
+  return <p className="error">{text}</p>;
+}
+
 export function NumberField({
   label,
   value,

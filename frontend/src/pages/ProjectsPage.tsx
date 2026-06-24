@@ -9,7 +9,7 @@ import {
   listProjects,
   listTemplates,
 } from "../api/projects";
-import { Button, Card } from "../components/ui";
+import { Button, Card, ErrorState, Loading } from "../components/ui";
 
 export function ProjectsPage() {
   const { t } = useTranslation();
@@ -81,8 +81,8 @@ export function ProjectsPage() {
         )}
       </Card>
 
-      {isLoading && <p className="muted">{t("common.loading")}</p>}
-      {isError && <p className="error">{t("auth.genericError")}</p>}
+      {isLoading && <Loading />}
+      {isError && <ErrorState text="Не удалось загрузить проекты." />}
       {data && data.length === 0 && <p className="muted">{t("projects.empty")}</p>}
       {data && data.length > 0 && (
         <div className="list">
