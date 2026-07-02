@@ -26,6 +26,7 @@ from ..deps import require_permission
 from ..rbac import Perm
 from ..schemas import (
     CalcResponse,
+    LastCalcOut,
     MonteCarloRequest,
     MonteCarloResponse,
     ProjectCreate,
@@ -47,13 +48,26 @@ _MAX_MC_ITERATIONS = 2000
 router = APIRouter(prefix="/api/v1/projects", tags=["projects"])
 
 
+def _last_calc(p: Project) -> LastCalcOut | None:
+    if p.last_npv is None or p.last_calculated_at is None or p.last_engine_version is None:
+        return None
+    return LastCalcOut(npv=p.last_npv, irr_annual=p.last_irr, pb_months=p.last_pb_months,
+                       engine_version=p.last_engine_version, calculated_at=p.last_calculated_at)
+
+
+def _is_stale(p: Project) -> bool:
+    return p.last_calculated_at is None or p.updated_at > p.last_calculated_at
+
+
 def _summary(p: Project) -> ProjectSummary:
-    return ProjectSummary(id=p.id, name=p.name, created_at=p.created_at, updated_at=p.updated_at)
+    return ProjectSummary(id=p.id, name=p.name, created_at=p.created_at, updated_at=p.updated_at,
+                          last_calc=_last_calc(p), is_stale=_is_stale(p))
 
 
 def _out(p: Project) -> ProjectOut:
     return ProjectOut(id=p.id, name=p.name, created_at=p.created_at,
-                      updated_at=p.updated_at, model=crud.load_model(p))
+                      updated_at=p.updated_at, model=crud.load_model(p),
+                      last_calc=_last_calc(p), is_stale=_is_stale(p))
 
 
 def _require(db: Session, org_id: str, project_id: str) -> Project:
@@ -104,16 +118,31 @@ def delete_project(project_id: str,
     crud.delete_project(db, _require(db, org_id, project_id))
 
 
+@router.post("/{project_id}/duplicate", response_model=ProjectOut,
+             status_code=status.HTTP_201_CREATED)
+def duplicate_project(project_id: str,
+                      org_id: str = Depends(require_permission(Perm.PROJECT_CREATE)),
+                      db: Session = Depends(get_db)) -> ProjectOut:
+    """Дублировать проект (B2): модель целиком, имя «{name} (копия)», квота как в create."""
+    project = _require(db, org_id, project_id)
+    billing.ensure_project_quota(db, org_id)
+    return _out(crud.duplicate_project(db, project, f"{project.name} (копия)"))
+
+
 @router.post("/{project_id}/calculate", response_model=CalcResponse)
 def calculate_project(project_id: str,
                       org_id: str = Depends(require_permission(Perm.PROJECT_CALCULATE)),
                       db: Session = Depends(get_db)) -> CalcResponse:
-    """Рассчитать сохранённый проект (право project.calculate)."""
+    """Рассчитать сохранённый проект (право project.calculate); сводка — на проект (B1)."""
     project = _require(db, org_id, project_id)
     try:
         result = run(crud.load_model(project))
     except (ModelError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    crud.save_calc_summary(db, project, npv=result.metrics.npv,
+                           irr_annual=result.metrics.irr_annual,
+                           pb_months=result.metrics.pb_months,
+                           engine_version=result.engine_version)
     return to_response(result)
 
 

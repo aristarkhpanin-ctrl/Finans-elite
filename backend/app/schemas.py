@@ -84,11 +84,24 @@ class ProjectUpdate(BaseModel):
     model: Optional[ProjectModel] = None
 
 
+class LastCalcOut(BaseModel):
+    """Сводка последнего успешного расчёта (B1)."""
+
+    npv: Decimal
+    irr_annual: Optional[Decimal] = None
+    pb_months: Optional[int] = None
+    engine_version: str
+    calculated_at: datetime
+
+
 class ProjectSummary(BaseModel):
     id: str
     name: str
     created_at: datetime
     updated_at: datetime
+    last_calc: Optional[LastCalcOut] = None
+    # Модель менялась после последнего расчёта (или расчёта не было) → «Черновик».
+    is_stale: bool = True
 
 
 class ProjectOut(ProjectSummary):
