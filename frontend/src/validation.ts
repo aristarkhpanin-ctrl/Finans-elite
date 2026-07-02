@@ -4,6 +4,8 @@ export type Severity = "error" | "warn";
 export interface Issue {
   severity: Severity;
   message: string;
+  /** Вкладка редактора, к которой относится замечание (тег «где»). */
+  where: string;
 }
 
 const num = (s: string | number | undefined | null): number => {
@@ -27,6 +29,7 @@ export function validateModel(m: ProjectModel): Issue[] {
     issues.push({
       severity: "error",
       message: `Стартовый баланс не сходится: актив ${fmt(assets)} ≠ пассив ${fmt(liab)} (разница ${fmt(assets - liab)}). Расчёт вернёт ошибку.`,
+      where: "Валюта и старт",
     });
   }
 
@@ -36,13 +39,14 @@ export function validateModel(m: ProjectModel): Issue[] {
     issues.push({
       severity: "warn",
       message: "Темп роста g ≥ ставки дисконтирования — оценка по Гордону не будет рассчитана.",
+      where: "Проект",
     });
   }
 
   // Ставки/доли, которые задаются долей и должны быть в диапазоне 0–1.
   const shareWarn = (v: number, label: string) => {
     if (v < 0 || v > 1) {
-      issues.push({ severity: "warn", message: `${label}: значение ${v} вне диапазона 0–1 (задаётся долей).` });
+      issues.push({ severity: "warn", message: `${label}: значение ${v} вне диапазона 0–1 (задаётся долей).`, where: "Проект" });
     }
   };
   shareWarn(num(s.profit_tax_rate), "Налог на прибыль");
@@ -54,13 +58,13 @@ export function validateModel(m: ProjectModel): Issue[] {
   m.operating_plan.sales.forEach((line, i) => {
     const p = num(line.payment.prepayment_share);
     if (p < 0 || p > 1) {
-      issues.push({ severity: "error", message: `Сбыт, строка ${i + 1}: предоплата ${p} вне диапазона 0–1.` });
+      issues.push({ severity: "error", message: `Сбыт, строка ${i + 1}: предоплата ${p} вне диапазона 0–1.`, where: "Сбыт" });
     }
   });
 
   // Длительность горизонта.
   if (num(m.header.duration_months) < 1) {
-    issues.push({ severity: "error", message: "Длительность проекта должна быть не меньше 1 месяца." });
+    issues.push({ severity: "error", message: "Длительность проекта должна быть не меньше 1 месяца.", where: "Проект" });
   }
 
   return issues;
