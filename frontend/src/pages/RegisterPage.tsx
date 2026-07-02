@@ -1,53 +1,163 @@
-import { useState, type FormEvent } from "react";
-import { useTranslation } from "react-i18next";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import { Button, Card, Field } from "../components/ui";
+import { IconBuilding, IconLock, IconMail, IconUser } from "../components/icons";
+import { AuthLayout, AuthPasswordField, AuthField, AuthSubmit, isEmailValid } from "./auth/AuthLayout";
+
+const REDIRECT_DELAY_MS = 1600;
+const MIN_PASSWORD = 8;
 
 export function RegisterPage() {
-  const { t } = useTranslation();
   const { register } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ full_name: "", email: "", password: "", organization_name: "" });
-  const [error, setError] = useState("");
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [submitted, setSubmitted] = useState(false);
+  const [shakeKey, setShakeKey] = useState(0);
+  const [serverError, setServerError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const timer = useRef<number>();
+
+  useEffect(() => () => window.clearTimeout(timer.current), []);
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm({ ...form, [k]: e.target.value });
+    setForm((f) => ({ ...f, [k]: e.target.value }));
+  const blur = (k: string) => () => setTouched((t) => ({ ...t, [k]: true }));
+  const show = (f: string) => submitted || touched[f];
+
+  const errors = {
+    full_name: show("full_name") && !form.full_name.trim() ? "Укажите ФИО" : "",
+    email: show("email")
+      ? !form.email.trim()
+        ? "Введите email"
+        : !isEmailValid(form.email)
+          ? "Неверный формат email"
+          : ""
+      : "",
+    password: show("password")
+      ? !form.password
+        ? "Введите пароль"
+        : form.password.length < MIN_PASSWORD
+          ? "Минимум 8 символов"
+          : ""
+      : "",
+    organization_name:
+      show("organization_name") && !form.organization_name.trim() ? "Укажите название организации" : "",
+  };
+
+  function hasBlockingErrors(): boolean {
+    return (
+      !form.full_name.trim() ||
+      !form.email.trim() ||
+      !isEmailValid(form.email) ||
+      !form.password ||
+      form.password.length < MIN_PASSWORD ||
+      !form.organization_name.trim()
+    );
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    setError("");
+    setSubmitted(true);
+    setServerError("");
+    if (hasBlockingErrors()) {
+      setShakeKey((k) => k + 1);
+      return;
+    }
     setBusy(true);
     try {
       await register(form);
-      navigate("/projects");
+      setSuccess(true);
+      timer.current = window.setTimeout(() => navigate("/projects"), REDIRECT_DELAY_MS);
     } catch (err: any) {
-      setError(err?.response?.status === 409 ? t("auth.emailTaken") : t("auth.genericError"));
-    } finally {
+      setServerError(
+        err?.response?.status === 409
+          ? "Этот email уже зарегистрирован"
+          : "Не удалось создать аккаунт. Попробуйте ещё раз.",
+      );
       setBusy(false);
     }
   }
 
   return (
-    <div className="auth-wrap">
-      <Card className="auth-card">
-        <h1>{t("auth.register")}</h1>
-        <p className="muted" style={{ marginTop: 0 }}>{t("app.title")}</p>
-        <form onSubmit={onSubmit}>
-          <Field id="full_name" label={t("auth.fullName")} value={form.full_name} onChange={set("full_name")} />
-          <Field id="org" label={t("auth.orgName")} value={form.organization_name} required onChange={set("organization_name")} />
-          <Field id="email" label={t("auth.email")} type="email" value={form.email}
-                 autoComplete="email" required onChange={set("email")} />
-          <Field id="password" label={t("auth.password")} type="password" value={form.password}
-                 autoComplete="new-password" required minLength={6} onChange={set("password")} />
-          {error && <p className="error">{error}</p>}
-          <Button type="submit" block disabled={busy}>{t("auth.signUp")}</Button>
-        </form>
-        <p className="muted" style={{ marginTop: 14, textAlign: "center" }}>
-          <Link to="/login">{t("auth.haveAccount")}</Link>
-        </p>
-      </Card>
-    </div>
+    <AuthLayout
+      title="Создать аккаунт"
+      subtitle="Зарегистрируйтесь — и создайте организацию для своих финансовых моделей."
+      serverError={serverError}
+      onDismissError={() => setServerError("")}
+      success={
+        success
+          ? { title: "Аккаунт создан", sub: "Организация готова. Перенаправляем в рабочую область…" }
+          : null
+      }
+      switchPrompt="Уже есть аккаунт?"
+      switchAction="Войти"
+      switchTo="/login"
+    >
+      <form className="auth-fields" onSubmit={onSubmit} noValidate>
+        <AuthField
+          id="full_name"
+          label="ФИО"
+          icon={<IconUser size={17} />}
+          type="text"
+          placeholder="Иван Петров"
+          autoComplete="name"
+          value={form.full_name}
+          disabled={busy}
+          error={errors.full_name}
+          shakeKey={shakeKey}
+          onChange={set("full_name")}
+          onBlur={blur("full_name")}
+        />
+        <AuthField
+          id="email"
+          label="Email"
+          icon={<IconMail size={17} />}
+          type="text"
+          inputMode="email"
+          placeholder="name@company.ru"
+          autoComplete="email"
+          value={form.email}
+          disabled={busy}
+          error={errors.email}
+          shakeKey={shakeKey}
+          onChange={set("email")}
+          onBlur={blur("email")}
+        />
+        <AuthPasswordField
+          id="password"
+          label="Пароль"
+          icon={<IconLock size={17} />}
+          placeholder="Не менее 8 символов"
+          autoComplete="new-password"
+          value={form.password}
+          disabled={busy}
+          error={errors.password}
+          hint="Минимум 8 символов"
+          shakeKey={shakeKey}
+          onChange={set("password")}
+          onBlur={blur("password")}
+        />
+        <AuthField
+          id="organization_name"
+          label="Название организации"
+          icon={<IconBuilding size={17} />}
+          type="text"
+          placeholder="ООО «Ваша компания»"
+          autoComplete="organization"
+          value={form.organization_name}
+          disabled={busy}
+          error={errors.organization_name}
+          shakeKey={shakeKey}
+          onChange={set("organization_name")}
+          onBlur={blur("organization_name")}
+        />
+        <AuthSubmit busy={busy} idleText="Создать аккаунт" busyText="Создаём…" />
+        <div className="auth-legal">
+          Создавая аккаунт, вы принимаете <span>Условия</span> и <span>Политику конфиденциальности</span>.
+        </div>
+      </form>
+    </AuthLayout>
   );
 }

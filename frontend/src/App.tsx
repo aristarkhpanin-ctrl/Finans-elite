@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { Layout } from "./components/Layout";
+import { Splash } from "./components/Splash";
 import { ToastProvider } from "./components/Toast";
 import { HoldingsPage } from "./pages/HoldingsPage";
 import { LoginPage } from "./pages/LoginPage";
@@ -49,7 +50,7 @@ function AppRoutes() {
         <Route
           path="/projects/:id/results"
           element={
-            <Suspense fallback={<p className="muted">Загрузка…</p>}>
+            <Suspense fallback={<Splash />}>
               <ProjectResultsPage />
             </Suspense>
           }
@@ -57,7 +58,7 @@ function AppRoutes() {
         <Route
           path="/projects/:id/analysis"
           element={
-            <Suspense fallback={<p className="muted">Загрузка…</p>}>
+            <Suspense fallback={<Splash />}>
               <ProjectAnalysisPage />
             </Suspense>
           }
@@ -68,7 +69,7 @@ function AppRoutes() {
         <Route
           path="/dev/ui"
           element={
-            <Suspense fallback={<p className="muted">Загрузка…</p>}>
+            <Suspense fallback={<Splash />}>
               <DevUiPage />
             </Suspense>
           }
