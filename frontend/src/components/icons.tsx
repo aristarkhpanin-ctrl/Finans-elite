@@ -228,6 +228,13 @@ export const IconInfo = (p: IconProps) => (
   </Icon>
 );
 
+export const IconFactory = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M3 20V9l6 4V9l6 4V6l6 3v11z" />
+    <path d="M3 20h18" />
+  </Icon>
+);
+
 export const IconFolder = (p: IconProps) => (
   <Icon {...p}>
     <path d="M3.5 6.5A2 2 0 0 1 5.5 4.5h4l2 2.5h7a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-11Z" />

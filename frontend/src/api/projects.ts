@@ -45,3 +45,9 @@ export async function updateProject(id: string, name: string, model: ProjectMode
 export async function deleteProject(id: string): Promise<void> {
   await api.delete(`/api/v1/projects/${id}`);
 }
+
+/** Дубликат проекта (B2): модель целиком, имя «{name} (копия)». */
+export async function duplicateProject(id: string): Promise<ProjectDetail> {
+  const { data } = await api.post<ProjectDetail>(`/api/v1/projects/${id}/duplicate`);
+  return data;
+}
