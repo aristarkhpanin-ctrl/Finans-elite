@@ -367,3 +367,170 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   padding: 14px 16px; background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius);
 }
+
+/* ============================================================
+   5. НОВЫЙ UI-КИТ (редизайн Modal; анатомия — Стиль-гайд/Этап 20)
+   ============================================================ */
+
+/* Кнопки: дополнительные варианты */
+.btn--danger { background: var(--danger); color: #fff; border-color: transparent; }
+.btn--danger:hover { background: var(--danger-hover, var(--danger)); filter: brightness(1.06); }
+.btn--link {
+  background: none; border: none; height: auto; padding: 0 0 1px;
+  color: var(--accent); border-bottom: 1px solid var(--border-strong);
+  border-radius: 0; font-weight: 600;
+}
+.btn--link:hover { background: none; border-bottom-color: var(--accent); }
+.btn__spinner {
+  width: 14px; height: 14px; flex: none; border-radius: 50%;
+  border: 2px solid currentColor; border-top-color: transparent;
+  animation: fe-spin 0.7s linear infinite;
+}
+
+/* Инпут: обёртка с префиксом/суффиксом, ошибки, примечания */
+.input-wrap { position: relative; display: flex; align-items: center; }
+.input-wrap .input { flex: 1; min-width: 0; }
+.input-affix {
+  position: absolute; top: 0; bottom: 0; display: flex; align-items: center;
+  color: var(--subtle); font: 500 13px var(--font-ui); pointer-events: none;
+}
+.input-affix--prefix { left: 12px; }
+.input-affix--suffix { right: 12px; }
+.input-wrap--prefix .input { padding-left: 32px; }
+.input-wrap--suffix .input { padding-right: 44px; }
+.input--error { border-color: var(--danger) !important; animation: fe-shake 0.3s; }
+.input--error:focus { box-shadow: 0 0 0 3px var(--danger-bg); }
+.field-note { font-size: 12px; color: var(--subtle); }
+.field-error { font-size: 12px; color: var(--danger); font-weight: 600; }
+
+/* Тумблер */
+.switch { position: relative; display: inline-flex; align-items: center; gap: 9px; cursor: pointer; user-select: none; }
+.switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.switch__track {
+  width: 36px; height: 21px; flex: none; border-radius: 9999px;
+  background: var(--seg-bg); border: 1px solid var(--border);
+  transition: background 0.15s, border-color 0.15s; position: relative;
+}
+.switch__track::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 15px; height: 15px;
+  border-radius: 50%; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s;
+}
+.switch input:checked + .switch__track { background: var(--primary); border-color: var(--primary); }
+.switch input:checked + .switch__track::after { transform: translateX(15px); background: var(--primary-text); }
+.switch input:focus-visible + .switch__track { box-shadow: 0 0 0 3px var(--ring); }
+.switch__label { font: 600 13px var(--font-ui); color: var(--text); }
+.switch--disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* Сегмент-контрол */
+.seg { display: inline-flex; gap: 3px; padding: 3px; background: var(--seg-bg); border-radius: 8px; }
+.seg__btn {
+  appearance: none; border: none; cursor: pointer; font: 600 12.5px var(--font-ui);
+  padding: 7px 14px; border-radius: 5px; color: var(--subtle); background: transparent;
+  transition: color 0.14s, background 0.14s; white-space: nowrap;
+}
+.seg__btn:hover { color: var(--text); }
+.seg__btn--active { color: var(--text); background: var(--seg-active-bg); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18); }
+
+/* Чип-статус (pill с точкой) */
+.chip {
+  display: inline-flex; align-items: center; gap: 7px; height: 28px; padding: 0 12px;
+  border-radius: 9999px; font: 600 12px var(--font-ui); white-space: nowrap;
+  color: var(--muted); background: var(--surface-2);
+}
+.chip__dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+.chip--active { color: var(--good); background: var(--good-bg); }
+.chip--warn { color: var(--warn-text); background: var(--warn-bg); }
+.chip--problem { color: var(--danger-text); background: var(--danger-bg); }
+.chip--info { color: var(--info); background: var(--info-bg); }
+
+/* Счётчик (в заголовках секций) */
+.count-chip {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 22px;
+  height: 20px; padding: 0 7px; border-radius: 9999px;
+  font: 600 11px var(--font-mono); color: var(--accent); background: var(--primary-bg);
+}
+
+/* Модальное окно */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); z-index: 90;
+  animation: fe-fade 0.15s; backdrop-filter: blur(2px);
+}
+.modal-wrap {
+  position: fixed; inset: 0; z-index: 91; display: flex;
+  align-items: center; justify-content: center; padding: 24px;
+}
+.modal {
+  width: 100%; max-width: 430px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-card); box-shadow: var(--menu-shadow); padding: 26px;
+  animation: fe-pop 0.2s ease;
+}
+.modal__title { font: 500 19px var(--font-display); letter-spacing: -0.01em; color: var(--text); margin: 0; }
+.modal__sub { font: 400 14px/1.55 var(--font-ui); color: var(--muted); margin: 9px 0 22px; }
+.modal__actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* Скелетон */
+.skeleton {
+  border-radius: 7px; background: var(--surface-2);
+  animation: sk-pulse 1.5s ease-in-out infinite alternate;
+}
+
+/* Пустое состояние и ошибка */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 40px 24px; text-align: center;
+  border: 1.5px dashed var(--border-strong); border-radius: var(--radius-card);
+  background: var(--surface);
+}
+.empty-state__title { font: 500 18px var(--font-display); letter-spacing: -0.015em; color: var(--text); }
+.empty-state__sub { font: 400 13.5px/1.5 var(--font-ui); color: var(--muted); max-width: 380px; }
+.error-state {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 32px 24px; text-align: center;
+  border: 1px solid var(--danger-border); border-radius: var(--radius-card);
+  background: var(--danger-bg);
+}
+.error-state__ico {
+  width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center;
+  justify-content: center; background: var(--surface); color: var(--danger);
+  font: 700 17px var(--font-mono);
+}
+.error-state__title { font: 600 14.5px var(--font-ui); color: var(--danger-text); }
+
+/* Тосты */
+@keyframes fe-toastin { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+.toast-layer {
+  position: fixed; top: 78px; right: 22px; z-index: 95; display: flex;
+  flex-direction: column; gap: 10px; align-items: flex-end; pointer-events: none;
+}
+.toast {
+  display: flex; align-items: flex-start; gap: 11px; width: 300px; max-width: 78vw;
+  padding: 13px 14px; border-radius: 12px; background: var(--surface);
+  border: 1px solid var(--border); box-shadow: var(--menu-shadow);
+  animation: fe-toastin 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); pointer-events: auto;
+}
+.toast__ico {
+  width: 24px; height: 24px; border-radius: 7px; flex: none; display: flex;
+  align-items: center; justify-content: center; font: 700 12px var(--font-mono);
+}
+.toast--success .toast__ico { color: var(--good); background: var(--good-bg); }
+.toast--info .toast__ico { color: var(--info); background: var(--info-bg); }
+.toast--warn .toast__ico { color: var(--warn); background: var(--warn-bg); }
+.toast--error .toast__ico { color: var(--danger); background: var(--danger-bg); }
+.toast__title { font: 600 13px var(--font-ui); color: var(--text); }
+.toast__sub { font: 400 11.5px var(--font-ui); color: var(--muted); margin-top: 2px; }
+.toast__x {
+  appearance: none; cursor: pointer; width: 20px; height: 20px; border: none;
+  background: none; color: var(--subtle); font-size: 11px; flex: none; padding: 0;
+}
+.toast__x:hover { color: var(--text); }
+
+/* Секция-карточка с номером (Этап 5) */
+.section-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-card); padding: 20px; margin-bottom: 16px;
+}
+.section-card__head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 16px; }
+.section-card__num { font: 600 12px var(--font-mono); color: var(--accent); }
+.section-card__title { font: 500 17px var(--font-display); letter-spacing: -0.015em; color: var(--text); }
+.section-card__sub { font: 400 12.5px var(--font-ui); color: var(--subtle); margin-left: auto; }

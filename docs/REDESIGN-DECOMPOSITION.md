@@ -216,28 +216,28 @@ ROADMAP-заметка. Каждый B — отдельный коммит.
 > `tsc` + `build` зелёные · функциональный паритет чек-листа сохранён.
 
 ### P0. Подготовка
-- [ ] `git mv design_handoff_modal_redesign docs/design/modal-redesign` (README §10).
-- [ ] `CLAUDE.md`: строка-указатель на референсы и правило «стили — из renderVals()».
-- [ ] Инвентаризация переиспользуемого: `format.ts`, `export.ts`, `validation.ts`,
+- [x] `git mv design_handoff_modal_redesign docs/design/modal-redesign` (README §10).
+- [x] `CLAUDE.md`: строка-указатель на референсы и правило «стили — из renderVals()».
+- [x] Инвентаризация переиспользуемого: `format.ts`, `export.ts`, `validation.ts`,
   `api/*` — остаются; страницы/компоненты UI — перерабатываются.
-- [ ] Базлайн: build+tests зелёные, зафиксировать размер бандла «до».
+- [x] Базлайн: build+tests зелёные, зафиксировать размер бандла «до».
 
 ### P1. Фундамент (источники: `Modal Стиль-гайд`, `Этап 20`, `Cube Hero`)
-- [ ] `styles.css`: два блока переменных (light/dark) по Р2; глобальные стили body/scrollbar;
+- [x] `styles.css`: два блока переменных (light/dark) по Р2; глобальные стили body/scrollbar;
   keyframes (`fe-fade, fe-pop, fe-spin, fe-shake, fe-prog, fe-down, sk-pulse`).
-- [ ] Шрифты (Р3): пакеты, подключение, стеки.
-- [ ] `format.ts` (Р7, Р10): новые форматтеры + конвертеры процентов + тесты-на-глаз в dev-песочнице.
-- [ ] `components/CubeHero.tsx` (Р5) — все пропсы, reduced-motion.
-- [ ] `components/icons.tsx` (Р6).
-- [ ] `components/ui.tsx` (переработка): `Button` (primary 4px/ghost/danger/link, спиннер,
+- [x] Шрифты (Р3): пакеты, подключение, стеки.
+- [x] `format.ts` (Р7, Р10): новые форматтеры + конвертеры процентов + тесты-на-глаз в dev-песочнице.
+- [x] `components/CubeHero.tsx` (Р5) — все пропсы, reduced-motion.
+- [x] `components/icons.tsx` (Р6).
+- [x] `components/ui.tsx` (переработка): `Button` (primary 4px/ghost/danger/link, спиннер,
   disabled), `Field/Input` (высоты 42–48, префикс ₽/«М»/₽/$, суффикс %/мес./шт./×,
   бордер 1.5, фокус-кольцо, error+shake, note), `Select` (+chevron), `Switch` (тумблер
   из Этапов 7/9/11), `SegmentControl`, `Chip` (pill, dot, kinds), `HintBadge`+`Tooltip`,
   `Modal` (Р8), `Skeleton/EmptyState/ErrorState` (Р9), `MetricCard`, `SectionCard`
   (номер+заголовок+описание), `CountChip`.
-- [ ] `components/Toast.tsx` + `ToastProvider` (Р8), подключить в `App`.
-- [ ] Dev-песочница `/dev/ui` (только DEV): все компоненты в обеих темах — для визуальной сверки.
-- [ ] Коммиты: 1) токены+шрифты+форматтеры; 2) CubeHero; 3) UI-кит+тосты(+песочница).
+- [x] `components/Toast.tsx` + `ToastProvider` (Р8), подключить в `App`.
+- [x] Dev-песочница `/dev/ui` (только DEV): все компоненты в обеих темах — для визуальной сверки.
+- [x] Коммиты: 1) токены+шрифты+форматтеры; 2) CubeHero; 3) UI-кит+тосты(+песочница).
 
 ### P2. Сплеш + Аутентификация (`Сплеш-экран…`, `Этап 2`)
 - [ ] `components/Splash.tsx`: тёмный радиальный фон, куб (220–380px по устройству),
