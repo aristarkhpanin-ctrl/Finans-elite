@@ -1,8 +1,9 @@
 """Показатели эффективности инвестиций (SPEC §17).
 
-ВНИМАНИЕ (v0): используется упрощённый поток — чистый денежный поток до финансирования
-(операционная + инвестиционная деятельность). Точное правило выделения графика
-инвестиций по §17/§22 — следующая фаза. Значения помечены как предварительные.
+Дисконтируется помесячно чистый денежный поток до финансирования (операционная +
+инвестиционная деятельность). График инвестиций (потребность в капитале) выделяется по
+правилу §22.4 — прирост накопленного дефицита относительно максимума предыдущих
+периодов; на нём строятся PI и пиковая потребность в финансировании.
 """
 from __future__ import annotations
 
@@ -27,19 +28,39 @@ def npv(flow: Sequence[Decimal], monthly_rate: Decimal) -> Decimal:
     return acc
 
 
-def profitability_index(flow: Sequence[Decimal], monthly_rate: Decimal) -> Decimal | None:
-    """PI = дисконт. поступления / |дисконт. инвестиции|."""
-    pos = ZERO
-    neg = ZERO
-    for t, cf in enumerate(flow):
-        d = cf / (ONE + monthly_rate) ** t
-        if d >= 0:
-            pos += d
+def investment_graph(net_flow: Sequence[Decimal]) -> list[Decimal]:
+    """График потребности в капитале (SPEC §17, §22.4).
+
+    Инвестиция периода = прирост накопленного дефицита денежных средств относительно
+    **максимума дефицита предыдущих периодов** (новый привлекаемый капитал). Ряд
+    неотрицателен; его сумма = пиковая потребность в финансировании (наибольший
+    накопленный дефицит за горизонт). Операционные «провалы» уже окупившегося проекта
+    в инвестиции не попадают.
+    """
+    inv: list[Decimal] = []
+    cum = ZERO
+    peak_deficit = ZERO  # максимальный дефицит (−min накопленного потока) за прошедшее
+    for cf in net_flow:
+        cum += cf
+        deficit = -cum if cum < ZERO else ZERO
+        if deficit > peak_deficit:
+            inv.append(deficit - peak_deficit)
+            peak_deficit = deficit
         else:
-            neg += -d
-    if neg == 0:
+            inv.append(ZERO)
+    return inv
+
+
+def profitability_index(npv_value: Decimal, pv_investments: Decimal) -> Decimal | None:
+    """Индекс доходности: ``PI = 1 + NPV / PV(инвестиции)`` (SPEC §17/§22.4).
+
+    ``pv_investments`` — приведённая потребность в капитале (дисконтированный график
+    инвестиций ``investment_graph``). ``None``, если капитал не требовался
+    (``pv_investments`` = 0). ``PI > 1`` ⟺ ``NPV > 0``.
+    """
+    if pv_investments <= ZERO:
         return None
-    return pos / neg
+    return ONE + npv_value / pv_investments
 
 
 def irr_annual(flow: Sequence[Decimal], lo: Decimal = D("-0.99"),

@@ -17,6 +17,7 @@ export interface SalesLine {
   volume: string[];
   price: string[];
   payment: PaymentTerms;
+  foreign?: boolean;
 }
 
 export interface ProductionLine {
@@ -32,6 +33,7 @@ export interface DirectCostLine {
   amount: string[];
   payment_delay_months: number;
   stock_lead_months: number;
+  foreign?: boolean;
 }
 
 export type CostFunction =
@@ -47,6 +49,8 @@ export interface FixedCostLine {
   function: CostFunction;
   amount: string[];
   payment_delay_months: number;
+  from_profit?: boolean;
+  foreign?: boolean;
 }
 
 export interface OperatingPlan {
@@ -66,6 +70,25 @@ export interface Loan {
   term_months: number;
   annual_rate: string;
   repayment: RepaymentType;
+  interest_on_profit?: boolean;
+  foreign?: boolean;
+}
+
+export interface Lease {
+  name: string;
+  monthly_payment: string;
+  start_month: number;
+  term_months: number;
+  finance?: boolean;
+  annual_rate?: string;
+}
+
+export interface Deposit {
+  name: string;
+  amount: string;
+  start_month: number;
+  term_months: number;
+  annual_rate: string;
 }
 
 export interface EquityInjection {
@@ -81,17 +104,27 @@ export interface AutoFinancing {
 
 export interface Financing {
   loans: Loan[];
+  leases?: Lease[];
+  deposits?: Deposit[];
   equity: EquityInjection[];
   dividends: string[];
   common_shares: string;
   auto_financing: AutoFinancing;
 }
 
+export type AssetCategory = "equipment" | "buildings" | "land";
+
 export interface Asset {
   name: string;
   cost: string;
   purchase_month: number;
   life_months: number;
+  category?: AssetCategory;
+  sale_month?: number | null;
+  sale_price?: string;
+  /** Переоценка: месяц и сумма дооценки (±) → остаточная B9 и добавочный капитал B31. */
+  revaluation_month?: number | null;
+  revaluation_amount?: string;
 }
 
 export interface InvestmentPlan {
@@ -104,21 +137,68 @@ export interface ProjectHeader {
   duration_months: number;
 }
 
+export interface Actualization {
+  actual_until: number;
+  actuals: Record<string, string[]>;
+}
+
+export type VatBasis = "shipment" | "payment";
+export type InventoryMethod = "average" | "fifo";
+
 export interface ProjectSettings {
   discount_rate_annual: string;
+  terminal_growth_rate?: string;
+  valuation_earnings_multiple?: string;
+  liquidation_recovery_rate?: string;
   profit_tax_rate: string;
+  profit_tax_benefit_share: string;
+  payroll_contribution_rate: string;
   property_tax_rate: string;
+  sales_tax_rate?: string;
   vat_rate: string;
+  vat_basis: VatBasis;
+  inventory_method: InventoryMethod;
+  production_cycle_months?: number;
+  inflation_sales: string;
+  inflation_direct: string;
+  inflation_wages: string;
+  inflation_general: string;
   min_cash_balance: string;
+}
+
+export interface StartingBalance {
+  cash: string;
+  fixed_assets_net: string;
+  foreign_monetary: string;
+  receivables?: string;
+  payables?: string;
+  raw_materials?: string;
+  finished_goods?: string;
+  debt: string;
+  paid_in_capital: string;
+  retained_earnings: string;
+}
+
+export interface Company {
+  starting_balance: StartingBalance;
+  [key: string]: unknown;
+}
+
+export interface Environment {
+  fx_open: string;
+  fx_rate: string[];
+  [key: string]: unknown;
 }
 
 export interface ProjectModel {
   header: ProjectHeader;
   settings: ProjectSettings;
+  company: Company;
+  environment: Environment;
   operating_plan: OperatingPlan;
   investment_plan: InvestmentPlan;
   financing: Financing;
-  // Прочие разделы (company, environment, actualization) проходят насквозь.
+  actualization: Actualization;
   [key: string]: unknown;
 }
 

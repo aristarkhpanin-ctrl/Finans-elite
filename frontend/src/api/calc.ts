@@ -16,6 +16,8 @@ export interface MetricsOut {
   pi: string | null;
   pb_months: number | null;
   dpb_months: number | null;
+  pv_investments: string | null;
+  peak_financing_need: string | null;
 }
 
 export type RatioGroup = Record<string, (string | null)[]>;
@@ -33,6 +35,14 @@ export interface BreakEvenOut {
   margin_of_safety: (string | null)[];
 }
 
+export interface ValuationOut {
+  net_assets: string;
+  gordon_value: string | null;
+  dividend_value: string | null;
+  earnings_multiple_value: string | null;
+  liquidation_value: string | null;
+}
+
 export interface CalcResponse {
   engine_version: string;
   n: number;
@@ -43,6 +53,7 @@ export interface CalcResponse {
   metrics: MetricsOut;
   ratios: RatiosOut;
   break_even: BreakEvenOut;
+  valuation: ValuationOut;
   actualized_cashflow: StatementOut | null;
   cashflow_variance: StatementOut | null;
   warnings: string[];

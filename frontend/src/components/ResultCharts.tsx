@@ -1,19 +1,29 @@
 import {
+  Area,
   Bar,
   CartesianGrid,
+  Cell,
   ComposedChart,
   Legend,
   Line,
+  Pie,
+  PieChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import { line, type CalcResponse } from "../api/calc";
+import { line, type CalcResponse, type StatementOut } from "../api/calc";
 import { money } from "../format";
 
 const compact = (v: number) =>
   v.toLocaleString("ru-RU", { notation: "compact", maximumFractionDigits: 1 });
+
+const PIE_COLORS = ["#2563eb", "#f59e0b", "#16a34a", "#7c3aed", "#dc2626", "#0891b2", "#64748b"];
+
+const sumLine = (stmt: StatementOut, ...codes: string[]) =>
+  codes.reduce((acc, code) => acc + line(stmt, code).reduce((s, v) => s + Number(v ?? 0), 0), 0);
 
 export function ResultCharts({ result }: { result: CalcResponse }) {
   const c13 = line(result.cashflow, "C13");
@@ -29,7 +39,55 @@ export function ResultCharts({ result }: { result: CalcResponse }) {
     profit: Number(i28[i] ?? 0),
   }));
 
+  // Накопленный поток до финансирования (C13+C20): пересечение нуля ≈ срок окупаемости.
+  let running = 0;
+  const cumulativeFlow = data.map((d) => {
+    running += d.operating + d.investing;
+    return { m: d.m, cum: running };
+  });
+  const pb = result.metrics.pb_months;
+
+  // Структура активов по периодам (точно тайлит B20 = деньги + дебиторка + запасы +
+  // финвложения + предоплаты + внеоборотные).
+  const balanceStructure = Array.from({ length: result.n }, (_, i) => {
+    const b = (code: string) => Number(line(result.balance, code)[i] ?? 0);
+    return {
+      m: `М${i + 1}`,
+      money: b("B1"),
+      receivables: b("B2"),
+      inventory: b("B3") + b("B4") + b("B5"),
+      investments: b("B6"),
+      prepaid: b("B7"),
+      fixed: b("B11") + b("B17") + b("B18") + b("B19"),
+    };
+  });
+
   const tooltip = { formatter: (v: number) => money(String(v)) } as const;
+
+  // Оценка бизнеса: сравнение методов (показываем только заданные).
+  const v = result.valuation;
+  const valuationData = (
+    [
+      ["Чистые активы", v.net_assets],
+      ["Гордон", v.gordon_value],
+      ["DDM", v.dividend_value],
+      ["Мультипликатор", v.earnings_multiple_value],
+      ["Ликвидационная", v.liquidation_value],
+    ] as [string, string | null][]
+  )
+    .filter(([, val]) => val != null)
+    .map(([name, val]) => ({ name, value: Number(val) }));
+
+  // Структура издержек за весь период (для долёвки).
+  const costStructure = [
+    { name: "Материалы", value: sumLine(result.income, "I5") },
+    { name: "Зарплата", value: sumLine(result.income, "I6", "I13", "I14", "I15") },
+    { name: "Общие издержки", value: sumLine(result.income, "I10", "I11", "I12") },
+    { name: "Амортизация", value: sumLine(result.income, "I17") },
+    { name: "Проценты", value: sumLine(result.income, "I18") },
+    { name: "Налоги", value: sumLine(result.income, "I9", "I27") },
+    { name: "Прочие/лизинг", value: sumLine(result.income, "I21") },
+  ].filter((d) => d.value > 0);
 
   return (
     <div>
@@ -50,6 +108,24 @@ export function ResultCharts({ result }: { result: CalcResponse }) {
       </div>
 
       <div className="chart-card">
+        <h3>Накопленный денежный поток (окупаемость)</h3>
+        <ResponsiveContainer width="100%" height={240}>
+          <ComposedChart data={cumulativeFlow} margin={{ top: 6, right: 8, left: 8, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+            <XAxis dataKey="m" tick={{ fontSize: 12 }} />
+            <YAxis tickFormatter={compact} tick={{ fontSize: 12 }} width={56} />
+            <Tooltip {...tooltip} />
+            <ReferenceLine y={0} stroke="#dc2626" strokeDasharray="4 4" />
+            {pb != null && pb >= 1 && pb <= result.n && (
+              <ReferenceLine x={`М${pb}`} stroke="#16a34a" strokeDasharray="4 4"
+                             label={{ value: "окупаемость", fontSize: 11, fill: "#16a34a" }} />
+            )}
+            <Area dataKey="cum" name="Накопленный поток" stroke="#2563eb" fill="#2563eb" fillOpacity={0.15} strokeWidth={2} />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="chart-card">
         <h3>Чистая прибыль</h3>
         <ResponsiveContainer width="100%" height={240}>
           <ComposedChart data={data} margin={{ top: 6, right: 8, left: 8, bottom: 0 }}>
@@ -61,6 +137,61 @@ export function ResultCharts({ result }: { result: CalcResponse }) {
           </ComposedChart>
         </ResponsiveContainer>
       </div>
+
+      <div className="chart-card">
+        <h3>Структура активов</h3>
+        <ResponsiveContainer width="100%" height={280}>
+          <ComposedChart data={balanceStructure} margin={{ top: 6, right: 8, left: 8, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+            <XAxis dataKey="m" tick={{ fontSize: 12 }} />
+            <YAxis tickFormatter={compact} tick={{ fontSize: 12 }} width={56} />
+            <Tooltip {...tooltip} />
+            <Legend />
+            <Bar dataKey="money" stackId="a" name="Деньги" fill="#16a34a" />
+            <Bar dataKey="receivables" stackId="a" name="Дебиторка" fill="#2563eb" />
+            <Bar dataKey="inventory" stackId="a" name="Запасы" fill="#f59e0b" />
+            <Bar dataKey="investments" stackId="a" name="Финвложения" fill="#0891b2" />
+            <Bar dataKey="prepaid" stackId="a" name="Предоплаты" fill="#64748b" />
+            <Bar dataKey="fixed" stackId="a" name="Внеоборотные" fill="#7c3aed" />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+
+      {valuationData.length > 1 && (
+        <div className="chart-card">
+          <h3>Оценка бизнеса (сравнение методов)</h3>
+          <ResponsiveContainer width="100%" height={260}>
+            <ComposedChart data={valuationData} margin={{ top: 6, right: 8, left: 8, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} />
+              <YAxis tickFormatter={compact} tick={{ fontSize: 12 }} width={56} />
+              <Tooltip {...tooltip} />
+              <Bar dataKey="value" name="Стоимость" fill="#16a34a">
+                {valuationData.map((d, i) => (
+                  <Cell key={i} fill={d.value >= 0 ? "#16a34a" : "#dc2626"} />
+                ))}
+              </Bar>
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {costStructure.length > 0 && (
+        <div className="chart-card">
+          <h3>Структура издержек (за весь период)</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie data={costStructure} dataKey="value" nameKey="name" cx="50%" cy="50%"
+                   outerRadius={105} label={(e: { name: string }) => e.name}>
+                {costStructure.map((_, i) => (
+                  <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip {...tooltip} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </div>
   );
 }

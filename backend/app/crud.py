@@ -4,7 +4,10 @@
 """
 from __future__ import annotations
 
-from sqlalchemy import func, select
+from datetime import datetime, timezone
+from decimal import Decimal
+
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from calc_core import ProjectModel
@@ -246,6 +249,39 @@ def delete_project(db: Session, project: Project) -> None:
 def load_model(project: Project) -> ProjectModel:
     """Десериализовать хранимую модель проекта в ProjectModel."""
     return ProjectModel.model_validate(project.model)
+
+
+def duplicate_project(db: Session, project: Project, name: str) -> Project:
+    """Копия проекта (B2): модель целиком, сводка расчёта не переносится."""
+    copy = Project(organization_id=project.organization_id, name=name, model=project.model)
+    db.add(copy)
+    db.commit()
+    db.refresh(copy)
+    return copy
+
+
+def save_calc_summary(db: Session, project: Project, *, npv: Decimal,
+                      irr_annual: Decimal | None, pb_months: int | None,
+                      engine_version: str) -> None:
+    """Сохранить сводку успешного расчёта (B1).
+
+    Core-update с явным ``updated_at = Project.updated_at``: иначе onupdate
+    сдвинул бы updated_at и проект сразу считался бы «изменён после расчёта».
+    """
+    db.execute(
+        update(Project)
+        .where(Project.id == project.id)
+        .values(
+            last_npv=str(npv),
+            last_irr=None if irr_annual is None else str(irr_annual),
+            last_pb_months=pb_months,
+            last_engine_version=engine_version,
+            last_calculated_at=datetime.now(timezone.utc),
+            updated_at=Project.updated_at,
+        )
+    )
+    db.commit()
+    db.refresh(project)
 
 
 # --- Холдинги (9.3) ---

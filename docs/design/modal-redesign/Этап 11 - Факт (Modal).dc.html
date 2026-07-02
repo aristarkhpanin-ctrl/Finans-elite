@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Inter';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-600-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:700;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-700-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-600-normal.woff2') format('woff2');}
+</style>
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  input,select{font-family:inherit;}
+  input::placeholder{color:inherit;opacity:.4;}
+  .fe-scroll::-webkit-scrollbar{height:10px;}
+  .fe-scroll::-webkit-scrollbar-thumb{background:rgba(120,113,108,.35);border-radius:5px;border:3px solid transparent;background-clip:padding-box;}
+  @keyframes fe-fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  @keyframes fe-expand{from{opacity:0}to{opacity:1}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}" data-screen-label="11 — Факт">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+      <div style="width:26px;height:26px;flex:none;border-radius:8px;overflow:hidden;"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="26px,26px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Этап&nbsp;11 · Вкладка «Факт»</span>
+        <span style="{{ s.barSub }}">Финанс-Элит · план-факт</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Состояние</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segOff }}" onClick="{{ setOff }}">Выкл</button><button style="{{ s.segPart }}" onClick="{{ setPart }}">Частично</button><button style="{{ s.segFull }}" onClick="{{ setFull }}">Заполнено</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Свет</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тьма</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}">
+
+      <div style="{{ s.subheader }}">
+        <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1;">
+          <button style="{{ s.backBtn }}">←</button>
+          <span style="{{ s.projName }}">Завод полимерной упаковки</span>
+          <span style="{{ s.savedChip }}">✓ Сохранено</span>
+        </div>
+        <div style="{{ s.subActions }}">
+          <div style="{{ s.modeSeg }}"><button style="{{ s.modeEditor }}">Редактор</button><button style="{{ s.modeOther }}">Результаты</button><button style="{{ s.modeOther }}">Анализ</button></div>
+          <button style="{{ s.calcBtn }}" style-hover="{{ s.calcBtnHover }}">Рассчитать →</button>
+        </div>
+      </div>
+
+      <div style="{{ s.tabBarWrap }}">
+        <div style="{{ s.tabBar }}" class="fe-scroll">
+          <sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="7">
+          <button style="{{ tb.style }}"><span>{{ tb.label }}</span><sc-if value="{{ tb.badge }}" hint-placeholder-val=""><span style="{{ tb.badgeStyle }}">{{ tb.badge }}</span></sc-if></button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="{{ s.content }}">
+
+        <div style="{{ s.tabHead }}">
+          <div style="min-width:0;">
+            <div style="{{ s.tabTitle }}">Факт — актуализация модели</div>
+            <div style="{{ s.tabSub }}">Введите фактические данные, чтобы сравнивать план с фактом на странице результатов.</div>
+          </div>
+        </div>
+
+        <!-- master toggle -->
+        <div style="{{ masterCard }}">
+          <label style="{{ s.masterRow }}" onClick="{{ toggleOn }}">
+            <span style="{{ masterSw }}"><span style="{{ masterKnob }}"></span></span>
+            <span style="min-width:0;flex:1;"><span style="{{ s.masterLabel }}">Включить актуализацию (план-факт)</span><span style="{{ s.masterHelp }}">Сравнение плановых показателей модели с фактическими данными по периодам.</span></span>
+          </label>
+          <a style="{{ s.linkResults }}">→ Результаты · План-факт</a>
+        </div>
+
+        <!-- OFF onboarding -->
+        <sc-if value="{{ isOff }}" hint-placeholder-val="{{ true }}">
+        <div style="{{ s.onboard }}">
+          <div style="{{ s.onboardIco }}"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19V5M4 19h16M8 16l3-4 3 2 4-6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div style="{{ s.onboardTitle }}">Актуализация выключена</div>
+          <div style="{{ s.onboardSub }}">Включите, чтобы вводить фактические значения и сравнивать их с планом. Полезно, когда проект уже стартовал и накапливается реальная статистика.</div>
+          <button style="{{ s.onboardBtn }}" style-hover="{{ s.onboardBtnHover }}" onClick="{{ toggleOn }}">Включить актуализацию</button>
+        </div>
+        </sc-if>
+
+        <!-- ON -->
+        <sc-if value="{{ isOn }}" hint-placeholder-val="{{ false }}">
+
+        <!-- controls + progress -->
+        <div style="{{ s.ctrlCard }}">
+          <div style="{{ s.fcolSm }}">
+            <div style="{{ s.labelRow }}"><label style="{{ s.fieldLabel }}">Факт до месяца</label><span style="{{ s.hintWrap }}"><span style="{{ s.hintBadge }}" title="До какого периода накоплены фактические данные">?</span></span></div>
+            <div style="{{ s.selBox }}"><select style="{{ s.selectEl }}" value="{{ factUntil }}" onChange="{{ onFactUntil }}"><sc-for list="{{ monthOptions }}" as="mo" hint-placeholder-count="12"><option value="{{ mo.val }}">{{ mo.label }}</option></sc-for></select><span style="{{ s.selChev }}">▾</span></div>
+            <div style="{{ s.fieldNote }}">Факт вводится за М1…М{{ factUntil }} ({{ factUntil }} мес.)</div>
+          </div>
+          <div style="{{ s.progressWrap }}">
+            <div style="{{ s.progressTop }}"><span style="{{ s.progressLabel }}">Заполнено факта</span><span style="{{ s.progressPct }}">{{ fillPct }}%</span></div>
+            <div style="{{ s.progressTrack }}"><div style="{{ progressBar }}"></div></div>
+            <div style="{{ s.progressMeta }}">{{ filledCells }} из {{ totalCells }} ячеек · {{ rowsCount }} статьи × {{ factUntil }} мес.</div>
+          </div>
+        </div>
+
+        <!-- fact table -->
+        <div style="{{ s.gridHint }}"><span>⊞</span>План показан серым над полем факта · вставка из Excel, отклонение считается автоматически</div>
+        <div style="{{ s.scrollWrap }}" class="fe-scroll"><div style="{{ s.gridInner }}">
+          <div style="display:flex;">
+            <div style="{{ s.corner }}">Статья \\ Период</div>
+            <sc-for list="{{ months }}" as="m" hint-placeholder-count="6"><div style="{{ s.monthCell }}">{{ m.label }}</div></sc-for>
+            <div style="{{ s.devHeadCell }}">Σ откл.</div>
+          </div>
+          <sc-for list="{{ rows }}" as="r" hint-placeholder-count="4">
+          <div style="{{ r.rowWrap }}">
+            <div style="{{ s.rowLabel }}"><span style="{{ r.dot }}"></span><div style="min-width:0;"><div style="{{ s.rowTitle }}">{{ r.label }}</div><div style="{{ s.rowUnit }}">план, ₽/мес</div></div></div>
+            <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="6">
+            <div style="{{ c.wrap }}">
+              <div style="{{ s.planVal }}">{{ c.plan }}</div>
+              <input style="{{ c.style }}" inputmode="decimal" data-fe-cell="{{ c.cellId }}" placeholder="{{ c.placeholder }}" value="{{ c.value }}" onChange="{{ c.onChange }}" onFocus="{{ c.onFocus }}" onBlur="{{ c.onBlur }}">
+              <sc-if value="{{ c.dev }}" hint-placeholder-val=""><div style="{{ c.devStyle }}">{{ c.dev }}</div></sc-if>
+            </div>
+            </sc-for>
+            <div style="{{ s.devCell }}"><span style="{{ r.devSumStyle }}">{{ r.devSum }}</span></div>
+          </div>
+          </sc-for>
+        </div></div>
+        <div style="{{ s.legendRow }}">
+          <span style="{{ s.legendItem }}"><span style="{{ s.legPlan }}"></span>план (серый)</span>
+          <span style="{{ s.legendItem }}"><span style="{{ s.legPos }}"></span>факт выше плана</span>
+          <span style="{{ s.legendItem }}"><span style="{{ s.legNeg }}"></span>факт ниже плана</span>
+          <span style="{{ s.legendItem }}"><span style="{{ s.legEmpty }}"></span>не заполнено</span>
+        </div>
+
+        </sc-if>
+
+        <div style="{{ s.bottomPad }}"></div>
+      </div>
+
+      <div style="{{ s.saveBar }}">
+        <div style="{{ s.saveStatus }}">
+          <sc-if value="{{ dirty }}" hint-placeholder-val="{{ false }}"><span style="{{ s.dirtyDot }}"></span><span style="{{ s.saveTextDirty }}">Несохранённые изменения</span></sc-if>
+          <sc-if value="{{ clean }}" hint-placeholder-val="{{ true }}"><span style="{{ s.savedCheck }}">✓</span><span style="{{ s.saveTextSaved }}">Все изменения сохранены</span></sc-if>
+        </div>
+        <button style="{{ s.saveBtn }}" style-hover="{{ s.saveBtnHover }}" onClick="{{ save }}" disabled="{{ clean }}">Сохранить</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  rowDefs(){ return [
+    {key:'revenue',label:'Выручка',color:'#0E9C6E',plan:[300000,310000,320000,330000,340000,350000,360000,370000,380000,390000,400000,410000]},
+    {key:'cogs',label:'Себестоимость',color:'#E0533D',plan:[180000,186000,192000,198000,204000,210000,216000,222000,228000,234000,240000,246000]},
+    {key:'opex',label:'Операционные расходы',color:'#B86E00',plan:[60000,60000,62000,62000,64000,64000,66000,66000,68000,68000,70000,70000]},
+    {key:'profit',label:'Чистая прибыль',color:'#2D6FE0',plan:[42000,45000,48000,51000,54000,57000,60000,63000,66000,69000,72000,75000]}
+  ]; }
+  emptyFact(){ const f={}; this.rowDefs().forEach(r=>f[r.key]=Array(12).fill('')); return f; }
+  seedFact(part){ const f={}; this.rowDefs().forEach(r=>{ f[r.key]=r.plan.map((p,i)=>{ if(part&&i>=3) return ''; const dev=1+((i%3)-1)*0.04; return String(Math.round(p*dev/1000)*1000); }); }); return f; }
+
+  state = { theme:'light', device:'desktop', demo:'full', on:true, factUntil:6, fact:this.seedFact(false), dirty:false, focusKey:null };
+
+  componentDidMount(){
+    this._ph=(e)=>{ const el=(e.target&&e.target.closest&&e.target.closest('[data-fe-cell]'))||null; if(!el) return;
+      const cd=e.clipboardData||window.clipboardData; const txt=(cd&&cd.getData('text'))||''; const parts=txt.split(/[\t\n\r]+/).map(x=>x.trim()).filter(x=>x!==''); if(parts.length<2) return;
+      e.preventDefault(); const ps=el.getAttribute('data-fe-cell').split('|'); this.applyPaste(ps[0],+ps[1],parts); };
+    window.addEventListener('paste',this._ph,true);
+  }
+  componentWillUnmount(){ if(this._ph) window.removeEventListener('paste',this._ph,true); }
+
+  THEME(){
+    const light={pageBg:'#F3F2F0',bg:'#FAFAF9',surface:'#FFFFFF',surface2:'#F5F5F4',cellBg:'#FFFFFF',border:'#E7E5E4',borderStrong:'#D6D3D1',gridLine:'#EFEDEB',text:'#1C1917',muted:'#57534E',subtle:'#A8A29E',primary:'#0E9C6E',primaryHover:'#0B8560',primaryText:'#FFFFFF',primaryBg:'#E2F4EC',primarySoft:'#EFF8F3',danger:'#C13A30',warn:'#B86E00',ring:'rgba(14,156,110,.22)',shadow:'0 18px 48px -20px rgba(28,25,23,.28), 0 2px 6px rgba(28,25,23,.05)',barBg:'#FFFFFF',segBg:'#F0EEEC',segActiveBg:'#FFFFFF',headerBg:'#FFFFFF',stickyBg:'#FFFFFF',emptyCell:'#FCFCFB',brandMid:'#0C7250',brandTo:'#0E9C6E'};
+    const dark={pageBg:'#141210',bg:'#1A1816',surface:'#232020',surface2:'#2C2825',cellBg:'#1C1A18',border:'#39332F',borderStrong:'#4A433E',gridLine:'#332E2A',text:'#F6F4F2',muted:'#B7B0A9',subtle:'#7E756D',primary:'#12B07D',primaryHover:'#19C28B',primaryText:'#06241A',primaryBg:'rgba(18,176,125,.16)',primarySoft:'rgba(18,176,125,.10)',danger:'#F0796E',warn:'#E0A23A',ring:'rgba(25,194,139,.34)',shadow:'0 28px 64px -24px rgba(0,0,0,.72)',barBg:'#1E1B19',segBg:'#16140F',segActiveBg:'#2C2825',headerBg:'#1E1B19',stickyBg:'#232020',emptyCell:'#1F1D1A',brandMid:'#0A5A40',brandTo:'#0E7A57'};
+    return this.state.theme==='dark'?{...dark,pageBg:'#000000',bg:'#0C0F0C',surface:'#212525',surface2:'#2A312A',sk:'#2A312A',cellBg:'#161A16',border:'#485346',borderStrong:'#677D64',gridLine:'#232823',text:'#DDFFDC',muted:'#93A091',subtle:'#677D64',primary:'#7FEE64',primaryHover:'#95F47D',primaryText:'#000000',accent:'#7FEE64',primaryBg:'rgba(127,238,100,.15)',primarySoft:'rgba(127,238,100,.09)',good:'#7FEE64',goodBg:'rgba(127,238,100,.15)',goodBorder:'rgba(127,238,100,.32)',danger:'#F0796E',dangerHover:'#F4988F',dangerBg:'rgba(240,121,110,.15)',dangerBorder:'rgba(240,121,110,.32)',dangerText:'#F4B0A8',warn:'#E0A23A',warnBg:'rgba(224,162,58,.16)',warnBorder:'rgba(224,162,58,.32)',info:'#AED2A4',infoBg:'rgba(174,210,164,.15)',ring:'rgba(127,238,100,.4)',shadow:'0 30px 70px -34px rgba(0,0,0,.9)',menuShadow:'0 22px 52px -16px rgba(0,0,0,.82)',barBg:'#0C0F0C',barBorder:'#1D231D',segBg:'#0B0E0B',segActiveBg:'#2A312A',headerBg:'#0C0F0C',stickyBg:'#212525',brandMid:'#3E4A3C',brandTo:'#7FEE64',violet:'#C8F9B6',violetBg:'rgba(200,249,182,.14)',subtotalBg:'#1C201C',grandBg:'rgba(127,238,100,.12)',hov:'#262C25',hovlab:'#2C322B',ico1:'#7FEE64',ico1Bg:'rgba(127,238,100,.15)',ico2:'#AED2A4',ico2Bg:'rgba(174,210,164,.15)',ico3:'#C8F9B6',ico3Bg:'rgba(200,249,182,.14)',ico4:'#E0A23A',ico4Bg:'rgba(224,162,58,.16)',inputBg:'#161A16',success:'#7FEE64',successBg:'rgba(127,238,100,.16)'}:{...light,pageBg:'#E4F1E0',bg:'#F4FAF2',surface:'#FFFFFF',surface2:'#EDF5EA',sk:'#E3EEDF',cellBg:'#FFFFFF',border:'#D2E4CD',borderStrong:'#B4CCAE',gridLine:'#E8F1E5',text:'#16201A',muted:'#46584A',subtle:'#6E8270',primary:'#7FEE64',primaryHover:'#6FE253',primaryText:'#06210E',accent:'#138A45',primaryBg:'#DBF3D2',primarySoft:'#EAF8E4',good:'#0E7A4F',goodBg:'#DBF1E2',goodBorder:'#B7DEC6',danger:'#C0473B',dangerHover:'#A53A30',dangerBg:'#FAE7E4',dangerBorder:'#EECFCA',dangerText:'#8F2F26',warn:'#B07A12',warnBg:'#FBF0D8',warnBorder:'#ECDDB4',info:'#3E7D52',infoBg:'#E6EFE2',ring:'rgba(56,194,75,.3)',shadow:'0 18px 44px -22px rgba(20,40,24,.22), 0 2px 6px rgba(20,40,24,.05)',menuShadow:'0 24px 56px -16px rgba(20,40,24,.28)',barBg:'#FFFFFF',barBorder:'#D2E4CD',segBg:'#E7F0E3',segActiveBg:'#FFFFFF',headerBg:'#FFFFFF',stickyBg:'#FFFFFF',brandMid:'#138A45',brandTo:'#7FEE64',violet:'#3E7D52',violetBg:'#E6EFE2',subtotalBg:'#EDF3EA',grandBg:'#DBF1E2',hov:'#F1F7EE',hovlab:'#EAF2E6',ico1:'#138A45',ico1Bg:'#DBF3D2',ico2:'#3E7D52',ico2Bg:'#E6EFE2',ico3:'#5FA86A',ico3Bg:'#E3F0DE',ico4:'#B07A12',ico4Bg:'#FBF0D8',inputBg:'#FFFFFF',success:'#0E7A4F',successBg:'#DBF1E2'};
+  }
+  DIM(){const dv=this.state.device,m=dv==='mobile',tab=dv==='tablet'; return {frame:m?402:tab?864:1120, radius:m?30:tab?18:14, pad:m?16:tab?22:30, lbl:m?140:184, cw:m?92:104, mobile:m};}
+  num(x){ if(x==null||x==='')return 0; return parseFloat(String(x).replace(/\s/g,'').replace(',','.'))||0; }
+  fmtInt(n){ n=Math.round(n); const neg=n<0; n=Math.abs(n); let s=String(n).replace(/\B(?=(\d{3})+(?!\d))/g,'\u00A0'); return (neg?'−':'')+s; }
+  fmtK(n){ const a=Math.abs(n); if(a>=1e6) return (n<0?'−':'')+(a/1e6).toFixed(1).replace('.',',')+'м'; if(a>=1000) return (n<0?'−':'')+Math.round(a/1000)+'к'; return this.fmtInt(n); }
+  norm(x){ x=String(x).trim().replace(/[^0-9.,\-]/g,''); const lc=x.lastIndexOf(','), ld=x.lastIndexOf('.'); if(ld>lc){ x=x.replace(/,/g,'').replace('.',','); } return x; }
+
+  setCell(key,ci){ return (e)=>{ const val=e.target.value; this.setState(s=>{ const arr=s.fact[key].slice(); arr[ci]=val; return {dirty:true,fact:{...s.fact,[key]:arr}}; }); }; }
+  applyPaste(key,ci,parts){ this.setState(s=>{ const arr=s.fact[key].slice(); for(let k=0;k<parts.length;k++){ const tgt=ci+k; if(tgt<s.factUntil) arr[tgt]=this.norm(parts[k]); } return {dirty:true,fact:{...s.fact,[key]:arr}}; }); }
+  loadDemo(which){ if(which==='off') this.setState({demo:'off',on:false,dirty:false}); else if(which==='part') this.setState({demo:'part',on:true,factUntil:6,fact:this.seedFact(true),dirty:false}); else this.setState({demo:'full',on:true,factUntil:6,fact:this.seedFact(false),dirty:false}); }
+
+  renderVals(){
+    const st=this.state, t=this.THEME(), d=this.DIM(), defs=this.rowDefs(), N=st.factUntil;
+    const seg=(a)=>`appearance:none;border:none;cursor:pointer;font:600 11.5px Inter,sans-serif;padding:6px 10px;border-radius:7px;white-space:nowrap;color:${a?t.text:t.subtle};background:${a?t.segActiveBg:'transparent'};box-shadow:${a?'0 1px 2px rgba(0,0,0,.14)':'none'};transition:.14s;`;
+    const segWrap=`display:flex;gap:3px;padding:3px;background:${t.segBg};border-radius:9px;`;
+    const mode=(a)=>`appearance:none;border:none;cursor:pointer;font:600 12.5px Inter,sans-serif;padding:7px 13px;border-radius:8px;white-space:nowrap;color:${a?t.primaryText:t.muted};background:${a?t.primary:'transparent'};box-shadow:${a?'0 1px 2px rgba(0,0,0,.14)':'none'};`;
+    const fk=st.focusKey;
+    const months=Array.from({length:N},(_,i)=>({label:'М'+(i+1)}));
+    const monthOptions=Array.from({length:12},(_,i)=>({val:String(i+1),label:'М'+(i+1)}));
+
+    let filled=0, total=defs.length*N;
+    const rows=defs.map((def,ri)=>{
+      let devSum=0, anyFact=false;
+      const cells=Array.from({length:N},(_,ci)=>{
+        const plan=def.plan[ci]; const factStr=st.fact[def.key][ci]; const has=factStr!==''&&factStr!=null; if(has){filled++;anyFact=true;}
+        const fact=this.num(factStr); const dev=has?fact-plan:0; if(has)devSum+=dev;
+        const isProfit=def.key==='profit'||def.key==='revenue';
+        const good=isProfit?dev>=0:dev<=0;
+        const k=def.key+'-'+ci; const focused=fk===k;
+        const cellBg = !has? t.emptyCell : t.cellBg;
+        return {plan:'план '+this.fmtK(plan), placeholder:'факт', value:factStr, cellId:def.key+'|'+ci,
+          wrap:`width:${d.cw}px;flex:none;border-right:1px solid ${t.gridLine};border-bottom:1px solid ${t.gridLine};padding:6px 8px;background:${cellBg};`,
+          style:`width:100%;height:30px;border:1.5px solid ${focused?t.primary:(has?t.border:'transparent')};border-radius:7px;background:${has?t.surface:'transparent'};color:${t.text};font:600 12.5px 'JetBrains Mono',monospace;text-align:right;padding:0 8px;outline:none;box-shadow:${focused?'0 0 0 3px '+t.ring:'none'};`,
+          onChange:this.setCell(def.key,ci), onFocus:()=>this.setState({focusKey:k}), onBlur:()=>this.setState({focusKey:null}),
+          dev: has? (dev>0?'+'+this.fmtK(dev):(dev<0?this.fmtK(dev):'±0')) : '',
+          devStyle:`font:600 10px 'JetBrains Mono',monospace;text-align:right;margin-top:3px;color:${dev===0?t.subtle:(good?t.primary:t.danger)};`};
+      });
+      const goodSum=(def.key==='profit'||def.key==='revenue')?devSum>=0:devSum<=0;
+      return {label:def.label, dot:`width:8px;height:8px;border-radius:3px;flex:none;background:${def.color};margin-top:3px;`,
+        rowWrap:`display:flex;align-items:stretch;`,
+        cells, devSum: anyFact?(devSum>0?'+'+this.fmtK(devSum):(devSum<0?this.fmtK(devSum):'±0')):'—',
+        devSumStyle:`font:700 12px 'JetBrains Mono',monospace;color:${!anyFact?t.subtle:(devSum===0?t.subtle:(goodSum?t.primary:t.danger))};`};
+    });
+    const fillPct=total>0?Math.round(filled/total*100):0;
+
+    const tabDefs=[['Проект',''],['Сбыт','2'],['Издержки','4'],['Инвестиции','3'],['Финансирование','6'],['Валюта и старт',''],['Факт.',st.on?'•':'']];
+    const tabs=tabDefs.map(([label,badge])=>{ const active=label==='Факт.';
+      return {label,badge,
+        style:`appearance:none;border:none;background:none;cursor:pointer;display:inline-flex;align-items:center;gap:7px;font:600 13.5px Inter,sans-serif;color:${active?t.text:t.muted};padding:0 3px;height:46px;border-bottom:2px solid ${active?t.primary:'transparent'};white-space:nowrap;`,
+        badgeStyle:`font:600 12px Inter,sans-serif;color:${t.primary};`};
+    });
+
+    const s={
+      page:`min-height:100vh;background:${t.pageBg};color:${t.text};display:flex;flex-direction:column;transition:background .25s;`,
+      bar:`display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:13px 20px;background:${t.barBg};border-bottom:1px solid ${t.border};position:sticky;top:0;z-index:60;`,
+      barDot:`width:26px;height:26px;border-radius:7px;flex:none;background:linear-gradient(150deg,${t.brandMid},${t.brandTo});`,
+      barTitle:`font:700 13px Inter,sans-serif;letter-spacing:-.01em;color:${t.text};white-space:nowrap;`,
+      barSub:`font:500 11px Inter,sans-serif;color:${t.subtle};white-space:nowrap;`,
+      barLabel:`font:600 9.5px Inter,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:${t.subtle};`,
+      seg:segWrap, segOff:seg(st.demo==='off'),segPart:seg(st.demo==='part'),segFull:seg(st.demo==='full'),
+      segLight:seg(st.theme==='light'),segDark:seg(st.theme==='dark'),segDesktop:seg(st.device==='desktop'),segTablet:seg(st.device==='tablet'),segMobile:seg(st.device==='mobile'),
+
+      stage:`flex:1;display:flex;justify-content:center;align-items:flex-start;padding:${d.mobile?'22px 12px':'34px 24px'};`,
+      frame:`position:relative;width:100%;max-width:${d.frame}px;background:${t.bg};border:1px solid ${t.border};border-radius:${d.radius}px;box-shadow:${t.shadow};overflow:hidden;display:flex;flex-direction:column;`,
+      subheader:`display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:13px ${d.pad}px;background:${t.headerBg};border-bottom:1px solid ${t.border};`,
+      backBtn:`appearance:none;cursor:pointer;width:34px;height:34px;border-radius:8px;border:1px solid ${t.border};background:${t.surface};color:${t.muted};font:600 14px Inter;flex:none;`,
+      projName:`font:700 ${d.mobile?16:19}px Inter,sans-serif;letter-spacing:-.02em;color:${t.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;`,
+      savedChip:`font:600 11px Inter,sans-serif;color:${t.subtle};background:${t.surface2};border:1px solid ${t.border};padding:3px 8px;border-radius:6px;white-space:nowrap;flex:none;${d.mobile?'display:none;':''}`,
+      subActions:`display:flex;align-items:center;gap:10px;flex-wrap:wrap;${d.mobile?'width:100%;':''}`,
+      modeSeg:`display:flex;gap:3px;padding:3px;background:${t.segBg};border-radius:9px;${d.mobile?'flex:1;':''}`,
+      modeEditor:mode(true),modeOther:mode(false),
+      calcBtn:`appearance:none;border:none;cursor:pointer;height:40px;padding:0 16px;border-radius:4px;background:${t.primary};color:${t.primaryText};font:600 13px Inter,sans-serif;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.12);transition:.14s;`,
+      calcBtnHover:`background:${t.primaryHover};`,
+      tabBarWrap:`background:${t.headerBg};border-bottom:1px solid ${t.border};padding:0 ${d.pad}px;`,
+      tabBar:`display:flex;align-items:center;gap:${d.mobile?14:22}px;overflow-x:auto;`,
+
+      content:`flex:1;padding:${d.pad}px;`,
+      tabHead:`margin-bottom:18px;`,
+      tabTitle:`font:700 ${d.mobile?18:21}px 'Satoshi',Inter,sans-serif;letter-spacing:-.02em;color:${t.text};`,
+      tabSub:`font:400 13.5px Inter,sans-serif;color:${t.muted};margin-top:5px;`,
+
+      masterRow:`display:flex;align-items:flex-start;gap:12px;cursor:pointer;flex:1;min-width:240px;`,
+      masterLabel:`display:block;font:700 14.5px Inter,sans-serif;color:${t.text};`,
+      masterHelp:`display:block;font:400 12.5px/1.45 Inter,sans-serif;color:${t.subtle};margin-top:3px;`,
+      linkResults:`font:600 12.5px Inter,sans-serif;color:${t.primary};white-space:nowrap;cursor:pointer;flex:none;`,
+
+      onboard:`text-align:center;padding:48px 24px;background:${t.surface};border:1px dashed ${t.borderStrong};border-radius:16px;display:flex;flex-direction:column;align-items:center;`,
+      onboardIco:`width:60px;height:60px;border-radius:16px;background:${t.surface2};color:${t.subtle};display:flex;align-items:center;justify-content:center;margin-bottom:18px;`,
+      onboardTitle:`font:700 19px 'Satoshi',Inter,sans-serif;color:${t.text};`,
+      onboardSub:`font:400 14px/1.55 Inter,sans-serif;color:${t.muted};max-width:440px;margin:8px auto 22px;`,
+      onboardBtn:`appearance:none;border:none;cursor:pointer;height:44px;padding:0 22px;border-radius:4px;background:${t.primary};color:${t.primaryText};font:600 14px Inter,sans-serif;box-shadow:0 1px 2px rgba(0,0,0,.12);transition:.14s;`,
+      onboardBtnHover:`background:${t.primaryHover};`,
+
+      ctrlCard:`display:flex;gap:24px;flex-wrap:wrap;align-items:flex-end;background:${t.surface};border:1px solid ${t.border};border-radius:16px;padding:18px;margin-bottom:18px;animation:fe-expand .2s ease;`,
+      fcolSm:`display:flex;flex-direction:column;gap:7px;width:220px;`,
+      labelRow:`display:flex;align-items:center;gap:6px;`,
+      fieldLabel:`font:600 12.5px Inter,sans-serif;color:${t.muted};`,
+      hintWrap:`position:relative;display:inline-flex;`,
+      hintBadge:`width:15px;height:15px;border-radius:50%;border:1px solid ${t.borderStrong};color:${t.subtle};font:700 9.5px Geist;display:flex;align-items:center;justify-content:center;cursor:help;`,
+      selBox:`position:relative;display:flex;align-items:center;height:42px;border-radius:8px;background:${t.surface};border:1.5px solid ${t.border};overflow:hidden;`,
+      selectEl:`flex:1;min-width:0;height:100%;border:none;outline:none;background:transparent;color:${t.text};font:600 13.5px 'JetBrains Mono',monospace;padding:0 30px 0 12px;cursor:pointer;`,
+      selChev:`position:absolute;right:11px;top:50%;transform:translateY(-50%);color:${t.subtle};font-size:11px;pointer-events:none;`,
+      fieldNote:`font:500 11px Inter,sans-serif;color:${t.subtle};`,
+      progressWrap:`flex:1;min-width:240px;`,
+      progressTop:`display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;`,
+      progressLabel:`font:600 12px Inter,sans-serif;color:${t.muted};`,
+      progressPct:`font:700 14px 'JetBrains Mono',monospace;color:${t.primary};`,
+      progressTrack:`height:8px;border-radius:5px;background:${t.surface2};overflow:hidden;`,
+      progressMeta:`font:500 11px Inter,sans-serif;color:${t.subtle};margin-top:7px;`,
+
+      gridHint:`display:flex;align-items:center;gap:7px;font:500 11px Inter,sans-serif;color:${t.subtle};margin-bottom:8px;`,
+      scrollWrap:`border:1px solid ${t.border};border-radius:16px;overflow-x:auto;overflow-y:hidden;background:${t.cellBg};`,
+      gridInner:`width:max-content;min-width:100%;`,
+      corner:`width:${d.lbl}px;flex:none;position:sticky;left:0;z-index:4;background:${t.stickyBg};border-right:1px solid ${t.border};border-bottom:1px solid ${t.border};padding:8px 12px;font:600 10.5px Inter,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:${t.subtle};display:flex;align-items:center;`,
+      monthCell:`width:${d.cw}px;flex:none;height:36px;display:flex;align-items:center;justify-content:flex-end;border-right:1px solid ${t.gridLine};border-bottom:1px solid ${t.border};padding:0 10px;font:600 11px 'JetBrains Mono',monospace;color:${t.subtle};background:${t.surface2};`,
+      devHeadCell:`width:90px;flex:none;height:36px;display:flex;align-items:center;justify-content:flex-end;border-bottom:1px solid ${t.border};padding:0 12px;font:600 10px Inter,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:${t.subtle};background:${t.surface2};`,
+      rowLabel:`width:${d.lbl}px;flex:none;position:sticky;left:0;z-index:3;background:${t.stickyBg};border-right:1px solid ${t.border};border-bottom:1px solid ${t.gridLine};padding:10px 12px;display:flex;gap:8px;align-items:flex-start;`,
+      rowTitle:`font:600 12.5px Inter,sans-serif;color:${t.text};`,
+      rowUnit:`font:500 10px Inter,sans-serif;color:${t.subtle};margin-top:2px;`,
+      planVal:`font:500 9.5px 'JetBrains Mono',monospace;color:${t.subtle};text-align:right;margin-bottom:3px;`,
+      devCell:`width:90px;flex:none;display:flex;align-items:center;justify-content:flex-end;border-bottom:1px solid ${t.gridLine};padding:0 12px;`,
+      legendRow:`display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;`,
+      legendItem:`display:flex;align-items:center;gap:6px;font:500 11.5px Inter,sans-serif;color:${t.muted};`,
+      legPlan:`width:11px;height:11px;border-radius:3px;background:${t.subtle};`,
+      legPos:`width:11px;height:11px;border-radius:3px;background:${t.primary};`,
+      legNeg:`width:11px;height:11px;border-radius:3px;background:${t.danger};`,
+      legEmpty:`width:11px;height:11px;border-radius:3px;border:1.5px dashed ${t.borderStrong};`,
+
+      bottomPad:`height:4px;`,
+      saveBar:`position:sticky;bottom:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px ${d.pad}px;background:${t.headerBg};border-top:1px solid ${t.border};box-shadow:0 -8px 24px -16px rgba(0,0,0,.28);`,
+      saveStatus:`display:flex;align-items:center;gap:9px;`,
+      dirtyDot:`width:8px;height:8px;border-radius:50%;background:${t.warn};flex:none;`,
+      saveTextDirty:`font:600 13px Inter,sans-serif;color:${t.warn};`,
+      savedCheck:`flex:none;width:18px;height:18px;border-radius:50%;background:${t.primaryBg};color:${t.primary};font:700 11px Geist;display:flex;align-items:center;justify-content:center;`,
+      saveTextSaved:`font:500 13px Inter,sans-serif;color:${t.subtle};`,
+      saveBtn:`appearance:none;border:none;cursor:${st.dirty?'pointer':'default'};height:38px;padding:0 20px;border-radius:4px;background:${st.dirty?t.primary:t.surface2};color:${st.dirty?t.primaryText:t.subtle};font:600 13.5px Inter,sans-serif;box-shadow:${st.dirty?'0 1px 2px rgba(0,0,0,.12)':'none'};transition:.14s;`,
+      saveBtnHover:`background:${st.dirty?t.primaryHover:t.surface2};`
+    };
+
+    return {s,t,tabs,months,monthOptions,rows,
+      isOff:!st.on, isOn:st.on,
+      factUntil:String(st.factUntil), onFactUntil:(e)=>this.setState({dirty:true,factUntil:+e.target.value}),
+      fillPct:String(fillPct), filledCells:String(filled), totalCells:String(total), rowsCount:String(defs.length),
+      progressBar:`height:100%;width:${fillPct}%;background:${t.primary};border-radius:5px;transition:width .3s;`,
+      masterCard:`display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;background:${st.on?t.primarySoft:t.surface};border:1.5px solid ${st.on?t.primary:t.border};border-radius:14px;padding:16px 18px;margin-bottom:18px;`,
+      masterSw:`flex:none;width:42px;height:24px;border-radius:12px;background:${st.on?t.primary:t.borderStrong};position:relative;transition:.16s;margin-top:1px;`,
+      masterKnob:`position:absolute;top:2px;left:${st.on?'20px':'2px'};width:20px;height:20px;border-radius:50%;background:#fff;transition:.16s;box-shadow:0 1px 3px rgba(0,0,0,.3);`,
+      dirty:st.dirty, clean:!st.dirty,
+      toggleOn:()=>this.setState(s=>({dirty:true,on:!s.on,demo:!s.on?'full':'off'})),
+      save:()=>this.setState({dirty:false}),
+      setOff:()=>this.loadDemo('off'),setPart:()=>this.loadDemo('part'),setFull:()=>this.loadDemo('full'),
+      setLight:()=>this.setState({theme:'light'}),setDark:()=>this.setState({theme:'dark'}),
+      setDesktop:()=>this.setState({device:'desktop'}),setTablet:()=>this.setState({device:'tablet'}),setMobile:()=>this.setState({device:'mobile'})
+    };
+  }
+}
+</script>
+</body>
+</html>

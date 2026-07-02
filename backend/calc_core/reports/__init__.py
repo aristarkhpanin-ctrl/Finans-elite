@@ -11,6 +11,7 @@ from .statements import (
     build_income,
     build_profit_use,
 )
+from .valuation import BusinessValuation, compute_valuation
 
 __all__ = [
     "Statement",
@@ -20,6 +21,8 @@ __all__ = [
     "compute_ratios",
     "BreakEven",
     "compute_break_even",
+    "BusinessValuation",
+    "compute_valuation",
     "build_income",
     "build_cashflow",
     "build_balance",

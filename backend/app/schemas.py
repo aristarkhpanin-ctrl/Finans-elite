@@ -31,6 +31,8 @@ class MetricsOut(BaseModel):
     pi: Optional[Decimal] = None
     pb_months: Optional[int] = None
     dpb_months: Optional[int] = None
+    pv_investments: Optional[Decimal] = None
+    peak_financing_need: Optional[Decimal] = None
 
 
 class RatiosOut(BaseModel):
@@ -46,6 +48,14 @@ class BreakEvenOut(BaseModel):
     margin_of_safety: list[Optional[Decimal]]
 
 
+class ValuationOut(BaseModel):
+    net_assets: Decimal
+    gordon_value: Optional[Decimal] = None
+    dividend_value: Optional[Decimal] = None
+    earnings_multiple_value: Optional[Decimal] = None
+    liquidation_value: Optional[Decimal] = None
+
+
 class CalcResponse(BaseModel):
     engine_version: str
     n: int
@@ -56,6 +66,7 @@ class CalcResponse(BaseModel):
     metrics: MetricsOut
     ratios: RatiosOut
     break_even: BreakEvenOut
+    valuation: ValuationOut
     actualized_cashflow: Optional[StatementOut] = None
     cashflow_variance: Optional[StatementOut] = None
     warnings: list[str]
@@ -73,11 +84,24 @@ class ProjectUpdate(BaseModel):
     model: Optional[ProjectModel] = None
 
 
+class LastCalcOut(BaseModel):
+    """Сводка последнего успешного расчёта (B1)."""
+
+    npv: Decimal
+    irr_annual: Optional[Decimal] = None
+    pb_months: Optional[int] = None
+    engine_version: str
+    calculated_at: datetime
+
+
 class ProjectSummary(BaseModel):
     id: str
     name: str
     created_at: datetime
     updated_at: datetime
+    last_calc: Optional[LastCalcOut] = None
+    # Модель менялась после последнего расчёта (или расчёта не было) → «Черновик».
+    is_stale: bool = True
 
 
 class ProjectOut(ProjectSummary):
@@ -310,6 +334,8 @@ def to_response(r: CalcResult) -> CalcResponse:
             pi=r.metrics.pi,
             pb_months=r.metrics.pb_months,
             dpb_months=r.metrics.dpb_months,
+            pv_investments=r.metrics.pv_investments,
+            peak_financing_need=r.metrics.peak_financing_need,
         ),
         ratios=RatiosOut(
             liquidity=r.ratios.liquidity,
@@ -321,6 +347,13 @@ def to_response(r: CalcResult) -> CalcResponse:
         break_even=BreakEvenOut(
             break_even_revenue=r.break_even.break_even_revenue,
             margin_of_safety=r.break_even.margin_of_safety,
+        ),
+        valuation=ValuationOut(
+            net_assets=r.valuation.net_assets,
+            gordon_value=r.valuation.gordon_value,
+            dividend_value=r.valuation.dividend_value,
+            earnings_multiple_value=r.valuation.earnings_multiple_value,
+            liquidation_value=r.valuation.liquidation_value,
         ),
         actualized_cashflow=_statement_out(r.actualized_cashflow) if r.actualized_cashflow else None,
         cashflow_variance=_statement_out(r.cashflow_variance) if r.cashflow_variance else None,

@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Inter';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-600-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:700;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-700-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-600-normal.woff2') format('woff2');}
+</style>
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  input,select{font-family:inherit;}
+  input::placeholder{color:inherit;opacity:.4;}
+  .fe-scroll::-webkit-scrollbar{height:10px;}
+  .fe-scroll::-webkit-scrollbar-thumb{background:rgba(120,113,108,.35);border-radius:5px;border:3px solid transparent;background-clip:padding-box;}
+  .fe-scroll::-webkit-scrollbar-track{background:transparent;}
+  @keyframes fe-fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  @keyframes fe-pop{0%{transform:scale(.94);opacity:0}100%{transform:scale(1);opacity:1}}
+  @keyframes fe-toast{0%{opacity:0;transform:translateY(-6px)}12%{opacity:1;transform:none}82%{opacity:1}100%{opacity:0;transform:translateY(-4px)}}
+  @keyframes fe-spin{to{transform:rotate(360deg)}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}" data-screen-label="06 — Сбыт">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+      <div style="width:26px;height:26px;flex:none;border-radius:8px;overflow:hidden;"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="26px,26px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Этап&nbsp;6 · Вкладка «Сбыт»</span>
+        <span style="{{ s.barSub }}">Финанс-Элит · помесячный ряд</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Продукты</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segP0 }}" onClick="{{ setP0 }}">Пусто</button><button style="{{ s.segP1 }}" onClick="{{ setP1 }}">Один</button><button style="{{ s.segPN }}" onClick="{{ setPN }}">Несколько</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Горизонт</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segN12 }}" onClick="{{ setN12 }}">12&nbsp;мес</button><button style="{{ s.segN24 }}" onClick="{{ setN24 }}">24&nbsp;мес</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Экспорт</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segExpOff }}" onClick="{{ expOff }}">Обычный</button><button style="{{ s.segExpOn }}" onClick="{{ expOn }}">Экспортный</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Ошибка</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segErrOff }}" onClick="{{ errOff }}">Нет</button><button style="{{ s.segErrOn }}" onClick="{{ errOn }}">Предоплата</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Свет</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тьма</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}">
+
+      <!-- SUBHEADER (slim, from Этап 5) -->
+      <div style="{{ s.subheader }}">
+        <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1;">
+          <button style="{{ s.backBtn }}">←</button>
+          <span style="{{ s.projName }}">Завод полимерной упаковки</span>
+          <span style="{{ s.savedChip }}">✓ Сохранено</span>
+        </div>
+        <div style="{{ s.subActions }}">
+          <div style="{{ s.modeSeg }}"><button style="{{ s.modeEditor }}">Редактор</button><button style="{{ s.modeOther }}">Результаты</button><button style="{{ s.modeOther }}">Анализ</button></div>
+          <button style="{{ s.calcBtn }}" style-hover="{{ s.calcBtnHover }}">Рассчитать →</button>
+        </div>
+      </div>
+
+      <!-- TAB BAR -->
+      <div style="{{ s.tabBarWrap }}">
+        <div style="{{ s.tabBar }}" class="fe-scroll">
+          <sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="7">
+          <button style="{{ tb.style }}"><span>{{ tb.label }}</span><sc-if value="{{ tb.badge }}" hint-placeholder-val=""><span style="{{ tb.badgeStyle }}">{{ tb.badge }}</span></sc-if></button>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- CONTENT -->
+      <div style="{{ s.content }}">
+
+        <div style="{{ s.tabHead }}">
+          <div style="min-width:0;">
+            <div style="{{ s.tabTitle }}">Сбыт — продукты и план продаж</div>
+            <div style="{{ s.tabSub }}">Объём и цена по месяцам формируют выручку проекта. Горизонт: {{ N }} мес.</div>
+          </div>
+          <button style="{{ s.addBtn }}" style-hover="{{ s.addBtnHover }}" onClick="{{ addProduct }}">＋&nbsp;&nbsp;Продукт</button>
+        </div>
+
+        <!-- EMPTY -->
+        <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="{{ s.empty }}">
+          <div style="{{ s.emptyIco }}"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h2l2.4 12.3a2 2 0 002 1.7h7.7a2 2 0 002-1.6L21 8H6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></svg></div>
+          <div style="{{ s.emptyTitle }}">Пока нет ни одного продукта</div>
+          <div style="{{ s.emptySub }}">Добавьте продукт или услугу — объём и цена по месяцам сформируют выручку. Можно вставить ряд прямо из Excel.</div>
+          <button style="{{ s.emptyBtn }}" style-hover="{{ s.addBtnHover }}" onClick="{{ addProduct }}">＋&nbsp;&nbsp;Добавить первый продукт</button>
+        </div>
+        </sc-if>
+
+        <!-- PRODUCT CARDS -->
+        <sc-if value="{{ hasProducts }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:16px;">
+        <sc-for list="{{ products }}" as="p" hint-placeholder-count="2">
+        <div style="{{ p.card }}">
+
+          <!-- toast -->
+          <sc-if value="{{ p.toast }}" hint-placeholder-val=""><div style="{{ p.toastStyle }}"><span style="{{ s.toastDot }}">↧</span>{{ p.toast }}</div></sc-if>
+
+          <!-- card header -->
+          <div style="{{ s.cardHead }}">
+            <div style="{{ s.cardIdx }}">{{ p.idx }}</div>
+            <div style="{{ s.nameField }}" style-hover="{{ s.nameFieldHover }}">
+              <input style="{{ s.nameInput }}" value="{{ p.name }}" placeholder="Название продукта или услуги" onChange="{{ p.onName }}">
+            </div>
+            <sc-if value="{{ p.exportOn }}" hint-placeholder-val="{{ false }}"><span style="{{ s.fxChip }}">валюта · по курсу FX</span></sc-if>
+            <button style="{{ s.delBtn }}" style-hover="{{ s.delBtnHover }}" onClick="{{ p.delete }}" title="Удалить продукт"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2M6 7l1 13a1 1 0 001 1h8a1 1 0 001-1l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          </div>
+
+          <!-- monthly grid -->
+          <div style="{{ s.gridHint }}"><span style="{{ s.gridHintIco }}">⊞</span>Вставьте диапазон из Excel в любую ячейку · Σ и среднее считаются автоматически</div>
+          <div style="{{ s.scrollWrap }}" class="fe-scroll">
+            <div style="{{ s.gridInner }}">
+
+              <div style="display:flex;">
+                <div style="{{ s.corner }}">Период&nbsp;→</div>
+                <sc-for list="{{ p.months }}" as="m" hint-placeholder-count="12"><div style="{{ s.monthCell }}">{{ m.label }}</div></sc-for>
+              </div>
+
+              <sc-for list="{{ p.rows }}" as="r" hint-placeholder-count="3">
+              <div style="display:flex;">
+                <div style="{{ r.labelCell }}">
+                  <div style="{{ r.titleStyle }}">{{ r.title }}</div>
+                  <div style="{{ s.sumChip }}">{{ r.sum }}</div>
+                  <sc-if value="{{ r.fillable }}" hint-placeholder-val="{{ false }}"><button style="{{ s.fillBtn }}" onClick="{{ r.fillAll }}">↘ заполнить все</button></sc-if>
+                </div>
+                <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="12">
+                  <sc-if value="{{ c.readonly }}" hint-placeholder-val="{{ false }}"><div style="{{ c.style }}">{{ c.value }}</div></sc-if>
+                  <sc-if value="{{ c.editable }}" hint-placeholder-val="{{ true }}"><input style="{{ c.style }}" inputmode="decimal" data-fe-cell="{{ c.cellId }}" value="{{ c.value }}" onChange="{{ c.onChange }}" onFocus="{{ c.onFocus }}" onBlur="{{ c.onBlur }}"></sc-if>
+                </sc-for>
+              </div>
+              </sc-for>
+
+            </div>
+          </div>
+
+          <!-- options row -->
+          <label style="{{ p.exportRow }}" onClick="{{ p.toggleExport }}">
+            <span style="{{ p.checkbox }}"><sc-if value="{{ p.exportOn }}" hint-placeholder-val="{{ false }}"><span style="{{ s.checkMark }}">✓</span></sc-if></span>
+            <span style="min-width:0;"><span style="{{ s.exportLabel }}">Экспорт (во 2-й валюте, без НДС, по курсу FX)</span><span style="{{ s.exportHelp }}">Цена задаётся в валюте; пересчёт в ₽ по курсу на дату отгрузки.</span></span>
+          </label>
+
+          <!-- payment terms -->
+          <div style="{{ s.termsHead }}">Условия оплаты</div>
+          <div style="{{ s.termsGrid }}">
+            <sc-for list="{{ p.terms }}" as="f" hint-placeholder-count="3">
+            <div style="display:flex;flex-direction:column;gap:7px;">
+              <div style="{{ s.labelRow }}">
+                <label style="{{ s.fieldLabel }}">{{ f.label }}</label>
+                <span style="{{ s.hintWrap }}"><span style="{{ s.hintBadge }}" title="{{ f.hint }}" onMouseEnter="{{ f.hoverOn }}" onMouseLeave="{{ f.hoverOff }}">?</span><sc-if value="{{ f.tipOpen }}" hint-placeholder-val="{{ false }}"><span style="{{ s.tooltip }}">{{ f.hint }}</span></sc-if></span>
+              </div>
+              <div style="{{ f.box }}"><input style="{{ s.termInput }}" inputmode="decimal" value="{{ f.value }}" onChange="{{ f.onChange }}" onFocus="{{ f.onFocus }}" onBlur="{{ f.onBlur }}"><span style="{{ s.termSuffix }}">{{ f.suffix }}</span></div>
+              <sc-if value="{{ f.error }}" hint-placeholder-val=""><div style="{{ s.fieldErr }}">{{ f.error }}</div></sc-if>
+              <sc-if value="{{ f.note }}" hint-placeholder-val=""><div style="{{ s.fieldNote }}">{{ f.note }}</div></sc-if>
+            </div>
+            </sc-for>
+          </div>
+
+        </div>
+        </sc-for>
+
+        <button style="{{ s.addRow }}" style-hover="{{ s.addRowHover }}" onClick="{{ addProduct }}">＋&nbsp;&nbsp;Добавить ещё продукт</button>
+        </div>
+        </sc-if>
+
+        <div style="{{ s.bottomPad }}"></div>
+      </div>
+
+      <!-- SAVE BAR -->
+      <div style="{{ s.saveBar }}">
+        <div style="{{ s.saveStatus }}">
+          <sc-if value="{{ dirty }}" hint-placeholder-val="{{ false }}"><span style="{{ s.dirtyDot }}"></span><span style="{{ s.saveTextDirty }}">Несохранённые изменения</span></sc-if>
+          <sc-if value="{{ clean }}" hint-placeholder-val="{{ true }}"><span style="{{ s.savedCheck }}">✓</span><span style="{{ s.saveTextSaved }}">Все изменения сохранены</span></sc-if>
+        </div>
+        <button style="{{ s.saveBtn }}" style-hover="{{ s.saveBtnHover }}" onClick="{{ save }}" disabled="{{ clean }}">Сохранить</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  seed(){
+    const v1=Array.from({length:24},(_,i)=>String(100+(i>=6?20:0)+(i>=12?20:0)+(i>=18?20:0)));
+    const pr1=Array.from({length:24},(_,i)=>String(1000+Math.round(i/6)*30));
+    const v2=Array.from({length:24},(_,i)=>String(200+(i>=4?40:0)+(i>=12?60:0)));
+    const pr2=Array.from({length:24},()=>'350');
+    return [
+      {id:1,name:'Плёнка ПВД, рулон',exportOn:false,prepay:'0,3',lead:'1',defer:'0',volume:v1,price:pr1},
+      {id:2,name:'Пакет с логотипом, уп. 100 шт',exportOn:false,prepay:'0',lead:'0',defer:'2',volume:v2,price:pr2}
+    ];
+  }
+  state = {
+    theme:'light', device:'desktop', N:12, count:'many',
+    products:this.seed(),
+    dirty:false, focusKey:null, hoverHint:null, pasted:{}, toast:null, toastPi:null
+  };
+  componentDidMount(){
+    this._ph=(e)=>{ const el=(e.target&&e.target.closest&&e.target.closest('[data-fe-cell]'))||(document.activeElement&&document.activeElement.getAttribute&&document.activeElement.getAttribute('data-fe-cell')!=null?document.activeElement:null); if(!el) return;
+      const cd=e.clipboardData||window.clipboardData; const txt=(cd&&cd.getData('text'))||''; const parts=txt.split(/[\t\n\r]+/).map(x=>x.trim()).filter(x=>x!==''); if(parts.length<2) return;
+      e.preventDefault(); const ps=el.getAttribute('data-fe-cell').split('|'); this.applyPaste(+ps[0],ps[1],+ps[2],parts); };
+    window.addEventListener('paste',this._ph,true);
+  }
+  componentWillUnmount(){clearTimeout(this._pt); if(this._ph) window.removeEventListener('paste',this._ph,true);}
+  applyPaste(pi,key,ci,parts){
+    this.setState(s=>{ const pasted={...s.pasted}; const products=s.products.map((p,i)=>{ if(i!==pi)return p; const arr=p[key].slice(); for(let k=0;k<parts.length;k++){ const tgt=ci+k; if(tgt<s.N){ arr[tgt]=this.norm(parts[k]); pasted[pi+'-'+key+'-'+tgt]=1; } } return {...p,[key]:arr}; });
+      const filled=Math.min(parts.length, s.N-ci);
+      return {dirty:true, products, pasted, toast:'Вставлено из Excel: '+filled+' '+this.plural(filled,'значение','значения','значений'), toastPi:pi}; });
+    clearTimeout(this._pt); this._pt=setTimeout(()=>this.setState({pasted:{},toast:null,toastPi:null}),2600);
+  }
+
+  THEME(){
+    const light={pageBg:'#F3F2F0',bg:'#FAFAF9',surface:'#FFFFFF',surface2:'#F5F5F4',cellBg:'#FFFFFF',border:'#E7E5E4',borderStrong:'#D6D3D1',gridLine:'#EFEDEB',text:'#1C1917',muted:'#57534E',subtle:'#A8A29E',primary:'#0E9C6E',primaryHover:'#0B8560',primaryText:'#FFFFFF',primaryBg:'#E2F4EC',primarySoft:'#EFF8F3',danger:'#C13A30',dangerBg:'#FBE9E7',dangerBorder:'#F2C8C2',warn:'#B86E00',info:'#2D6FE0',infoBg:'#E5EEFC',ring:'rgba(14,156,110,.22)',shadow:'0 18px 48px -20px rgba(28,25,23,.28), 0 2px 6px rgba(28,25,23,.05)',menuShadow:'0 24px 56px -16px rgba(28,25,23,.34)',barBg:'#FFFFFF',segBg:'#F0EEEC',segActiveBg:'#FFFFFF',headerBg:'#FFFFFF',stickyBg:'#FFFFFF',brandMid:'#0C7250',brandTo:'#0E9C6E'};
+    const dark={pageBg:'#141210',bg:'#1A1816',surface:'#232020',surface2:'#2C2825',cellBg:'#1C1A18',border:'#39332F',borderStrong:'#4A433E',gridLine:'#332E2A',text:'#F6F4F2',muted:'#B7B0A9',subtle:'#7E756D',primary:'#12B07D',primaryHover:'#19C28B',primaryText:'#06241A',primaryBg:'rgba(18,176,125,.16)',primarySoft:'rgba(18,176,125,.10)',danger:'#F0796E',dangerBg:'rgba(210,69,59,.16)',dangerBorder:'rgba(240,121,110,.32)',warn:'#E0A23A',info:'#5E93FF',infoBg:'rgba(45,111,237,.18)',ring:'rgba(25,194,139,.34)',shadow:'0 28px 64px -24px rgba(0,0,0,.72)',menuShadow:'0 28px 64px -20px rgba(0,0,0,.8)',barBg:'#1E1B19',segBg:'#16140F',segActiveBg:'#2C2825',headerBg:'#1E1B19',stickyBg:'#232020',brandMid:'#0A5A40',brandTo:'#0E7A57'};
+    return this.state.theme==='dark'?{...dark,pageBg:'#000000',bg:'#0C0F0C',surface:'#212525',surface2:'#2A312A',sk:'#2A312A',cellBg:'#161A16',border:'#485346',borderStrong:'#677D64',gridLine:'#232823',text:'#DDFFDC',muted:'#93A091',subtle:'#677D64',primary:'#7FEE64',primaryHover:'#95F47D',primaryText:'#000000',accent:'#7FEE64',primaryBg:'rgba(127,238,100,.15)',primarySoft:'rgba(127,238,100,.09)',good:'#7FEE64',goodBg:'rgba(127,238,100,.15)',goodBorder:'rgba(127,238,100,.32)',danger:'#F0796E',dangerHover:'#F4988F',dangerBg:'rgba(240,121,110,.15)',dangerBorder:'rgba(240,121,110,.32)',dangerText:'#F4B0A8',warn:'#E0A23A',warnBg:'rgba(224,162,58,.16)',warnBorder:'rgba(224,162,58,.32)',info:'#AED2A4',infoBg:'rgba(174,210,164,.15)',ring:'rgba(127,238,100,.4)',shadow:'0 30px 70px -34px rgba(0,0,0,.9)',menuShadow:'0 22px 52px -16px rgba(0,0,0,.82)',barBg:'#0C0F0C',barBorder:'#1D231D',segBg:'#0B0E0B',segActiveBg:'#2A312A',headerBg:'#0C0F0C',stickyBg:'#212525',brandMid:'#3E4A3C',brandTo:'#7FEE64',violet:'#C8F9B6',violetBg:'rgba(200,249,182,.14)',subtotalBg:'#1C201C',grandBg:'rgba(127,238,100,.12)',hov:'#262C25',hovlab:'#2C322B',ico1:'#7FEE64',ico1Bg:'rgba(127,238,100,.15)',ico2:'#AED2A4',ico2Bg:'rgba(174,210,164,.15)',ico3:'#C8F9B6',ico3Bg:'rgba(200,249,182,.14)',ico4:'#E0A23A',ico4Bg:'rgba(224,162,58,.16)',inputBg:'#161A16',success:'#7FEE64',successBg:'rgba(127,238,100,.16)'}:{...light,pageBg:'#E4F1E0',bg:'#F4FAF2',surface:'#FFFFFF',surface2:'#EDF5EA',sk:'#E3EEDF',cellBg:'#FFFFFF',border:'#D2E4CD',borderStrong:'#B4CCAE',gridLine:'#E8F1E5',text:'#16201A',muted:'#46584A',subtle:'#6E8270',primary:'#7FEE64',primaryHover:'#6FE253',primaryText:'#06210E',accent:'#138A45',primaryBg:'#DBF3D2',primarySoft:'#EAF8E4',good:'#0E7A4F',goodBg:'#DBF1E2',goodBorder:'#B7DEC6',danger:'#C0473B',dangerHover:'#A53A30',dangerBg:'#FAE7E4',dangerBorder:'#EECFCA',dangerText:'#8F2F26',warn:'#B07A12',warnBg:'#FBF0D8',warnBorder:'#ECDDB4',info:'#3E7D52',infoBg:'#E6EFE2',ring:'rgba(56,194,75,.3)',shadow:'0 18px 44px -22px rgba(20,40,24,.22), 0 2px 6px rgba(20,40,24,.05)',menuShadow:'0 24px 56px -16px rgba(20,40,24,.28)',barBg:'#FFFFFF',barBorder:'#D2E4CD',segBg:'#E7F0E3',segActiveBg:'#FFFFFF',headerBg:'#FFFFFF',stickyBg:'#FFFFFF',brandMid:'#138A45',brandTo:'#7FEE64',violet:'#3E7D52',violetBg:'#E6EFE2',subtotalBg:'#EDF3EA',grandBg:'#DBF1E2',hov:'#F1F7EE',hovlab:'#EAF2E6',ico1:'#138A45',ico1Bg:'#DBF3D2',ico2:'#3E7D52',ico2Bg:'#E6EFE2',ico3:'#5FA86A',ico3Bg:'#E3F0DE',ico4:'#B07A12',ico4Bg:'#FBF0D8',inputBg:'#FFFFFF',success:'#0E7A4F',successBg:'#DBF1E2'};
+  }
+  DIM(){const dv=this.state.device,m=dv==='mobile',tab=dv==='tablet';
+    return {frame:m?402:tab?864:1180, radius:m?30:tab?18:14, pad:m?16:tab?22:30, lbl:m?112:176, cw:m?64:80, mobile:m};
+  }
+
+  num(x){ if(x==null||x==='')return 0; return parseFloat(String(x).replace(/\s/g,'').replace(',','.'))||0; }
+  fmtInt(n){ n=Math.round(n); const neg=n<0; n=Math.abs(n); let s=String(n).replace(/\B(?=(\d{3})+(?!\d))/g,'\u00A0'); return (neg?'−':'')+s; }
+  fmtMoney(n){ const a=Math.abs(n); if(a>=1e6) return (n/1e6).toFixed(2).replace('.',',')+'\u00A0млн'; return this.fmtInt(n); }
+  norm(x){ x=String(x).trim().replace(/[^0-9.,\-]/g,''); const lc=x.lastIndexOf(','), ld=x.lastIndexOf('.'); if(ld>lc){ x=x.replace(/,/g,'').replace('.',','); } return x; }
+
+  setCell(pi,key,ci){ return (e)=>{ const val=e.target.value; this.setState(s=>({dirty:true, products:s.products.map((p,i)=> i!==pi?p:({...p,[key]:p[key].map((c,k)=>k===ci?val:c)}))})); }; }
+  fillAll(pi,key){ return ()=>{ this.setState(s=>({dirty:true, products:s.products.map((p,i)=>{ if(i!==pi)return p; const first=p[key][0]||''; return {...p,[key]:p[key].map((c,k)=> k<s.N?first:c)}; })})); }; }
+
+  setField(pi,key){ return (e)=>{ const val=e.target.value; this.setState(s=>({dirty:true, products:s.products.map((p,i)=>i!==pi?p:({...p,[key]:val}))})); }; }
+  toggleExport(pi){ return ()=>{ this.setState(s=>({dirty:true, products:s.products.map((p,i)=>i!==pi?p:({...p,exportOn:!p.exportOn}))})); }; }
+  delProduct(pi){ return ()=>{ this.setState(s=>({dirty:true, products:s.products.filter((_,i)=>i!==pi)})); }; }
+  addProduct=()=>{ this.setState(s=>({dirty:true, products:[...s.products, {id:Date.now(),name:'',exportOn:false,prepay:'0',lead:'0',defer:'0',volume:Array(24).fill(''),price:Array(24).fill('')}]})); };
+
+  plural(n,a,b,c){n=Math.abs(+n)%100;const n1=n%10;if(n>10&&n<20)return c;if(n1>1&&n1<5)return b;if(n1===1)return a;return c;}
+
+  renderVals(){
+    const st=this.state, t=this.THEME(), d=this.DIM(), N=st.N;
+    const seg=(a)=>`appearance:none;border:none;cursor:pointer;font:600 11.5px Inter,sans-serif;padding:6px 10px;border-radius:7px;white-space:nowrap;color:${a?t.text:t.subtle};background:${a?t.segActiveBg:'transparent'};box-shadow:${a?'0 1px 2px rgba(0,0,0,.14)':'none'};transition:.14s;`;
+    const segWrap=`display:flex;gap:3px;padding:3px;background:${t.segBg};border-radius:9px;`;
+    const mode=(a)=>`appearance:none;border:none;cursor:pointer;font:600 12.5px Inter,sans-serif;padding:7px 13px;border-radius:8px;white-space:nowrap;color:${a?t.primaryText:t.muted};background:${a?t.primary:'transparent'};box-shadow:${a?'0 1px 2px rgba(0,0,0,.14)':'none'};`;
+    const visible = st.count==='none'?[]:(st.count==='one'?st.products.slice(0,1):st.products);
+
+    const cw=d.cw, lbl=d.lbl;
+    const cellBase=(focused,pasted,err)=>`width:${cw}px;flex:none;height:36px;border:none;border-right:1px solid ${t.gridLine};border-bottom:1px solid ${t.gridLine};background:${err?t.dangerBg:(pasted?t.primaryBg:t.cellBg)};color:${t.text};font:500 12.5px 'JetBrains Mono',monospace;text-align:right;padding:0 9px;outline:none;${focused?'box-shadow:inset 0 0 0 2px '+t.primary+';position:relative;z-index:1;':''}transition:background .4s;`;
+    const roCell=`width:${cw}px;flex:none;height:34px;display:flex;align-items:center;justify-content:flex-end;border-right:1px solid ${t.gridLine};border-bottom:1px solid ${t.gridLine};background:${t.surface2};color:${t.muted};font:500 12px 'JetBrains Mono',monospace;padding:0 9px;white-space:nowrap;overflow:hidden;`;
+
+    const buildProduct=(p,pi)=>{
+      const cur = p.exportOn?'$':'₽';
+      const volSum=p.volume.slice(0,N).reduce((a,c)=>a+this.num(c),0);
+      const revSum=p.volume.slice(0,N).reduce((a,c,i)=>a+this.num(c)*this.num(p.price[i]),0);
+      const priceVals=p.price.slice(0,N).map(x=>this.num(x)).filter(x=>x>0);
+      const priceAvg=priceVals.length?priceVals.reduce((a,c)=>a+c,0)/priceVals.length:0;
+      const months=Array.from({length:N},(_,i)=>({label:'М'+(i+1)}));
+
+      const mkCells=(key,readonly)=>Array.from({length:N},(_,ci)=>{
+        if(readonly){ const val=this.num(p.volume[ci])*this.num(p.price[ci]); return {readonly:true,editable:false,value: val? this.fmtInt(val) : '—', style: roCell + (ci===N-1?'border-right:none;':'')}; }
+        const k=pi+'-'+key+'-'+ci; const focused=st.focusKey===k; const pasted=!!st.pasted[k];
+        return {readonly:false,editable:true,value:p[key][ci], cellId:pi+'|'+key+'|'+ci,
+          style: cellBase(focused,pasted,false) + (ci===N-1?'border-right:none;':''),
+          onChange:this.setCell(pi,key,ci),
+          onFocus:()=>this.setState({focusKey:k}), onBlur:()=>this.setState({focusKey:null})};
+      });
+
+      const labelCell=(title)=>`width:${lbl}px;flex:none;position:sticky;left:0;z-index:3;background:${t.stickyBg};border-right:1px solid ${t.border};border-bottom:1px solid ${t.gridLine};padding:7px 12px;display:flex;flex-direction:column;gap:4px;justify-content:center;`;
+
+      const rows=[
+        {title:'Объём, шт.', sum:'Σ '+this.fmtInt(volSum), fillable:true, key:'volume', labelCell:labelCell(), titleStyle:`font:600 12px Inter,sans-serif;color:${t.text};`, cells:mkCells('volume',false), fillAll:this.fillAll(pi,'volume')},
+        {title:p.exportOn?'Цена, $ (USD)':'Цена, ₽', sum:'ср. '+this.fmtInt(priceAvg)+' '+cur, fillable:true, key:'price', labelCell:labelCell(), titleStyle:`font:600 12px Inter,sans-serif;color:${t.text};`, cells:mkCells('price',false), fillAll:this.fillAll(pi,'price')},
+        {title:'Выручка', sum:'Σ '+this.fmtMoney(revSum)+' '+cur, fillable:false, key:'rev', labelCell:labelCell().replace(t.stickyBg,t.surface2), titleStyle:`font:600 12px Inter,sans-serif;color:${t.muted};`, cells:mkCells('rev',true)}
+      ];
+
+      const prepayErr = (this.num(p.prepay)<0 || this.num(p.prepay)>1);
+      const mkTerm=(key,label,suffix,hint,note,isErr)=>{ const k='term-'+pi+'-'+key; const focused=st.focusKey===k; const err=isErr?'Доля должна быть от 0 до 1':'';
+        return {key,label,suffix,hint,note,value:p[key],error:err,
+          box:`display:flex;align-items:center;height:40px;border-radius:8px;background:${t.surface};border:1.5px solid ${err?t.danger:(focused?t.primary:t.border)};box-shadow:${focused?'0 0 0 3px '+t.ring:'none'};overflow:hidden;transition:.14s;`,
+          onChange:this.setField(pi,key), onFocus:()=>this.setState({focusKey:k}), onBlur:()=>this.setState({focusKey:null}),
+          hoverOn:()=>this.setState({hoverHint:k}), hoverOff:()=>this.setState({hoverHint:null}), tipOpen:st.hoverHint===k};
+      };
+      const terms=[
+        mkTerm('prepay','Предоплата','доля','Доля 0–1 — формирует «авансы полученные» в пассиве','→ Авансы полученные', prepayErr),
+        mkTerm('lead','Опережение предоплаты','мес.','За сколько месяцев до отгрузки поступает аванс','', false),
+        mkTerm('defer','Отсрочка оплаты','мес.','Задержка оплаты после отгрузки — формирует дебиторскую задолженность','→ Дебиторская задолженность', false)
+      ];
+
+      return {idx:String(pi+1), name:p.name, exportOn:p.exportOn, months, rows, terms,
+        card:`position:relative;background:${t.surface};border:1px solid ${t.border};border-radius:16px;padding:${d.pad<20?14:20}px;animation:fe-fade .25s ease;`,
+        toast: st.toastPi===pi?st.toast:'', toastStyle:`position:absolute;top:14px;right:14px;z-index:5;display:flex;align-items:center;gap:6px;padding:6px 11px;border-radius:8px;background:${t.primary};color:${t.primaryText};font:600 11.5px Inter,sans-serif;box-shadow:${t.menuShadow};animation:fe-toast 2.6s ease forwards;`,
+        onName:this.setField(pi,'name'), delete:this.delProduct(pi), toggleExport:this.toggleExport(pi),
+        exportRow:`display:flex;align-items:flex-start;gap:11px;margin-top:16px;padding:12px 14px;border-radius:8px;border:1px solid ${p.exportOn?t.primary:t.border};background:${p.exportOn?t.primarySoft:t.surface2};cursor:pointer;transition:.14s;`,
+        checkbox:`flex:none;width:20px;height:20px;border-radius:6px;border:1.5px solid ${p.exportOn?t.primary:t.borderStrong};background:${p.exportOn?t.primary:'transparent'};display:flex;align-items:center;justify-content:center;margin-top:1px;`
+      };
+    };
+
+    const tabDefs=[['Проект',''],['Сбыт',String(visible.length||'')],['Издержки','3'],['Инвестиции','1'],['Финансирование','1'],['Валюта и старт',''],['Факт.','']];
+    const tabs=tabDefs.map(([label,badge])=>{ const active=label==='Сбыт';
+      return {label,badge: st.count==='none'&&label==='Сбыт'?'':badge,
+        style:`appearance:none;border:none;background:none;cursor:pointer;display:inline-flex;align-items:center;gap:7px;font:600 13.5px Inter,sans-serif;color:${active?t.text:t.muted};padding:0 3px;height:46px;border-bottom:2px solid ${active?t.primary:'transparent'};white-space:nowrap;`,
+        badgeStyle:`font:600 10.5px 'JetBrains Mono',monospace;color:${active?t.primary:t.subtle};background:${active?t.primaryBg:t.surface2};padding:1px 6px;border-radius:20px;min-width:18px;text-align:center;`};
+    });
+
+    const s={
+      page:`min-height:100vh;background:${t.pageBg};color:${t.text};display:flex;flex-direction:column;transition:background .25s;`,
+      bar:`display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:13px 20px;background:${t.barBg};border-bottom:1px solid ${t.border};position:sticky;top:0;z-index:60;`,
+      barDot:`width:26px;height:26px;border-radius:7px;flex:none;background:linear-gradient(150deg,${t.brandMid},${t.brandTo});`,
+      barTitle:`font:700 13px Inter,sans-serif;letter-spacing:-.01em;color:${t.text};white-space:nowrap;`,
+      barSub:`font:500 11px Inter,sans-serif;color:${t.subtle};white-space:nowrap;`,
+      barLabel:`font:600 9.5px Inter,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:${t.subtle};`,
+      seg:segWrap,
+      segP0:seg(st.count==='none'),segP1:seg(st.count==='one'),segPN:seg(st.count==='many'),
+      segN12:seg(N===12),segN24:seg(N===24),
+      segExpOff:seg(!st.products[0]||!st.products[0].exportOn),segExpOn:seg(st.products[0]&&st.products[0].exportOn),
+      segErrOff:seg(!st.products[0]||this.num(st.products[0].prepay)<=1),segErrOn:seg(st.products[0]&&this.num(st.products[0].prepay)>1),
+      segLight:seg(st.theme==='light'),segDark:seg(st.theme==='dark'),
+      segDesktop:seg(st.device==='desktop'),segTablet:seg(st.device==='tablet'),segMobile:seg(st.device==='mobile'),
+
+      stage:`flex:1;display:flex;justify-content:center;align-items:flex-start;padding:${d.mobile?'22px 12px':'34px 24px'};`,
+      frame:`position:relative;width:100%;max-width:${d.frame}px;background:${t.bg};border:1px solid ${t.border};border-radius:${d.radius}px;box-shadow:${t.shadow};overflow:hidden;display:flex;flex-direction:column;`,
+
+      subheader:`display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:13px ${d.pad}px;background:${t.headerBg};border-bottom:1px solid ${t.border};`,
+      backBtn:`appearance:none;cursor:pointer;width:34px;height:34px;border-radius:8px;border:1px solid ${t.border};background:${t.surface};color:${t.muted};font:600 14px Inter;flex:none;`,
+      projName:`font:700 ${d.mobile?16:19}px Inter,sans-serif;letter-spacing:-.02em;color:${t.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;`,
+      savedChip:`font:600 11px Inter,sans-serif;color:${t.subtle};background:${t.surface2};border:1px solid ${t.border};padding:3px 8px;border-radius:9999px;white-space:nowrap;flex:none;${d.mobile?'display:none;':''}`,
+      subActions:`display:flex;align-items:center;gap:10px;flex-wrap:wrap;${d.mobile?'width:100%;':''}`,
+      modeSeg:`display:flex;gap:3px;padding:3px;background:${t.segBg};border-radius:9px;${d.mobile?'flex:1;':''}`,
+      modeEditor:mode(true),modeOther:mode(false),
+      calcBtn:`appearance:none;border:none;cursor:pointer;height:40px;padding:0 16px;border-radius:4px;background:${t.primary};color:${t.primaryText};font:600 13px Inter,sans-serif;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.12);transition:.14s;`,
+      calcBtnHover:`background:${t.primaryHover};`,
+
+      tabBarWrap:`background:${t.headerBg};border-bottom:1px solid ${t.border};padding:0 ${d.pad}px;`,
+      tabBar:`display:flex;align-items:center;gap:${d.mobile?14:22}px;overflow-x:auto;`,
+
+      content:`flex:1;padding:${d.pad}px;`,
+      tabHead:`display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:18px;`,
+      tabTitle:`font:700 ${d.mobile?18:21}px 'Satoshi',Inter,sans-serif;letter-spacing:-.02em;color:${t.text};`,
+      tabSub:`font:400 13.5px Inter,sans-serif;color:${t.muted};margin-top:5px;`,
+      addBtn:`appearance:none;border:none;cursor:pointer;height:40px;padding:0 16px;border-radius:4px;background:${t.primary};color:${t.primaryText};font:600 13.5px Inter,sans-serif;white-space:nowrap;flex:none;box-shadow:0 1px 2px rgba(0,0,0,.12);transition:.14s;`,
+      addBtnHover:`background:${t.primaryHover};`,
+
+      empty:`text-align:center;padding:54px 24px;background:${t.surface};border:1px dashed ${t.borderStrong};border-radius:16px;display:flex;flex-direction:column;align-items:center;`,
+      emptyIco:`width:60px;height:60px;border-radius:16px;background:${t.surface2};color:${t.subtle};display:flex;align-items:center;justify-content:center;margin-bottom:18px;`,
+      emptyTitle:`font:700 19px 'Satoshi',Inter,sans-serif;color:${t.text};`,
+      emptySub:`font:400 14px/1.55 Inter,sans-serif;color:${t.muted};max-width:420px;margin:8px auto 22px;`,
+      emptyBtn:`appearance:none;border:none;cursor:pointer;height:44px;padding:0 22px;border-radius:4px;background:${t.primary};color:${t.primaryText};font:600 14px Inter,sans-serif;box-shadow:0 1px 2px rgba(0,0,0,.12);transition:.14s;`,
+
+      cardHead:`display:flex;align-items:center;gap:11px;margin-bottom:16px;`,
+      cardIdx:`flex:none;width:26px;height:26px;border-radius:8px;background:${t.primaryBg};color:${t.primary};font:700 12px 'JetBrains Mono',monospace;display:flex;align-items:center;justify-content:center;`,
+      nameField:`flex:1;min-width:0;border-radius:8px;border:1px solid transparent;transition:.14s;`,
+      nameFieldHover:`border-color:${t.border};background:${t.surface2};`,
+      nameInput:`width:100%;height:38px;border:none;outline:none;background:transparent;color:${t.text};font:700 16px Inter,sans-serif;letter-spacing:-.01em;padding:0 10px;`,
+      fxChip:`font:600 10.5px Inter,sans-serif;color:${t.info};background:${t.infoBg};padding:3px 8px;border-radius:9999px;white-space:nowrap;flex:none;`,
+      delBtn:`appearance:none;cursor:pointer;width:34px;height:34px;border-radius:8px;border:1px solid ${t.border};background:${t.surface};color:${t.danger};flex:none;display:flex;align-items:center;justify-content:center;transition:.14s;`,
+      delBtnHover:`background:${t.dangerBg};border-color:${t.dangerBorder};`,
+
+      gridHint:`display:flex;align-items:center;gap:7px;font:500 11.5px Inter,sans-serif;color:${t.subtle};margin-bottom:9px;`,
+      gridHintIco:`color:${t.subtle};font-size:13px;`,
+      scrollWrap:`border:1px solid ${t.border};border-radius:16px;overflow-x:auto;overflow-y:hidden;background:${t.cellBg};`,
+      gridInner:`width:max-content;min-width:100%;`,
+      corner:`width:${lbl}px;flex:none;position:sticky;left:0;z-index:4;background:${t.stickyBg};border-right:1px solid ${t.border};border-bottom:1px solid ${t.border};padding:8px 12px;font:600 10.5px Inter,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:${t.subtle};display:flex;align-items:center;`,
+      monthCell:`width:${cw}px;flex:none;height:35px;display:flex;align-items:center;justify-content:flex-end;border-right:1px solid ${t.gridLine};border-bottom:1px solid ${t.border};padding:0 9px;font:600 11px 'JetBrains Mono',monospace;color:${t.subtle};background:${t.surface2};`,
+      sumChip:`font:600 11.5px 'JetBrains Mono',monospace;color:${t.primary};`,
+      fillBtn:`appearance:none;border:none;background:none;cursor:pointer;padding:0;font:600 10.5px Inter,sans-serif;color:${t.subtle};text-align:left;`,
+
+      exportLabel:`display:block;font:600 13px Inter,sans-serif;color:${t.text};`,
+      exportHelp:`display:block;font:400 12px/1.45 Inter,sans-serif;color:${t.subtle};margin-top:2px;`,
+      checkMark:`color:${t.primaryText};font-size:12px;font-weight:700;`,
+
+      termsHead:`font:600 11px Inter,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:${t.subtle};margin:18px 0 12px;`,
+      termsGrid:`display:grid;grid-template-columns:repeat(${d.mobile?1:3},1fr);gap:14px 16px;`,
+      labelRow:`display:flex;align-items:center;gap:6px;`,
+      fieldLabel:`font:600 12.5px Inter,sans-serif;color:${t.muted};`,
+      hintWrap:`position:relative;display:inline-flex;`,
+      hintBadge:`width:15px;height:15px;border-radius:50%;border:1px solid ${t.borderStrong};color:${t.subtle};font:700 9.5px Inter;display:flex;align-items:center;justify-content:center;cursor:help;`,
+      tooltip:`position:absolute;bottom:22px;left:50%;transform:translateX(-50%);width:210px;padding:8px 10px;border-radius:8px;background:${t.text};color:${t.bg};font:500 11.5px/1.4 Inter,sans-serif;box-shadow:${t.menuShadow};z-index:40;text-align:left;`,
+      termInput:`flex:1;min-width:0;height:100%;border:none;outline:none;background:transparent;color:${t.text};font:500 13.5px 'JetBrains Mono',monospace;text-align:right;padding:0 10px;`,
+      termSuffix:`flex:none;padding:0 11px;height:100%;display:flex;align-items:center;font:500 12px Inter,sans-serif;color:${t.subtle};border-left:1px solid ${t.border};background:${t.surface2};white-space:nowrap;`,
+      fieldErr:`font:500 11.5px Inter,sans-serif;color:${t.danger};`,
+      fieldNote:`font:500 11px Inter,sans-serif;color:${t.subtle};`,
+
+      addRow:`appearance:none;cursor:pointer;height:46px;border-radius:4px;border:1.5px dashed ${t.borderStrong};background:transparent;color:${t.muted};font:600 13.5px Inter,sans-serif;transition:.14s;`,
+      addRowHover:`border-color:${t.primary};color:${t.primary};background:${t.primarySoft};`,
+      bottomPad:`height:6px;`,
+
+      saveBar:`position:sticky;bottom:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px ${d.pad}px;background:${t.headerBg};border-top:1px solid ${t.border};box-shadow:0 -8px 24px -16px rgba(0,0,0,.28);`,
+      saveStatus:`display:flex;align-items:center;gap:9px;`,
+      dirtyDot:`width:8px;height:8px;border-radius:50%;background:${t.warn};flex:none;`,
+      saveTextDirty:`font:600 13px Inter,sans-serif;color:${t.warn};`,
+      savedCheck:`flex:none;width:18px;height:18px;border-radius:50%;background:${t.primaryBg};color:${t.primary};font:700 11px Inter;display:flex;align-items:center;justify-content:center;`,
+      saveTextSaved:`font:500 13px Inter,sans-serif;color:${t.subtle};`,
+      toastDot:`font-size:12px;`,
+      saveBtn:`appearance:none;border:none;cursor:${st.dirty?'pointer':'default'};height:38px;padding:0 20px;border-radius:4px;background:${st.dirty?t.primary:t.surface2};color:${st.dirty?t.primaryText:t.subtle};font:600 13.5px Inter,sans-serif;box-shadow:${st.dirty?'0 1px 2px rgba(0,0,0,.12)':'none'};transition:.14s;`,
+      saveBtnHover:`background:${st.dirty?t.primaryHover:t.surface2};`
+    };
+
+    return {s,t,N,tabs,
+      isEmpty:st.count==='none', hasProducts:st.count!=='none',
+      products:visible.map(buildProduct),
+      dirty:st.dirty, clean:!st.dirty,
+      addProduct:this.addProduct, save:()=>this.setState({dirty:false}),
+      setP0:()=>this.setState({count:'none'}), setP1:()=>this.setState({count:'one'}), setPN:()=>this.setState({count:'many'}),
+      setN12:()=>this.setState({N:12}), setN24:()=>this.setState({N:24}),
+      expOn:()=>this.setState(s=>({dirty:true,products:s.products.map((p,i)=>i===0?{...p,exportOn:true}:p)})),
+      expOff:()=>this.setState(s=>({dirty:true,products:s.products.map((p,i)=>i===0?{...p,exportOn:false}:p)})),
+      errOn:()=>this.setState(s=>({dirty:true,products:s.products.map((p,i)=>i===0?{...p,prepay:'1,4'}:p)})),
+      errOff:()=>this.setState(s=>({dirty:true,products:s.products.map((p,i)=>i===0?{...p,prepay:'0,3'}:p)})),
+      setLight:()=>this.setState({theme:'light'}), setDark:()=>this.setState({theme:'dark'}),
+      setDesktop:()=>this.setState({device:'desktop'}), setTablet:()=>this.setState({device:'tablet'}), setMobile:()=>this.setState({device:'mobile'})
+    };
+  }
+}
+</script>
+</body>
+</html>

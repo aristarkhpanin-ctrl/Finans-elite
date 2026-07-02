@@ -31,6 +31,21 @@ def test_sample_endpoint_returns_model():
     assert model["operating_plan"]["sales"]
 
 
+def test_templates_list_and_calculate():
+    """Шаблоны: список доступен, каждый шаблон — валидная модель, считается без ошибок."""
+    lst = client.get("/api/v1/templates")
+    assert lst.status_code == 200
+    items = lst.json()
+    ids = {t["id"] for t in items}
+    assert {"production", "trade", "services", "enterprise"} <= ids
+    for tid in ids:
+        model = client.get(f"/api/v1/templates/{tid}")
+        assert model.status_code == 200
+        calc = client.post("/api/v1/calculate", json=model.json())
+        assert calc.status_code == 200, f"шаблон {tid} не считается"
+    assert client.get("/api/v1/templates/nope").status_code == 404
+
+
 def test_calculate_roundtrip():
     sample = client.get("/api/v1/sample").json()
     r = client.post("/api/v1/calculate", json=sample)

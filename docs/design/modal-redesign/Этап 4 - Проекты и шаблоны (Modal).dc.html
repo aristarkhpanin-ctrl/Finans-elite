@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Inter';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-600-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:700;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-700-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-600-normal.woff2') format('woff2');}
+</style>
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  input{font-family:inherit;}
+  input::placeholder{color:inherit;opacity:.45;}
+  @keyframes fe-pulse{from{opacity:.5}to{opacity:1}}
+  @keyframes fe-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes fe-pop{0%{transform:scale(.92);opacity:0}100%{transform:scale(1);opacity:1}}
+  @keyframes fe-spin{to{transform:rotate(360deg)}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}" data-screen-label="04 — Проекты и шаблоны">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+      <div style="width:26px;height:26px;flex:none;border-radius:8px;overflow:hidden;"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="26px,26px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Этап&nbsp;4 · Проекты и шаблоны</span>
+        <span style="{{ s.barSub }}">Финанс-Элит · домашняя</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Состояние</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segList }}" onClick="{{ stList }}">Список</button><button style="{{ s.segEmpty }}" onClick="{{ stEmpty }}">Пусто</button><button style="{{ s.segLoad }}" onClick="{{ stLoad }}">Загрузка</button><button style="{{ s.segErr }}" onClick="{{ stErr }}">Ошибка</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Вид списка</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segCards }}" onClick="{{ vCards }}">Карточки</button><button style="{{ s.segRows }}" onClick="{{ vRows }}">Компактный</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Светлая</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тёмная</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Оверлей</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segOvNone }}" onClick="{{ dismissCreated }}">Нет</button><button style="{{ s.segOvCreated }}" onClick="{{ showCreatedDemo }}">Проект создан</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}">
+
+      <!-- HEADER (из Этапа 3) -->
+      <div style="{{ s.header }}">
+        <div style="display:flex;align-items:center;gap:{{ headerGap }}px;min-width:0;">
+          <div style="display:flex;align-items:center;gap:9px;flex:none;">
+            <div style="width:30px;height:30px;flex:none;border-radius:8px;overflow:hidden;"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="30px,30px"></dc-import></div>
+            <sc-if value="{{ showWord }}" hint-placeholder-val="{{ true }}"><span style="{{ s.word }}">Финанс<span style="color:{{ t.subtle }};font-weight:500;">-Элит</span></span></sc-if>
+          </div>
+          <sc-if value="{{ showNav }}" hint-placeholder-val="{{ true }}">
+          <nav style="display:flex;align-items:stretch;height:{{ headerH }}px;gap:2px;">
+            <button style="{{ s.navActive }}">Проекты</button>
+            <button style="{{ s.navItem }}" style-hover="{{ s.navHover }}">Холдинги</button>
+            <button style="{{ s.navItem }}" style-hover="{{ s.navHover }}">Организация</button>
+          </nav>
+          </sc-if>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex:none;">
+          <sc-if value="{{ showOrgSelector }}" hint-placeholder-val="{{ true }}">
+          <div style="{{ s.orgBtn }}"><div style="{{ s.orgAvatar }}">ФК</div><sc-if value="{{ showOrgName }}" hint-placeholder-val="{{ true }}"><span style="{{ s.orgName }}">Финмодель Консалтинг</span></sc-if><span style="{{ s.chev }}">▾</span></div>
+          </sc-if>
+          <button style="{{ s.iconBtn }}" onClick="{{ toggleTheme }}" title="Тема"><sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}"><span style="font-size:15px;">☀</span></sc-if><sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}"><span style="font-size:14px;">☾</span></sc-if></button>
+          <sc-if value="{{ showUser }}" hint-placeholder-val="{{ true }}"><div style="{{ s.userAvatar }}">АС</div></sc-if>
+          <sc-if value="{{ showBurger }}" hint-placeholder-val="{{ false }}"><button style="{{ s.iconBtn }}"><div style="{{ s.burger }}"><span style="{{ s.burgerLine }}"></span><span style="{{ s.burgerLine }}"></span><span style="{{ s.burgerLine }}"></span></div></button></sc-if>
+        </div>
+      </div>
+
+      <!-- CONTENT -->
+      <div style="{{ s.content }}">
+        <div style="{{ s.container }}">
+
+          <div style="{{ s.pageHead }}">
+            <div style="min-width:0;">
+              <h1 style="{{ s.pageTitle }}">Проекты</h1>
+              <div style="{{ s.pageSub }}">Финансовые модели и инвестпроекты вашей организации</div>
+            </div>
+            <sc-if value="{{ showHeadCount }}" hint-placeholder-val="{{ true }}"><span style="{{ s.countPill }}">{{ projCount }} {{ projWord }}</span></sc-if>
+          </div>
+
+          <!-- LOADING -->
+          <sc-if value="{{ isLoading }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.createSkel }}"></div>
+          <div style="{{ s.tplGrid }}"><div style="{{ s.skTpl }}"></div><div style="{{ s.skTpl }}"></div><div style="{{ s.skTpl }}"></div><div style="{{ s.skTpl }}"></div></div>
+          <div style="{{ s.listHeadSkel }}"></div>
+          <div style="{{ s.cardGrid }}"><div style="{{ s.skCard }}"></div><div style="{{ s.skCard }}"></div><div style="{{ s.skCard }}"></div></div>
+          </sc-if>
+
+          <!-- ERROR -->
+          <sc-if value="{{ isError }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.errorBlock }}">
+            <div style="{{ s.errorIco }}">!</div>
+            <div style="{{ s.errorTitle }}">Не удалось загрузить проекты</div>
+            <div style="{{ s.errorSub }}">Проверьте соединение и попробуйте снова. Если ошибка повторяется — обратитесь в поддержку.</div>
+            <button style="{{ s.primaryBtn }}" style-hover="{{ s.primaryBtnHover }}" onClick="{{ stList }}">↻&nbsp;&nbsp;Повторить</button>
+          </div>
+          </sc-if>
+
+          <!-- CREATE + TEMPLATES (list & empty) -->
+          <sc-if value="{{ showCreate }}" hint-placeholder-val="{{ true }}">
+
+          <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.onboard }}">
+            <div style="{{ s.onboardIco }}"><div style="width:46px;height:46px;"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:46px;height:46px" hint-size="46px,46px"></dc-import></div></div>
+            <div style="{{ s.onboardTitle }}">Создайте первый проект</div>
+            <div style="{{ s.onboardSub }}">Начните с пустой модели или выберите готовый шаблон ниже — он заполнит структуру за вас, останется ввести цифры.</div>
+          </div>
+          </sc-if>
+
+          <div style="{{ s.createCard }}">
+            <div style="{{ s.createRow }}">
+              <div style="flex:1;min-width:0;">
+                <label style="{{ s.label }}">Название нового проекта</label>
+                <div style="{{ s.inputWrap }}">
+                  <input style="{{ s.inputEl }}" type="text" placeholder="Напр. «Завод полимерной упаковки»" value="{{ projectName }}" onChange="{{ onName }}" onFocus="{{ focusName }}" onBlur="{{ blurName }}">
+                </div>
+              </div>
+              <button style="{{ s.createBtn }}" style-hover="{{ s.createBtnHover }}" onClick="{{ createBlank }}" disabled="{{ creatingBlank }}">
+                <sc-if value="{{ creatingBlank }}" hint-placeholder-val="{{ false }}"><span style="{{ s.spinner }}"></span></sc-if>
+                <span>{{ createBlankText }}</span>
+              </button>
+            </div>
+            <div style="{{ s.tplLabel }}">Или начните с шаблона</div>
+            <div style="{{ s.tplGrid }}">
+
+              <button style="{{ s.tplCard }}" style-hover="{{ s.tplCardHover }}" onClick="{{ pickProd }}">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <div style="{{ s.tplIco1 }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 20V9l6 4V9l6 4V6l6 3v11z" stroke-linejoin="round"/><path d="M3 20h18" stroke-linecap="round"/></svg></div>
+                  <span style="{{ s.tplBadge }}">демо</span>
+                </div>
+                <div style="{{ s.tplName }}">Производство (демо)</div>
+                <div style="{{ s.tplDesc }}">Готовый завод: продукты, сырьё, оборудование и кредит. Лучшее начало для знакомства.</div>
+                <div style="{{ s.tplFoot }}"><sc-if value="{{ creatingProd }}" hint-placeholder-val="{{ false }}"><span style="{{ s.spinnerSm }}"></span><span style="{{ s.tplCreating }}">Создаём…</span></sc-if><sc-if value="{{ notCreatingProd }}" hint-placeholder-val="{{ true }}"><span style="{{ s.tplUse }}">Использовать →</span></sc-if></div>
+              </button>
+
+              <button style="{{ s.tplCard }}" style-hover="{{ s.tplCardHover }}" onClick="{{ pickGen }}">
+                <div style="{{ s.tplIco2 }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16l-1.5 9.5a2 2 0 01-2 1.7H7.5a2 2 0 01-2-1.7L4 6z" stroke-linejoin="round"/><path d="M4 6L3 3H1.5M9 21h.01M16 21h.01" stroke-linecap="round"/></svg></div>
+                <div style="{{ s.tplName }}">Торговля (опт)</div>
+                <div style="{{ s.tplDesc }}">Оптовые закупки и продажи с наценкой, склад и оборотный капитал.</div>
+                <div style="{{ s.tplFoot }}"><sc-if value="{{ creatingTrade }}" hint-placeholder-val="{{ false }}"><span style="{{ s.spinnerSm }}"></span><span style="{{ s.tplCreating }}">Создаём…</span></sc-if><sc-if value="{{ notCreatingTrade }}" hint-placeholder-val="{{ true }}"><span style="{{ s.tplUse }}">Использовать →</span></sc-if></div>
+              </button>
+
+              <button style="{{ s.tplCard }}" style-hover="{{ s.tplCardHover }}" onClick="{{ pickServ }}">
+                <div style="{{ s.tplIco3 }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5.5A1.5 1.5 0 019.5 4h5A1.5 1.5 0 0116 5.5V7M3 12h18" stroke-linecap="round"/></svg></div>
+                <div style="{{ s.tplName }}">Услуги (консалтинг)</div>
+                <div style="{{ s.tplDesc }}">Проектная выручка, ФОТ команды и общие издержки. Без склада и сырья.</div>
+                <div style="{{ s.tplFoot }}"><sc-if value="{{ creatingServ }}" hint-placeholder-val="{{ false }}"><span style="{{ s.spinnerSm }}"></span><span style="{{ s.tplCreating }}">Создаём…</span></sc-if><sc-if value="{{ notCreatingServ }}" hint-placeholder-val="{{ true }}"><span style="{{ s.tplUse }}">Использовать →</span></sc-if></div>
+              </button>
+
+              <button style="{{ s.tplCard }}" style-hover="{{ s.tplCardHover }}" onClick="{{ pickOper }}">
+                <div style="{{ s.tplIco4 }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="3" width="16" height="18" rx="1.6"/><path d="M8 7h2M8 11h2M8 15h2M14 7h2M14 11h2M14 15h2" stroke-linecap="round"/></svg></div>
+                <div style="{{ s.tplName }}">Действующее предприятие</div>
+                <div style="{{ s.tplDesc }}">Старт с заполненным балансом: активы, обязательства и капитал на дату начала.</div>
+                <div style="{{ s.tplFoot }}"><sc-if value="{{ creatingOper }}" hint-placeholder-val="{{ false }}"><span style="{{ s.spinnerSm }}"></span><span style="{{ s.tplCreating }}">Создаём…</span></sc-if><sc-if value="{{ notCreatingOper }}" hint-placeholder-val="{{ true }}"><span style="{{ s.tplUse }}">Использовать →</span></sc-if></div>
+              </button>
+
+            </div>
+          </div>
+          </sc-if>
+
+          <!-- LIST -->
+          <sc-if value="{{ isList }}" hint-placeholder-val="{{ true }}">
+          <div style="{{ s.listHead }}">
+            <div style="{{ s.listTitle }}">Ваши проекты</div>
+            <div style="{{ s.listTools }}">
+              <div style="{{ s.searchBox }}"><span style="{{ s.searchIco }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4" stroke-linecap="round"/></svg></span><input style="{{ s.searchInput }}" placeholder="Поиск проекта"></div>
+              <div style="{{ s.viewToggle }}"><button style="{{ s.vtCards }}" onClick="{{ vCards }}" title="Карточки"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg></button><button style="{{ s.vtRows }}" onClick="{{ vRows }}" title="Список"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="4" width="18" height="3" rx="1.5"/><rect x="3" y="10.5" width="18" height="3" rx="1.5"/><rect x="3" y="17" width="18" height="3" rx="1.5"/></svg></button></div>
+            </div>
+          </div>
+
+          <!-- CARDS VIEW -->
+          <sc-if value="{{ viewCards }}" hint-placeholder-val="{{ true }}">
+          <div style="{{ s.cardGrid }}">
+            <sc-for list="{{ projects }}" as="p" hint-placeholder-count="6">
+            <div style="{{ p.cardStyle }}">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+                <button style="{{ p.openLink }}" onClick="{{ p.open }}">{{ p.name }}</button>
+                <span style="{{ p.chipStyle }}">{{ p.statusDot }} {{ p.statusText }}</span>
+              </div>
+              <div style="{{ p.metricRow }}">
+                <div style="flex:1;"><div style="{{ p.miniLabel }}">NPV</div><div style="{{ p.npvStyle }}">{{ p.npv }}</div></div>
+                <div style="flex:1;"><div style="{{ p.miniLabel }}">IRR</div><div style="{{ p.irrStyle }}">{{ p.irr }}</div></div>
+                <div style="flex:1;"><div style="{{ p.miniLabel }}">Окуп.</div><div style="{{ p.numStyle }}">{{ p.payback }}</div></div>
+              </div>
+              <div style="{{ p.cardFoot }}">
+                <span style="{{ p.dateStyle }}">{{ p.date }}</span>
+                <div style="display:flex;align-items:center;gap:4px;">
+                  <button style="{{ p.iconAction }}" title="Дублировать"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M4 16V5a1 1 0 011-1h11" stroke-linecap="round"/></svg></button>
+                  <button style="{{ p.iconActionDanger }}" onClick="{{ p.askDelete }}" title="Удалить"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2M6 7l1 13a1 1 0 001 1h8a1 1 0 001-1l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                </div>
+              </div>
+            </div>
+            </sc-for>
+          </div>
+          </sc-if>
+
+          <!-- COMPACT ROWS VIEW -->
+          <sc-if value="{{ viewRows }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.table }}">
+            <sc-if value="{{ showTableHead }}" hint-placeholder-val="{{ true }}">
+            <div style="{{ s.tRowHead }}">
+              <div style="{{ s.thName }}">Проект</div>
+              <div style="{{ s.thStatus }}">Статус</div>
+              <div style="{{ s.thNum }}">NPV</div>
+              <div style="{{ s.thNum }}">IRR</div>
+              <div style="{{ s.thDate }}">Изменён</div>
+              <div style="{{ s.thAct }}"></div>
+            </div>
+            </sc-if>
+            <sc-for list="{{ projects }}" as="p" hint-placeholder-count="6">
+            <div style="{{ p.rowStyle }}" style-hover="{{ p.rowHover }}">
+              <div style="{{ s.thName }}"><button style="{{ p.rowLink }}" onClick="{{ p.open }}">{{ p.name }}</button></div>
+              <div style="{{ s.thStatus }}"><span style="{{ p.chipStyle }}">{{ p.statusDot }} {{ p.statusText }}</span></div>
+              <div style="{{ s.thNum }}"><span style="{{ p.npvStyleRow }}">{{ p.npvShort }}</span></div>
+              <div style="{{ s.thNum }}"><span style="{{ p.numStyleRow }}">{{ p.irr }}</span></div>
+              <div style="{{ s.thDate }}"><span style="{{ p.dateStyle }}">{{ p.date }}</span></div>
+              <div style="{{ s.thAct }}"><button style="{{ p.iconActionDanger }}" onClick="{{ p.askDelete }}" title="Удалить"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2M6 7l1 13a1 1 0 001 1h8a1 1 0 001-1l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+            </div>
+            </sc-for>
+          </div>
+          </sc-if>
+
+          </sc-if>
+
+        </div>
+      </div>
+
+      <!-- DELETE MODAL -->
+      <sc-if value="{{ deleteTarget }}" hint-placeholder-val="">
+      <div style="{{ s.overlay }}" onClick="{{ cancelDelete }}"></div>
+      <div style="{{ s.modalWrap }}">
+        <div style="{{ s.modal }}">
+          <div style="{{ s.modalIco }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2M6 7l1 13a1 1 0 001 1h8a1 1 0 001-1l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div style="{{ s.modalTitle }}">Удалить проект?</div>
+          <div style="{{ s.modalSub }}">Проект «<b style="color:{{ t.text }};">{{ deleteTarget }}</b>» и все его данные будут удалены без возможности восстановления.</div>
+          <div style="{{ s.modalActions }}">
+            <button style="{{ s.btnGhost }}" style-hover="{{ s.btnGhostHover }}" onClick="{{ cancelDelete }}">Отмена</button>
+            <button style="{{ s.btnDanger }}" style-hover="{{ s.btnDangerHover }}" onClick="{{ confirmDelete }}">Удалить проект</button>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ONBOARDING: PROJECT CREATED -->
+      <sc-if value="{{ justCreated }}" hint-placeholder-val="">
+      <div style="{{ s.createdWrap }}">
+        <div style="{{ s.createdCubeBox }}"><dc-import name="Cube Hero" backdrop="transparent" style="width:100%;height:100%" hint-size="100%,220px"></dc-import></div>
+        <div style="{{ s.createdTitle }}">«{{ createdName }}» готов</div>
+        <div style="{{ s.createdSub }}">Модель создана и ждёт в редакторе — введите данные, и через пару минут увидите первые расчёты.</div>
+        <div style="{{ s.createdActions }}">
+          <a href="Этап 5 - Редактор и вкладка Проект (Modal).dc.html" style="{{ s.createdCta }}" style-hover="{{ s.createdCtaHover }}">Открыть редактор →</a>
+          <button style="{{ s.createdGhost }}" style-hover="{{ s.createdGhostHover }}" onClick="{{ dismissCreated }}">Остаться в списке</button>
+        </div>
+      </div>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    theme:'light', device:'desktop', view:'cards', screen:'list',
+    projectName:'', focusName:false, creating:null, deleteId:null, created:null,
+    projects:[
+      {id:1, name:'Завод полимерной упаковки', status:'calc', npv:'12,48 млн ₽', npvSign:1, irr:'34,2%', payback:'11 мес', date:'изм. 12 фев 2026'},
+      {id:2, name:'SaaS-платформа аналитики', status:'calc', npv:'31,60 млн ₽', npvSign:1, irr:'48,0%', payback:'9 мес', date:'изм. 3 фев 2026'},
+      {id:3, name:'Сеть кофеен «Тёплый дом»', status:'calc', npv:'4,20 млн ₽', npvSign:1, irr:'22,1%', payback:'19 мес', date:'изм. 28 янв 2026'},
+      {id:4, name:'Оптовый склад стройматериалов', status:'draft', npv:'—', npvSign:0, irr:'—', payback:'—', date:'создан 21 янв 2026'},
+      {id:5, name:'Логистический хаб «Восток»', status:'calc', npv:'−2,10 млн ₽', npvSign:-1, irr:'6,4%', payback:'> горизонта', date:'изм. 15 янв 2026'},
+      {id:6, name:'Модернизация линии розлива', status:'stale', npv:'8,90 млн ₽', npvSign:1, irr:'27,0%', payback:'14 мес', date:'изм. 9 янв 2026'}
+    ]
+  };
+
+  THEME(){
+    const light={pageBg:'#E4F1E0',bg:'#F4FAF2',surface:'#FFFFFF',surface2:'#EDF5EA',sk:'#E3EEDF',border:'#D2E4CD',borderStrong:'#B4CCAE',text:'#16201A',muted:'#46584A',subtle:'#6E8270',primary:'#7FEE64',primaryHover:'#6FE253',primaryText:'#06210E',accent:'#138A45',primaryBg:'#DBF3D2',danger:'#C0473B',dangerHover:'#A53A30',dangerBg:'#FAE7E4',ring:'rgba(56,194,75,.20)',shadow:'0 18px 44px -22px rgba(20,40,24,.22), 0 2px 6px rgba(20,40,24,.05)',menuShadow:'0 24px 56px -16px rgba(20,40,24,.28)',barBg:'#FFFFFF',barBorder:'#D2E4CD',segBg:'#E7F0E3',segActiveBg:'#FFFFFF',headerBg:'#FFFFFF',brandMid:'#138A45',brandTo:'#7FEE64',warn:'#B07A12',warnBg:'#FBF0D8',info:'#3E7D52',infoBg:'#E6EFE2',ico1:'#138A45',ico1Bg:'#DBF3D2',ico2:'#3E7D52',ico2Bg:'#E6EFE2',ico3:'#5FA86A',ico3Bg:'#E3F0DE',ico4:'#B07A12',ico4Bg:'#FBF0D8'};
+    const dark={pageBg:'#000000',bg:'#0C0F0C',surface:'#212525',surface2:'#2A312A',sk:'#2A312A',border:'#485346',borderStrong:'#677D64',text:'#DDFFDC',muted:'#93A091',subtle:'#677D64',primary:'#7FEE64',primaryHover:'#95F47D',primaryText:'#000000',accent:'#7FEE64',primaryBg:'rgba(127,238,100,.15)',danger:'#F0796E',dangerHover:'#F4988F',dangerBg:'rgba(240,121,110,.15)',ring:'rgba(127,238,100,.40)',shadow:'0 30px 70px -34px rgba(0,0,0,.9)',menuShadow:'0 22px 52px -16px rgba(0,0,0,.82)',barBg:'#0C0F0C',barBorder:'#1D231D',segBg:'#0B0E0B',segActiveBg:'#2A312A',headerBg:'#0C0F0C',brandMid:'#3E4A3C',brandTo:'#7FEE64',warn:'#E0A23A',warnBg:'rgba(224,162,58,.16)',info:'#AED2A4',infoBg:'rgba(174,210,164,.15)',ico1:'#7FEE64',ico1Bg:'rgba(127,238,100,.15)',ico2:'#AED2A4',ico2Bg:'rgba(174,210,164,.15)',ico3:'#C8F9B6',ico3Bg:'rgba(200,249,182,.14)',ico4:'#E0A23A',ico4Bg:'rgba(224,162,58,.16)'};
+    return this.state.theme==='dark'?dark:light;
+  }
+  DIM(){const d=this.state.device;
+    if(d==='mobile')return{frame:402,radius:30,headerH:54,pad:16,cols:1,tplCols:1,showNav:false,showWord:true,showOrgSel:false,showUser:false,showBurger:true,showOrgName:false,table:false};
+    if(d==='tablet')return{frame:864,radius:18,headerH:58,pad:22,cols:2,tplCols:2,showNav:true,showWord:true,showOrgSel:true,showUser:true,showBurger:false,showOrgName:false,table:true};
+    return{frame:1240,radius:14,headerH:60,pad:32,cols:3,tplCols:4,showNav:true,showWord:true,showOrgSel:true,showUser:true,showBurger:false,showOrgName:true,table:true};
+  }
+
+  statusMap(t){return{
+    calc:{text:'Рассчитан',dot:'●',color:t.primary,bg:t.primaryBg},
+    draft:{text:'Черновик',dot:'○',color:t.warn,bg:t.warnBg},
+    stale:{text:'Изменён',dot:'●',color:t.info,bg:t.infoBg}
+  };}
+
+  TPL_NAMES = {prod:'Производство (демо)', trade:'Торговля (опт)', serv:'Услуги (консалтинг)', oper:'Действующее предприятие'};
+  pick(id){return ()=>{ this.setState({creating:id}); clearTimeout(this._t); this._t=setTimeout(()=>{
+    const name = id==='blank' ? ((this.state.projectName||'').trim()||'Новый проект') : this.TPL_NAMES[id];
+    this.setState({creating:null, created:{name}});
+  },1500); };}
+  componentWillUnmount(){clearTimeout(this._t);}
+
+  renderVals(){
+    const st=this.state,t=this.THEME(),d=this.DIM();
+    const seg=(a)=>`appearance:none;border:none;cursor:pointer;font:600 12px Inter,sans-serif;padding:6px 11px;border-radius:7px;white-space:nowrap;color:${a?t.text:t.subtle};background:${a?t.segActiveBg:'transparent'};box-shadow:${a?'0 1px 2px rgba(0,0,0,.14)':'none'};transition:.14s;`;
+    const segWrap=`display:flex;gap:3px;padding:3px;background:${t.segBg};border-radius:9px;`;
+    const sk=(w,h,extra)=>`width:${w};height:${h}px;border-radius:12px;background:${t.sk};animation:fe-pulse 1.5s ease-in-out infinite alternate;${extra||''}`;
+    const sm=this.statusMap(t);
+    const screen=st.screen;
+
+    const buildProject=(p,i)=>{
+      const ss=sm[p.status];
+      const npvColor=p.npvSign<0?t.danger:(p.npvSign>0?t.text:t.subtle);
+      return {...p,
+        cardStyle:`display:flex;flex-direction:column;gap:13px;padding:18px;border-radius:14px;border:1px solid ${t.border};background:${t.surface};animation:fe-fade .3s ease ${i*0.03}s both;`,
+        openLink:`appearance:none;background:none;border:none;cursor:pointer;text-align:left;font:700 15.5px Inter,sans-serif;letter-spacing:-.01em;color:${t.text};padding:0;line-height:1.3;`,
+        chipStyle:`font:600 10.5px Inter,sans-serif;color:${ss.color};background:${ss.bg};padding:3px 8px;border-radius:6px;white-space:nowrap;flex:none;`,
+        statusText:ss.text,statusDot:ss.dot,
+        metricRow:`display:flex;gap:14px;padding:13px 0;border-top:1px solid ${t.border};border-bottom:1px solid ${t.border};`,
+        miniLabel:`font:600 9.5px Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:${t.subtle};margin-bottom:4px;`,
+        npvStyle:`font:600 16px 'JetBrains Mono',monospace;color:${npvColor};letter-spacing:-.01em;`,
+        npvStyleRow:`font:600 13.5px 'JetBrains Mono',monospace;color:${npvColor};`,
+        irrStyle:`font:600 16px 'JetBrains Mono',monospace;color:${t.text};`,
+        numStyle:`font:600 14px 'JetBrains Mono',monospace;color:${t.muted};`,
+        numStyleRow:`font:600 13.5px 'JetBrains Mono',monospace;color:${t.muted};`,
+        npvShort:p.npv,
+        cardFoot:`display:flex;align-items:center;justify-content:space-between;`,
+        dateStyle:`font:500 12px Inter,sans-serif;color:${t.subtle};`,
+        iconAction:`width:30px;height:30px;border-radius:8px;border:1px solid ${t.border};background:${t.surface};color:${t.muted};cursor:pointer;display:flex;align-items:center;justify-content:center;`,
+        iconActionDanger:`width:30px;height:30px;border-radius:8px;border:1px solid ${t.border};background:${t.surface};color:${t.danger};cursor:pointer;display:flex;align-items:center;justify-content:center;`,
+        rowStyle:`display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid ${t.border};background:${t.surface};`,
+        rowHover:`background:${t.surface2};`,
+        rowLink:`appearance:none;background:none;border:none;cursor:pointer;text-align:left;font:600 14px Inter,sans-serif;color:${t.text};padding:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;`,
+        open:()=>{}, askDelete:()=>this.setState({deleteId:p.id})
+      };
+    };
+
+    const dt=st.deleteId?(st.projects.find(p=>p.id===st.deleteId)||{}).name||'':'';
+
+    const s={
+      page:`min-height:100vh;background:${t.pageBg};color:${t.text};display:flex;flex-direction:column;transition:background .25s;`,
+      bar:`display:flex;align-items:flex-end;justify-content:space-between;gap:22px;flex-wrap:wrap;padding:13px 22px;background:${t.barBg};border-bottom:1px solid ${t.barBorder};position:sticky;top:0;z-index:60;`,
+      barDot:`width:26px;height:26px;border-radius:7px;flex:none;background:linear-gradient(150deg,${t.brandMid},${t.brandTo});`,
+      barTitle:`font:700 13px Inter,sans-serif;letter-spacing:-.01em;color:${t.text};white-space:nowrap;`,
+      barSub:`font:500 11px Inter,sans-serif;color:${t.subtle};white-space:nowrap;`,
+      barLabel:`font:600 9.5px Inter,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:${t.subtle};`,
+      seg:segWrap,
+      segList:seg(screen==='list'),segEmpty:seg(screen==='empty'),segLoad:seg(screen==='loading'),segErr:seg(screen==='error'),
+      segCards:seg(st.view==='cards'),segRows:seg(st.view==='rows'),
+      segLight:seg(st.theme==='light'),segDark:seg(st.theme==='dark'),
+      segDesktop:seg(st.device==='desktop'),segTablet:seg(st.device==='tablet'),segMobile:seg(st.device==='mobile'),
+      segOvNone:seg(!st.created),segOvCreated:seg(!!st.created),
+
+      stage:`flex:1;display:flex;justify-content:center;align-items:flex-start;padding:${d.frame<500?'26px 16px':'40px 24px'};`,
+      frame:`position:relative;width:100%;max-width:${d.frame}px;background:${t.bg};border:1px solid ${t.border};border-radius:${d.radius}px;box-shadow:${t.shadow};overflow:hidden;`,
+
+      header:`display:flex;align-items:center;justify-content:space-between;gap:16px;height:${d.headerH}px;padding:0 ${d.pad}px;background:${t.headerBg};border-bottom:1px solid ${t.border};`,
+      mark:`width:30px;height:30px;border-radius:8px;flex:none;background:linear-gradient(150deg,${t.brandMid},${t.brandTo});display:flex;align-items:flex-end;justify-content:center;gap:2.5px;padding:7px;`,
+      markB1:`width:3.5px;height:6px;background:#fff;border-radius:1px;opacity:.55;`,markB2:`width:3.5px;height:10px;background:#fff;border-radius:1px;opacity:.8;`,markB3:`width:3.5px;height:15px;background:#fff;border-radius:1px;`,
+      word:`font:600 17px Inter,sans-serif;letter-spacing:-.015em;color:${t.text};white-space:nowrap;`,
+      navActive:`appearance:none;background:none;border:none;border-bottom:2px solid ${t.primary};cursor:pointer;font:600 13.5px Inter,sans-serif;color:${t.text};padding:0 13px;height:${d.headerH}px;`,
+      navItem:`appearance:none;background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font:600 13.5px Inter,sans-serif;color:${t.muted};padding:0 13px;height:${d.headerH}px;transition:.14s;`,
+      navHover:`color:${t.text};background:${t.surface2};`,
+      orgBtn:`display:flex;align-items:center;gap:8px;height:38px;padding:0 9px 0 7px;border-radius:9px;border:1px solid ${t.border};background:${t.surface};max-width:262px;`,
+      orgAvatar:`width:24px;height:24px;border-radius:6px;flex:none;background:${t.primary};color:${t.primaryText};font:700 10px Inter;display:flex;align-items:center;justify-content:center;`,
+      orgName:`font:600 13px Inter,sans-serif;color:${t.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`,
+      chev:`color:${t.subtle};font-size:10px;flex:none;`,
+      iconBtn:`width:38px;height:38px;border-radius:9px;border:1px solid ${t.border};background:${t.surface};color:${t.muted};cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;`,
+      userAvatar:`width:32px;height:32px;border-radius:8px;flex:none;background:linear-gradient(150deg,#7C5CFF,#5E93FF);color:#fff;font:700 11px Inter;display:flex;align-items:center;justify-content:center;`,
+      burger:`display:flex;flex-direction:column;gap:3.5px;align-items:center;`,
+      burgerLine:`width:16px;height:2px;border-radius:1px;background:${t.text};`,
+
+      content:`padding:${d.pad}px;`,
+      container:`max-width:1140px;margin:0 auto;`,
+      pageHead:`display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:22px;`,
+      pageTitle:`font:700 ${d.frame<500?25:31}px 'Satoshi',Inter,sans-serif;letter-spacing:-.025em;color:${t.text};margin:0;`,
+      pageSub:`font:400 14.5px Inter,sans-serif;color:${t.muted};margin-top:6px;`,
+      countPill:`flex:none;font:600 12px Inter,sans-serif;color:${t.muted};background:${t.surface2};border:1px solid ${t.border};padding:5px 11px;border-radius:8px;white-space:nowrap;`,
+
+      onboard:`text-align:center;padding:30px 24px 8px;`,
+      onboardIco:`width:60px;height:60px;border-radius:16px;background:${t.primaryBg};display:flex;align-items:center;justify-content:center;margin:0 auto 18px;`,
+      onboardTitle:`font:700 24px 'Satoshi',Inter,sans-serif;letter-spacing:-.02em;color:${t.text};`,
+      onboardSub:`font:400 14.5px/1.55 Inter,sans-serif;color:${t.muted};max-width:440px;margin:9px auto 0;`,
+
+      createCard:`background:${t.surface};border:1px solid ${t.border};border-radius:16px;padding:${d.frame<500?18:24}px;margin-bottom:30px;`,
+      createRow:`display:flex;align-items:flex-end;gap:12px;${d.frame<500?'flex-direction:column;align-items:stretch;':''}`,
+      label:`display:block;font:600 12.5px Inter,sans-serif;color:${t.muted};margin-bottom:7px;`,
+      inputWrap:`display:flex;align-items:center;height:44px;border-radius:11px;background:${t.bg};border:1.5px solid ${st.focusName?t.primary:t.border};box-shadow:${st.focusName?'0 0 0 3px '+t.ring:'none'};transition:.14s;overflow:hidden;`,
+      inputEl:`flex:1;min-width:0;height:100%;border:none;outline:none;background:transparent;color:${t.text};font:500 14.5px Inter,sans-serif;padding:0 14px;`,
+      createBtn:`appearance:none;border:none;cursor:pointer;height:44px;padding:0 20px;border-radius:4px;background:${t.primary};color:${t.primaryText};font:600 14px Inter,sans-serif;display:flex;align-items:center;justify-content:center;gap:9px;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.12);transition:.14s;${d.frame<500?'width:100%;':''}`,
+      createBtnHover:`background:${t.primaryHover};`,
+      spinner:`width:15px;height:15px;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:${t.primaryText};animation:fe-spin .7s linear infinite;`,
+      spinnerSm:`width:13px;height:13px;border-radius:50%;border:2px solid ${t.primary};border-top-color:transparent;animation:fe-spin .7s linear infinite;`,
+      tplLabel:`font:600 11px Inter,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:${t.subtle};margin:24px 0 14px;`,
+      tplGrid:`display:grid;grid-template-columns:repeat(${d.tplCols},1fr);gap:12px;`,
+      tplCard:`text-align:left;display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:13px;border:1px solid ${t.border};background:${t.bg};cursor:pointer;transition:.16s;min-height:150px;`,
+      tplCardHover:`border-color:${t.primary};box-shadow:0 8px 22px -12px ${t.primary};transform:translateY(-2px);`,
+      tplIco1:`width:38px;height:38px;border-radius:10px;background:${t.ico1Bg};color:${t.ico1};display:flex;align-items:center;justify-content:center;`,
+      tplIco2:`width:38px;height:38px;border-radius:10px;background:${t.ico2Bg};color:${t.ico2};display:flex;align-items:center;justify-content:center;`,
+      tplIco3:`width:38px;height:38px;border-radius:10px;background:${t.ico3Bg};color:${t.ico3};display:flex;align-items:center;justify-content:center;`,
+      tplIco4:`width:38px;height:38px;border-radius:10px;background:${t.ico4Bg};color:${t.ico4};display:flex;align-items:center;justify-content:center;`,
+      tplBadge:`font:600 9.5px Inter,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:${t.primary};background:${t.primaryBg};padding:3px 7px;border-radius:5px;height:fit-content;`,
+      tplName:`font:700 14.5px Inter,sans-serif;letter-spacing:-.01em;color:${t.text};`,
+      tplDesc:`font:400 12.5px/1.5 Inter,sans-serif;color:${t.muted};flex:1;`,
+      tplFoot:`height:18px;display:flex;align-items:center;gap:7px;`,
+      tplUse:`font:600 12px Inter,sans-serif;color:${t.primary};`,
+      tplCreating:`font:600 12px Inter,sans-serif;color:${t.primary};`,
+
+      listHead:`display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px;`,
+      listTitle:`font:700 18px Inter,sans-serif;letter-spacing:-.015em;color:${t.text};`,
+      listTools:`display:flex;align-items:center;gap:10px;`,
+      searchBox:`display:flex;align-items:center;height:38px;border-radius:10px;border:1px solid ${t.border};background:${t.surface};padding:0 12px;gap:8px;width:${d.frame<500?'160px':'220px'};`,
+      searchIco:`color:${t.subtle};display:flex;flex:none;`,
+      searchInput:`flex:1;min-width:0;border:none;outline:none;background:transparent;color:${t.text};font:500 13px Inter,sans-serif;`,
+      viewToggle:`display:flex;gap:3px;padding:3px;background:${t.segBg};border-radius:9px;`,
+      vtCards:`appearance:none;border:none;cursor:pointer;width:32px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:${st.view==='cards'?t.primary:t.subtle};background:${st.view==='cards'?t.segActiveBg:'transparent'};box-shadow:${st.view==='cards'?'0 1px 2px rgba(0,0,0,.14)':'none'};`,
+      vtRows:`appearance:none;border:none;cursor:pointer;width:32px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:${st.view==='rows'?t.primary:t.subtle};background:${st.view==='rows'?t.segActiveBg:'transparent'};box-shadow:${st.view==='rows'?'0 1px 2px rgba(0,0,0,.14)':'none'};`,
+
+      cardGrid:`display:grid;grid-template-columns:repeat(${d.cols},1fr);gap:16px;`,
+      table:`border:1px solid ${t.border};border-radius:14px;overflow:hidden;background:${t.surface};`,
+      tRowHead:`display:flex;align-items:center;gap:12px;padding:11px 16px;background:${t.surface2};border-bottom:1px solid ${t.border};font:600 10.5px Inter,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:${t.subtle};`,
+      thName:`flex:1;min-width:0;`,
+      thStatus:`width:110px;flex:none;${d.frame<900?'display:none;':''}`,
+      thNum:`width:110px;flex:none;text-align:right;`,
+      thDate:`width:130px;flex:none;${d.frame<900?'display:none;':''}`,
+      thAct:`width:36px;flex:none;display:flex;justify-content:flex-end;`,
+
+      listHeadSkel:sk('180px','22','margin:8px 0 16px;'),
+      createSkel:sk('100%','120','margin-bottom:30px;'),
+      skTpl:sk('100%','150'),
+      skCard:sk('100%','170'),
+
+      errorBlock:`text-align:center;padding:56px 24px;background:${t.surface};border:1px solid ${t.border};border-radius:16px;display:flex;flex-direction:column;align-items:center;`,
+      errorIco:`width:52px;height:52px;border-radius:50%;background:${t.dangerBg};color:${t.danger};font:700 24px Inter;display:flex;align-items:center;justify-content:center;margin-bottom:18px;`,
+      errorTitle:`font:700 19px 'Satoshi',Inter,sans-serif;color:${t.text};`,
+      errorSub:`font:400 14px/1.55 Inter,sans-serif;color:${t.muted};max-width:380px;margin:8px auto 22px;`,
+      primaryBtn:`appearance:none;border:none;cursor:pointer;height:42px;padding:0 20px;border-radius:4px;background:${t.primary};color:${t.primaryText};font:600 14px Inter,sans-serif;box-shadow:0 1px 2px rgba(0,0,0,.12);transition:.14s;`,
+      primaryBtnHover:`background:${t.primaryHover};`,
+
+      createdWrap:`position:absolute;inset:0;z-index:96;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 24px;background:${st.theme==='dark'?'radial-gradient(135% 95% at 50% 16%, #16331D 0%, #0A0D09 56%)':'radial-gradient(135% 95% at 50% 16%, #DBF3D2 0%, #F4FAF2 56%)'};animation:fe-fade .35s ease;`,
+      createdCubeBox:`width:min(78%,300px);height:${d.frame<500?170:230}px;flex:none;margin-bottom:6px;`,
+      createdTitle:`font:700 ${d.frame<500?21:27}px 'Satoshi',Inter,sans-serif;letter-spacing:-.02em;color:${st.theme==='dark'?'#DDFFDC':'#16201A'};margin-top:6px;`,
+      createdSub:`font:400 14.5px/1.6 Inter,sans-serif;color:${st.theme==='dark'?'rgba(221,255,220,.62)':'#46584A'};max-width:380px;margin-top:10px;`,
+      createdActions:`display:flex;align-items:center;gap:14px;margin-top:26px;flex-wrap:wrap;justify-content:center;`,
+      createdCta:`appearance:none;text-decoration:none;border:none;cursor:pointer;height:46px;padding:0 22px;border-radius:11px;background:#7FEE64;color:#000000;font:600 14.5px Inter,sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 1px 2px rgba(0,0,0,.12);transition:.14s;`,
+      createdCtaHover:`background:#95F47D;`,
+      createdGhost:`appearance:none;background:none;border:none;cursor:pointer;height:46px;padding:0 6px;font:600 14px Inter,sans-serif;color:${st.theme==='dark'?'rgba(221,255,220,.7)':'#46584A'};transition:.14s;`,
+      createdGhostHover:`color:${st.theme==='dark'?'#DDFFDC':'#16201A'};`,
+
+      overlay:`position:absolute;inset:0;background:rgba(10,8,6,.5);z-index:90;animation:fe-fade .15s;`,
+      modalWrap:`position:absolute;inset:0;z-index:91;display:flex;align-items:center;justify-content:center;padding:24px;`,
+      modal:`width:100%;max-width:420px;background:${t.surface};border:1px solid ${t.border};border-radius:18px;box-shadow:${t.menuShadow};padding:26px;text-align:center;animation:fe-pop .2s ease;`,
+      modalIco:`width:52px;height:52px;border-radius:14px;background:${t.dangerBg};color:${t.danger};display:flex;align-items:center;justify-content:center;margin:0 auto 16px;`,
+      modalTitle:`font:700 20px Inter,sans-serif;letter-spacing:-.01em;color:${t.text};`,
+      modalSub:`font:400 14px/1.55 Inter,sans-serif;color:${t.muted};margin:9px 0 22px;`,
+      modalActions:`display:flex;gap:10px;`,
+      btnGhost:`flex:1;height:44px;border-radius:11px;border:1px solid ${t.borderStrong};background:${t.surface};color:${t.text};font:600 14px Inter,sans-serif;cursor:pointer;transition:.14s;`,
+      btnGhostHover:`background:${t.surface2};`,
+      btnDanger:`flex:1;height:44px;border-radius:11px;border:none;background:${t.danger};color:#fff;font:600 14px Inter,sans-serif;cursor:pointer;transition:.14s;`,
+      btnDangerHover:`background:${t.dangerHover};`,
+      showTableHead:d.table
+    };
+
+    return {s,t,
+      headerH:d.headerH,headerGap:d.frame<900?16:28,
+      showNav:d.showNav,showWord:d.showWord,showOrgSelector:d.showOrgSel,showUser:d.showUser,showBurger:d.showBurger,showOrgName:d.showOrgName,showTableHead:d.table,
+      isDark:st.theme==='dark',isLight:st.theme==='light',
+      isLoading:screen==='loading',isError:screen==='error',isEmpty:screen==='empty',isList:screen==='list',
+      showCreate:screen==='list'||screen==='empty',
+      viewCards:st.view==='cards',viewRows:st.view==='rows',
+      showHeadCount:screen==='list',projCount:st.projects.length,projWord:'проектов',
+      projects:screen==='list'?st.projects.map(buildProject):[],
+      projectName:st.projectName,
+      creatingBlank:st.creating==='blank',createBlankText:st.creating==='blank'?'Создаём…':'Создать пустой',
+      creatingProd:st.creating==='prod',notCreatingProd:st.creating!=='prod',
+      creatingTrade:st.creating==='trade',notCreatingTrade:st.creating!=='trade',
+      creatingServ:st.creating==='serv',notCreatingServ:st.creating!=='serv',
+      creatingOper:st.creating==='oper',notCreatingOper:st.creating!=='oper',
+      deleteTarget:dt,
+      justCreated: !!st.created,
+      createdName: st.created ? st.created.name : '',
+      dismissCreated: ()=>this.setState({created:null}),
+      showCreatedDemo: ()=>this.setState({created:{name:(st.projectName||'').trim()||'Завод полимерной упаковки'}}),
+      onName:(e)=>this.setState({projectName:e.target.value}),
+      focusName:()=>this.setState({focusName:true}),blurName:()=>this.setState({focusName:false}),
+      createBlank:this.pick('blank'),pickProd:this.pick('prod'),pickGen:this.pick('trade'),pickServ:this.pick('serv'),pickOper:this.pick('oper'),
+      cancelDelete:()=>this.setState({deleteId:null}),
+      confirmDelete:()=>this.setState(s=>({projects:s.projects.filter(p=>p.id!==s.deleteId),deleteId:null})),
+      toggleTheme:()=>this.setState(s=>({theme:s.theme==='light'?'dark':'light'})),
+      stList:()=>this.setState({screen:'list'}),stEmpty:()=>this.setState({screen:'empty'}),stLoad:()=>this.setState({screen:'loading'}),stErr:()=>this.setState({screen:'error'}),
+      vCards:()=>this.setState({view:'cards'}),vRows:()=>this.setState({view:'rows'}),
+      setLight:()=>this.setState({theme:'light'}),setDark:()=>this.setState({theme:'dark'}),
+      setDesktop:()=>this.setState({device:'desktop'}),setTablet:()=>this.setState({device:'tablet'}),setMobile:()=>this.setState({device:'mobile'})
+    };
+  }
+}
+</script>
+</body>
+</html>

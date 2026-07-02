@@ -20,6 +20,26 @@ def _stmt(catalog, values):
     return s
 
 
+def _stmt_n(catalog, values, n):
+    s = Statement(catalog, n)
+    for k, v in values.items():
+        s[k] = [Decimal(x) for x in v]
+    return s
+
+
+def test_activity_uses_period_average_opening_and_prev():
+    """Средняя за период: t0 = (opening+конец)/2, t1 = (конец t0 + конец t1)/2."""
+    n = 2
+    income = _stmt_n(INCOME_LINES, {"I1": [1200, 1200]}, n)
+    balance = _stmt_n(BALANCE_LINES, {"B2": [200, 400]}, n)
+    r = compute_ratios(income, _stmt_n(CASHFLOW_LINES, {}, n), balance,
+                       _stmt_n(PROFIT_USE_LINES, {}, n), Decimal(0), n, {"B2": Decimal(100)})
+    days = r.activity["Период оборачиваемости дебиторки, дн."]
+    denom = Decimal(1200) * Decimal(12)
+    assert days[0] == Decimal(365) * Decimal(150) / denom  # (100+200)/2
+    assert days[1] == Decimal(365) * Decimal(300) / denom  # (200+400)/2
+
+
 def _ratios(common_shares=10):
     income = _stmt(INCOME_LINES, {"I1": 100, "I4": 100, "I5": 20, "I7": 30, "I8": 60,
                                   "I9": 5, "I16": 10, "I18": 8, "I23": 12, "I28": 40})
@@ -43,15 +63,17 @@ def test_profitability():
     assert r.profitability["Рентабельность валовой прибыли"][0] == Decimal("0.6")
     assert r.profitability["Рентабельность операционной прибыли"][0] == Decimal("0.45")
     assert r.profitability["Рентабельность чистой прибыли"][0] == Decimal("0.4")
-    assert r.profitability["Рентабельность активов (ROA)"][0] == Decimal("0.96")   # 40*12/500
-    assert r.profitability["Рентабельность собств. капитала (ROE)"][0] == Decimal("1.6")  # 480/300
+    # ROA/ROE — на средние активы/капитал; opening не задан → среднее = конец/2.
+    assert r.profitability["Рентабельность активов (ROA)"][0] == Decimal("1.92")   # 40*12/(500/2)
+    assert r.profitability["Рентабельность собств. капитала (ROE)"][0] == Decimal("3.2")  # 480/(300/2)
 
 
 def test_gearing_and_activity():
     r = _ratios()
-    assert r.gearing["Суммарные обязательства к активам"][0] == Decimal("0.4")     # 200/500
+    assert r.gearing["Суммарные обязательства к активам"][0] == Decimal("0.4")     # 200/500 (конец)
     assert r.gearing["Коэффициент покрытия процентов"][0] == Decimal("2.5")        # (12+8)/8
-    assert r.activity["Период оборачиваемости дебиторки, дн."][0] == Decimal("9.125")  # 365*30/1200
+    # оборачиваемость — на средние; дебиторка средняя = 30/2 = 15 → 365*15/1200
+    assert r.activity["Период оборачиваемости дебиторки, дн."][0] == Decimal("4.5625")
 
 
 def test_investment_per_share():

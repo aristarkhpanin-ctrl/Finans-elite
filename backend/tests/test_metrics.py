@@ -2,9 +2,11 @@ from decimal import Decimal
 
 from calc_core.metrics import (
     annual_to_monthly,
+    investment_graph,
     irr_annual,
     npv,
     payback_months,
+    profitability_index,
 )
 from calc_core.money import ONE
 
@@ -36,3 +38,38 @@ def test_payback():
     # накопленный поток: -100, -60, -20, +20 → неотрицателен в 4-м периоде (1-индексация)
     assert payback_months([Decimal(-100), Decimal(40), Decimal(40), Decimal(40)]) == 4
     assert payback_months([Decimal(-100), Decimal(10)]) is None
+
+
+def test_investment_graph_single_outflow():
+    # Весь капитал нужен в t0; дальше дефицит не растёт.
+    assert investment_graph([Decimal(-100), Decimal(60), Decimal(60)]) == [
+        Decimal(100), Decimal(0), Decimal(0),
+    ]
+
+
+def test_investment_graph_deepening_deficit():
+    # Дефицит углубляется два периода: 100, затем +50.
+    assert investment_graph([Decimal(-100), Decimal(-50), Decimal(200)]) == [
+        Decimal(100), Decimal(50), Decimal(0),
+    ]
+
+
+def test_investment_graph_ignores_dip_after_recovery():
+    # Ключевое отличие от старого правила: провал −30 после окупаемости НЕ инвестиция.
+    assert investment_graph([Decimal(-100), Decimal(200), Decimal(-30), Decimal(50)]) == [
+        Decimal(100), Decimal(0), Decimal(0), Decimal(0),
+    ]
+
+
+def test_investment_graph_no_deficit():
+    assert investment_graph([Decimal(100), Decimal(50)]) == [Decimal(0), Decimal(0)]
+
+
+def test_profitability_index_basic():
+    # PI = 1 + NPV / PV(инвестиции).
+    assert profitability_index(Decimal(20), Decimal(100)) == Decimal("1.2")
+    assert profitability_index(Decimal(-50), Decimal(100)) == Decimal("0.5")  # PI<1 ⟺ NPV<0
+
+
+def test_profitability_index_none_without_investment():
+    assert profitability_index(Decimal(20), Decimal(0)) is None

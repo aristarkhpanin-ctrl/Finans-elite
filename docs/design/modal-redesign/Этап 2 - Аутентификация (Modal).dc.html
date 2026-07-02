@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  input{font-family:inherit;}
+  input::placeholder{color:inherit;opacity:.42;}
+  input:-webkit-autofill{-webkit-text-fill-color:currentColor;transition:background-color 9999s;}
+  @keyframes fe-spin{to{transform:rotate(360deg)}}
+  @keyframes fe-pop{0%{transform:scale(.55);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+  @keyframes fe-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes fe-prog{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+  @keyframes fe-shake{10%,90%{transform:translateX(-1px)}20%,80%{transform:translateX(2px)}30%,50%,70%{transform:translateX(-4px)}40%,60%{transform:translateX(4px)}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}" data-screen-label="02 — Аутентификация">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+      <div style="{{ s.barCube }}"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="26px,26px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Этап&nbsp;2 · Аутентификация</span>
+        <span style="{{ s.barSub }}">Modal × Финанс-Элит · живой макет всех состояний</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Экран</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segScreenL }}" onClick="{{ setLogin }}">Вход</button><button style="{{ s.segScreenR }}" onClick="{{ setRegister }}">Регистрация</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segThemeL }}" onClick="{{ setLight }}">Светлая</button><button style="{{ s.segThemeD }}" onClick="{{ setDark }}">Тёмная</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Лэйаут</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLayS }}" onClick="{{ setSplit }}">Сплит</button><button style="{{ s.segLayC }}" onClick="{{ setCenter }}">По центру</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDevD }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segDevT }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segDevM }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Ответ сервера</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segSimOk }}" onClick="{{ setSimOk }}">Успех</button><button style="{{ s.segSimErr }}" onClick="{{ setSimErr }}">Ошибка</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.cardWrap }}">
+      <div style="{{ s.card }}">
+
+        <sc-if value="{{ showBrand }}" hint-placeholder-val="{{ false }}">
+        <div style="{{ s.brand }}">
+          <div style="position:relative;z-index:1;display:flex;flex-direction:column;height:100%;">
+            <div style="display:flex;align-items:center;gap:11px;">
+              <div style="{{ s.brandMark }}"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="34px,34px"></dc-import></div>
+              <span style="{{ s.brandWord }}">Финанс<span style="opacity:.5;font-weight:500;">-Элит</span></span>
+            </div>
+            <div style="{{ s.brandHeroWrap }}"><dc-import name="Cube Hero" backdrop="transparent" style="width:100%;height:100%" hint-size="100%,220px"></dc-import></div>
+            <div style="margin-top:auto;">
+              <div style="{{ s.brandH }}">Финансовая модель бизнеса — за вечер, а не за месяц.</div>
+              <div style="{{ s.brandP }}">Помесячный расчёт отчётов, показателей эффективности и оценки стоимости. Данные — герой, интерфейс не мешает.</div>
+              <div style="display:flex;flex-direction:column;gap:13px;margin-top:24px;">
+                <div style="display:flex;align-items:flex-start;gap:11px;"><div style="{{ s.brandTick }}">✓</div><div><div style="{{ s.brandFeatT }}">4 отчёта + NPV, IRR, PI, окупаемость</div><div style="{{ s.brandFeatS }}">Прибыли и убытки · Кэш-фло · Баланс · Использование прибыли</div></div></div>
+                <div style="display:flex;align-items:flex-start;gap:11px;"><div style="{{ s.brandTick }}">✓</div><div><div style="{{ s.brandFeatT }}">Оценка бизнеса 5 методами</div><div style="{{ s.brandFeatS }}">DCF, мультипликаторы, ликвидационная и др.</div></div></div>
+                <div style="display:flex;align-items:flex-start;gap:11px;"><div style="{{ s.brandTick }}">✓</div><div><div style="{{ s.brandFeatT }}">Анализ рисков и план-факт</div><div style="{{ s.brandFeatS }}">Чувствительность, Монте-Карло, What-If</div></div></div>
+              </div>
+            </div>
+            <div style="{{ s.brandFoot }}">
+              <span style="{{ s.brandChip }}">NPV 12,48 млн&nbsp;₽</span>
+              <span style="{{ s.brandChip }}">IRR 34,2%</span>
+              <span style="{{ s.brandChip }}">PI 1,82</span>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+        <div style="{{ s.form }}">
+          <div style="{{ s.formInner }}">
+
+            <button style="{{ s.themeToggle }}" onClick="{{ toggleTheme }}" title="Переключить тему">
+              <sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}"><span style="font-size:14px;line-height:1;">☀</span></sc-if>
+              <sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}"><span style="font-size:13px;line-height:1;">☾</span></sc-if>
+            </button>
+
+            <sc-if value="{{ showFormHeader }}" hint-placeholder-val="{{ true }}">
+            <div>
+              <sc-if value="{{ hideBrand }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:22px;">
+                <div style="{{ s.markSm }}"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="30px,30px"></dc-import></div>
+                <span style="{{ s.wordSm }}">Финанс<span style="color:{{ t.subtle }};font-weight:500;">-Элит</span></span>
+              </div>
+              </sc-if>
+              <div style="{{ s.title }}">{{ titleText }}</div>
+              <div style="{{ s.subtitle }}">{{ subtitleText }}</div>
+            </div>
+            </sc-if>
+
+            <sc-if value="{{ serverError }}" hint-placeholder-val="">
+            <div style="{{ s.banner }}">
+              <span style="{{ s.bannerIco }}">!</span>
+              <span style="flex:1;">{{ serverError }}</span>
+              <button style="{{ s.bannerX }}" onClick="{{ dismissBanner }}">✕</button>
+            </div>
+            </sc-if>
+
+            <sc-if value="{{ isSuccess }}" hint-placeholder-val="{{ false }}">
+            <div style="{{ s.successWrap }}">
+              <div style="position:absolute;top:36%;left:50%;width:230px;height:230px;transform:translate(-50%,-50%);opacity:0.55;pointer-events:none;"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" style="width:100%;height:100%" hint-size="230px,230px"></dc-import></div>
+              <div style="{{ s.successCircle }}">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.2 4.3L19 7.2" stroke="{{ t.primaryText }}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div style="{{ s.successTitle }}">{{ successTitle }}</div>
+              <div style="{{ s.successSub }}">{{ successSub }}</div>
+              <div style="{{ s.successTrack }}"><div style="{{ s.successBar }}"></div></div>
+              <button style="{{ s.linkBtn }}" onClick="{{ reset }}">← Вернуться к форме</button>
+            </div>
+            </sc-if>
+
+            <sc-if value="{{ showForm }}" hint-placeholder-val="{{ true }}">
+            <form style="display:flex;flex-direction:column;gap:{{ gap }}px;" onSubmit="{{ submit }}">
+
+              <sc-if value="{{ isReg }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:7px;">
+                <label style="{{ s.label }}">ФИО</label>
+                <div style="{{ s.fName }}">
+                  <span style="{{ s.affix }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 19.5c0-3.6 2.9-5.5 6.5-5.5s6.5 1.9 6.5 5.5" stroke-linecap="round"/></svg></span>
+                  <input style="{{ s.inputEl }}" type="text" placeholder="Иван Петров" value="{{ fullName }}" onChange="{{ onFullName }}" onFocus="{{ focusFullName }}" onBlur="{{ blurField }}" disabled="{{ formBusy }}" autocomplete="name">
+                </div>
+                <sc-if value="{{ errFullName }}" hint-placeholder-val=""><div style="{{ s.errText }}">{{ errFullName }}</div></sc-if>
+              </div>
+              </sc-if>
+
+              <div style="display:flex;flex-direction:column;gap:7px;">
+                <label style="{{ s.label }}">Email</label>
+                <div style="{{ s.fEmail }}">
+                  <span style="{{ s.affix }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 6.5l8.5 6 8.5-6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                  <input style="{{ s.inputEl }}" type="text" inputmode="email" placeholder="name@company.ru" value="{{ email }}" onChange="{{ onEmail }}" onFocus="{{ focusEmail }}" onBlur="{{ blurField }}" disabled="{{ formBusy }}" autocomplete="email">
+                </div>
+                <sc-if value="{{ errEmail }}" hint-placeholder-val=""><div style="{{ s.errText }}">{{ errEmail }}</div></sc-if>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:7px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <label style="{{ s.label }}">Пароль</label>
+                  <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}"><button type="button" style="{{ s.forgot }}" onClick="{{ noop }}">Забыли пароль?</button></sc-if>
+                </div>
+                <div style="{{ s.fPass }}">
+                  <span style="{{ s.affix }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4.5" y="10.5" width="15" height="9.5" rx="2.2"/><path d="M8 10.5V8a4 4 0 018 0v2.5" stroke-linecap="round"/></svg></span>
+                  <input style="{{ s.inputEl }}" type="{{ passType }}" placeholder="{{ passPlaceholder }}" value="{{ password }}" onChange="{{ onPass }}" onFocus="{{ focusPass }}" onBlur="{{ blurField }}" disabled="{{ formBusy }}" autocomplete="current-password">
+                  <button type="button" style="{{ s.eyeBtn }}" onClick="{{ toggleEye }}" title="Показать пароль">
+                    <sc-if value="{{ showPassword }}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3l18 18" stroke-linecap="round"/><path d="M10.6 6.2A9.7 9.7 0 0112 6c5 0 9 4.5 9 6 0 .8-1.1 2.4-2.9 3.7M6.4 7.6C4.2 9 3 10.9 3 12c0 1.5 4 6 9 6 1.2 0 2.3-.2 3.3-.6" stroke-linecap="round"/></svg></sc-if>
+                    <sc-if value="{{ hidePassword }}" hint-placeholder-val="{{ true }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12s3.5-6.5 9-6.5S21 12 21 12s-3.5 6.5-9 6.5S3 12 3 12z"/><circle cx="12" cy="12" r="2.6"/></svg></sc-if>
+                  </button>
+                </div>
+                <sc-if value="{{ errPass }}" hint-placeholder-val=""><div style="{{ s.errText }}">{{ errPass }}</div></sc-if>
+                <sc-if value="{{ showPassHint }}" hint-placeholder-val="{{ false }}"><div style="{{ s.hintText }}">Минимум 8 символов</div></sc-if>
+              </div>
+
+              <sc-if value="{{ isReg }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:7px;">
+                <label style="{{ s.label }}">Название организации</label>
+                <div style="{{ s.fOrg }}">
+                  <span style="{{ s.affix }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="9" height="16" rx="1.6"/><path d="M13 9h6.5v11H13M7 8h2.5M7 11.5h2.5M7 15h2.5" stroke-linecap="round"/></svg></span>
+                  <input style="{{ s.inputEl }}" type="text" placeholder="ООО «Ваша компания»" value="{{ orgName }}" onChange="{{ onOrg }}" onFocus="{{ focusOrg }}" onBlur="{{ blurField }}" disabled="{{ formBusy }}" autocomplete="organization">
+                </div>
+                <sc-if value="{{ errOrg }}" hint-placeholder-val=""><div style="{{ s.hintText }}">{{ orgHelp }}</div></sc-if>
+              </div>
+              </sc-if>
+
+              <button type="submit" style="{{ s.primaryBtn }}" style-hover="{{ s.primaryBtnHover }}" disabled="{{ formBusy }}">
+                <sc-if value="{{ isLoading }}" hint-placeholder-val="{{ false }}"><span style="{{ s.spinner }}"></span></sc-if>
+                <span>{{ submitText }}</span>
+                <sc-if value="{{ showArrow }}" hint-placeholder-val="{{ true }}"><span style="font-size:15px;">→</span></sc-if>
+              </button>
+
+              <sc-if value="{{ isReg }}" hint-placeholder-val="{{ false }}">
+              <div style="{{ s.legal }}">Создавая аккаунт, вы принимаете <span style="color:{{ t.muted }};text-decoration:underline;text-underline-offset:2px;">Условия</span> и <span style="color:{{ t.muted }};text-decoration:underline;text-underline-offset:2px;">Политику конфиденциальности</span>.</div>
+              </sc-if>
+            </form>
+
+            <div style="{{ s.divider }}"></div>
+            <div style="{{ s.switchRow }}">
+              <span style="color:{{ t.muted }};">{{ switchPrompt }}</span>
+              <button style="{{ s.linkBtn }}" onClick="{{ toggleScreen }}">{{ switchAction }}</button>
+            </div>
+            </sc-if>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ s.galleryWrap }}">
+    <div style="{{ s.galleryHead }}">Все состояния формы · {{ themeLabel }} тема</div>
+    <div style="{{ s.galleryGrid }}">
+
+      <div style="{{ s.gCard }}">
+        <div style="{{ s.gLabel }}"><span style="{{ s.gDotNeutral }}"></span>Фокус поля</div>
+        <div style="{{ s.gFieldFocus }}"><span style="{{ s.affix }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 6.5l8.5 6 8.5-6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span style="{{ s.gFieldText }}">name@company.ru</span><span style="{{ s.caret }}"></span></div>
+        <div style="{{ s.gNote }}">Кольцо фокуса 3px · цвет Reactor</div>
+      </div>
+
+      <div style="{{ s.gCard }}">
+        <div style="{{ s.gLabel }}"><span style="{{ s.gDotDanger }}"></span>Ошибка валидации</div>
+        <div style="{{ s.gFieldError }}"><span style="{{ s.affixErr }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4.5" y="10.5" width="15" height="9.5" rx="2.2"/><path d="M8 10.5V8a4 4 0 018 0v2.5" stroke-linecap="round"/></svg></span><span style="{{ s.gFieldTextMuted }}">••••</span></div>
+        <div style="{{ s.errText }}">Минимум 8 символов</div>
+      </div>
+
+      <div style="{{ s.gCard }}">
+        <div style="{{ s.gLabel }}"><span style="{{ s.gDotDanger }}"></span>Ошибка сервера</div>
+        <div style="{{ s.bannerStatic }}"><span style="{{ s.bannerIco }}">!</span><span>Неверный email или пароль</span></div>
+        <div style="{{ s.gNote }}">Баннер над формой · при 401</div>
+      </div>
+
+      <div style="{{ s.gCard }}">
+        <div style="{{ s.gLabel }}"><span style="{{ s.gDotPrimary }}"></span>Загрузка</div>
+        <div style="{{ s.gBtnLoading }}"><span style="{{ s.spinner }}"></span><span>Входим…</span></div>
+        <div style="{{ s.gNote }}">Кнопка disabled + спиннер</div>
+      </div>
+
+      <div style="{{ s.gCard }}">
+        <div style="{{ s.gLabel }}"><span style="{{ s.gDotSuccess }}"></span>Успех → редирект</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="{{ s.gSuccessCircle }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.2 4.3L19 7.2" stroke="{{ t.primaryText }}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div><div style="{{ s.gSuccessT }}">Вход выполнен</div><div style="{{ s.gNote }}">Перенаправляем…</div></div>
+        </div>
+        <div style="{{ s.successTrack }}"><div style="{{ s.successBar }}"></div></div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    screen: 'login', theme: 'dark', layout: 'split', device: 'desktop',
+    email: '', password: '', fullName: '', orgName: '',
+    showPassword: false, focusField: null,
+    touched: {}, submitted: false,
+    formState: 'idle', // idle | loading | success
+    serverError: '', sim: 'ok'
+  };
+
+  THEME() {
+    const light = {
+      pageBg:'#E4F1E0', bg:'#F4FAF2', surface:'#FFFFFF', surface2:'#EDF5EA', inputBg:'#FFFFFF',
+      border:'#D2E4CD', text:'#16201A', muted:'#46584A', subtle:'#6E8270',
+      primary:'#7FEE64', primaryHover:'#6FE253', primaryText:'#06210E', link:'#138A45',
+      danger:'#C0473B', dangerBg:'#FAE7E4', dangerBorder:'#EECFCA', dangerText:'#8F2F26',
+      success:'#0E7A4F',
+      ring:'rgba(56,194,75,.30)', shadow:'0 18px 44px -22px rgba(20,40,24,.22), 0 2px 6px rgba(20,40,24,.05)',
+      barBg:'#FFFFFF', barBorder:'#D2E4CD', segBg:'#E7F0E3', segActiveBg:'#FFFFFF',
+       onBrand:'#16201A'
+    };
+    const dark = {
+      pageBg:'#000000', bg:'#000000', surface:'#212525', surface2:'#2A312A', inputBg:'#161A16',
+      border:'#485346', text:'#DDFFDC', muted:'#93A091', subtle:'#677D64',
+      primary:'#7FEE64', primaryHover:'#95F47D', primaryText:'#000000', link:'#7FEE64',
+      danger:'#F0796E', dangerBg:'rgba(240,121,110,.15)', dangerBorder:'rgba(240,121,110,.32)', dangerText:'#F4B0A8',
+      success:'#7FEE64',
+      ring:'rgba(127,238,100,.40)', shadow:'0 30px 70px -34px rgba(0,0,0,.9)',
+      barBg:'#0C0F0C', barBorder:'#1D231D', segBg:'#0B0E0B', segActiveBg:'#2A312A',
+       onBrand:'#DDFFDC'
+    };
+    return this.state.theme === 'dark' ? dark : light;
+  }
+
+  DIM() {
+    const d = this.state.device;
+    if (d === 'mobile') return { fieldH:48, fz:16, title:26, sub:14, pad:24, gap:15, stage:392, brand:false };
+    if (d === 'tablet') return { fieldH:44, fz:15, title:28, sub:14.5, pad:36, gap:16, stage:560, brand:false };
+    return { fieldH:42, fz:14, title:30, sub:14.5, pad:44, gap:16, stage: (this.showBrandFlag()?988:464), brand:true };
+  }
+
+  showBrandFlag() { return this.state.device === 'desktop' && this.state.layout === 'split'; }
+  isEmailValid(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()); }
+
+  errors() {
+    const st = this.state, reg = st.screen === 'register';
+    const show = (f) => st.submitted || st.touched[f];
+    const e = { email:'', password:'', fullName:'', orgName:'' };
+    if (show('email')) { if (!st.email.trim()) e.email='Введите email'; else if (!this.isEmailValid(st.email)) e.email='Неверный формат email'; }
+    if (show('password')) { if (!st.password) e.password='Введите пароль'; else if (reg && st.password.length < 8) e.password='Минимум 8 символов'; }
+    if (reg && show('fullName') && !st.fullName.trim()) e.fullName='Укажите ФИО';
+    if (reg && show('orgName') && !st.orgName.trim()) e.orgName='Укажите название организации';
+    return e;
+  }
+
+  set(f){ return (e)=> this.setState({ [f]: e.target.value }); }
+  focus(f){ return ()=> this.setState({ focusField:f }); }
+
+  submit = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const reg = this.state.screen === 'register';
+    this.setState({ submitted:true, serverError:'' });
+    const er = (()=>{ const s=this.state, ee={}; if(!s.email.trim()||!this.isEmailValid(s.email)) ee.email=1; if(!s.password||(reg&&s.password.length<8)) ee.password=1; if(reg&&!s.fullName.trim()) ee.fullName=1; if(reg&&!s.orgName.trim()) ee.orgName=1; return ee; })();
+    if (Object.keys(er).length) return;
+    this.setState({ formState:'loading' });
+    clearTimeout(this._t);
+    this._t = setTimeout(()=>{
+      if (this.state.sim === 'err') {
+        this.setState({ formState:'idle', serverError: reg ? 'Этот email уже зарегистрирован' : 'Неверный email или пароль' });
+      } else {
+        this.setState({ formState:'success' });
+      }
+    }, 1500);
+  };
+
+  reset = () => { clearTimeout(this._t); this.setState({ formState:'idle', serverError:'', submitted:false, touched:{} }); };
+  componentWillUnmount(){ clearTimeout(this._t); }
+
+  renderVals() {
+    const st = this.state, t = this.THEME(), d = this.DIM();
+    const reg = st.screen === 'register', login = !reg;
+    const brand = this.showBrandFlag();
+    const busy = st.formState === 'loading' || st.formState === 'success';
+    const er = this.errors();
+    const ff = st.focusField;
+    const FU="'Inter',-apple-system,'Segoe UI',sans-serif", FD="'Satoshi','Inter',sans-serif", FM="'JetBrains Mono',ui-monospace,monospace";
+
+    const field = (name, hasErr) => `display:flex;align-items:center;height:${d.fieldH}px;border-radius:8px;background:${t.inputBg};border:1.5px solid ${hasErr? t.danger : (ff===name? t.primary : t.border)};box-shadow:${ff===name? '0 0 0 3px '+t.ring : 'none'};transition:border-color .14s ease, box-shadow .14s ease;overflow:hidden;${hasErr&&st.submitted?'animation:fe-shake .4s;':''}`;
+    const seg = (active) => `appearance:none;border:none;cursor:pointer;font:600 12px ${FU};padding:6px 11px;border-radius:7px;white-space:nowrap;color:${active? t.text : t.subtle};background:${active? t.segActiveBg : 'transparent'};box-shadow:${active? '0 1px 2px rgba(0,0,0,.18)' : 'none'};transition:.14s;`;
+    const segWrap = `display:flex;gap:3px;padding:3px;background:${t.segBg};border-radius:9px;`;
+
+    const s = {
+      page:`min-height:100vh;background:${t.pageBg};color:${t.text};display:flex;flex-direction:column;transition:background .25s;`,
+      bar:`display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;padding:13px 22px;background:${t.barBg};border-bottom:1px solid ${t.barBorder};position:sticky;top:0;z-index:20;`,
+      barCube:`width:26px;height:26px;flex:none;border-radius:8px;overflow:hidden;`,
+      barTitle:`font:600 13px ${FU};letter-spacing:-.01em;color:${t.text};white-space:nowrap;`,
+      barSub:`font:500 11px ${FU};color:${t.subtle};white-space:nowrap;`,
+      barLabel:`font:600 9.5px ${FU};letter-spacing:.08em;text-transform:uppercase;color:${t.subtle};`,
+      seg: segWrap,
+      segScreenL: seg(login), segScreenR: seg(reg),
+      segThemeL: seg(st.theme==='light'), segThemeD: seg(st.theme==='dark'),
+      segLayS: seg(st.layout==='split'), segLayC: seg(st.layout==='center'),
+      segDevD: seg(st.device==='desktop'), segDevT: seg(st.device==='tablet'), segDevM: seg(st.device==='mobile'),
+      segSimOk: seg(st.sim==='ok'), segSimErr: seg(st.sim==='err'),
+
+      stage:`flex:1;display:flex;justify-content:center;align-items:flex-start;padding:${d.stage<500?'34px 18px':'56px 24px'};`,
+      cardWrap:`width:100%;max-width:${d.stage}px;`,
+      card:`display:flex;${brand?'':'flex-direction:column;'}background:${t.surface};border:1px solid ${t.border};border-radius:16px;box-shadow:${t.shadow};overflow:hidden;`,
+
+      brand:`flex:0 0 44%;position:relative;padding:38px;background:${st.theme==='dark'?'radial-gradient(135% 95% at 50% 16%, #16331D 0%, #0A0D09 56%)':'radial-gradient(135% 95% at 50% 16%, #DBF3D2 0%, #F4FAF2 56%)'};${st.theme==='dark'?'':'box-shadow:inset -1px 0 0 '+t.border+';'}overflow:hidden;`,
+      brandMark:`width:34px;height:34px;flex:none;border-radius:8px;overflow:hidden;`,
+      brandWord:`font:600 18px ${FD};letter-spacing:-.015em;color:${t.onBrand};`,
+      brandHeroWrap:`flex:1 1 auto;min-height:170px;width:100%;margin:6px 0 4px;position:relative;overflow:hidden;`,
+      brandH:`font:500 27px/1.16 ${FD};letter-spacing:-.025em;color:${t.onBrand};max-width:340px;`,
+      brandP:`font:400 14px/1.55 ${FU};color:${st.theme==='dark'?'rgba(221,255,220,.62)':'#46584A'};margin-top:14px;max-width:330px;`,
+      brandTick:`flex:none;width:20px;height:20px;border-radius:6px;background:${st.theme==='dark'?'rgba(127,238,100,.16)':'rgba(19,138,69,.12)'};color:${st.theme==='dark'?'#7FEE64':'#138A45'};font:700 12px ${FU};display:flex;align-items:center;justify-content:center;margin-top:1px;`,
+      brandFeatT:`font:600 13.5px ${FU};color:${t.onBrand};`,
+      brandFeatS:`font:400 12px/1.45 ${FU};color:${st.theme==='dark'?'rgba(221,255,220,.5)':'#6E8270'};margin-top:2px;`,
+      brandFoot:`display:flex;gap:7px;flex-wrap:wrap;margin-top:28px;padding-top:22px;border-top:1px solid ${st.theme==='dark'?'rgba(127,238,100,.16)':'rgba(19,138,69,.18)'};`,
+      brandChip:`font:600 11px ${FM};color:${st.theme==='dark'?'#DDFFDC':'#0E5B31'};background:${st.theme==='dark'?'rgba(127,238,100,.10)':'rgba(19,138,69,.08)'};border:1px solid ${st.theme==='dark'?'rgba(127,238,100,.18)':'rgba(19,138,69,.22)'};padding:4px 9px;border-radius:9999px;`,
+
+      form:`flex:1;position:relative;`,
+      formInner:`position:relative;padding:${d.pad}px;${brand?'':'max-width:'+(d.stage>500?420:999)+'px;margin:0 auto;'}`,
+      themeToggle:`position:absolute;top:18px;right:18px;width:32px;height:32px;border-radius:8px;border:1px solid ${t.border};background:${t.surface2};color:${t.muted};cursor:pointer;display:flex;align-items:center;justify-content:center;`,
+
+      title:`font:500 ${d.title}px ${FD};letter-spacing:-.025em;color:${t.text};`,
+      subtitle:`font:400 ${d.sub}px/1.5 ${FU};color:${t.muted};margin-top:7px;margin-bottom:26px;max-width:360px;`,
+      label:`font:600 12.5px ${FU};color:${t.muted};`,
+      forgot:`appearance:none;background:none;border:none;cursor:pointer;font:600 12px ${FU};color:${t.link};padding:0;`,
+      affix:`flex:none;width:${d.fieldH}px;height:100%;display:flex;align-items:center;justify-content:center;color:${t.subtle};`,
+      affixErr:`flex:none;width:42px;height:100%;display:flex;align-items:center;justify-content:center;color:${t.danger};`,
+      inputEl:`flex:1;min-width:0;height:100%;border:none;outline:none;background:transparent;color:${t.text};font:500 ${d.fz}px ${FU};padding:0 14px 0 0;`,
+      eyeBtn:`flex:none;width:${d.fieldH}px;height:100%;border:none;background:transparent;color:${t.subtle};cursor:pointer;display:flex;align-items:center;justify-content:center;`,
+      errText:`font:500 12px ${FU};color:${t.danger};display:flex;align-items:center;gap:5px;`,
+      hintText:`font:500 12px ${FU};color:${t.subtle};`,
+
+      fName: field('fullName', !!er.fullName), fEmail: field('email', !!er.email), fPass: field('password', !!er.password), fOrg: field('orgName', !!er.orgName),
+
+      primaryBtn:`appearance:none;border:none;cursor:${busy?'default':'pointer'};width:100%;height:${d.fieldH+6}px;border-radius:4px;background:${t.primary};color:${t.primaryText};font:600 14.5px ${FU};display:flex;align-items:center;justify-content:center;gap:9px;margin-top:4px;opacity:${busy?.8:1};box-shadow:0 1px 2px rgba(0,0,0,.12);transition:background .14s, opacity .14s;`,
+      primaryBtnHover:`background:${busy?t.primary:t.primaryHover};`,
+      spinner:`width:16px;height:16px;border-radius:50%;border:2px solid ${st.theme==='dark'?'rgba(0,0,0,.3)':'rgba(6,33,14,.3)'};border-top-color:${t.primaryText};animation:fe-spin .7s linear infinite;`,
+      legal:`font:400 11.5px/1.5 ${FU};color:${t.subtle};text-align:center;margin-top:2px;`,
+
+      divider:`height:1px;background:${t.border};margin:24px 0 18px;`,
+      switchRow:`display:flex;align-items:center;justify-content:center;gap:7px;font:500 13.5px ${FU};`,
+      linkBtn:`appearance:none;background:none;border:none;cursor:pointer;font:600 13.5px ${FU};color:${t.link};padding:0;`,
+
+      banner:`display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:8px;background:${t.dangerBg};border:1px solid ${t.dangerBorder};color:${t.dangerText};font:500 13px ${FU};margin-bottom:20px;animation:fe-fade .25s;`,
+      bannerIco:`flex:none;width:20px;height:20px;border-radius:50%;background:${t.danger};color:#fff;font:700 13px ${FU};display:flex;align-items:center;justify-content:center;`,
+      bannerX:`appearance:none;background:none;border:none;cursor:pointer;color:${t.dangerText};opacity:.7;font-size:12px;padding:2px;`,
+
+      successWrap:`position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;padding:16px 0 8px;animation:fe-fade .3s;`,
+      successCircle:`width:62px;height:62px;border-radius:50%;background:${t.primary};display:flex;align-items:center;justify-content:center;animation:fe-pop .4s ease;box-shadow:0 8px 26px -6px ${t.primary};`,
+      successTitle:`font:500 23px ${FD};letter-spacing:-.02em;color:${t.text};margin-top:18px;`,
+      successSub:`font:400 14px/1.5 ${FU};color:${t.muted};margin-top:6px;max-width:300px;`,
+      successTrack:`width:100%;max-width:240px;height:4px;border-radius:2px;background:${t.surface2};overflow:hidden;margin-top:22px;`,
+      successBar:`height:100%;width:100%;background:${t.primary};border-radius:2px;transform-origin:left;animation:fe-prog 1.6s ease forwards;`,
+
+      galleryWrap:`border-top:1px solid ${t.border};background:${t.bg};padding:26px 24px 36px;`,
+      galleryHead:`font:600 12px ${FU};letter-spacing:.06em;text-transform:uppercase;color:${t.subtle};text-align:center;margin-bottom:18px;`,
+      galleryGrid:`max-width:1080px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;`,
+      gCard:`background:${t.surface};border:1px solid ${t.border};border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:11px;`,
+      gLabel:`display:flex;align-items:center;gap:7px;font:600 12px ${FU};color:${t.text};`,
+      gDotNeutral:`width:7px;height:7px;border-radius:50%;background:${t.primary};`,
+      gDotDanger:`width:7px;height:7px;border-radius:50%;background:${t.danger};`,
+      gDotPrimary:`width:7px;height:7px;border-radius:50%;background:${t.primary};`,
+      gDotSuccess:`width:7px;height:7px;border-radius:50%;background:${t.success};`,
+      gFieldFocus:`display:flex;align-items:center;height:40px;border-radius:8px;background:${t.inputBg};border:1.5px solid ${t.primary};box-shadow:0 0 0 3px ${t.ring};overflow:hidden;`,
+      gFieldError:`display:flex;align-items:center;height:40px;border-radius:8px;background:${t.inputBg};border:1.5px solid ${t.danger};overflow:hidden;`,
+      gFieldText:`flex:1;font:500 13px ${FU};color:${t.text};`,
+      gFieldTextMuted:`flex:1;font:500 16px ${FU};letter-spacing:2px;color:${t.muted};`,
+      caret:`width:1.5px;height:18px;background:${t.primary};margin-right:14px;`,
+      bannerStatic:`display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:8px;background:${t.dangerBg};border:1px solid ${t.dangerBorder};color:${t.dangerText};font:500 12.5px ${FU};`,
+      gBtnLoading:`display:flex;align-items:center;justify-content:center;gap:9px;height:42px;border-radius:4px;background:${t.primary};color:${t.primaryText};font:600 14px ${FU};opacity:.85;`,
+      gNote:`font:400 11.5px/1.4 ${FU};color:${t.subtle};`,
+      gSuccessCircle:`flex:none;width:34px;height:34px;border-radius:50%;background:${t.primary};display:flex;align-items:center;justify-content:center;`,
+      gSuccessT:`font:600 13.5px ${FU};color:${t.text};white-space:nowrap;line-height:1.3;`,
+      markSm:`width:30px;height:30px;flex:none;border-radius:8px;overflow:hidden;`,
+      wordSm:`font:600 17px ${FD};letter-spacing:-.015em;color:${t.text};white-space:nowrap;`
+    };
+
+    return {
+      s, t,
+      isReg: reg, isLogin: login, showBrand: brand, hideBrand: !brand,
+      isDark: st.theme==='dark', isLight: st.theme==='light', themeLabel: st.theme==='dark'?'Тёмная':'Светлая',
+      email: st.email, password: st.password, fullName: st.fullName, orgName: st.orgName,
+      showPassword: st.showPassword, hidePassword: !st.showPassword,
+      passType: st.showPassword ? 'text' : 'password',
+      passPlaceholder: reg ? 'Не менее 8 символов' : 'Ваш пароль',
+      errEmail: er.email, errPass: reg ? er.password : (er.password||''), errFullName: er.fullName, errOrg: er.orgName,
+      orgHelp: er.orgName, showPassHint: reg && !er.password && ff==='password' && st.password.length>0 && st.password.length<8,
+      serverError: st.serverError,
+      formBusy: busy, isLoading: st.formState==='loading', isSuccess: st.formState==='success',
+      showForm: st.formState!=='success', showFormHeader: st.formState!=='success',
+      showArrow: st.formState==='idle',
+      gap: d.gap,
+      titleText: reg ? 'Создать аккаунт' : 'С возвращением',
+      subtitleText: reg ? 'Зарегистрируйтесь — и создайте организацию для своих финансовых моделей.' : 'Войдите, чтобы продолжить работу с моделями и отчётами.',
+      submitText: st.formState==='loading' ? (reg?'Создаём…':'Входим…') : (reg?'Создать аккаунт':'Войти'),
+      successTitle: reg ? 'Аккаунт создан' : 'Вход выполнен',
+      successSub: reg ? 'Организация готова. Перенаправляем в рабочую область…' : 'Перенаправляем в рабочую область…',
+      switchPrompt: reg ? 'Уже есть аккаунт?' : 'Нет аккаунта?',
+      switchAction: reg ? 'Войти' : 'Регистрация',
+      onEmail: this.set('email'), onPass: this.set('password'), onFullName: this.set('fullName'), onOrg: this.set('orgName'),
+      focusEmail: this.focus('email'), focusPass: this.focus('password'), focusFullName: this.focus('fullName'), focusOrg: this.focus('orgName'),
+      blurField: () => this.setState(s=>({ focusField:null, touched:{...s.touched, [s.focusField]:true} })),
+      toggleEye: () => this.setState(s=>({ showPassword:!s.showPassword })),
+      submit: this.submit, reset: this.reset, noop: ()=>{},
+      dismissBanner: () => this.setState({ serverError:'' }),
+      toggleScreen: () => this.setState(s=>({ screen: s.screen==='login'?'register':'login', submitted:false, touched:{}, serverError:'', formState:'idle' })),
+      toggleTheme: () => this.setState(s=>({ theme: s.theme==='light'?'dark':'light' })),
+      setLogin: () => this.setState({ screen:'login', submitted:false, touched:{}, serverError:'', formState:'idle' }),
+      setRegister: () => this.setState({ screen:'register', submitted:false, touched:{}, serverError:'', formState:'idle' }),
+      setLight: () => this.setState({ theme:'light' }), setDark: () => this.setState({ theme:'dark' }),
+      setSplit: () => this.setState({ layout:'split' }), setCenter: () => this.setState({ layout:'center' }),
+      setDesktop: () => this.setState({ device:'desktop' }), setTablet: () => this.setState({ device:'tablet' }), setMobile: () => this.setState({ device:'mobile' }),
+      setSimOk: () => this.setState({ sim:'ok' }), setSimErr: () => this.setState({ sim:'err' })
+    };
+  }
+}
+</script>
+</body>
+</html>

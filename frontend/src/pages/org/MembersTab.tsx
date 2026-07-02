@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { addMember, getMembers, roleLabel, ROLES } from "../../api/org";
-import { Button, Card } from "../../components/ui";
+import { Button, Card, Loading } from "../../components/ui";
 
 export function MembersTab({ orgId }: { orgId: string }) {
   const qc = useQueryClient();
@@ -43,7 +43,7 @@ export function MembersTab({ orgId }: { orgId: string }) {
         {err && <p className="error">{err}</p>}
       </Card>
 
-      {isLoading && <p className="muted">Загрузка…</p>}
+      {isLoading && <Loading />}
       {data && (
         <div className="list">
           {data.map((m) => (

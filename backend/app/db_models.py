@@ -158,3 +158,12 @@ class Project(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_now, onupdate=_now
     )
+    # Сводка последнего успешного расчёта (B1). Decimal хранится строкой —
+    # как и в model (точность без плавающей запятой). NULL — расчёта не было.
+    last_npv: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    last_irr: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    last_pb_months: Mapped[int | None] = mapped_column(nullable=True)
+    last_engine_version: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    last_calculated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )

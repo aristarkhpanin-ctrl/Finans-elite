@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Inter';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-600-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:700;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-700-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-600-normal.woff2') format('woff2');}
+</style>
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  input,select{font-family:inherit;}
+  input::placeholder{color:inherit;opacity:.4;}
+  select{appearance:none;-webkit-appearance:none;}
+  .fe-scroll::-webkit-scrollbar{height:10px;}
+  .fe-scroll::-webkit-scrollbar-thumb{background:rgba(120,113,108,.35);border-radius:5px;border:3px solid transparent;background-clip:padding-box;}
+  @keyframes fe-fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  @keyframes fe-expand{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}" data-screen-label="08 — Инвестиции">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+      <div style="width:26px;height:26px;flex:none;border-radius:8px;overflow:hidden;"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="26px,26px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Этап&nbsp;8 · Вкладка «Инвестиции»</span>
+        <span style="{{ s.barSub }}">Финанс-Элит · основные средства</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Состояние</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segFilled }}" onClick="{{ setFilled }}">Заполнено</button><button style="{{ s.segEmpty }}" onClick="{{ setEmpty }}">Пусто</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Ошибка</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segErrOff }}" onClick="{{ errOff }}">Нет</button><button style="{{ s.segErrOn }}" onClick="{{ errOn }}">Месяц продажи</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Свет</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тьма</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}">
+
+      <div style="{{ s.subheader }}">
+        <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1;">
+          <button style="{{ s.backBtn }}">←</button>
+          <span style="{{ s.projName }}">Завод полимерной упаковки</span>
+          <span style="{{ s.savedChip }}">✓ Сохранено</span>
+        </div>
+        <div style="{{ s.subActions }}">
+          <div style="{{ s.modeSeg }}"><button style="{{ s.modeEditor }}">Редактор</button><button style="{{ s.modeOther }}">Результаты</button><button style="{{ s.modeOther }}">Анализ</button></div>
+          <button style="{{ s.calcBtn }}" style-hover="{{ s.calcBtnHover }}">Рассчитать →</button>
+        </div>
+      </div>
+
+      <div style="{{ s.tabBarWrap }}">
+        <div style="{{ s.tabBar }}" class="fe-scroll">
+          <sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="7">
+          <button style="{{ tb.style }}"><span>{{ tb.label }}</span><sc-if value="{{ tb.badge }}" hint-placeholder-val=""><span style="{{ tb.badgeStyle }}">{{ tb.badge }}</span></sc-if></button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="{{ s.content }}">
+
+        <div style="{{ s.tabHead }}">
+          <div style="min-width:0;">
+            <div style="{{ s.tabTitle }}">Инвестиции — основные средства</div>
+            <div style="{{ s.tabSub }}">Капвложения, амортизация, продажа и переоценка активов.</div>
+          </div>
+          <button style="{{ s.addBtn }}" style-hover="{{ s.addBtnHover }}" onClick="{{ addAsset }}">＋&nbsp;&nbsp;Актив</button>
+        </div>
+
+        <sc-if value="{{ hasAssets }}" hint-placeholder-val="{{ true }}">
+        <div style="{{ s.summaryRow }}">
+          <div style="{{ s.sumCard }}"><div style="{{ s.sumLabel }}">Всего капвложений</div><div style="{{ s.sumValue }}">{{ totalCapex }}</div></div>
+          <div style="{{ s.sumCard }}"><div style="{{ s.sumLabel }}">Активов</div><div style="{{ s.sumValue }}">{{ assetCount }}</div></div>
+          <div style="{{ s.sumCard }}"><div style="{{ s.sumLabel }}">С продажей</div><div style="{{ s.sumValue }}">{{ saleCount }}</div></div>
+        </div>
+        </sc-if>
+
+        <!-- EMPTY -->
+        <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="{{ s.empty }}">
+          <div style="{{ s.emptyIco }}"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M8 8V6a2 2 0 012-2h4a2 2 0 012 2v2M3 13h18" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div style="{{ s.emptyTitle }}">Нет основных средств</div>
+          <div style="{{ s.emptySub }}">Основные средства: капвложения, амортизация, продажа и переоценка. Добавьте оборудование, здания или землю.</div>
+          <button style="{{ s.emptyBtn }}" style-hover="{{ s.addBtnHover }}" onClick="{{ addAsset }}">＋&nbsp;&nbsp;Добавить первый актив</button>
+        </div>
+        </sc-if>
+
+        <!-- ASSET CARDS -->
+        <sc-if value="{{ hasAssets }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:14px;">
+        <sc-for list="{{ assets }}" as="a" hint-placeholder-count="3">
+        <div style="{{ a.card }}">
+
+          <div style="{{ s.cardHead }}">
+            <div style="{{ a.iconStyle }}">{{ a.icon }}</div>
+            <div style="{{ s.nameField }}" style-hover="{{ s.nameFieldHover }}"><input style="{{ s.nameInput }}" value="{{ a.name }}" placeholder="Название актива" onChange="{{ a.onName }}"></div>
+            <sc-for list="{{ a.chips }}" as="c" hint-placeholder-count="1"><span style="{{ c.style }}">{{ c.text }}</span></sc-for>
+            <button style="{{ s.delBtn }}" style-hover="{{ s.delBtnHover }}" onClick="{{ a.delete }}" title="Удалить актив"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2M6 7l1 13a1 1 0 001 1h8a1 1 0 001-1l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          </div>
+
+          <div style="{{ s.fieldGrid }}">
+            <div style="display:flex;flex-direction:column;gap:7px;">
+              <label style="{{ s.fieldLabel }}">Стоимость</label>
+              <div style="{{ a.costBox }}"><span style="{{ s.prefix }}">₽</span><input style="{{ s.inputEl }}" inputmode="decimal" value="{{ a.cost }}" onChange="{{ a.onCost }}" onFocus="{{ a.focusCost }}" onBlur="{{ a.blur }}"></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:7px;">
+              <label style="{{ s.fieldLabel }}">Месяц приобретения</label>
+              <div style="{{ a.buyBox }}"><span style="{{ s.prefixM }}">М</span><input style="{{ s.inputEl }}" inputmode="decimal" value="{{ a.buyMonth }}" onChange="{{ a.onBuy }}" onFocus="{{ a.focusBuy }}" onBlur="{{ a.blur }}"></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:7px;">
+              <div style="{{ s.labelRow }}"><label style="{{ s.fieldLabel }}">Срок службы</label><sc-if value="{{ a.isLand }}" hint-placeholder-val="{{ false }}"><span style="{{ s.naBadge }}">без аморт.</span></sc-if></div>
+              <div style="{{ a.lifeBox }}"><input style="{{ a.lifeInput }}" inputmode="decimal" value="{{ a.life }}" onChange="{{ a.onLife }}" onFocus="{{ a.focusLife }}" onBlur="{{ a.blur }}" disabled="{{ a.isLand }}"><span style="{{ s.suffix }}">мес.</span></div>
+              <sc-if value="{{ a.isLand }}" hint-placeholder-val="{{ false }}"><div style="{{ s.fieldNote }}">Земля не амортизируется</div></sc-if>
+              <sc-if value="{{ a.showDep }}" hint-placeholder-val="{{ true }}"><div style="{{ s.fieldNote }}">Амортизация ≈ {{ a.depPerMonth }} ₽/мес</div></sc-if>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:7px;">
+              <label style="{{ s.fieldLabel }}">Группа ОС</label>
+              <div style="{{ s.selBox }}"><select style="{{ s.selectEl }}" value="{{ a.groupVal }}" onChange="{{ a.onGroup }}"><option value="equip">Оборудование</option><option value="building">Здания</option><option value="land">Земля</option></select><span style="{{ s.selChev }}">▾</span></div>
+            </div>
+          </div>
+
+          <!-- OPTIONS: продажа / переоценка -->
+          <div style="{{ s.optToggleRow }}">
+            <button style="{{ a.saleToggle }}" onClick="{{ a.toggleSale }}"><span style="{{ a.saleDot }}"></span>Продаётся в течение проекта</button>
+            <sc-if value="{{ a.canRevalue }}" hint-placeholder-val="{{ true }}"><button style="{{ a.revToggle }}" onClick="{{ a.toggleRev }}"><span style="{{ a.revDot }}"></span>Переоценка</button></sc-if>
+          </div>
+
+          <sc-if value="{{ a.saleOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.expandBlock }}">
+            <div style="{{ s.expandHead }}"><span style="{{ s.expandIco }}">↗</span>Продажа актива</div>
+            <div style="{{ s.expandGrid }}">
+              <div style="display:flex;flex-direction:column;gap:7px;">
+                <label style="{{ s.fieldLabel }}">Месяц продажи</label>
+                <div style="{{ a.saleMonthBox }}"><span style="{{ s.prefixM }}">М</span><input style="{{ s.inputEl }}" inputmode="decimal" value="{{ a.saleMonth }}" onChange="{{ a.onSaleMonth }}" onFocus="{{ a.focusSaleMonth }}" onBlur="{{ a.blur }}"></div>
+                <sc-if value="{{ a.saleErr }}" hint-placeholder-val=""><div style="{{ s.fieldErr }}">{{ a.saleErr }}</div></sc-if>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:7px;">
+                <label style="{{ s.fieldLabel }}">Цена продажи</label>
+                <div style="{{ a.salePriceBox }}"><span style="{{ s.prefix }}">₽</span><input style="{{ s.inputEl }}" inputmode="decimal" value="{{ a.salePrice }}" onChange="{{ a.onSalePrice }}" onFocus="{{ a.focusSalePrice }}" onBlur="{{ a.blur }}"></div>
+                <sc-if value="{{ a.gainNote }}" hint-placeholder-val=""><div style="{{ a.gainStyle }}">{{ a.gainNote }}</div></sc-if>
+              </div>
+            </div>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ a.revOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.expandBlock }}">
+            <div style="{{ s.expandHead }}"><span style="{{ s.expandIco }}">⟳</span>Переоценка актива</div>
+            <div style="{{ s.expandGrid }}">
+              <div style="display:flex;flex-direction:column;gap:7px;">
+                <label style="{{ s.fieldLabel }}">Месяц переоценки</label>
+                <div style="{{ a.revMonthBox }}"><span style="{{ s.prefixM }}">М</span><input style="{{ s.inputEl }}" inputmode="decimal" value="{{ a.revMonth }}" onChange="{{ a.onRevMonth }}" onFocus="{{ a.focusRevMonth }}" onBlur="{{ a.blur }}"></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:7px;">
+                <label style="{{ s.fieldLabel }}">Новая стоимость</label>
+                <div style="{{ a.revSumBox }}"><span style="{{ s.prefix }}">₽</span><input style="{{ s.inputEl }}" inputmode="decimal" value="{{ a.revSum }}" onChange="{{ a.onRevSum }}" onFocus="{{ a.focusRevSum }}" onBlur="{{ a.blur }}"></div>
+              </div>
+            </div>
+          </div>
+          </sc-if>
+
+        </div>
+        </sc-for>
+
+        <button style="{{ s.addRow }}" style-hover="{{ s.addRowHover }}" onClick="{{ addAsset }}">＋&nbsp;&nbsp;Добавить ещё актив</button>
+        </div>
+        </sc-if>
+
+        <div style="{{ s.bottomPad }}"></div>
+      </div>
+
+      <div style="{{ s.saveBar }}">
+        <div style="{{ s.saveStatus }}">
+          <sc-if value="{{ dirty }}" hint-placeholder-val="{{ false }}"><span style="{{ s.dirtyDot }}"></span><span style="{{ s.saveTextDirty }}">Несохранённые изменения</span></sc-if>
+          <sc-if value="{{ clean }}" hint-placeholder-val="{{ true }}"><span style="{{ s.savedCheck }}">✓</span><span style="{{ s.saveTextSaved }}">Все изменения сохранены</span></sc-if>
+        </div>
+        <button style="{{ s.saveBtn }}" style-hover="{{ s.saveBtnHover }}" onClick="{{ save }}" disabled="{{ clean }}">Сохранить</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  seed(){
+    return [
+      {id:1,name:'Линия экструзии (станок)',group:'equip',cost:'2400000',buyMonth:'1',life:'24',sale:false,saleMonth:'',salePrice:'',rev:false,revMonth:'',revSum:''},
+      {id:2,name:'Производственный корпус',group:'building',cost:'8000000',buyMonth:'1',life:'240',sale:false,saleMonth:'',salePrice:'',rev:true,revMonth:'18',revSum:'8600000'},
+      {id:3,name:'Земельный участок',group:'land',cost:'3000000',buyMonth:'1',life:'',sale:true,saleMonth:'24',salePrice:'3500000',rev:false,revMonth:'',revSum:''}
+    ];
+  }
+  state = { theme:'light', device:'desktop', demo:'filled', assets:this.seed(), dirty:false, focusKey:null };
+
+  THEME(){
+    const light={pageBg:'#F3F2F0',bg:'#FAFAF9',surface:'#FFFFFF',surface2:'#F5F5F4',border:'#E7E5E4',borderStrong:'#D6D3D1',text:'#1C1917',muted:'#57534E',subtle:'#A8A29E',primary:'#0E9C6E',primaryHover:'#0B8560',primaryText:'#FFFFFF',primaryBg:'#E2F4EC',primarySoft:'#EFF8F3',danger:'#C13A30',dangerBg:'#FBE9E7',dangerBorder:'#F2C8C2',warn:'#B86E00',infoBg:'#E5EEFC',infoText:'#1F58BE',violetBg:'#F1ECFE',violetText:'#5B3FD6',amberBg:'#FAEFD9',amberText:'#8A5300',ring:'rgba(14,156,110,.22)',shadow:'0 18px 48px -20px rgba(28,25,23,.28), 0 2px 6px rgba(28,25,23,.05)',barBg:'#FFFFFF',segBg:'#F0EEEC',segActiveBg:'#FFFFFF',headerBg:'#FFFFFF',brandMid:'#0C7250',brandTo:'#0E9C6E'};
+    const dark={pageBg:'#141210',bg:'#1A1816',surface:'#232020',surface2:'#2C2825',border:'#39332F',borderStrong:'#4A433E',text:'#F6F4F2',muted:'#B7B0A9',subtle:'#7E756D',primary:'#12B07D',primaryHover:'#19C28B',primaryText:'#06241A',primaryBg:'rgba(18,176,125,.16)',primarySoft:'rgba(18,176,125,.10)',danger:'#F0796E',dangerBg:'rgba(210,69,59,.16)',dangerBorder:'rgba(240,121,110,.32)',warn:'#E0A23A',infoBg:'rgba(45,111,237,.18)',infoText:'#9CC0FF',violetBg:'rgba(124,92,255,.18)',violetText:'#C4B0FF',amberBg:'rgba(224,162,58,.16)',amberText:'#E8C07A',ring:'rgba(25,194,139,.34)',shadow:'0 28px 64px -24px rgba(0,0,0,.72)',barBg:'#1E1B19',segBg:'#16140F',segActiveBg:'#2C2825',headerBg:'#1E1B19',brandMid:'#0A5A40',brandTo:'#0E7A57'};
+    return this.state.theme==='dark'?{...dark,pageBg:'#000000',bg:'#0C0F0C',surface:'#212525',surface2:'#2A312A',sk:'#2A312A',cellBg:'#161A16',border:'#485346',borderStrong:'#677D64',gridLine:'#232823',text:'#DDFFDC',muted:'#93A091',subtle:'#677D64',primary:'#7FEE64',primaryHover:'#95F47D',primaryText:'#000000',accent:'#7FEE64',primaryBg:'rgba(127,238,100,.15)',primarySoft:'rgba(127,238,100,.09)',good:'#7FEE64',goodBg:'rgba(127,238,100,.15)',goodBorder:'rgba(127,238,100,.32)',danger:'#F0796E',dangerHover:'#F4988F',dangerBg:'rgba(240,121,110,.15)',dangerBorder:'rgba(240,121,110,.32)',dangerText:'#F4B0A8',warn:'#E0A23A',warnBg:'rgba(224,162,58,.16)',warnBorder:'rgba(224,162,58,.32)',info:'#AED2A4',infoBg:'rgba(174,210,164,.15)',ring:'rgba(127,238,100,.4)',shadow:'0 30px 70px -34px rgba(0,0,0,.9)',menuShadow:'0 22px 52px -16px rgba(0,0,0,.82)',barBg:'#0C0F0C',barBorder:'#1D231D',segBg:'#0B0E0B',segActiveBg:'#2A312A',headerBg:'#0C0F0C',stickyBg:'#212525',brandMid:'#3E4A3C',brandTo:'#7FEE64',violet:'#C8F9B6',violetBg:'rgba(200,249,182,.14)',subtotalBg:'#1C201C',grandBg:'rgba(127,238,100,.12)',hov:'#262C25',hovlab:'#2C322B',ico1:'#7FEE64',ico1Bg:'rgba(127,238,100,.15)',ico2:'#AED2A4',ico2Bg:'rgba(174,210,164,.15)',ico3:'#C8F9B6',ico3Bg:'rgba(200,249,182,.14)',ico4:'#E0A23A',ico4Bg:'rgba(224,162,58,.16)',inputBg:'#161A16',success:'#7FEE64',successBg:'rgba(127,238,100,.16)'}:{...light,pageBg:'#E4F1E0',bg:'#F4FAF2',surface:'#FFFFFF',surface2:'#EDF5EA',sk:'#E3EEDF',cellBg:'#FFFFFF',border:'#D2E4CD',borderStrong:'#B4CCAE',gridLine:'#E8F1E5',text:'#16201A',muted:'#46584A',subtle:'#6E8270',primary:'#7FEE64',primaryHover:'#6FE253',primaryText:'#06210E',accent:'#138A45',primaryBg:'#DBF3D2',primarySoft:'#EAF8E4',good:'#0E7A4F',goodBg:'#DBF1E2',goodBorder:'#B7DEC6',danger:'#C0473B',dangerHover:'#A53A30',dangerBg:'#FAE7E4',dangerBorder:'#EECFCA',dangerText:'#8F2F26',warn:'#B07A12',warnBg:'#FBF0D8',warnBorder:'#ECDDB4',info:'#3E7D52',infoBg:'#E6EFE2',ring:'rgba(56,194,75,.3)',shadow:'0 18px 44px -22px rgba(20,40,24,.22), 0 2px 6px rgba(20,40,24,.05)',menuShadow:'0 24px 56px -16px rgba(20,40,24,.28)',barBg:'#FFFFFF',barBorder:'#D2E4CD',segBg:'#E7F0E3',segActiveBg:'#FFFFFF',headerBg:'#FFFFFF',stickyBg:'#FFFFFF',brandMid:'#138A45',brandTo:'#7FEE64',violet:'#3E7D52',violetBg:'#E6EFE2',subtotalBg:'#EDF3EA',grandBg:'#DBF1E2',hov:'#F1F7EE',hovlab:'#EAF2E6',ico1:'#138A45',ico1Bg:'#DBF3D2',ico2:'#3E7D52',ico2Bg:'#E6EFE2',ico3:'#5FA86A',ico3Bg:'#E3F0DE',ico4:'#B07A12',ico4Bg:'#FBF0D8',inputBg:'#FFFFFF',success:'#0E7A4F',successBg:'#DBF1E2'};
+  }
+  DIM(){const dv=this.state.device,m=dv==='mobile',tab=dv==='tablet'; return {frame:m?402:tab?864:1180, radius:m?30:tab?18:14, pad:m?16:tab?22:30, cols:m?1:tab?2:4, mobile:m};}
+  num(x){ if(x==null||x==='')return 0; return parseFloat(String(x).replace(/\s/g,'').replace(',','.'))||0; }
+  fmtInt(n){ n=Math.round(n); const neg=n<0; n=Math.abs(n); let s=String(n).replace(/\B(?=(\d{3})+(?!\d))/g,'\u00A0'); return (neg?'−':'')+s; }
+  fmtMoney(n){ const a=Math.abs(n); if(a>=1e6) return (n<0?'−':'')+(a/1e6).toFixed(2).replace('.',',')+'\u00A0млн\u00A0₽'; return this.fmtInt(n)+'\u00A0₽'; }
+
+  setField(idx,key){ return (e)=>{ const val=e.target.value; this.setState(s=>({dirty:true,assets:s.assets.map((a,i)=>i!==idx?a:({...a,[key]:val}))})); }; }
+  setGroup(idx){ return (e)=>{ const val=e.target.value; this.setState(s=>({dirty:true,assets:s.assets.map((a,i)=>i!==idx?a:({...a,group:val, life: val==='land'?'':(a.life||'24'), rev: val==='land'?false:a.rev}))})); }; }
+  toggle(idx,key){ return ()=>{ this.setState(s=>({dirty:true,assets:s.assets.map((a,i)=>i!==idx?a:({...a,[key]:!a[key]}))})); }; }
+  del(idx){ return ()=>{ this.setState(s=>({dirty:true,assets:s.assets.filter((_,i)=>i!==idx)})); }; }
+  addAsset=()=>{ this.setState(s=>({dirty:true,assets:[...s.assets,{id:Date.now(),name:'',group:'equip',cost:'',buyMonth:'1',life:'24',sale:false,saleMonth:'',salePrice:'',rev:false,revMonth:'',revSum:''}]})); };
+
+  renderVals(){
+    const st=this.state, t=this.THEME(), d=this.DIM();
+    const seg=(a)=>`appearance:none;border:none;cursor:pointer;font:600 11.5px Inter,sans-serif;padding:6px 10px;border-radius:7px;white-space:nowrap;color:${a?t.text:t.subtle};background:${a?t.segActiveBg:'transparent'};box-shadow:${a?'0 1px 2px rgba(0,0,0,.14)':'none'};transition:.14s;`;
+    const segWrap=`display:flex;gap:3px;padding:3px;background:${t.segBg};border-radius:9px;`;
+    const mode=(a)=>`appearance:none;border:none;cursor:pointer;font:600 12.5px Inter,sans-serif;padding:7px 13px;border-radius:8px;white-space:nowrap;color:${a?t.primaryText:t.muted};background:${a?t.primary:'transparent'};box-shadow:${a?'0 1px 2px rgba(0,0,0,.14)':'none'};`;
+    const assets=st.demo==='empty'?[]:st.assets;
+    const fbox=(fk,err)=>`display:flex;align-items:center;height:42px;border-radius:8px;background:${t.surface};border:1.5px solid ${err?t.danger:(st.focusKey===fk?t.primary:t.border)};box-shadow:${st.focusKey===fk?'0 0 0 3px '+t.ring:'none'};overflow:hidden;transition:.14s;`;
+
+    const groupMeta={
+      equip:{label:'Оборудование',icon:'⚙',color:t.primary,bg:t.primaryBg,chipKind:'mat'},
+      building:{label:'Здания',icon:'▣',color:t.violetText,bg:t.violetBg,chipKind:'func'},
+      land:{label:'Земля',icon:'⬚',color:t.amberText,bg:t.amberBg,chipKind:'profit'}
+    };
+    const chip=(text,kind)=>{ const map={mat:[t.primary,t.primaryBg,'transparent'],cur:[t.infoText,t.infoBg,'transparent'],profit:[t.amberText,t.amberBg,'transparent'],func:[t.violetText,t.violetBg,'transparent'],sale:[t.infoText,t.infoBg,'transparent']}; const c=map[kind]||map.mat; return {text,style:`font:600 10.5px Inter,sans-serif;color:${c[0]};background:${c[1]};border:1px solid ${c[2]};padding:3px 8px;border-radius:6px;white-space:nowrap;flex:none;`}; };
+
+    const buildAsset=(a,idx)=>{
+      const gm=groupMeta[a.group]||groupMeta.equip;
+      const isLand=a.group==='land';
+      const cost=this.num(a.cost), life=this.num(a.life);
+      const depPM = (!isLand && life>0) ? this.fmtInt(cost/life) : '';
+      const saleErr = (a.sale && a.saleMonth!=='' && this.num(a.saleMonth)<this.num(a.buyMonth)) ? 'Месяц продажи должен быть ≥ месяца приобретения (М'+this.num(a.buyMonth)+')' : '';
+      const chips=[chip(gm.label,gm.chipKind)]; if(a.sale) chips.push(chip('Продажа','sale')); if(a.rev&&!isLand) chips.push(chip('Переоценка','cur'));
+      const gain = a.sale ? this.num(a.salePrice)-cost : 0;
+      const gainNote = (a.sale && a.salePrice!=='') ? (gain>=0?'Прибыль от продажи: +'+this.fmtMoney(gain):'Убыток от продажи: '+this.fmtMoney(gain)) : '';
+      const fk=(k)=>'a'+idx+'-'+k;
+      return {idx, name:a.name, isLand, showDep: !isLand && depPM!=='', depPerMonth:depPM,
+        icon:gm.icon, iconStyle:`flex:none;width:30px;height:30px;border-radius:9px;background:${gm.bg};color:${gm.color};font-size:15px;display:flex;align-items:center;justify-content:center;`,
+        card:`background:${t.surface};border:1px solid ${t.border};border-radius:16px;padding:${d.mobile?14:20}px;animation:fe-fade .25s ease;`,
+        chips,
+        cost:a.cost, onCost:this.setField(idx,'cost'), costBox:fbox(fk('cost')), focusCost:()=>this.setState({focusKey:fk('cost')}),
+        buyMonth:a.buyMonth, onBuy:this.setField(idx,'buyMonth'), buyBox:fbox(fk('buy')), focusBuy:()=>this.setState({focusKey:fk('buy')}),
+        life:a.life, onLife:this.setField(idx,'life'), lifeBox:fbox(fk('life')), focusLife:()=>this.setState({focusKey:fk('life')}),
+        lifeInput:`flex:1;min-width:0;height:100%;border:none;outline:none;background:transparent;color:${isLand?t.subtle:t.text};font:500 14px 'JetBrains Mono',monospace;text-align:right;padding:0 10px;${isLand?'cursor:not-allowed;':''}`,
+        groupVal:a.group, onGroup:this.setGroup(idx),
+        blur:()=>this.setState({focusKey:null}),
+        onName:this.setField(idx,'name'), delete:this.del(idx),
+        saleOpen:a.sale, revOpen:a.rev&&!isLand, canRevalue:!isLand,
+        toggleSale:this.toggle(idx,'sale'), toggleRev:this.toggle(idx,'rev'),
+        saleToggle:`appearance:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 13px;border-radius:9px;border:1px solid ${a.sale?t.primary:t.border};background:${a.sale?t.primarySoft:t.surface2};color:${a.sale?t.primary:t.muted};font:600 12.5px Inter,sans-serif;transition:.14s;`,
+        saleDot:`width:7px;height:7px;border-radius:50%;background:${a.sale?t.primary:t.subtle};`,
+        revToggle:`appearance:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 13px;border-radius:9px;border:1px solid ${a.rev?t.primary:t.border};background:${a.rev?t.primarySoft:t.surface2};color:${a.rev?t.primary:t.muted};font:600 12.5px Inter,sans-serif;transition:.14s;`,
+        revDot:`width:7px;height:7px;border-radius:50%;background:${a.rev?t.primary:t.subtle};`,
+        saleMonth:a.saleMonth, onSaleMonth:this.setField(idx,'saleMonth'), saleMonthBox:fbox(fk('sm'),!!saleErr), focusSaleMonth:()=>this.setState({focusKey:fk('sm')}), saleErr,
+        salePrice:a.salePrice, onSalePrice:this.setField(idx,'salePrice'), salePriceBox:fbox(fk('sp')), focusSalePrice:()=>this.setState({focusKey:fk('sp')}),
+        gainNote, gainStyle:`font:600 11.5px Inter,sans-serif;color:${gain>=0?t.primary:t.danger};`,
+        revMonth:a.revMonth, onRevMonth:this.setField(idx,'revMonth'), revMonthBox:fbox(fk('rm')), focusRevMonth:()=>this.setState({focusKey:fk('rm')}),
+        revSum:a.revSum, onRevSum:this.setField(idx,'revSum'), revSumBox:fbox(fk('rs')), focusRevSum:()=>this.setState({focusKey:fk('rs')})
+      };
+    };
+
+    const totalCapex=assets.reduce((acc,a)=>acc+this.num(a.cost),0);
+    const saleCount=assets.filter(a=>a.sale).length;
+    const tabDefs=[['Проект',''],['Сбыт','2'],['Издержки','4'],['Инвестиции',String(assets.length||'')],['Финансирование','1'],['Валюта и старт',''],['Факт.','']];
+    const tabs=tabDefs.map(([label,badge])=>{ const active=label==='Инвестиции';
+      return {label,badge,
+        style:`appearance:none;border:none;background:none;cursor:pointer;display:inline-flex;align-items:center;gap:7px;font:600 13.5px Inter,sans-serif;color:${active?t.text:t.muted};padding:0 3px;height:46px;border-bottom:2px solid ${active?t.primary:'transparent'};white-space:nowrap;`,
+        badgeStyle:`font:600 10.5px 'JetBrains Mono',monospace;color:${active?t.primary:t.subtle};background:${active?t.primaryBg:t.surface2};padding:1px 6px;border-radius:20px;min-width:18px;text-align:center;`};
+    });
+
+    const s={
+      page:`min-height:100vh;background:${t.pageBg};color:${t.text};display:flex;flex-direction:column;transition:background .25s;`,
+      bar:`display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:13px 20px;background:${t.barBg};border-bottom:1px solid ${t.border};position:sticky;top:0;z-index:60;`,
+      barDot:`width:26px;height:26px;border-radius:7px;flex:none;background:linear-gradient(150deg,${t.brandMid},${t.brandTo});`,
+      barTitle:`font:700 13px Inter,sans-serif;letter-spacing:-.01em;color:${t.text};white-space:nowrap;`,
+      barSub:`font:500 11px Inter,sans-serif;color:${t.subtle};white-space:nowrap;`,
+      barLabel:`font:600 9.5px Inter,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:${t.subtle};`,
+      seg:segWrap,
+      segFilled:seg(st.demo==='filled'),segEmpty:seg(st.demo==='empty'),
+      segErrOff:seg(!(st.assets[2]&&st.assets[2].sale&&st.assets[2].saleMonth!==''&&this.num(st.assets[2].saleMonth)<this.num(st.assets[2].buyMonth))),
+      segErrOn:seg(st.assets[2]&&st.assets[2].sale&&st.assets[2].saleMonth!==''&&this.num(st.assets[2].saleMonth)<this.num(st.assets[2].buyMonth)),
+      segLight:seg(st.theme==='light'),segDark:seg(st.theme==='dark'),
+      segDesktop:seg(st.device==='desktop'),segTablet:seg(st.device==='tablet'),segMobile:seg(st.device==='mobile'),
+
+      stage:`flex:1;display:flex;justify-content:center;align-items:flex-start;padding:${d.mobile?'22px 12px':'34px 24px'};`,
+      frame:`position:relative;width:100%;max-width:${d.frame}px;background:${t.bg};border:1px solid ${t.border};border-radius:${d.radius}px;box-shadow:${t.shadow};overflow:hidden;display:flex;flex-direction:column;`,
+
+      subheader:`display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:13px ${d.pad}px;background:${t.headerBg};border-bottom:1px solid ${t.border};`,
+      backBtn:`appearance:none;cursor:pointer;width:34px;height:34px;border-radius:8px;border:1px solid ${t.border};background:${t.surface};color:${t.muted};font:600 14px Inter;flex:none;`,
+      projName:`font:700 ${d.mobile?16:19}px Inter,sans-serif;letter-spacing:-.02em;color:${t.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;`,
+      savedChip:`font:600 11px Inter,sans-serif;color:${t.subtle};background:${t.surface2};border:1px solid ${t.border};padding:3px 8px;border-radius:9999px;white-space:nowrap;flex:none;${d.mobile?'display:none;':''}`,
+      subActions:`display:flex;align-items:center;gap:10px;flex-wrap:wrap;${d.mobile?'width:100%;':''}`,
+      modeSeg:`display:flex;gap:3px;padding:3px;background:${t.segBg};border-radius:9px;${d.mobile?'flex:1;':''}`,
+      modeEditor:mode(true),modeOther:mode(false),
+      calcBtn:`appearance:none;border:none;cursor:pointer;height:40px;padding:0 16px;border-radius:4px;background:${t.primary};color:${t.primaryText};font:600 13px Inter,sans-serif;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.12);transition:.14s;`,
+      calcBtnHover:`background:${t.primaryHover};`,
+      tabBarWrap:`background:${t.headerBg};border-bottom:1px solid ${t.border};padding:0 ${d.pad}px;`,
+      tabBar:`display:flex;align-items:center;gap:${d.mobile?14:22}px;overflow-x:auto;`,
+
+      content:`flex:1;padding:${d.pad}px;`,
+      tabHead:`display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:18px;`,
+      tabTitle:`font:700 ${d.mobile?18:21}px 'Satoshi',Inter,sans-serif;letter-spacing:-.02em;color:${t.text};`,
+      tabSub:`font:400 13.5px Inter,sans-serif;color:${t.muted};margin-top:5px;`,
+      addBtn:`appearance:none;border:none;cursor:pointer;height:40px;padding:0 16px;border-radius:4px;background:${t.primary};color:${t.primaryText};font:600 13.5px Inter,sans-serif;white-space:nowrap;flex:none;box-shadow:0 1px 2px rgba(0,0,0,.12);transition:.14s;`,
+      addBtnHover:`background:${t.primaryHover};`,
+
+      summaryRow:`display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;`,
+      sumCard:`background:${t.surface};border:1px solid ${t.border};border-radius:12px;padding:14px 16px;`,
+      sumLabel:`font:600 10px Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:${t.subtle};`,
+      sumValue:`font:600 ${d.mobile?16:19}px 'JetBrains Mono',monospace;color:${t.text};margin-top:6px;letter-spacing:-.01em;`,
+
+      empty:`text-align:center;padding:54px 24px;background:${t.surface};border:1px dashed ${t.borderStrong};border-radius:16px;display:flex;flex-direction:column;align-items:center;`,
+      emptyIco:`width:60px;height:60px;border-radius:16px;background:${t.surface2};color:${t.subtle};display:flex;align-items:center;justify-content:center;margin-bottom:18px;`,
+      emptyTitle:`font:700 19px 'Satoshi',Inter,sans-serif;color:${t.text};`,
+      emptySub:`font:400 14px/1.55 Inter,sans-serif;color:${t.muted};max-width:430px;margin:8px auto 22px;`,
+      emptyBtn:`appearance:none;border:none;cursor:pointer;height:44px;padding:0 22px;border-radius:4px;background:${t.primary};color:${t.primaryText};font:600 14px Inter,sans-serif;box-shadow:0 1px 2px rgba(0,0,0,.12);transition:.14s;`,
+
+      cardHead:`display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;`,
+      nameField:`flex:1;min-width:140px;border-radius:9px;border:1px solid transparent;transition:.14s;`,
+      nameFieldHover:`border-color:${t.border};background:${t.surface2};`,
+      nameInput:`width:100%;height:36px;border:none;outline:none;background:transparent;color:${t.text};font:700 15.5px Inter,sans-serif;letter-spacing:-.01em;padding:0 10px;`,
+      delBtn:`appearance:none;cursor:pointer;width:34px;height:34px;border-radius:9px;border:1px solid ${t.border};background:${t.surface};color:${t.danger};flex:none;display:flex;align-items:center;justify-content:center;transition:.14s;`,
+      delBtnHover:`background:${t.dangerBg};border-color:${t.dangerBorder};`,
+
+      fieldGrid:`display:grid;grid-template-columns:repeat(${d.cols},1fr);gap:14px 16px;`,
+      fieldLabel:`font:600 12.5px Inter,sans-serif;color:${t.muted};`,
+      labelRow:`display:flex;align-items:center;gap:7px;`,
+      naBadge:`font:600 9.5px Inter,sans-serif;color:${t.amberText};background:${t.amberBg};padding:2px 6px;border-radius:5px;`,
+      prefix:`flex:none;padding:0 11px;height:100%;display:flex;align-items:center;font:500 13px 'JetBrains Mono',monospace;color:${t.subtle};border-right:1px solid ${t.border};background:${t.surface2};`,
+      prefixM:`flex:none;padding:0 11px;height:100%;display:flex;align-items:center;font:600 13px 'JetBrains Mono',monospace;color:${t.subtle};border-right:1px solid ${t.border};background:${t.surface2};`,
+      inputEl:`flex:1;min-width:0;height:100%;border:none;outline:none;background:transparent;color:${t.text};font:500 14px 'JetBrains Mono',monospace;text-align:right;padding:0 11px;`,
+      suffix:`flex:none;padding:0 11px;height:100%;display:flex;align-items:center;font:500 12px Inter,sans-serif;color:${t.subtle};border-left:1px solid ${t.border};background:${t.surface2};`,
+      fieldNote:`font:500 11px Inter,sans-serif;color:${t.subtle};`,
+      fieldErr:`font:500 11.5px/1.35 Inter,sans-serif;color:${t.danger};`,
+      selBox:`position:relative;display:flex;align-items:center;height:42px;border-radius:8px;background:${t.surface};border:1.5px solid ${t.border};overflow:hidden;`,
+      selectEl:`flex:1;min-width:0;height:100%;border:none;outline:none;background:transparent;color:${t.text};font:500 13.5px Inter,sans-serif;padding:0 32px 0 12px;cursor:pointer;`,
+      selChev:`position:absolute;right:12px;top:50%;transform:translateY(-50%);color:${t.subtle};font-size:11px;pointer-events:none;`,
+
+      optToggleRow:`display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;`,
+      expandBlock:`margin-top:12px;padding:16px;border-radius:12px;background:${t.surface2};border:1px solid ${t.border};animation:fe-expand .2s ease;`,
+      expandHead:`display:flex;align-items:center;gap:8px;font:700 13px Inter,sans-serif;color:${t.text};margin-bottom:12px;`,
+      expandIco:`width:22px;height:22px;border-radius:6px;background:${t.primaryBg};color:${t.primary};display:flex;align-items:center;justify-content:center;font-size:13px;`,
+      expandGrid:`display:grid;grid-template-columns:repeat(${d.mobile?1:2},1fr);gap:14px 16px;`,
+
+      addRow:`appearance:none;cursor:pointer;height:46px;border-radius:12px;border:1.5px dashed ${t.borderStrong};background:transparent;color:${t.muted};font:600 13.5px Inter,sans-serif;transition:.14s;`,
+      addRowHover:`border-color:${t.primary};color:${t.primary};background:${t.primarySoft};`,
+      bottomPad:`height:4px;`,
+
+      saveBar:`position:sticky;bottom:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px ${d.pad}px;background:${t.headerBg};border-top:1px solid ${t.border};box-shadow:0 -8px 24px -16px rgba(0,0,0,.28);`,
+      saveStatus:`display:flex;align-items:center;gap:9px;`,
+      dirtyDot:`width:8px;height:8px;border-radius:50%;background:${t.warn};flex:none;`,
+      saveTextDirty:`font:600 13px Inter,sans-serif;color:${t.warn};`,
+      savedCheck:`flex:none;width:18px;height:18px;border-radius:50%;background:${t.primaryBg};color:${t.primary};font:700 11px Inter;display:flex;align-items:center;justify-content:center;`,
+      saveTextSaved:`font:500 13px Inter,sans-serif;color:${t.subtle};`,
+      saveBtn:`appearance:none;border:none;cursor:${st.dirty?'pointer':'default'};height:38px;padding:0 20px;border-radius:4px;background:${st.dirty?t.primary:t.surface2};color:${st.dirty?t.primaryText:t.subtle};font:600 13.5px Inter,sans-serif;box-shadow:${st.dirty?'0 1px 2px rgba(0,0,0,.12)':'none'};transition:.14s;`,
+      saveBtnHover:`background:${st.dirty?t.primaryHover:t.surface2};`
+    };
+
+    return {s,t,tabs,
+      assets:assets.map(buildAsset),
+      isEmpty:assets.length===0, hasAssets:assets.length>0,
+      totalCapex:this.fmtMoney(totalCapex), assetCount:String(assets.length), saleCount:String(saleCount),
+      dirty:st.dirty, clean:!st.dirty,
+      addAsset:this.addAsset, save:()=>this.setState({dirty:false}),
+      setFilled:()=>this.setState({demo:'filled'}), setEmpty:()=>this.setState({demo:'empty'}),
+      errOn:()=>this.setState(s=>({dirty:true,assets:s.assets.map((a,i)=>i===2?{...a,sale:true,saleMonth:'6',buyMonth:'12'}:a)})),
+      errOff:()=>this.setState(s=>({dirty:true,assets:s.assets.map((a,i)=>i===2?{...a,sale:true,saleMonth:'24',buyMonth:'1'}:a)})),
+      setLight:()=>this.setState({theme:'light'}), setDark:()=>this.setState({theme:'dark'}),
+      setDesktop:()=>this.setState({device:'desktop'}), setTablet:()=>this.setState({device:'tablet'}), setMobile:()=>this.setState({device:'mobile'})
+    };
+  }
+}
+</script>
+</body>
+</html>

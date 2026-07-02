@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Inter';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-600-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:700;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-700-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-600-normal.woff2') format('woff2');}
+</style>
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  input,select{font-family:inherit;}
+  input::placeholder{color:inherit;opacity:.45;}
+  @keyframes fe-pulse{from{opacity:.5}to{opacity:1}}
+  @keyframes fe-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes fe-pop{0%{transform:scale(.92);opacity:0}100%{transform:scale(1);opacity:1}}
+  @keyframes fe-spin{to{transform:rotate(360deg)}}
+  @keyframes fe-toast{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}" data-screen-label="19 — Организация">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+      <div style="width:26px;height:26px;flex:none;border-radius:8px;overflow:hidden;"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="26px,26px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Этап&nbsp;19 · Организация</span>
+        <span style="{{ s.barSub }}">Финанс-Элит · участники и тариф</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Вкладка</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segTabMem }}" onClick="{{ goMembers }}">Участники</button><button style="{{ s.segTabBil }}" onClick="{{ goBilling }}">Тариф</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Состояние</span>
+        <div style="{{ s.seg }}"><sc-for list="{{ stateBtns }}" as="b" hint-placeholder-count="4"><button style="{{ b.style }}" onClick="{{ b.onClick }}">{{ b.label }}</button></sc-for></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Свет</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тьма</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+    </div>
+  </div>
+
+  <sc-if value="{{ toast }}" hint-placeholder-val="">
+    <div style="{{ s.toast }}"><span style="{{ s.toastIco }}">{{ toastIco }}</span>{{ toast }}</div>
+  </sc-if>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}">
+
+      <div style="{{ s.header }}">
+        <div style="display:flex;align-items:center;gap:{{ headerGap }}px;min-width:0;">
+          <div style="display:flex;align-items:center;gap:9px;flex:none;">
+            <div style="width:30px;height:30px;flex:none;border-radius:8px;overflow:hidden;"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="30px,30px"></dc-import></div>
+            <sc-if value="{{ showWord }}" hint-placeholder-val="{{ true }}"><span style="{{ s.word }}">Финанс<span style="color:{{ t.subtle }};font-weight:500;">-Элит</span></span></sc-if>
+          </div>
+          <sc-if value="{{ showNav }}" hint-placeholder-val="{{ true }}">
+          <nav style="display:flex;align-items:stretch;height:{{ headerH }}px;gap:2px;">
+            <button style="{{ s.navItem }}" style-hover="{{ s.navHover }}">Проекты</button>
+            <button style="{{ s.navItem }}" style-hover="{{ s.navHover }}">Холдинги</button>
+            <button style="{{ s.navActive }}">Организация</button>
+          </nav>
+          </sc-if>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex:none;">
+          <sc-if value="{{ showOrgSelector }}" hint-placeholder-val="{{ true }}"><div style="{{ s.orgBtn }}"><div style="{{ s.orgAvatar }}">ФК</div><sc-if value="{{ showOrgName }}" hint-placeholder-val="{{ true }}"><span style="{{ s.orgName }}">Финмодель Консалтинг</span></sc-if><span style="{{ s.chev }}">▾</span></div></sc-if>
+          <button style="{{ s.iconBtn }}" onClick="{{ toggleTheme }}" title="Тема"><sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}"><span style="font-size:15px;">☀</span></sc-if><sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}"><span style="font-size:14px;">☾</span></sc-if></button>
+          <sc-if value="{{ showUser }}" hint-placeholder-val="{{ true }}"><div style="{{ s.userAvatar }}">АС</div></sc-if>
+          <sc-if value="{{ showBurger }}" hint-placeholder-val="{{ false }}"><button style="{{ s.iconBtn }}"><div style="{{ s.burger }}"><span style="{{ s.burgerLine }}"></span><span style="{{ s.burgerLine }}"></span><span style="{{ s.burgerLine }}"></span></div></button></sc-if>
+        </div>
+      </div>
+
+      <div style="{{ s.content }}">
+        <div style="{{ s.container }}">
+
+          <div style="{{ s.pageHead }}">
+            <div style="min-width:0;"><h1 style="{{ s.pageTitle }}">Организация</h1><div style="{{ s.pageSub }}">Финмодель Консалтинг · управление командой и подпиской</div></div>
+          </div>
+
+          <div style="{{ s.tabBarWrap }}"><div style="{{ s.tabBar }}">
+            <button style="{{ s.tabMem }}" onClick="{{ goMembers }}">Участники<span style="{{ s.tabMemBadge }}">{{ memberCount }}</span></button>
+            <button style="{{ s.tabBil }}" onClick="{{ goBilling }}">Тариф и оплата</button>
+          </div></div>
+
+          <!-- ================= УЧАСТНИКИ ================= -->
+          <sc-if value="{{ isMembers }}" hint-placeholder-val="{{ true }}">
+          <div style="{{ s.secHead }}">
+            <div style="min-width:0;"><div style="{{ s.secTitle }}">Участники команды</div><div style="{{ s.secSub }}">Доступ к проектам организации зависит от роли</div></div>
+            <sc-if value="{{ canInvite }}" hint-placeholder-val="{{ true }}"><button style="{{ s.primaryBtn }}" style-hover="{{ s.primaryBtnHover }}" onClick="{{ openAdd }}">+ Пригласить участника</button></sc-if>
+          </div>
+
+          <sc-if value="{{ memLoading }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.tableShell }}"><sc-for list="{{ skRows }}" as="i" hint-placeholder-count="5"><div style="{{ s.skRow }}"><div style="{{ s.skAvatar }}"></div><div style="flex:1;"><div style="{{ s.skLine1 }}"></div><div style="{{ s.skLine2 }}"></div></div><div style="{{ s.skBadge }}"></div></div></sc-for></div>
+          </sc-if>
+
+          <sc-if value="{{ memError }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.permBlock }}"><div style="{{ s.permIco }}"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3" stroke-linecap="round"/></svg></div><div style="{{ s.permTitle }}">Недостаточно прав</div><div style="{{ s.permSub }}">Управлять участниками могут только <b style="color:{{ t.text }};">Владелец</b> и <b style="color:{{ t.text }};">Администратор</b>. Ваша роль — Наблюдатель.</div><button style="{{ s.ghostBtn }}" onClick="{{ stMemList }}">Вернуться к списку</button></div>
+          </sc-if>
+
+          <sc-if value="{{ memEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.emptyBlock }}"><div style="{{ s.emptyIco }}"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0111 0M17 11l2 2 3-3.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div style="{{ s.emptyTitle }}">Вы пока единственный участник</div><div style="{{ s.emptySub }}">Пригласите коллег по email и назначьте роли — так они получат доступ к проектам организации.</div><button style="{{ s.primaryBtn }}" style-hover="{{ s.primaryBtnHover }}" onClick="{{ openAdd }}">+ Пригласить участника</button></div>
+          </sc-if>
+
+          <sc-if value="{{ memList }}" hint-placeholder-val="{{ true }}">
+          <div style="{{ s.tableShell }}">
+            <div style="{{ s.tableHead }}"><div style="{{ s.thUser }}">Участник</div><div style="{{ s.thRole }}">Роль</div><div style="{{ s.thStatus }}">Статус</div><div style="{{ s.thAct }}"></div></div>
+            <sc-for list="{{ members }}" as="m" hint-placeholder-count="5">
+            <div style="{{ m.rowStyle }}">
+              <div style="{{ s.userCell }}"><div style="{{ m.avatarStyle }}">{{ m.initials }}</div><div style="min-width:0;"><div style="{{ s.userName }}">{{ m.name }}<sc-if value="{{ m.isYou }}" hint-placeholder-val=""><span style="{{ s.youTag }}">вы</span></sc-if></div><div style="{{ s.userEmail }}">{{ m.email }}</div></div></div>
+              <div style="{{ s.roleCell }}">
+                <sc-if value="{{ m.roleEditable }}" hint-placeholder-val="">
+                  <div style="{{ m.roleSelectBox }}"><select style="{{ s.roleSelect }}" value="{{ m.role }}" onChange="{{ m.onRole }}"><sc-for list="{{ roleOptions }}" as="o" hint-placeholder-count="4"><option value="{{ o.val }}">{{ o.label }}</option></sc-for></select><span style="{{ s.roleChev }}">▾</span></div>
+                </sc-if>
+                <sc-if value="{{ m.roleStatic }}" hint-placeholder-val="{{ true }}"><span style="{{ m.badgeStyle }}"><span style="{{ m.badgeDot }}"></span>{{ m.roleLabel }}</span></sc-if>
+              </div>
+              <div style="{{ s.statusCell }}"><span style="{{ m.statusStyle }}">{{ m.statusText }}</span></div>
+              <div style="{{ s.actCell }}">
+                <sc-if value="{{ m.canResend }}" hint-placeholder-val=""><button style="{{ s.linkBtn }}" onClick="{{ m.resend }}">Повторить</button></sc-if>
+                <sc-if value="{{ m.canRemove }}" hint-placeholder-val="{{ true }}"><button style="{{ s.rowRemove }}" onClick="{{ m.askRemove }}" title="Удалить участника"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2M6 7l1 13a1 1 0 001 1h8a1 1 0 001-1l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg></button></sc-if>
+                <sc-if value="{{ m.locked }}" hint-placeholder-val=""><span style="{{ s.lockIco }}" title="Роль владельца изменить нельзя">🔒</span></sc-if>
+              </div>
+            </div>
+            </sc-for>
+          </div>
+
+          <div style="{{ s.rbacCard }}">
+            <div style="{{ s.rbacHead }}"><span style="{{ s.rbacTitle }}">О ролях и правах</span><span style="{{ s.rbacHint }}">RBAC · что разрешено каждой роли</span></div>
+            <div style="{{ s.rbacGrid }}">
+              <sc-for list="{{ rolesRef }}" as="r" hint-placeholder-count="4">
+              <div style="{{ s.rbacItem }}"><span style="{{ r.badgeStyle }}"><span style="{{ r.badgeDot }}"></span>{{ r.label }}</span><div style="{{ s.rbacDesc }}">{{ r.desc }}</div></div>
+              </sc-for>
+            </div>
+          </div>
+          </sc-if>
+          </sc-if>
+
+          <!-- ================= ТАРИФ И ОПЛАТА ================= -->
+          <sc-if value="{{ isBilling }}" hint-placeholder-val="{{ false }}">
+
+          <sc-if value="{{ bilLoading }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.skCurrent }}"></div>
+          <div style="{{ s.priceGrid }}"><div style="{{ s.skPrice }}"></div><div style="{{ s.skPrice }}"></div><div style="{{ s.skPrice }}"></div><div style="{{ s.skPrice }}"></div></div>
+          </sc-if>
+
+          <sc-if value="{{ bilError }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.permBlock }}"><div style="{{ s.errIco }}">!</div><div style="{{ s.permTitle }}">Сервис оплаты недоступен</div><div style="{{ s.permSub }}">Не удалось загрузить данные подписки. Повторите попытку через минуту.</div><button style="{{ s.primaryBtn }}" style-hover="{{ s.primaryBtnHover }}" onClick="{{ stBilView }}">↻&nbsp;&nbsp;Повторить</button></div>
+          </sc-if>
+
+          <sc-if value="{{ bilView }}" hint-placeholder-val="{{ true }}">
+          <div style="{{ s.currentCard }}">
+            <div style="{{ s.curLeft }}">
+              <div style="{{ s.curLabel }}">Текущий тариф</div>
+              <div style="{{ s.curPlanRow }}"><span style="{{ s.curPlanName }}">{{ currentName }}</span><span style="{{ s.curActiveChip }}">● активна</span></div>
+              <div style="{{ s.curPrice }}">{{ currentPrice }}<span style="{{ s.curPer }}">{{ currentPer }}</span></div>
+              <div style="{{ s.curRenew }}">Продление {{ renewDate }} · карта •••• 4417</div>
+              <button style="{{ s.manageBtn }}" onClick="{{ manageBilling }}">Управление оплатой →</button>
+            </div>
+            <div style="{{ s.curRight }}">
+              <sc-for list="{{ quotas }}" as="q" hint-placeholder-count="2">
+              <div style="{{ s.quotaBox }}">
+                <div style="{{ s.quotaTop }}"><span style="{{ s.quotaLabel }}">{{ q.label }}</span><span style="{{ q.valStyle }}">{{ q.used }} / {{ q.limit }}</span></div>
+                <div style="{{ s.quotaTrack }}"><div style="{{ q.barStyle }}"></div></div>
+                <div style="{{ q.noteStyle }}">{{ q.note }}</div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="{{ s.priceHead }}"><div style="{{ s.secTitle }}">Тарифные планы</div><div style="{{ s.billCycle }}"><span style="{{ s.cycleActive }}">Помесячно</span><span style="{{ s.cycleOff }}">Год&nbsp;−20%</span></div></div>
+          <div style="{{ s.priceGrid }}">
+            <sc-for list="{{ plans }}" as="p" hint-placeholder-count="4">
+            <div style="{{ p.cardStyle }}">
+              <sc-if value="{{ p.isCurrent }}" hint-placeholder-val=""><div style="{{ s.ribbon }}">Текущий</div></sc-if>
+              <div style="{{ s.planName }}">{{ p.name }}</div>
+              <div style="{{ s.planPriceRow }}"><span style="{{ p.priceStyle }}">{{ p.price }}</span><sc-if value="{{ p.hasPer }}" hint-placeholder-val="{{ true }}"><span style="{{ s.planPer }}">{{ p.per }}</span></sc-if></div>
+              <div style="{{ s.planLimits }}">
+                <div style="{{ s.planLimit }}"><span style="{{ s.limitIco }}">▢</span><span><b style="color:{{ t.text }};">{{ p.projects }}</b> {{ p.projectsUnit }}</span></div>
+                <div style="{{ s.planLimit }}"><span style="{{ s.limitIco }}">○</span><span><b style="color:{{ t.text }};">{{ p.members }}</b> {{ p.membersUnit }}</span></div>
+              </div>
+              <div style="{{ s.planFeats }}"><sc-for list="{{ p.feats }}" as="f" hint-placeholder-count="3"><div style="{{ s.planFeat }}"><span style="{{ s.featCheck }}">✓</span>{{ f }}</div></sc-for></div>
+              <button style="{{ p.btnStyle }}" style-hover="{{ p.btnHover }}" onClick="{{ p.action }}">{{ p.btnText }}</button>
+            </div>
+            </sc-for>
+          </div>
+          <div style="{{ s.billNote }}">Цены указаны без НДС. При смене тарифа разница пересчитывается пропорционально остатку периода.</div>
+          </sc-if>
+          </sc-if>
+
+        </div>
+      </div>
+
+      <!-- ADD MEMBER MODAL -->
+      <sc-if value="{{ addOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="{{ s.overlay }}" onClick="{{ closeAdd }}"></div>
+      <div style="{{ s.modalWrap }}"><div style="{{ s.modalForm }}">
+        <div style="{{ s.modalHead }}"><div><div style="{{ s.modalTitle }}">Пригласить участника</div><div style="{{ s.modalSub2 }}">Отправим приглашение на email — доступ по выбранной роли</div></div><button style="{{ s.modalClose }}" onClick="{{ closeAdd }}">✕</button></div>
+        <label style="{{ s.fLabel }}">Email</label>
+        <div style="{{ s.fInputWrap }}"><input style="{{ s.fInput }}" type="email" placeholder="colleague@company.ru" value="{{ addEmail }}" onChange="{{ onAddEmail }}"></div>
+        <label style="{{ s.fLabel }}">ФИО</label>
+        <div style="{{ s.fInputWrap }}"><input style="{{ s.fInput }}" type="text" placeholder="Иван Петров" value="{{ addName }}" onChange="{{ onAddName }}"></div>
+        <label style="{{ s.fLabel }}">Роль</label>
+        <div style="{{ s.rolePick }}"><sc-for list="{{ addRoleOptions }}" as="o" hint-placeholder-count="4"><button style="{{ o.style }}" onClick="{{ o.pick }}"><div style="{{ o.dotStyle }}"></div><div style="min-width:0;text-align:left;"><div style="{{ o.labelStyle }}">{{ o.label }}</div><div style="{{ s.rolePickDesc }}">{{ o.desc }}</div></div><span style="{{ o.checkStyle }}">✓</span></button></sc-for></div>
+        <div style="{{ s.modalActions }}"><button style="{{ s.btnGhost }}" style-hover="{{ s.btnGhostHover }}" onClick="{{ closeAdd }}">Отмена</button><button style="{{ s.btnPrimaryWide }}" style-hover="{{ s.primaryBtnHover }}" onClick="{{ sendInvite }}"><sc-if value="{{ inviting }}" hint-placeholder-val="{{ false }}"><span style="{{ s.spinner }}"></span></sc-if><span>{{ inviteText }}</span></button></div>
+      </div></div>
+      </sc-if>
+
+      <!-- REMOVE MEMBER MODAL -->
+      <sc-if value="{{ removeTarget }}" hint-placeholder-val="">
+      <div style="{{ s.overlay }}" onClick="{{ cancelRemove }}"></div>
+      <div style="{{ s.modalWrap }}"><div style="{{ s.modal }}">
+        <div style="{{ s.modalIcoDanger }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2M6 7l1 13a1 1 0 001 1h8a1 1 0 001-1l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div style="{{ s.modalTitle }}">Удалить участника?</div>
+        <div style="{{ s.modalSub }}"><b style="color:{{ t.text }};">{{ removeTarget }}</b> потеряет доступ к проектам организации. Действие можно отменить, пригласив снова.</div>
+        <div style="{{ s.modalActions }}"><button style="{{ s.btnGhost }}" style-hover="{{ s.btnGhostHover }}" onClick="{{ cancelRemove }}">Отмена</button><button style="{{ s.btnDanger }}" style-hover="{{ s.btnDangerHover }}" onClick="{{ confirmRemove }}">Удалить</button></div>
+      </div></div>
+      </sc-if>
+
+      <!-- CHANGE PLAN MODAL -->
+      <sc-if value="{{ planTarget }}" hint-placeholder-val="">
+      <div style="{{ s.overlay }}" onClick="{{ cancelPlan }}"></div>
+      <div style="{{ s.modalWrap }}"><div style="{{ s.modal }}">
+        <div style="{{ s.modalIcoPlan }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12h16M14 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div style="{{ s.modalTitle }}">{{ planChangeTitle }}</div>
+        <div style="{{ s.modalSub }}">{{ planChangeText }}</div>
+        <div style="{{ s.planDiffRow }}"><div style="{{ s.planDiffCol }}"><div style="{{ s.planDiffLabel }}">Сейчас</div><div style="{{ s.planDiffVal }}">{{ currentName }}</div></div><span style="{{ s.planDiffArrow }}">→</span><div style="{{ s.planDiffCol }}"><div style="{{ s.planDiffLabel }}">Новый</div><div style="{{ s.planDiffValNew }}">{{ planTargetName }}</div></div><div style="{{ s.planDiffCol }}" style="text-align:right;"><div style="{{ s.planDiffLabel }}">Стоимость</div><div style="{{ s.planDiffVal }}">{{ planTargetPrice }}</div></div></div>
+        <div style="{{ s.modalActions }}"><button style="{{ s.btnGhost }}" style-hover="{{ s.btnGhostHover }}" onClick="{{ cancelPlan }}">Отмена</button><button style="{{ s.btnPrimaryWide }}" style-hover="{{ s.primaryBtnHover }}" onClick="{{ confirmPlan }}"><sc-if value="{{ checkingOut }}" hint-placeholder-val="{{ false }}"><span style="{{ s.spinner }}"></span></sc-if><span>{{ checkoutText }}</span></button></div>
+      </div></div>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    theme:'light', device:'desktop', tab:'members',
+    memState:'list', bilState:'view',
+    addOpen:false, addEmail:'', addName:'', addRole:'editor', inviting:false,
+    removeId:null, planId:null, checkingOut:false, toast:null,
+    currentPlan:'business',
+    members:[
+      {id:1,name:'Анна Соколова',email:'anna.sokolova@finmodel.ru',role:'owner',status:'active',you:true},
+      {id:2,name:'Дмитрий Орлов',email:'d.orlov@finmodel.ru',role:'admin',status:'active'},
+      {id:3,name:'Елена Ким',email:'e.kim@finmodel.ru',role:'editor',status:'active'},
+      {id:4,name:'Павел Лебедев',email:'p.lebedev@finmodel.ru',role:'editor',status:'invited'},
+      {id:5,name:'Мария Гусева',email:'m.guseva@finmodel.ru',role:'viewer',status:'active'}
+    ],
+    nextId:50
+  };
+
+  componentWillUnmount(){ if(this._t)clearTimeout(this._t); if(this._c)clearTimeout(this._c); if(this._to)clearTimeout(this._to); }
+
+  THEME(){
+    const light={pageBg:'#F3F2F0',bg:'#FAFAF9',surface:'#FFFFFF',surface2:'#F5F5F4',sk:'#EAE8E6',border:'#E7E5E4',borderStrong:'#D6D3D1',gridLine:'#EFEDEB',text:'#1C1917',muted:'#57534E',subtle:'#A8A29E',primary:'#0E9C6E',primaryHover:'#0B8560',primaryText:'#FFFFFF',primaryBg:'#E2F4EC',primarySoft:'#EFF8F3',good:'#0E7A4F',danger:'#C13A30',dangerHover:'#A8322A',dangerBg:'#FBE9E7',ring:'rgba(14,156,110,.2)',shadow:'0 18px 48px -20px rgba(28,25,23,.28), 0 2px 6px rgba(28,25,23,.05)',menuShadow:'0 24px 56px -16px rgba(28,25,23,.34)',barBg:'#FFFFFF',segBg:'#F0EEEC',segActiveBg:'#FFFFFF',headerBg:'#FFFFFF',brandMid:'#0C7250',brandTo:'#0E9C6E',warn:'#B86E00',warnBg:'#FAEFD9',info:'#2D6FE0',infoBg:'#E5EEFC',violet:'#7C5CFF',violetBg:'#EEEBFF'};
+    const dark={pageBg:'#141210',bg:'#1A1816',surface:'#232020',surface2:'#2C2825',sk:'#2F2B27',border:'#39332F',borderStrong:'#4A433E',gridLine:'#332E2A',text:'#F6F4F2',muted:'#B7B0A9',subtle:'#7E756D',primary:'#12B07D',primaryHover:'#19C28B',primaryText:'#06241A',primaryBg:'rgba(18,176,125,.16)',primarySoft:'rgba(18,176,125,.10)',good:'#34C77B',danger:'#F0796E',dangerHover:'#F4988F',dangerBg:'rgba(210,69,59,.16)',ring:'rgba(25,194,139,.34)',shadow:'0 28px 64px -24px rgba(0,0,0,.72)',menuShadow:'0 28px 64px -20px rgba(0,0,0,.8)',barBg:'#1E1B19',segBg:'#16140F',segActiveBg:'#2C2825',headerBg:'#1E1B19',brandMid:'#0A5A40',brandTo:'#0E7A57',warn:'#E0A23A',warnBg:'rgba(224,162,58,.16)',info:'#5E93FF',infoBg:'rgba(45,111,237,.18)',violet:'#A78BFA',violetBg:'rgba(124,92,255,.18)'};
+    return this.state.theme==='dark'?{...dark,pageBg:'#000000',bg:'#0C0F0C',surface:'#212525',surface2:'#2A312A',sk:'#2A312A',cellBg:'#161A16',border:'#485346',borderStrong:'#677D64',gridLine:'#232823',text:'#DDFFDC',muted:'#93A091',subtle:'#677D64',primary:'#7FEE64',primaryHover:'#95F47D',primaryText:'#000000',accent:'#7FEE64',primaryBg:'rgba(127,238,100,.15)',primarySoft:'rgba(127,238,100,.09)',good:'#7FEE64',goodBg:'rgba(127,238,100,.15)',goodBorder:'rgba(127,238,100,.32)',danger:'#F0796E',dangerHover:'#F4988F',dangerBg:'rgba(240,121,110,.15)',dangerBorder:'rgba(240,121,110,.32)',dangerText:'#F4B0A8',warn:'#E0A23A',warnBg:'rgba(224,162,58,.16)',warnBorder:'rgba(224,162,58,.32)',info:'#AED2A4',infoBg:'rgba(174,210,164,.15)',ring:'rgba(127,238,100,.4)',shadow:'0 30px 70px -34px rgba(0,0,0,.9)',menuShadow:'0 22px 52px -16px rgba(0,0,0,.82)',barBg:'#0C0F0C',barBorder:'#1D231D',segBg:'#0B0E0B',segActiveBg:'#2A312A',headerBg:'#0C0F0C',stickyBg:'#212525',brandMid:'#3E4A3C',brandTo:'#7FEE64',violet:'#C8F9B6',violetBg:'rgba(200,249,182,.14)',subtotalBg:'#1C201C',grandBg:'rgba(127,238,100,.12)',hov:'#262C25',hovlab:'#2C322B',ico1:'#7FEE64',ico1Bg:'rgba(127,238,100,.15)',ico2:'#AED2A4',ico2Bg:'rgba(174,210,164,.15)',ico3:'#C8F9B6',ico3Bg:'rgba(200,249,182,.14)',ico4:'#E0A23A',ico4Bg:'rgba(224,162,58,.16)',inputBg:'#161A16',success:'#7FEE64',successBg:'rgba(127,238,100,.16)'}:{...light,pageBg:'#E4F1E0',bg:'#F4FAF2',surface:'#FFFFFF',surface2:'#EDF5EA',sk:'#E3EEDF',cellBg:'#FFFFFF',border:'#D2E4CD',borderStrong:'#B4CCAE',gridLine:'#E8F1E5',text:'#16201A',muted:'#46584A',subtle:'#6E8270',primary:'#7FEE64',primaryHover:'#6FE253',primaryText:'#06210E',accent:'#138A45',primaryBg:'#DBF3D2',primarySoft:'#EAF8E4',good:'#0E7A4F',goodBg:'#DBF1E2',goodBorder:'#B7DEC6',danger:'#C0473B',dangerHover:'#A53A30',dangerBg:'#FAE7E4',dangerBorder:'#EECFCA',dangerText:'#8F2F26',warn:'#B07A12',warnBg:'#FBF0D8',warnBorder:'#ECDDB4',info:'#3E7D52',infoBg:'#E6EFE2',ring:'rgba(56,194,75,.3)',shadow:'0 18px 44px -22px rgba(20,40,24,.22), 0 2px 6px rgba(20,40,24,.05)',menuShadow:'0 24px 56px -16px rgba(20,40,24,.28)',barBg:'#FFFFFF',barBorder:'#D2E4CD',segBg:'#E7F0E3',segActiveBg:'#FFFFFF',headerBg:'#FFFFFF',stickyBg:'#FFFFFF',brandMid:'#138A45',brandTo:'#7FEE64',violet:'#3E7D52',violetBg:'#E6EFE2',subtotalBg:'#EDF3EA',grandBg:'#DBF1E2',hov:'#F1F7EE',hovlab:'#EAF2E6',ico1:'#138A45',ico1Bg:'#DBF3D2',ico2:'#3E7D52',ico2Bg:'#E6EFE2',ico3:'#5FA86A',ico3Bg:'#E3F0DE',ico4:'#B07A12',ico4Bg:'#FBF0D8',inputBg:'#FFFFFF',success:'#0E7A4F',successBg:'#DBF1E2'};
+  }
+  DIM(){ const d=this.state.device;
+    if(d==='mobile')return{frame:402,radius:30,headerH:54,pad:16,cols:1,priceCols:1,showNav:false,showWord:true,showOrgSel:false,showUser:false,showBurger:true,showOrgName:false};
+    if(d==='tablet')return{frame:864,radius:18,headerH:58,pad:22,cols:2,priceCols:2,showNav:true,showWord:true,showOrgSel:true,showUser:true,showBurger:false,showOrgName:false};
+    return{frame:1240,radius:14,headerH:60,pad:32,cols:4,priceCols:4,showNav:true,showWord:true,showOrgSel:true,showUser:true,showBurger:false,showOrgName:true};
+  }
+  ROLES(t){ return {
+    owner:{label:'Владелец',color:t.primary,bg:t.primaryBg,desc:'Полный доступ, биллинг, передача и удаление организации'},
+    admin:{label:'Администратор',color:t.info,bg:t.infoBg,desc:'Участники, проекты, холдинги, настройки организации'},
+    editor:{label:'Редактор',color:t.violet,bg:t.violetBg,desc:'Создание, расчёт и редактирование проектов'},
+    viewer:{label:'Наблюдатель',color:t.muted,bg:t.surface2,desc:'Просмотр результатов и экспорт, без изменений'}
+  }; }
+  PLANS(){ return [
+    {id:'start',name:'Старт',price:'0 ₽',per:'',hasPer:false,projects:'3',projectsUnit:'проекта',members:'1',membersUnit:'пользователь',feats:['Базовые отчёты','PDF-экспорт','Один пользователь']},
+    {id:'team',name:'Команда',price:'2 900 ₽',per:'/мес',hasPer:true,projects:'10',projectsUnit:'проектов',members:'3',membersUnit:'участника',feats:['Все отчёты и графики','Анализ рисков','Совместная работа']},
+    {id:'business',name:'Бизнес',price:'7 900 ₽',per:'/мес',hasPer:true,projects:'25',projectsUnit:'проектов',members:'10',membersUnit:'участников',feats:['Холдинги и консолидация','Приоритетная поддержка','Доступ к API']},
+    {id:'enterprise',name:'Корпоративный',price:'Индивид.',per:'',hasPer:false,projects:'∞',projectsUnit:'без лимита',members:'∞',membersUnit:'без лимита',feats:['Без лимитов','SSO / SAML','Выделенный менеджер']}
+  ]; }
+  planRank(id){ return {start:0,team:1,business:2,enterprise:3}[id]; }
+
+  fireToast(text,ico){ this.setState({toast:{text,ico:ico||'✓'}}); if(this._to)clearTimeout(this._to); this._to=setTimeout(()=>this.setState({toast:null}),2600); }
+
+  renderVals(){
+    const st=this.state, t=this.THEME(), d=this.DIM(), R=this.ROLES(t), PLANS=this.PLANS();
+    const seg=(a)=>`appearance:none;border:none;cursor:pointer;font:600 12px Inter,sans-serif;padding:6px 11px;border-radius:7px;white-space:nowrap;color:${a?t.text:t.subtle};background:${a?t.segActiveBg:'transparent'};box-shadow:${a?'0 1px 2px rgba(0,0,0,.14)':'none'};transition:.14s;`;
+    const segWrap=`display:flex;gap:3px;padding:3px;background:${t.segBg};border-radius:9px;`;
+    const onMem=st.tab==='members', onBil=st.tab==='billing';
+    const small=d.frame<500;
+
+    // contextual states
+    let stDefs,cur,setRun;
+    if(onMem){ stDefs=[['list','Список'],['empty','Пусто'],['loading','Загрузка'],['error','Нет прав']]; cur=st.memState; setRun=(v)=>this.setState({memState:v}); }
+    else { stDefs=[['view','Обзор'],['loading','Загрузка'],['error','Ошибка']]; cur=st.bilState; setRun=(v)=>this.setState({bilState:v}); }
+    const stateBtns=stDefs.map(([v,label])=>({label,style:seg(cur===v),onClick:()=>setRun(v)}));
+
+    // members
+    const initials=(name)=>name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    const avatarGrad=(role)=>{ const map={owner:`linear-gradient(150deg,${t.brandMid},${t.brandTo})`,admin:'linear-gradient(150deg,#2456C8,#2D6FE0)',editor:'linear-gradient(150deg,#6A4DE0,#7C5CFF)',viewer:`linear-gradient(150deg,${t.subtle},${t.borderStrong})`}; return map[role]||map.viewer; };
+    const statusMap={active:{text:'Активен',color:t.good,bg:t.primaryBg},invited:{text:'Приглашён',color:t.warn,bg:t.warnBg}};
+    const canManage=st.memState!=='error';
+    const members=st.members.map(m=>{ const rr=R[m.role], ss=statusMap[m.status];
+      const editable=canManage && m.role!=='owner' && !m.you;
+      return {name:m.name, email:m.email, initials:initials(m.name), isYou:!!m.you, role:m.role, roleLabel:rr.label,
+        rowStyle:`display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid ${t.gridLine};flex-wrap:${small?'wrap':'nowrap'};`,
+        avatarStyle:`width:38px;height:38px;border-radius:10px;flex:none;background:${avatarGrad(m.role)};color:#fff;font:700 13px Geist;display:flex;align-items:center;justify-content:center;`,
+        roleEditable:editable, roleStatic:!editable,
+        roleSelectBox:`position:relative;display:inline-flex;align-items:center;height:30px;border-radius:7px;background:${rr.bg};overflow:hidden;`,
+        badgeStyle:`display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;font:600 12px Inter,sans-serif;color:${rr.color};background:${rr.bg};white-space:nowrap;`,
+        badgeDot:`width:7px;height:7px;border-radius:50%;background:${rr.color};flex:none;`,
+        onRole:(e)=>this.setState(s=>({members:s.members.map(x=>x.id===m.id?{...x,role:e.target.value}:x)})),
+        statusStyle:`display:inline-flex;align-items:center;gap:6px;font:600 11.5px Inter,sans-serif;color:${ss.color};background:${ss.bg};padding:4px 9px;border-radius:6px;white-space:nowrap;`,
+        statusText:ss.text,
+        canResend:m.status==='invited', canRemove:canManage && !m.you && m.role!=='owner', locked:m.role==='owner',
+        resend:()=>this.fireToast('Приглашение отправлено повторно','✉'),
+        askRemove:()=>this.setState({removeId:m.id})};
+    });
+    const rolesRef=['owner','admin','editor','viewer'].map(k=>{ const rr=R[k];
+      return {label:rr.label, desc:rr.desc,
+        badgeStyle:`display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:7px;font:600 12px Inter,sans-serif;color:${rr.color};background:${rr.bg};white-space:nowrap;align-self:flex-start;`,
+        badgeDot:`width:7px;height:7px;border-radius:50%;background:${rr.color};flex:none;`};
+    });
+    const roleOptions=['owner','admin','editor','viewer'].map(k=>({val:k,label:R[k].label}));
+    const addRoleOptions=['admin','editor','viewer'].map(k=>{ const rr=R[k], sel=st.addRole===k;
+      return {label:rr.label, desc:rr.desc, pick:()=>this.setState({addRole:k}),
+        style:`appearance:none;cursor:pointer;display:flex;align-items:center;gap:11px;width:100%;padding:11px 13px;border-radius:11px;border:1.5px solid ${sel?t.primary:t.border};background:${sel?t.primarySoft:t.surface};text-align:left;transition:.12s;`,
+        dotStyle:`width:10px;height:10px;border-radius:50%;flex:none;background:${rr.color};`,
+        labelStyle:`font:600 13.5px Inter,sans-serif;color:${t.text};`,
+        checkStyle:`margin-left:auto;width:20px;height:20px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font:700 11px Geist;color:#fff;background:${sel?t.primary:'transparent'};border:1.5px solid ${sel?t.primary:t.borderStrong};`};
+    });
+
+    // billing
+    const curPlan=PLANS.find(p=>p.id===st.currentPlan)||PLANS[2];
+    const quotaColor=(pct)=>pct>=90?t.danger:(pct>=72?t.warn:t.primary);
+    const mkQuota=(label,used,limit,note)=>{ const pct=Math.round(used/limit*100), col=quotaColor(pct);
+      return {label, used:String(used), limit:String(limit), note,
+        valStyle:`font:700 13px 'JetBrains Mono',monospace;color:${col};`,
+        barStyle:`height:100%;width:${pct}%;border-radius:5px;background:${col};transition:width .4s;`,
+        noteStyle:`font:500 11px Inter,sans-serif;color:${pct>=72?t.warn:t.subtle};margin-top:6px;`};
+    };
+    const quotas=[ mkQuota('Проекты',12,25,'Использовано 12 из 25 — есть запас'), mkQuota('Участники',8,10,'Осталось 2 места — близко к лимиту') ];
+
+    const plans=PLANS.map(p=>{ const isCur=p.id===st.currentPlan; const isEnt=p.id==='enterprise';
+      const up=this.planRank(p.id)>this.planRank(st.currentPlan);
+      let btnText,filled,action;
+      if(isCur){ btnText='Текущий тариф'; filled=false; action=()=>{}; }
+      else if(isEnt){ btnText='Связаться'; filled=false; action=()=>this.fireToast('Запрос отправлен — менеджер свяжется с вами','✉'); }
+      else { btnText=up?'Перейти →':'Понизить'; filled=up; action=()=>this.setState({planId:p.id}); }
+      return {name:p.name, price:p.price, per:p.per, hasPer:p.hasPer, projects:p.projects, projectsUnit:p.projectsUnit, members:p.members, membersUnit:p.membersUnit, feats:p.feats, isCurrent:isCur,
+        cardStyle:`position:relative;display:flex;flex-direction:column;padding:20px 18px;border-radius:16px;border:1.5px solid ${isCur?t.primary:t.border};background:${isCur?t.primarySoft:t.surface};${isCur?`box-shadow:0 0 0 3px ${t.ring};`:''}`,
+        priceStyle:`font:700 ${small?24:26}px Inter,sans-serif;letter-spacing:-.02em;color:${t.text};`,
+        btnStyle:`appearance:none;cursor:${isCur?'default':'pointer'};margin-top:18px;height:42px;border-radius:11px;display:inline-flex;align-items:center;justify-content:center;gap:8px;font:600 13.5px Inter,sans-serif;transition:.14s;${isCur?`border:1.5px solid ${t.border};background:transparent;color:${t.subtle};`:(filled?`border:none;background:${t.primary};color:${t.primaryText};box-shadow:0 1px 2px rgba(0,0,0,.12);`:`border:1.5px solid ${t.borderStrong};background:${t.surface};color:${t.text};`)}`,
+        btnHover:isCur?'':(filled?`background:${t.primaryHover};`:`background:${t.surface2};`),
+        btnText, action};
+    });
+
+    // plan-change modal data
+    const planT=st.planId?PLANS.find(p=>p.id===st.planId):null;
+    const isUpgrade=planT?this.planRank(planT.id)>this.planRank(st.currentPlan):true;
+    const removeName=st.removeId?(st.members.find(m=>m.id===st.removeId)||{}).name||'':'';
+
+    const skRows=[0,1,2,3,4];
+
+    const s={
+      page:`min-height:100vh;background:${t.pageBg};color:${t.text};display:flex;flex-direction:column;transition:background .25s;`,
+      bar:`display:flex;align-items:flex-end;justify-content:space-between;gap:22px;flex-wrap:wrap;padding:13px 22px;background:${t.barBg};border-bottom:1px solid ${t.border};position:sticky;top:0;z-index:60;`,
+      barDot:`width:26px;height:26px;border-radius:7px;flex:none;background:linear-gradient(150deg,${t.brandMid},${t.brandTo});`,
+      barTitle:`font:700 13px Inter,sans-serif;letter-spacing:-.01em;color:${t.text};white-space:nowrap;`,
+      barSub:`font:500 11px Inter,sans-serif;color:${t.subtle};white-space:nowrap;`,
+      barLabel:`font:600 9.5px Inter,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:${t.subtle};`,
+      seg:segWrap, segTabMem:seg(onMem),segTabBil:seg(onBil),
+      segLight:seg(st.theme==='light'),segDark:seg(st.theme==='dark'),segDesktop:seg(st.device==='desktop'),segTablet:seg(st.device==='tablet'),segMobile:seg(st.device==='mobile'),
+
+      toast:`position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:95;display:flex;align-items:center;gap:9px;padding:11px 16px;border-radius:11px;background:${t.text};color:${t.bg};font:600 12.5px Inter,sans-serif;box-shadow:${t.menuShadow};animation:fe-toast .2s ease;`,
+      toastIco:`width:18px;height:18px;border-radius:50%;background:${t.primary};color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;flex:none;`,
+
+      stage:`flex:1;display:flex;justify-content:center;align-items:flex-start;padding:${small?'26px 14px':'40px 24px'};`,
+      frame:`position:relative;width:100%;max-width:${d.frame}px;background:${t.bg};border:1px solid ${t.border};border-radius:${d.radius}px;box-shadow:${t.shadow};overflow:hidden;`,
+      header:`display:flex;align-items:center;justify-content:space-between;gap:16px;height:${d.headerH}px;padding:0 ${d.pad}px;background:${t.headerBg};border-bottom:1px solid ${t.border};`,
+      mark:`width:30px;height:30px;border-radius:8px;flex:none;background:linear-gradient(150deg,${t.brandMid},${t.brandTo});display:flex;align-items:flex-end;justify-content:center;gap:2.5px;padding:7px;`,
+      markB1:`width:3.5px;height:6px;background:#fff;border-radius:1px;opacity:.55;`,markB2:`width:3.5px;height:10px;background:#fff;border-radius:1px;opacity:.8;`,markB3:`width:3.5px;height:15px;background:#fff;border-radius:1px;`,
+      word:`font:600 17px Inter,sans-serif;letter-spacing:-.015em;color:${t.text};white-space:nowrap;`,
+      navActive:`appearance:none;background:none;border:none;border-bottom:2px solid ${t.primary};cursor:pointer;font:600 13.5px Inter,sans-serif;color:${t.text};padding:0 13px;height:${d.headerH}px;`,
+      navItem:`appearance:none;background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font:600 13.5px Inter,sans-serif;color:${t.muted};padding:0 13px;height:${d.headerH}px;transition:.14s;`,
+      navHover:`color:${t.text};background:${t.surface2};`,
+      orgBtn:`display:flex;align-items:center;gap:8px;height:38px;padding:0 9px 0 7px;border-radius:9px;border:1px solid ${t.border};background:${t.surface};max-width:262px;`,
+      orgAvatar:`width:24px;height:24px;border-radius:6px;flex:none;background:${t.primary};color:${t.primaryText};font:700 10px Geist;display:flex;align-items:center;justify-content:center;`,
+      orgName:`font:600 13px Inter,sans-serif;color:${t.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`,
+      chev:`color:${t.subtle};font-size:10px;flex:none;`,
+      iconBtn:`width:38px;height:38px;border-radius:9px;border:1px solid ${t.border};background:${t.surface};color:${t.muted};cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;`,
+      userAvatar:`width:32px;height:32px;border-radius:8px;flex:none;background:linear-gradient(150deg,#7C5CFF,#5E93FF);color:#fff;font:700 11px Geist;display:flex;align-items:center;justify-content:center;`,
+      burger:`display:flex;flex-direction:column;gap:3.5px;align-items:center;`,
+      burgerLine:`width:16px;height:2px;border-radius:1px;background:${t.text};`,
+
+      content:`padding:${d.pad}px;`,
+      container:`max-width:1140px;margin:0 auto;`,
+      pageHead:`margin-bottom:20px;`,
+      pageTitle:`font:700 ${small?24:30}px 'Satoshi',Inter,sans-serif;letter-spacing:-.025em;color:${t.text};margin:0;`,
+      pageSub:`font:400 14px Inter,sans-serif;color:${t.muted};margin-top:6px;`,
+
+      tabBarWrap:`border-bottom:1px solid ${t.border};margin-bottom:24px;`,
+      tabBar:`display:flex;align-items:center;gap:26px;`,
+      tabMem:`appearance:none;background:none;border:none;border-bottom:2px solid ${onMem?t.primary:'transparent'};cursor:pointer;display:inline-flex;align-items:center;gap:9px;font:600 14.5px Inter,sans-serif;color:${onMem?t.text:t.muted};padding:0 2px 13px;`,
+      tabMemBadge:`font:600 11px 'JetBrains Mono',monospace;color:${onMem?t.primary:t.subtle};background:${onMem?t.primaryBg:t.surface2};border:1px solid ${onMem?'transparent':t.border};padding:1px 7px;border-radius:6px;`,
+      tabBil:`appearance:none;background:none;border:none;border-bottom:2px solid ${onBil?t.primary:'transparent'};cursor:pointer;font:600 14.5px Inter,sans-serif;color:${onBil?t.text:t.muted};padding:0 2px 13px;`,
+
+      secHead:`display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px;`,
+      secTitle:`font:700 ${small?17:19}px Inter,sans-serif;letter-spacing:-.015em;color:${t.text};`,
+      secSub:`font:400 13px Inter,sans-serif;color:${t.muted};margin-top:3px;`,
+      primaryBtn:`appearance:none;border:none;cursor:pointer;height:42px;padding:0 18px;border-radius:4px;background:${t.primary};color:${t.primaryText};font:600 13.5px Inter,sans-serif;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.12);transition:.14s;`,
+      primaryBtnHover:`background:${t.primaryHover};`,
+      ghostBtn:`appearance:none;cursor:pointer;height:38px;padding:0 16px;border-radius:4px;border:1px solid ${t.borderStrong};background:${t.surface};color:${t.text};font:600 13px Inter,sans-serif;margin-top:16px;`,
+
+      tableShell:`background:${t.surface};border:1px solid ${t.border};border-radius:16px;overflow:hidden;margin-bottom:26px;`,
+      tableHead:`display:flex;align-items:center;gap:12px;padding:11px 16px;background:${t.surface2};border-bottom:1.5px solid ${t.border};${small?'display:none;':''}`,
+      thUser:`flex:1;min-width:0;font:600 10.5px Inter,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:${t.subtle};`,
+      thRole:`width:178px;flex:none;font:600 10.5px Inter,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:${t.subtle};`,
+      thStatus:`width:130px;flex:none;font:600 10.5px Inter,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:${t.subtle};`,
+      thAct:`width:90px;flex:none;`,
+      userCell:`${small?'width:100%;flex:none':'flex:1 1 auto'};min-width:0;display:flex;align-items:center;gap:12px;`,
+      userName:`font:600 14px Inter,sans-serif;color:${t.text};display:flex;align-items:center;`,
+      youTag:`margin-left:8px;font:600 9.5px Inter,sans-serif;color:${t.primary};background:${t.primaryBg};padding:1px 7px;border-radius:5px;`,
+      userEmail:`font:500 12.5px Inter,sans-serif;color:${t.subtle};margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`,
+      roleCell:`width:178px;flex:none;${small?'width:auto;':''}`,
+      roleSelect:`height:30px;border:none;outline:none;background:transparent;color:inherit;font:600 12px Inter,sans-serif;padding:0 26px 0 11px;cursor:pointer;appearance:none;`,
+      roleChev:`position:absolute;right:9px;top:50%;transform:translateY(-50%);font-size:9px;opacity:.6;pointer-events:none;`,
+      statusCell:`width:130px;flex:none;${small?'width:auto;':''}`,
+      actCell:`width:90px;flex:none;display:flex;align-items:center;justify-content:flex-end;gap:8px;${small?'width:auto;margin-left:auto;':''}`,
+      linkBtn:`appearance:none;cursor:pointer;background:none;border:none;color:${t.primary};font:600 12px Inter,sans-serif;padding:0;white-space:nowrap;`,
+      rowRemove:`appearance:none;cursor:pointer;width:30px;height:30px;border-radius:8px;border:1px solid ${t.border};background:${t.surface};color:${t.subtle};display:flex;align-items:center;justify-content:center;flex:none;`,
+      lockIco:`font-size:12px;opacity:.5;`,
+
+      rbacCard:`background:${t.surface};border:1px solid ${t.border};border-radius:16px;padding:18px;margin-bottom:8px;`,
+      rbacHead:`display:flex;align-items:baseline;gap:10px;margin-bottom:16px;flex-wrap:wrap;`,
+      rbacTitle:`font:700 14px Inter,sans-serif;color:${t.text};`,
+      rbacHint:`font:500 11.5px Inter,sans-serif;color:${t.subtle};`,
+      rbacGrid:`display:grid;grid-template-columns:repeat(${small?1:(d.frame<900?2:4)},1fr);gap:16px;`,
+      rbacItem:`display:flex;flex-direction:column;gap:8px;`,
+      rbacDesc:`font:400 12px/1.5 Inter,sans-serif;color:${t.muted};`,
+
+      // billing
+      skCurrent:`width:100%;height:170px;border-radius:16px;background:${t.sk};animation:fe-pulse 1.5s ease-in-out infinite alternate;margin-bottom:28px;`,
+      skPrice:`width:100%;height:300px;border-radius:15px;background:${t.sk};animation:fe-pulse 1.5s ease-in-out infinite alternate;`,
+      errIco:`width:52px;height:52px;border-radius:50%;background:${t.dangerBg};color:${t.danger};font:700 24px Geist;display:flex;align-items:center;justify-content:center;margin-bottom:16px;`,
+      permBlock:`text-align:center;padding:48px 24px;background:${t.surface};border:1px solid ${t.border};border-radius:16px;display:flex;flex-direction:column;align-items:center;`,
+      permIco:`width:58px;height:58px;border-radius:15px;background:${t.warnBg};color:${t.warn};display:flex;align-items:center;justify-content:center;margin-bottom:16px;`,
+      permTitle:`font:700 19px 'Satoshi',Inter,sans-serif;color:${t.text};`,
+      permSub:`font:400 13.5px/1.55 Inter,sans-serif;color:${t.muted};max-width:430px;margin:8px 0 0;`,
+      emptyBlock:`text-align:center;padding:48px 24px;background:${t.surface};border:1px dashed ${t.borderStrong};border-radius:16px;display:flex;flex-direction:column;align-items:center;`,
+      emptyIco:`width:58px;height:58px;border-radius:15px;background:${t.primaryBg};color:${t.primary};display:flex;align-items:center;justify-content:center;margin-bottom:16px;`,
+      emptyTitle:`font:700 20px 'Satoshi',Inter,sans-serif;letter-spacing:-.01em;color:${t.text};`,
+      emptySub:`font:400 13.5px/1.55 Inter,sans-serif;color:${t.muted};max-width:430px;margin:8px 0 18px;`,
+
+      skRow:`display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid ${t.gridLine};`,
+      skAvatar:`width:38px;height:38px;border-radius:10px;background:${t.sk};animation:fe-pulse 1.5s ease-in-out infinite alternate;flex:none;`,
+      skLine1:`width:42%;height:11px;border-radius:6px;background:${t.sk};animation:fe-pulse 1.5s ease-in-out infinite alternate;`,
+      skLine2:`width:60%;height:9px;border-radius:6px;background:${t.sk};animation:fe-pulse 1.5s ease-in-out infinite alternate;margin-top:7px;`,
+      skBadge:`width:96px;height:26px;border-radius:7px;background:${t.sk};animation:fe-pulse 1.5s ease-in-out infinite alternate;flex:none;`,
+
+      currentCard:`display:flex;gap:${small?20:32}px;background:${t.surface};border:1px solid ${t.border};border-radius:16px;padding:${small?20:24}px;margin-bottom:30px;flex-wrap:wrap;`,
+      curLeft:`flex:1;min-width:230px;`,
+      curLabel:`font:600 11px Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:${t.subtle};`,
+      curPlanRow:`display:flex;align-items:center;gap:11px;margin-top:7px;flex-wrap:wrap;`,
+      curPlanName:`font:700 26px 'Satoshi',Inter,sans-serif;letter-spacing:-.02em;color:${t.text};`,
+      curActiveChip:`font:600 11px Inter,sans-serif;color:${t.good};background:${t.primaryBg};padding:3px 9px;border-radius:6px;`,
+      curPrice:`font:700 20px 'JetBrains Mono',monospace;color:${t.text};margin-top:12px;`,
+      curPer:`font:500 13px Inter,sans-serif;color:${t.subtle};margin-left:4px;`,
+      curRenew:`font:500 12.5px Inter,sans-serif;color:${t.muted};margin-top:6px;`,
+      manageBtn:`appearance:none;cursor:pointer;background:none;border:none;color:${t.primary};font:600 13px Inter,sans-serif;padding:0;margin-top:16px;white-space:nowrap;`,
+      curRight:`width:${small?'100%':'320px'};flex:none;display:flex;flex-direction:column;gap:16px;justify-content:center;`,
+      quotaBox:``,
+      quotaTop:`display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:7px;`,
+      quotaLabel:`font:600 12.5px Inter,sans-serif;color:${t.text};`,
+      quotaTrack:`height:9px;border-radius:5px;background:${t.surface2};overflow:hidden;`,
+
+      priceHead:`display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px;`,
+      billCycle:`display:flex;gap:3px;padding:3px;background:${t.segBg};border-radius:9px;`,
+      cycleActive:`font:600 12px Inter,sans-serif;color:${t.text};background:${t.segActiveBg};box-shadow:0 1px 2px rgba(0,0,0,.12);padding:6px 12px;border-radius:7px;`,
+      cycleOff:`font:600 12px Inter,sans-serif;color:${t.subtle};padding:6px 12px;border-radius:7px;`,
+      priceGrid:`display:grid;grid-template-columns:repeat(${d.priceCols},1fr);gap:16px;`,
+      ribbon:`position:absolute;top:14px;right:14px;font:600 10px Inter,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:${t.primaryText};background:${t.primary};padding:3px 9px;border-radius:6px;`,
+      planName:`font:700 17px Inter,sans-serif;color:${t.text};`,
+      planPriceRow:`display:flex;align-items:baseline;gap:4px;margin-top:10px;`,
+      planPer:`font:500 13px Inter,sans-serif;color:${t.subtle};`,
+      planLimits:`display:flex;flex-direction:column;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid ${t.border};`,
+      planLimit:`display:flex;align-items:center;gap:9px;font:500 13px Inter,sans-serif;color:${t.muted};`,
+      limitIco:`width:18px;text-align:center;color:${t.subtle};font-size:11px;`,
+      planFeats:`display:flex;flex-direction:column;gap:8px;margin-top:14px;flex:1;`,
+      planFeat:`display:flex;align-items:flex-start;gap:8px;font:400 12.5px/1.4 Inter,sans-serif;color:${t.muted};`,
+      featCheck:`flex:none;width:16px;height:16px;border-radius:50%;background:${t.primaryBg};color:${t.primary};font:700 9px Geist;display:flex;align-items:center;justify-content:center;margin-top:1px;`,
+      billNote:`font:400 12px/1.5 Inter,sans-serif;color:${t.subtle};margin-top:18px;`,
+
+      // modals
+      overlay:`position:absolute;inset:0;background:rgba(10,8,6,.5);z-index:90;animation:fe-fade .15s;`,
+      modalWrap:`position:absolute;inset:0;z-index:91;display:flex;align-items:center;justify-content:center;padding:24px;`,
+      modal:`width:100%;max-width:440px;background:${t.surface};border:1px solid ${t.border};border-radius:18px;box-shadow:${t.menuShadow};padding:26px;text-align:center;animation:fe-pop .2s ease;`,
+      modalForm:`width:100%;max-width:480px;max-height:88vh;overflow:auto;background:${t.surface};border:1px solid ${t.border};border-radius:18px;box-shadow:${t.menuShadow};padding:24px;animation:fe-pop .2s ease;`,
+      modalHead:`display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:18px;`,
+      modalTitle:`font:700 19px Inter,sans-serif;letter-spacing:-.01em;color:${t.text};`,
+      modalSub:`font:400 14px/1.55 Inter,sans-serif;color:${t.muted};margin:9px 0 20px;`,
+      modalSub2:`font:400 12.5px Inter,sans-serif;color:${t.subtle};margin-top:3px;`,
+      modalClose:`appearance:none;cursor:pointer;width:30px;height:30px;border-radius:8px;border:1px solid ${t.border};background:${t.surface};color:${t.subtle};font:600 12px Geist;flex:none;`,
+      fLabel:`display:block;font:600 12px Inter,sans-serif;color:${t.muted};margin:14px 0 7px;`,
+      fInputWrap:`display:flex;align-items:center;height:44px;border-radius:11px;background:${t.bg};border:1.5px solid ${t.border};overflow:hidden;`,
+      fInput:`flex:1;min-width:0;height:100%;border:none;outline:none;background:transparent;color:${t.text};font:500 14px Inter,sans-serif;padding:0 14px;`,
+      rolePick:`display:flex;flex-direction:column;gap:9px;`,
+      rolePickDesc:`font:400 11.5px/1.4 Inter,sans-serif;color:${t.subtle};margin-top:2px;`,
+      modalActions:`display:flex;gap:10px;margin-top:24px;`,
+      btnGhost:`flex:1;height:44px;border-radius:4px;border:1px solid ${t.borderStrong};background:${t.surface};color:${t.text};font:600 14px Inter,sans-serif;cursor:pointer;transition:.14s;`,
+      btnGhostHover:`background:${t.surface2};`,
+      btnPrimaryWide:`flex:1.4;height:44px;border-radius:4px;border:none;background:${t.primary};color:${t.primaryText};font:600 14px Inter,sans-serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:.14s;`,
+      btnDanger:`flex:1;height:44px;border-radius:11px;border:none;background:${t.danger};color:#fff;font:600 14px Inter,sans-serif;cursor:pointer;transition:.14s;`,
+      btnDangerHover:`background:${t.dangerHover};`,
+      modalIcoDanger:`width:52px;height:52px;border-radius:14px;background:${t.dangerBg};color:${t.danger};display:flex;align-items:center;justify-content:center;margin:0 auto 16px;`,
+      modalIcoPlan:`width:52px;height:52px;border-radius:14px;background:${t.primaryBg};color:${t.primary};display:flex;align-items:center;justify-content:center;margin:0 auto 16px;`,
+      spinner:`width:15px;height:15px;border-radius:50%;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;animation:fe-spin .7s linear infinite;`,
+      planDiffRow:`display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid ${t.border};border-radius:12px;background:${t.bg};margin-bottom:4px;text-align:left;`,
+      planDiffCol:`flex:1;min-width:0;`,
+      planDiffLabel:`font:600 9.5px Inter,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:${t.subtle};`,
+      planDiffVal:`font:600 14px Inter,sans-serif;color:${t.text};margin-top:3px;`,
+      planDiffValNew:`font:700 14px Inter,sans-serif;color:${t.primary};margin-top:3px;`,
+      planDiffArrow:`color:${t.subtle};font-size:15px;flex:none;`
+    };
+
+    return {s,t,
+      headerH:d.headerH, headerGap:d.frame<900?16:28,
+      showNav:d.showNav,showWord:d.showWord,showOrgSelector:d.showOrgSel,showUser:d.showUser,showBurger:d.showBurger,showOrgName:d.showOrgName,
+      isDark:st.theme==='dark',isLight:st.theme==='light',
+      isMembers:onMem, isBilling:onBil, stateBtns, memberCount:String(st.members.length),
+      // members
+      canInvite:st.memState==='list'||st.memState==='empty',
+      memLoading:st.memState==='loading', memError:st.memState==='error', memEmpty:st.memState==='empty', memList:st.memState==='list',
+      members:st.memState==='list'?members:[], rolesRef, roleOptions, skRows,
+      // billing
+      bilLoading:st.bilState==='loading', bilError:st.bilState==='error', bilView:st.bilState==='view',
+      currentName:curPlan.name, currentPrice:curPlan.price, currentPer:curPlan.per, currentPlanId:st.currentPlan,
+      renewDate:'14 марта 2026', quotas, plans,
+      manageBilling:()=>this.fireToast('Открываем платёжный кабинет…','💳'),
+      // add modal
+      addOpen:st.addOpen, openAdd:()=>this.setState({addOpen:true,addEmail:'',addName:'',addRole:'editor'}), closeAdd:()=>this.setState({addOpen:false}),
+      addEmail:st.addEmail, addName:st.addName, onAddEmail:(e)=>this.setState({addEmail:e.target.value}), onAddName:(e)=>this.setState({addName:e.target.value}),
+      addRoleOptions, inviting:st.inviting, inviteText:st.inviting?'Отправляем…':'Отправить приглашение',
+      sendInvite:()=>{ this.setState({inviting:true}); if(this._t)clearTimeout(this._t); this._t=setTimeout(()=>{ const name=st.addName.trim()||'Новый участник'; const email=st.addEmail.trim()||'invited@company.ru'; this.setState(s=>({inviting:false,addOpen:false,members:[...s.members,{id:s.nextId,name,email,role:s.addRole,status:'invited'}],nextId:s.nextId+1})); this.fireToast('Приглашение отправлено на '+email,'✉'); },1200); },
+      // remove
+      removeTarget:removeName, cancelRemove:()=>this.setState({removeId:null}),
+      confirmRemove:()=>{ const nm=removeName; this.setState(s=>({members:s.members.filter(m=>m.id!==s.removeId),removeId:null})); this.fireToast('Участник удалён','✓'); },
+      // plan change
+      planTarget:st.planId?'1':'', planTargetName:planT?planT.name:'', planTargetPrice:planT?(planT.price+planT.per):'',
+      planChangeTitle:isUpgrade?'Перейти на тариф выше?':'Сменить тариф?',
+      planChangeText:planT?(isUpgrade?('Вы получите больше проектов и участников. Доступ к новым возможностям — сразу после оплаты.'):('Часть возможностей станет недоступна. Изменение вступит в силу со следующего периода.')):'',
+      checkingOut:st.checkingOut, checkoutText:st.checkingOut?'Оформляем…':'Оформить переход',
+      cancelPlan:()=>this.setState({planId:null}),
+      confirmPlan:()=>{ this.setState({checkingOut:true}); if(this._c)clearTimeout(this._c); this._c=setTimeout(()=>{ const nm=planT?planT.name:''; this.setState({checkingOut:false,planId:null,currentPlan:st.planId}); this.fireToast('Тариф изменён на «'+nm+'»','✓'); },1500); },
+      toast: st.toast?st.toast.text:'', toastIco: st.toast?st.toast.ico:'✓',
+      toggleTheme:()=>this.setState(s=>({theme:s.theme==='light'?'dark':'light'})),
+      goMembers:()=>this.setState({tab:'members'}), goBilling:()=>this.setState({tab:'billing'}),
+      stMemList:()=>this.setState({memState:'list'}), stBilView:()=>this.setState({bilState:'view'}),
+      setLight:()=>this.setState({theme:'light'}),setDark:()=>this.setState({theme:'dark'}),
+      setDesktop:()=>this.setState({device:'desktop'}),setTablet:()=>this.setState({device:'tablet'}),setMobile:()=>this.setState({device:'mobile'})
+    };
+  }
+}
+</script>
+</body>
+</html>

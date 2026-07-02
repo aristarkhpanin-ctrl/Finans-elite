@@ -36,3 +36,7 @@ class Environment(BaseModel):
     currencies: list[Currency] = Field(default_factory=lambda: [Currency()])
     inflation: list[InflationGroup] = Field(default_factory=list)
     taxes: list[Tax] = Field(default_factory=list)
+    # Курс второй валюты к основной (единиц основной за единицу второй) на конец периода.
+    # Пусто = одна валюта (без переоценки). См. SPEC §3, §22.3.
+    fx_rate: list[Decimal] = Field(default_factory=list)
+    fx_open: Decimal = Decimal(1)  # курс на старте проекта (t = −1), для опорных позиций

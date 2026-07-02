@@ -8,20 +8,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 
-from ..metrics import (
-    annual_to_monthly,
-    discounted_payback_months,
-    irr_annual,
-    npv,
-    payback_months,
-    profitability_index,
-)
+from ..metrics import annual_to_monthly
 from ..models import ProjectModel
-from ..money import almost_equal
+from ..money import ONE, ZERO, almost_equal
 from ..reports.actualization import actualize_cashflow
 from ..reports.breakeven import compute_break_even
 from ..reports.ratios import compute_ratios
-from ..reports.result import CalcResult, InvestmentMetrics
+from ..reports.result import CalcResult, InvestmentMetrics, build_investment_metrics
+from ..reports.statements import opening_balance
+from ..reports.valuation import compute_valuation
 from ..series import add, zeros
 from ..version import ENGINE_VERSION
 from .errors import InvariantError
@@ -51,11 +46,23 @@ def run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
         _check_invariants(income, cashflow, balance, profit_use, n)
 
     metrics = _metrics(model, cashflow)
+    sb = model.company.starting_balance
+    opening = opening_balance(
+        sb.cash, sb.fixed_assets_net, sb.debt, sb.paid_in_capital, sb.retained_earnings,
+        sb.foreign_monetary * model.environment.fx_open,
+        receivables=sb.receivables, payables=sb.payables,
+        raw_materials=sb.raw_materials, finished_goods=sb.finished_goods,
+    )
     ratios = compute_ratios(
         income, cashflow, balance, profit_use,
-        model.financing.common_shares, n,
+        model.financing.common_shares, n, opening,
     )
     break_even = compute_break_even(income, n)
+    valuation = compute_valuation(
+        income, cashflow, balance,
+        model.settings.discount_rate_annual, model.settings.terminal_growth_rate,
+        model.settings.valuation_earnings_multiple, model.settings.liquidation_recovery_rate, n,
+    )
 
     actualized_cashflow = None
     cashflow_variance = None
@@ -75,6 +82,7 @@ def run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
         metrics=metrics,
         ratios=ratios,
         break_even=break_even,
+        valuation=valuation,
         actualized_cashflow=actualized_cashflow,
         cashflow_variance=cashflow_variance,
         warnings=warnings,
@@ -82,7 +90,14 @@ def run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
 
 
 def _solve(model: ProjectModel):
-    """Расчёт с автоподбором финансирования (итеративно) либо без него."""
+    """Расчёт с автоподбором финансирования (итеративно) либо без него.
+
+    Замкнутый контур «проценты → прибыль → налог → деньги → привлечение → проценты»
+    решается методом простой итерации с **адаптивным демпфированием** (SPEC §19/§22.5):
+    обычно шаг полный (быстрая сходимость сильной обратной связи через налог), но если
+    невязка перестаёт убывать — шаг уменьшается вдвое (защита от колебаний/расходимости).
+    Демпфирование не меняет неподвижную точку — только путь к ней.
+    """
     af = model.financing.auto_financing
     if not af.enabled:
         return run_pipeline(model)
@@ -94,18 +109,26 @@ def _solve(model: ProjectModel):
     interest = zeros(n)
     draws = zeros(n)
     principal = zeros(n)
+    damping = ONE              # шаг релаксации
+    prev_residual = None
     converged = False
     for _ in range(_MAX_AUTOFIN_ITER):
         # Прогон только с процентами в ОПУ (для налога), без денежных потоков автокредита.
         probe = AutoInjection(interest, zeros(n), zeros(n), zeros(n))
         _, cf, _, _, _ = run_pipeline(model, auto=probe)
         base_flow = [cf["C13"][t] + cf["C20"][t] + cf["C27"][t] for t in range(n)]
-        draws, principal, new_interest = solve_credit_line(base_flow, opening_cash, af.min_balance, r)
-        if all(abs(new_interest[t] - interest[t]) <= _AUTOFIN_EPS for t in range(n)):
-            interest = new_interest
+        draws, principal, target = solve_credit_line(base_flow, opening_cash, af.min_balance, r)
+
+        residual = max((abs(target[t] - interest[t]) for t in range(n)), default=ZERO)
+        if residual <= _AUTOFIN_EPS:
+            interest = target
             converged = True
             break
-        interest = new_interest
+        # Если невязка не убывает — демпфируем шаг (защита от расходимости).
+        if prev_residual is not None and residual >= prev_residual:
+            damping = damping / Decimal(2)
+        prev_residual = residual
+        interest = [interest[t] + damping * (target[t] - interest[t]) for t in range(n)]
 
     # Финальный прогон: проценты в ОПУ и денежные потоки кредитной линии.
     final = AutoInjection(interest, draws, principal, interest)
@@ -136,13 +159,7 @@ def _check_invariants(income, cashflow, balance, profit_use, n: int) -> None:
 
 
 def _metrics(model: ProjectModel, cashflow) -> InvestmentMetrics:
-    # v0: поток до финансирования = операционная + инвестиционная деятельность (SPEC §17/§22).
+    # Поток до финансирования = операционная + инвестиционная деятельность (SPEC §17).
     net_flow = add(cashflow["C13"], cashflow["C20"])
     r_m = annual_to_monthly(model.settings.discount_rate_annual)
-    return InvestmentMetrics(
-        npv=npv(net_flow, r_m),
-        irr_annual=irr_annual(net_flow),
-        pi=profitability_index(net_flow, r_m),
-        pb_months=payback_months(net_flow),
-        dpb_months=discounted_payback_months(net_flow, r_m),
-    )
+    return build_investment_metrics(net_flow, r_m)
