@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Inter';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-600-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:700;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-700-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-600-normal.woff2') format('woff2');}
+</style>
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  @keyframes fe-pulse{from{opacity:.55}to{opacity:1}}
+  @keyframes fe-fade{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+  @keyframes fe-slide{from{transform:translateX(100%)}to{transform:translateX(0)}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}" data-screen-label="03 — Каркас и навигация">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+      <div style="width:26px;height:26px;flex:none;border-radius:8px;overflow:hidden;"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="26px,26px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Этап&nbsp;3 · Каркас и навигация</span>
+        <span style="{{ s.barSub }}">Финанс-Элит · App Shell</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Раздел</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segProjects }}" onClick="{{ goProjects }}">Проекты</button><button style="{{ s.segHoldings }}" onClick="{{ goHoldings }}">Холдинги</button><button style="{{ s.segOrg }}" onClick="{{ goOrg }}">Организация</button><button style="{{ s.segInProject }}" onClick="{{ goProject }}">Внутри проекта</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Организаций</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segMulti }}" onClick="{{ setMulti }}">Несколько</button><button style="{{ s.segSingle }}" onClick="{{ setSingle }}">Одна</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Светлая</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тёмная</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}">
+
+      <sc-if value="{{ isMobile }}" hint-placeholder-val="{{ false }}">
+      <div style="{{ s.statusbar }}"><span>9:41</span><div style="display:flex;gap:5px;align-items:center;"><span style="font:600 10px 'Geist Mono',monospace;">5G</span><div style="{{ s.battery }}"></div></div></div>
+      </sc-if>
+
+      <!-- HEADER -->
+      <div style="{{ s.header }}">
+        <div style="display:flex;align-items:center;gap:{{ headerGap }}px;min-width:0;">
+          <div style="display:flex;align-items:center;gap:9px;flex:none;">
+            <div style="width:30px;height:30px;flex:none;border-radius:8px;overflow:hidden;"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="30px,30px"></dc-import></div>
+            <sc-if value="{{ showWord }}" hint-placeholder-val="{{ true }}"><span style="{{ s.word }}">Финанс<span style="color:{{ t.subtle }};font-weight:500;">-Элит</span></span></sc-if>
+          </div>
+          <sc-if value="{{ showNav }}" hint-placeholder-val="{{ true }}">
+          <nav style="display:flex;align-items:stretch;height:{{ headerH }}px;gap:2px;">
+            <button style="{{ s.navProjects }}" style-hover="{{ s.navHover }}" onClick="{{ goProjects }}">Проекты</button>
+            <button style="{{ s.navHoldings }}" style-hover="{{ s.navHover }}" onClick="{{ goHoldings }}">Холдинги</button>
+            <button style="{{ s.navOrg }}" style-hover="{{ s.navHover }}" onClick="{{ goOrg }}">Организация</button>
+          </nav>
+          </sc-if>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:{{ rightGap }}px;flex:none;">
+          <sc-if value="{{ showOrgSelector }}" hint-placeholder-val="{{ true }}">
+            <sc-if value="{{ isMulti }}" hint-placeholder-val="{{ true }}">
+            <div style="position:relative;">
+              <button style="{{ s.orgBtn }}" style-hover="{{ s.orgBtnHover }}" onClick="{{ toggleOrg }}">
+                <div style="{{ s.orgAvatar }}">ФК</div>
+                <sc-if value="{{ showOrgName }}" hint-placeholder-val="{{ true }}"><span style="{{ s.orgName }}">Финмодель Консалтинг</span></sc-if>
+                <span style="{{ s.chev }}">▾</span>
+              </button>
+              <sc-if value="{{ orgOpen }}" hint-placeholder-val="{{ false }}">
+              <div style="{{ s.menuOrg }}">
+                <div style="{{ s.menuHead }}">Организации</div>
+                <button style="{{ s.orgItemActive }}"><div style="{{ s.orgAvatarSm }}">ФК</div><div style="flex:1;min-width:0;"><div style="{{ s.orgItemName }}">Финмодель Консалтинг</div><div style="{{ s.orgItemRole }}">Владелец</div></div><span style="{{ s.check }}">✓</span></button>
+                <button style="{{ s.orgItem }}" style-hover="{{ s.itemHover }}"><div style="{{ s.orgAvatarSm2 }}">ГВ</div><div style="flex:1;min-width:0;"><div style="{{ s.orgItemName }}">Группа Вертикаль</div><div style="{{ s.orgItemRole }}">Администратор</div></div></button>
+                <button style="{{ s.orgItem }}" style-hover="{{ s.itemHover }}"><div style="{{ s.orgAvatarSm3 }}">СЗ</div><div style="flex:1;min-width:0;"><div style="{{ s.orgItemName }}">Инвестхолдинг «Северная звезда»</div><div style="{{ s.orgItemRole }}">Аналитик</div></div></button>
+                <div style="{{ s.menuDiv }}"></div>
+                <button style="{{ s.menuLink }}" style-hover="{{ s.itemHover }}"><span style="{{ s.menuIco }}">＋</span>Создать организацию</button>
+                <button style="{{ s.menuLink }}" style-hover="{{ s.itemHover }}"><span style="{{ s.menuIco }}">⚙</span>Управление организацией</button>
+              </div>
+              </sc-if>
+            </div>
+            </sc-if>
+            <sc-if value="{{ isSingle }}" hint-placeholder-val="{{ false }}">
+              <div style="{{ s.orgStatic }}"><div style="{{ s.orgAvatar }}">ФК</div><sc-if value="{{ showOrgName }}" hint-placeholder-val="{{ true }}"><span style="{{ s.orgName }}">Финмодель Консалтинг</span></sc-if></div>
+            </sc-if>
+          </sc-if>
+
+          <button style="{{ s.iconBtn }}" style-hover="{{ s.iconBtnHover }}" onClick="{{ toggleTheme }}" title="Тема">
+            <sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}"><span style="font-size:15px;">☀</span></sc-if>
+            <sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}"><span style="font-size:14px;">☾</span></sc-if>
+          </button>
+
+          <sc-if value="{{ showUser }}" hint-placeholder-val="{{ true }}">
+          <div style="position:relative;">
+            <button style="{{ s.userBtn }}" style-hover="{{ s.orgBtnHover }}" onClick="{{ toggleUser }}">
+              <div style="{{ s.userAvatar }}">АС</div>
+              <sc-if value="{{ showUserEmail }}" hint-placeholder-val="{{ true }}"><span style="{{ s.userEmail }}">anna@finmodel.ru</span></sc-if>
+              <sc-if value="{{ showUserEmail }}" hint-placeholder-val="{{ true }}"><span style="{{ s.chev }}">▾</span></sc-if>
+            </button>
+            <sc-if value="{{ userOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="{{ s.menuUser }}">
+              <div style="{{ s.userHead }}"><div style="{{ s.userAvatarLg }}">АС</div><div style="min-width:0;"><div style="{{ s.userName }}">Анна Соколова</div><div style="{{ s.userMail }}">anna@finmodel.ru</div></div></div>
+              <div style="{{ s.menuDiv }}"></div>
+              <button style="{{ s.menuLink }}" style-hover="{{ s.itemHover }}"><span style="{{ s.menuIco }}">◷</span>Профиль и настройки</button>
+              <button style="{{ s.menuLink }}" style-hover="{{ s.itemHover }}" onClick="{{ toggleTheme }}"><span style="{{ s.menuIco }}">◐</span>Сменить тему<span style="margin-left:auto;font:600 11px Geist;color:{{ t.subtle }};">{{ themeLabel }}</span></button>
+              <div style="{{ s.menuDiv }}"></div>
+              <button style="{{ s.menuLinkDanger }}" style-hover="{{ s.dangerHover }}"><span style="{{ s.menuIco }}">⇥</span>Выйти</button>
+            </div>
+            </sc-if>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ showBurger }}" hint-placeholder-val="{{ false }}">
+          <button style="{{ s.iconBtn }}" onClick="{{ openMobileMenu }}" title="Меню"><div style="{{ s.burger }}"><span style="{{ s.burgerLine }}"></span><span style="{{ s.burgerLine }}"></span><span style="{{ s.burgerLine }}"></span></div></button>
+          </sc-if>
+        </div>
+      </div>
+
+      <!-- PROJECT SUBHEADER -->
+      <sc-if value="{{ isProject }}" hint-placeholder-val="{{ false }}">
+      <div style="{{ s.subheader }}">
+        <div style="{{ s.crumbs }}">
+          <button style="{{ s.crumbLink }}" onClick="{{ goProjects }}">Проекты</button>
+          <span style="{{ s.crumbSep }}">›</span>
+          <span style="{{ s.crumbCur }}">Завод полимерной упаковки</span>
+          <span style="{{ s.crumbSep }}">›</span>
+          <span style="{{ s.crumbActive }}">{{ modeLabel }}</span>
+        </div>
+        <div style="{{ s.subRow }}">
+          <div style="display:flex;align-items:center;gap:11px;min-width:0;">
+            <h1 style="{{ s.projTitle }}">Завод полимерной упаковки</h1>
+            <span style="{{ s.statusChip }}">● Рассчитан</span>
+          </div>
+          <div style="{{ s.subActions }}">
+            <div style="{{ s.modeSeg }}">
+              <button style="{{ s.modeEditor }}" onClick="{{ setEditor }}">Редактор</button>
+              <button style="{{ s.modeResults }}" onClick="{{ setResults }}">Результаты</button>
+              <button style="{{ s.modeAnalysis }}" onClick="{{ setAnalysis }}">Анализ</button>
+            </div>
+            <button style="{{ s.primaryBtn }}" style-hover="{{ s.primaryBtnHover }}">Рассчитать →</button>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- CONTENT -->
+      <div style="{{ s.content }}">
+        <div style="{{ s.container }}">
+
+          <sc-if value="{{ showDashHead }}" hint-placeholder-val="{{ true }}">
+          <div style="{{ s.pageHead }}">
+            <div style="min-width:0;">
+              <h1 style="{{ s.pageTitle }}">{{ pageTitle }}</h1>
+              <div style="{{ s.pageSub }}">{{ pageSub }}</div>
+            </div>
+            <sc-if value="{{ pageAction }}" hint-placeholder-val=""><button style="{{ s.primaryBtn }}" style-hover="{{ s.primaryBtnHover }}">{{ pageAction }}</button></sc-if>
+          </div>
+          </sc-if>
+
+          <!-- projects skeleton -->
+          <sc-if value="{{ showProjectsContent }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.cardGrid }}">
+            <button style="{{ s.projCard }}" style-hover="{{ s.projCardHover }}" onClick="{{ goProject }}">
+              <div style="display:flex;align-items:center;justify-content:space-between;"><div style="{{ s.skTitle }}"></div><span style="{{ s.statusChipSm }}">Рассчитан</span></div>
+              <div style="{{ s.skSub }}"></div>
+              <div style="{{ s.cardMetric }}"><div><div style="{{ s.skMini }}"></div><div style="{{ s.skNum }}"></div></div><div><div style="{{ s.skMini }}"></div><div style="{{ s.skNum }}"></div></div></div>
+              <div style="{{ s.cardFoot }}"><div style="{{ s.skTiny }}"></div><span style="{{ s.openHint }}">Открыть →</span></div>
+            </button>
+            <div style="{{ s.projCardStatic }}"><div style="display:flex;align-items:center;justify-content:space-between;"><div style="{{ s.skTitle }}"></div><span style="{{ s.statusChipDraft }}">Черновик</span></div><div style="{{ s.skSub }}"></div><div style="{{ s.cardMetric }}"><div><div style="{{ s.skMini }}"></div><div style="{{ s.skNum }}"></div></div><div><div style="{{ s.skMini }}"></div><div style="{{ s.skNum }}"></div></div></div><div style="{{ s.cardFoot }}"><div style="{{ s.skTiny }}"></div></div></div>
+            <div style="{{ s.projCardStatic }}"><div style="display:flex;align-items:center;justify-content:space-between;"><div style="{{ s.skTitle }}"></div><span style="{{ s.statusChipSm }}">Рассчитан</span></div><div style="{{ s.skSub }}"></div><div style="{{ s.cardMetric }}"><div><div style="{{ s.skMini }}"></div><div style="{{ s.skNum }}"></div></div><div><div style="{{ s.skMini }}"></div><div style="{{ s.skNum }}"></div></div></div><div style="{{ s.cardFoot }}"><div style="{{ s.skTiny }}"></div></div></div>
+          </div>
+          <div style="{{ s.slotTag }}">Содержимое раздела — Этап&nbsp;4 (карточки-проекты показаны схематично)</div>
+          </sc-if>
+
+          <!-- holdings/org skeleton -->
+          <sc-if value="{{ showGenericContent }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.cardGrid }}">
+            <div style="{{ s.projCardStatic }}"><div style="{{ s.skTitle }}"></div><div style="{{ s.skSub }}"></div><div style="{{ s.skLineF }}"></div><div style="{{ s.skLine70 }}"></div></div>
+            <div style="{{ s.projCardStatic }}"><div style="{{ s.skTitle }}"></div><div style="{{ s.skSub }}"></div><div style="{{ s.skLineF }}"></div><div style="{{ s.skLine70 }}"></div></div>
+          </div>
+          <div style="{{ s.slotTag }}">Содержимое раздела «{{ pageTitle }}» — следующие этапы</div>
+          </sc-if>
+
+          <!-- project: results skeleton -->
+          <sc-if value="{{ showResults }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.statRow }}">
+            <div style="{{ s.statCard }}"><div style="{{ s.skMini }}"></div><div style="{{ s.skBig }}"></div><div style="{{ s.skTiny }}"></div></div>
+            <div style="{{ s.statCard }}"><div style="{{ s.skMini }}"></div><div style="{{ s.skBig }}"></div><div style="{{ s.skTiny }}"></div></div>
+            <div style="{{ s.statCard }}"><div style="{{ s.skMini }}"></div><div style="{{ s.skBig }}"></div><div style="{{ s.skTiny }}"></div></div>
+            <div style="{{ s.statCard }}"><div style="{{ s.skMini }}"></div><div style="{{ s.skBig }}"></div><div style="{{ s.skTiny }}"></div></div>
+          </div>
+          <div style="{{ s.skPanel }}"></div>
+          <div style="{{ s.slotTag }}">Сводка и таблицы — Этапы&nbsp;12–13</div>
+          </sc-if>
+
+          <!-- project: editor skeleton -->
+          <sc-if value="{{ showEditor }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;gap:18px;align-items:flex-start;{{ editorWrap }}">
+            <div style="{{ s.editorRail }}"><div style="{{ s.skRailItemA }}"></div><div style="{{ s.skRailItem }}"></div><div style="{{ s.skRailItem }}"></div><div style="{{ s.skRailItem }}"></div><div style="{{ s.skRailItem }}"></div></div>
+            <div style="flex:1;min-width:0;"><div style="{{ s.skSub }}"></div><div style="{{ s.skFieldRow }}"><div style="{{ s.skField }}"></div><div style="{{ s.skField }}"></div></div><div style="{{ s.skFieldRow }}"><div style="{{ s.skField }}"></div><div style="{{ s.skField }}"></div></div><div style="{{ s.skPanelSm }}"></div></div>
+          </div>
+          <div style="{{ s.slotTag }}">Редактор модели — Этапы&nbsp;5–11</div>
+          </sc-if>
+
+          <!-- project: analysis skeleton -->
+          <sc-if value="{{ showAnalysis }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.skToolbar }}"></div>
+          <div style="{{ s.skChart }}"></div>
+          <div style="{{ s.slotTag }}">Анализ рисков — Этап&nbsp;17</div>
+          </sc-if>
+
+        </div>
+      </div>
+
+      <!-- MOBILE DRAWER -->
+      <sc-if value="{{ mobileOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="{{ s.overlayAbs }}" onClick="{{ closeMenu }}"></div>
+      <div style="{{ s.drawer }}">
+        <div style="{{ s.drawerHead }}">
+          <span style="{{ s.word }}">Финанс<span style="color:{{ t.subtle }};font-weight:500;">-Элит</span></span>
+          <button style="{{ s.iconBtn }}" onClick="{{ closeMenu }}"><span style="font-size:15px;color:{{ t.muted }};">✕</span></button>
+        </div>
+        <sc-if value="{{ isMulti }}" hint-placeholder-val="{{ true }}">
+        <div style="{{ s.drawerOrg }}"><div style="{{ s.orgAvatar }}">ФК</div><div style="flex:1;min-width:0;"><div style="{{ s.orgItemName }}">Финмодель Консалтинг</div><div style="{{ s.orgItemRole }}">Владелец · сменить</div></div><span style="{{ s.chev }}">▾</span></div>
+        </sc-if>
+        <div style="{{ s.drawerLabel }}">Навигация</div>
+        <button style="{{ s.drawerItemActive }}"><span style="{{ s.drawerDot }}"></span>Проекты</button>
+        <button style="{{ s.drawerItem }}" style-hover="{{ s.itemHover }}"><span style="{{ s.drawerDotOff }}"></span>Холдинги</button>
+        <button style="{{ s.drawerItem }}" style-hover="{{ s.itemHover }}"><span style="{{ s.drawerDotOff }}"></span>Организация</button>
+        <sc-if value="{{ isProject }}" hint-placeholder-val="{{ false }}">
+        <div style="{{ s.drawerLabel }}">Текущий проект</div>
+        <button style="{{ s.drawerItem }}" style-hover="{{ s.itemHover }}">Редактор</button>
+        <button style="{{ s.drawerItemActive }}">Результаты</button>
+        <button style="{{ s.drawerItem }}" style-hover="{{ s.itemHover }}">Анализ</button>
+        </sc-if>
+        <div style="{{ s.menuDiv }}"></div>
+        <button style="{{ s.drawerItem }}" style-hover="{{ s.itemHover }}" onClick="{{ toggleTheme }}"><span style="margin-right:10px;">{{ themeIcon }}</span>Тема: {{ themeLabel }}</button>
+        <div style="{{ s.drawerUser }}"><div style="{{ s.userAvatarLg }}">АС</div><div style="flex:1;min-width:0;"><div style="{{ s.userName }}">Анна Соколова</div><div style="{{ s.userMail }}">anna@finmodel.ru</div></div></div>
+        <button style="{{ s.drawerExit }}">Выйти</button>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ dropOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="{{ s.overlayFixed }}" onClick="{{ closeMenu }}"></div>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { theme:'light', device:'desktop', section:'projects', mode:'results', orgMode:'multi', open:null };
+
+  THEME(){
+    const light={pageBg:'#E4F1E0',bg:'#F4FAF2',surface:'#FFFFFF',surface2:'#EDF5EA',sk:'#E3EEDF',border:'#D2E4CD',borderStrong:'#B4CCAE',text:'#16201A',muted:'#46584A',subtle:'#6E8270',primary:'#7FEE64',primaryHover:'#6FE253',primaryText:'#06210E',accent:'#138A45',primaryBg:'#DBF3D2',danger:'#C0473B',dangerBg:'#FAE7E4',shadow:'0 18px 44px -22px rgba(20,40,24,.22), 0 2px 6px rgba(20,40,24,.05)',menuShadow:'0 24px 56px -16px rgba(20,40,24,.28), 0 2px 8px rgba(20,40,24,.06)',barBg:'#FFFFFF',barBorder:'#D2E4CD',segBg:'#E7F0E3',segActiveBg:'#FFFFFF',headerBg:'#FFFFFF',brandMid:'#138A45',brandTo:'#7FEE64',warn:'#B07A12',warnBg:'#FBF0D8'};
+    const dark={pageBg:'#000000',bg:'#0C0F0C',surface:'#212525',surface2:'#2A312A',sk:'#2A312A',border:'#485346',borderStrong:'#677D64',text:'#DDFFDC',muted:'#93A091',subtle:'#677D64',primary:'#7FEE64',primaryHover:'#95F47D',primaryText:'#000000',accent:'#7FEE64',primaryBg:'rgba(127,238,100,.15)',danger:'#F0796E',dangerBg:'rgba(240,121,110,.15)',shadow:'0 30px 70px -34px rgba(0,0,0,.9)',menuShadow:'0 22px 52px -16px rgba(0,0,0,.82)',barBg:'#0C0F0C',barBorder:'#1D231D',segBg:'#0B0E0B',segActiveBg:'#2A312A',headerBg:'#0C0F0C',brandMid:'#3E4A3C',brandTo:'#7FEE64',warn:'#E0A23A',warnBg:'rgba(224,162,58,.16)'};
+    return this.state.theme==='dark'?dark:light;
+  }
+  DIM(){const d=this.state.device;
+    if(d==='mobile')return{frame:402,radius:30,headerH:54,pad:16,showNav:false,showWord:true,showOrgSel:false,showUser:false,showBurger:true,showOrgName:false,showOrgRole:false,showUserEmail:false,statRow:2,editorCol:true};
+    if(d==='tablet')return{frame:864,radius:18,headerH:58,pad:24,showNav:true,showWord:true,showOrgSel:true,showUser:true,showBurger:false,showOrgName:false,showOrgRole:false,showUserEmail:false,statRow:4,editorCol:false};
+    return{frame:1280,radius:14,headerH:60,pad:32,showNav:true,showWord:true,showOrgSel:true,showUser:true,showBurger:false,showOrgName:true,showOrgRole:true,showUserEmail:true,statRow:4,editorCol:false};
+  }
+
+  renderVals(){
+    const st=this.state,t=this.THEME(),d=this.DIM();
+    const isProject=st.section==='project';
+    const activeMain=isProject?'projects':st.section;
+    const multi=st.orgMode==='multi';
+    const seg=(a)=>`appearance:none;border:none;cursor:pointer;font:600 12px Inter,sans-serif;padding:6px 11px;border-radius:7px;white-space:nowrap;color:${a?t.text:t.subtle};background:${a?t.segActiveBg:'transparent'};box-shadow:${a?'0 1px 2px rgba(0,0,0,.14)':'none'};transition:.14s;`;
+    const segWrap=`display:flex;gap:3px;padding:3px;background:${t.segBg};border-radius:9px;`;
+    const navItem=(a)=>`appearance:none;background:none;border:none;border-bottom:2px solid ${a?t.primary:'transparent'};cursor:pointer;font:600 13.5px Inter,sans-serif;color:${a?t.text:t.muted};padding:0 13px;height:100%;display:flex;align-items:center;transition:.14s;`;
+    const mode=(a)=>`appearance:none;border:none;cursor:pointer;font:600 13px Inter,sans-serif;padding:7px 15px;border-radius:8px;white-space:nowrap;color:${a?t.primaryText:t.muted};background:${a?t.primary:'transparent'};box-shadow:${a?'0 1px 2px rgba(0,0,0,.14)':'none'};transition:.14s;`;
+    const ah=`background:${t.surface2};`;
+    const sk=(w,h,extra)=>`width:${w};height:${h}px;border-radius:${h>26?10:5}px;background:${t.sk};animation:fe-pulse 1.5s ease-in-out infinite alternate;${extra||''}`;
+
+    const pages={projects:{title:'Проекты',sub:'Ваши финансовые модели и инвестпроекты',action:'＋ Создать проект'},holdings:{title:'Холдинги',sub:'Группы проектов с консолидированной отчётностью',action:'＋ Создать холдинг'},organization:{title:'Организация',sub:'Участники, роли, тариф и оплата',action:''}};
+    const pg=pages[activeMain]||pages.projects;
+    const modeLabels={editor:'Редактор',results:'Результаты',analysis:'Анализ'};
+
+    const s={
+      page:`min-height:100vh;background:${t.pageBg};color:${t.text};display:flex;flex-direction:column;transition:background .25s;`,
+      bar:`display:flex;align-items:flex-end;justify-content:space-between;gap:22px;flex-wrap:wrap;padding:13px 22px;background:${t.barBg};border-bottom:1px solid ${t.barBorder};position:sticky;top:0;z-index:60;`,
+      barDot:`width:26px;height:26px;border-radius:7px;flex:none;background:linear-gradient(150deg,${t.brandMid},${t.brandTo});`,
+      barTitle:`font:700 13px Inter,sans-serif;letter-spacing:-.01em;color:${t.text};white-space:nowrap;`,
+      barSub:`font:500 11px Inter,sans-serif;color:${t.subtle};white-space:nowrap;`,
+      barLabel:`font:600 9.5px Inter,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:${t.subtle};`,
+      seg:segWrap,
+      segProjects:seg(st.section==='projects'),segHoldings:seg(st.section==='holdings'),segOrg:seg(st.section==='organization'),segInProject:seg(st.section==='project'),
+      segMulti:seg(multi),segSingle:seg(!multi),
+      segLight:seg(st.theme==='light'),segDark:seg(st.theme==='dark'),
+      segDesktop:seg(st.device==='desktop'),segTablet:seg(st.device==='tablet'),segMobile:seg(st.device==='mobile'),
+
+      stage:`flex:1;display:flex;justify-content:center;align-items:flex-start;padding:${d.frame<500?'26px 16px':'40px 24px'};`,
+      frame:`position:relative;width:100%;max-width:${d.frame}px;background:${t.bg};border:1px solid ${t.border};border-radius:${d.radius}px;box-shadow:${t.shadow};overflow:hidden;`,
+      statusbar:`display:flex;align-items:center;justify-content:space-between;padding:7px 22px 3px;font:600 12px Inter,sans-serif;color:${t.text};background:${t.headerBg};`,
+      battery:`width:22px;height:11px;border:1.5px solid ${t.text};border-radius:3px;position:relative;opacity:.8;`,
+
+      header:`display:flex;align-items:center;justify-content:space-between;gap:16px;height:${d.headerH}px;padding:0 ${d.pad}px;background:${t.headerBg};border-bottom:1px solid ${t.border};position:relative;z-index:30;`,
+      mark:`width:30px;height:30px;border-radius:8px;flex:none;background:linear-gradient(150deg,${t.brandMid},${t.brandTo});display:flex;align-items:flex-end;justify-content:center;gap:2.5px;padding:7px;`,
+      markB1:`width:3.5px;height:6px;background:#fff;border-radius:1px;opacity:.55;`,markB2:`width:3.5px;height:10px;background:#fff;border-radius:1px;opacity:.8;`,markB3:`width:3.5px;height:15px;background:#fff;border-radius:1px;`,
+      word:`font:600 17px Inter,sans-serif;letter-spacing:-.015em;color:${t.text};white-space:nowrap;`,
+      navProjects:navItem(activeMain==='projects'),navHoldings:navItem(activeMain==='holdings'),navOrg:navItem(activeMain==='organization'),
+      navHover:`color:${t.text};background:${t.surface2};`,
+
+      orgBtn:`display:flex;align-items:center;gap:8px;height:38px;padding:0 8px 0 7px;border-radius:9px;border:1px solid ${t.border};background:${t.surface};cursor:pointer;max-width:280px;transition:.14s;`,
+      orgBtnHover:`background:${t.surface2};border-color:${t.borderStrong};`,
+      orgStatic:`display:flex;align-items:center;gap:8px;height:38px;padding:0 10px 0 7px;`,
+      orgAvatar:`width:24px;height:24px;border-radius:6px;flex:none;background:${t.primary};color:${t.primaryText};font:700 10px Geist;display:flex;align-items:center;justify-content:center;`,
+      orgName:`font:600 13px Inter,sans-serif;color:${t.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`,
+      roleBadge:`font:600 10px Inter,sans-serif;color:${t.primary};background:${t.primaryBg};padding:2px 7px;border-radius:5px;white-space:nowrap;flex:none;`,
+      chev:`color:${t.subtle};font-size:10px;flex:none;`,
+
+      iconBtn:`width:38px;height:38px;border-radius:9px;border:1px solid ${t.border};background:${t.surface};color:${t.muted};cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;transition:.14s;`,
+      iconBtnHover:`background:${t.surface2};border-color:${t.borderStrong};`,
+      burger:`display:flex;flex-direction:column;gap:3.5px;align-items:center;`,
+      burgerLine:`width:16px;height:2px;border-radius:1px;background:${t.text};`,
+
+      userBtn:`display:flex;align-items:center;gap:8px;height:38px;padding:0 ${d.showUserEmail?'10px':'4px'} 0 4px;border-radius:9px;border:1px solid ${d.showUserEmail?t.border:'transparent'};background:${t.surface};cursor:pointer;transition:.14s;`,
+      userAvatar:`width:30px;height:30px;border-radius:8px;flex:none;background:linear-gradient(150deg,#7C5CFF,#5E93FF);color:#fff;font:700 11px Geist;display:flex;align-items:center;justify-content:center;`,
+      userEmail:`font:600 13px Inter,sans-serif;color:${t.text};white-space:nowrap;`,
+
+      menuOrg:`position:absolute;top:46px;right:0;width:290px;background:${t.surface};border:1px solid ${t.border};border-radius:14px;box-shadow:${t.menuShadow};padding:7px;z-index:50;animation:fe-fade .16s ease;`,
+      menuUser:`position:absolute;top:46px;right:0;width:248px;background:${t.surface};border:1px solid ${t.border};border-radius:14px;box-shadow:${t.menuShadow};padding:7px;z-index:50;animation:fe-fade .16s ease;`,
+      menuHead:`font:600 10px Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:${t.subtle};padding:6px 9px 8px;`,
+      orgItem:`display:flex;align-items:center;gap:10px;width:100%;padding:8px 9px;border:none;background:none;border-radius:9px;cursor:pointer;text-align:left;`,
+      orgItemActive:`display:flex;align-items:center;gap:10px;width:100%;padding:8px 9px;border:none;background:${t.primaryBg};border-radius:9px;cursor:pointer;text-align:left;`,
+      itemHover:`background:${t.surface2};`,
+      orgAvatarSm:`width:30px;height:30px;border-radius:7px;flex:none;background:${t.primary};color:${t.primaryText};font:700 11px Geist;display:flex;align-items:center;justify-content:center;`,
+      orgAvatarSm2:`width:30px;height:30px;border-radius:7px;flex:none;background:#5E93FF;color:#fff;font:700 11px Geist;display:flex;align-items:center;justify-content:center;`,
+      orgAvatarSm3:`width:30px;height:30px;border-radius:7px;flex:none;background:#C77DFF;color:#fff;font:700 11px Geist;display:flex;align-items:center;justify-content:center;`,
+      orgItemName:`font:600 13px Inter,sans-serif;color:${t.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`,
+      orgItemRole:`font:500 11.5px Inter,sans-serif;color:${t.subtle};`,
+      check:`color:${t.primary};font-size:13px;font-weight:700;flex:none;`,
+      menuDiv:`height:1px;background:${t.border};margin:6px 4px;`,
+      menuLink:`display:flex;align-items:center;width:100%;padding:9px;border:none;background:none;border-radius:9px;cursor:pointer;text-align:left;font:600 13px Inter,sans-serif;color:${t.text};`,
+      menuLinkDanger:`display:flex;align-items:center;width:100%;padding:9px;border:none;background:none;border-radius:9px;cursor:pointer;text-align:left;font:600 13px Inter,sans-serif;color:${t.danger};`,
+      menuIco:`width:22px;font-size:14px;color:${t.subtle};display:inline-flex;`,
+      dangerHover:`background:${t.dangerBg};`,
+      userHead:`display:flex;align-items:center;gap:11px;padding:9px;`,
+      userAvatarLg:`width:40px;height:40px;border-radius:10px;flex:none;background:linear-gradient(150deg,#7C5CFF,#5E93FF);color:#fff;font:700 14px Geist;display:flex;align-items:center;justify-content:center;`,
+      userName:`font:700 14px Inter,sans-serif;color:${t.text};`,
+      userMail:`font:500 12px Inter,sans-serif;color:${t.subtle};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`,
+
+      subheader:`padding:14px ${d.pad}px 0;background:${t.headerBg};border-bottom:1px solid ${t.border};`,
+      crumbs:`display:flex;align-items:center;gap:8px;flex-wrap:wrap;`,
+      crumbLink:`appearance:none;background:none;border:none;cursor:pointer;font:600 12.5px Inter,sans-serif;color:${t.muted};padding:0;`,
+      crumbSep:`color:${t.subtle};font-size:12px;`,
+      crumbCur:`font:500 12.5px Inter,sans-serif;color:${t.subtle};max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`,
+      crumbActive:`font:600 12.5px Inter,sans-serif;color:${t.primary};`,
+      subRow:`display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:10px 0 14px;`,
+      projTitle:`font:700 ${d.frame<500?20:24}px Inter,sans-serif;letter-spacing:-.02em;color:${t.text};margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:${d.frame<500?'200px':'420px'};`,
+      statusChip:`font:600 11px Inter,sans-serif;color:${t.primary};background:${t.primaryBg};padding:4px 9px;border-radius:6px;white-space:nowrap;flex:none;`,
+      subActions:`display:flex;align-items:center;gap:12px;flex-wrap:wrap;${d.frame<500?'width:100%;':''}`,
+      modeSeg:`display:flex;gap:3px;padding:3px;background:${t.segBg};border-radius:10px;${d.frame<500?'flex:1;':''}`,
+      modeEditor:mode(isProject&&st.mode==='editor'),modeResults:mode(isProject&&st.mode==='results'),modeAnalysis:mode(isProject&&st.mode==='analysis'),
+      primaryBtn:`appearance:none;border:none;cursor:pointer;height:38px;padding:0 16px;border-radius:9px;background:${t.primary};color:${t.primaryText};font:600 13.5px Inter,sans-serif;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.12);transition:.14s;`,
+      primaryBtnHover:`background:${t.primaryHover};`,
+
+      content:`padding:${d.pad}px;`,
+      container:`max-width:1180px;margin:0 auto;`,
+      pageHead:`display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px;`,
+      pageTitle:`font:700 ${d.frame<500?24:30}px Inter,sans-serif;letter-spacing:-.025em;color:${t.text};margin:0;`,
+      pageSub:`font:400 14.5px Inter,sans-serif;color:${t.muted};margin-top:6px;`,
+
+      cardGrid:`display:grid;grid-template-columns:repeat(${d.frame<500?1:(d.frame<900?2:3)},1fr);gap:16px;`,
+      projCard:`text-align:left;display:flex;flex-direction:column;gap:12px;padding:18px;border-radius:14px;border:1px solid ${t.border};background:${t.surface};cursor:pointer;transition:.16s;`,
+      projCardHover:`border-color:${t.primary};box-shadow:0 8px 24px -12px ${t.primary};transform:translateY(-2px);`,
+      projCardStatic:`display:flex;flex-direction:column;gap:12px;padding:18px;border-radius:14px;border:1px solid ${t.border};background:${t.surface};`,
+      cardMetric:`display:flex;gap:24px;padding:12px 0;border-top:1px solid ${t.border};border-bottom:1px solid ${t.border};`,
+      cardFoot:`display:flex;align-items:center;justify-content:space-between;`,
+      openHint:`font:600 12px Inter,sans-serif;color:${t.primary};`,
+      statusChipSm:`font:600 10.5px Inter,sans-serif;color:${t.primary};background:${t.primaryBg};padding:3px 8px;border-radius:5px;`,
+      statusChipDraft:`font:600 10.5px Inter,sans-serif;color:${t.warn};background:${t.warnBg};padding:3px 8px;border-radius:5px;`,
+      slotTag:`margin-top:20px;text-align:center;font:500 12px Inter,sans-serif;color:${t.subtle};border-top:1px dashed ${t.border};padding-top:16px;`,
+
+      statRow:`display:grid;grid-template-columns:repeat(${d.statRow},1fr);gap:14px;margin-bottom:16px;`,
+      statCard:`display:flex;flex-direction:column;gap:11px;padding:16px;border-radius:13px;border:1px solid ${t.border};background:${t.surface};`,
+      skPanel:sk('100%','300'),skPanelSm:sk('100%','180','margin-top:14px;'),
+      editorRail:`width:200px;flex:none;display:flex;flex-direction:column;gap:8px;${d.editorCol?'width:100%;flex-direction:row;overflow:hidden;':''}`,
+      skRailItemA:sk(d.editorCol?'90px':'100%','38','background:'+t.primaryBg+';flex:none;'),
+      skRailItem:sk(d.editorCol?'80px':'100%','38','flex:none;'),
+      skFieldRow:`display:flex;gap:14px;margin-top:14px;`,
+      skField:sk('100%','46'),
+      skToolbar:sk('100%','46','margin-bottom:14px;'),
+      skChart:sk('100%','340'),
+
+      skTitle:sk('60%','15'),skSub:sk('40%','11'),skLineF:sk('100%','11','margin-top:4px;'),skLine70:sk('70%','11'),
+      skMini:sk('44px','9'),skNum:sk('72px','17','margin-top:7px;'),skBig:sk('80%','24'),skTiny:sk('90px','9'),
+
+      overlayAbs:`position:absolute;inset:0;background:rgba(10,8,6,.45);z-index:70;`,
+      overlayFixed:`position:fixed;inset:0;z-index:40;`,
+      drawer:`position:absolute;top:0;right:0;bottom:0;width:300px;max-width:88%;background:${t.surface};border-left:1px solid ${t.border};box-shadow:${t.menuShadow};z-index:80;padding:16px;overflow-y:auto;animation:fe-slide .2s ease;display:flex;flex-direction:column;`,
+      drawerHead:`display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;`,
+      drawerOrg:`display:flex;align-items:center;gap:10px;padding:11px;border-radius:11px;background:${t.surface2};margin-bottom:16px;`,
+      drawerLabel:`font:600 10px Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:${t.subtle};margin:10px 4px 7px;`,
+      drawerItem:`display:flex;align-items:center;width:100%;padding:12px 11px;border:none;background:none;border-radius:10px;cursor:pointer;text-align:left;font:600 14px Inter,sans-serif;color:${t.muted};`,
+      drawerItemActive:`display:flex;align-items:center;width:100%;padding:12px 11px;border:none;background:${t.primaryBg};border-radius:10px;cursor:pointer;text-align:left;font:600 14px Inter,sans-serif;color:${t.primary};`,
+      drawerDot:`width:7px;height:7px;border-radius:50%;background:${t.primary};margin-right:11px;`,
+      drawerDotOff:`width:7px;height:7px;border-radius:50%;background:${t.subtle};margin-right:11px;opacity:.5;`,
+      drawerUser:`display:flex;align-items:center;gap:11px;padding:12px 4px;margin-top:6px;`,
+      drawerExit:`width:100%;padding:11px;border:1px solid ${t.border};background:none;border-radius:10px;cursor:pointer;font:600 13.5px Inter,sans-serif;color:${t.danger};margin-top:6px;`
+    };
+
+    return {s,t,
+      headerH:d.headerH,headerGap:d.frame<900?16:28,rightGap:d.frame<500?8:10,
+      showNav:d.showNav,showWord:d.showWord,showOrgSelector:d.showOrgSel,showUser:d.showUser,showBurger:d.showBurger,
+      showOrgName:d.showOrgName,showOrgRole:d.showOrgRole,showUserEmail:d.showUserEmail,
+      isMulti:multi,isSingle:!multi,isMobile:st.device==='mobile',
+      isDark:st.theme==='dark',isLight:st.theme==='light',themeLabel:st.theme==='dark'?'Тёмная':'Светлая',themeIcon:st.theme==='dark'?'☀':'☾',
+      isProject,modeLabel:modeLabels[st.mode],
+      orgOpen:st.open==='org',userOpen:st.open==='user',mobileOpen:st.open==='mobile',dropOpen:st.open==='org'||st.open==='user',
+      showDashHead:!isProject,pageTitle:pg.title,pageSub:pg.sub,pageAction:pg.action,
+      showProjectsContent:!isProject&&activeMain==='projects',
+      showGenericContent:!isProject&&(activeMain==='holdings'||activeMain==='organization'),
+      showResults:isProject&&st.mode==='results',showEditor:isProject&&st.mode==='editor',showAnalysis:isProject&&st.mode==='analysis',
+      editorWrap:d.editorCol?'flex-direction:column;':'',
+      goProjects:()=>this.setState({section:'projects',open:null}),
+      goHoldings:()=>this.setState({section:'holdings',open:null}),
+      goOrg:()=>this.setState({section:'organization',open:null}),
+      goProject:()=>this.setState({section:'project',open:null}),
+      setEditor:()=>this.setState({mode:'editor'}),setResults:()=>this.setState({mode:'results'}),setAnalysis:()=>this.setState({mode:'analysis'}),
+      setMulti:()=>this.setState({orgMode:'multi'}),setSingle:()=>this.setState({orgMode:'single',open:null}),
+      setLight:()=>this.setState({theme:'light'}),setDark:()=>this.setState({theme:'dark'}),
+      setDesktop:()=>this.setState({device:'desktop',open:null}),setTablet:()=>this.setState({device:'tablet',open:null}),setMobile:()=>this.setState({device:'mobile',open:null}),
+      toggleTheme:()=>this.setState(s=>({theme:s.theme==='light'?'dark':'light'})),
+      toggleOrg:()=>this.setState(s=>({open:s.open==='org'?null:'org'})),
+      toggleUser:()=>this.setState(s=>({open:s.open==='user'?null:'user'})),
+      openMobileMenu:()=>this.setState({open:'mobile'}),
+      closeMenu:()=>this.setState({open:null})
+    };
+  }
+}
+</script>
+</body>
+</html>

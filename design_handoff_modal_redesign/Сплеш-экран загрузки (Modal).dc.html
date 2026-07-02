@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:#050806;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  @keyframes fe-fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes fe-dot{0%,100%{opacity:.35}50%{opacity:1}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}" data-screen-label="00 — Сплеш">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+      <div style="width:26px;height:26px;flex:none;border-radius:8px;overflow:hidden;"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="26px,26px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Сплеш-экран · Загрузка</span>
+        <span style="{{ s.barSub }}">Финанс-Элит · Modal · момент запуска приложения</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Прогресс</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segStart }}" onClick="{{ setStart }}">Старт</button><button style="{{ s.segMid }}" onClick="{{ setMid }}">Середина</button><button style="{{ s.segDone }}" onClick="{{ setDone }}">Почти готово</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.cubeBox }}"><dc-import name="Cube Hero" backdrop="transparent" style="width:100%;height:100%" hint-size="100%,360px"></dc-import></div>
+    <div style="{{ s.wordmark }}">Финанс<span style="opacity:.5;font-weight:500;">-Элит</span></div>
+    <div style="{{ s.label }}"><span style="{{ s.labelDot }}"></span>{{ stageLabel }}</div>
+    <div style="{{ s.progTrack }}"><div style="{{ s.progBar }}"></div></div>
+    <div style="{{ s.pctText }}">{{ stagePct }}%</div>
+  </div>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+
+class Component extends DCLogic {
+  state = { stage: 'mid', device: 'desktop' };
+
+  STAGE_DATA = {
+    start: {pct:8, label:'Загружаем ваше рабочее пространство…'},
+    mid: {pct:55, label:'Синхронизируем финансовые модели…'},
+    done: {pct:100, label:'Готово — открываем рабочую область…'}
+  };
+
+  renderVals(){
+    const st = this.state;
+    const FU = "'Inter',-apple-system,'Segoe UI',sans-serif";
+    const FM = "'JetBrains Mono',ui-monospace,monospace";
+    const d = st.device;
+    const mobile = d==='mobile';
+    const cubeSize = d==='mobile'?220:(d==='tablet'?300:380);
+    const wordFz = d==='mobile'?18:(d==='tablet'?20:22);
+    const labelFz = d==='mobile'?13:14.5;
+    const data = this.STAGE_DATA[st.stage];
+
+    const seg=(active)=>`appearance:none;border:none;cursor:pointer;font:600 12px ${FU};padding:6px 11px;border-radius:7px;white-space:nowrap;color:${active?'#DDFFDC':'#677D64'};background:${active?'#2A312A':'transparent'};box-shadow:${active?'0 1px 2px rgba(0,0,0,.18)':'none'};transition:.14s;`;
+    const segWrap = `display:flex;gap:3px;padding:3px;background:#0B0E0B;border-radius:9px;`;
+
+    const s = {
+      page: `min-height:100vh;background:radial-gradient(ellipse 90% 70% at 50% 30%, #0d1813 0%, #050806 55%, #020302 100%);color:#DDFFDC;display:flex;flex-direction:column;`,
+      bar: `display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;padding:13px 22px;background:#0C0F0C;border-bottom:1px solid #1D231D;position:sticky;top:0;z-index:20;`,
+      barTitle: `font:600 13px ${FU};letter-spacing:-.01em;color:#DDFFDC;white-space:nowrap;`,
+      barSub: `font:500 11px ${FU};color:#677D64;white-space:nowrap;`,
+      barLabel: `font:600 9.5px ${FU};letter-spacing:.08em;text-transform:uppercase;color:#677D64;`,
+      seg: segWrap,
+      segStart: seg(st.stage==='start'), segMid: seg(st.stage==='mid'), segDone: seg(st.stage==='done'),
+      segDesktop: seg(d==='desktop'), segTablet: seg(d==='tablet'), segMobile: seg(d==='mobile'),
+      stage: `flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:${mobile?'40px 20px':'60px 24px'};text-align:center;`,
+      cubeBox: `width:100%;max-width:${cubeSize}px;height:${cubeSize}px;flex:none;`,
+      wordmark: `font:600 ${wordFz}px 'Satoshi','Inter',sans-serif;letter-spacing:-.015em;color:#DDFFDC;margin-top:8px;animation:fe-fade .5s ease .1s both;`,
+      label: `display:flex;align-items:center;gap:8px;font:500 ${labelFz}px ${FU};color:#93A091;margin-top:22px;animation:fe-fade .5s ease .2s both;`,
+      labelDot: `width:6px;height:6px;border-radius:50%;background:#7FEE64;animation:fe-dot 1.4s ease-in-out infinite;flex:none;`,
+      progTrack: `width:100%;max-width:280px;height:4px;border-radius:2px;background:#1D231D;overflow:hidden;margin-top:18px;animation:fe-fade .5s ease .25s both;`,
+      progBar: `height:100%;width:${data.pct}%;background:#7FEE64;border-radius:2px;transition:width .6s ease;box-shadow:0 0 10px rgba(127,238,100,.5);`,
+      pctText: `font:600 12px ${FM};color:#677D64;margin-top:10px;letter-spacing:.02em;animation:fe-fade .5s ease .3s both;`
+    };
+
+    return {
+      s,
+      stageLabel: data.label,
+      stagePct: data.pct,
+      setStart: ()=>this.setState({stage:'start'}),
+      setMid: ()=>this.setState({stage:'mid'}),
+      setDone: ()=>this.setState({stage:'done'}),
+      setDesktop: ()=>this.setState({device:'desktop'}),
+      setTablet: ()=>this.setState({device:'tablet'}),
+      setMobile: ()=>this.setState({device:'mobile'})
+    };
+  }
+}
+
+</script>
+</body>
+</html>

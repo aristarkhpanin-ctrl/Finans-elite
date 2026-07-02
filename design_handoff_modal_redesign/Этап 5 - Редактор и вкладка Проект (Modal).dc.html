@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Inter';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-600-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:700;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-700-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-600-normal.woff2') format('woff2');}
+</style>
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  input,select{font-family:inherit;}
+  input::placeholder{color:inherit;opacity:.42;}
+  select{appearance:none;-webkit-appearance:none;}
+  @keyframes fe-fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  @keyframes fe-pop{0%{transform:scale(.94);opacity:0}100%{transform:scale(1);opacity:1}}
+  @keyframes fe-spin{to{transform:rotate(360deg)}}
+  @keyframes fe-down{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}" data-screen-label="05 — Редактор и Проект">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+      <div style="width:26px;height:26px;flex:none;border-radius:8px;overflow:hidden;"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="26px,26px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Этап&nbsp;5 · Редактор + вкладка «Проект»</span>
+        <span style="{{ s.barSub }}">Финанс-Элит · каркас редактора</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Данные</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segFilled }}" onClick="{{ dFilled }}">Заполнено</button><button style="{{ s.segDefault }}" onClick="{{ dDefault }}">По умолчанию</button><button style="{{ s.segErrors }}" onClick="{{ dErrors }}">С ошибками</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Сохранение</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segSaveOk }}" onClick="{{ simOk }}">Успех</button><button style="{{ s.segSaveErr }}" onClick="{{ simErr }}">Ошибка</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Светлая</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тёмная</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}">
+
+      <!-- SUBHEADER -->
+      <div style="{{ s.subheader }}">
+        <div style="{{ s.subTop }}">
+          <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1;">
+            <button style="{{ s.backBtn }}" style-hover="{{ s.backHover }}" onClick="{{ tryLeave }}">←<sc-if value="{{ showBackText }}" hint-placeholder-val="{{ true }}"><span style="margin-left:6px;">Проекты</span></sc-if></button>
+            <div style="{{ s.nameWrap }}" style-hover="{{ s.nameWrapHover }}">
+              <input style="{{ s.nameInput }}" value="{{ name }}" placeholder="Без названия" onChange="{{ onName }}" onFocus="{{ focusName }}" onBlur="{{ blurName }}">
+              <span style="{{ s.editIco }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h4L19 9l-4-4L4 16v4z" stroke-linejoin="round"/></svg></span>
+            </div>
+          </div>
+          <div style="{{ s.subActions }}">
+            <div style="{{ s.modeSeg }}">
+              <button style="{{ s.modeEditor }}">Редактор</button>
+              <button style="{{ s.modeResults }}" onClick="{{ goResults }}">Результаты</button>
+              <button style="{{ s.modeAnalysis }}" onClick="{{ goAnalysis }}">Анализ</button>
+            </div>
+            <button style="{{ s.calcBtn }}" style-hover="{{ s.calcBtnHover }}">Рассчитать →</button>
+          </div>
+        </div>
+
+        <!-- VALIDATION PANEL -->
+        <div style="{{ s.valPanel }}">
+          <button style="{{ s.valHeader }}" onClick="{{ toggleVal }}">
+            <span style="{{ s.valDot }}"></span>
+            <span style="{{ s.valHeadText }}">{{ valSummary }}</span>
+            <sc-if value="{{ hasErr }}" hint-placeholder-val="{{ false }}"><span style="{{ s.valCountErr }}">{{ errCount }}</span></sc-if>
+            <sc-if value="{{ hasWarn }}" hint-placeholder-val="{{ false }}"><span style="{{ s.valCountWarn }}">{{ warnCount }}</span></sc-if>
+            <span style="flex:1;"></span>
+            <span style="{{ s.valChev }}">{{ valChev }}</span>
+          </button>
+          <sc-if value="{{ valBodyOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.valBody }}">
+            <sc-for list="{{ issues }}" as="it" hint-placeholder-count="2">
+            <div style="{{ it.row }}">
+              <span style="{{ it.icon }}">{{ it.glyph }}</span>
+              <span style="{{ it.textStyle }}">{{ it.text }}</span>
+              <span style="{{ it.tag }}">{{ it.where }}</span>
+            </div>
+            </sc-for>
+          </div>
+          </sc-if>
+        </div>
+      </div>
+
+      <!-- TAB BAR -->
+      <div style="{{ s.tabBarWrap }}">
+        <div style="{{ s.tabBar }}">
+          <sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="7">
+          <button style="{{ tb.style }}" style-hover="{{ tb.hover }}" onClick="{{ tb.click }}">
+            <span>{{ tb.label }}</span>
+            <sc-if value="{{ tb.badge }}" hint-placeholder-val=""><span style="{{ tb.badgeStyle }}">{{ tb.badge }}</span></sc-if>
+          </button>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- CONTENT -->
+      <div style="{{ s.content }}">
+
+        <sc-if value="{{ isProjectTab }}" hint-placeholder-val="{{ true }}">
+        <div style="{{ s.formCol }}">
+          <sc-for list="{{ sections }}" as="sec" hint-placeholder-count="5">
+          <div style="{{ s.sectionCard }}">
+            <div style="{{ s.sectionHead }}">
+              <div style="{{ s.sectionNum }}">{{ sec.num }}</div>
+              <div style="min-width:0;">
+                <div style="{{ s.sectionTitle }}">{{ sec.title }}</div>
+                <sc-if value="{{ sec.desc }}" hint-placeholder-val=""><div style="{{ s.sectionDesc }}">{{ sec.desc }}</div></sc-if>
+              </div>
+            </div>
+            <div style="{{ sec.grid }}">
+              <sc-for list="{{ sec.fields }}" as="f" hint-placeholder-count="4">
+              <div style="{{ f.wrap }}">
+                <div style="{{ s.labelRow }}">
+                  <label style="{{ s.fieldLabel }}">{{ f.label }}</label>
+                  <sc-if value="{{ f.hint }}" hint-placeholder-val="">
+                  <span style="{{ s.hintWrap }}">
+                    <span style="{{ s.hintBadge }}" title="{{ f.hint }}" onMouseEnter="{{ f.hoverOn }}" onMouseLeave="{{ f.hoverOff }}">?</span>
+                    <sc-if value="{{ f.tipOpen }}" hint-placeholder-val="{{ false }}"><span style="{{ s.tooltip }}">{{ f.hint }}</span></sc-if>
+                  </span>
+                  </sc-if>
+                </div>
+                <div style="{{ f.box }}">
+                  <sc-if value="{{ f.isSelect }}" hint-placeholder-val="{{ false }}">
+                    <select style="{{ s.selectEl }}" value="{{ f.value }}" onChange="{{ f.onChange }}">
+                      <sc-for list="{{ f.options }}" as="o" hint-placeholder-count="2"><option value="{{ o.val }}">{{ o.label }}</option></sc-for>
+                    </select>
+                    <span style="{{ s.selChev }}">▾</span>
+                  </sc-if>
+                  <sc-if value="{{ f.isInput }}" hint-placeholder-val="{{ true }}">
+                    <input style="{{ s.inputEl }}" type="{{ f.inputType }}" inputmode="{{ f.inputMode }}" placeholder="{{ f.placeholder }}" value="{{ f.value }}" onChange="{{ f.onChange }}" onFocus="{{ f.onFocus }}" onBlur="{{ f.onBlur }}">
+                    <sc-if value="{{ f.suffix }}" hint-placeholder-val=""><span style="{{ s.suffix }}">{{ f.suffix }}</span></sc-if>
+                  </sc-if>
+                </div>
+                <sc-if value="{{ f.error }}" hint-placeholder-val=""><div style="{{ s.fieldErr }}">{{ f.error }}</div></sc-if>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          </sc-for>
+          <div style="{{ s.bottomPad }}"></div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ isOtherTab }}" hint-placeholder-val="{{ false }}">
+        <div style="{{ s.placeholder }}">
+          <div style="{{ s.phIco }}">{{ phNum }}</div>
+          <div style="{{ s.phTitle }}">Вкладка «{{ phTitle }}»</div>
+          <div style="{{ s.phSub }}">Каркас редактора готов и переиспользуется. Содержимое этой вкладки — {{ phStage }}.</div>
+        </div>
+        </sc-if>
+
+      </div>
+
+      <!-- SAVE BAR -->
+      <div style="{{ s.saveBar }}">
+        <div style="{{ s.saveStatus }}">
+          <sc-if value="{{ saving }}" hint-placeholder-val="{{ false }}"><span style="{{ s.spinnerSm }}"></span><span style="{{ s.saveTextSaving }}">Сохранение…</span></sc-if>
+          <sc-if value="{{ saveErr }}" hint-placeholder-val="{{ false }}"><span style="{{ s.saveErrDot }}">!</span><span style="{{ s.saveTextErr }}">Не удалось сохранить · повторите</span></sc-if>
+          <sc-if value="{{ dirtyIdle }}" hint-placeholder-val="{{ false }}"><span style="{{ s.dirtyDot }}"></span><span style="{{ s.saveTextDirty }}">Несохранённые изменения</span></sc-if>
+          <sc-if value="{{ savedClean }}" hint-placeholder-val="{{ true }}"><span style="{{ s.savedCheck }}">✓</span><span style="{{ s.saveTextSaved }}">Все изменения сохранены</span></sc-if>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <sc-if value="{{ showDiscard }}" hint-placeholder-val="{{ false }}"><button style="{{ s.discardBtn }}" style-hover="{{ s.discardHover }}" onClick="{{ discard }}">Отменить</button></sc-if>
+          <button style="{{ s.saveBtn }}" style-hover="{{ s.saveBtnHover }}" onClick="{{ save }}" disabled="{{ saveDisabled }}">Сохранить</button>
+        </div>
+      </div>
+
+      <!-- LEAVE MODAL -->
+      <sc-if value="{{ leaveOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="{{ s.overlay }}" onClick="{{ cancelLeave }}"></div>
+      <div style="{{ s.modalWrap }}">
+        <div style="{{ s.modal }}">
+          <div style="{{ s.modalIco }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 8v5M12 16.5v.5" stroke-linecap="round"/><path d="M10.3 3.9L2.6 17.5A2 2 0 004.3 20.5h15.4a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" stroke-linejoin="round"/></svg></div>
+          <div style="{{ s.modalTitle }}">Несохранённые изменения</div>
+          <div style="{{ s.modalSub }}">В модели есть изменения, которые ещё не сохранены. Сохранить их перед переходом в «{{ leaveLabel }}»?</div>
+          <div style="{{ s.modalActions }}">
+            <button style="{{ s.btnPrimary }}" style-hover="{{ s.btnPrimaryHover }}" onClick="{{ saveAndLeave }}">Сохранить и выйти</button>
+            <button style="{{ s.btnGhost }}" style-hover="{{ s.btnGhostHover }}" onClick="{{ leaveNoSave }}">Выйти без сохранения</button>
+            <button style="{{ s.btnText }}" onClick="{{ cancelLeave }}">Отмена</button>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  filled(){return{name:'Завод полимерной упаковки',startDate:'2026-01-01',duration:'24',rate:'18',growthG:'3',profitMult:'5',liqReturn:'0,5',taxProfit:'20',taxBenefit:'0',insurance:'30',taxProperty:'2,2',taxSales:'0',vat:'20',vatMethod:'ship',stockMethod:'avg',prodCycle:'1',inflSales:'6',inflDirect:'5',inflWage:'7',inflGeneral:'5'};}
+  defaults(){return{name:'',startDate:'',duration:'12',rate:'15',growthG:'0',profitMult:'0',liqReturn:'0',taxProfit:'20',taxBenefit:'0',insurance:'30',taxProperty:'2,2',taxSales:'0',vat:'20',vatMethod:'ship',stockMethod:'avg',prodCycle:'0',inflSales:'0',inflDirect:'0',inflWage:'0',inflGeneral:'0'};}
+  errored(){return{...this.filled(),liqReturn:'1,4',taxBenefit:'1,2',growthG:'22'};}
+
+  state = {
+    theme:'light', device:'desktop', tab:'project',
+    vals:this.filled(),
+    dirty:false, saveState:'saved', sim:'ok',
+    valOpen:true, focusField:null, hoverHint:null, leaveTo:null, demo:'filled', crossErr:false
+  };
+
+  THEME(){
+    const light={pageBg:'#F3F2F0',bg:'#FAFAF9',surface:'#FFFFFF',surface2:'#F5F5F4',border:'#E7E5E4',borderStrong:'#D6D3D1',text:'#1C1917',muted:'#57534E',subtle:'#A8A29E',primary:'#0E9C6E',primaryHover:'#0B8560',primaryText:'#FFFFFF',primaryBg:'#E2F4EC',danger:'#C13A30',dangerBg:'#FBE9E7',dangerBorder:'#F2C8C2',dangerText:'#A8322A',warn:'#B86E00',warnBg:'#FAEFD9',warnBorder:'#F0DDB5',warnText:'#8A5300',ring:'rgba(14,156,110,.20)',shadow:'0 18px 48px -20px rgba(28,25,23,.28), 0 2px 6px rgba(28,25,23,.05)',menuShadow:'0 24px 56px -16px rgba(28,25,23,.34)',barBg:'#FFFFFF',barBorder:'#E7E5E4',segBg:'#F0EEEC',segActiveBg:'#FFFFFF',headerBg:'#FFFFFF',saveBg:'#FFFFFF',brandMid:'#0C7250',brandTo:'#0E9C6E',cs:'light'};
+    const dark={pageBg:'#141210',bg:'#1A1816',surface:'#232020',surface2:'#2C2825',border:'#39332F',borderStrong:'#4A433E',text:'#F6F4F2',muted:'#B7B0A9',subtle:'#7E756D',primary:'#12B07D',primaryHover:'#19C28B',primaryText:'#06241A',primaryBg:'rgba(18,176,125,.16)',danger:'#F0796E',dangerBg:'rgba(210,69,59,.16)',dangerBorder:'rgba(240,121,110,.32)',dangerText:'#F4B0A8',warn:'#E0A23A',warnBg:'rgba(224,162,58,.16)',warnBorder:'rgba(224,162,58,.3)',warnText:'#E8C07A',ring:'rgba(25,194,139,.34)',shadow:'0 28px 64px -24px rgba(0,0,0,.72)',menuShadow:'0 28px 64px -20px rgba(0,0,0,.8)',barBg:'#1E1B19',barBorder:'#39332F',segBg:'#16140F',segActiveBg:'#2C2825',headerBg:'#1E1B19',saveBg:'#1E1B19',brandMid:'#0A5A40',brandTo:'#0E7A57',cs:'dark'};
+    return this.state.theme==='dark'?{...dark,pageBg:'#000000',bg:'#0C0F0C',surface:'#212525',surface2:'#2A312A',sk:'#2A312A',cellBg:'#161A16',border:'#485346',borderStrong:'#677D64',gridLine:'#232823',text:'#DDFFDC',muted:'#93A091',subtle:'#677D64',primary:'#7FEE64',primaryHover:'#95F47D',primaryText:'#000000',accent:'#7FEE64',primaryBg:'rgba(127,238,100,.15)',primarySoft:'rgba(127,238,100,.09)',good:'#7FEE64',goodBg:'rgba(127,238,100,.15)',goodBorder:'rgba(127,238,100,.32)',danger:'#F0796E',dangerHover:'#F4988F',dangerBg:'rgba(240,121,110,.15)',dangerBorder:'rgba(240,121,110,.32)',dangerText:'#F4B0A8',warn:'#E0A23A',warnBg:'rgba(224,162,58,.16)',warnBorder:'rgba(224,162,58,.32)',info:'#AED2A4',infoBg:'rgba(174,210,164,.15)',ring:'rgba(127,238,100,.4)',shadow:'0 30px 70px -34px rgba(0,0,0,.9)',menuShadow:'0 22px 52px -16px rgba(0,0,0,.82)',barBg:'#0C0F0C',barBorder:'#1D231D',segBg:'#0B0E0B',segActiveBg:'#2A312A',headerBg:'#0C0F0C',stickyBg:'#212525',brandMid:'#3E4A3C',brandTo:'#7FEE64',violet:'#C8F9B6',violetBg:'rgba(200,249,182,.14)',subtotalBg:'#1C201C',grandBg:'rgba(127,238,100,.12)',hov:'#262C25',hovlab:'#2C322B',ico1:'#7FEE64',ico1Bg:'rgba(127,238,100,.15)',ico2:'#AED2A4',ico2Bg:'rgba(174,210,164,.15)',ico3:'#C8F9B6',ico3Bg:'rgba(200,249,182,.14)',ico4:'#E0A23A',ico4Bg:'rgba(224,162,58,.16)',inputBg:'#161A16',success:'#7FEE64',successBg:'rgba(127,238,100,.16)'}:{...light,pageBg:'#E4F1E0',bg:'#F4FAF2',surface:'#FFFFFF',surface2:'#EDF5EA',sk:'#E3EEDF',cellBg:'#FFFFFF',border:'#D2E4CD',borderStrong:'#B4CCAE',gridLine:'#E8F1E5',text:'#16201A',muted:'#46584A',subtle:'#6E8270',primary:'#7FEE64',primaryHover:'#6FE253',primaryText:'#06210E',accent:'#138A45',primaryBg:'#DBF3D2',primarySoft:'#EAF8E4',good:'#0E7A4F',goodBg:'#DBF1E2',goodBorder:'#B7DEC6',danger:'#C0473B',dangerHover:'#A53A30',dangerBg:'#FAE7E4',dangerBorder:'#EECFCA',dangerText:'#8F2F26',warn:'#B07A12',warnBg:'#FBF0D8',warnBorder:'#ECDDB4',info:'#3E7D52',infoBg:'#E6EFE2',ring:'rgba(56,194,75,.3)',shadow:'0 18px 44px -22px rgba(20,40,24,.22), 0 2px 6px rgba(20,40,24,.05)',menuShadow:'0 24px 56px -16px rgba(20,40,24,.28)',barBg:'#FFFFFF',barBorder:'#D2E4CD',segBg:'#E7F0E3',segActiveBg:'#FFFFFF',headerBg:'#FFFFFF',stickyBg:'#FFFFFF',brandMid:'#138A45',brandTo:'#7FEE64',violet:'#3E7D52',violetBg:'#E6EFE2',subtotalBg:'#EDF3EA',grandBg:'#DBF1E2',hov:'#F1F7EE',hovlab:'#EAF2E6',ico1:'#138A45',ico1Bg:'#DBF3D2',ico2:'#3E7D52',ico2Bg:'#E6EFE2',ico3:'#5FA86A',ico3Bg:'#E3F0DE',ico4:'#B07A12',ico4Bg:'#FBF0D8',inputBg:'#FFFFFF',success:'#0E7A4F',successBg:'#DBF1E2'};
+  }
+  DIM(){const d=this.state.device;
+    if(d==='mobile')return{frame:402,radius:30,pad:16,cols:1,backText:false};
+    if(d==='tablet')return{frame:864,radius:18,pad:22,cols:2,backText:true};
+    return{frame:1180,radius:14,pad:30,cols:3,backText:true};
+  }
+
+  num(v){ if(v==null) return NaN; return parseFloat(String(v).replace(',','.').replace(/\s/g,'')); }
+
+  set(key){ return (e)=> this.setState(s=>({ vals:{...s.vals,[key]:e.target.value}, dirty:true, saveState:'idle' })); }
+
+  computeIssues(){
+    const v=this.state.vals, out=[];
+    const liq=this.num(v.liqReturn); if(!isNaN(liq)&&(liq<0||liq>1)) out.push({type:'error',text:'Доля возврата при ликвидации должна быть в диапазоне 0–1',where:'Проект'});
+    const ben=this.num(v.taxBenefit); if(!isNaN(ben)&&(ben<0||ben>1)) out.push({type:'error',text:'Льгота по прибыли (доля) должна быть в диапазоне 0–1',where:'Проект'});
+    const dur=this.num(v.duration); if(isNaN(dur)||dur<1) out.push({type:'error',text:'Длительность проекта должна быть не меньше 1 месяца',where:'Проект'});
+    const g=this.num(v.growthG), r=this.num(v.rate); if(!isNaN(g)&&!isNaN(r)&&g>=r) out.push({type:'warn',text:'Темп роста g ≥ ставки дисконтирования — оценка по Гордону не посчитается',where:'Проект'});
+    if(this.state.crossErr) out.push({type:'error',text:'Стартовый баланс не сходится: актив 1 240 000 ₽ ≠ пассив 1 180 000 ₽',where:'Валюта и старт'});
+    return out;
+  }
+  fieldErrors(){
+    const v=this.state.vals, e={};
+    const liq=this.num(v.liqReturn); if(!isNaN(liq)&&(liq<0||liq>1)) e.liqReturn='Значение должно быть от 0 до 1';
+    const ben=this.num(v.taxBenefit); if(!isNaN(ben)&&(ben<0||ben>1)) e.taxBenefit='Значение должно быть от 0 до 1';
+    const dur=this.num(v.duration); if(isNaN(dur)||dur<1) e.duration='Минимум 1 месяц';
+    return e;
+  }
+
+  save=()=>{ if(!this.state.dirty&&this.state.saveState!=='error')return; this.setState({saveState:'saving'}); clearTimeout(this._t);
+    this._t=setTimeout(()=>{ if(this.state.sim==='err') this.setState({saveState:'error'}); else this.setState({saveState:'saved',dirty:false}); },950); };
+  discard=()=>{ this.setState(s=>({vals: s.demo==='default'?this.defaults():(s.demo==='errors'?this.errored():this.filled()), dirty:false, saveState:'saved'})); };
+  tryLeave=()=>{ if(this.state.dirty) this.setState({leaveTo:'Проекты'}); };
+  goResults=()=>{ this.state.dirty?this.setState({leaveTo:'Результаты'}):null; };
+  goAnalysis=()=>{ this.state.dirty?this.setState({leaveTo:'Анализ'}):null; };
+  componentWillUnmount(){clearTimeout(this._t);}
+
+  loadDemo(which){ const v=which==='default'?this.defaults():(which==='errors'?this.errored():this.filled());
+    this.setState({demo:which, vals:v, dirty:false, saveState:'saved', crossErr:which==='errors', valOpen:true}); }
+
+  renderVals(){
+    const st=this.state, t=this.THEME(), d=this.DIM(), v=st.vals;
+    const seg=(a)=>`appearance:none;border:none;cursor:pointer;font:600 12px Inter,sans-serif;padding:6px 11px;border-radius:7px;white-space:nowrap;color:${a?t.text:t.subtle};background:${a?t.segActiveBg:'transparent'};box-shadow:${a?'0 1px 2px rgba(0,0,0,.14)':'none'};transition:.14s;`;
+    const segWrap=`display:flex;gap:3px;padding:3px;background:${t.segBg};border-radius:9px;`;
+    const mode=(a)=>`appearance:none;border:none;cursor:pointer;font:600 12.5px Inter,sans-serif;padding:7px 14px;border-radius:8px;white-space:nowrap;color:${a?t.primaryText:t.muted};background:${a?t.primary:'transparent'};box-shadow:${a?'0 1px 2px rgba(0,0,0,.14)':'none'};transition:.14s;`;
+    const issues=this.computeIssues();
+    const ferr=this.fieldErrors();
+    const errCount=issues.filter(i=>i.type==='error').length, warnCount=issues.filter(i=>i.type==='warn').length;
+    const clean=issues.length===0;
+    const ff=st.focusField;
+
+    const mkField=(key,label,o={})=>{
+      o=o||{};
+      const isSel=!!o.options;
+      const err=ferr[key]||'';
+      const focused=ff===key;
+      const box=`display:flex;align-items:center;height:42px;border-radius:8px;background:${t.surface};border:1.5px solid ${err?t.danger:(focused?t.primary:t.border)};box-shadow:${focused?'0 0 0 3px '+t.ring:'none'};transition:border-color .14s, box-shadow .14s;overflow:hidden;${isSel?'position:relative;':''}`;
+      return {key,label,hint:o.hint||'',full:!!o.full,
+        wrap:`display:flex;flex-direction:column;gap:7px;${o.full?'grid-column:1 / -1;':''}`,
+        box, isSelect:isSel, isInput:!isSel,
+        inputType:o.date?'date':'text', inputMode:o.date?'none':(o.text?'text':'decimal'),
+        placeholder:o.placeholder||(o.text?'':'0'),
+        suffix:o.suffix||'', value:v[key], options:o.options||[],
+        error:err,
+        onChange:this.set(key),
+        onFocus:()=>this.setState({focusField:key}),
+        onBlur:()=>this.setState({focusField:null}),
+        hoverOn:()=>this.setState({hoverHint:key}), hoverOff:()=>this.setState({hoverHint:null}),
+        tipOpen:st.hoverHint===key };
+    };
+
+    const gridCols=`display:grid;grid-template-columns:repeat(${d.cols},1fr);gap:14px 16px;`;
+    const sections=[
+      {num:'1',title:'Проект',desc:'Базовые параметры расчётного горизонта',grid:gridCols,fields:[
+        mkField('name','Название проекта',{text:true,full:true,placeholder:'Напр. «Завод полимерной упаковки»'}),
+        mkField('startDate','Дата старта',{date:true}),
+        mkField('duration','Длительность',{suffix:'мес.'})
+      ]},
+      {num:'2',title:'Дисконтирование и оценка',desc:'Параметры NPV и оценки стоимости бизнеса',grid:gridCols,fields:[
+        mkField('rate','Ставка дисконтирования',{suffix:'% / год'}),
+        mkField('growthG','Темп роста для оценки, g',{suffix:'%',hint:'Должен быть меньше ставки дисконтирования — иначе модель Гордона не считается'}),
+        mkField('profitMult','Мультипликатор прибыли',{suffix:'×',hint:'0 — оценка по мультипликатору выключена'}),
+        mkField('liqReturn','Доля возврата при ликвидации',{suffix:'доля',hint:'От 0 до 1: какая часть активов возвращается при ликвидации'})
+      ]},
+      {num:'3',title:'Налоги',desc:'Ставки и льготы налогообложения',grid:gridCols,fields:[
+        mkField('taxProfit','Налог на прибыль',{suffix:'%'}),
+        mkField('taxBenefit','Льгота по прибыли',{suffix:'доля',hint:'Доля прибыли 0–1, освобождённая от налога'}),
+        mkField('insurance','Страховые взносы с ФОТ',{suffix:'%'}),
+        mkField('taxProperty','Налог на имущество',{suffix:'% / год'}),
+        mkField('taxSales','Налог с продаж',{suffix:'%'})
+      ]},
+      {num:'4',title:'НДС и запасы',desc:'Учётная политика по НДС и складу',grid:gridCols,fields:[
+        mkField('vat','НДС',{suffix:'%'}),
+        mkField('vatMethod','Признание НДС',{options:[{val:'ship',label:'По отгрузке'},{val:'pay',label:'По оплате'}]}),
+        mkField('stockMethod','Оценка запасов ГП',{options:[{val:'avg',label:'Средняя'},{val:'fifo',label:'ФИФО'}]}),
+        mkField('prodCycle','Производственный цикл',{suffix:'мес.',hint:'Задержка между запуском и выпуском → формирует НЗП'})
+      ]},
+      {num:'5',title:'Инфляция (год)',desc:'Годовые темпы роста по группам',grid:gridCols,fields:[
+        mkField('inflSales','Цены сбыта',{suffix:'%'}),
+        mkField('inflDirect','Прямые издержки',{suffix:'%'}),
+        mkField('inflWage','Зарплата',{suffix:'%'}),
+        mkField('inflGeneral','Общие издержки',{suffix:'%'})
+      ]}
+    ];
+
+    const counters = st.demo==='default'?{}:{sales:2,costs:3,invest:1,finance:1};
+    const tabDefs=[['project','Проект'],['sales','Сбыт','sales'],['costs','Издержки','costs'],['invest','Инвестиции','invest'],['finance','Финансирование','finance'],['currency','Валюта и старт'],['fact','Факт.']];
+    const tabs=tabDefs.map(([key,label,ckey])=>{
+      const active=st.tab===key; const badge=ckey&&counters[ckey]?String(counters[ckey]):'';
+      return {key,label,badge,
+        style:`appearance:none;border:none;background:none;cursor:pointer;display:inline-flex;align-items:center;gap:7px;font:600 13.5px Inter,sans-serif;color:${active?t.text:t.muted};padding:0 3px;height:46px;border-bottom:2px solid ${active?t.primary:'transparent'};white-space:nowrap;transition:.14s;`,
+        hover:`color:${t.text};`,
+        badgeStyle:`font:600 10.5px 'JetBrains Mono',monospace;color:${active?t.primary:t.subtle};background:${active?t.primaryBg:t.surface2};padding:1px 6px;border-radius:20px;min-width:18px;text-align:center;`,
+        click:()=>this.setState({tab:key})};
+    });
+
+    const phMap={sales:['Сбыт','Этап 6','06'],costs:['Издержки','Этап 7','07'],invest:['Инвестиции','Этап 8','08'],finance:['Финансирование','Этап 9','09'],currency:['Валюта и старт','Этап 10','10'],fact:['Факт','Этап 11','11']};
+    const ph=phMap[st.tab]||['','',''];
+
+    const saving=st.saveState==='saving', saveErr=st.saveState==='error';
+    const dirtyIdle=st.dirty&&!saving&&!saveErr, savedClean=!st.dirty&&!saving&&!saveErr;
+
+    const s={
+      page:`min-height:100vh;background:${t.pageBg};color:${t.text};display:flex;flex-direction:column;transition:background .25s;`,
+      bar:`display:flex;align-items:flex-end;justify-content:space-between;gap:22px;flex-wrap:wrap;padding:13px 22px;background:${t.barBg};border-bottom:1px solid ${t.barBorder};position:sticky;top:0;z-index:60;`,
+      barDot:`width:26px;height:26px;border-radius:7px;flex:none;background:linear-gradient(150deg,${t.brandMid},${t.brandTo});`,
+      barTitle:`font:700 13px Inter,sans-serif;letter-spacing:-.01em;color:${t.text};white-space:nowrap;`,
+      barSub:`font:500 11px Inter,sans-serif;color:${t.subtle};white-space:nowrap;`,
+      barLabel:`font:600 9.5px Inter,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:${t.subtle};`,
+      seg:segWrap,
+      segFilled:seg(st.demo==='filled'),segDefault:seg(st.demo==='default'),segErrors:seg(st.demo==='errors'),
+      segSaveOk:seg(st.sim==='ok'),segSaveErr:seg(st.sim==='err'),
+      segLight:seg(st.theme==='light'),segDark:seg(st.theme==='dark'),
+      segDesktop:seg(st.device==='desktop'),segTablet:seg(st.device==='tablet'),segMobile:seg(st.device==='mobile'),
+
+      stage:`flex:1;display:flex;justify-content:center;align-items:flex-start;padding:${d.frame<500?'24px 14px':'36px 24px'};`,
+      frame:`position:relative;width:100%;max-width:${d.frame}px;background:${t.bg};border:1px solid ${t.border};border-radius:${d.radius}px;box-shadow:${t.shadow};overflow:hidden;display:flex;flex-direction:column;`,
+
+      subheader:`padding:14px ${d.pad}px 0;background:${t.headerBg};border-bottom:1px solid ${t.border};`,
+      subTop:`display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;`,
+      backBtn:`appearance:none;cursor:pointer;display:inline-flex;align-items:center;height:36px;padding:0 ${d.backText?'12px':'0'};${d.backText?'':'width:36px;justify-content:center;'}border-radius:8px;border:1px solid ${t.border};background:${t.surface};color:${t.muted};font:600 13px Inter,sans-serif;flex:none;transition:.14s;`,
+      backHover:`background:${t.surface2};border-color:${t.borderStrong};color:${t.text};`,
+      nameWrap:`display:flex;align-items:center;gap:6px;min-width:0;flex:1;max-width:440px;border-radius:9px;border:1px solid transparent;padding:0 4px;transition:.14s;`,
+      nameWrapHover:`border-color:${t.border};background:${t.surface};`,
+      nameInput:`flex:1;min-width:0;height:38px;border:none;outline:none;background:transparent;color:${t.text};font:700 ${d.frame<500?18:22}px Inter,sans-serif;letter-spacing:-.02em;padding:0 4px;`,
+      editIco:`color:${t.subtle};flex:none;display:flex;padding-right:4px;`,
+      subActions:`display:flex;align-items:center;gap:10px;flex-wrap:wrap;${d.frame<500?'width:100%;':''}`,
+      modeSeg:`display:flex;gap:3px;padding:3px;background:${t.segBg};border-radius:9px;${d.frame<500?'flex:1;':''}`,
+      modeEditor:mode(true),modeResults:mode(false),modeAnalysis:mode(false),
+      calcBtn:`appearance:none;border:none;cursor:pointer;height:40px;padding:0 18px;border-radius:4px;background:${t.primary};color:${t.primaryText};font:600 13.5px Inter,sans-serif;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.12);transition:.14s;`,
+      calcBtnHover:`background:${t.primaryHover};`,
+
+      valPanel:`margin:14px 0;border-radius:12px;border:1px solid ${clean?t.border:(errCount?t.dangerBorder:t.warnBorder)};background:${clean?t.surface:(errCount?t.dangerBg:t.warnBg)};overflow:hidden;`,
+      valHeader:`display:flex;align-items:center;gap:9px;width:100%;padding:11px 14px;border:none;background:none;cursor:pointer;text-align:left;`,
+      valDot:`width:8px;height:8px;border-radius:50%;flex:none;background:${clean?t.primary:(errCount?t.danger:t.warn)};`,
+      valHeadText:`font:600 13px Inter,sans-serif;color:${clean?t.text:(errCount?t.dangerText:t.warnText)};`,
+      valCountErr:`font:600 11px Inter,sans-serif;color:#fff;background:${t.danger};padding:1px 7px;border-radius:10px;`,
+      valCountWarn:`font:600 11px Inter,sans-serif;color:#fff;background:${t.warn};padding:1px 7px;border-radius:10px;`,
+      valChev:`color:${clean?t.subtle:(errCount?t.dangerText:t.warnText)};font-size:11px;`,
+      valBody:`padding:2px 12px 11px;display:flex;flex-direction:column;gap:7px;animation:fe-down .18s ease;`,
+
+      tabBarWrap:`background:${t.headerBg};border-bottom:1px solid ${t.border};padding:0 ${d.pad}px;`,
+      tabBar:`display:flex;align-items:center;gap:${d.frame<500?14:22};overflow-x:auto;`,
+
+      content:`flex:1;padding:${d.pad}px;`,
+      formCol:`max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:16px;`,
+      sectionCard:`background:${t.surface};border:1px solid ${t.border};border-radius:15px;padding:${d.frame<500?16:22}px;`,
+      sectionHead:`display:flex;align-items:flex-start;gap:11px;margin-bottom:18px;`,
+      sectionNum:`flex:none;width:25px;height:25px;border-radius:7px;background:${t.primaryBg};color:${t.primary};font:700 12px 'JetBrains Mono',monospace;display:flex;align-items:center;justify-content:center;`,
+      sectionTitle:`font:700 16px Inter,sans-serif;letter-spacing:-.01em;color:${t.text};`,
+      sectionDesc:`font:400 12.5px Inter,sans-serif;color:${t.subtle};margin-top:2px;`,
+      labelRow:`display:flex;align-items:center;gap:6px;`,
+      fieldLabel:`font:600 12.5px Inter,sans-serif;color:${t.muted};`,
+      hintWrap:`position:relative;display:inline-flex;`,
+      hintBadge:`width:15px;height:15px;border-radius:50%;border:1px solid ${t.borderStrong};color:${t.subtle};font:700 9.5px Geist;display:flex;align-items:center;justify-content:center;cursor:help;`,
+      tooltip:`position:absolute;bottom:22px;left:50%;transform:translateX(-50%);width:200px;padding:8px 10px;border-radius:8px;background:${t.text};color:${t.bg};font:500 11.5px/1.4 Inter,sans-serif;box-shadow:${t.menuShadow};z-index:40;text-align:left;`,
+      inputEl:`flex:1;min-width:0;height:100%;border:none;outline:none;background:transparent;color:${t.text};font:500 14px 'JetBrains Mono',monospace;padding:0 12px;color-scheme:${t.cs};`,
+      suffix:`flex:none;padding:0 12px;height:100%;display:flex;align-items:center;font:500 12px Inter,sans-serif;color:${t.subtle};border-left:1px solid ${t.border};background:${t.surface2};white-space:nowrap;`,
+      selectEl:`flex:1;min-width:0;height:100%;border:none;outline:none;background:transparent;color:${t.text};font:500 14px Inter,sans-serif;padding:0 32px 0 12px;cursor:pointer;`,
+      selChev:`position:absolute;right:12px;top:50%;transform:translateY(-50%);color:${t.subtle};font-size:11px;pointer-events:none;`,
+      fieldErr:`font:500 11.5px Inter,sans-serif;color:${t.danger};`,
+      bottomPad:`height:8px;`,
+
+      placeholder:`max-width:520px;margin:60px auto;text-align:center;display:flex;flex-direction:column;align-items:center;`,
+      phIco:`width:54px;height:54px;border-radius:14px;background:${t.surface2};border:1px solid ${t.border};color:${t.subtle};font:700 16px 'JetBrains Mono',monospace;display:flex;align-items:center;justify-content:center;margin-bottom:16px;`,
+      phTitle:`font:700 19px 'Satoshi',Inter,sans-serif;color:${t.text};`,
+      phSub:`font:400 14px/1.55 Inter,sans-serif;color:${t.muted};margin-top:8px;`,
+
+      saveBar:`position:sticky;bottom:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px ${d.pad}px;background:${t.saveBg};border-top:1px solid ${t.border};box-shadow:0 -8px 24px -16px rgba(0,0,0,.28);`,
+      saveStatus:`display:flex;align-items:center;gap:9px;min-width:0;`,
+      spinnerSm:`width:15px;height:15px;border-radius:50%;border:2px solid ${t.subtle};border-top-color:transparent;animation:fe-spin .7s linear infinite;flex:none;`,
+      saveTextSaving:`font:600 13px Inter,sans-serif;color:${t.muted};`,
+      saveErrDot:`flex:none;width:18px;height:18px;border-radius:50%;background:${t.danger};color:#fff;font:700 12px Geist;display:flex;align-items:center;justify-content:center;`,
+      saveTextErr:`font:600 13px Inter,sans-serif;color:${t.danger};`,
+      dirtyDot:`width:8px;height:8px;border-radius:50%;background:${t.warn};flex:none;`,
+      saveTextDirty:`font:600 13px Inter,sans-serif;color:${t.warnText};`,
+      savedCheck:`flex:none;width:18px;height:18px;border-radius:50%;background:${t.primaryBg};color:${t.primary};font:700 11px Geist;display:flex;align-items:center;justify-content:center;`,
+      saveTextSaved:`font:500 13px Inter,sans-serif;color:${t.subtle};`,
+      discardBtn:`appearance:none;cursor:pointer;height:38px;padding:0 14px;border-radius:9px;border:1px solid ${t.border};background:${t.surface};color:${t.muted};font:600 13px Inter,sans-serif;transition:.14s;`,
+      discardHover:`background:${t.surface2};color:${t.text};`,
+      saveBtn:`appearance:none;border:none;cursor:${(savedClean)?'default':'pointer'};height:38px;padding:0 20px;border-radius:4px;background:${savedClean?t.surface2:t.primary};color:${savedClean?t.subtle:t.primaryText};font:600 13.5px Inter,sans-serif;box-shadow:${savedClean?'none':'0 1px 2px rgba(0,0,0,.12)'};transition:.14s;`,
+      saveBtnHover:`background:${savedClean?t.surface2:t.primaryHover};`,
+
+      overlay:`position:absolute;inset:0;background:rgba(10,8,6,.5);z-index:90;animation:fe-fade .15s;`,
+      modalWrap:`position:absolute;inset:0;z-index:91;display:flex;align-items:center;justify-content:center;padding:24px;`,
+      modal:`width:100%;max-width:420px;background:${t.surface};border:1px solid ${t.border};border-radius:18px;box-shadow:${t.menuShadow};padding:26px;text-align:center;animation:fe-pop .2s ease;`,
+      modalIco:`width:52px;height:52px;border-radius:14px;background:${t.warnBg};color:${t.warn};display:flex;align-items:center;justify-content:center;margin:0 auto 16px;`,
+      modalTitle:`font:700 20px Inter,sans-serif;letter-spacing:-.01em;color:${t.text};`,
+      modalSub:`font:400 14px/1.55 Inter,sans-serif;color:${t.muted};margin:9px 0 22px;`,
+      modalActions:`display:flex;flex-direction:column;gap:9px;`,
+      btnPrimary:`appearance:none;border:none;cursor:pointer;height:44px;border-radius:4px;background:${t.primary};color:${t.primaryText};font:600 14px Inter,sans-serif;transition:.14s;`,
+      btnPrimaryHover:`background:${t.primaryHover};`,
+      btnGhost:`appearance:none;cursor:pointer;height:44px;border-radius:4px;border:1px solid ${t.borderStrong};background:${t.surface};color:${t.text};font:600 14px Inter,sans-serif;transition:.14s;`,
+      btnGhostHover:`background:${t.surface2};`,
+      btnText:`appearance:none;border:none;background:none;cursor:pointer;height:38px;color:${t.subtle};font:600 13.5px Inter,sans-serif;`
+    };
+
+    return {s,t,
+      showBackText:d.backText,
+      name:v.name, onName:this.set('name'),
+      focusName:()=>this.setState({focusField:'name'}), blurName:()=>this.setState({focusField:null}),
+      sections, tabs, issues:issues.map((it)=>({...it,
+        row:`display:flex;align-items:center;gap:10px;`,
+        icon:`flex:none;width:18px;height:18px;border-radius:5px;display:flex;align-items:center;justify-content:center;font:700 11px Geist;color:#fff;background:${it.type==='error'?t.danger:t.warn};`,
+        glyph:it.type==='error'?'!':'△',
+        textStyle:`flex:1;font:500 12.5px/1.4 Inter,sans-serif;color:${it.type==='error'?t.dangerText:t.warnText};`,
+        tag:`flex:none;font:600 10px Inter,sans-serif;color:${t.subtle};background:${t.surface};border:1px solid ${t.border};padding:2px 7px;border-radius:6px;`,
+        where:it.where})),
+      hasErr:errCount>0, hasWarn:warnCount>0, errCount:String(errCount), warnCount:String(warnCount),
+      valSummary: clean?'Замечаний нет — модель готова к расчёту':(errCount?(errCount+' '+this.plural(errCount,'ошибка','ошибки','ошибок')+(warnCount?', '+warnCount+' предупр.':'')):(warnCount+' '+this.plural(warnCount,'предупреждение','предупреждения','предупреждений'))),
+      valBodyOpen: st.valOpen && !clean, valChev: st.valOpen?'▲':'▼',
+      isProjectTab:st.tab==='project', isOtherTab:st.tab!=='project',
+      phTitle:ph[0], phStage:ph[1], phNum:ph[2],
+      saving, saveErr, dirtyIdle, savedClean, saveDisabled:savedClean,
+      showDiscard:st.dirty||saveErr,
+      leaveOpen:!!st.leaveTo, leaveLabel:st.leaveTo||'', 
+      toggleVal:()=>this.setState(s=>({valOpen:!s.valOpen})),
+      goResults:this.goResults, goAnalysis:this.goAnalysis, tryLeave:this.tryLeave,
+      save:this.save, discard:this.discard,
+      cancelLeave:()=>this.setState({leaveTo:null}),
+      leaveNoSave:()=>this.setState({leaveTo:null,dirty:false,saveState:'saved'}),
+      saveAndLeave:()=>{this.setState({leaveTo:null});this.save();},
+      dFilled:()=>this.loadDemo('filled'), dDefault:()=>this.loadDemo('default'), dErrors:()=>this.loadDemo('errors'),
+      simOk:()=>this.setState({sim:'ok'}), simErr:()=>this.setState({sim:'err'}),
+      setLight:()=>this.setState({theme:'light'}), setDark:()=>this.setState({theme:'dark'}),
+      setDesktop:()=>this.setState({device:'desktop'}), setTablet:()=>this.setState({device:'tablet'}), setMobile:()=>this.setState({device:'mobile'})
+    };
+  }
+  plural(n,a,b,c){n=Math.abs(+n)%100;const n1=n%10;if(n>10&&n<20)return c;if(n1>1&&n1<5)return b;if(n1===1)return a;return c;}
+}
+</script>
+</body>
+</html>
