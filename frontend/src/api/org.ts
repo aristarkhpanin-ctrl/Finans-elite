@@ -42,6 +42,11 @@ export interface CheckoutResponse {
   confirmation_url: string | null;
 }
 
+export async function createOrganization(name: string): Promise<{ id: string; name: string }> {
+  const { data } = await api.post<{ id: string; name: string }>("/api/v1/organizations", { name });
+  return data;
+}
+
 export async function getMembers(orgId: string): Promise<Member[]> {
   const { data } = await api.get<Member[]>(`/api/v1/organizations/${orgId}/members`);
   return data;
