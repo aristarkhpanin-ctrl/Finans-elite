@@ -25,12 +25,14 @@ function FieldShell({
   label,
   hint,
   error,
+  note,
   full,
   children,
 }: {
   label: string;
   hint?: string;
   error?: string;
+  note?: string;
   full?: boolean;
   children: ReactNode;
 }) {
@@ -41,7 +43,7 @@ function FieldShell({
         {hint && <HintBadge text={hint} />}
       </div>
       {children}
-      {error && <div className="efield__err">{error}</div>}
+      {error ? <div className="efield__err">{error}</div> : note && <div className="field-note">{note}</div>}
     </div>
   );
 }
@@ -53,6 +55,8 @@ export interface EFieldProps {
   suffix?: string;
   hint?: string;
   error?: string;
+  /** Нейтральное примечание под полем (напр. «→ Дебиторская задолженность»). */
+  note?: string;
   full?: boolean;
   /** Текстовое поле (Inter вместо моно, inputmode text). */
   text?: boolean;
@@ -69,6 +73,7 @@ export function EField({
   suffix,
   hint,
   error,
+  note,
   full,
   text,
   date,
@@ -76,7 +81,7 @@ export function EField({
   disabled,
 }: EFieldProps) {
   return (
-    <FieldShell label={label} hint={hint} error={error} full={full}>
+    <FieldShell label={label} hint={hint} error={error} note={note} full={full}>
       <div className={"efield__box" + (error ? " efield__box--error" : "")}>
         <input
           className={"efield__input" + (text || date ? " efield__input--text" : "")}

@@ -1346,3 +1346,143 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   .esub__actions .mode-seg { flex: 1; }
   .save-bar { margin: 0 -16px; padding-left: 16px; padding-right: 16px; }
 }
+
+/* ============================================================
+   11. MONTHLYGRID + ВКЛАДКА «СБЫТ» (макет «Этап 6»)
+   ============================================================ */
+
+/* Заголовок вкладки редактора */
+.tab-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 18px; }
+.tab-head__title { font: 500 21px var(--font-display); letter-spacing: -0.02em; color: var(--text); }
+.tab-head__sub { font: 400 13.5px var(--font-ui); color: var(--muted); margin-top: 5px; }
+
+/* Помесячная сетка */
+.mgrid-hint { display: flex; align-items: center; gap: 7px; font: 500 11.5px var(--font-ui); color: var(--subtle); margin-bottom: 9px; }
+.mgrid-wrap {
+  border: 1px solid var(--border); border-radius: var(--radius-card);
+  overflow-x: auto; overflow-y: hidden; background: var(--cell-bg);
+  --mgrid-lbl: 176px; --mgrid-cw: 80px;
+}
+.mgrid-inner { width: max-content; min-width: 100%; }
+.mgrid-row { display: flex; }
+.mgrid-corner {
+  width: var(--mgrid-lbl); flex: none; position: sticky; left: 0; z-index: 4;
+  background: var(--sticky-bg); border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border); padding: 8px 12px;
+  font: 600 10.5px var(--font-ui); letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--subtle); display: flex; align-items: center;
+}
+.mgrid-month {
+  width: var(--mgrid-cw); flex: none; height: 35px; display: flex; align-items: center;
+  justify-content: flex-end; border-right: 1px solid var(--grid-line);
+  border-bottom: 1px solid var(--border); padding: 0 9px;
+  font: 600 11px var(--font-mono); color: var(--subtle); background: var(--surface-2);
+}
+.mgrid-label {
+  width: var(--mgrid-lbl); flex: none; position: sticky; left: 0; z-index: 3;
+  background: var(--sticky-bg); border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--grid-line); padding: 7px 12px;
+  display: flex; flex-direction: column; gap: 4px; justify-content: center;
+}
+.mgrid-label--ro { background: var(--surface-2); }
+.mgrid-title { font: 600 12px var(--font-ui); color: var(--text); }
+.mgrid-title--ro { color: var(--muted); }
+.mgrid-sum { font: 600 11.5px var(--font-mono); color: var(--accent); }
+.mgrid-fill {
+  appearance: none; border: none; background: none; cursor: pointer; padding: 0;
+  font: 600 10.5px var(--font-ui); color: var(--subtle); text-align: left;
+}
+.mgrid-fill:hover { color: var(--accent); }
+.mgrid-cell {
+  width: var(--mgrid-cw); flex: none; height: 36px; border: none;
+  border-right: 1px solid var(--grid-line); border-bottom: 1px solid var(--grid-line);
+  background: var(--cell-bg); color: var(--text);
+  font: 500 12.5px var(--font-mono); text-align: right; padding: 0 9px; outline: none;
+}
+.mgrid-cell:focus { box-shadow: inset 0 0 0 2px var(--primary); }
+.mgrid-cell--flash { background: var(--primary-bg); }
+.mgrid-rocell {
+  width: var(--mgrid-cw); flex: none; height: 36px; display: flex; align-items: center;
+  justify-content: flex-end; border-right: 1px solid var(--grid-line);
+  border-bottom: 1px solid var(--grid-line); background: var(--surface-2);
+  color: var(--muted); font: 500 12px var(--font-mono); padding: 0 9px;
+  white-space: nowrap; overflow: hidden;
+}
+.mgrid-row:last-child .mgrid-cell, .mgrid-row:last-child .mgrid-rocell,
+.mgrid-row:last-child .mgrid-label { border-bottom: none; }
+@media (max-width: 640px) { .mgrid-wrap { --mgrid-lbl: 112px; --mgrid-cw: 64px; } }
+
+/* Карточка продукта/статьи */
+.line-card {
+  position: relative; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-card); padding: 20px; animation: fe-fade 0.25s ease;
+}
+.line-card__head { display: flex; align-items: center; gap: 11px; margin-bottom: 16px; }
+.line-card__idx {
+  flex: none; width: 26px; height: 26px; border-radius: 8px; background: var(--primary-bg);
+  color: var(--accent); font: 700 12px var(--font-mono);
+  display: flex; align-items: center; justify-content: center;
+}
+.line-card__name { flex: 1; min-width: 0; border-radius: 8px; border: 1px solid transparent; transition: 0.14s; }
+.line-card__name:hover, .line-card__name:focus-within { border-color: var(--border); background: var(--surface-2); }
+.line-card__name input {
+  width: 100%; height: 38px; border: none; outline: none; background: transparent;
+  color: var(--text); font: 700 16px var(--font-ui); letter-spacing: -0.01em; padding: 0 10px;
+}
+.fx-chip {
+  font: 600 10.5px var(--font-ui); color: var(--info); background: var(--info-bg);
+  padding: 3px 8px; border-radius: 9999px; white-space: nowrap; flex: none;
+}
+.line-card__del {
+  appearance: none; cursor: pointer; width: 34px; height: 34px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--danger);
+  flex: none; display: flex; align-items: center; justify-content: center; transition: 0.14s;
+}
+.line-card__del:hover { background: var(--danger-bg); border-color: var(--danger-border); }
+
+/* Чекбокс-строка (экспорт и т.п.) */
+.opt-row {
+  display: flex; align-items: flex-start; gap: 11px; margin-top: 16px;
+  padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface-2); cursor: pointer; transition: 0.14s;
+}
+.opt-row--on { border-color: var(--primary); background: var(--primary-soft); }
+.opt-row__box {
+  flex: none; width: 20px; height: 20px; border-radius: 6px;
+  border: 1.5px solid var(--border-strong); background: transparent;
+  display: flex; align-items: center; justify-content: center; margin-top: 1px;
+  color: var(--primary-text); font-size: 12px; font-weight: 700; transition: 0.14s;
+}
+.opt-row--on .opt-row__box { border-color: var(--primary); background: var(--primary); }
+.opt-row__label { display: block; font: 600 13px var(--font-ui); color: var(--text); }
+.opt-row__help { display: block; font: 400 12px/1.45 var(--font-ui); color: var(--subtle); margin-top: 2px; }
+
+/* Условия оплаты / блок контролов под сеткой */
+.terms-head {
+  font: 600 11px var(--font-ui); letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--subtle); margin: 18px 0 12px;
+}
+.terms-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 16px; }
+@media (max-width: 640px) { .terms-grid { grid-template-columns: 1fr; } }
+
+/* Пустое состояние вкладки */
+.tab-empty {
+  text-align: center; padding: 54px 24px; background: var(--surface);
+  border: 1px dashed var(--border-strong); border-radius: var(--radius-card);
+  display: flex; flex-direction: column; align-items: center;
+}
+.tab-empty__ico {
+  width: 60px; height: 60px; border-radius: 16px; background: var(--surface-2);
+  color: var(--subtle); display: flex; align-items: center; justify-content: center;
+  margin-bottom: 18px;
+}
+.tab-empty__title { font: 500 19px var(--font-display); color: var(--text); }
+.tab-empty__sub { font: 400 14px/1.55 var(--font-ui); color: var(--muted); max-width: 420px; margin: 8px auto 22px; }
+
+/* Дашед-кнопка «добавить ещё» */
+.add-row {
+  appearance: none; cursor: pointer; height: 46px; border-radius: var(--radius-btn);
+  border: 1.5px dashed var(--border-strong); background: transparent;
+  color: var(--muted); font: 600 13.5px var(--font-ui); transition: 0.14s; width: 100%;
+}
+.add-row:hover { border-color: var(--primary); color: var(--accent); background: var(--primary-soft); }
