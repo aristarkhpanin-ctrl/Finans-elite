@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import type { ProjectModel } from "../api/model";
 import { getProject, updateProject } from "../api/projects";
 import { IconWarning } from "../components/icons";
@@ -53,10 +53,15 @@ export function ProjectEditorPage() {
   const { id = "" } = useParams();
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { data, isLoading, isError } = useQuery({ queryKey: ["project", id], queryFn: () => getProject(id) });
 
   const [model, setModel] = useState<ProjectModel | null>(null);
-  const [tab, setTab] = useState<TabKey>("general");
+  const [tab, setTab] = useState<TabKey>(() => {
+    // ?tab=currency — прямой переход на вкладку (например, из ошибки расчёта)
+    const t = searchParams.get("tab");
+    return TABS.some(([k]) => k === t) ? (t as TabKey) : "general";
+  });
   const [pendingLeave, setPendingLeave] = useState<{ label: string; go: () => void } | null>(null);
   const savedSnapshot = useRef<string>("");
 
