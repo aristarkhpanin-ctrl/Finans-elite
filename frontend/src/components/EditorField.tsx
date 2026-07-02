@@ -27,6 +27,7 @@ function FieldShell({
   error,
   note,
   full,
+  labelRight,
   children,
 }: {
   label: string;
@@ -34,6 +35,7 @@ function FieldShell({
   error?: string;
   note?: string;
   full?: boolean;
+  labelRight?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -41,6 +43,7 @@ function FieldShell({
       <div className="efield__labelrow">
         <label className="efield__label">{label}</label>
         {hint && <HintBadge text={hint} />}
+        {labelRight}
       </div>
       {children}
       {error ? <div className="efield__err">{error}</div> : note && <div className="field-note">{note}</div>}
@@ -53,6 +56,10 @@ export interface EFieldProps {
   value: string | number;
   onChange: (v: string) => void;
   suffix?: string;
+  /** Префикс-юнит перед вводом (₽, М…). */
+  prefix?: string;
+  /** Элемент справа от подписи (напр. бейдж «без аморт.»). */
+  labelRight?: ReactNode;
   hint?: string;
   error?: string;
   /** Нейтральное примечание под полем (напр. «→ Дебиторская задолженность»). */
@@ -71,6 +78,8 @@ export function EField({
   value,
   onChange,
   suffix,
+  prefix,
+  labelRight,
   hint,
   error,
   note,
@@ -81,8 +90,9 @@ export function EField({
   disabled,
 }: EFieldProps) {
   return (
-    <FieldShell label={label} hint={hint} error={error} note={note} full={full}>
+    <FieldShell label={label} hint={hint} error={error} note={note} full={full} labelRight={labelRight}>
       <div className={"efield__box" + (error ? " efield__box--error" : "")}>
+        {prefix && <span className="efield__prefix">{prefix}</span>}
         <input
           className={"efield__input" + (text || date ? " efield__input--text" : "")}
           type={date ? "date" : "text"}

@@ -122,6 +122,9 @@ export interface Asset {
   category?: AssetCategory;
   sale_month?: number | null;
   sale_price?: string;
+  /** Переоценка: месяц и сумма дооценки (±) → остаточная B9 и добавочный капитал B31. */
+  revaluation_month?: number | null;
+  revaluation_amount?: string;
 }
 
 export interface InvestmentPlan {

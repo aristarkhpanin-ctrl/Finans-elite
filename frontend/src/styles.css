@@ -1486,3 +1486,88 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   color: var(--muted); font: 600 13.5px var(--font-ui); transition: 0.14s; width: 100%;
 }
 .add-row:hover { border-color: var(--primary); color: var(--accent); background: var(--primary-soft); }
+
+/* ============================================================
+   12. «ИЗДЕРЖКИ» + «ИНВЕСТИЦИИ» (макеты «Этап 7», «Этап 8»)
+   ============================================================ */
+
+/* Секция вкладки с точкой-маркером направления */
+.csec { margin-bottom: 26px; }
+.csec__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
+.csec__titlerow { display: flex; align-items: center; gap: 9px; }
+.csec__dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--primary); }
+.csec__dot--fixed { background: var(--info); }
+.csec__title { font: 500 18px var(--font-display); letter-spacing: -0.015em; color: var(--text); }
+.csec__desc { font: 400 13px var(--font-ui); color: var(--muted); margin-top: 4px; }
+
+/* Индекс-бейдж второй секции (постоянные) */
+.line-card__idx--fixed { background: var(--info-bg); color: var(--info); }
+
+/* Чип свойства статьи/актива */
+.prop-chip {
+  font: 600 10.5px var(--font-ui); color: var(--muted); background: var(--surface-2);
+  border: 1px solid var(--border); padding: 3px 8px; border-radius: 9999px;
+  white-space: nowrap; flex: none;
+}
+.prop-chip--cur { color: var(--info); background: var(--info-bg); border-color: transparent; }
+.prop-chip--profit { color: var(--warn-text); background: var(--warn-bg); border-color: transparent; }
+
+/* Префикс в боксе поля (₽ / М) */
+.efield__prefix {
+  flex: none; padding: 0 11px; height: 100%; display: flex; align-items: center;
+  font: 500 12px var(--font-ui); color: var(--subtle);
+  border-right: 1px solid var(--border); background: var(--surface-2); white-space: nowrap;
+}
+
+/* Бейдж «без аморт.» */
+.na-badge {
+  font: 600 9.5px var(--font-ui); letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--subtle); background: var(--surface-2); border: 1px solid var(--border);
+  padding: 2px 6px; border-radius: 5px;
+}
+
+/* Сводка капвложений */
+.sum-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+.sum-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 13px;
+  padding: 13px 16px;
+}
+.sum-card__label { font: 600 10.5px var(--font-ui); letter-spacing: 0.05em; text-transform: uppercase; color: var(--subtle); }
+.sum-card__value { font: 600 18px var(--font-mono); color: var(--text); margin-top: 4px; letter-spacing: -0.01em; }
+@media (max-width: 640px) { .sum-row { grid-template-columns: 1fr; } }
+
+/* Тогл-кнопки (продажа/переоценка) */
+.opt-toggle-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+.opt-toggle {
+  appearance: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+  height: 38px; padding: 0 14px; border-radius: 9px; border: 1px solid var(--border);
+  background: var(--surface-2); color: var(--muted); font: 600 12.5px var(--font-ui);
+  transition: 0.14s;
+}
+.opt-toggle:hover { border-color: var(--border-strong); color: var(--text); }
+.opt-toggle--on { border-color: var(--primary); background: var(--primary-soft); color: var(--text); }
+.opt-toggle__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--subtle); opacity: 0.5; flex: none; }
+.opt-toggle--on .opt-toggle__dot { background: var(--primary); opacity: 1; }
+
+/* Раскрывающийся блок (продажа/переоценка) */
+.expand-block {
+  margin-top: 12px; padding: 14px; border-radius: 11px;
+  border: 1px solid var(--border); background: var(--surface-2);
+  animation: fe-down 0.18s ease;
+}
+.expand-block__head {
+  display: flex; align-items: center; gap: 8px; font: 600 12px var(--font-ui);
+  letter-spacing: 0.03em; text-transform: uppercase; color: var(--subtle); margin-bottom: 12px;
+}
+.expand-block__grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px 16px; }
+@media (max-width: 640px) { .expand-block__grid { grid-template-columns: 1fr; } }
+
+/* Сетка полей актива */
+.afields-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 16px; margin-bottom: 2px; }
+@media (max-width: 1023px) { .afields-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px) { .afields-grid { grid-template-columns: 1fr; } }
+
+/* Заметка о прибыли/убытке от продажи */
+.gain-note { font: 600 11.5px var(--font-ui); }
+.gain-note--good { color: var(--good); }
+.gain-note--bad { color: var(--danger); }

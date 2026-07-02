@@ -235,6 +235,14 @@ export const IconFactory = (p: IconProps) => (
   </Icon>
 );
 
+export const IconLand = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M2.5 19.5h19" />
+    <path d="m4 19.5 5-8 3.5 5.5 3-4.5 4.5 7" />
+    <circle cx="17" cy="6.5" r="2" />
+  </Icon>
+);
+
 export const IconFolder = (p: IconProps) => (
   <Icon {...p}>
     <path d="M3.5 6.5A2 2 0 0 1 5.5 4.5h4l2 2.5h7a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-11Z" />
