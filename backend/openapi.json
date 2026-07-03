@@ -2024,6 +2024,11 @@
             "title": "Iterations",
             "type": "integer"
           },
+          "npv_cvar_5": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Npv Cvar 5",
+            "type": "string"
+          },
           "npv_max": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Npv Max",
@@ -2044,6 +2049,11 @@
             "title": "Npv P10",
             "type": "string"
           },
+          "npv_p5": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Npv P5",
+            "type": "string"
+          },
           "npv_p50": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Npv P50",
@@ -2052,6 +2062,16 @@
           "npv_p90": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Npv P90",
+            "type": "string"
+          },
+          "npv_p95": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Npv P95",
+            "type": "string"
+          },
+          "npv_sem": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Npv Sem",
             "type": "string"
           },
           "npv_std": {
@@ -2069,11 +2089,15 @@
           "iterations",
           "npv_mean",
           "npv_std",
+          "npv_sem",
           "npv_min",
           "npv_max",
+          "npv_p5",
           "npv_p10",
           "npv_p50",
           "npv_p90",
+          "npv_p95",
+          "npv_cvar_5",
           "probability_npv_positive"
         ],
         "title": "MonteCarloResponse",

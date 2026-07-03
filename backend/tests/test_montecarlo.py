@@ -26,9 +26,28 @@ def _config(iterations=200, seed=42):
 def test_monte_carlo_basic_stats():
     res = run_monte_carlo(build_sample_project(), _config())
     assert res.iterations == 200
-    assert res.npv_min <= res.npv_p10 <= res.npv_p50 <= res.npv_p90 <= res.npv_max
+    assert (res.npv_min <= res.npv_p5 <= res.npv_p10 <= res.npv_p50
+            <= res.npv_p90 <= res.npv_p95 <= res.npv_max)
     assert Decimal(0) <= res.probability_npv_positive <= Decimal(1)
     assert res.npv_std >= 0
+
+
+def test_monte_carlo_risk_metrics():
+    """VaR/CVaR/стандартная ошибка (P3.10): свойства риск-показателей."""
+    res = run_monte_carlo(build_sample_project(), _config(iterations=200))
+    # CVaR (среднее худших 5%) не лучше VaR (5-й перцентиль) и не хуже минимума.
+    assert res.npv_min <= res.npv_cvar_5 <= res.npv_p5
+    # Стандартная ошибка среднего = σ/√N, в (0, σ] при N>1.
+    assert res.npv_sem == res.npv_std / Decimal(res.iterations).sqrt()
+    assert Decimal(0) <= res.npv_sem <= res.npv_std
+
+
+def test_monte_carlo_no_uncertainty_zero_risk_spread():
+    cfg = MonteCarloConfig(iterations=50, seed=42, uncertain=[])
+    res = run_monte_carlo(build_sample_project(), cfg)
+    # Без неопределённости все исходы равны: VaR = CVaR = медиана, ошибка ≈ 0.
+    assert res.npv_cvar_5 == res.npv_p5 == res.npv_p50
+    assert res.npv_sem < Decimal("0.01")
 
 
 def test_monte_carlo_reproducible_with_seed():
@@ -109,8 +128,12 @@ def test_monte_carlo_api(client, auth_headers):
         "uncertain": [{"param": "sales_price", "distribution": {"kind": "uniform", "low": "0.8", "high": "1.2"}}],
     }, headers=auth_headers)
     assert r.status_code == 200
-    assert r.json()["iterations"] == 100
-    assert "probability_npv_positive" in r.json()
+    body = r.json()
+    assert body["iterations"] == 100
+    assert "probability_npv_positive" in body
+    # Обогащённая статистика риска (P3.10).
+    for field in ("npv_sem", "npv_p5", "npv_p95", "npv_cvar_5"):
+        assert field in body
 
 
 def test_monte_carlo_api_iteration_limit(client, auth_headers):

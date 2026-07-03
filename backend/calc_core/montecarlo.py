@@ -59,17 +59,24 @@ class MonteCarloResult:
     iterations: int
     npv_mean: Decimal
     npv_std: Decimal
+    npv_sem: Decimal          # стандартная ошибка среднего = σ/√N (достаточно ли итераций)
     npv_min: Decimal
     npv_max: Decimal
+    npv_p5: Decimal           # 5-й перцентиль = VaR при доверии 95%
     npv_p10: Decimal
     npv_p50: Decimal
     npv_p90: Decimal
+    npv_p95: Decimal
+    npv_cvar_5: Decimal       # CVaR/ES 95%: среднее худших 5% исходов
     probability_npv_positive: Decimal
     histogram: list[HistogramBin]
 
 
 # Число столбцов гистограммы распределения NPV (B5).
 HISTOGRAM_BINS = 20
+
+# Доля худшего хвоста для VaR/CVaR (5% → доверие 95%).
+TAIL_DENOM = 20
 
 
 def _req(value: Decimal | None, param: str, kind: str) -> float:
@@ -130,17 +137,25 @@ def _statistics(npvs: list[Decimal]) -> MonteCarloResult:
     mean = total / n
     var = sum(((x - mean) ** 2 for x in npvs), ZERO) / n
     std = var.sqrt()
+    sem = std / D(n).sqrt() if n > 0 else ZERO
     positive = sum(1 for x in npvs if x > 0)
     ordered = sorted(npvs)
+    # CVaR/Expected Shortfall 95%: среднее худших 5% исходов (хвост ≥ 1 наблюдение).
+    tail = max(1, n // TAIL_DENOM)
+    cvar_5 = sum(ordered[:tail], ZERO) / tail
     return MonteCarloResult(
         iterations=n,
         npv_mean=mean,
         npv_std=std,
+        npv_sem=sem,
         npv_min=ordered[0],
         npv_max=ordered[-1],
+        npv_p5=_percentile(ordered, 5),
         npv_p10=_percentile(ordered, 10),
         npv_p50=_percentile(ordered, 50),
         npv_p90=_percentile(ordered, 90),
+        npv_p95=_percentile(ordered, 95),
+        npv_cvar_5=cvar_5,
         probability_npv_positive=D(positive) / n,
         histogram=_histogram(ordered),
     )

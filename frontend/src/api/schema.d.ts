@@ -1577,6 +1577,8 @@ export interface components {
             histogram: components["schemas"]["HistogramBinOut"][];
             /** Iterations */
             iterations: number;
+            /** Npv Cvar 5 */
+            npv_cvar_5: string;
             /** Npv Max */
             npv_max: string;
             /** Npv Mean */
@@ -1585,10 +1587,16 @@ export interface components {
             npv_min: string;
             /** Npv P10 */
             npv_p10: string;
+            /** Npv P5 */
+            npv_p5: string;
             /** Npv P50 */
             npv_p50: string;
             /** Npv P90 */
             npv_p90: string;
+            /** Npv P95 */
+            npv_p95: string;
+            /** Npv Sem */
+            npv_sem: string;
             /** Npv Std */
             npv_std: string;
             /** Probability Npv Positive */

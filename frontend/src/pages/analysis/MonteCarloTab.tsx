@@ -76,13 +76,17 @@ export function MonteCarloTab({ projectId }: { projectId: string }) {
   const stats = d
     ? [
         { label: "Среднее NPV", value: fmtMillions(d.npv_mean, { digits: 1 }) },
+        { label: "Ст. ошибка среднего", value: "±" + fmtMillions(d.npv_sem, { digits: 2 }) },
         { label: "σ (разброс)", value: fmtMillions(d.npv_std, { digits: 1 }) },
+        { label: "P(NPV > 0)", value: percent(d.probability_npv_positive, 0), accent: true },
+        { label: "VaR 95% (P5)", value: fmtMillions(d.npv_p5, { digits: 1 }) },
+        { label: "CVaR 95% (худшие 5%)", value: fmtMillions(d.npv_cvar_5, { digits: 1 }) },
         { label: "Минимум", value: fmtMillions(d.npv_min, { digits: 1 }) },
-        { label: "Максимум", value: fmtMillions(d.npv_max, { digits: 1 }) },
         { label: "P10", value: fmtMillions(d.npv_p10, { digits: 1 }) },
         { label: "P50 (медиана)", value: fmtMillions(d.npv_p50, { digits: 1 }) },
         { label: "P90", value: fmtMillions(d.npv_p90, { digits: 1 }) },
-        { label: "P(NPV > 0)", value: percent(d.probability_npv_positive, 0), accent: true },
+        { label: "P95", value: fmtMillions(d.npv_p95, { digits: 1 }) },
+        { label: "Максимум", value: fmtMillions(d.npv_max, { digits: 1 }) },
       ]
     : [];
 
@@ -228,6 +232,11 @@ export function MonteCarloTab({ projectId }: { projectId: string }) {
               </div>
             ))}
           </div>
+          <p className="muted" style={{ margin: "10px 2px 0", fontSize: 12.5, lineHeight: 1.5 }}>
+            <b>VaR 95%</b> — в 95% исходов NPV не хуже этого значения (5-й перцентиль).{" "}
+            <b>CVaR 95%</b> — среднее по худшим 5% исходов (насколько плохо в «хвосте»).{" "}
+            <b>± ст. ошибка</b> — точность оценки среднего (σ/√N): уже её — увеличьте число итераций.
+          </p>
 
           <div className="chart-card2">
             <div className="chart-card2__title">Распределение NPV</div>

@@ -260,11 +260,15 @@ class MonteCarloResponse(BaseModel):
     iterations: int
     npv_mean: Decimal
     npv_std: Decimal
+    npv_sem: Decimal           # стандартная ошибка среднего = σ/√N
     npv_min: Decimal
     npv_max: Decimal
+    npv_p5: Decimal            # VaR 95% (5-й перцентиль)
     npv_p10: Decimal
     npv_p50: Decimal
     npv_p90: Decimal
+    npv_p95: Decimal
+    npv_cvar_5: Decimal        # CVaR/ES 95% (среднее худших 5%)
     probability_npv_positive: Decimal
     histogram: list[HistogramBinOut] = []
 
