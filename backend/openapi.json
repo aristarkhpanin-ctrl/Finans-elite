@@ -2500,6 +2500,7 @@
         "properties": {
           "duration_months": {
             "default": 12,
+            "maximum": 600.0,
             "minimum": 1.0,
             "title": "Duration Months",
             "type": "integer"

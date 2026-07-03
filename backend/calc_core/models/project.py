@@ -23,7 +23,9 @@ class ProjectHeader(BaseModel):
 
     name: str = "Без названия"
     start_date: date = date(2026, 1, 1)
-    duration_months: int = Field(default=12, ge=1)  # горизонт N
+    # Горизонт N задаёт длину всех временных рядов; верхняя граница (50 лет) защищает
+    # от исчерпания памяти/зависания воркера на абсурдных входах (DoS).
+    duration_months: int = Field(default=12, ge=1, le=600)
 
 
 class ProjectSettings(BaseModel):
