@@ -1,7 +1,7 @@
 /* ============================================================================
    Финанс-Элит · дизайн-система «Modal — зелёный куб»
    Канон токенов — return THEME() из docs/design/modal-redesign/ (см. CLAUDE.md).
-   Секции: 1 токены · 2 база · 3 keyframes · 4 легаси-классы (до P13) · 5 новый кит
+   Секции: 1 токены · 2 база · 3 keyframes · 4 базовые классы · 5 UI-кит · 6+ экраны
    ========================================================================== */
 
 /* ---------- 1. Токены ---------- */
@@ -221,7 +221,7 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .cube-static * { animation: none !important; }
 
 /* ============================================================================
-   4. ЛЕГАСИ-КЛАССЫ (текущие экраны; удаляются по мере перевода, финал — P13)
+   4. ОБЩИЕ БАЗОВЫЕ КЛАССЫ (btn/field/input/card/select/metric… — вне UI-кита)
    ========================================================================== */
 
 .btn {
@@ -264,91 +264,23 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   border: 1px solid var(--border); background: var(--input-bg); color: var(--text);
 }
 
-.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 18px; flex-wrap: wrap; }
-.tab {
-  padding: 9px 14px; border: none; background: transparent; color: var(--muted);
-  font-weight: 600; font-size: 14px; cursor: pointer;
-  border-bottom: 2px solid transparent; margin-bottom: -1px;
-}
-.tab:hover { color: var(--text); }
-.tab--active { color: var(--accent); border-bottom-color: var(--primary); }
-
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
-.row-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; background: var(--surface); }
-.row-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-.row-head .grow { flex: 1; }
 .section-head { display: flex; align-items: center; justify-content: space-between; margin: 4px 0 12px; }
 .toolbar { display: flex; gap: 10px; align-items: center; }
 .checkbox { display: flex; align-items: center; gap: 8px; }
-
-.series { margin-top: 6px; }
-.series-label { font-size: 13px; color: var(--muted); font-weight: 600; margin-bottom: 4px; display: flex; gap: 10px; align-items: center; }
-.series-total { font-weight: 600; color: var(--text); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-.series-row { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 4px; }
-.series-cell {
-  width: 64px; flex: 0 0 auto; height: 32px; text-align: right; padding: 0 6px;
-  border: 1px solid var(--border); border-radius: 6px; background: var(--cell-bg); color: var(--text);
-  font-size: 12.5px; font-family: var(--font-mono);
-}
-.series-cell:focus { outline: none; border-color: var(--primary); }
 .link-btn { background: none; border: none; color: var(--accent); cursor: pointer; font: inherit; font-weight: 600; padding: 0; }
-
-.fin-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
-.fin-table { border-collapse: collapse; font-size: 13px; width: max-content; min-width: 100%; }
-.fin-table th, .fin-table td { padding: 7px 12px; white-space: nowrap; border-bottom: 1px solid var(--grid-line); }
-.fin-table thead th { background: var(--surface-2); color: var(--subtle); font-weight: 600; text-align: right; position: sticky; top: 0; }
-.fin-table td.num, .fin-table th.num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-.fin-table .label-col {
-  text-align: left; position: sticky; left: 0; background: var(--sticky-bg);
-  min-width: 230px; max-width: 320px; overflow: hidden; text-overflow: ellipsis;
-}
-.fin-table thead .label-col { background: var(--surface-2); z-index: 1; }
-.fin-table tr.subtotal td { font-weight: 700; background: var(--subtotal-bg); }
-.fin-table tr.subtotal .label-col { background: var(--subtotal-bg); }
-.fin-table .code { color: var(--subtle); font-size: 11px; margin-right: 6px; font-family: var(--font-mono); }
 
 .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
 .metric { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
 .metric .m-label { color: var(--muted); font-size: 12px; font-weight: 600; }
 .metric .m-value { font-size: 22px; font-weight: 600; margin-top: 4px; font-family: var(--font-mono); }
-.chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 16px; margin-bottom: 16px; }
-.chart-card h3 { margin: 0 0 12px; font-size: 15px; }
-.summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
-.summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
-.summary-card .m-label { color: var(--muted); font-size: 12px; font-weight: 600; }
-.summary-card .m-value { font-size: 22px; font-weight: 600; margin-top: 4px; font-family: var(--font-mono); }
 
 .hint { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px;
   margin-left: 6px; border-radius: 50%; background: var(--surface-3); color: var(--muted);
   font-size: 10px; font-weight: 700; cursor: help; vertical-align: middle; }
 
-.template-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
-.template-card { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 12px 14px;
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer;
-  transition: border-color .15s, background .15s; }
-.template-card:hover:not(:disabled) { border-color: var(--primary); background: var(--surface-2); }
-.template-card:disabled { opacity: .6; cursor: default; }
-.template-name { font-weight: 600; font-size: 14px; }
-.template-desc { font-size: 12px; color: var(--muted); }
-
-.validation { display: flex; flex-direction: column; gap: 8px; margin: 6px 0 16px; }
-.validation-item { display: flex; gap: 8px; align-items: flex-start; padding: 9px 12px;
-  border-radius: var(--radius-sm); font-size: 13px; border: 1px solid; }
-.validation-item--error { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger-text); }
-.validation-item--warn { background: var(--warn-bg); border-color: var(--warn-border); color: var(--warn-text); }
-.validation-icon { font-weight: 700; }
-
 /* Печатные стили — в секции 16 (A4 альбомная). */
-.warnings { background: var(--warn-bg); border: 1px solid var(--warn-border); color: var(--warn-text); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 14px; font-size: 13px; }
-
-.list { display: grid; gap: 10px; }
-.list-item .actions { display: flex; gap: 8px; }
 .save-bar { position: sticky; bottom: 0; display: flex; gap: 12px; align-items: center; padding: 12px 0; background: var(--page-bg); }
-.list-item {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 16px; background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
 
 /* ============================================================
    5. НОВЫЙ UI-КИТ (редизайн Modal; анатомия — Стиль-гайд/Этап 20)
