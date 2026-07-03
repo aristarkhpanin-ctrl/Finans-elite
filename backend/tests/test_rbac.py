@@ -5,7 +5,6 @@ import pytest
 
 from app.rbac import Perm, Role, has_permission
 
-
 # --- матрица прав (юнит) ---
 
 def test_permission_hierarchy():

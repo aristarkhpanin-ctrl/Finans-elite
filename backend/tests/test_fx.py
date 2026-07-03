@@ -10,7 +10,6 @@ from datetime import date
 from decimal import Decimal
 
 from calc_core import run
-from calc_core.money import quantize
 from calc_core.models import (
     Company,
     Environment,
@@ -27,6 +26,7 @@ from calc_core.models import (
     StartingBalance,
 )
 from calc_core.models.common import CostFunction, RepaymentType
+from calc_core.money import quantize
 
 D = Decimal
 

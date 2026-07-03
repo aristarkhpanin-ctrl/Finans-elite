@@ -9,9 +9,9 @@ import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import (
+    JSON,
     DateTime,
     ForeignKey,
-    JSON,
     String,
     UniqueConstraint,
 )

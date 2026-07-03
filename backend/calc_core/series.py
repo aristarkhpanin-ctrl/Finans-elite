@@ -9,7 +9,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Iterable, Sequence
 
-from .money import D, ZERO
+from .money import ZERO, D
 
 Series = list  # семантический псевдоним: list[Decimal]
 

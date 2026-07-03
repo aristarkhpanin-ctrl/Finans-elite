@@ -56,7 +56,7 @@ def test_calculate_roundtrip():
     # балансовый инвариант сохраняется и в ответе API
     b20 = _line(data["balance"], "B20")
     b34 = _line(data["balance"], "B34")
-    for a, b in zip(b20, b34):
+    for a, b in zip(b20, b34, strict=True):
         assert abs(Decimal(a) - Decimal(b)) <= Decimal("0.01")
     # показатели и коэффициенты присутствуют
     assert "npv" in data["metrics"]

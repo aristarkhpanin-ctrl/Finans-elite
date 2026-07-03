@@ -186,6 +186,8 @@ backend/
 cd backend
 python -m pip install -e ".[dev]"   # или: pip install pydantic fastapi "uvicorn[standard]" sqlalchemy alembic argon2-cffi PyJWT pytest httpx
 pytest -q                           # тесты
+ruff check .                        # линтер (стиль, сортировка импортов, bugbear)
+python -m mypy                      # проверка типов ядра calc_core
 python -m calc_core.demo            # демонстрационный расчёт (CLI)
 alembic upgrade head                # применить миграции БД
 uvicorn app.main:app --reload       # HTTP-API, документация на /docs

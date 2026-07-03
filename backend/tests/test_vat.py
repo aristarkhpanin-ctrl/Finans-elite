@@ -18,7 +18,7 @@ from calc_core.models import (
     SalesLine,
 )
 from calc_core.models.common import DirectCostKind
-from calc_core.series import cumulative, total
+from calc_core.series import total
 
 
 def test_settle_vat_basic():

@@ -59,7 +59,7 @@ def _first_difference(expected, actual, path: str = "") -> str | None:
     if isinstance(expected, list) and isinstance(actual, list):
         if len(expected) != len(actual):
             return f"{path}: длина {len(actual)} != ожидаемой {len(expected)}"
-        for i, (e, a) in enumerate(zip(expected, actual)):
+        for i, (e, a) in enumerate(zip(expected, actual, strict=True)):
             diff = _first_difference(e, a, f"{path}[{i}]")
             if diff:
                 return diff

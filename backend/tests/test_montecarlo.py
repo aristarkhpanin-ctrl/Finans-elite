@@ -67,7 +67,7 @@ def test_histogram_covers_all_iterations():
     # Границы покрывают весь диапазон и стыкуются встык.
     assert res.histogram[0].from_ == res.npv_min
     assert res.histogram[-1].to == res.npv_max
-    for a, b in zip(res.histogram, res.histogram[1:]):
+    for a, b in zip(res.histogram, res.histogram[1:], strict=False):
         assert a.to == b.from_
 
 

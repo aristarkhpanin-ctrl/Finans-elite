@@ -7,7 +7,6 @@ from datetime import date
 from decimal import Decimal
 
 from calc_core import run
-from calc_core.money import quantize as q
 from calc_core.models import (
     Company,
     Financing,
@@ -18,6 +17,7 @@ from calc_core.models import (
     ProjectSettings,
     StartingBalance,
 )
+from calc_core.money import quantize as q
 
 D = Decimal
 

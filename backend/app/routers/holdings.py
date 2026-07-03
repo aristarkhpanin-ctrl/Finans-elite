@@ -6,10 +6,10 @@ v0: персистентная группа проектов (головная +
 """
 from __future__ import annotations
 
+from decimal import Decimal
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-
-from decimal import Decimal
 
 from calc_core.integrator import consolidate_detailed
 
@@ -148,7 +148,7 @@ def consolidate_holding(holding_id: str,
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     per_project = []
-    for (member, project, _), res in zip(models, per):
+    for (member, project, _), res in zip(models, per, strict=True):
         per_project.append(PerProjectOut(
             project_id=member.project_id,
             name=project.name,

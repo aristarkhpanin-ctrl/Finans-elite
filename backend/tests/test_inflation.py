@@ -6,7 +6,6 @@ from decimal import Decimal
 
 from calc_core import run
 from calc_core.engine.pipeline import _inflation_index
-from calc_core.money import quantize
 from calc_core.models import (
     CostFunction,
     DirectCostLine,
@@ -19,6 +18,7 @@ from calc_core.models import (
     SalesLine,
 )
 from calc_core.models.common import DirectCostKind
+from calc_core.money import quantize
 
 D = Decimal
 

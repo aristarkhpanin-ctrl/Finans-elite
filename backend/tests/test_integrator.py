@@ -48,7 +48,7 @@ def test_integrator_api(client, auth_headers):
     data = r.json()
     b20 = next(l for l in data["balance"]["lines"] if l["code"] == "B20")["values"]
     b34 = next(l for l in data["balance"]["lines"] if l["code"] == "B34")["values"]
-    for x, y in zip(b20, b34):
+    for x, y in zip(b20, b34, strict=True):
         assert abs(Decimal(x) - Decimal(y)) <= Decimal("0.01")
 
 

@@ -16,7 +16,7 @@ from decimal import Decimal
 from typing import Optional
 
 from .models import ProjectModel
-from .money import D, ZERO
+from .money import ZERO, D
 from .sensitivity import SENSITIVITY_PARAMS
 
 
@@ -72,13 +72,21 @@ class MonteCarloResult:
 HISTOGRAM_BINS = 20
 
 
+def _req(value: Decimal | None, param: str, kind: str) -> float:
+    """Обязательный параметр распределения → float (иначе понятная ошибка вместо float(None))."""
+    if value is None:
+        raise ValueError(f"Распределение «{kind}»: не задан параметр «{param}»")
+    return float(value)
+
+
 def _sample_factor(rng: random.Random, d: Distribution) -> Decimal:
     if d.kind == "uniform":
-        f = rng.uniform(float(d.low), float(d.high))
+        f = rng.uniform(_req(d.low, "low", d.kind), _req(d.high, "high", d.kind))
     elif d.kind == "normal":
-        f = rng.gauss(float(d.mean), float(d.std))
+        f = rng.gauss(_req(d.mean, "mean", d.kind), _req(d.std, "std", d.kind))
     elif d.kind == "triangular":
-        f = rng.triangular(float(d.low), float(d.high), float(d.mode))
+        f = rng.triangular(_req(d.low, "low", d.kind), _req(d.high, "high", d.kind),
+                           _req(d.mode, "mode", d.kind))
     else:
         raise ValueError(f"Неизвестное распределение: {d.kind}")
     return max(ZERO, D(str(f)))  # коэффициент не может быть отрицательным

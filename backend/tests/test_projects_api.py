@@ -50,7 +50,7 @@ def test_calculate_stored_project(client, auth_headers):
     data = r.json()
     b20 = next(l for l in data["balance"]["lines"] if l["code"] == "B20")["values"]
     b34 = next(l for l in data["balance"]["lines"] if l["code"] == "B34")["values"]
-    for a, b in zip(b20, b34):
+    for a, b in zip(b20, b34, strict=True):
         assert abs(Decimal(a) - Decimal(b)) <= Decimal("0.01")
     # Поля, которые показывает UI результатов: оценка бизнеса и расширенные метрики.
     assert "net_assets" in data["valuation"] and "gordon_value" in data["valuation"]

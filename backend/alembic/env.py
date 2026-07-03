@@ -6,14 +6,15 @@ import sys
 from logging.config import fileConfig
 from pathlib import Path
 
-from alembic import context
 from sqlalchemy import engine_from_config, pool
+
+from alembic import context
 
 # Чтобы был импортируем пакет app (backend/ на пути).
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.database import Base  # noqa: E402
 from app import db_models  # noqa: E402,F401 — регистрирует модели в метаданных
+from app.database import Base  # noqa: E402
 
 config = context.config
 

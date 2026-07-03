@@ -29,7 +29,7 @@ def test_holding_consolidate_invariant(client, auth_headers):
     data = client.post(f"/api/v1/holdings/{hid}/consolidate", headers=auth_headers).json()
     b20 = next(l for l in data["balance"]["lines"] if l["code"] == "B20")["values"]
     b34 = next(l for l in data["balance"]["lines"] if l["code"] == "B34")["values"]
-    for x, y in zip(b20, b34):
+    for x, y in zip(b20, b34, strict=True):
         assert abs(Decimal(x) - Decimal(y)) <= Decimal("0.01")
 
 

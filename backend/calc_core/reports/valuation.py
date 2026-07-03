@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Optional
 
-from ..money import D, ONE, ZERO
+from ..money import ONE, ZERO, D
 from .statements import Statement
 
 

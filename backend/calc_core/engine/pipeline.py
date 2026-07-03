@@ -20,14 +20,14 @@ from ..models import (
     RepaymentType,
     VatBasis,
 )
-from ..money import D, ONE, ZERO
-from ..series import add, cumulative, zeros
+from ..money import ONE, ZERO, D
 from ..reports.statements import (
     build_balance,
     build_cashflow,
     build_income,
     build_profit_use,
 )
+from ..series import add, cumulative, zeros
 from .errors import ModelError
 from .financing_auto import AutoInjection
 from .inventory import finished_goods, purchase_schedule, work_in_progress
@@ -330,9 +330,9 @@ def _assets(model: ProjectModel, n: int):
     for asset in model.investment_plan.assets:
         cat = asset.category
         rm = asset.revaluation_month
-        revalued = rm is not None and 0 <= rm < n
-        if revalued:
-            reval[rm] += asset.revaluation_amount
+        rm_active = rm if (rm is not None and 0 <= rm < n) else None
+        if rm_active is not None:
+            reval[rm_active] += asset.revaluation_amount
         p = asset.purchase_month
         if 0 <= p < n:
             capex[p] += asset.cost
@@ -351,7 +351,7 @@ def _assets(model: ProjectModel, n: int):
             # как и в агрегате B9: дооценка не реверсируется при продаже).
             disposed = sale_m is not None and 0 <= sale_m <= t
             book = ZERO if disposed else (asset.cost - acc_dep)
-            if revalued and t >= rm:
+            if rm_active is not None and t >= rm_active:
                 book += asset.revaluation_amount
             nbv[cat][t] += book
         if sale_m is not None and 0 <= sale_m < n:
@@ -674,8 +674,10 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     # Стартовый оборотный капитал действующего предприятия: дебиторка инкассируется (приток
     # в C1), кредиторка оплачивается (отток через C2) в первом месяце (SPEC §14).
     if n > 0 and (sb.receivables or sb.payables):
-        c1 = list(c1); c1[0] += sb.receivables
-        c2 = list(c2); c2[0] += sb.payables
+        c1 = list(c1)
+        c1[0] += sb.receivables
+        c2 = list(c2)
+        c2[0] += sb.payables
     # Налоги: прибыль + имущество + налог с продаж + НДС к уплате (v0: в периоде начисления)
     taxes_cash = add(income["I27"], i9, i3, vat_to_budget)
     cashflow_leaves = {

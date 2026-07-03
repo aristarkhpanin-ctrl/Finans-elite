@@ -11,7 +11,6 @@ import pytest
 
 from calc_core import run
 from calc_core.engine.errors import ModelError
-from calc_core.money import quantize as q
 from calc_core.models import (
     Company,
     OperatingPlan,
@@ -20,6 +19,7 @@ from calc_core.models import (
     ProjectSettings,
     StartingBalance,
 )
+from calc_core.money import quantize as q
 
 D = Decimal
 

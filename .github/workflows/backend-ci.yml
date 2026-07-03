@@ -27,6 +27,12 @@ jobs:
       - name: Установка зависимостей
         run: pip install ".[dev]"
 
+      - name: Линтер (ruff)
+        run: ruff check .
+
+      - name: Типы (mypy)
+        run: python -m mypy
+
       - name: Проверка миграций (SQLite)
         env:
           DATABASE_URL: sqlite:///./ci.db

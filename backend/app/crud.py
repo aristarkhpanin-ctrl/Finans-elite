@@ -24,7 +24,6 @@ from .db_models import (
 )
 from .plans import DEFAULT_PLAN
 
-
 # --- Организации ---
 
 def create_organization(db: Session, name: str, plan_code: str = DEFAULT_PLAN) -> Organization:

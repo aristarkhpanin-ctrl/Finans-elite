@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from calc_core.series import add, cumulative, const, scale, sub, total, zeros
+from calc_core.series import add, const, cumulative, scale, sub, total, zeros
 
 
 def test_zeros_and_const():

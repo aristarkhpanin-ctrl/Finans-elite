@@ -1,6 +1,7 @@
 """Демонстрационные проекты для тестов и примеров."""
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date
 from decimal import Decimal
 
@@ -317,7 +318,7 @@ def build_services_project() -> ProjectModel:
 
 
 # Шаблоны проектов для быстрого старта: id → (название, описание, фабрика модели).
-TEMPLATES: dict[str, tuple[str, str, "callable"]] = {
+TEMPLATES: dict[str, tuple[str, str, Callable[[], ProjectModel]]] = {
     "production": ("Производство (демо)",
                    "Мини-производство с нуля: выпуск, запасы, заём и капитал.",
                    build_sample_project),
