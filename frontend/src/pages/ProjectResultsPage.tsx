@@ -14,7 +14,7 @@ import { GRANDS, StatementTable, SUBTOTALS } from "../components/StatementTable"
 import { SummaryView } from "../components/SummaryView";
 import { useToast } from "../components/Toast";
 import { Button, Skeleton } from "../components/ui";
-import { downloadCsv, downloadXlsx, statementsToCsv } from "../export";
+import { downloadCsv, downloadPdf, downloadXlsx, statementsToCsv } from "../export";
 import { fmtMillions, fmtRatio, percent } from "../format";
 
 const STATEMENTS = [
@@ -87,9 +87,23 @@ export function ProjectResultsPage() {
             >
               XLSX
             </button>
+            <button
+              type="button"
+              onClick={async () => {
+                toast("Готовим PDF…", { kind: "info" });
+                try {
+                  await downloadPdf("reports.pdf", data, title);
+                  toast("Файл PDF скачан", { kind: "success" });
+                } catch {
+                  toast("Не удалось сформировать PDF", { kind: "error" });
+                }
+              }}
+            >
+              PDF
+            </button>
             <button type="button" onClick={() => setPrintMode(true)}>
               <IconPrint size={15} />
-              <span style={{ marginLeft: 6 }}>Печать / PDF</span>
+              <span style={{ marginLeft: 6 }}>Печать</span>
             </button>
           </div>
         )}
@@ -257,7 +271,7 @@ export function ProjectResultsPage() {
           </Button>
           <Button onClick={() => window.print()}>
             <IconPrint size={15} />
-            <span style={{ marginLeft: 7 }}>Скачать PDF</span>
+            <span style={{ marginLeft: 7 }}>Печать</span>
           </Button>
         </div>
       </div>

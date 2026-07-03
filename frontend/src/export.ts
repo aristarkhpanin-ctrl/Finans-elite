@@ -1,5 +1,6 @@
 import type { CalcResponse, StatementOut } from "./api/calc";
 import { SUBTOTALS } from "./components/StatementTable";
+import { fmtMoney, fmtTable, percent, ratio } from "./format";
 
 // Экспорт отчётов в CSV (разделитель «;» — Excel RU; UTF-8 BOM для кириллицы).
 function csvCell(v: string): string {
@@ -81,4 +82,78 @@ export async function downloadXlsx(filename: string, result: CalcResponse): Prom
     { data: statementSheet(result.profit_use, SUBTOTALS.profit_use, months), sheet: "Использование прибыли", columns: stmtCols },
     { data: metrics, sheet: "Показатели", columns: [{ width: 26 }, { width: 18 }] },
   ]).toFile(filename);
+}
+
+// PDF: A4-альбом, встроенный шрифт с кириллицей (DejaVu subset), таблицы отчётов с
+// переносом колонок по месяцам. jsPDF/autotable/шрифт — лениво (только по клику).
+export async function downloadPdf(filename: string, result: CalcResponse, projectName: string): Promise<void> {
+  const [{ jsPDF }, autoTableMod, fontMod] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable"),
+    import("./pdfFont"),
+  ]);
+  const autoTable = autoTableMod.default;
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  doc.addFileToVFS("DejaVuSans.ttf", fontMod.DEJAVU_SANS_BASE64);
+  doc.addFont("DejaVuSans.ttf", "DejaVu", "normal");
+  doc.setFont("DejaVu");
+
+  const months = Array.from({ length: result.n }, (_, i) => `М${i + 1}`);
+  const m = result.metrics;
+  const finalY = () => (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
+
+  doc.setFontSize(15);
+  doc.text(projectName || "Проект", 12, 14);
+  doc.setFontSize(9);
+  doc.setTextColor(120);
+  doc.text(`Финансовая модель · ${result.n} мес · движок ${result.engine_version}`, 12, 20);
+  doc.setTextColor(20);
+
+  autoTable(doc, {
+    startY: 25,
+    styles: { font: "DejaVu", fontSize: 9, textColor: 20 },
+    // Только regular-начертание встроено → заголовки тоже normal (акцент — заливкой).
+    headStyles: { font: "DejaVu", fontStyle: "normal", fillColor: [19, 138, 69], textColor: 255 },
+    head: [["NPV", "IRR (год)", "PI", "Окупаемость, мес."]],
+    body: [[
+      fmtMoney(m.npv),
+      m.irr_annual != null ? percent(m.irr_annual, 1) : "—",
+      m.pi != null ? ratio(m.pi) : "—",
+      m.pb_months != null ? String(m.pb_months) : "—",
+    ]],
+  });
+
+  const statements: Array<[string, StatementOut, Set<string>]> = [
+    ["Отчёт о прибылях и убытках", result.income, SUBTOTALS.income],
+    ["Отчёт о движении денежных средств", result.cashflow, SUBTOTALS.cashflow],
+    ["Баланс", result.balance, SUBTOTALS.balance],
+    ["Использование прибыли", result.profit_use, SUBTOTALS.profit_use],
+  ];
+
+  for (const [title, stmt, subs] of statements) {
+    let y = finalY() + 9;
+    if (y > doc.internal.pageSize.getHeight() - 24) {
+      doc.addPage();
+      y = 16;
+    }
+    doc.setFontSize(11);
+    doc.text(title, 12, y);
+    autoTable(doc, {
+      startY: y + 2,
+      margin: { left: 12, right: 12 },
+      styles: { font: "DejaVu", fontSize: 6.5, cellPadding: 0.8, textColor: 20, halign: "right" },
+      headStyles: { font: "DejaVu", fontStyle: "normal", fillColor: [235, 235, 235], textColor: 20, halign: "right" },
+      columnStyles: { 0: { cellWidth: 11, halign: "left" }, 1: { cellWidth: 42, halign: "left" } },
+      head: [["Код", "Статья", ...months]],
+      body: stmt.lines.map((l) => [l.code, l.label, ...l.values.map((v) => fmtTable(v).text)]),
+      didParseCell: (data) => {
+        const code = data.section === "body" ? stmt.lines[data.row.index]?.code : undefined;
+        if (code && subs.has(code)) data.cell.styles.fillColor = [244, 244, 244];
+      },
+      horizontalPageBreak: true,
+      horizontalPageBreakRepeat: 1,
+    });
+  }
+
+  doc.save(filename);
 }
