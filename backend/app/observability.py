@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import time
 import uuid
 from contextvars import ContextVar
@@ -25,6 +26,18 @@ from calc_core.engine.errors import InvariantError
 request_id_var: ContextVar[str] = ContextVar("request_id", default="-")
 
 log = logging.getLogger("finans")
+
+# Санитизация входящего X-Request-ID: безопасный набор символов и длина.
+_RID_DISALLOWED = re.compile(r"[^A-Za-z0-9._-]")
+
+
+def _clean_request_id(raw: str | None) -> str:
+    """Очистить входящий request-id (защита от log/header-инъекций: \\r\\n и пр.).
+
+    Оставляем только [A-Za-z0-9._-], не длиннее 64; пусто → генерируем.
+    """
+    cleaned = _RID_DISALLOWED.sub("", raw or "")[:64]
+    return cleaned or uuid.uuid4().hex[:12]
 
 
 class _RequestIdFilter(logging.Filter):
@@ -58,7 +71,7 @@ def setup_observability(app: FastAPI) -> None:
 
     @app.middleware("http")
     async def request_context(request: Request, call_next):
-        rid = request.headers.get("X-Request-ID") or uuid.uuid4().hex[:12]
+        rid = _clean_request_id(request.headers.get("X-Request-ID"))
         token = request_id_var.set(rid)
         start = time.perf_counter()
         try:

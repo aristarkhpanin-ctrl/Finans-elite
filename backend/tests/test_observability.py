@@ -17,6 +17,12 @@ def test_incoming_request_id_is_echoed(client):
     assert r.headers.get("X-Request-ID") == "trace-123"
 
 
+def test_request_id_is_sanitized(client):
+    # Небезопасные символы (пробелы, <>, потенциальные инъекции) вырезаются.
+    r = client.get("/health", headers={"X-Request-ID": "abc <inject> 123"})
+    assert r.headers["X-Request-ID"] == "abcinject123"
+
+
 def test_invariant_error_returns_clean_500_with_request_id():
     # Изолированное приложение: маршрут, имитирующий баг ядра (InvariantError).
     app = FastAPI()

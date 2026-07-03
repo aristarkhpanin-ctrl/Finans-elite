@@ -23,10 +23,19 @@ def _enabled() -> bool:
 
 
 def _client_ip(request: Request) -> str:
-    """IP клиента: первый хоп X-Forwarded-For (за доверенным прокси) либо peer."""
+    """IP клиента, как его видит доверенный прокси (nginx).
+
+    Приоритет — ``X-Real-IP`` (nginx перезаписывает его на реальный ``$remote_addr``).
+    Затем — **последний** элемент ``X-Forwarded-For`` (его добавляет ближайший доверенный
+    прокси; первые элементы клиент может подделать — нельзя брать ``[0]``, иначе rate-limit
+    обходится сменой заголовка на каждый запрос). Иначе — адрес соединения.
+    """
+    real = request.headers.get("x-real-ip")
+    if real:
+        return real.strip()
     forwarded = request.headers.get("x-forwarded-for")
     if forwarded:
-        return forwarded.split(",")[0].strip()
+        return forwarded.split(",")[-1].strip()
     return request.client.host if request.client else "unknown"
 
 

@@ -32,6 +32,20 @@ def test_rate_limit_is_per_ip(client, monkeypatch):
     assert _login(client, _XFF2).status_code == 401      # другой IP — свободен
 
 
+def test_spoofed_xff_first_hop_does_not_bypass(client, monkeypatch):
+    # Атакующий меняет ПЕРВЫЙ X-Forwarded-For на каждый запрос, но X-Real-IP (его
+    # выставляет nginx на реальный IP) один → лимит срабатывает, обхода нет.
+    monkeypatch.setenv("RATE_LIMIT_ENABLED", "true")
+    _store.clear()
+    real = {"X-Real-IP": "198.51.100.5"}
+    for i in range(20):
+        client.post("/api/v1/auth/login", json={"email": "n@e.ru", "password": "x"},
+                    headers={**real, "X-Forwarded-For": f"1.2.3.{i}"})
+    blocked = client.post("/api/v1/auth/login", json={"email": "n@e.ru", "password": "x"},
+                          headers={**real, "X-Forwarded-For": "203.0.113.250"})
+    assert blocked.status_code == 429
+
+
 def test_rate_limit_disabled_by_default(client, monkeypatch):
     monkeypatch.setenv("RATE_LIMIT_ENABLED", "false")
     _store.clear()
