@@ -33,6 +33,12 @@ jobs:
       - name: Типы (mypy)
         run: python -m mypy
 
+      - name: Контракт OpenAPI актуален
+        run: |
+          python scripts/dump_openapi.py
+          git diff --exit-code openapi.json \
+            || (echo '::error::openapi.json устарел — запустите: python scripts/dump_openapi.py' && exit 1)
+
       - name: Проверка миграций (SQLite)
         env:
           DATABASE_URL: sqlite:///./ci.db

@@ -1,4 +1,5 @@
 import { api } from "./client";
+import type { Schema } from "./gen";
 import type { ProjectDetail, ProjectModel } from "./model";
 import type { ProjectSummary } from "./types";
 
@@ -19,11 +20,7 @@ export async function createProject(name: string, durationMonths = 12): Promise<
   return data;
 }
 
-export interface TemplateInfo {
-  id: string;
-  name: string;
-  description: string;
-}
+export type TemplateInfo = Schema<"TemplateInfo">;
 
 export async function listTemplates(): Promise<TemplateInfo[]> {
   const { data } = await api.get<TemplateInfo[]>("/api/v1/templates");

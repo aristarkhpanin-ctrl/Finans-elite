@@ -1,39 +1,13 @@
-import type { CalcResponse } from "./calc";
 import { api } from "./client";
+import type { Schema } from "./gen";
 
-export interface HoldingMember {
-  project_id: string;
-  role: string; // "parent" | "subsidiary"
-}
-
-export interface HoldingConsolidation {
-  npv: string;
-  rate: string;
-  at: string;
-}
-
-export interface Holding {
-  id: string;
-  name: string;
-  created_at: string;
-  members: HoldingMember[];
-  last_consolidation: HoldingConsolidation | null;
-}
-
+// Типы ответов — из сгенерированной OpenAPI-схемы (см. gen.ts).
+export type HoldingMember = Schema<"HoldingMemberOut">;
+export type HoldingConsolidation = Schema<"HoldingConsolidationOut">;
+export type Holding = Schema<"HoldingOut">;
 /** Вклад проекта в консолидацию (B3). */
-export interface PerProject {
-  project_id: string;
-  name: string;
-  role: string;
-  npv: string;
-  irr_annual: string | null;
-  revenue_total: string;
-  net_profit_total: string;
-}
-
-export interface ConsolidateResponse extends CalcResponse {
-  per_project: PerProject[];
-}
+export type PerProject = Schema<"PerProjectOut">;
+export type ConsolidateResponse = Schema<"ConsolidateResponse">;
 
 export const HOLDING_ROLES: [string, string][] = [
   ["parent", "Головная"],

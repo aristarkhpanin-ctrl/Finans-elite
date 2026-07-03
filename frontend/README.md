@@ -81,8 +81,18 @@ npm install
 npm run dev        # http://localhost:5173 (прокси /api → backend :8000)
 npm run build      # production-сборка
 npm run typecheck  # проверка типов
+npm run gen:api    # регенерировать типы API из backend/openapi.json
 ```
 Backend должен быть запущен на :8000 (или задайте `VITE_API_URL`).
+
+## Типы API из OpenAPI-контракта
+Типы ответов бэкенда не пишутся руками, а генерируются из его OpenAPI-схемы в
+`src/api/schema.d.ts` (`npm run gen:api`; файл коммитится, руками не править). Модули
+`src/api/*.ts` берут типы оттуда через `Schema<"…">` (см. `gen.ts`) — переименование или
+смена типа поля на бэкенде ловится сборкой, а не «тихим» багом. Обновление контракта:
+`python backend/scripts/dump_openapi.py` → `npm run gen:api`; CI сверяет `openapi.json`
+и `schema.d.ts` с регенерацией. Исключения (руками): модель проекта `model.ts` и входные
+тела запросов, где типы фронта строже (например, `kind` распределения — union, не `str`).
 
 ## Дальше (опционально)
 - Экспорт PDF, импорт `.pex`.

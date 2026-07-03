@@ -1,4 +1,5 @@
 import { api } from "./client";
+import type { Schema } from "./gen";
 
 export const SENSITIVITY_PARAMS: [string, string][] = [
   ["sales_price", "Цена сбыта"],
@@ -8,16 +9,12 @@ export const SENSITIVITY_PARAMS: [string, string][] = [
   ["discount_rate", "Ставка дисконтирования"],
 ];
 
+// Ответы — из сгенерированной OpenAPI-схемы; входные тела запросов — руками
+// (у kind — строгий union, точнее бэкендового str).
+
 // --- Чувствительность ---
-export interface SensitivityPoint {
-  factor: string;
-  npv: string;
-  irr_annual: string | null;
-}
-export interface SensitivityResponse {
-  param: string;
-  points: SensitivityPoint[];
-}
+export type SensitivityPoint = Schema<"SensitivityPointOut">;
+export type SensitivityResponse = Schema<"SensitivityResponse">;
 export async function runSensitivity(id: string, param: string, factors: string[]): Promise<SensitivityResponse> {
   const { data } = await api.post<SensitivityResponse>(`/api/v1/projects/${id}/sensitivity`, { param, factors });
   return data;
@@ -36,23 +33,8 @@ export interface UncertainParamIn {
   param: string;
   distribution: DistributionIn;
 }
-export interface HistogramBin {
-  from: string;
-  to: string;
-  count: number;
-}
-export interface MonteCarloResponse {
-  iterations: number;
-  npv_mean: string;
-  npv_std: string;
-  npv_min: string;
-  npv_max: string;
-  npv_p10: string;
-  npv_p50: string;
-  npv_p90: string;
-  probability_npv_positive: string;
-  histogram: HistogramBin[];
-}
+export type HistogramBin = Schema<"HistogramBinOut">;
+export type MonteCarloResponse = Schema<"MonteCarloResponse">;
 export async function runMonteCarlo(
   id: string,
   body: { iterations: number; seed: number; uncertain: UncertainParamIn[] },
@@ -70,16 +52,8 @@ export interface ScenarioIn {
   name: string;
   adjustments: ScenarioAdjustmentIn[];
 }
-export interface ScenarioResult {
-  name: string;
-  npv: string;
-  irr_annual: string | null;
-  pi: string | null;
-  pb_months: number | null;
-}
-export interface WhatIfResponse {
-  scenarios: ScenarioResult[];
-}
+export type ScenarioResult = Schema<"ScenarioResultOut">;
+export type WhatIfResponse = Schema<"WhatIfResponse">;
 export async function runWhatIf(
   id: string,
   scenarios: ScenarioIn[],

@@ -1,0 +1,6288 @@
+{
+  "components": {
+    "schemas": {
+      "Actualization-Input": {
+        "description": "Фактические значения строк Кэш-фло по месяцам.\n\n``actual_until`` — индекс последнего актуализированного месяца (``-1`` — актуализация\nотсутствует). ``actuals`` — фактические значения листовых строк Кэш-фло\n(код → ряд по месяцам); применяются к периодам ``t <= actual_until``.",
+        "properties": {
+          "actual_until": {
+            "default": -1,
+            "title": "Actual Until",
+            "type": "integer"
+          },
+          "actuals": {
+            "additionalProperties": {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                    "type": "string"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            "title": "Actuals",
+            "type": "object"
+          }
+        },
+        "title": "Actualization",
+        "type": "object"
+      },
+      "Actualization-Output": {
+        "description": "Фактические значения строк Кэш-фло по месяцам.\n\n``actual_until`` — индекс последнего актуализированного месяца (``-1`` — актуализация\nотсутствует). ``actuals`` — фактические значения листовых строк Кэш-фло\n(код → ряд по месяцам); применяются к периодам ``t <= actual_until``.",
+        "properties": {
+          "actual_until": {
+            "default": -1,
+            "title": "Actual Until",
+            "type": "integer"
+          },
+          "actuals": {
+            "additionalProperties": {
+              "items": {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Actuals",
+            "type": "object"
+          }
+        },
+        "title": "Actualization",
+        "type": "object"
+      },
+      "Asset-Input": {
+        "description": "Основное средство.",
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/AssetCategory",
+            "default": "equipment"
+          },
+          "cost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Cost"
+          },
+          "life_months": {
+            "default": 12,
+            "title": "Life Months",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "purchase_month": {
+            "default": 0,
+            "title": "Purchase Month",
+            "type": "integer"
+          },
+          "revaluation_amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Revaluation Amount"
+          },
+          "revaluation_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revaluation Month"
+          },
+          "sale_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sale Month"
+          },
+          "sale_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Sale Price"
+          }
+        },
+        "required": [
+          "name",
+          "cost"
+        ],
+        "title": "Asset",
+        "type": "object"
+      },
+      "Asset-Output": {
+        "description": "Основное средство.",
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/AssetCategory",
+            "default": "equipment"
+          },
+          "cost": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Cost",
+            "type": "string"
+          },
+          "life_months": {
+            "default": 12,
+            "title": "Life Months",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "purchase_month": {
+            "default": 0,
+            "title": "Purchase Month",
+            "type": "integer"
+          },
+          "revaluation_amount": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Revaluation Amount",
+            "type": "string"
+          },
+          "revaluation_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revaluation Month"
+          },
+          "sale_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sale Month"
+          },
+          "sale_price": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Sale Price",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "cost"
+        ],
+        "title": "Asset",
+        "type": "object"
+      },
+      "AssetCategory": {
+        "description": "Группа основных средств (разнос остаточной стоимости по балансу B12–B14, SPEC §9).",
+        "enum": [
+          "equipment",
+          "buildings",
+          "land"
+        ],
+        "title": "AssetCategory",
+        "type": "string"
+      },
+      "AutoFinancing-Input": {
+        "description": "Автоподбор финансирования: покрытие дефицита наличности кредитной линией.\n\nКаждый период, если денег меньше ``min_balance``, привлекается заём до этого уровня;\nпри профиците задолженность гасится. Проценты влияют на прибыль и налог, поэтому\nрасчёт итеративный (см. SPEC §19).",
+        "properties": {
+          "annual_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0.18",
+            "title": "Annual Rate"
+          },
+          "enabled": {
+            "default": false,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "min_balance": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Min Balance"
+          }
+        },
+        "title": "AutoFinancing",
+        "type": "object"
+      },
+      "AutoFinancing-Output": {
+        "description": "Автоподбор финансирования: покрытие дефицита наличности кредитной линией.\n\nКаждый период, если денег меньше ``min_balance``, привлекается заём до этого уровня;\nпри профиците задолженность гасится. Проценты влияют на прибыль и налог, поэтому\nрасчёт итеративный (см. SPEC §19).",
+        "properties": {
+          "annual_rate": {
+            "default": "0.18",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Annual Rate",
+            "type": "string"
+          },
+          "enabled": {
+            "default": false,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "min_balance": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Min Balance",
+            "type": "string"
+          }
+        },
+        "title": "AutoFinancing",
+        "type": "object"
+      },
+      "BreakEvenOut": {
+        "properties": {
+          "break_even_revenue": {
+            "items": {
+              "anyOf": [
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Break Even Revenue",
+            "type": "array"
+          },
+          "margin_of_safety": {
+            "items": {
+              "anyOf": [
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Margin Of Safety",
+            "type": "array"
+          }
+        },
+        "required": [
+          "break_even_revenue",
+          "margin_of_safety"
+        ],
+        "title": "BreakEvenOut",
+        "type": "object"
+      },
+      "CalcResponse": {
+        "properties": {
+          "actualized_cashflow": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StatementOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "balance": {
+            "$ref": "#/components/schemas/StatementOut"
+          },
+          "break_even": {
+            "$ref": "#/components/schemas/BreakEvenOut"
+          },
+          "cashflow": {
+            "$ref": "#/components/schemas/StatementOut"
+          },
+          "cashflow_variance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StatementOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "income": {
+            "$ref": "#/components/schemas/StatementOut"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/MetricsOut"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "profit_use": {
+            "$ref": "#/components/schemas/StatementOut"
+          },
+          "ratios": {
+            "$ref": "#/components/schemas/RatiosOut"
+          },
+          "valuation": {
+            "$ref": "#/components/schemas/ValuationOut"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "engine_version",
+          "n",
+          "income",
+          "cashflow",
+          "balance",
+          "profit_use",
+          "metrics",
+          "ratios",
+          "break_even",
+          "valuation",
+          "warnings"
+        ],
+        "title": "CalcResponse",
+        "type": "object"
+      },
+      "CheckoutRequest": {
+        "properties": {
+          "plan_code": {
+            "title": "Plan Code",
+            "type": "string"
+          },
+          "return_url": {
+            "default": "https://example.com/billing/return",
+            "title": "Return Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan_code"
+        ],
+        "title": "CheckoutRequest",
+        "type": "object"
+      },
+      "CheckoutResponse": {
+        "properties": {
+          "activated": {
+            "title": "Activated",
+            "type": "boolean"
+          },
+          "confirmation_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmation Url"
+          },
+          "payment_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Id"
+          }
+        },
+        "required": [
+          "activated"
+        ],
+        "title": "CheckoutResponse",
+        "type": "object"
+      },
+      "Company-Input": {
+        "properties": {
+          "starting_balance": {
+            "$ref": "#/components/schemas/StartingBalance-Input",
+            "default": {
+              "cash": "0",
+              "debt": "0",
+              "finished_goods": "0",
+              "fixed_assets_net": "0",
+              "foreign_monetary": "0",
+              "paid_in_capital": "0",
+              "payables": "0",
+              "raw_materials": "0",
+              "receivables": "0",
+              "retained_earnings": "0"
+            }
+          }
+        },
+        "title": "Company",
+        "type": "object"
+      },
+      "Company-Output": {
+        "properties": {
+          "starting_balance": {
+            "$ref": "#/components/schemas/StartingBalance-Output",
+            "default": {
+              "cash": "0",
+              "debt": "0",
+              "finished_goods": "0",
+              "fixed_assets_net": "0",
+              "foreign_monetary": "0",
+              "paid_in_capital": "0",
+              "payables": "0",
+              "raw_materials": "0",
+              "receivables": "0",
+              "retained_earnings": "0"
+            }
+          }
+        },
+        "title": "Company",
+        "type": "object"
+      },
+      "ConsolidateRequest": {
+        "properties": {
+          "group_discount_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0.15",
+            "title": "Group Discount Rate"
+          },
+          "project_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Project Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "project_ids"
+        ],
+        "title": "ConsolidateRequest",
+        "type": "object"
+      },
+      "ConsolidateResponse": {
+        "description": "Сводный бюджет холдинга + разбивка вклада по проектам (B3).",
+        "properties": {
+          "actualized_cashflow": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StatementOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "balance": {
+            "$ref": "#/components/schemas/StatementOut"
+          },
+          "break_even": {
+            "$ref": "#/components/schemas/BreakEvenOut"
+          },
+          "cashflow": {
+            "$ref": "#/components/schemas/StatementOut"
+          },
+          "cashflow_variance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StatementOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "income": {
+            "$ref": "#/components/schemas/StatementOut"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/MetricsOut"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "per_project": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PerProjectOut"
+            },
+            "title": "Per Project",
+            "type": "array"
+          },
+          "profit_use": {
+            "$ref": "#/components/schemas/StatementOut"
+          },
+          "ratios": {
+            "$ref": "#/components/schemas/RatiosOut"
+          },
+          "valuation": {
+            "$ref": "#/components/schemas/ValuationOut"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "engine_version",
+          "n",
+          "income",
+          "cashflow",
+          "balance",
+          "profit_use",
+          "metrics",
+          "ratios",
+          "break_even",
+          "valuation",
+          "warnings"
+        ],
+        "title": "ConsolidateResponse",
+        "type": "object"
+      },
+      "CostFunction": {
+        "description": "Функциональное назначение издержки (разнос на строки ОПУ I10–I15).",
+        "enum": [
+          "admin",
+          "production",
+          "marketing",
+          "staff_admin",
+          "staff_production",
+          "staff_marketing"
+        ],
+        "title": "CostFunction",
+        "type": "string"
+      },
+      "Currency": {
+        "description": "Валюта проекта.",
+        "properties": {
+          "code": {
+            "default": "RUB",
+            "title": "Code",
+            "type": "string"
+          },
+          "name": {
+            "default": "Российский рубль",
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "title": "Currency",
+        "type": "object"
+      },
+      "Deposit-Input": {
+        "description": "Размещение свободных средств: вложение C8, доход C9, тело в B6 (SPEC §10).",
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Amount"
+          },
+          "annual_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Annual Rate"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "start_month": {
+            "default": 0,
+            "title": "Start Month",
+            "type": "integer"
+          },
+          "term_months": {
+            "default": 12,
+            "title": "Term Months",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "amount"
+        ],
+        "title": "Deposit",
+        "type": "object"
+      },
+      "Deposit-Output": {
+        "description": "Размещение свободных средств: вложение C8, доход C9, тело в B6 (SPEC §10).",
+        "properties": {
+          "amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "annual_rate": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Annual Rate",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "start_month": {
+            "default": 0,
+            "title": "Start Month",
+            "type": "integer"
+          },
+          "term_months": {
+            "default": 12,
+            "title": "Term Months",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "amount"
+        ],
+        "title": "Deposit",
+        "type": "object"
+      },
+      "DirectCostKind": {
+        "description": "Вид прямых издержек (строки ОПУ I5/I6).",
+        "enum": [
+          "materials",
+          "piece_wages"
+        ],
+        "title": "DirectCostKind",
+        "type": "string"
+      },
+      "DirectCostLine-Input": {
+        "description": "Прямая издержка (материалы или сдельная зарплата), помесячно.\n\n``amount`` — стоимость, относимая к производству месяца (себестоимость капитализуется\nв запасах готовой продукции и признаётся при продаже, SPEC §6).",
+        "properties": {
+          "amount": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ]
+            },
+            "title": "Amount",
+            "type": "array"
+          },
+          "foreign": {
+            "default": false,
+            "title": "Foreign",
+            "type": "boolean"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/DirectCostKind",
+            "default": "materials"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "payment_delay_months": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Payment Delay Months",
+            "type": "integer"
+          },
+          "stock_lead_months": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Stock Lead Months",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "DirectCostLine",
+        "type": "object"
+      },
+      "DirectCostLine-Output": {
+        "description": "Прямая издержка (материалы или сдельная зарплата), помесячно.\n\n``amount`` — стоимость, относимая к производству месяца (себестоимость капитализуется\nв запасах готовой продукции и признаётся при продаже, SPEC §6).",
+        "properties": {
+          "amount": {
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Amount",
+            "type": "array"
+          },
+          "foreign": {
+            "default": false,
+            "title": "Foreign",
+            "type": "boolean"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/DirectCostKind",
+            "default": "materials"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "payment_delay_months": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Payment Delay Months",
+            "type": "integer"
+          },
+          "stock_lead_months": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Stock Lead Months",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "DirectCostLine",
+        "type": "object"
+      },
+      "DistributionIn": {
+        "properties": {
+          "high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "High"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low"
+          },
+          "mean": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mode"
+          },
+          "std": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Std"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "DistributionIn",
+        "type": "object"
+      },
+      "Environment-Input": {
+        "properties": {
+          "currencies": {
+            "items": {
+              "$ref": "#/components/schemas/Currency"
+            },
+            "title": "Currencies",
+            "type": "array"
+          },
+          "fx_open": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "1",
+            "title": "Fx Open"
+          },
+          "fx_rate": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ]
+            },
+            "title": "Fx Rate",
+            "type": "array"
+          },
+          "inflation": {
+            "items": {
+              "$ref": "#/components/schemas/InflationGroup-Input"
+            },
+            "title": "Inflation",
+            "type": "array"
+          },
+          "taxes": {
+            "items": {
+              "$ref": "#/components/schemas/Tax-Input"
+            },
+            "title": "Taxes",
+            "type": "array"
+          }
+        },
+        "title": "Environment",
+        "type": "object"
+      },
+      "Environment-Output": {
+        "properties": {
+          "currencies": {
+            "items": {
+              "$ref": "#/components/schemas/Currency"
+            },
+            "title": "Currencies",
+            "type": "array"
+          },
+          "fx_open": {
+            "default": "1",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Fx Open",
+            "type": "string"
+          },
+          "fx_rate": {
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Fx Rate",
+            "type": "array"
+          },
+          "inflation": {
+            "items": {
+              "$ref": "#/components/schemas/InflationGroup-Output"
+            },
+            "title": "Inflation",
+            "type": "array"
+          },
+          "taxes": {
+            "items": {
+              "$ref": "#/components/schemas/Tax-Output"
+            },
+            "title": "Taxes",
+            "type": "array"
+          }
+        },
+        "title": "Environment",
+        "type": "object"
+      },
+      "EquityInjection-Input": {
+        "description": "Взнос в акционерный капитал (обыкновенные акции).",
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Amount"
+          },
+          "month": {
+            "default": 0,
+            "title": "Month",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "amount"
+        ],
+        "title": "EquityInjection",
+        "type": "object"
+      },
+      "EquityInjection-Output": {
+        "description": "Взнос в акционерный капитал (обыкновенные акции).",
+        "properties": {
+          "amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "month": {
+            "default": 0,
+            "title": "Month",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "amount"
+        ],
+        "title": "EquityInjection",
+        "type": "object"
+      },
+      "Financing-Input": {
+        "properties": {
+          "auto_financing": {
+            "$ref": "#/components/schemas/AutoFinancing-Input",
+            "default": {
+              "annual_rate": "0.18",
+              "enabled": false,
+              "min_balance": "0"
+            }
+          },
+          "common_shares": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Common Shares"
+          },
+          "deposits": {
+            "items": {
+              "$ref": "#/components/schemas/Deposit-Input"
+            },
+            "title": "Deposits",
+            "type": "array"
+          },
+          "dividends": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ]
+            },
+            "title": "Dividends",
+            "type": "array"
+          },
+          "equity": {
+            "items": {
+              "$ref": "#/components/schemas/EquityInjection-Input"
+            },
+            "title": "Equity",
+            "type": "array"
+          },
+          "leases": {
+            "items": {
+              "$ref": "#/components/schemas/Lease-Input"
+            },
+            "title": "Leases",
+            "type": "array"
+          },
+          "loans": {
+            "items": {
+              "$ref": "#/components/schemas/Loan-Input"
+            },
+            "title": "Loans",
+            "type": "array"
+          }
+        },
+        "title": "Financing",
+        "type": "object"
+      },
+      "Financing-Output": {
+        "properties": {
+          "auto_financing": {
+            "$ref": "#/components/schemas/AutoFinancing-Output",
+            "default": {
+              "annual_rate": "0.18",
+              "enabled": false,
+              "min_balance": "0"
+            }
+          },
+          "common_shares": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Common Shares",
+            "type": "string"
+          },
+          "deposits": {
+            "items": {
+              "$ref": "#/components/schemas/Deposit-Output"
+            },
+            "title": "Deposits",
+            "type": "array"
+          },
+          "dividends": {
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Dividends",
+            "type": "array"
+          },
+          "equity": {
+            "items": {
+              "$ref": "#/components/schemas/EquityInjection-Output"
+            },
+            "title": "Equity",
+            "type": "array"
+          },
+          "leases": {
+            "items": {
+              "$ref": "#/components/schemas/Lease-Output"
+            },
+            "title": "Leases",
+            "type": "array"
+          },
+          "loans": {
+            "items": {
+              "$ref": "#/components/schemas/Loan-Output"
+            },
+            "title": "Loans",
+            "type": "array"
+          }
+        },
+        "title": "Financing",
+        "type": "object"
+      },
+      "FixedCostLine-Input": {
+        "description": "Постоянная (общая) издержка с функциональным разносом, помесячно.",
+        "properties": {
+          "amount": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ]
+            },
+            "title": "Amount",
+            "type": "array"
+          },
+          "foreign": {
+            "default": false,
+            "title": "Foreign",
+            "type": "boolean"
+          },
+          "from_profit": {
+            "default": false,
+            "title": "From Profit",
+            "type": "boolean"
+          },
+          "function": {
+            "$ref": "#/components/schemas/CostFunction",
+            "default": "admin"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "payment_delay_months": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Payment Delay Months",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "FixedCostLine",
+        "type": "object"
+      },
+      "FixedCostLine-Output": {
+        "description": "Постоянная (общая) издержка с функциональным разносом, помесячно.",
+        "properties": {
+          "amount": {
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Amount",
+            "type": "array"
+          },
+          "foreign": {
+            "default": false,
+            "title": "Foreign",
+            "type": "boolean"
+          },
+          "from_profit": {
+            "default": false,
+            "title": "From Profit",
+            "type": "boolean"
+          },
+          "function": {
+            "$ref": "#/components/schemas/CostFunction",
+            "default": "admin"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "payment_delay_months": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Payment Delay Months",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "FixedCostLine",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HistogramBinOut": {
+        "description": "Столбец гистограммы NPV (B5); ``from_`` сериализуется как ``from``.",
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "from": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "From",
+            "type": "string"
+          },
+          "to": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "To",
+            "type": "string"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "count"
+        ],
+        "title": "HistogramBinOut",
+        "type": "object"
+      },
+      "HoldingConsolidationOut": {
+        "description": "Сводка последней консолидации холдинга (B3).",
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "npv": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Npv",
+            "type": "string"
+          },
+          "rate": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Rate",
+            "type": "string"
+          }
+        },
+        "required": [
+          "npv",
+          "rate",
+          "at"
+        ],
+        "title": "HoldingConsolidationOut",
+        "type": "object"
+      },
+      "HoldingCreate": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "HoldingCreate",
+        "type": "object"
+      },
+      "HoldingMemberCreate": {
+        "properties": {
+          "project_id": {
+            "title": "Project Id",
+            "type": "string"
+          },
+          "role": {
+            "default": "subsidiary",
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id"
+        ],
+        "title": "HoldingMemberCreate",
+        "type": "object"
+      },
+      "HoldingMemberOut": {
+        "properties": {
+          "project_id": {
+            "title": "Project Id",
+            "type": "string"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "role"
+        ],
+        "title": "HoldingMemberOut",
+        "type": "object"
+      },
+      "HoldingMemberPatch": {
+        "properties": {
+          "role": {
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role"
+        ],
+        "title": "HoldingMemberPatch",
+        "type": "object"
+      },
+      "HoldingOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "last_consolidation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HoldingConsolidationOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "members": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/HoldingMemberOut"
+            },
+            "title": "Members",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "created_at"
+        ],
+        "title": "HoldingOut",
+        "type": "object"
+      },
+      "InflationGroup-Input": {
+        "description": "Группа инфляции (годовые ставки помесячно). Зарезервировано для следующей фазы.",
+        "properties": {
+          "annual_rates": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ]
+            },
+            "title": "Annual Rates",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "InflationGroup",
+        "type": "object"
+      },
+      "InflationGroup-Output": {
+        "description": "Группа инфляции (годовые ставки помесячно). Зарезервировано для следующей фазы.",
+        "properties": {
+          "annual_rates": {
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Annual Rates",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "InflationGroup",
+        "type": "object"
+      },
+      "InventoryMethod": {
+        "description": "Метод оценки себестоимости запасов готовой продукции (SPEC §6, §22.8).",
+        "enum": [
+          "average",
+          "fifo"
+        ],
+        "title": "InventoryMethod",
+        "type": "string"
+      },
+      "InvestmentPlan-Input": {
+        "properties": {
+          "assets": {
+            "items": {
+              "$ref": "#/components/schemas/Asset-Input"
+            },
+            "title": "Assets",
+            "type": "array"
+          }
+        },
+        "title": "InvestmentPlan",
+        "type": "object"
+      },
+      "InvestmentPlan-Output": {
+        "properties": {
+          "assets": {
+            "items": {
+              "$ref": "#/components/schemas/Asset-Output"
+            },
+            "title": "Assets",
+            "type": "array"
+          }
+        },
+        "title": "InvestmentPlan",
+        "type": "object"
+      },
+      "LastCalcOut": {
+        "description": "Сводка последнего успешного расчёта (B1).",
+        "properties": {
+          "calculated_at": {
+            "format": "date-time",
+            "title": "Calculated At",
+            "type": "string"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "irr_annual": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Irr Annual"
+          },
+          "npv": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Npv",
+            "type": "string"
+          },
+          "pb_months": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pb Months"
+          }
+        },
+        "required": [
+          "npv",
+          "engine_version",
+          "calculated_at"
+        ],
+        "title": "LastCalcOut",
+        "type": "object"
+      },
+      "Lease-Input": {
+        "description": "Лизинг (SPEC §10).\n\n**Операционный** (по умолчанию): платёж — целиком издержка (I21) и отток (C25).\n**Финансовый** (``finance=True``): предмет лизинга капитализируется (B19) и\nамортизируется (I17), обязательство (→ B26) гасится телом платежа, процентная часть —\nв I18. Приведённая стоимость платежей дисконтируется по ``annual_rate`` (ставка 0 —\nобязательство = сумме платежей без процентов).",
+        "properties": {
+          "annual_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Annual Rate"
+          },
+          "finance": {
+            "default": false,
+            "title": "Finance",
+            "type": "boolean"
+          },
+          "monthly_payment": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Monthly Payment"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "start_month": {
+            "default": 0,
+            "title": "Start Month",
+            "type": "integer"
+          },
+          "term_months": {
+            "default": 12,
+            "title": "Term Months",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "monthly_payment"
+        ],
+        "title": "Lease",
+        "type": "object"
+      },
+      "Lease-Output": {
+        "description": "Лизинг (SPEC §10).\n\n**Операционный** (по умолчанию): платёж — целиком издержка (I21) и отток (C25).\n**Финансовый** (``finance=True``): предмет лизинга капитализируется (B19) и\nамортизируется (I17), обязательство (→ B26) гасится телом платежа, процентная часть —\nв I18. Приведённая стоимость платежей дисконтируется по ``annual_rate`` (ставка 0 —\nобязательство = сумме платежей без процентов).",
+        "properties": {
+          "annual_rate": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Annual Rate",
+            "type": "string"
+          },
+          "finance": {
+            "default": false,
+            "title": "Finance",
+            "type": "boolean"
+          },
+          "monthly_payment": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Monthly Payment",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "start_month": {
+            "default": 0,
+            "title": "Start Month",
+            "type": "integer"
+          },
+          "term_months": {
+            "default": 12,
+            "title": "Term Months",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "monthly_payment"
+        ],
+        "title": "Lease",
+        "type": "object"
+      },
+      "LineOut": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "values": {
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Values",
+            "type": "array"
+          }
+        },
+        "required": [
+          "code",
+          "label",
+          "values"
+        ],
+        "title": "LineOut",
+        "type": "object"
+      },
+      "Loan-Input": {
+        "description": "Заём.",
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Amount"
+          },
+          "annual_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0.20",
+            "title": "Annual Rate"
+          },
+          "foreign": {
+            "default": false,
+            "title": "Foreign",
+            "type": "boolean"
+          },
+          "interest_on_profit": {
+            "default": false,
+            "title": "Interest On Profit",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "repayment": {
+            "$ref": "#/components/schemas/RepaymentType",
+            "default": "equal_principal"
+          },
+          "start_month": {
+            "default": 0,
+            "title": "Start Month",
+            "type": "integer"
+          },
+          "term_months": {
+            "default": 12,
+            "title": "Term Months",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "amount"
+        ],
+        "title": "Loan",
+        "type": "object"
+      },
+      "Loan-Output": {
+        "description": "Заём.",
+        "properties": {
+          "amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "annual_rate": {
+            "default": "0.20",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Annual Rate",
+            "type": "string"
+          },
+          "foreign": {
+            "default": false,
+            "title": "Foreign",
+            "type": "boolean"
+          },
+          "interest_on_profit": {
+            "default": false,
+            "title": "Interest On Profit",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "repayment": {
+            "$ref": "#/components/schemas/RepaymentType",
+            "default": "equal_principal"
+          },
+          "start_month": {
+            "default": 0,
+            "title": "Start Month",
+            "type": "integer"
+          },
+          "term_months": {
+            "default": 12,
+            "title": "Term Months",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "amount"
+        ],
+        "title": "Loan",
+        "type": "object"
+      },
+      "LoginRequest": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "LoginRequest",
+        "type": "object"
+      },
+      "MemberCreate": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "full_name": {
+            "default": "",
+            "title": "Full Name",
+            "type": "string"
+          },
+          "role": {
+            "default": "viewer",
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "MemberCreate",
+        "type": "object"
+      },
+      "MemberOut": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "email",
+          "full_name",
+          "role"
+        ],
+        "title": "MemberOut",
+        "type": "object"
+      },
+      "MemberPatch": {
+        "properties": {
+          "role": {
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role"
+        ],
+        "title": "MemberPatch",
+        "type": "object"
+      },
+      "MetricsOut": {
+        "properties": {
+          "dpb_months": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dpb Months"
+          },
+          "irr_annual": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Irr Annual"
+          },
+          "npv": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Npv",
+            "type": "string"
+          },
+          "pb_months": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pb Months"
+          },
+          "peak_financing_need": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Peak Financing Need"
+          },
+          "pi": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pi"
+          },
+          "pv_investments": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pv Investments"
+          }
+        },
+        "required": [
+          "npv"
+        ],
+        "title": "MetricsOut",
+        "type": "object"
+      },
+      "MonteCarloRequest": {
+        "properties": {
+          "iterations": {
+            "default": 500,
+            "title": "Iterations",
+            "type": "integer"
+          },
+          "seed": {
+            "default": 42,
+            "title": "Seed",
+            "type": "integer"
+          },
+          "uncertain": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/UncertainParamIn"
+            },
+            "title": "Uncertain",
+            "type": "array"
+          }
+        },
+        "title": "MonteCarloRequest",
+        "type": "object"
+      },
+      "MonteCarloResponse": {
+        "properties": {
+          "histogram": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/HistogramBinOut"
+            },
+            "title": "Histogram",
+            "type": "array"
+          },
+          "iterations": {
+            "title": "Iterations",
+            "type": "integer"
+          },
+          "npv_max": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Npv Max",
+            "type": "string"
+          },
+          "npv_mean": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Npv Mean",
+            "type": "string"
+          },
+          "npv_min": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Npv Min",
+            "type": "string"
+          },
+          "npv_p10": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Npv P10",
+            "type": "string"
+          },
+          "npv_p50": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Npv P50",
+            "type": "string"
+          },
+          "npv_p90": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Npv P90",
+            "type": "string"
+          },
+          "npv_std": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Npv Std",
+            "type": "string"
+          },
+          "probability_npv_positive": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Probability Npv Positive",
+            "type": "string"
+          }
+        },
+        "required": [
+          "iterations",
+          "npv_mean",
+          "npv_std",
+          "npv_min",
+          "npv_max",
+          "npv_p10",
+          "npv_p50",
+          "npv_p90",
+          "probability_npv_positive"
+        ],
+        "title": "MonteCarloResponse",
+        "type": "object"
+      },
+      "OperatingPlan-Input": {
+        "properties": {
+          "direct_costs": {
+            "items": {
+              "$ref": "#/components/schemas/DirectCostLine-Input"
+            },
+            "title": "Direct Costs",
+            "type": "array"
+          },
+          "fixed_costs": {
+            "items": {
+              "$ref": "#/components/schemas/FixedCostLine-Input"
+            },
+            "title": "Fixed Costs",
+            "type": "array"
+          },
+          "production": {
+            "items": {
+              "$ref": "#/components/schemas/ProductionLine-Input"
+            },
+            "title": "Production",
+            "type": "array"
+          },
+          "products": {
+            "items": {
+              "$ref": "#/components/schemas/Product"
+            },
+            "title": "Products",
+            "type": "array"
+          },
+          "sales": {
+            "items": {
+              "$ref": "#/components/schemas/SalesLine-Input"
+            },
+            "title": "Sales",
+            "type": "array"
+          }
+        },
+        "title": "OperatingPlan",
+        "type": "object"
+      },
+      "OperatingPlan-Output": {
+        "properties": {
+          "direct_costs": {
+            "items": {
+              "$ref": "#/components/schemas/DirectCostLine-Output"
+            },
+            "title": "Direct Costs",
+            "type": "array"
+          },
+          "fixed_costs": {
+            "items": {
+              "$ref": "#/components/schemas/FixedCostLine-Output"
+            },
+            "title": "Fixed Costs",
+            "type": "array"
+          },
+          "production": {
+            "items": {
+              "$ref": "#/components/schemas/ProductionLine-Output"
+            },
+            "title": "Production",
+            "type": "array"
+          },
+          "products": {
+            "items": {
+              "$ref": "#/components/schemas/Product"
+            },
+            "title": "Products",
+            "type": "array"
+          },
+          "sales": {
+            "items": {
+              "$ref": "#/components/schemas/SalesLine-Output"
+            },
+            "title": "Sales",
+            "type": "array"
+          }
+        },
+        "title": "OperatingPlan",
+        "type": "object"
+      },
+      "OrganizationCreate": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "OrganizationCreate",
+        "type": "object"
+      },
+      "OrganizationMembershipOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "role",
+          "created_at"
+        ],
+        "title": "OrganizationMembershipOut",
+        "type": "object"
+      },
+      "OrganizationOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "created_at"
+        ],
+        "title": "OrganizationOut",
+        "type": "object"
+      },
+      "PaymentTerms-Input": {
+        "description": "Условия оплаты продаж (SPEC §5).\n\nДоля ``prepayment_share`` поступает предоплатой за ``advance_lead_months`` до поставки\n(формирует авансы, B24). Остаток поступает через ``payment_delay_months`` после\nпоставки (формирует дебиторку, B2).",
+        "properties": {
+          "advance_lead_months": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Advance Lead Months",
+            "type": "integer"
+          },
+          "payment_delay_months": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Payment Delay Months",
+            "type": "integer"
+          },
+          "prepayment_share": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Prepayment Share"
+          }
+        },
+        "title": "PaymentTerms",
+        "type": "object"
+      },
+      "PaymentTerms-Output": {
+        "description": "Условия оплаты продаж (SPEC §5).\n\nДоля ``prepayment_share`` поступает предоплатой за ``advance_lead_months`` до поставки\n(формирует авансы, B24). Остаток поступает через ``payment_delay_months`` после\nпоставки (формирует дебиторку, B2).",
+        "properties": {
+          "advance_lead_months": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Advance Lead Months",
+            "type": "integer"
+          },
+          "payment_delay_months": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Payment Delay Months",
+            "type": "integer"
+          },
+          "prepayment_share": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Prepayment Share",
+            "type": "string"
+          }
+        },
+        "title": "PaymentTerms",
+        "type": "object"
+      },
+      "PerProjectOut": {
+        "description": "Вклад одного проекта в консолидацию (B3).",
+        "properties": {
+          "irr_annual": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Irr Annual"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "net_profit_total": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Net Profit Total",
+            "type": "string"
+          },
+          "npv": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Npv",
+            "type": "string"
+          },
+          "project_id": {
+            "title": "Project Id",
+            "type": "string"
+          },
+          "revenue_total": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Revenue Total",
+            "type": "string"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "name",
+          "role",
+          "npv",
+          "revenue_total",
+          "net_profit_total"
+        ],
+        "title": "PerProjectOut",
+        "type": "object"
+      },
+      "PlanOut": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "max_members": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Members"
+          },
+          "max_projects": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Projects"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "price_rub": {
+            "title": "Price Rub",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "price_rub"
+        ],
+        "title": "PlanOut",
+        "type": "object"
+      },
+      "Product": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "Product",
+        "type": "object"
+      },
+      "ProductionLine-Input": {
+        "description": "План производства продукта (натуральный объём по месяцам).\n\nЕсли для продукта план производства не задан, считается «производство под продажи»\n(производство = сбыт), и запасы готовой продукции не образуются.",
+        "properties": {
+          "product_id": {
+            "title": "Product Id",
+            "type": "string"
+          },
+          "volume": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ]
+            },
+            "title": "Volume",
+            "type": "array"
+          }
+        },
+        "required": [
+          "product_id"
+        ],
+        "title": "ProductionLine",
+        "type": "object"
+      },
+      "ProductionLine-Output": {
+        "description": "План производства продукта (натуральный объём по месяцам).\n\nЕсли для продукта план производства не задан, считается «производство под продажи»\n(производство = сбыт), и запасы готовой продукции не образуются.",
+        "properties": {
+          "product_id": {
+            "title": "Product Id",
+            "type": "string"
+          },
+          "volume": {
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Volume",
+            "type": "array"
+          }
+        },
+        "required": [
+          "product_id"
+        ],
+        "title": "ProductionLine",
+        "type": "object"
+      },
+      "ProjectCreate": {
+        "properties": {
+          "model": {
+            "$ref": "#/components/schemas/ProjectModel-Input"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "model"
+        ],
+        "title": "ProjectCreate",
+        "type": "object"
+      },
+      "ProjectHeader": {
+        "description": "Заголовок/паспорт проекта.",
+        "properties": {
+          "duration_months": {
+            "default": 12,
+            "minimum": 1.0,
+            "title": "Duration Months",
+            "type": "integer"
+          },
+          "name": {
+            "default": "Без названия",
+            "title": "Name",
+            "type": "string"
+          },
+          "start_date": {
+            "default": "2026-01-01",
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
+          }
+        },
+        "title": "ProjectHeader",
+        "type": "object"
+      },
+      "ProjectModel-Input": {
+        "description": "Полная модель проекта.",
+        "properties": {
+          "actualization": {
+            "$ref": "#/components/schemas/Actualization-Input",
+            "default": {
+              "actual_until": -1,
+              "actuals": {}
+            }
+          },
+          "company": {
+            "$ref": "#/components/schemas/Company-Input",
+            "default": {
+              "starting_balance": {
+                "cash": "0",
+                "debt": "0",
+                "finished_goods": "0",
+                "fixed_assets_net": "0",
+                "foreign_monetary": "0",
+                "paid_in_capital": "0",
+                "payables": "0",
+                "raw_materials": "0",
+                "receivables": "0",
+                "retained_earnings": "0"
+              }
+            }
+          },
+          "environment": {
+            "$ref": "#/components/schemas/Environment-Input",
+            "default": {
+              "currencies": [
+                {
+                  "code": "RUB",
+                  "name": "Российский рубль"
+                }
+              ],
+              "fx_open": "1",
+              "fx_rate": [],
+              "inflation": [],
+              "taxes": []
+            }
+          },
+          "financing": {
+            "$ref": "#/components/schemas/Financing-Input",
+            "default": {
+              "auto_financing": {
+                "annual_rate": "0.18",
+                "enabled": false,
+                "min_balance": "0"
+              },
+              "common_shares": "0",
+              "deposits": [],
+              "dividends": [],
+              "equity": [],
+              "leases": [],
+              "loans": []
+            }
+          },
+          "header": {
+            "$ref": "#/components/schemas/ProjectHeader",
+            "default": {
+              "duration_months": 12,
+              "name": "Без названия",
+              "start_date": "2026-01-01"
+            }
+          },
+          "investment_plan": {
+            "$ref": "#/components/schemas/InvestmentPlan-Input",
+            "default": {
+              "assets": []
+            }
+          },
+          "operating_plan": {
+            "$ref": "#/components/schemas/OperatingPlan-Input",
+            "default": {
+              "direct_costs": [],
+              "fixed_costs": [],
+              "production": [],
+              "products": [],
+              "sales": []
+            }
+          },
+          "settings": {
+            "$ref": "#/components/schemas/ProjectSettings-Input",
+            "default": {
+              "discount_rate_annual": "0.15",
+              "inflation_direct": "0",
+              "inflation_general": "0",
+              "inflation_sales": "0",
+              "inflation_wages": "0",
+              "inventory_method": "average",
+              "liquidation_recovery_rate": "0",
+              "min_cash_balance": "0",
+              "payroll_contribution_rate": "0",
+              "production_cycle_months": 0,
+              "profit_tax_benefit_share": "0",
+              "profit_tax_rate": "0.20",
+              "property_tax_rate": "0",
+              "sales_tax_rate": "0",
+              "terminal_growth_rate": "0",
+              "valuation_earnings_multiple": "0",
+              "vat_basis": "shipment",
+              "vat_rate": "0"
+            }
+          }
+        },
+        "title": "ProjectModel",
+        "type": "object"
+      },
+      "ProjectModel-Output": {
+        "description": "Полная модель проекта.",
+        "properties": {
+          "actualization": {
+            "$ref": "#/components/schemas/Actualization-Output",
+            "default": {
+              "actual_until": -1,
+              "actuals": {}
+            }
+          },
+          "company": {
+            "$ref": "#/components/schemas/Company-Output",
+            "default": {
+              "starting_balance": {
+                "cash": "0",
+                "debt": "0",
+                "finished_goods": "0",
+                "fixed_assets_net": "0",
+                "foreign_monetary": "0",
+                "paid_in_capital": "0",
+                "payables": "0",
+                "raw_materials": "0",
+                "receivables": "0",
+                "retained_earnings": "0"
+              }
+            }
+          },
+          "environment": {
+            "$ref": "#/components/schemas/Environment-Output",
+            "default": {
+              "currencies": [
+                {
+                  "code": "RUB",
+                  "name": "Российский рубль"
+                }
+              ],
+              "fx_open": "1",
+              "fx_rate": [],
+              "inflation": [],
+              "taxes": []
+            }
+          },
+          "financing": {
+            "$ref": "#/components/schemas/Financing-Output",
+            "default": {
+              "auto_financing": {
+                "annual_rate": "0.18",
+                "enabled": false,
+                "min_balance": "0"
+              },
+              "common_shares": "0",
+              "deposits": [],
+              "dividends": [],
+              "equity": [],
+              "leases": [],
+              "loans": []
+            }
+          },
+          "header": {
+            "$ref": "#/components/schemas/ProjectHeader",
+            "default": {
+              "duration_months": 12,
+              "name": "Без названия",
+              "start_date": "2026-01-01"
+            }
+          },
+          "investment_plan": {
+            "$ref": "#/components/schemas/InvestmentPlan-Output",
+            "default": {
+              "assets": []
+            }
+          },
+          "operating_plan": {
+            "$ref": "#/components/schemas/OperatingPlan-Output",
+            "default": {
+              "direct_costs": [],
+              "fixed_costs": [],
+              "production": [],
+              "products": [],
+              "sales": []
+            }
+          },
+          "settings": {
+            "$ref": "#/components/schemas/ProjectSettings-Output",
+            "default": {
+              "discount_rate_annual": "0.15",
+              "inflation_direct": "0",
+              "inflation_general": "0",
+              "inflation_sales": "0",
+              "inflation_wages": "0",
+              "inventory_method": "average",
+              "liquidation_recovery_rate": "0",
+              "min_cash_balance": "0",
+              "payroll_contribution_rate": "0",
+              "production_cycle_months": 0,
+              "profit_tax_benefit_share": "0",
+              "profit_tax_rate": "0.20",
+              "property_tax_rate": "0",
+              "sales_tax_rate": "0",
+              "terminal_growth_rate": "0",
+              "valuation_earnings_multiple": "0",
+              "vat_basis": "shipment",
+              "vat_rate": "0"
+            }
+          }
+        },
+        "title": "ProjectModel",
+        "type": "object"
+      },
+      "ProjectOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "is_stale": {
+            "default": true,
+            "title": "Is Stale",
+            "type": "boolean"
+          },
+          "last_calc": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LastCalcOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "model": {
+            "$ref": "#/components/schemas/ProjectModel-Output"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "created_at",
+          "updated_at",
+          "model"
+        ],
+        "title": "ProjectOut",
+        "type": "object"
+      },
+      "ProjectSettings-Input": {
+        "description": "Настройка расчёта (см. SPEC §11, §17).",
+        "properties": {
+          "discount_rate_annual": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0.15",
+            "title": "Discount Rate Annual"
+          },
+          "inflation_direct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Inflation Direct"
+          },
+          "inflation_general": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Inflation General"
+          },
+          "inflation_sales": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Inflation Sales"
+          },
+          "inflation_wages": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Inflation Wages"
+          },
+          "inventory_method": {
+            "$ref": "#/components/schemas/InventoryMethod",
+            "default": "average"
+          },
+          "liquidation_recovery_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Liquidation Recovery Rate"
+          },
+          "min_cash_balance": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Min Cash Balance"
+          },
+          "payroll_contribution_rate": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Payroll Contribution Rate"
+          },
+          "production_cycle_months": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Production Cycle Months",
+            "type": "integer"
+          },
+          "profit_tax_benefit_share": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Profit Tax Benefit Share"
+          },
+          "profit_tax_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0.20",
+            "title": "Profit Tax Rate"
+          },
+          "property_tax_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Property Tax Rate"
+          },
+          "sales_tax_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Sales Tax Rate"
+          },
+          "terminal_growth_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Terminal Growth Rate"
+          },
+          "valuation_earnings_multiple": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Valuation Earnings Multiple"
+          },
+          "vat_basis": {
+            "$ref": "#/components/schemas/VatBasis",
+            "default": "shipment"
+          },
+          "vat_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Vat Rate"
+          }
+        },
+        "title": "ProjectSettings",
+        "type": "object"
+      },
+      "ProjectSettings-Output": {
+        "description": "Настройка расчёта (см. SPEC §11, §17).",
+        "properties": {
+          "discount_rate_annual": {
+            "default": "0.15",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Discount Rate Annual",
+            "type": "string"
+          },
+          "inflation_direct": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Inflation Direct",
+            "type": "string"
+          },
+          "inflation_general": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Inflation General",
+            "type": "string"
+          },
+          "inflation_sales": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Inflation Sales",
+            "type": "string"
+          },
+          "inflation_wages": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Inflation Wages",
+            "type": "string"
+          },
+          "inventory_method": {
+            "$ref": "#/components/schemas/InventoryMethod",
+            "default": "average"
+          },
+          "liquidation_recovery_rate": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Liquidation Recovery Rate",
+            "type": "string"
+          },
+          "min_cash_balance": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Min Cash Balance",
+            "type": "string"
+          },
+          "payroll_contribution_rate": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Payroll Contribution Rate",
+            "type": "string"
+          },
+          "production_cycle_months": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Production Cycle Months",
+            "type": "integer"
+          },
+          "profit_tax_benefit_share": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Profit Tax Benefit Share",
+            "type": "string"
+          },
+          "profit_tax_rate": {
+            "default": "0.20",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Profit Tax Rate",
+            "type": "string"
+          },
+          "property_tax_rate": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Property Tax Rate",
+            "type": "string"
+          },
+          "sales_tax_rate": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Sales Tax Rate",
+            "type": "string"
+          },
+          "terminal_growth_rate": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Terminal Growth Rate",
+            "type": "string"
+          },
+          "valuation_earnings_multiple": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Valuation Earnings Multiple",
+            "type": "string"
+          },
+          "vat_basis": {
+            "$ref": "#/components/schemas/VatBasis",
+            "default": "shipment"
+          },
+          "vat_rate": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Vat Rate",
+            "type": "string"
+          }
+        },
+        "title": "ProjectSettings",
+        "type": "object"
+      },
+      "ProjectSummary": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "is_stale": {
+            "default": true,
+            "title": "Is Stale",
+            "type": "boolean"
+          },
+          "last_calc": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LastCalcOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ProjectSummary",
+        "type": "object"
+      },
+      "ProjectUpdate": {
+        "properties": {
+          "model": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProjectModel-Input"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "title": "ProjectUpdate",
+        "type": "object"
+      },
+      "RatiosOut": {
+        "properties": {
+          "activity": {
+            "additionalProperties": {
+              "items": {
+                "anyOf": [
+                  {
+                    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            "title": "Activity",
+            "type": "object"
+          },
+          "gearing": {
+            "additionalProperties": {
+              "items": {
+                "anyOf": [
+                  {
+                    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            "title": "Gearing",
+            "type": "object"
+          },
+          "investment": {
+            "additionalProperties": {
+              "items": {
+                "anyOf": [
+                  {
+                    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            "title": "Investment",
+            "type": "object"
+          },
+          "liquidity": {
+            "additionalProperties": {
+              "items": {
+                "anyOf": [
+                  {
+                    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            "title": "Liquidity",
+            "type": "object"
+          },
+          "profitability": {
+            "additionalProperties": {
+              "items": {
+                "anyOf": [
+                  {
+                    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            "title": "Profitability",
+            "type": "object"
+          }
+        },
+        "required": [
+          "liquidity",
+          "activity",
+          "gearing",
+          "profitability",
+          "investment"
+        ],
+        "title": "RatiosOut",
+        "type": "object"
+      },
+      "RegisterRequest": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "full_name": {
+            "default": "",
+            "title": "Full Name",
+            "type": "string"
+          },
+          "organization_name": {
+            "title": "Organization Name",
+            "type": "string"
+          },
+          "password": {
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "organization_name"
+        ],
+        "title": "RegisterRequest",
+        "type": "object"
+      },
+      "RepaymentType": {
+        "description": "Схема погашения тела займа.",
+        "enum": [
+          "equal_principal",
+          "bullet"
+        ],
+        "title": "RepaymentType",
+        "type": "string"
+      },
+      "SalesLine-Input": {
+        "description": "Продажи одного продукта: помесячные объём и цена (без НДС).",
+        "properties": {
+          "foreign": {
+            "default": false,
+            "title": "Foreign",
+            "type": "boolean"
+          },
+          "payment": {
+            "$ref": "#/components/schemas/PaymentTerms-Input",
+            "default": {
+              "advance_lead_months": 0,
+              "payment_delay_months": 0,
+              "prepayment_share": "0"
+            }
+          },
+          "price": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ]
+            },
+            "title": "Price",
+            "type": "array"
+          },
+          "product_id": {
+            "title": "Product Id",
+            "type": "string"
+          },
+          "volume": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ]
+            },
+            "title": "Volume",
+            "type": "array"
+          }
+        },
+        "required": [
+          "product_id"
+        ],
+        "title": "SalesLine",
+        "type": "object"
+      },
+      "SalesLine-Output": {
+        "description": "Продажи одного продукта: помесячные объём и цена (без НДС).",
+        "properties": {
+          "foreign": {
+            "default": false,
+            "title": "Foreign",
+            "type": "boolean"
+          },
+          "payment": {
+            "$ref": "#/components/schemas/PaymentTerms-Output",
+            "default": {
+              "advance_lead_months": 0,
+              "payment_delay_months": 0,
+              "prepayment_share": "0"
+            }
+          },
+          "price": {
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Price",
+            "type": "array"
+          },
+          "product_id": {
+            "title": "Product Id",
+            "type": "string"
+          },
+          "volume": {
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Volume",
+            "type": "array"
+          }
+        },
+        "required": [
+          "product_id"
+        ],
+        "title": "SalesLine",
+        "type": "object"
+      },
+      "ScenarioAdjustmentIn": {
+        "properties": {
+          "factor": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Factor"
+          },
+          "param": {
+            "title": "Param",
+            "type": "string"
+          }
+        },
+        "required": [
+          "param",
+          "factor"
+        ],
+        "title": "ScenarioAdjustmentIn",
+        "type": "object"
+      },
+      "ScenarioIn": {
+        "properties": {
+          "adjustments": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ScenarioAdjustmentIn"
+            },
+            "title": "Adjustments",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "ScenarioIn",
+        "type": "object"
+      },
+      "ScenarioResultOut": {
+        "properties": {
+          "irr_annual": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Irr Annual"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "npv": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Npv",
+            "type": "string"
+          },
+          "pb_months": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pb Months"
+          },
+          "pi": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pi"
+          }
+        },
+        "required": [
+          "name",
+          "npv"
+        ],
+        "title": "ScenarioResultOut",
+        "type": "object"
+      },
+      "SensitivityPointOut": {
+        "properties": {
+          "factor": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Factor",
+            "type": "string"
+          },
+          "irr_annual": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Irr Annual"
+          },
+          "npv": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Npv",
+            "type": "string"
+          }
+        },
+        "required": [
+          "factor",
+          "npv"
+        ],
+        "title": "SensitivityPointOut",
+        "type": "object"
+      },
+      "SensitivityRequest": {
+        "properties": {
+          "factors": {
+            "default": [
+              "0.8",
+              "0.9",
+              "1.0",
+              "1.1",
+              "1.2"
+            ],
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ]
+            },
+            "title": "Factors",
+            "type": "array"
+          },
+          "param": {
+            "title": "Param",
+            "type": "string"
+          }
+        },
+        "required": [
+          "param"
+        ],
+        "title": "SensitivityRequest",
+        "type": "object"
+      },
+      "SensitivityResponse": {
+        "properties": {
+          "param": {
+            "title": "Param",
+            "type": "string"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/SensitivityPointOut"
+            },
+            "title": "Points",
+            "type": "array"
+          }
+        },
+        "required": [
+          "param",
+          "points"
+        ],
+        "title": "SensitivityResponse",
+        "type": "object"
+      },
+      "StartingBalance-Input": {
+        "description": "Начальное состояние действующего предприятия (на конец периода t = -1).",
+        "properties": {
+          "cash": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Cash"
+          },
+          "debt": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Debt"
+          },
+          "finished_goods": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Finished Goods"
+          },
+          "fixed_assets_net": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Fixed Assets Net"
+          },
+          "foreign_monetary": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Foreign Monetary"
+          },
+          "paid_in_capital": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Paid In Capital"
+          },
+          "payables": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Payables"
+          },
+          "raw_materials": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Raw Materials"
+          },
+          "receivables": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Receivables"
+          },
+          "retained_earnings": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Retained Earnings"
+          }
+        },
+        "title": "StartingBalance",
+        "type": "object"
+      },
+      "StartingBalance-Output": {
+        "description": "Начальное состояние действующего предприятия (на конец периода t = -1).",
+        "properties": {
+          "cash": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Cash",
+            "type": "string"
+          },
+          "debt": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Debt",
+            "type": "string"
+          },
+          "finished_goods": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Finished Goods",
+            "type": "string"
+          },
+          "fixed_assets_net": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Fixed Assets Net",
+            "type": "string"
+          },
+          "foreign_monetary": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Foreign Monetary",
+            "type": "string"
+          },
+          "paid_in_capital": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Paid In Capital",
+            "type": "string"
+          },
+          "payables": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Payables",
+            "type": "string"
+          },
+          "raw_materials": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Raw Materials",
+            "type": "string"
+          },
+          "receivables": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Receivables",
+            "type": "string"
+          },
+          "retained_earnings": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Retained Earnings",
+            "type": "string"
+          }
+        },
+        "title": "StartingBalance",
+        "type": "object"
+      },
+      "StatementOut": {
+        "properties": {
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/LineOut"
+            },
+            "title": "Lines",
+            "type": "array"
+          }
+        },
+        "required": [
+          "lines"
+        ],
+        "title": "StatementOut",
+        "type": "object"
+      },
+      "SubscriptionOut": {
+        "properties": {
+          "current_period_end": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Period End"
+          },
+          "max_members": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Members"
+          },
+          "max_projects": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Projects"
+          },
+          "plan_code": {
+            "title": "Plan Code",
+            "type": "string"
+          },
+          "plan_name": {
+            "title": "Plan Name",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "used_members": {
+            "title": "Used Members",
+            "type": "integer"
+          },
+          "used_projects": {
+            "title": "Used Projects",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "plan_code",
+          "plan_name",
+          "status",
+          "used_projects",
+          "used_members"
+        ],
+        "title": "SubscriptionOut",
+        "type": "object"
+      },
+      "SubscriptionUpdate": {
+        "properties": {
+          "plan_code": {
+            "title": "Plan Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan_code"
+        ],
+        "title": "SubscriptionUpdate",
+        "type": "object"
+      },
+      "Tax-Input": {
+        "description": "Настраиваемый налог. В v0 ключевые ставки берутся из ProjectSettings.",
+        "properties": {
+          "base": {
+            "default": "",
+            "title": "Base",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Rate"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "Tax",
+        "type": "object"
+      },
+      "Tax-Output": {
+        "description": "Настраиваемый налог. В v0 ключевые ставки берутся из ProjectSettings.",
+        "properties": {
+          "base": {
+            "default": "",
+            "title": "Base",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "rate": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Rate",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "Tax",
+        "type": "object"
+      },
+      "TemplateInfo": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description"
+        ],
+        "title": "TemplateInfo",
+        "type": "object"
+      },
+      "TokenResponse": {
+        "properties": {
+          "access_token": {
+            "title": "Access Token",
+            "type": "string"
+          },
+          "token_type": {
+            "default": "bearer",
+            "title": "Token Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "access_token"
+        ],
+        "title": "TokenResponse",
+        "type": "object"
+      },
+      "UncertainParamIn": {
+        "properties": {
+          "distribution": {
+            "$ref": "#/components/schemas/DistributionIn"
+          },
+          "param": {
+            "title": "Param",
+            "type": "string"
+          }
+        },
+        "required": [
+          "param",
+          "distribution"
+        ],
+        "title": "UncertainParamIn",
+        "type": "object"
+      },
+      "UserOut": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "full_name"
+        ],
+        "title": "UserOut",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "ValuationOut": {
+        "properties": {
+          "dividend_value": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dividend Value"
+          },
+          "earnings_multiple_value": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Earnings Multiple Value"
+          },
+          "gordon_value": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gordon Value"
+          },
+          "liquidation_value": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Liquidation Value"
+          },
+          "net_assets": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Net Assets",
+            "type": "string"
+          }
+        },
+        "required": [
+          "net_assets"
+        ],
+        "title": "ValuationOut",
+        "type": "object"
+      },
+      "VatBasis": {
+        "description": "Момент признания НДС к уплате/вычету (SPEC §11, §22.2).",
+        "enum": [
+          "shipment",
+          "payment"
+        ],
+        "title": "VatBasis",
+        "type": "string"
+      },
+      "WhatIfRequest": {
+        "properties": {
+          "include_base": {
+            "default": true,
+            "title": "Include Base",
+            "type": "boolean"
+          },
+          "scenarios": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ScenarioIn"
+            },
+            "title": "Scenarios",
+            "type": "array"
+          }
+        },
+        "title": "WhatIfRequest",
+        "type": "object"
+      },
+      "WhatIfResponse": {
+        "properties": {
+          "scenarios": {
+            "items": {
+              "$ref": "#/components/schemas/ScenarioResultOut"
+            },
+            "title": "Scenarios",
+            "type": "array"
+          }
+        },
+        "required": [
+          "scenarios"
+        ],
+        "title": "WhatIfResponse",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
+    "title": "Финансовая модель — API",
+    "version": "0.9.9"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/auth/login": {
+      "post": {
+        "description": "Вход по email и паролю → токен доступа.",
+        "operationId": "login_api_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Login",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "description": "Данные текущего пользователя.",
+        "operationId": "me_api_v1_auth_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Me",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "description": "Регистрация: создаёт пользователя, его организацию и членство (owner).",
+        "operationId": "register_api_v1_auth_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Register",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/billing/webhook/yookassa": {
+      "post": {
+        "description": "Вебхук ЮKassa: активирует тариф по факту успешной оплаты (идемпотентно).",
+        "operationId": "yookassa_webhook_api_v1_billing_webhook_yookassa_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Yookassa Webhook Api V1 Billing Webhook Yookassa Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Yookassa Webhook",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/api/v1/calculate": {
+      "post": {
+        "description": "Рассчитать проект: вернуть отчёты, показатели эффективности и коэффициенты.",
+        "operationId": "calculate_api_v1_calculate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectModel-Input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalcResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Calculate",
+        "tags": [
+          "calc"
+        ]
+      }
+    },
+    "/api/v1/holdings": {
+      "get": {
+        "operationId": "list_holdings_api_v1_holdings_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/HoldingOut"
+                  },
+                  "title": "Response List Holdings Api V1 Holdings Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Holdings",
+        "tags": [
+          "holdings"
+        ]
+      },
+      "post": {
+        "operationId": "create_holding_api_v1_holdings_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HoldingCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HoldingOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Holding",
+        "tags": [
+          "holdings"
+        ]
+      }
+    },
+    "/api/v1/holdings/{holding_id}": {
+      "delete": {
+        "operationId": "delete_holding_api_v1_holdings__holding_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "holding_id",
+            "required": true,
+            "schema": {
+              "title": "Holding Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Holding",
+        "tags": [
+          "holdings"
+        ]
+      },
+      "get": {
+        "operationId": "get_holding_api_v1_holdings__holding_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "holding_id",
+            "required": true,
+            "schema": {
+              "title": "Holding Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HoldingOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Holding",
+        "tags": [
+          "holdings"
+        ]
+      }
+    },
+    "/api/v1/holdings/{holding_id}/consolidate": {
+      "post": {
+        "description": "Сводный бюджет холдинга (консолидация) + разбивка вклада по проектам (B3).",
+        "operationId": "consolidate_holding_api_v1_holdings__holding_id__consolidate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "holding_id",
+            "required": true,
+            "schema": {
+              "title": "Holding Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "group_discount_rate",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ],
+              "default": "0.15",
+              "title": "Group Discount Rate"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsolidateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Consolidate Holding",
+        "tags": [
+          "holdings"
+        ]
+      }
+    },
+    "/api/v1/holdings/{holding_id}/members": {
+      "post": {
+        "operationId": "add_member_api_v1_holdings__holding_id__members_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "holding_id",
+            "required": true,
+            "schema": {
+              "title": "Holding Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HoldingMemberCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HoldingOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Add Member",
+        "tags": [
+          "holdings"
+        ]
+      }
+    },
+    "/api/v1/holdings/{holding_id}/members/{project_id}": {
+      "delete": {
+        "description": "Исключить проект из холдинга (сам проект не удаляется).",
+        "operationId": "remove_member_api_v1_holdings__holding_id__members__project_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "holding_id",
+            "required": true,
+            "schema": {
+              "title": "Holding Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Remove Member",
+        "tags": [
+          "holdings"
+        ]
+      },
+      "patch": {
+        "description": "Изменить роль участника холдинга (parent | subsidiary).",
+        "operationId": "patch_member_role_api_v1_holdings__holding_id__members__project_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "holding_id",
+            "required": true,
+            "schema": {
+              "title": "Holding Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HoldingMemberPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HoldingOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Patch Member Role",
+        "tags": [
+          "holdings"
+        ]
+      }
+    },
+    "/api/v1/integrator/consolidate": {
+      "post": {
+        "description": "Сводный результат по набору проектов организации (построчная сумма отчётов).",
+        "operationId": "consolidate_projects_api_v1_integrator_consolidate_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsolidateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalcResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Consolidate Projects",
+        "tags": [
+          "integrator"
+        ]
+      }
+    },
+    "/api/v1/organizations": {
+      "get": {
+        "description": "Организации текущего пользователя (с его ролью в каждой).",
+        "operationId": "my_organizations_api_v1_organizations_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OrganizationMembershipOut"
+                  },
+                  "title": "Response My Organizations Api V1 Organizations Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "My Organizations",
+        "tags": [
+          "organizations"
+        ]
+      },
+      "post": {
+        "description": "Создать организацию; создатель становится её владельцем.",
+        "operationId": "create_organization_api_v1_organizations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Organization",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/api/v1/organizations/{org_id}": {
+      "get": {
+        "operationId": "get_organization_api_v1_organizations__org_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Organization",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/api/v1/organizations/{org_id}/billing/checkout": {
+      "post": {
+        "description": "Инициировать смену тарифа через провайдера (ЮKassa — ссылка оплаты; ручной — сразу).",
+        "operationId": "checkout_api_v1_organizations__org_id__billing_checkout_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Checkout",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/api/v1/organizations/{org_id}/members": {
+      "get": {
+        "operationId": "list_members_api_v1_organizations__org_id__members_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MemberOut"
+                  },
+                  "title": "Response List Members Api V1 Organizations  Org Id  Members Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Members",
+        "tags": [
+          "organizations"
+        ]
+      },
+      "post": {
+        "description": "Добавить участника (право member.manage). Создаёт пользователя по email при необходимости.",
+        "operationId": "add_member_api_v1_organizations__org_id__members_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Add Member",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/api/v1/organizations/{org_id}/members/{user_id}": {
+      "delete": {
+        "description": "Удалить участника (право member.manage; нельзя удалить владельца и себя, B4).",
+        "operationId": "remove_member_api_v1_organizations__org_id__members__user_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Remove Member",
+        "tags": [
+          "organizations"
+        ]
+      },
+      "patch": {
+        "description": "Изменить роль участника (право member.manage; владельца понизить нельзя, B4).",
+        "operationId": "patch_member_role_api_v1_organizations__org_id__members__user_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Patch Member Role",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/api/v1/organizations/{org_id}/subscription": {
+      "get": {
+        "description": "Текущая подписка организации (с использованием квот).",
+        "operationId": "get_subscription_api_v1_organizations__org_id__subscription_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Subscription",
+        "tags": [
+          "billing"
+        ]
+      },
+      "post": {
+        "description": "Прямая смена тарифа без платежа (право billing.manage; ручной/админский путь).",
+        "operationId": "change_subscription_api_v1_organizations__org_id__subscription_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscriptionUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Change Subscription",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/api/v1/plans": {
+      "get": {
+        "description": "Каталог доступных тарифов (публично).",
+        "operationId": "list_plans_api_v1_plans_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PlanOut"
+                  },
+                  "title": "Response List Plans Api V1 Plans Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Plans",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/api/v1/projects": {
+      "get": {
+        "description": "Список проектов организации (метаданные).",
+        "operationId": "list_projects_api_v1_projects_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectSummary"
+                  },
+                  "title": "Response List Projects Api V1 Projects Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Projects",
+        "tags": [
+          "projects"
+        ]
+      },
+      "post": {
+        "description": "Создать проект в текущей организации (право project.create; учёт квоты тарифа).",
+        "operationId": "create_project_api_v1_projects_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Project",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}": {
+      "delete": {
+        "description": "Удалить проект (право project.delete).",
+        "operationId": "delete_project_api_v1_projects__project_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Project",
+        "tags": [
+          "projects"
+        ]
+      },
+      "get": {
+        "description": "Получить проект с моделью.",
+        "operationId": "get_project_api_v1_projects__project_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Project",
+        "tags": [
+          "projects"
+        ]
+      },
+      "put": {
+        "description": "Обновить имя и/или модель проекта (право project.update).",
+        "operationId": "update_project_api_v1_projects__project_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Project",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/calculate": {
+      "post": {
+        "description": "Рассчитать сохранённый проект (право project.calculate); сводка — на проект (B1).",
+        "operationId": "calculate_project_api_v1_projects__project_id__calculate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalcResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Calculate Project",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/duplicate": {
+      "post": {
+        "description": "Дублировать проект (B2): модель целиком, имя «{name} (копия)», квота как в create.",
+        "operationId": "duplicate_project_api_v1_projects__project_id__duplicate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Duplicate Project",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/monte-carlo": {
+      "post": {
+        "description": "Анализ Монте-Карло: статистика NPV и вероятность NPV>0 (синхронно, с лимитом N).",
+        "operationId": "monte_carlo_api_v1_projects__project_id__monte_carlo_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MonteCarloRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonteCarloResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Monte Carlo",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/sensitivity": {
+      "post": {
+        "description": "Анализ чувствительности: варьировать параметр и наблюдать NPV/IRR.",
+        "operationId": "sensitivity_api_v1_projects__project_id__sensitivity_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SensitivityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SensitivityResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Sensitivity",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/what-if": {
+      "post": {
+        "description": "What-If: сравнить базовый и заданные сценарии по показателям эффективности.",
+        "operationId": "what_if_api_v1_projects__project_id__what_if_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WhatIfRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhatIfResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "What If",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/api/v1/sample": {
+      "get": {
+        "description": "Демонстрационная модель проекта (готова к отправке в /calculate).",
+        "operationId": "sample_api_v1_sample_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectModel-Output"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Sample",
+        "tags": [
+          "calc"
+        ]
+      }
+    },
+    "/api/v1/templates": {
+      "get": {
+        "description": "Список шаблонов проектов для быстрого старта (по типам бизнеса).",
+        "operationId": "templates_api_v1_templates_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TemplateInfo"
+                  },
+                  "title": "Response Templates Api V1 Templates Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Templates",
+        "tags": [
+          "calc"
+        ]
+      }
+    },
+    "/api/v1/templates/{template_id}": {
+      "get": {
+        "description": "Готовая модель шаблона (для создания проекта на её основе).",
+        "operationId": "template_api_v1_templates__template_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "template_id",
+            "required": true,
+            "schema": {
+              "title": "Template Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectModel-Output"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Template",
+        "tags": [
+          "calc"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "description": "Проверка живости и версия методики расчёта.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Health Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health",
+        "tags": [
+          "service"
+        ]
+      }
+    }
+  }
+}

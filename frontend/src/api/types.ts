@@ -1,50 +1,14 @@
-// Типы данных API (см. backend схемы).
+// Типы данных API. Ответы бэкенда — псевдонимы сгенерированных из OpenAPI схем
+// (см. gen.ts); имена сохранены, чтобы не трогать потребителей.
+import type { Schema } from "./gen";
 
-export interface TokenResponse {
-  access_token: string;
-  token_type: string;
-}
-
-export interface User {
-  id: string;
-  email: string;
-  full_name: string;
-}
-
-export interface OrganizationMembership {
-  id: string;
-  name: string;
-  role: string;
-  created_at: string;
-}
+export type TokenResponse = Schema<"TokenResponse">;
+export type User = Schema<"UserOut">;
+export type OrganizationMembership = Schema<"OrganizationMembershipOut">;
 
 /** Сводка последнего успешного расчёта (B1); Decimal — строками. */
-export interface LastCalc {
-  npv: string;
-  irr_annual: string | null;
-  pb_months: number | null;
-  engine_version: string;
-  calculated_at: string;
-}
+export type LastCalc = Schema<"LastCalcOut">;
+export type ProjectSummary = Schema<"ProjectSummary">;
 
-export interface ProjectSummary {
-  id: string;
-  name: string;
-  created_at: string;
-  updated_at: string;
-  last_calc: LastCalc | null;
-  /** Модель менялась после последнего расчёта (или расчёта не было). */
-  is_stale: boolean;
-}
-
-export interface RegisterPayload {
-  email: string;
-  password: string;
-  full_name: string;
-  organization_name: string;
-}
-
-export interface LoginPayload {
-  email: string;
-  password: string;
-}
+export type RegisterPayload = Schema<"RegisterRequest">;
+export type LoginPayload = Schema<"LoginRequest">;

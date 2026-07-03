@@ -1,4 +1,5 @@
 import { api } from "./client";
+import type { Schema } from "./gen";
 
 export const ROLES: [string, string][] = [
   ["owner", "Владелец"],
@@ -10,37 +11,11 @@ export const ROLES: [string, string][] = [
 
 export const roleLabel = (role: string) => ROLES.find(([k]) => k === role)?.[1] ?? role;
 
-export interface Member {
-  user_id: string;
-  email: string;
-  full_name: string;
-  role: string;
-}
-
-export interface Plan {
-  code: string;
-  name: string;
-  price_rub: number;
-  max_projects: number | null;
-  max_members: number | null;
-}
-
-export interface Subscription {
-  plan_code: string;
-  plan_name: string;
-  status: string;
-  current_period_end: string | null;
-  max_projects: number | null;
-  max_members: number | null;
-  used_projects: number;
-  used_members: number;
-}
-
-export interface CheckoutResponse {
-  activated: boolean;
-  payment_id: string | null;
-  confirmation_url: string | null;
-}
+// Типы ответов — из сгенерированной OpenAPI-схемы (см. gen.ts).
+export type Member = Schema<"MemberOut">;
+export type Plan = Schema<"PlanOut">;
+export type Subscription = Schema<"SubscriptionOut">;
+export type CheckoutResponse = Schema<"CheckoutResponse">;
 
 export async function createOrganization(name: string): Promise<{ id: string; name: string }> {
   const { data } = await api.post<{ id: string; name: string }>("/api/v1/organizations", { name });

@@ -101,8 +101,8 @@ export function BillingTab({ orgId, canManage }: { orgId: string; canManage: boo
         </div>
 
         <div className="quota-card">
-          <QuotaBar label="Проекты" used={s.used_projects} max={s.max_projects} />
-          <QuotaBar label="Участники" used={s.used_members} max={s.max_members} />
+          <QuotaBar label="Проекты" used={s.used_projects} max={s.max_projects ?? null} />
+          <QuotaBar label="Участники" used={s.used_members} max={s.max_members ?? null} />
         </div>
       </div>
 

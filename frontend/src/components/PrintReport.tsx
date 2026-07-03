@@ -172,10 +172,10 @@ export function PrintReport({
 
   const val: Array<[string, string | null]> = [
     ["Чистые активы", v.net_assets],
-    ["Модель Гордона", v.gordon_value],
-    ["DDM", v.dividend_value],
-    ["По мультипликатору", v.earnings_multiple_value],
-    ["Ликвидационная", v.liquidation_value],
+    ["Модель Гордона", v.gordon_value ?? null],
+    ["DDM", v.dividend_value ?? null],
+    ["По мультипликатору", v.earnings_multiple_value ?? null],
+    ["Ликвидационная", v.liquidation_value ?? null],
   ];
 
   const cell = (label: ReactNode, value: ReactNode, note?: Note, big = true) => (

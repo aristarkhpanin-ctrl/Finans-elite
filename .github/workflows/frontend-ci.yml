@@ -4,10 +4,12 @@ on:
   push:
     paths:
       - "frontend/**"
+      - "backend/openapi.json"
       - ".github/workflows/frontend-ci.yml"
   pull_request:
     paths:
       - "frontend/**"
+      - "backend/openapi.json"
       - ".github/workflows/frontend-ci.yml"
 
 jobs:
@@ -27,6 +29,12 @@ jobs:
 
       - name: Установка зависимостей
         run: npm ci
+
+      - name: Типы API синхронны с контрактом
+        run: |
+          npm run gen:api
+          git diff --exit-code src/api/schema.d.ts \
+            || (echo '::error::schema.d.ts устарел — запустите: npm run gen:api' && exit 1)
 
       - name: Проверка типов
         run: npm run typecheck
