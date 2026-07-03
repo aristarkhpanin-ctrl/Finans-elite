@@ -18,6 +18,28 @@ JWT_SECRET = os.getenv("JWT_SECRET", "dev-secret-change-me")
 JWT_ALG = "HS256"
 JWT_TTL_SECONDS = int(os.getenv("JWT_TTL_SECONDS", str(24 * 3600)))
 
+# Заглушки, недопустимые в продакшене (код и .env.example).
+_INSECURE_SECRETS = {"", "dev-secret-change-me", "change-me-in-production"}
+_MIN_SECRET_LEN = 16
+
+
+def _require_secure_secret(app_env: str, secret: str | None) -> None:
+    """Fail-fast: в production JWT_SECRET обязан быть задан, не-заглушкой и достаточной длины.
+
+    Иначе токены подписывались бы предсказуемым ключом — их мог бы подделать любой.
+    Вне production (по умолчанию) — не мешаем разработке.
+    """
+    if app_env.strip().lower() != "production":
+        return
+    if not secret or secret in _INSECURE_SECRETS or len(secret) < _MIN_SECRET_LEN:
+        raise RuntimeError(
+            "JWT_SECRET обязателен в production (APP_ENV=production): задайте случайный "
+            f"секрет не короче {_MIN_SECRET_LEN} символов и не равный заглушке."
+        )
+
+
+_require_secure_secret(os.getenv("APP_ENV", "development"), JWT_SECRET)
+
 
 def hash_password(password: str) -> str:
     return _ph.hash(password)
