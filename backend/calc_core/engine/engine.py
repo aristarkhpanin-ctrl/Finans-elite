@@ -6,11 +6,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from decimal import Decimal
+from decimal import Decimal, localcontext
 
 from ..metrics import annual_to_monthly
 from ..models import ProjectModel
-from ..money import ONE, ZERO, almost_equal
+from ..money import CALC_CONTEXT, ONE, ZERO, almost_equal
 from ..reports.actualization import actualize_cashflow
 from ..reports.breakeven import compute_break_even
 from ..reports.ratios import compute_ratios
@@ -36,7 +36,17 @@ class CalcOptions:
 
 
 def run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
-    """Рассчитать проект и вернуть отчёты, показатели и метаданные."""
+    """Рассчитать проект и вернуть отчёты, показатели и метаданные.
+
+    Все вычисления — в фиксированном контексте ядра (``CALC_CONTEXT``): prec и rounding
+    не зависят ни от потока (``getcontext()`` thread-local — воркеры FastAPI иначе считали
+    бы с дефолтным prec=28), ни от хоста. Результат детерминирован.
+    """
+    with localcontext(CALC_CONTEXT):
+        return _run(model, options)
+
+
+def _run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
     options = options or CalcOptions()
     n = model.n
 
