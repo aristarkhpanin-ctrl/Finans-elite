@@ -36,6 +36,11 @@ export interface UncertainParamIn {
   param: string;
   distribution: DistributionIn;
 }
+export interface HistogramBin {
+  from: string;
+  to: string;
+  count: number;
+}
 export interface MonteCarloResponse {
   iterations: number;
   npv_mean: string;
@@ -46,6 +51,7 @@ export interface MonteCarloResponse {
   npv_p50: string;
   npv_p90: string;
   probability_npv_positive: string;
+  histogram: HistogramBin[];
 }
 export async function runMonteCarlo(
   id: string,
@@ -74,7 +80,14 @@ export interface ScenarioResult {
 export interface WhatIfResponse {
   scenarios: ScenarioResult[];
 }
-export async function runWhatIf(id: string, scenarios: ScenarioIn[]): Promise<WhatIfResponse> {
-  const { data } = await api.post<WhatIfResponse>(`/api/v1/projects/${id}/what-if`, { scenarios });
+export async function runWhatIf(
+  id: string,
+  scenarios: ScenarioIn[],
+  includeBase = true,
+): Promise<WhatIfResponse> {
+  const { data } = await api.post<WhatIfResponse>(`/api/v1/projects/${id}/what-if`, {
+    scenarios,
+    include_base: includeBase,
+  });
   return data;
 }

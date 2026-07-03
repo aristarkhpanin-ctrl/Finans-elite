@@ -40,11 +40,13 @@ function FieldShell({
 }) {
   return (
     <div className={"efield" + (full ? " efield--full" : "")}>
-      <div className="efield__labelrow">
-        <label className="efield__label">{label}</label>
-        {hint && <HintBadge text={hint} />}
-        {labelRight}
-      </div>
+      {(label || hint || labelRight) && (
+        <div className="efield__labelrow">
+          {label && <label className="efield__label">{label}</label>}
+          {hint && <HintBadge text={hint} />}
+          {labelRight}
+        </div>
+      )}
       {children}
       {error ? <div className="efield__err">{error}</div> : note && <div className="field-note">{note}</div>}
     </div>
