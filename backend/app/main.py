@@ -20,6 +20,7 @@ from calc_core.engine import ModelError
 from calc_core.samples import TEMPLATES, build_sample_project
 
 from .database import init_db
+from .observability import setup_observability
 from .routers import auth, billing, holdings, integrator, organizations, projects
 from .schemas import CalcResponse, to_response
 
@@ -36,6 +37,9 @@ app = FastAPI(
     description="Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     lifespan=lifespan,
 )
+
+# Логи с request-id + громкий сигнал о расхождении балансового инварианта.
+setup_observability(app)
 
 # CORS: по умолчанию выключен (фронт и API — на одном origin за nginx). При
 # раздельном деплое задать CORS_ORIGINS (список через запятую). Токен передаётся

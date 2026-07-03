@@ -44,5 +44,6 @@ cd frontend && npm install && npm run dev # http://localhost:5173 (прокси 
 | `JWT_TTL_SECONDS` | Срок жизни токена | `86400` |
 | `CORS_ORIGINS` | Список origin через запятую (для раздельного деплоя) | пусто |
 | `RATE_LIMIT_ENABLED` | Ограничение частоты на `/auth` | `true` |
+| `LOG_LEVEL` | Уровень логов (DEBUG/INFO/WARNING/ERROR) | `INFO` |
 
 Полный список — [`backend/.env.example`](backend/.env.example).
