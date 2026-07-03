@@ -186,6 +186,8 @@ backend/
 cd backend
 python -m pip install -e ".[dev]"   # или: pip install pydantic fastapi "uvicorn[standard]" sqlalchemy alembic argon2-cffi PyJWT pytest httpx
 pytest -q                           # тесты
+ruff check .                        # линтер (стиль, сортировка импортов, bugbear)
+python -m mypy                      # проверка типов ядра calc_core
 python -m calc_core.demo            # демонстрационный расчёт (CLI)
 alembic upgrade head                # применить миграции БД
 uvicorn app.main:app --reload       # HTTP-API, документация на /docs
@@ -204,13 +206,66 @@ alembic downgrade -1                            # откатить на шаг
 В dev/тестах таблицы создаются автоматически (`create_all`, идемпотентно); в продакшене
 перед запуском выполняется `alembic upgrade head`.
 
+## OpenAPI-контракт
+
+`openapi.json` — снимок схемы API, источник типов фронтенда. Обновлять при изменении
+эндпоинтов/схем; CI сверяет закоммиченный файл с регенерацией (защита от дрейфа):
+
+```bash
+python scripts/dump_openapi.py    # → openapi.json (детерминированно)
+```
+
+Фронтенд генерирует из него типы (`npm run gen:api`).
+
+## Изоляция арендаторов (RLS)
+
+Помимо фильтрации по `organization_id` в CRUD, на PostgreSQL включена **Row-Level
+Security** для таблиц `projects` и `holdings` (миграция `d5e8f1a2c3b4`): политики
+сравнивают `organization_id` с GUC `app.current_org_id`, который приложение выставляет
+на каждый запрос (`deps.current_org_id` → `database.set_tenant`), а пул сбрасывает при
+выдаче соединения. Незаданный арендатор → строк не видно (deny-by-default). На SQLite
+(dev/тесты) RLS нет — изоляцию обеспечивают фильтры CRUD.
+
+> ⚠️ **RLS не действует на суперпользователя PostgreSQL и на роли с `BYPASSRLS`.** В
+> продакшене приложение обязано подключаться под **обычной (не-суперпользовательской)
+> ролью** с грантами CRUD на таблицы, иначе изоляция уровня БД будет обойдена. Роль
+> `POSTGRES_USER` из `docker-compose` — суперпользователь; для боевого стенда заведите
+> отдельную роль приложения (`CREATE ROLE app NOSUPERUSER …; GRANT …`) и укажите её в
+> `DATABASE_URL`.
+
+Проверка (CI-job `rls-postgres` и `tests/test_rls_postgres.py`) поднимает Postgres,
+применяет миграции и под не-суперпользовательской ролью убеждается, что арендатор A не
+видит и не может создать данные арендатора B.
+
+## Фоновый анализ (Celery)
+
+Тяжёлые прогоны выносятся из воркеров API в фоновые задачи Celery (брокер/бэкенд —
+Redis), чтобы не занимать HTTP-воркеры надолго. Монте-Карло доступен и синхронно
+(`POST …/monte-carlo`), и асинхронно:
+
+- `POST /api/v1/projects/{id}/monte-carlo/async` → `202 {job_id}` (ставит задачу);
+- `GET /api/v1/analysis/jobs/{job_id}` → `{status: pending|running|success|failure, result?}`
+  (доступна только своему арендатору — реестр владения в таблице `analysis_jobs`).
+
+```bash
+# Воркер (рядом с API):
+celery -A app.celery_app worker --loglevel=info --concurrency=2
+```
+
+В тестах — eager-режим (`CELERY_TASK_ALWAYS_EAGER=1`): задачи выполняются синхронно в
+процессе, без брокера/воркера; результат остаётся опрашиваемым через тот же API.
+
 ## Docker
 
 `Dockerfile` собирает образ API (применяет миграции и запускает uvicorn);
-`docker-compose.yml` поднимает API + PostgreSQL. Переменные — см. `.env.example`.
+`docker-compose.yml` (в этой папке) поднимает API + PostgreSQL для разработки ядра.
+Переменные — см. `.env.example`.
 
 ```bash
 cd backend
 cp .env.example .env          # заполнить секреты
 docker compose up --build     # API на :8000 (/docs), PostgreSQL на :5432
 ```
+
+**Полный стек** (PostgreSQL + API + web за nginx на одном origin) — корневой
+`../docker-compose.yml`; API наружу не публикуется, точка входа — web на `:8080`.

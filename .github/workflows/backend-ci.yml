@@ -27,6 +27,18 @@ jobs:
       - name: Установка зависимостей
         run: pip install ".[dev]"
 
+      - name: Линтер (ruff)
+        run: ruff check .
+
+      - name: Типы (mypy)
+        run: python -m mypy
+
+      - name: Контракт OpenAPI актуален
+        run: |
+          python scripts/dump_openapi.py
+          git diff --exit-code openapi.json \
+            || (echo '::error::openapi.json устарел — запустите: python scripts/dump_openapi.py' && exit 1)
+
       - name: Проверка миграций (SQLite)
         env:
           DATABASE_URL: sqlite:///./ci.db
@@ -36,3 +48,35 @@ jobs:
 
       - name: Тесты
         run: pytest -q
+
+  rls-postgres:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: finans_test
+        ports:
+          - "5432:5432"
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Установка зависимостей
+        run: pip install ".[dev,prod]"
+
+      - name: RLS-тесты (изоляция арендаторов на PostgreSQL)
+        env:
+          TEST_PG_URL: postgresql+psycopg://postgres:postgres@localhost:5432/finans_test
+        run: pytest tests/test_rls_postgres.py -q

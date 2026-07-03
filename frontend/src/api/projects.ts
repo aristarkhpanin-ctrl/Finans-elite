@@ -1,4 +1,5 @@
 import { api } from "./client";
+import type { Schema } from "./gen";
 import type { ProjectDetail, ProjectModel } from "./model";
 import type { ProjectSummary } from "./types";
 
@@ -19,6 +20,20 @@ export async function createProject(name: string, durationMonths = 12): Promise<
   return data;
 }
 
+export type TemplateInfo = Schema<"TemplateInfo">;
+
+export async function listTemplates(): Promise<TemplateInfo[]> {
+  const { data } = await api.get<TemplateInfo[]>("/api/v1/templates");
+  return data;
+}
+
+export async function createProjectFromTemplate(templateId: string, name: string): Promise<ProjectDetail> {
+  const { data: model } = await api.get<ProjectModel>(`/api/v1/templates/${templateId}`);
+  model.header = { ...model.header, name };
+  const { data } = await api.post<ProjectDetail>("/api/v1/projects", { name, model });
+  return data;
+}
+
 export async function updateProject(id: string, name: string, model: ProjectModel): Promise<ProjectDetail> {
   const { data } = await api.put<ProjectDetail>(`/api/v1/projects/${id}`, { name, model });
   return data;
@@ -26,4 +41,10 @@ export async function updateProject(id: string, name: string, model: ProjectMode
 
 export async function deleteProject(id: string): Promise<void> {
   await api.delete(`/api/v1/projects/${id}`);
+}
+
+/** Дубликат проекта (B2): модель целиком, имя «{name} (копия)». */
+export async function duplicateProject(id: string): Promise<ProjectDetail> {
+  const { data } = await api.post<ProjectDetail>(`/api/v1/projects/${id}/duplicate`);
+  return data;
 }

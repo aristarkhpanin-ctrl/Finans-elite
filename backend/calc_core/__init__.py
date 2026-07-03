@@ -5,7 +5,7 @@ HTTP и арендаторов (см. ARCHITECTURE-SaaS.md §6, CALC-ENGINE-SPEC
 """
 from __future__ import annotations
 
-from .engine import CalcOptions, CalcError, InvariantError, ModelError, run
+from .engine import CalcError, CalcOptions, InvariantError, ModelError, run
 from .models import ProjectModel
 from .reports import CalcResult
 from .version import ENGINE_VERSION

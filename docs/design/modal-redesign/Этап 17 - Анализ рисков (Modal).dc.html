@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Inter';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-600-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:700;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-700-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-600-normal.woff2') format('woff2');}
+</style>
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  input,select{font-family:inherit;}
+  .fe-scroll::-webkit-scrollbar{height:10px;width:10px;}
+  .fe-scroll::-webkit-scrollbar-thumb{background:rgba(120,113,108,.4);border-radius:5px;border:3px solid transparent;background-clip:padding-box;}
+  .fe-scroll::-webkit-scrollbar-track{background:transparent;}
+  @keyframes fe-pulse{from{opacity:.5}to{opacity:1}}
+  @keyframes fe-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes fe-spin{to{transform:rotate(360deg)}}
+  .fe-trow:hover .fe-tcell{background:var(--hov)!important;}
+</style>
+</helmet>
+
+<div style="{{ s.page }}" data-screen-label="17 — Анализ рисков">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+      <div style="{{ s.barCube }}"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="26px,26px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Этап&nbsp;17 · Анализ рисков</span>
+        <span style="{{ s.barSub }}">Финанс-Элит · чувствительность · Монте-Карло · What-If</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Состояние</span>
+        <div style="{{ s.seg }}"><sc-for list="{{ stateBtns }}" as="b" hint-placeholder-count="3"><button style="{{ b.style }}" onClick="{{ b.onClick }}">{{ b.label }}</button></sc-for></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Свет</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тьма</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}">
+
+      <div style="{{ s.subheader }}">
+        <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1;">
+          <button style="{{ s.backBtn }}">←</button>
+          <span style="{{ s.projName }}">Завод полимерной упаковки</span>
+          <span style="{{ s.modeChip }}">Анализ рисков</span>
+        </div>
+        <div style="{{ s.modeSeg }}"><button style="{{ s.modeOther }}">Редактор</button><button style="{{ s.modeOther }}">Результаты</button><button style="{{ s.modeActive }}">Анализ</button></div>
+      </div>
+
+      <div style="{{ s.tabBarWrap }}"><div style="{{ s.tabBar }}" class="fe-scroll">
+        <sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="3"><button style="{{ tb.style }}" onClick="{{ tb.onClick }}"><span>{{ tb.label }}</span><span style="{{ tb.subStyle }}">{{ tb.sub }}</span></button></sc-for>
+      </div></div>
+
+      <div style="{{ s.content }}">
+
+        <!-- ============ ЧУВСТВИТЕЛЬНОСТЬ ============ -->
+        <sc-if value="{{ isSens }}" hint-placeholder-val="{{ true }}">
+        <div style="{{ s.head }}">
+          <div style="min-width:0;"><div style="{{ s.headTitle }}">Анализ чувствительности</div><div style="{{ s.headSub }}">Как меняется NPV при отклонении одного параметра · остальные зафиксированы на базе</div></div>
+        </div>
+
+        <div style="{{ s.cfgCard }}">
+          <div style="{{ s.cfgField }}" style="flex:1;min-width:230px;">
+            <label style="{{ s.fieldLabel }}">Параметр</label>
+            <div style="{{ s.selBox }}"><select style="{{ s.selectEl }}" value="{{ sensParam }}" onChange="{{ onSensParam }}"><sc-for list="{{ sensParamOptions }}" as="o" hint-placeholder-count="5"><option value="{{ o.val }}">{{ o.label }}</option></sc-for></select><span style="{{ s.selChev }}">▾</span></div>
+          </div>
+          <div style="{{ s.cfgField }}" style="flex:1.3;min-width:240px;">
+            <div style="{{ s.labelRow }}"><label style="{{ s.fieldLabel }}">Коэффициенты</label><span style="{{ s.hintBadge }}" title="Множители к базовому значению параметра">?</span></div>
+            <div style="{{ s.coeffBox }}"><sc-for list="{{ sensCoeffChips }}" as="c" hint-placeholder-count="5"><span style="{{ c.style }}">{{ c.label }}</span></sc-for></div>
+          </div>
+          <button style="{{ s.runBtn }}" style-hover="{{ s.runBtnHover }}" onClick="{{ runSens }}"><sc-if value="{{ sensLoad }}" hint-placeholder-val=""><span style="{{ s.btnSpin }}"></span></sc-if><span>{{ sensBtnText }}</span></button>
+        </div>
+
+        <sc-if value="{{ sensSetup }}" hint-placeholder-val="{{ false }}">
+        <div style="{{ s.placeholder }}"><div style="{{ s.phIco }}"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 19V5M4 19h16M8 15l3-3 3 1 4-5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div style="{{ s.phTitle }}">Готово к расчёту</div><div style="{{ s.phSub }}">Выберите параметр и коэффициенты, затем нажмите «Рассчитать» — построим кривую NPV и таблицу.</div></div>
+        </sc-if>
+
+        <sc-if value="{{ sensLoad }}" hint-placeholder-val="{{ false }}">
+        <div style="{{ s.loadCard }}"><span style="{{ s.spinner }}"></span><div><div style="{{ s.loadTitle }}">Расчёт чувствительности…</div><div style="{{ s.loadSub }}">5 прогонов модели по коэффициентам</div></div></div>
+        </sc-if>
+
+        <sc-if value="{{ sensErr }}" hint-placeholder-val="{{ false }}">
+        <div style="{{ s.errCard }}"><div style="{{ s.errIco }}">!</div><div style="min-width:0;"><div style="{{ s.errTitle }}">Не удалось рассчитать</div><div style="{{ s.errSub }}">При коэффициенте 1,2 темп роста g превышает ставку дисконтирования — оценка по модели Гордона не определена. Уменьшите диапазон или ставку g.</div><button style="{{ s.errBtn }}" onClick="{{ runSens }}">Повторить расчёт</button></div></div>
+        </sc-if>
+
+        <sc-if value="{{ sensResult }}" hint-placeholder-val="{{ true }}">
+        <div data-chart-card="sens" style="{{ s.chartCard }}">
+          <div style="{{ s.chartHead }}"><div style="min-width:0;"><div style="{{ s.chartTitle }}">NPV в зависимости от коэффициента</div><div style="{{ s.chartSub }}">Выделена выбранная переменная · ось Y — млн ₽</div></div></div>
+          <div style="{{ s.legendWrap }}"><sc-for list="{{ sensLegend }}" as="l" hint-placeholder-count="5"><span style="{{ l.style }}" onClick="{{ l.onClick }}"><span style="{{ l.dotStyle }}"></span>{{ l.label }}</span></sc-for></div>
+          <div style="{{ s.chartBox }}">{{ sensChart }}</div>
+          <sc-if value="{{ sensHasTip }}" hint-placeholder-val="{{ false }}"><div style="{{ s.tip }}"><div style="{{ s.tipTitle }}">{{ sensTipTitle }}</div><sc-for list="{{ sensTipRows }}" as="r" hint-placeholder-count="3"><div style="{{ s.tipRow }}"><span style="{{ r.dotStyle }}"></span><span style="{{ s.tipLabel }}">{{ r.label }}</span><span style="{{ s.tipVal }}">{{ r.val }}</span></div></sc-for></div></sc-if>
+        </div>
+
+        <div style="{{ s.tblWrap }}">
+          <div style="{{ s.tblHeadRow }}">
+            <div style="{{ s.thCoeff }}">Коэффициент</div><div style="{{ s.thNum }}">NPV, млн ₽</div><div style="{{ s.thNum }}">Δ к базе</div><div style="{{ s.thNum }}">IRR</div><div style="{{ s.thBar }}">профиль</div>
+          </div>
+          <sc-for list="{{ sensTable }}" as="r" hint-placeholder-count="5">
+          <div style="{{ r.rowStyle }}" class="fe-trow">
+            <div style="{{ r.coeffStyle }}"><span style="{{ r.dotStyle }}"></span>{{ r.coeff }}<sc-if value="{{ r.isBase }}" hint-placeholder-val=""><span style="{{ s.baseTag }}">база</span></sc-if></div>
+            <div style="{{ r.npvStyle }}" class="fe-tcell">{{ r.npv }}</div>
+            <div style="{{ r.dStyle }}" class="fe-tcell">{{ r.dNpv }}</div>
+            <div style="{{ r.irrStyle }}" class="fe-tcell">{{ r.irr }}</div>
+            <div style="{{ s.barCell }}"><div style="{{ s.barTrack }}"><div style="{{ r.barStyle }}"></div></div></div>
+          </div>
+          </sc-for>
+        </div>
+        </sc-if>
+        </sc-if>
+
+        <!-- ============ МОНТЕ-КАРЛО ============ -->
+        <sc-if value="{{ isMC }}" hint-placeholder-val="{{ false }}">
+        <div style="{{ s.head }}">
+          <div style="min-width:0;"><div style="{{ s.headTitle }}">Монте-Карло</div><div style="{{ s.headSub }}">Случайные прогоны при заданных распределениях параметров → распределение NPV</div></div>
+        </div>
+
+        <div style="{{ s.cfgCard }}">
+          <div style="{{ s.cfgField }}" style="width:150px;">
+            <label style="{{ s.fieldLabel }}">Итераций</label>
+            <input style="{{ s.inputEl }}" inputmode="numeric" value="{{ mcIters }}" onChange="{{ onMcIters }}">
+          </div>
+          <div style="{{ s.cfgField }}" style="width:130px;">
+            <div style="{{ s.labelRow }}"><label style="{{ s.fieldLabel }}">Seed</label><span style="{{ s.hintBadge }}" title="Зерно ГСЧ — для воспроизводимости">?</span></div>
+            <input style="{{ s.inputEl }}" inputmode="numeric" value="{{ mcSeed }}" onChange="{{ onMcSeed }}">
+          </div>
+          <div style="flex:1;"></div>
+          <button style="{{ s.runBtn }}" style-hover="{{ s.runBtnHover }}" onClick="{{ runMC }}"><sc-if value="{{ mcLoad }}" hint-placeholder-val=""><span style="{{ s.btnSpin }}"></span></sc-if><span>{{ mcBtnText }}</span></button>
+        </div>
+
+        <div style="{{ s.subLabel }}">Неопределённые параметры</div>
+        <div style="{{ s.mcTblWrap }}" class="fe-scroll"><div style="{{ s.mcTblInner }}">
+          <div style="{{ s.mcHeadRow }}"><div style="{{ s.mcHParam }}">Параметр</div><div style="{{ s.mcHDist }}">Распределение</div><div style="{{ s.mcHFields }}">Параметры распределения</div></div>
+          <sc-for list="{{ mcParams }}" as="p" hint-placeholder-count="4">
+          <div style="{{ s.mcRow }}">
+            <div style="{{ s.mcParam }}"><span style="{{ p.dotStyle }}"></span>{{ p.label }}</div>
+            <div style="{{ s.mcDistCell }}"><div style="{{ s.selBoxSm }}"><select style="{{ s.selectElSm }}" value="{{ p.dist }}" onChange="{{ p.onDist }}"><sc-for list="{{ distOptions }}" as="o" hint-placeholder-count="3"><option value="{{ o.val }}">{{ o.label }}</option></sc-for></select><span style="{{ s.selChevSm }}">▾</span></div></div>
+            <div style="{{ s.mcFields }}"><sc-for list="{{ p.fields }}" as="f" hint-placeholder-count="2"><div style="{{ s.mcField }}"><span style="{{ s.mcFieldLabel }}">{{ f.label }}</span><span style="{{ s.mcFieldVal }}">{{ f.val }}</span></div></sc-for></div>
+          </div>
+          </sc-for>
+        </div></div>
+
+        <sc-if value="{{ mcSetup }}" hint-placeholder-val="{{ true }}">
+        <div style="{{ s.placeholder }}"><div style="{{ s.phIco }}"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 3v18h18M7 14l3-4 3 3 5-7" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div style="{{ s.phTitle }}">Запустите симуляцию</div><div style="{{ s.phSub }}">{{ mcIters }} прогонов модели со случайными значениями параметров — получим распределение NPV и вероятность NPV&nbsp;&gt;&nbsp;0.</div></div>
+        </sc-if>
+
+        <sc-if value="{{ mcLoad }}" hint-placeholder-val="{{ false }}">
+        <div style="{{ s.mcProgCard }}">
+          <div style="{{ s.mcProgTop }}"><div style="{{ s.mcCubeBox }}"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" motion-speed="energetic" style="width:100%;height:100%" hint-size="36px,36px"></dc-import></div><div style="min-width:0;flex:1;"><div style="{{ s.loadTitle }}">Симуляция Монте-Карло…</div><div style="{{ s.loadSub }}">итерация {{ mcProgIter }} из {{ mcIters }} · оценка распределения NPV</div></div><span style="{{ s.mcProgPct }}">{{ mcProgPct }}</span></div>
+          <div style="{{ s.progTrack }}"><div style="{{ s.mcProgBar }}"></div></div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ mcResult }}" hint-placeholder-val="{{ false }}">
+        <div style="{{ s.statGrid }}">
+          <sc-for list="{{ mcStats }}" as="m" hint-placeholder-count="8"><div style="{{ m.card }}"><div style="{{ s.statLabel }}">{{ m.label }}</div><div style="{{ m.valStyle }}">{{ m.value }}</div></div></sc-for>
+        </div>
+        <div data-chart-card="mc" style="{{ s.chartCard }}">
+          <div style="{{ s.chartHead }}"><div style="min-width:0;"><div style="{{ s.chartTitle }}">Распределение NPV</div><div style="{{ s.chartSub }}">{{ mcIters }} итераций · ось X — млн ₽ · красная линия — порог NPV = 0</div></div></div>
+          <div style="{{ s.legendWrap }}"><span style="{{ s.legPosChip }}"><span style="{{ s.legPosDot }}"></span>NPV &gt; 0</span><span style="{{ s.legNegChip }}"><span style="{{ s.legNegDot }}"></span>NPV &lt; 0</span></div>
+          <div style="{{ s.chartBox }}">{{ mcChart }}</div>
+          <sc-if value="{{ mcHasTip }}" hint-placeholder-val="{{ false }}"><div style="{{ s.tip }}"><div style="{{ s.tipTitle }}">{{ mcTipTitle }}</div><sc-for list="{{ mcTipRows }}" as="r" hint-placeholder-count="2"><div style="{{ s.tipRow }}"><span style="{{ r.dotStyle }}"></span><span style="{{ s.tipLabel }}">{{ r.label }}</span><span style="{{ s.tipVal }}">{{ r.val }}</span></div></sc-for></div></sc-if>
+        </div>
+        </sc-if>
+        </sc-if>
+
+        <!-- ============ WHAT-IF ============ -->
+        <sc-if value="{{ isWif }}" hint-placeholder-val="{{ false }}">
+        <div style="{{ s.head }}">
+          <div style="min-width:0;"><div style="{{ s.headTitle }}">What-If · сценарии</div><div style="{{ s.headSub }}">Корректировки параметров → сравнение ключевых показателей по сценариям</div></div>
+          <label style="{{ s.baseToggle }}" onClick="{{ toggleWifBase }}"><span style="{{ s.baseSw }}"><span style="{{ s.baseKnob }}"></span></span>Включая базовый</label>
+        </div>
+
+        <div style="{{ s.scnList }}">
+          <sc-for list="{{ wifScenarios }}" as="sc" hint-placeholder-count="4">
+          <div style="{{ sc.rowStyle }}">
+            <div style="{{ s.scnHandle }}">{{ sc.idx }}</div>
+            <div style="{{ s.scnName }}">{{ sc.name }}<sc-if value="{{ sc.isBase }}" hint-placeholder-val=""><span style="{{ s.scnBaseTag }}">базовый</span></sc-if></div>
+            <div style="{{ s.scnAdj }}"><sc-for list="{{ sc.adj }}" as="a" hint-placeholder-count="2"><span style="{{ a.style }}">{{ a.text }}</span></sc-for><sc-if value="{{ sc.noAdj }}" hint-placeholder-val=""><span style="{{ s.scnNoAdj }}">без корректировок</span></sc-if></div>
+            <button style="{{ s.scnDel }}">✕</button>
+          </div>
+          </sc-for>
+          <button style="{{ s.scnAdd }}">+ Добавить сценарий</button>
+        </div>
+
+        <div style="{{ s.wifActions }}">
+          <button style="{{ s.runBtn }}" style-hover="{{ s.runBtnHover }}" onClick="{{ runWif }}"><sc-if value="{{ wifLoad }}" hint-placeholder-val=""><span style="{{ s.btnSpin }}"></span></sc-if><span>{{ wifBtnText }}</span></button>
+        </div>
+
+        <sc-if value="{{ wifResult }}" hint-placeholder-val="{{ true }}">
+        <div style="{{ s.subLabel }}">Сравнение сценариев</div>
+        <div style="{{ s.cmpWrap }}" class="fe-scroll"><div style="{{ s.cmpInner }}">
+          <div style="{{ s.cmpHead }}"><div style="{{ s.cmpHName }}">Сценарий</div><div style="{{ s.cmpHBar }}">NPV</div><div style="{{ s.cmpHNum }}">NPV, млн</div><div style="{{ s.cmpHNum }}">IRR</div><div style="{{ s.cmpHNum }}">PI</div><div style="{{ s.cmpHNum }}">Окупаемость</div></div>
+          <sc-for list="{{ wifTable }}" as="r" hint-placeholder-count="5">
+          <div style="{{ r.rowStyle }}" class="fe-trow">
+            <div style="{{ r.nameStyle }}"><span style="{{ r.tagStyle }}">{{ r.tag }}</span>{{ r.name }}</div>
+            <div style="{{ s.cmpBarCell }}"><div style="{{ s.cmpBarTrack }}"><div style="{{ r.barStyle }}"></div></div></div>
+            <div style="{{ r.npvStyle }}" class="fe-tcell">{{ r.npv }}</div>
+            <div style="{{ s.cmpNum }}" class="fe-tcell">{{ r.irr }}</div>
+            <div style="{{ s.cmpNum }}" class="fe-tcell">{{ r.pi }}</div>
+            <div style="{{ s.cmpNum }}" class="fe-tcell">{{ r.pb }}</div>
+          </div>
+          </sc-for>
+        </div></div>
+        <div style="{{ s.cmpLegend }}"><span style="{{ s.cmpLegItem }}"><span style="{{ s.cmpLegBest }}"></span>лучший по NPV</span><span style="{{ s.cmpLegItem }}"><span style="{{ s.cmpLegWorst }}"></span>худший по NPV</span></div>
+        </sc-if>
+        </sc-if>
+
+        <div style="{{ s.bottomPad }}"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { theme:'dark', device:'desktop', tab:'sens',
+    sensParam:'price', sensRun:'result', mcRun:'setup', mcIters:'500', mcSeed:'42',
+    mcDist:{volume:'normal',price:'triangular',rate:'uniform',direct:'normal'},
+    wifRun:'result', wifBase:true, tip:null };
+
+  componentWillUnmount(){ if(this._t)clearTimeout(this._t); }
+
+  THEME(){
+    const light={pageBg:'#E4F1E0',bg:'#F4FAF2',surface:'#FFFFFF',surface2:'#EDF5EA',border:'#D2E4CD',borderStrong:'#B4CCAE',gridLine:'#E8F1E5',text:'#16201A',muted:'#46584A',subtle:'#6E8270',primary:'#7FEE64',primaryHover:'#6FE253',primaryText:'#06210E',accent:'#138A45',primaryBg:'#DBF3D2',primarySoft:'#EAF8E4',good:'#0E7A4F',goodBg:'#DBF1E2',goodBorder:'#B7DEC6',danger:'#C0473B',dangerBg:'#FAE7E4',dangerBorder:'#EECFCA',dangerText:'#8F2F26',shadow:'0 18px 44px -22px rgba(20,40,24,.22), 0 2px 6px rgba(20,40,24,.05)',menuShadow:'0 16px 40px -12px rgba(20,40,24,.28)',barBg:'#FFFFFF',segBg:'#E7F0E3',segActiveBg:'#FFFFFF',headerBg:'#FFFFFF'};
+    const dark={pageBg:'#000000',bg:'#0C0F0C',surface:'#212525',surface2:'#2A312A',border:'#485346',borderStrong:'#677D64',gridLine:'#232823',text:'#DDFFDC',muted:'#93A091',subtle:'#677D64',primary:'#7FEE64',primaryHover:'#95F47D',primaryText:'#000000',accent:'#7FEE64',primaryBg:'rgba(127,238,100,.15)',primarySoft:'rgba(127,238,100,.09)',good:'#7FEE64',goodBg:'rgba(127,238,100,.15)',goodBorder:'rgba(127,238,100,.32)',danger:'#F0796E',dangerBg:'rgba(240,121,110,.15)',dangerBorder:'rgba(240,121,110,.32)',dangerText:'#F4B0A8',shadow:'0 30px 70px -34px rgba(0,0,0,.9)',menuShadow:'0 22px 52px -16px rgba(0,0,0,.82)',barBg:'#0C0F0C',segBg:'#0B0E0B',segActiveBg:'#2A312A',headerBg:'#0C0F0C'};
+    return this.state.theme==='dark'?dark:light;
+  }
+  DIM(){ const dv=this.state.device,m=dv==='mobile',tab=dv==='tablet'; return {frame:m?402:tab?864:1240, radius:m?30:tab?18:14, pad:m?16:tab?22:30, mobile:m}; }
+  PAL(){ const dk=this.state.theme==='dark'; return dk?['#7FEE64','#C8F9B6','#AED2A4','#9BD08E','#F0796E']:['#138A45','#5FA86A','#8FB98A','#B59A2E','#C0473B']; }
+
+  E(tag,props,kids){ return React.createElement(tag,props,kids); }
+  svg(P,kids){ return this.E('svg',{width:'100%',height:'100%',viewBox:'0 0 '+P.w+' '+P.h,preserveAspectRatio:'xMidYMid meet',style:{display:'block'}},kids); }
+  frame(P){ return {x0:P.mL,x1:P.w-P.mR,y0:P.h-P.mB,y1:P.mT,iw:P.w-P.mL-P.mR,ih:P.h-P.mT-P.mB}; }
+  money(v){ const neg=v<0,a=Math.abs(Math.round(v)); let s=String(a).replace(/\B(?=(\d{3})+(?!\d))/g,'\u00A0'); return (neg?'\u2212':'')+s+' \u20BD'; }
+  mln(v){ return (v<0?'\u2212':'')+Math.abs(v).toFixed(1).replace('.',','); }
+
+  yGrid(ctx,F,min,max,zeroEmph,fmt){ const E=this.E.bind(this),t=ctx.t,kids=[],ticks=4;
+    for(let k=0;k<=ticks;k++){ const v=min+(max-min)*k/ticks, y=F.y0-(v-min)/((max-min)||1)*F.ih, zero=Math.abs(v)<1e-9;
+      kids.push(E('line',{key:'g'+k,x1:F.x0,y1:y,x2:F.x1,y2:y,stroke:(zero&&zeroEmph)?t.borderStrong:t.gridLine,strokeWidth:(zero&&zeroEmph)?1.4:1}));
+      kids.push(E('text',{key:'yl'+k,x:F.x0-8,y:y+3.5,textAnchor:'end',style:{font:"600 10px 'JetBrains Mono',monospace",fill:t.subtle}}, fmt?fmt(v):Math.round(v))); }
+    return kids; }
+
+  chartSensitivity(ctx,series,coeffs,selKey){
+    const E=this.E.bind(this),t=ctx.t,P=ctx.P,F=this.frame(P),n=coeffs.length,pal=ctx.pal;
+    let vals=[]; series.forEach(s=>vals.push(...s.vals)); let min=Math.min(0,...vals),max=Math.max(0,...vals); const pd=(max-min)*0.14; min-=pd; max+=pd;
+    const X=(i)=>F.x0+(n===1?0.5:i/(n-1))*F.iw, Y=(v)=>F.y0-(v-min)/((max-min)||1)*F.ih;
+    const kids=this.yGrid(ctx,F,min,max,true,v=>Math.round(v));
+    kids.push(E('text',{key:'cap',x:F.x0,y:F.y1-6,style:{font:"600 9px Inter,sans-serif",fill:t.subtle}},'млн ₽'));
+    coeffs.forEach((c,i)=>kids.push(E('text',{key:'xl'+i,x:X(i),y:F.y0+17,textAnchor:'middle',style:{font:"600 10px 'JetBrains Mono',monospace",fill:t.subtle}}, c.toFixed(1).replace('.',','))));
+    const bi=coeffs.indexOf(1);
+    if(bi>=0){ kids.push(E('line',{key:'bl',x1:X(bi),y1:F.y1,x2:X(bi),y2:F.y0,stroke:t.borderStrong,strokeWidth:1,strokeDasharray:'3 4'})); kids.push(E('text',{key:'blt',x:X(bi),y:F.y1-6,textAnchor:'middle',style:{font:"600 8.5px Inter,sans-serif",fill:t.subtle}},'база')); }
+    series.forEach(s=>{ if(s.key===selKey)return; const pts=s.vals.map((v,i)=>X(i).toFixed(1)+','+Y(v).toFixed(1)).join(' '); kids.push(E('polyline',{key:'l'+s.key,points:pts,fill:'none',stroke:s.color,strokeWidth:1.5,opacity:.32,strokeLinecap:'round',strokeLinejoin:'round'})); });
+    const sel=series.find(s=>s.key===selKey)||series[0];
+    const selPts=sel.vals.map((v,i)=>X(i).toFixed(1)+','+Y(v).toFixed(1)).join(' ');
+    kids.push(E('polyline',{key:'sel',points:selPts,fill:'none',stroke:sel.color,strokeWidth:2.8,strokeLinecap:'round',strokeLinejoin:'round'}));
+    sel.vals.forEach((v,i)=>kids.push(E('circle',{key:'m'+i,cx:X(i),cy:Y(v),r:3.4,fill:sel.color,stroke:t.surface,strokeWidth:1.5})));
+    for(let i=0;i<n;i++){ const bw=F.iw/(n-1||1); kids.push(E('rect',{key:'hb'+i,x:X(i)-bw/2,y:F.y1,width:bw,height:F.ih,fill:'transparent',style:{cursor:'crosshair'},onMouseEnter:ctx.mkTip('sens','коэф. '+coeffs[i].toFixed(1).replace('.',','),series.map(s=>({label:s.label,val:this.mln(s.vals[i])+' млн',dot:s.color}))),onMouseMove:ctx.mkTip('sens','коэф. '+coeffs[i].toFixed(1).replace('.',','),series.map(s=>({label:s.label,val:this.mln(s.vals[i])+' млн',dot:s.color}))),onMouseLeave:ctx.clearTip})); }
+    return this.svg(P,kids);
+  }
+
+  chartHistogram(ctx,H){
+    const E=this.E.bind(this),t=ctx.t,P=ctx.P,F=this.frame(P),pal=ctx.pal;
+    const X=(v)=>F.x0+(v-H.lo)/(H.hi-H.lo)*F.iw, Y=(c)=>F.y0-c/(H.maxc||1)*F.ih;
+    const kids=this.yGrid(ctx,F,0,H.maxc,false,v=>Math.round(v));
+    [H.lo,Math.round((H.lo+H.hi)/2/10)*10,0,20,H.hi].filter((v,i,a)=>a.indexOf(v)===i&&v>=H.lo&&v<=H.hi).forEach((v,i)=>kids.push(E('text',{key:'xt'+i,x:X(v),y:F.y0+17,textAnchor:'middle',style:{font:"600 9.5px 'JetBrains Mono',monospace",fill:t.subtle}}, this.mln(v))));
+    H.bins.forEach((b,k)=>{ const x0=X(b.c0),x1=X(b.c1),y=Y(b.cnt); kids.push(E('rect',{key:'b'+k,x:x0+1.2,y:y,width:Math.max(x1-x0-2.4,1),height:F.y0-y,rx:2,fill:b.pos?ctx.posCol:ctx.negCol,style:{cursor:'crosshair'},onMouseEnter:ctx.mkTip('mc',this.mln(b.c0)+' … '+this.mln(b.c1)+' млн',[{label:'Итераций',val:String(b.cnt),dot:b.pos?ctx.posCol:ctx.negCol},{label:'Доля',val:(b.cnt/H.total*100).toFixed(1).replace('.',',')+' %',dot:b.pos?ctx.posCol:ctx.negCol}]),onMouseMove:ctx.mkTip('mc',this.mln(b.c0)+' … '+this.mln(b.c1)+' млн',[{label:'Итераций',val:String(b.cnt),dot:b.pos?ctx.posCol:ctx.negCol},{label:'Доля',val:(b.cnt/H.total*100).toFixed(1).replace('.',',')+' %',dot:b.pos?ctx.posCol:ctx.negCol}]),onMouseLeave:ctx.clearTip})); });
+    const zx=X(0); kids.push(E('line',{key:'z',x1:zx,y1:F.y1,x2:zx,y2:F.y0,stroke:t.danger,strokeWidth:1.5,strokeDasharray:'6 4'}));
+    kids.push(E('text',{key:'zt',x:zx+4,y:F.y1+9,style:{font:"700 9.5px Inter,sans-serif",fill:t.danger}},'NPV = 0'));
+    const px=X(18.1); kids.push(E('line',{key:'p',x1:px,y1:F.y1,x2:px,y2:F.y0,stroke:ctx.posCol,strokeWidth:1.2,strokeDasharray:'3 3'}));
+    kids.push(E('text',{key:'pt',x:px,y:F.y1-4,textAnchor:'middle',style:{font:"600 8.5px Inter,sans-serif",fill:ctx.posCol}},'медиана'));
+    return this.svg(P,kids);
+  }
+  mcBins(){ const lo=-12,hi=48,nb=20,w=(hi-lo)/nb,mean=18.4,sd=9.1,total=+this.state.mcIters||500; const pdf=(x)=>Math.exp(-((x-mean)**2)/(2*sd*sd))/(sd*Math.sqrt(2*Math.PI)); const bins=[]; let maxc=0; for(let k=0;k<nb;k++){ const c0=lo+k*w,c1=c0+w,ctr=c0+w/2,cnt=Math.round(total*w*pdf(ctr)); bins.push({c0,c1,ctr,cnt,pos:ctr>0}); if(cnt>maxc)maxc=cnt; } return {bins,maxc,lo,hi,total}; }
+
+  setTab(tab){ this.setState({tab,tip:null}); }
+  runFlow(key,ms){ const map={sens:'sensRun',mc:'mcRun',wif:'wifRun'}; const f=map[key]; this.setState({[f]:'loading',tip:null}); if(this._t)clearTimeout(this._t); this._t=setTimeout(()=>this.setState({[f]:'result'}),ms); }
+
+  renderVals(){
+    const st=this.state, t=this.THEME(), d=this.DIM(), pal=this.PAL();
+    const seg=(a)=>`appearance:none;border:none;cursor:pointer;font:600 11.5px Inter,sans-serif;padding:6px 10px;border-radius:7px;white-space:nowrap;color:${a?t.text:t.subtle};background:${a?t.segActiveBg:'transparent'};box-shadow:${a?'0 1px 2px rgba(0,0,0,.14)':'none'};transition:.14s;`;
+    const segWrap=`display:flex;gap:3px;padding:3px;background:${t.segBg};border-radius:9px;`;
+    const mode=(a)=>`appearance:none;border:none;cursor:pointer;font:600 12.5px Inter,sans-serif;padding:7px 13px;border-radius:8px;white-space:nowrap;color:${a?t.primaryText:t.muted};background:${a?t.primary:'transparent'};box-shadow:${a?'0 1px 2px rgba(0,0,0,.14)':'none'};`;
+    const tab=st.tab;
+
+    // tip
+    const mkTip=(card,title,rows)=>(e)=>{ const host=e.currentTarget.closest('[data-chart-card]'); if(!host)return; const r=host.getBoundingClientRect(); this.setState({tip:{card,x:e.clientX-r.left,y:e.clientY-r.top,title,rows}}); };
+    const clearTip=()=>this.setState({tip:null});
+    const ctx={t,pal,mkTip,clearTip,posCol:t.primary,negCol:t.danger};
+
+    // ---- SENSITIVITY ----
+    const coeffs=[0.8,0.9,1.0,1.1,1.2], base=18.4;
+    const sDefs=[{key:'price',label:'Цена сбыта',slope:34,color:pal[0]},{key:'volume',label:'Объём продаж',slope:30,color:pal[1]},{key:'direct',label:'Прямые издержки',slope:-22,color:pal[4]},{key:'rate',label:'Ставка дисконтирования',slope:-14,color:pal[3]},{key:'tax',label:'Налог на прибыль',slope:-6,color:pal[2]}];
+    const sSeries=sDefs.map(dn=>({...dn,vals:coeffs.map(c=>+(base+dn.slope*(c-1)).toFixed(1))}));
+    const selSeries=sSeries.find(x=>x.key===st.sensParam)||sSeries[0];
+    const Pf={w:d.mobile?540:1080,h:d.mobile?280:300,mL:46,mR:22,mT:22,mB:38};
+    const sensChart=this.chartSensitivity({...ctx,P:Pf},sSeries,coeffs,st.sensParam);
+    const sensTable=coeffs.map((c,i)=>{ const npv=selSeries.vals[i], dN=+(npv-base).toFixed(1), irr=+(20+npv).toFixed(1), isBase=c===1;
+      return {coeff:c.toFixed(1).replace('.',','), isBase,
+        rowStyle:`display:flex;align-items:center;background:${isBase?t.primarySoft:t.surface};border-bottom:1px solid ${t.gridLine};--hov:${t.surface2};`,
+        dotStyle:`width:8px;height:8px;border-radius:2px;flex:none;margin-right:9px;background:${selSeries.color};`,
+        coeffStyle:`flex:1;min-width:130px;display:flex;align-items:center;padding:11px 14px;font:600 13px 'JetBrains Mono',monospace;color:${t.text};`,
+        npv:this.mln(npv), npvStyle:`width:120px;flex:none;text-align:right;padding:11px 14px;font:700 13px 'JetBrains Mono',monospace;color:${npv<0?t.danger:t.text};`,
+        dNpv:(dN>0?'+':'')+this.mln(dN).replace('\u2212','\u2212'), dStyle:`width:110px;flex:none;text-align:right;padding:11px 14px;font:600 12.5px 'JetBrains Mono',monospace;color:${dN>0?t.good:(dN<0?t.danger:t.subtle)};`,
+        irr:irr.toFixed(1).replace('.',',')+' %', irrStyle:`width:100px;flex:none;text-align:right;padding:11px 14px;font:600 12.5px 'JetBrains Mono',monospace;color:${t.muted};`,
+        barStyle:`height:100%;width:${Math.max(4,Math.abs(npv)/Math.max(...sSeries.flatMap(s=>s.vals.map(Math.abs)))*100)}%;border-radius:4px;background:${npv<0?t.danger:selSeries.color};opacity:${isBase?1:.8};`};
+    });
+    const sensLegend=sSeries.map(s=>({label:s.label, onClick:()=>this.setState({sensParam:s.key}),
+      style:`display:inline-flex;align-items:center;gap:6px;font:600 11.5px Inter,sans-serif;cursor:pointer;color:${s.key===st.sensParam?t.text:t.subtle};opacity:${s.key===st.sensParam?1:.7};`,
+      dotStyle:`width:${s.key===st.sensParam?16:10}px;height:3px;border-radius:2px;background:${s.color};flex:none;`}));
+    const sensParamOptions=sDefs.map(dn=>({val:dn.key,label:dn.label}));
+
+    // ---- MONTE CARLO ----
+    const H=this.mcBins();
+    const Ph={w:d.mobile?540:1080,h:d.mobile?280:300,mL:46,mR:22,mT:22,mB:38};
+    const mcChart=this.chartHistogram({...ctx,P:Ph},H);
+    const distLabels={normal:'Нормальное',uniform:'Равномерное',triangular:'Треугольное'};
+    const distFields=(dist)=> dist==='normal'?[{label:'μ среднее',val:'1,00'},{label:'σ ст.откл.',val:'0,12'}] : dist==='uniform'?[{label:'min',val:'0,90'},{label:'max',val:'1,20'}] : [{label:'min',val:'0,85'},{label:'мода',val:'1,00'},{label:'max',val:'1,15'}];
+    const mcDefs=[{key:'volume',label:'Объём продаж',color:pal[1]},{key:'price',label:'Цена сбыта',color:pal[0]},{key:'rate',label:'Ставка дисконт.',color:pal[3]},{key:'direct',label:'Прямые издержки',color:pal[4]}];
+    const mcParams=mcDefs.map(m=>{ const dist=st.mcDist[m.key]||'normal';
+      return {label:m.label, dist, onDist:(e)=>this.setState(s=>({mcDist:{...s.mcDist,[m.key]:e.target.value}})),
+        dotStyle:`width:9px;height:9px;border-radius:3px;flex:none;margin-right:9px;background:${m.color};`,
+        fields:distFields(dist)};
+    });
+    const distOptions=['normal','uniform','triangular'].map(k=>({val:k,label:distLabels[k]}));
+    const mkStat=(label,value,kind)=>({label,value,card:`background:${t.surface};border:1px solid ${kind==='good'?t.goodBorder:t.border};border-radius:12px;padding:14px;${kind==='good'?`box-shadow:inset 3px 0 0 ${t.primary};`:''}`,valStyle:`font:700 ${kind==='good'?20:18}px 'JetBrains Mono',monospace;letter-spacing:-.01em;color:${kind==='good'?t.good:(kind==='neg'?t.danger:t.text)};margin-top:6px;`});
+    const mcStats=[mkStat('Среднее NPV','18,4 млн ₽'),mkStat('Ст. откл. σ','9,1 млн ₽'),mkStat('Минимум','−7,2 млн','neg'),mkStat('Максимум','44,8 млн'),mkStat('P10','6,8 млн'),mkStat('P50 · медиана','18,1 млн'),mkStat('P90','30,2 млн'),mkStat('P(NPV > 0)','97,6 %','good')];
+
+    // ---- WHAT-IF ----
+    const wDefs=[{name:'База (текущая модель)',base:true,npv:18.4,irr:38.5,pi:1.92,pb:'11 мес',adj:[]},
+      {name:'Оптимистичный',npv:27.6,irr:46.2,pi:2.31,pb:'9 мес',adj:['Цена +8 %','Объём +10 %']},
+      {name:'Пессимистичный',npv:6.2,irr:22.1,pi:1.28,pb:'17 мес',adj:['Цена −6 %','Издержки +8 %']},
+      {name:'Рост цен на сырьё',npv:9.8,irr:26.4,pi:1.41,pb:'15 мес',adj:['Прямые +15 %']},
+      {name:'Кризис сбыта',npv:-4.3,irr:6.1,pi:0.84,pb:'—',adj:['Объём −20 %','Цена −5 %']}];
+    const wList=st.wifBase?wDefs:wDefs.filter(w=>!w.base);
+    const wifScenarios=wList.map((w,i)=>({name:w.name, isBase:!!w.base, idx:String(i+1), noAdj:w.adj.length===0,
+      rowStyle:`display:flex;align-items:center;gap:12px;background:${t.surface};border:1px solid ${t.border};border-radius:11px;padding:11px 13px;`,
+      adj:w.adj.map(a=>({text:a, style:`font:600 11px Inter,sans-serif;color:${t.muted};background:${t.surface2};border:1px solid ${t.border};padding:3px 9px;border-radius:6px;white-space:nowrap;`}))}));
+    const npvs=wList.map(w=>w.npv), maxAbs=Math.max(...npvs.map(Math.abs)), bestNpv=Math.max(...npvs), worstNpv=Math.min(...npvs);
+    const wifTable=wList.map(w=>{ const best=w.npv===bestNpv, worst=w.npv===worstNpv;
+      return {name:w.name, tag:best?'★':(worst?'▼':''), npv:this.mln(w.npv), irr:w.irr.toFixed(1).replace('.',',')+' %', pi:w.pi.toFixed(2).replace('.',','), pb:w.pb,
+        rowStyle:`display:flex;align-items:center;background:${best?t.goodBg:(worst?t.dangerBg:t.surface)};border-bottom:1px solid ${t.gridLine};--hov:${t.surface2};`,
+        tagStyle:`display:inline-flex;width:16px;justify-content:center;margin-right:7px;font:700 11px Inter,sans-serif;color:${best?t.good:(worst?t.danger:'transparent')};`,
+        nameStyle:`flex:1;min-width:170px;display:flex;align-items:center;padding:12px 14px;font:600 13px Inter,sans-serif;color:${t.text};`,
+        npvStyle:`width:108px;flex:none;text-align:right;padding:12px 14px;font:700 13.5px 'JetBrains Mono',monospace;color:${w.npv<0?t.danger:(best?t.good:t.text)};`,
+        barStyle:`height:100%;width:${Math.max(4,Math.abs(w.npv)/maxAbs*100)}%;border-radius:4px;background:${w.npv<0?t.danger:(best?t.primary:t.primary)};opacity:${best?1:(w.npv<0?1:.55)};`};
+    });
+
+    // tip render
+    const tp=st.tip;
+    const sensHasTip=!!(tp&&tp.card==='sens'&&st.sensRun==='result');
+    const mcHasTip=!!(tp&&tp.card==='mc'&&st.mcRun==='result');
+    const tipDot=(c)=>`width:8px;height:8px;border-radius:2px;flex:none;background:${c};`;
+
+    // state seg per tab
+    const curRun = tab==='sens'?st.sensRun:(tab==='mc'?st.mcRun:st.wifRun);
+    const setRun=(v)=>{ const f=tab==='sens'?'sensRun':(tab==='mc'?'mcRun':'wifRun'); this.setState({[f]:v,tip:null}); };
+    let stDefs;
+    if(tab==='sens') stDefs=[['setup','Настройка'],['loading','Расчёт'],['result','Результат'],['error','Ошибка']];
+    else if(tab==='mc') stDefs=[['setup','Настройка'],['loading','Расчёт'],['result','Результат']];
+    else stDefs=[['setup','Настройка'],['result','Результат']];
+    const stateBtns=stDefs.map(([v,label])=>({label,style:seg(curRun===v),onClick:()=>setRun(v)}));
+
+    const tabs=[['sens','Чувствительность','5 коэф.'],['mc','Монте-Карло',st.mcIters+' итер.'],['wif','What-If',wList.length+' сцен.']].map(([key,label,sub])=>{ const active=tab===key;
+      return {label,sub,onClick:()=>this.setTab(key),
+        style:`appearance:none;border:none;background:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;font:600 13.5px Inter,sans-serif;color:${active?t.text:t.muted};padding:0 3px;height:48px;border-bottom:2px solid ${active?t.primary:'transparent'};white-space:nowrap;`,
+        subStyle:`font:600 10px 'JetBrains Mono',monospace;color:${active?t.primary:t.subtle};background:${active?t.primaryBg:t.surface2};border:1px solid ${active?'transparent':t.border};padding:1px 6px;border-radius:5px;`};
+    });
+
+    const s={
+      page:`min-height:100vh;background:${t.pageBg};color:${t.text};display:flex;flex-direction:column;transition:background .25s;`,
+      bar:`display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:13px 20px;background:${t.barBg};border-bottom:1px solid ${t.border};position:sticky;top:0;z-index:60;`,
+      barCube:`width:26px;height:26px;flex:none;border-radius:8px;overflow:hidden;`,
+      barTitle:`font:700 13px Inter,sans-serif;letter-spacing:-.01em;color:${t.text};white-space:nowrap;`,
+      barSub:`font:500 11px Inter,sans-serif;color:${t.subtle};white-space:nowrap;`,
+      barLabel:`font:600 9.5px Inter,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:${t.subtle};`,
+      seg:segWrap, segLight:seg(st.theme==='light'),segDark:seg(st.theme==='dark'),segDesktop:seg(st.device==='desktop'),segTablet:seg(st.device==='tablet'),segMobile:seg(st.device==='mobile'),
+
+      stage:`flex:1;display:flex;justify-content:center;align-items:flex-start;padding:${d.mobile?'22px 10px':'34px 24px'};`,
+      frame:`position:relative;width:100%;max-width:${d.frame}px;background:${t.bg};border:1px solid ${t.border};border-radius:${d.radius}px;box-shadow:${t.shadow};overflow:hidden;`,
+      subheader:`display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:13px ${d.pad}px;background:${t.headerBg};border-bottom:1px solid ${t.border};`,
+      backBtn:`appearance:none;cursor:pointer;width:34px;height:34px;border-radius:8px;border:1px solid ${t.border};background:${t.surface};color:${t.muted};font:600 14px Inter;flex:none;`,
+      projName:`font:700 ${d.mobile?16:19}px Inter,sans-serif;letter-spacing:-.02em;color:${t.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;`,
+      modeChip:`font:600 11px Inter,sans-serif;color:${t.primary};background:${t.primaryBg};border:1px solid ${t.goodBorder};padding:3px 9px;border-radius:6px;white-space:nowrap;flex:none;${d.mobile?'display:none;':''}`,
+      modeSeg:`display:flex;gap:3px;padding:3px;background:${t.segBg};border-radius:10px;${d.mobile?'width:100%;':''}`,
+      modeOther:mode(false),modeActive:mode(true),
+
+      tabBarWrap:`background:${t.headerBg};border-bottom:1px solid ${t.border};padding:0 ${d.pad}px;`,
+      tabBar:`display:flex;align-items:center;gap:${d.mobile?16:26}px;overflow-x:auto;`,
+      content:`padding:${d.pad}px;`,
+
+      head:`display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px;`,
+      headTitle:`font:700 ${d.mobile?18:22}px 'Satoshi',Inter,sans-serif;letter-spacing:-.025em;color:${t.text};`,
+      headSub:`font:400 12.5px/1.5 Inter,sans-serif;color:${t.muted};margin-top:4px;max-width:560px;`,
+      subLabel:`font:600 11px Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:${t.subtle};margin:22px 0 11px;`,
+
+      cfgCard:`display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;background:${t.surface};border:1px solid ${t.border};border-radius:16px;padding:16px;margin-bottom:18px;`,
+      cfgField:`display:flex;flex-direction:column;gap:7px;`,
+      labelRow:`display:flex;align-items:center;gap:6px;`,
+      fieldLabel:`font:600 12px Inter,sans-serif;color:${t.muted};`,
+      hintBadge:`width:15px;height:15px;border-radius:50%;border:1px solid ${t.borderStrong};color:${t.subtle};font:700 9.5px Inter;display:inline-flex;align-items:center;justify-content:center;cursor:help;flex:none;`,
+      selBox:`position:relative;display:flex;align-items:center;height:42px;border-radius:8px;background:${t.surface};border:1.5px solid ${t.border};overflow:hidden;`,
+      selectEl:`flex:1;min-width:0;height:100%;border:none;outline:none;background:transparent;color:${t.text};font:600 13.5px Inter,sans-serif;padding:0 32px 0 13px;cursor:pointer;appearance:none;`,
+      selChev:`position:absolute;right:12px;top:50%;transform:translateY(-50%);color:${t.subtle};font-size:11px;pointer-events:none;`,
+      inputEl:`height:42px;border-radius:8px;background:${t.surface};border:1.5px solid ${t.border};color:${t.text};font:600 13.5px 'JetBrains Mono',monospace;padding:0 13px;outline:none;width:100%;`,
+      coeffBox:`display:flex;align-items:center;gap:6px;flex-wrap:wrap;height:42px;padding:0 10px;border-radius:8px;background:${t.surface2};border:1.5px solid ${t.border};`,
+      runBtn:`appearance:none;border:none;cursor:pointer;height:42px;padding:0 20px;border-radius:4px;background:${t.primary};color:${t.primaryText};font:600 13.5px Inter,sans-serif;display:inline-flex;align-items:center;gap:9px;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.12);transition:.14s;`,
+      runBtnHover:`background:${t.primaryHover};`,
+      btnSpin:`width:14px;height:14px;border-radius:50%;border:2px solid currentColor;border-top-color:transparent;animation:fe-spin .7s linear infinite;flex:none;`,
+
+      placeholder:`text-align:center;padding:48px 24px;background:${t.surface};border:1px dashed ${t.borderStrong};border-radius:16px;display:flex;flex-direction:column;align-items:center;animation:fe-fade .25s ease;`,
+      phIco:`width:58px;height:58px;border-radius:15px;background:${t.surface2};color:${t.subtle};display:flex;align-items:center;justify-content:center;margin-bottom:16px;`,
+      phTitle:`font:700 17px Inter,sans-serif;color:${t.text};`,
+      phSub:`font:400 13.5px/1.55 Inter,sans-serif;color:${t.muted};max-width:440px;margin-top:7px;`,
+      loadCard:`display:flex;align-items:center;gap:13px;padding:18px;background:${t.surface};border:1px solid ${t.border};border-radius:16px;animation:fe-fade .25s ease;`,
+      spinner:`width:20px;height:20px;border-radius:50%;border:2.5px solid ${t.primary};border-top-color:transparent;animation:fe-spin .7s linear infinite;flex:none;`,
+      loadTitle:`font:700 14px Inter,sans-serif;color:${t.text};`,
+      loadSub:`font:500 12px Inter,sans-serif;color:${t.muted};margin-top:2px;`,
+      errCard:`display:flex;align-items:flex-start;gap:14px;padding:18px;background:${t.dangerBg};border:1px solid ${t.dangerBorder};border-radius:16px;animation:fe-fade .25s ease;`,
+      errIco:`width:34px;height:34px;border-radius:50%;background:${t.surface};color:${t.danger};font:700 18px Inter;display:flex;align-items:center;justify-content:center;flex:none;`,
+      errTitle:`font:700 14px Inter,sans-serif;color:${t.dangerText};`,
+      errSub:`font:400 12.5px/1.5 Inter,sans-serif;color:${t.dangerText};opacity:.92;margin-top:3px;`,
+      errBtn:`appearance:none;cursor:pointer;margin-top:11px;height:34px;padding:0 14px;border-radius:8px;border:1px solid ${t.dangerBorder};background:${t.surface};color:${t.dangerText};font:600 12.5px Inter,sans-serif;`,
+
+      chartCard:`position:relative;background:${t.surface};border:1px solid ${t.border};border-radius:16px;padding:${d.mobile?14:18}px;margin-bottom:18px;overflow:hidden;animation:fe-fade .3s ease;`,
+      chartHead:`display:flex;align-items:flex-start;justify-content:space-between;gap:10px;`,
+      chartTitle:`font:700 ${d.mobile?15:16.5}px Inter,sans-serif;letter-spacing:-.015em;color:${t.text};`,
+      chartSub:`font:400 11.5px Inter,sans-serif;color:${t.subtle};margin-top:2px;`,
+      legendWrap:`display:flex;flex-wrap:wrap;gap:9px 16px;margin-top:11px;`,
+      legPosChip:`display:inline-flex;align-items:center;gap:6px;font:600 11.5px Inter,sans-serif;color:${t.muted};`,
+      legNegChip:`display:inline-flex;align-items:center;gap:6px;font:600 11.5px Inter,sans-serif;color:${t.muted};`,
+      legPosDot:`width:11px;height:11px;border-radius:3px;background:${t.primary};`,
+      legNegDot:`width:11px;height:11px;border-radius:3px;background:${t.danger};`,
+      chartBox:`width:100%;height:${d.mobile?280:300}px;margin-top:10px;`,
+
+      tip:`position:absolute;pointer-events:none;z-index:30;min-width:170px;padding:9px 11px;border-radius:9px;background:${t.text};box-shadow:${t.menuShadow};left:${tp?tp.x:0}px;top:${tp?tp.y:0}px;transform:translate(-50%,calc(-100% - 14px));`,
+      tipTitle:`font:700 11px 'JetBrains Mono',monospace;color:${t.bg};opacity:.72;margin-bottom:5px;`,
+      tipRow:`display:flex;align-items:center;gap:7px;margin-top:3px;`,
+      tipLabel:`font:500 11px Inter,sans-serif;color:${t.bg};`,
+      tipVal:`margin-left:auto;padding-left:14px;font:600 11px 'JetBrains Mono',monospace;color:${t.bg};`,
+
+      tblWrap:`border:1px solid ${t.border};border-radius:16px;overflow:hidden;background:${t.surface};`,
+      tblHeadRow:`display:flex;align-items:center;background:${t.surface2};border-bottom:1.5px solid ${t.border};`,
+      thCoeff:`flex:1;min-width:130px;padding:9px 14px;font:600 10.5px Inter,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:${t.subtle};`,
+      thNum:`width:120px;flex:none;text-align:right;padding:9px 14px;font:600 10.5px Inter,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:${t.subtle};`,
+      thBar:`width:${d.mobile?100:160}px;flex:none;padding:9px 14px;font:600 10.5px Inter,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:${t.subtle};`,
+      baseTag:`margin-left:9px;font:600 9.5px Inter,sans-serif;color:${t.primary};background:${t.primaryBg};padding:1px 7px;border-radius:5px;`,
+      barCell:`width:${d.mobile?100:160}px;flex:none;padding:11px 14px;`,
+      barTrack:`height:8px;border-radius:4px;background:${t.surface2};overflow:hidden;`,
+
+      // monte carlo config table
+      mcTblWrap:`border:1px solid ${t.border};border-radius:16px;overflow:auto;background:${t.surface};margin-bottom:18px;`,
+      mcTblInner:`width:max-content;min-width:100%;`,
+      mcHeadRow:`display:flex;background:${t.surface2};border-bottom:1.5px solid ${t.border};`,
+      mcHParam:`width:200px;flex:none;padding:9px 14px;font:600 10.5px Inter,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:${t.subtle};`,
+      mcHDist:`width:180px;flex:none;padding:9px 14px;font:600 10.5px Inter,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:${t.subtle};`,
+      mcHFields:`flex:1;min-width:280px;padding:9px 14px;font:600 10.5px Inter,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:${t.subtle};`,
+      mcRow:`display:flex;align-items:center;border-bottom:1px solid ${t.gridLine};`,
+      mcParam:`width:200px;flex:none;display:flex;align-items:center;padding:11px 14px;font:600 13px Inter,sans-serif;color:${t.text};`,
+      mcDistCell:`width:180px;flex:none;padding:9px 14px;`,
+      selBoxSm:`position:relative;display:flex;align-items:center;height:36px;border-radius:9px;background:${t.surface};border:1.5px solid ${t.border};overflow:hidden;`,
+      selectElSm:`flex:1;min-width:0;height:100%;border:none;outline:none;background:transparent;color:${t.text};font:600 12.5px Inter,sans-serif;padding:0 28px 0 11px;cursor:pointer;appearance:none;`,
+      selChevSm:`position:absolute;right:10px;top:50%;transform:translateY(-50%);color:${t.subtle};font-size:10px;pointer-events:none;`,
+      mcFields:`flex:1;min-width:280px;display:flex;gap:9px;flex-wrap:wrap;padding:9px 14px;`,
+      mcField:`display:flex;flex-direction:column;gap:2px;background:${t.surface2};border:1px solid ${t.border};border-radius:8px;padding:5px 11px;min-width:78px;`,
+      mcFieldLabel:`font:600 9px Inter,sans-serif;letter-spacing:.03em;text-transform:uppercase;color:${t.subtle};`,
+      mcFieldVal:`font:600 13px 'JetBrains Mono',monospace;color:${t.text};`,
+
+      mcProgCard:`background:${t.primarySoft};border:1px solid ${t.goodBorder};border-radius:16px;padding:16px 18px;animation:fe-fade .25s ease;`,
+      mcProgTop:`display:flex;align-items:center;gap:13px;margin-bottom:12px;`,
+      mcCubeBox:`width:36px;height:36px;flex:none;`,
+      mcProgPct:`font:700 16px 'JetBrains Mono',monospace;color:${t.primary};flex:none;`,
+      progTrack:`height:8px;border-radius:5px;background:${t.surface2};overflow:hidden;`,
+      mcProgBar:`height:100%;width:62%;border-radius:5px;background:${t.primary};`,
+
+      statGrid:`display:grid;grid-template-columns:repeat(${d.mobile?2:4},1fr);gap:12px;margin-bottom:18px;`,
+      statLabel:`font:600 11px Inter,sans-serif;color:${t.muted};`,
+
+      // what-if
+      baseToggle:`display:inline-flex;align-items:center;gap:9px;cursor:pointer;font:600 12.5px Inter,sans-serif;color:${t.muted};`,
+      baseSw:`width:38px;height:22px;border-radius:11px;background:${st.wifBase?t.primary:t.borderStrong};position:relative;transition:.16s;flex:none;`,
+      baseKnob:`position:absolute;top:2px;left:${st.wifBase?'18px':'2px'};width:18px;height:18px;border-radius:50%;background:#fff;transition:.16s;box-shadow:0 1px 3px rgba(0,0,0,.3);`,
+      scnList:`display:flex;flex-direction:column;gap:9px;margin-bottom:16px;`,
+      scnHandle:`width:24px;height:24px;border-radius:7px;background:${t.surface2};border:1px solid ${t.border};color:${t.subtle};font:700 11px 'JetBrains Mono',monospace;display:flex;align-items:center;justify-content:center;flex:none;`,
+      scnName:`font:600 13.5px Inter,sans-serif;color:${t.text};white-space:nowrap;flex:none;display:flex;align-items:center;`,
+      scnBaseTag:`margin-left:8px;font:600 9.5px Inter,sans-serif;color:${t.subtle};background:${t.surface2};border:1px solid ${t.border};padding:1px 7px;border-radius:5px;`,
+      scnAdj:`flex:1;min-width:0;display:flex;gap:6px;flex-wrap:wrap;`,
+      scnNoAdj:`font:500 11.5px Inter,sans-serif;color:${t.subtle};font-style:italic;`,
+      scnDel:`appearance:none;cursor:pointer;width:28px;height:28px;border-radius:8px;border:1px solid ${t.border};background:${t.surface};color:${t.subtle};font:600 12px Inter;flex:none;`,
+      scnAdd:`appearance:none;cursor:pointer;height:42px;border-radius:11px;border:1.5px dashed ${t.borderStrong};background:transparent;color:${t.muted};font:600 13px Inter,sans-serif;`,
+      wifActions:`display:flex;margin-bottom:6px;`,
+
+      cmpWrap:`border:1px solid ${t.border};border-radius:12px;overflow:auto;background:${t.surface};`,
+      cmpInner:`width:max-content;min-width:100%;`,
+      cmpHead:`display:flex;align-items:center;background:${t.surface2};border-bottom:1.5px solid ${t.border};`,
+      cmpHName:`flex:1;min-width:170px;padding:9px 14px;font:600 10.5px Inter,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:${t.subtle};`,
+      cmpHBar:`width:${d.mobile?120:200}px;flex:none;padding:9px 14px;font:600 10.5px Inter,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:${t.subtle};`,
+      cmpHNum:`width:108px;flex:none;text-align:right;padding:9px 14px;font:600 10.5px Inter,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:${t.subtle};`,
+      cmpBarCell:`width:${d.mobile?120:200}px;flex:none;padding:12px 14px;`,
+      cmpBarTrack:`height:9px;border-radius:5px;background:${t.surface2};overflow:hidden;`,
+      cmpNum:`width:108px;flex:none;text-align:right;padding:12px 14px;font:600 12.5px 'JetBrains Mono',monospace;color:${t.muted};`,
+      cmpLegend:`display:flex;gap:16px;margin-top:12px;`,
+      cmpLegItem:`display:flex;align-items:center;gap:6px;font:500 11.5px Inter,sans-serif;color:${t.muted};`,
+      cmpLegBest:`width:11px;height:11px;border-radius:3px;background:${t.goodBg};border:1px solid ${t.goodBorder};`,
+      cmpLegWorst:`width:11px;height:11px;border-radius:3px;background:${t.dangerBg};border:1px solid ${t.dangerBorder};`,
+
+      bottomPad:`height:6px;`
+    };
+
+    return {s, tabs, stateBtns,
+      isSens:tab==='sens', isMC:tab==='mc', isWif:tab==='wif',
+      // sensitivity
+      sensParam:st.sensParam, sensParamOptions, onSensParam:(e)=>this.setState({sensParam:e.target.value}),
+      sensCoeffChips:coeffs.map(c=>({label:c.toFixed(1).replace('.',','),style:`font:600 12px 'JetBrains Mono',monospace;color:${t.text};background:${t.surface};border:1px solid ${t.border};padding:3px 9px;border-radius:6px;`})),
+      sensSetup:st.sensRun==='setup', sensLoad:st.sensRun==='loading', sensErr:st.sensRun==='error', sensResult:st.sensRun==='result',
+      sensBtnText:st.sensRun==='loading'?'Расчёт…':'Рассчитать', runSens:()=>this.runFlow('sens',900),
+      sensChart, sensLegend, sensTable,
+      sensHasTip, sensTipTitle:sensHasTip?tp.title:'', sensTipRows:sensHasTip?tp.rows.map(r=>({label:r.label,val:r.val,dotStyle:tipDot(r.dot)})):[],
+      // monte carlo
+      mcIters:st.mcIters, mcSeed:st.mcSeed, onMcIters:(e)=>this.setState({mcIters:e.target.value.replace(/[^0-9]/g,'')||'0'}), onMcSeed:(e)=>this.setState({mcSeed:e.target.value.replace(/[^0-9]/g,'')||'0'}),
+      mcParams, distOptions,
+      mcSetup:st.mcRun==='setup', mcLoad:st.mcRun==='loading', mcResult:st.mcRun==='result',
+      mcBtnText:st.mcRun==='loading'?'Симуляция…':'Запустить симуляцию', runMC:()=>this.runFlow('mc',1700),
+      mcProgPct:'62 %', mcProgIter:String(Math.round((+st.mcIters||500)*0.62)),
+      mcStats, mcChart,
+      mcHasTip, mcTipTitle:mcHasTip?tp.title:'', mcTipRows:mcHasTip?tp.rows.map(r=>({label:r.label,val:r.val,dotStyle:tipDot(r.dot)})):[],
+      // what-if
+      wifScenarios, wifBase:st.wifBase, toggleWifBase:()=>this.setState(s=>({wifBase:!s.wifBase})),
+      wifResult:st.wifRun==='result', wifLoad:st.wifRun==='loading', wifBtnText:st.wifRun==='loading'?'Сравнение…':'Сравнить сценарии', runWif:()=>this.runFlow('wif',700),
+      wifTable,
+      setLight:()=>this.setState({theme:'light'}),setDark:()=>this.setState({theme:'dark'}),
+      setDesktop:()=>this.setState({device:'desktop'}),setTablet:()=>this.setState({device:'tablet'}),setMobile:()=>this.setState({device:'mobile'})
+    };
+  }
+}
+</script>
+</body>
+</html>

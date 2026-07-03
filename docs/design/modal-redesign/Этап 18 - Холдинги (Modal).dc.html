@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Inter';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-600-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:700;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-700-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-600-normal.woff2') format('woff2');}
+</style>
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  input,select{font-family:inherit;}
+  input::placeholder{color:inherit;opacity:.45;}
+  .fe-scroll::-webkit-scrollbar{height:10px;}
+  .fe-scroll::-webkit-scrollbar-thumb{background:rgba(120,113,108,.4);border-radius:5px;border:3px solid transparent;background-clip:padding-box;}
+  @keyframes fe-pulse{from{opacity:.5}to{opacity:1}}
+  @keyframes fe-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes fe-pop{0%{transform:scale(.92);opacity:0}100%{transform:scale(1);opacity:1}}
+  @keyframes fe-spin{to{transform:rotate(360deg)}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}" data-screen-label="18 — Холдинги">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+      <div style="width:26px;height:26px;flex:none;border-radius:8px;overflow:hidden;"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="26px,26px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Этап&nbsp;18 · Холдинги</span>
+        <span style="{{ s.barSub }}">Финанс-Элит · консолидация</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Экран</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segScrList }}" onClick="{{ goList }}">Список</button><button style="{{ s.segScrDetail }}" onClick="{{ goDetail }}">Холдинг</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Состояние</span>
+        <div style="{{ s.seg }}"><sc-for list="{{ stateBtns }}" as="b" hint-placeholder-count="4"><button style="{{ b.style }}" onClick="{{ b.onClick }}">{{ b.label }}</button></sc-for></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Свет</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тьма</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}">
+
+      <div style="{{ s.header }}">
+        <div style="display:flex;align-items:center;gap:{{ headerGap }}px;min-width:0;">
+          <div style="display:flex;align-items:center;gap:9px;flex:none;">
+            <div style="width:30px;height:30px;flex:none;border-radius:8px;overflow:hidden;"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="30px,30px"></dc-import></div>
+            <sc-if value="{{ showWord }}" hint-placeholder-val="{{ true }}"><span style="{{ s.word }}">Финанс<span style="color:{{ t.subtle }};font-weight:500;">-Элит</span></span></sc-if>
+          </div>
+          <sc-if value="{{ showNav }}" hint-placeholder-val="{{ true }}">
+          <nav style="display:flex;align-items:stretch;height:{{ headerH }}px;gap:2px;">
+            <button style="{{ s.navItem }}" style-hover="{{ s.navHover }}">Проекты</button>
+            <button style="{{ s.navActive }}">Холдинги</button>
+            <button style="{{ s.navItem }}" style-hover="{{ s.navHover }}">Организация</button>
+          </nav>
+          </sc-if>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex:none;">
+          <sc-if value="{{ showOrgSelector }}" hint-placeholder-val="{{ true }}"><div style="{{ s.orgBtn }}"><div style="{{ s.orgAvatar }}">ФК</div><sc-if value="{{ showOrgName }}" hint-placeholder-val="{{ true }}"><span style="{{ s.orgName }}">Финмодель Консалтинг</span></sc-if><span style="{{ s.chev }}">▾</span></div></sc-if>
+          <button style="{{ s.iconBtn }}" onClick="{{ toggleTheme }}" title="Тема"><sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}"><span style="font-size:15px;">☀</span></sc-if><sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}"><span style="font-size:14px;">☾</span></sc-if></button>
+          <sc-if value="{{ showUser }}" hint-placeholder-val="{{ true }}"><div style="{{ s.userAvatar }}">АС</div></sc-if>
+          <sc-if value="{{ showBurger }}" hint-placeholder-val="{{ false }}"><button style="{{ s.iconBtn }}"><div style="{{ s.burger }}"><span style="{{ s.burgerLine }}"></span><span style="{{ s.burgerLine }}"></span><span style="{{ s.burgerLine }}"></span></div></button></sc-if>
+        </div>
+      </div>
+
+      <div style="{{ s.content }}">
+        <div style="{{ s.container }}">
+
+          <!-- ============ СПИСОК ============ -->
+          <sc-if value="{{ isList }}" hint-placeholder-val="{{ true }}">
+          <div style="{{ s.pageHead }}">
+            <div style="min-width:0;"><h1 style="{{ s.pageTitle }}">Холдинги</h1><div style="{{ s.pageSub }}">Группы проектов с консолидацией отчётности</div></div>
+            <sc-if value="{{ showHeadCount }}" hint-placeholder-val="{{ true }}"><span style="{{ s.countPill }}">{{ holdCount }} групп</span></sc-if>
+          </div>
+
+          <sc-if value="{{ listLoading }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.skCreate }}"></div>
+          <div style="{{ s.cardGrid }}"><div style="{{ s.skCard }}"></div><div style="{{ s.skCard }}"></div><div style="{{ s.skCard }}"></div></div>
+          </sc-if>
+
+          <sc-if value="{{ listError }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.errorBlock }}"><div style="{{ s.errorIco }}">!</div><div style="{{ s.errorTitle }}">Не удалось загрузить холдинги</div><div style="{{ s.errorSub }}">Проверьте соединение и попробуйте снова.</div><button style="{{ s.primaryBtn }}" onClick="{{ stList }}">↻&nbsp;&nbsp;Повторить</button></div>
+          </sc-if>
+
+          <sc-if value="{{ listShowCreate }}" hint-placeholder-val="{{ true }}">
+          <sc-if value="{{ listEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.onboard }}"><div style="{{ s.onboardIco }}"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="8.5" y="14" width="7" height="7" rx="1.5"/><path d="M6.5 10v2h11v-2M12 12v2" stroke-linecap="round"/></svg></div><div style="{{ s.onboardTitle }}">Холдингов пока нет</div><div style="{{ s.onboardSub }}">Создайте холдинг, добавьте в него проекты организации и получите сводный бюджет по группе.</div></div>
+          </sc-if>
+
+          <div style="{{ s.createCard }}">
+            <div style="flex:1;min-width:0;">
+              <label style="{{ s.label }}">Название нового холдинга</label>
+              <div style="{{ s.inputWrap }}"><input style="{{ s.inputEl }}" type="text" placeholder="Напр. «Группа ПолимерИнвест»" value="{{ holdingName }}" onChange="{{ onName }}" onFocus="{{ focusName }}" onBlur="{{ blurName }}"></div>
+            </div>
+            <button style="{{ s.createBtn }}" style-hover="{{ s.createBtnHover }}" onClick="{{ createHolding }}"><sc-if value="{{ creating }}" hint-placeholder-val="{{ false }}"><span style="{{ s.spinner }}"></span></sc-if><span>{{ createText }}</span></button>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ listShowGrid }}" hint-placeholder-val="{{ true }}">
+          <div style="{{ s.listHead }}"><div style="{{ s.listTitle }}">Ваши холдинги</div></div>
+          <div style="{{ s.cardGrid }}">
+            <sc-for list="{{ holdings }}" as="h" hint-placeholder-count="3">
+            <div style="{{ h.cardStyle }}">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+                <button style="{{ h.openLink }}" onClick="{{ h.open }}">{{ h.name }}</button>
+                <span style="{{ h.chipStyle }}">{{ h.statusDot }} {{ h.statusText }}</span>
+              </div>
+              <div style="{{ s.holdMetrics }}">
+                <div style="flex:1;"><div style="{{ s.miniLabel }}">Проектов</div><div style="{{ s.miniNum }}">{{ h.projects }}</div></div>
+                <div style="flex:1.4;"><div style="{{ s.miniLabel }}">Сводный NPV</div><div style="{{ h.npvStyle }}">{{ h.npv }}</div></div>
+              </div>
+              <div style="{{ s.cardFoot }}">
+                <span style="{{ s.dateStyle }}">{{ h.date }}</span>
+                <div style="display:flex;align-items:center;gap:7px;">
+                  <button style="{{ s.iconActionDanger }}" onClick="{{ h.askDelete }}" title="Удалить"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2M6 7l1 13a1 1 0 001 1h8a1 1 0 001-1l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                  <button style="{{ s.openBtn }}" onClick="{{ h.open }}">Открыть →</button>
+                </div>
+              </div>
+            </div>
+            </sc-for>
+          </div>
+          </sc-if>
+          </sc-if>
+
+          <!-- ============ ХОЛДИНГ (ДЕТАЛЬ) ============ -->
+          <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.crumb }}"><button style="{{ s.crumbBack }}" onClick="{{ goList }}">← Холдинги</button><span style="{{ s.crumbSep }}">/</span><span style="{{ s.crumbCur }}">Группа «ПолимерИнвест»</span></div>
+          <div style="{{ s.detailHead }}">
+            <div style="min-width:0;"><h1 style="{{ s.pageTitle }}">Группа «ПолимерИнвест»</h1><div style="{{ s.pageSub }}">{{ memberCount }} проекта · головной + дочерние · консолидация по группе</div></div>
+            <button style="{{ s.iconActionDanger2 }}" onClick="{{ askDeleteCurrent }}">Удалить холдинг</button>
+          </div>
+
+          <!-- состав -->
+          <div style="{{ s.sectionLabel }}">Состав холдинга</div>
+          <sc-if value="{{ detailEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.memEmpty }}"><div style="{{ s.onboardIco }}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg></div><div style="{{ s.onboardTitle }}">Добавьте проекты в холдинг</div><div style="{{ s.onboardSub }}">Выберите проекты организации и назначьте роль — головной или дочерний.</div><button style="{{ s.primaryBtn }}" style-hover="{{ s.primaryBtnHover }}" onClick="{{ openAdd }}">+ Добавить проект</button></div>
+          </sc-if>
+
+          <sc-if value="{{ detailHasMembers }}" hint-placeholder-val="{{ true }}">
+          <div style="{{ s.memCard }}">
+            <sc-for list="{{ members }}" as="m" hint-placeholder-count="3">
+            <div style="{{ m.rowStyle }}">
+              <span style="{{ m.dotStyle }}"></span>
+              <div style="{{ s.memNameWrap }}"><div style="{{ s.memName }}">{{ m.name }}</div><div style="{{ s.memStatus }}">{{ m.statusText }}</div></div>
+              <div style="{{ s.memNpvWrap }}"><div style="{{ s.miniLabel }}">NPV</div><div style="{{ m.npvStyle }}">{{ m.npv }}</div></div>
+              <div style="{{ s.memRoleWrap }}"><div style="{{ s.selBoxSm }}"><select style="{{ s.selectElSm }}" value="{{ m.role }}" onChange="{{ m.onRole }}"><sc-for list="{{ roleOptions }}" as="o" hint-placeholder-count="2"><option value="{{ o.val }}">{{ o.label }}</option></sc-for></select><span style="{{ s.selChevSm }}">▾</span></div></div>
+              <button style="{{ s.memDel }}" onClick="{{ m.remove }}" title="Убрать из холдинга">✕</button>
+            </div>
+            </sc-for>
+            <button style="{{ s.memAdd }}" onClick="{{ openAdd }}">+ Добавить проект</button>
+          </div>
+
+          <!-- консолидация -->
+          <div style="{{ s.sectionLabel }}">Консолидация</div>
+          <div style="{{ s.consCard }}">
+            <div style="{{ s.consField }}">
+              <div style="{{ s.labelRow }}"><label style="{{ s.fieldLabel }}">Ставка дисконтирования группы</label><span style="{{ s.hintBadge }}" title="Единая ставка для приведения сводных потоков">?</span></div>
+              <div style="{{ s.rateBox }}"><input style="{{ s.rateInput }}" inputmode="decimal" value="{{ rate }}" onChange="{{ onRate }}"><span style="{{ s.rateSuffix }}">%</span></div>
+            </div>
+            <div style="{{ s.consText }}">Объединяет отчёты {{ memberCount }} проектов в сводный бюджет: суммирует выручку, прибыль и потоки, приводит к стоимости по ставке группы.</div>
+            <button style="{{ s.consBtn }}" style-hover="{{ s.consBtnHover }}" onClick="{{ consolidate }}"><sc-if value="{{ consolidating }}" hint-placeholder-val="{{ false }}"><span style="{{ s.spinner }}"></span></sc-if><span>{{ consBtnText }}</span></button>
+          </div>
+
+          <!-- сводный бюджет -->
+          <sc-if value="{{ detailConsolidated }}" hint-placeholder-val="{{ true }}">
+          <div style="{{ s.budgetHead }}">
+            <div style="{{ s.sectionLabel2 }}">Сводный бюджет группы</div>
+            <div style="{{ s.budgetMeta }}"><span style="{{ s.metaChip }}">ставка группы {{ rate }}%</span><span style="{{ s.versionChip }}">движок 0.9.9</span></div>
+          </div>
+          <div style="{{ s.metricGrid }}">
+            <sc-for list="{{ budgetMetrics }}" as="m" hint-placeholder-count="4"><div style="{{ s.metricCard }}"><div style="{{ s.metricLabel }}">{{ m.label }}</div><div style="{{ m.valStyle }}">{{ m.value }}</div><div style="{{ s.metricSub }}">{{ m.sub }}</div></div></sc-for>
+          </div>
+          <div style="{{ s.tblCaption }}"><span style="{{ s.tblCapStrong }}">Вклад проектов в сводный бюджет</span><span style="{{ s.tblCapHint }}">млн ₽ · столбец «Группа» — сумма по участникам</span></div>
+          <div style="{{ s.consTblWrap }}" class="fe-scroll"><div style="{{ s.consTblInner }}">
+            <div style="{{ s.consHeadRow }}">
+              <div style="{{ s.chLabel }}">Показатель</div>
+              <sc-for list="{{ projCols }}" as="c" hint-placeholder-count="3"><div style="{{ s.chProj }}"><span style="{{ c.roleDot }}"></span>{{ c.label }}</div></sc-for>
+              <div style="{{ s.chGroup }}">Группа</div>
+            </div>
+            <sc-for list="{{ consRows }}" as="r" hint-placeholder-count="6">
+            <div style="{{ r.rowStyle }}">
+              <div style="{{ s.crLabel }}">{{ r.label }}</div>
+              <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="3"><div style="{{ s.crCell }}">{{ c }}</div></sc-for>
+              <div style="{{ r.groupStyle }}">{{ r.group }}</div>
+            </div>
+            </sc-for>
+          </div></div>
+          </sc-if>
+          </sc-if>
+          </sc-if>
+
+        </div>
+      </div>
+
+      <!-- ADD PROJECT MODAL -->
+      <sc-if value="{{ addOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="{{ s.overlay }}" onClick="{{ closeAdd }}"></div>
+      <div style="{{ s.modalWrap }}"><div style="{{ s.modalAdd }}">
+        <div style="{{ s.modalHead }}"><div><div style="{{ s.modalTitle }}">Добавить проект</div><div style="{{ s.modalSub2 }}">Проекты организации, ещё не входящие в холдинг</div></div><button style="{{ s.modalClose }}" onClick="{{ closeAdd }}">✕</button></div>
+        <sc-if value="{{ hasAvailable }}" hint-placeholder-val="{{ true }}">
+        <div style="{{ s.availList }}"><sc-for list="{{ available }}" as="a" hint-placeholder-count="3"><div style="{{ s.availRow }}"><div style="{{ s.availIco }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="3" width="16" height="18" rx="1.6"/><path d="M8 8h8M8 12h8M8 16h5" stroke-linecap="round"/></svg></div><span style="{{ s.availName }}">{{ a.name }}</span><button style="{{ s.availAdd }}" onClick="{{ a.add }}">+ Добавить</button></div></sc-for></div>
+        </sc-if>
+        <sc-if value="{{ noAvailable }}" hint-placeholder-val="{{ false }}"><div style="{{ s.availEmpty }}">Все проекты организации уже в холдинге.</div></sc-if>
+      </div></div>
+      </sc-if>
+
+      <!-- DELETE HOLDING MODAL -->
+      <sc-if value="{{ deleteTarget }}" hint-placeholder-val="">
+      <div style="{{ s.overlay }}" onClick="{{ cancelDelete }}"></div>
+      <div style="{{ s.modalWrap }}"><div style="{{ s.modal }}">
+        <div style="{{ s.modalIco }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2M6 7l1 13a1 1 0 001 1h8a1 1 0 001-1l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div style="{{ s.modalTitle }}">Удалить холдинг?</div>
+        <div style="{{ s.modalSub }}">Холдинг «<b style="color:{{ t.text }};">{{ deleteTarget }}</b>» будет удалён. Проекты-участники останутся в организации.</div>
+        <div style="{{ s.modalActions }}"><button style="{{ s.btnGhost }}" style-hover="{{ s.btnGhostHover }}" onClick="{{ cancelDelete }}">Отмена</button><button style="{{ s.btnDanger }}" style-hover="{{ s.btnDangerHover }}" onClick="{{ confirmDelete }}">Удалить</button></div>
+      </div></div>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    theme:'light', device:'desktop', screen:'list',
+    listState:'list', detailState:'members', consolidating:false,
+    holdingName:'', focusName:false, creating:false, rate:'18,0',
+    deleteId:null, addOpen:false,
+    holdings:[
+      {id:1,name:'Группа «ПолимерИнвест»',projects:3,npv:'+38,7 млн ₽',npvSign:1,status:'consolidated',date:'консолид. 14 фев 2026'},
+      {id:2,name:'Агрохолдинг «Нива»',projects:5,npv:'+72,4 млн ₽',npvSign:1,status:'consolidated',date:'консолид. 8 фев 2026'},
+      {id:3,name:'Девелопмент «Северный»',projects:2,npv:'—',npvSign:0,status:'draft',date:'создан 2 фев 2026'}
+    ],
+    members:[
+      {id:1,name:'Завод полимерной упаковки',role:'Головной',status:'calc',npv:'+18,4 млн ₽',sign:1,vals:{rev:51.8,ebitda:14.2,np:8.6,ocf:12.6,npv:18.4,fin:6.5}},
+      {id:2,name:'Линия вторичной грануляции',role:'Дочерний',status:'calc',npv:'+12,1 млн ₽',sign:1,vals:{rev:25.9,ebitda:6.5,np:3.7,ocf:5.8,npv:12.1,fin:2.1}},
+      {id:3,name:'Логистический хаб «Восток»',role:'Дочерний',status:'calc',npv:'+8,2 млн ₽',sign:1,vals:{rev:18.7,ebitda:4.3,np:2.2,ocf:3.6,npv:8.2,fin:1.2}}
+    ],
+    available:['SaaS-платформа аналитики','Сеть кофеен «Тёплый дом»','Модернизация линии розлива'],
+    nextId:100
+  };
+
+  componentWillUnmount(){ if(this._t)clearTimeout(this._t); if(this._c)clearTimeout(this._c); }
+
+  THEME(){
+    const light={pageBg:'#F3F2F0',bg:'#FAFAF9',surface:'#FFFFFF',surface2:'#F5F5F4',sk:'#EAE8E6',border:'#E7E5E4',borderStrong:'#D6D3D1',gridLine:'#EFEDEB',text:'#1C1917',muted:'#57534E',subtle:'#A8A29E',primary:'#0E9C6E',primaryHover:'#0B8560',primaryText:'#FFFFFF',primaryBg:'#E2F4EC',primarySoft:'#EFF8F3',good:'#0E7A4F',danger:'#C13A30',dangerHover:'#A8322A',dangerBg:'#FBE9E7',dangerBorder:'#F2C8C2',ring:'rgba(14,156,110,.2)',shadow:'0 18px 48px -20px rgba(28,25,23,.28), 0 2px 6px rgba(28,25,23,.05)',menuShadow:'0 24px 56px -16px rgba(28,25,23,.34)',barBg:'#FFFFFF',segBg:'#F0EEEC',segActiveBg:'#FFFFFF',headerBg:'#FFFFFF',brandMid:'#0C7250',brandTo:'#0E9C6E',warn:'#B86E00',warnBg:'#FAEFD9',info:'#2D6FE0'};
+    const dark={pageBg:'#141210',bg:'#1A1816',surface:'#232020',surface2:'#2C2825',sk:'#2F2B27',border:'#39332F',borderStrong:'#4A433E',gridLine:'#332E2A',text:'#F6F4F2',muted:'#B7B0A9',subtle:'#7E756D',primary:'#12B07D',primaryHover:'#19C28B',primaryText:'#06241A',primaryBg:'rgba(18,176,125,.16)',primarySoft:'rgba(18,176,125,.10)',good:'#34C77B',danger:'#F0796E',dangerHover:'#F4988F',dangerBg:'rgba(210,69,59,.16)',dangerBorder:'rgba(240,121,110,.32)',ring:'rgba(25,194,139,.34)',shadow:'0 28px 64px -24px rgba(0,0,0,.72)',menuShadow:'0 28px 64px -20px rgba(0,0,0,.8)',barBg:'#1E1B19',segBg:'#16140F',segActiveBg:'#2C2825',headerBg:'#1E1B19',brandMid:'#0A5A40',brandTo:'#0E7A57',warn:'#E0A23A',warnBg:'rgba(224,162,58,.16)',info:'#5E93FF'};
+    return this.state.theme==='dark'?{...dark,pageBg:'#000000',bg:'#0C0F0C',surface:'#212525',surface2:'#2A312A',sk:'#2A312A',cellBg:'#161A16',border:'#485346',borderStrong:'#677D64',gridLine:'#232823',text:'#DDFFDC',muted:'#93A091',subtle:'#677D64',primary:'#7FEE64',primaryHover:'#95F47D',primaryText:'#000000',accent:'#7FEE64',primaryBg:'rgba(127,238,100,.15)',primarySoft:'rgba(127,238,100,.09)',good:'#7FEE64',goodBg:'rgba(127,238,100,.15)',goodBorder:'rgba(127,238,100,.32)',danger:'#F0796E',dangerHover:'#F4988F',dangerBg:'rgba(240,121,110,.15)',dangerBorder:'rgba(240,121,110,.32)',dangerText:'#F4B0A8',warn:'#E0A23A',warnBg:'rgba(224,162,58,.16)',warnBorder:'rgba(224,162,58,.32)',info:'#AED2A4',infoBg:'rgba(174,210,164,.15)',ring:'rgba(127,238,100,.4)',shadow:'0 30px 70px -34px rgba(0,0,0,.9)',menuShadow:'0 22px 52px -16px rgba(0,0,0,.82)',barBg:'#0C0F0C',barBorder:'#1D231D',segBg:'#0B0E0B',segActiveBg:'#2A312A',headerBg:'#0C0F0C',stickyBg:'#212525',brandMid:'#3E4A3C',brandTo:'#7FEE64',violet:'#C8F9B6',violetBg:'rgba(200,249,182,.14)',subtotalBg:'#1C201C',grandBg:'rgba(127,238,100,.12)',hov:'#262C25',hovlab:'#2C322B',ico1:'#7FEE64',ico1Bg:'rgba(127,238,100,.15)',ico2:'#AED2A4',ico2Bg:'rgba(174,210,164,.15)',ico3:'#C8F9B6',ico3Bg:'rgba(200,249,182,.14)',ico4:'#E0A23A',ico4Bg:'rgba(224,162,58,.16)',inputBg:'#161A16',success:'#7FEE64',successBg:'rgba(127,238,100,.16)'}:{...light,pageBg:'#E4F1E0',bg:'#F4FAF2',surface:'#FFFFFF',surface2:'#EDF5EA',sk:'#E3EEDF',cellBg:'#FFFFFF',border:'#D2E4CD',borderStrong:'#B4CCAE',gridLine:'#E8F1E5',text:'#16201A',muted:'#46584A',subtle:'#6E8270',primary:'#7FEE64',primaryHover:'#6FE253',primaryText:'#06210E',accent:'#138A45',primaryBg:'#DBF3D2',primarySoft:'#EAF8E4',good:'#0E7A4F',goodBg:'#DBF1E2',goodBorder:'#B7DEC6',danger:'#C0473B',dangerHover:'#A53A30',dangerBg:'#FAE7E4',dangerBorder:'#EECFCA',dangerText:'#8F2F26',warn:'#B07A12',warnBg:'#FBF0D8',warnBorder:'#ECDDB4',info:'#3E7D52',infoBg:'#E6EFE2',ring:'rgba(56,194,75,.3)',shadow:'0 18px 44px -22px rgba(20,40,24,.22), 0 2px 6px rgba(20,40,24,.05)',menuShadow:'0 24px 56px -16px rgba(20,40,24,.28)',barBg:'#FFFFFF',barBorder:'#D2E4CD',segBg:'#E7F0E3',segActiveBg:'#FFFFFF',headerBg:'#FFFFFF',stickyBg:'#FFFFFF',brandMid:'#138A45',brandTo:'#7FEE64',violet:'#3E7D52',violetBg:'#E6EFE2',subtotalBg:'#EDF3EA',grandBg:'#DBF1E2',hov:'#F1F7EE',hovlab:'#EAF2E6',ico1:'#138A45',ico1Bg:'#DBF3D2',ico2:'#3E7D52',ico2Bg:'#E6EFE2',ico3:'#5FA86A',ico3Bg:'#E3F0DE',ico4:'#B07A12',ico4Bg:'#FBF0D8',inputBg:'#FFFFFF',success:'#0E7A4F',successBg:'#DBF1E2'};
+  }
+  DIM(){ const d=this.state.device;
+    if(d==='mobile')return{frame:402,radius:30,headerH:54,pad:16,cols:1,showNav:false,showWord:true,showOrgSel:false,showUser:false,showBurger:true,showOrgName:false};
+    if(d==='tablet')return{frame:864,radius:18,headerH:58,pad:22,cols:2,showNav:true,showWord:true,showOrgSel:true,showUser:true,showBurger:false,showOrgName:false};
+    return{frame:1240,radius:14,headerH:60,pad:32,cols:3,showNav:true,showWord:true,showOrgSel:true,showUser:true,showBurger:false,showOrgName:true};
+  }
+  statusMap(t){ return {
+    calc:{text:'Рассчитан',dot:'●',color:t.primary,bg:t.primaryBg},
+    consolidated:{text:'Консолидирован',dot:'●',color:t.primary,bg:t.primaryBg},
+    draft:{text:'Черновик',dot:'○',color:t.warn,bg:t.warnBg}
+  }; }
+  mln(v){ return (v<0?'\u2212':'+')+Math.abs(v).toFixed(1).replace('.',','); }
+
+  consolidate(){ this.setState({consolidating:true}); if(this._c)clearTimeout(this._c); this._c=setTimeout(()=>this.setState({consolidating:false,detailState:'consolidated'}),1400); }
+
+  renderVals(){
+    const st=this.state, t=this.THEME(), d=this.DIM(), sm=this.statusMap(t);
+    const seg=(a)=>`appearance:none;border:none;cursor:pointer;font:600 12px Inter,sans-serif;padding:6px 11px;border-radius:7px;white-space:nowrap;color:${a?t.text:t.subtle};background:${a?t.segActiveBg:'transparent'};box-shadow:${a?'0 1px 2px rgba(0,0,0,.14)':'none'};transition:.14s;`;
+    const segWrap=`display:flex;gap:3px;padding:3px;background:${t.segBg};border-radius:9px;`;
+    const sk=(w,h,ex)=>`width:${w};height:${h}px;border-radius:14px;background:${t.sk};animation:fe-pulse 1.5s ease-in-out infinite alternate;${ex||''}`;
+    const onList=st.screen==='list', onDetail=st.screen==='detail';
+
+    // contextual state seg
+    let stDefs, cur, setRun;
+    if(onList){ stDefs=[['list','Список'],['empty','Пусто'],['loading','Загрузка'],['error','Ошибка']]; cur=st.listState; setRun=(v)=>this.setState({listState:v}); }
+    else { stDefs=[['members','Состав'],['empty','Пусто'],['consolidated','Сводный бюджет']]; cur=st.detailState; setRun=(v)=>this.setState({detailState:v}); }
+    const stateBtns=stDefs.map(([v,label])=>({label,style:seg(cur===v),onClick:()=>setRun(v)}));
+
+    // holdings list
+    const buildHold=(h,i)=>{ const ss=sm[h.status]; const col=h.npvSign<0?t.danger:(h.npvSign>0?t.text:t.subtle);
+      return {...h, statusText:ss.text, statusDot:ss.dot,
+        cardStyle:`display:flex;flex-direction:column;gap:13px;padding:18px;border-radius:16px;border:1px solid ${t.border};background:${t.surface};animation:fe-fade .3s ease ${i*0.03}s both;`,
+        openLink:`appearance:none;background:none;border:none;cursor:pointer;text-align:left;font:700 16px Inter,sans-serif;letter-spacing:-.01em;color:${t.text};padding:0;line-height:1.3;`,
+        chipStyle:`font:600 10.5px Inter,sans-serif;color:${ss.color};background:${ss.bg};padding:3px 8px;border-radius:6px;white-space:nowrap;flex:none;`,
+        npvStyle:`font:600 16px 'JetBrains Mono',monospace;color:${col};letter-spacing:-.01em;`,
+        open:()=>this.setState({screen:'detail'}), askDelete:()=>this.setState({deleteId:h.id}) };
+    };
+
+    // members
+    const roleDot=(role)=>role==='Головной'?t.primary:t.info;
+    const members=st.members.map(m=>{ const ss=sm[m.status]; const col=m.sign<0?t.danger:(m.sign>0?t.text:t.subtle);
+      return {name:m.name, npv:m.npv, statusText:ss.text, role:m.role,
+        rowStyle:`display:flex;align-items:center;gap:13px;padding:14px 16px;border-bottom:1px solid ${t.gridLine};flex-wrap:${d.frame<500?'wrap':'nowrap'};`,
+        dotStyle:`width:9px;height:9px;border-radius:3px;flex:none;background:${roleDot(m.role)};`,
+        npvStyle:`font:600 14px 'JetBrains Mono',monospace;color:${col};`,
+        onRole:(e)=>this.setState(s=>({members:s.members.map(x=>x.id===m.id?{...x,role:e.target.value}:x)})),
+        remove:()=>this.setState(s=>({members:s.members.filter(x=>x.id!==m.id),available:[...s.available,m.name]}))};
+    });
+
+    // consolidation table (only members with vals)
+    const valed=st.members.filter(m=>m.vals);
+    const rowDefs=[['rev','Выручка (год)'],['ebitda','EBITDA'],['np','Чистая прибыль'],['ocf','Операционный поток'],['npv','NPV проекта'],['fin','Потребность в финанс.']];
+    const projCols=valed.map(m=>({label:m.name.length>16?m.name.slice(0,15)+'…':m.name, roleDot:`width:7px;height:7px;border-radius:2px;flex:none;margin-right:6px;background:${roleDot(m.role)};`}));
+    const consRows=rowDefs.map(([k,label])=>{ const cells=valed.map(m=>this.mln(m.vals[k]).replace('+','')); const group=valed.reduce((a,m)=>a+m.vals[k],0); const grand=k==='npv';
+      return {label, cells, group:this.mln(group).replace('+',''),
+        rowStyle:`display:flex;${grand?`background:${t.primarySoft};`:''}border-bottom:1px solid ${t.gridLine};`,
+        groupStyle:`width:120px;flex:none;text-align:right;padding:11px 16px;font:700 13px 'JetBrains Mono',monospace;color:${t.primary};background:${grand?t.primarySoft:t.surface2};border-left:1.5px solid ${t.border};`};
+    });
+    const gNpv=valed.reduce((a,m)=>a+m.vals.npv,0), gFin=valed.reduce((a,m)=>a+m.vals.fin,0);
+    const budgetMetrics=[
+      {label:'Сводный NPV',value:'+'+gNpv.toFixed(1).replace('.',',')+' млн ₽',sub:'создаёт стоимость',valStyle:`font:700 22px 'JetBrains Mono',monospace;color:${t.good};letter-spacing:-.01em;margin:6px 0 4px;`},
+      {label:'IRR группы',value:'34,8 %',sub:'выше ставки 18%',valStyle:`font:700 22px 'JetBrains Mono',monospace;color:${t.text};letter-spacing:-.01em;margin:6px 0 4px;`},
+      {label:'PI группы',value:'1,76',sub:'> 1 — эффективно',valStyle:`font:700 22px 'JetBrains Mono',monospace;color:${t.text};letter-spacing:-.01em;margin:6px 0 4px;`},
+      {label:'Потребность в финанс.',value:gFin.toFixed(1).replace('.',',')+' млн ₽',sub:'пик дефицита группы',valStyle:`font:700 22px 'JetBrains Mono',monospace;color:${t.text};letter-spacing:-.01em;margin:6px 0 4px;`}
+    ];
+
+    const dt=st.deleteId?(st.holdings.find(h=>h.id===st.deleteId)||{}).name||'':'';
+    const roleOptions=[{val:'Головной',label:'Головной'},{val:'Дочерний',label:'Дочерний'}];
+
+    const s={
+      page:`min-height:100vh;background:${t.pageBg};color:${t.text};display:flex;flex-direction:column;transition:background .25s;`,
+      bar:`display:flex;align-items:flex-end;justify-content:space-between;gap:22px;flex-wrap:wrap;padding:13px 22px;background:${t.barBg};border-bottom:1px solid ${t.border};position:sticky;top:0;z-index:60;`,
+      barDot:`width:26px;height:26px;border-radius:7px;flex:none;background:linear-gradient(150deg,${t.brandMid},${t.brandTo});`,
+      barTitle:`font:700 13px Inter,sans-serif;letter-spacing:-.01em;color:${t.text};white-space:nowrap;`,
+      barSub:`font:500 11px Inter,sans-serif;color:${t.subtle};white-space:nowrap;`,
+      barLabel:`font:600 9.5px Inter,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:${t.subtle};`,
+      seg:segWrap, segScrList:seg(onList),segScrDetail:seg(onDetail),
+      segLight:seg(st.theme==='light'),segDark:seg(st.theme==='dark'),segDesktop:seg(st.device==='desktop'),segTablet:seg(st.device==='tablet'),segMobile:seg(st.device==='mobile'),
+
+      stage:`flex:1;display:flex;justify-content:center;align-items:flex-start;padding:${d.frame<500?'26px 14px':'40px 24px'};`,
+      frame:`position:relative;width:100%;max-width:${d.frame}px;background:${t.bg};border:1px solid ${t.border};border-radius:${d.radius}px;box-shadow:${t.shadow};overflow:hidden;`,
+      header:`display:flex;align-items:center;justify-content:space-between;gap:16px;height:${d.headerH}px;padding:0 ${d.pad}px;background:${t.headerBg};border-bottom:1px solid ${t.border};`,
+      mark:`width:30px;height:30px;border-radius:8px;flex:none;background:linear-gradient(150deg,${t.brandMid},${t.brandTo});display:flex;align-items:flex-end;justify-content:center;gap:2.5px;padding:7px;`,
+      markB1:`width:3.5px;height:6px;background:#fff;border-radius:1px;opacity:.55;`,markB2:`width:3.5px;height:10px;background:#fff;border-radius:1px;opacity:.8;`,markB3:`width:3.5px;height:15px;background:#fff;border-radius:1px;`,
+      word:`font:600 17px Inter,sans-serif;letter-spacing:-.015em;color:${t.text};white-space:nowrap;`,
+      navActive:`appearance:none;background:none;border:none;border-bottom:2px solid ${t.primary};cursor:pointer;font:600 13.5px Inter,sans-serif;color:${t.text};padding:0 13px;height:${d.headerH}px;`,
+      navItem:`appearance:none;background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font:600 13.5px Inter,sans-serif;color:${t.muted};padding:0 13px;height:${d.headerH}px;transition:.14s;`,
+      navHover:`color:${t.text};background:${t.surface2};`,
+      orgBtn:`display:flex;align-items:center;gap:8px;height:38px;padding:0 9px 0 7px;border-radius:9px;border:1px solid ${t.border};background:${t.surface};max-width:262px;`,
+      orgAvatar:`width:24px;height:24px;border-radius:6px;flex:none;background:${t.primary};color:${t.primaryText};font:700 10px Geist;display:flex;align-items:center;justify-content:center;`,
+      orgName:`font:600 13px Inter,sans-serif;color:${t.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`,
+      chev:`color:${t.subtle};font-size:10px;flex:none;`,
+      iconBtn:`width:38px;height:38px;border-radius:9px;border:1px solid ${t.border};background:${t.surface};color:${t.muted};cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;`,
+      userAvatar:`width:32px;height:32px;border-radius:8px;flex:none;background:linear-gradient(150deg,#7C5CFF,#5E93FF);color:#fff;font:700 11px Geist;display:flex;align-items:center;justify-content:center;`,
+      burger:`display:flex;flex-direction:column;gap:3.5px;align-items:center;`,
+      burgerLine:`width:16px;height:2px;border-radius:1px;background:${t.text};`,
+
+      content:`padding:${d.pad}px;`,
+      container:`max-width:1140px;margin:0 auto;`,
+      pageHead:`display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:22px;`,
+      pageTitle:`font:700 ${d.frame<500?24:30}px Inter,sans-serif;letter-spacing:-.025em;color:${t.text};margin:0;`,
+      pageSub:`font:400 14px Inter,sans-serif;color:${t.muted};margin-top:6px;`,
+      countPill:`flex:none;font:600 12px Inter,sans-serif;color:${t.muted};background:${t.surface2};border:1px solid ${t.border};padding:5px 11px;border-radius:8px;white-space:nowrap;`,
+
+      onboard:`text-align:center;padding:30px 24px 8px;display:flex;flex-direction:column;align-items:center;`,
+      onboardIco:`width:60px;height:60px;border-radius:16px;background:${t.primaryBg};color:${t.primary};display:flex;align-items:center;justify-content:center;margin-bottom:16px;`,
+      onboardTitle:`font:700 ${d.frame<500?20:23}px Inter,sans-serif;letter-spacing:-.02em;color:${t.text};`,
+      onboardSub:`font:400 14px/1.55 Inter,sans-serif;color:${t.muted};max-width:430px;margin:9px 0 0;`,
+
+      createCard:`display:flex;align-items:flex-end;gap:12px;background:${t.surface};border:1px solid ${t.border};border-radius:16px;padding:${d.frame<500?18:22}px;margin-bottom:30px;${d.frame<500?'flex-direction:column;align-items:stretch;':''}`,
+      label:`display:block;font:600 12.5px Inter,sans-serif;color:${t.muted};margin-bottom:7px;`,
+      inputWrap:`display:flex;align-items:center;height:44px;border-radius:8px;background:${t.bg};border:1.5px solid ${st.focusName?t.primary:t.border};box-shadow:${st.focusName?'0 0 0 3px '+t.ring:'none'};transition:.14s;overflow:hidden;`,
+      inputEl:`flex:1;min-width:0;height:100%;border:none;outline:none;background:transparent;color:${t.text};font:500 14.5px Inter,sans-serif;padding:0 14px;`,
+      createBtn:`appearance:none;border:none;cursor:pointer;height:44px;padding:0 20px;border-radius:4px;background:${t.primary};color:${t.primaryText};font:600 14px Inter,sans-serif;display:flex;align-items:center;justify-content:center;gap:9px;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.12);transition:.14s;${d.frame<500?'width:100%;':''}`,
+      createBtnHover:`background:${t.primaryHover};`,
+      spinner:`width:15px;height:15px;border-radius:50%;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;animation:fe-spin .7s linear infinite;`,
+
+      listHead:`display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px;`,
+      listTitle:`font:700 18px Inter,sans-serif;letter-spacing:-.015em;color:${t.text};`,
+      cardGrid:`display:grid;grid-template-columns:repeat(${d.cols},1fr);gap:16px;`,
+      holdMetrics:`display:flex;gap:14px;padding:13px 0;border-top:1px solid ${t.border};border-bottom:1px solid ${t.border};`,
+      miniLabel:`font:600 9.5px Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:${t.subtle};margin-bottom:4px;`,
+      miniNum:`font:600 16px 'JetBrains Mono',monospace;color:${t.text};`,
+      cardFoot:`display:flex;align-items:center;justify-content:space-between;gap:10px;`,
+      dateStyle:`font:500 12px Inter,sans-serif;color:${t.subtle};`,
+      openBtn:`appearance:none;cursor:pointer;height:30px;padding:0 12px;border-radius:8px;border:1px solid ${t.border};background:${t.surface};color:${t.primary};font:600 12px Inter,sans-serif;`,
+      iconActionDanger:`width:30px;height:30px;border-radius:8px;border:1px solid ${t.border};background:${t.surface};color:${t.danger};cursor:pointer;display:flex;align-items:center;justify-content:center;`,
+
+      skCreate:sk('100%','108','margin-bottom:30px;'), skCard:sk('100%','168'),
+      errorBlock:`text-align:center;padding:56px 24px;background:${t.surface};border:1px solid ${t.border};border-radius:16px;display:flex;flex-direction:column;align-items:center;`,
+      errorIco:`width:52px;height:52px;border-radius:50%;background:${t.dangerBg};color:${t.danger};font:700 24px Geist;display:flex;align-items:center;justify-content:center;margin-bottom:18px;`,
+      errorTitle:`font:700 19px 'Satoshi',Inter,sans-serif;color:${t.text};`,
+      errorSub:`font:400 14px/1.55 Inter,sans-serif;color:${t.muted};max-width:380px;margin:8px auto 22px;`,
+      primaryBtn:`appearance:none;border:none;cursor:pointer;height:42px;padding:0 20px;border-radius:4px;background:${t.primary};color:${t.primaryText};font:600 14px Inter,sans-serif;box-shadow:0 1px 2px rgba(0,0,0,.12);transition:.14s;`,
+      primaryBtnHover:`background:${t.primaryHover};`,
+
+      // detail
+      crumb:`display:flex;align-items:center;gap:9px;margin-bottom:14px;`,
+      crumbBack:`appearance:none;cursor:pointer;background:${t.surface};border:1px solid ${t.border};border-radius:8px;height:32px;padding:0 12px;font:600 12.5px Inter,sans-serif;color:${t.muted};white-space:nowrap;flex:none;`,
+      crumbSep:`color:${t.subtle};font-size:13px;`,
+      crumbCur:`font:600 12.5px Inter,sans-serif;color:${t.text};`,
+      detailHead:`display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:26px;flex-wrap:wrap;`,
+      iconActionDanger2:`appearance:none;cursor:pointer;height:36px;padding:0 14px;border-radius:9px;border:1px solid ${t.dangerBorder};background:${t.surface};color:${t.danger};font:600 12.5px Inter,sans-serif;flex:none;`,
+      sectionLabel:`font:600 11px Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:${t.subtle};margin:0 0 11px;`,
+      sectionLabel2:`font:700 18px Inter,sans-serif;letter-spacing:-.015em;color:${t.text};`,
+
+      memEmpty:`background:${t.surface};border:1px dashed ${t.borderStrong};border-radius:16px;padding:40px 24px;margin-bottom:8px;`,
+      memCard:`background:${t.surface};border:1px solid ${t.border};border-radius:16px;overflow:hidden;margin-bottom:26px;`,
+      memNameWrap:`flex:1;min-width:140px;`,
+      memName:`font:600 14px Inter,sans-serif;color:${t.text};`,
+      memStatus:`font:500 11.5px Inter,sans-serif;color:${t.subtle};margin-top:2px;`,
+      memNpvWrap:`width:120px;flex:none;text-align:left;${d.frame<500?'':''}`,
+      memNpvLabel:`font:600 9.5px Inter,sans-serif;text-transform:uppercase;color:${t.subtle};`,
+      memRoleWrap:`width:150px;flex:none;`,
+      selBoxSm:`position:relative;display:flex;align-items:center;height:36px;border-radius:9px;background:${t.surface};border:1.5px solid ${t.border};overflow:hidden;`,
+      selectElSm:`flex:1;min-width:0;height:100%;border:none;outline:none;background:transparent;color:${t.text};font:600 12.5px Inter,sans-serif;padding:0 28px 0 11px;cursor:pointer;appearance:none;`,
+      selChevSm:`position:absolute;right:10px;top:50%;transform:translateY(-50%);color:${t.subtle};font-size:10px;pointer-events:none;`,
+      memDel:`appearance:none;cursor:pointer;width:30px;height:30px;border-radius:8px;border:1px solid ${t.border};background:${t.surface};color:${t.subtle};font:600 12px Geist;flex:none;`,
+      memAdd:`appearance:none;cursor:pointer;width:100%;height:46px;border:none;border-top:1px dashed ${t.borderStrong};background:transparent;color:${t.primary};font:600 13px Inter,sans-serif;`,
+
+      consCard:`background:${t.surface};border:1px solid ${t.border};border-radius:16px;padding:18px;margin-bottom:26px;display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap;`,
+      consField:`display:flex;flex-direction:column;gap:7px;width:260px;`,
+      labelRow:`display:flex;align-items:center;gap:6px;`,
+      fieldLabel:`font:600 12px Inter,sans-serif;color:${t.muted};`,
+      hintBadge:`width:15px;height:15px;border-radius:50%;border:1px solid ${t.borderStrong};color:${t.subtle};font:700 9.5px Geist;display:inline-flex;align-items:center;justify-content:center;cursor:help;flex:none;`,
+      rateBox:`display:flex;align-items:center;height:42px;border-radius:8px;background:${t.surface};border:1.5px solid ${t.border};overflow:hidden;`,
+      rateInput:`flex:1;min-width:0;height:100%;border:none;outline:none;background:transparent;color:${t.text};font:600 14px 'JetBrains Mono',monospace;padding:0 13px;`,
+      rateSuffix:`padding:0 12px;height:100%;display:flex;align-items:center;background:${t.surface2};border-left:1px solid ${t.border};color:${t.subtle};font:600 13px 'JetBrains Mono',monospace;`,
+      consText:`flex:1;min-width:240px;font:400 12.5px/1.5 Inter,sans-serif;color:${t.muted};`,
+      consBtn:`appearance:none;border:none;cursor:pointer;height:42px;padding:0 20px;border-radius:4px;background:${t.primary};color:${t.primaryText};font:600 13.5px Inter,sans-serif;display:flex;align-items:center;gap:9px;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.12);transition:.14s;`,
+      consBtnHover:`background:${t.primaryHover};`,
+
+      budgetHead:`display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px;`,
+      budgetMeta:`display:flex;gap:8px;flex-wrap:wrap;`,
+      metaChip:`font:600 11px 'JetBrains Mono',monospace;color:${t.primary};background:${t.primaryBg};padding:4px 9px;border-radius:7px;white-space:nowrap;`,
+      versionChip:`font:600 11px 'JetBrains Mono',monospace;color:${t.subtle};background:${t.surface2};border:1px solid ${t.border};padding:4px 9px;border-radius:7px;white-space:nowrap;`,
+      metricGrid:`display:grid;grid-template-columns:repeat(${d.frame<500?2:4},1fr);gap:13px;margin-bottom:24px;`,
+      metricCard:`background:${t.surface};border:1px solid ${t.border};border-radius:16px;padding:15px;`,
+      metricLabel:`font:600 12px Inter,sans-serif;color:${t.muted};`,
+      metricSub:`font:600 11px Inter,sans-serif;color:${t.subtle};`,
+
+      tblCaption:`display:flex;align-items:baseline;gap:9px;margin-bottom:10px;flex-wrap:wrap;`,
+      tblCapStrong:`font:700 13.5px Inter,sans-serif;color:${t.text};`,
+      tblCapHint:`font:500 11.5px Inter,sans-serif;color:${t.subtle};`,
+      consTblWrap:`border:1px solid ${t.border};border-radius:16px;overflow:auto;background:${t.surface};`,
+      consTblInner:`width:max-content;min-width:100%;`,
+      consHeadRow:`display:flex;background:${t.surface2};border-bottom:1.5px solid ${t.border};`,
+      chLabel:`width:220px;flex:none;padding:10px 16px;font:600 10.5px Inter,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:${t.subtle};`,
+      chProj:`width:140px;flex:none;display:flex;align-items:center;padding:10px 16px;font:600 11px Inter,sans-serif;color:${t.muted};justify-content:flex-end;`,
+      chGroup:`width:120px;flex:none;text-align:right;padding:10px 16px;font:700 10.5px Inter,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:${t.primary};background:${t.primarySoft};border-left:1.5px solid ${t.border};`,
+      crLabel:`width:220px;flex:none;padding:11px 16px;font:600 12.5px Inter,sans-serif;color:${t.text};`,
+      crCell:`width:140px;flex:none;text-align:right;padding:11px 16px;font:600 13px 'JetBrains Mono',monospace;color:${t.muted};`,
+
+      overlay:`position:absolute;inset:0;background:rgba(10,8,6,.5);z-index:90;animation:fe-fade .15s;`,
+      modalWrap:`position:absolute;inset:0;z-index:91;display:flex;align-items:center;justify-content:center;padding:24px;`,
+      modal:`width:100%;max-width:420px;background:${t.surface};border:1px solid ${t.border};border-radius:18px;box-shadow:${t.menuShadow};padding:26px;text-align:center;animation:fe-pop .2s ease;`,
+      modalAdd:`width:100%;max-width:460px;background:${t.surface};border:1px solid ${t.border};border-radius:18px;box-shadow:${t.menuShadow};padding:22px;animation:fe-pop .2s ease;`,
+      modalHead:`display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px;`,
+      modalTitle:`font:700 19px Inter,sans-serif;letter-spacing:-.01em;color:${t.text};`,
+      modalSub:`font:400 14px/1.55 Inter,sans-serif;color:${t.muted};margin:9px 0 22px;`,
+      modalSub2:`font:400 12.5px Inter,sans-serif;color:${t.subtle};margin-top:3px;`,
+      modalClose:`appearance:none;cursor:pointer;width:30px;height:30px;border-radius:8px;border:1px solid ${t.border};background:${t.surface};color:${t.subtle};font:600 12px Geist;flex:none;`,
+      availList:`display:flex;flex-direction:column;gap:8px;`,
+      availRow:`display:flex;align-items:center;gap:11px;padding:10px 12px;border:1px solid ${t.border};border-radius:11px;background:${t.bg};`,
+      availIco:`width:32px;height:32px;border-radius:8px;flex:none;background:${t.surface2};color:${t.muted};display:flex;align-items:center;justify-content:center;`,
+      availName:`flex:1;min-width:0;font:600 13.5px Inter,sans-serif;color:${t.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`,
+      availAdd:`appearance:none;cursor:pointer;height:34px;padding:0 14px;border-radius:9px;border:none;background:${t.primary};color:${t.primaryText};font:600 12.5px Inter,sans-serif;flex:none;`,
+      availEmpty:`text-align:center;padding:30px;font:500 13.5px Inter,sans-serif;color:${t.subtle};`,
+      modalIco:`width:52px;height:52px;border-radius:14px;background:${t.dangerBg};color:${t.danger};display:flex;align-items:center;justify-content:center;margin:0 auto 16px;`,
+      modalActions:`display:flex;gap:10px;`,
+      btnGhost:`flex:1;height:44px;border-radius:4px;border:1px solid ${t.borderStrong};background:${t.surface};color:${t.text};font:600 14px Inter,sans-serif;cursor:pointer;transition:.14s;`,
+      btnGhostHover:`background:${t.surface2};`,
+      btnDanger:`flex:1;height:44px;border-radius:4px;border:none;background:${t.danger};color:#fff;font:600 14px Inter,sans-serif;cursor:pointer;transition:.14s;`,
+      btnDangerHover:`background:${t.dangerHover};`
+    };
+
+    return {s,t,
+      headerH:d.headerH, headerGap:d.frame<900?16:28,
+      showNav:d.showNav,showWord:d.showWord,showOrgSelector:d.showOrgSel,showUser:d.showUser,showBurger:d.showBurger,showOrgName:d.showOrgName,
+      isDark:st.theme==='dark',isLight:st.theme==='light',
+      isList:onList, isDetail:onDetail, stateBtns,
+      // list
+      listLoading:st.listState==='loading', listError:st.listState==='error', listEmpty:st.listState==='empty',
+      listShowCreate:st.listState==='list'||st.listState==='empty', listShowGrid:st.listState==='list',
+      showHeadCount:st.listState==='list', holdCount:String(st.holdings.length),
+      holdings:st.listState==='list'?st.holdings.map(buildHold):[],
+      holdingName:st.holdingName, creating:st.creating, createText:st.creating?'Создаём…':'Создать холдинг',
+      onName:(e)=>this.setState({holdingName:e.target.value}), focusName:()=>this.setState({focusName:true}), blurName:()=>this.setState({focusName:false}),
+      createHolding:()=>{ this.setState({creating:true}); if(this._t)clearTimeout(this._t); this._t=setTimeout(()=>this.setState({creating:false,holdingName:''}),1300); },
+      // detail
+      detailEmpty:st.detailState==='empty', detailHasMembers:st.detailState!=='empty', detailConsolidated:st.detailState==='consolidated',
+      memberCount:String(st.members.length), members, roleOptions,
+      rate:st.rate, onRate:(e)=>this.setState({rate:e.target.value}),
+      consolidating:st.consolidating, consBtnText:st.consolidating?'Консолидация…':(st.detailState==='consolidated'?'Пересчитать':'Консолидировать'),
+      consolidate:()=>this.consolidate(),
+      projCols, consRows, budgetMetrics,
+      // add modal
+      addOpen:st.addOpen, openAdd:()=>this.setState({addOpen:true}), closeAdd:()=>this.setState({addOpen:false}),
+      hasAvailable:st.available.length>0, noAvailable:st.available.length===0,
+      available:st.available.map(name=>({name, add:()=>this.setState(s=>({members:[...s.members,{id:s.nextId,name,role:'Дочерний',status:'draft',npv:'—',sign:0,vals:null}],available:s.available.filter(x=>x!==name),nextId:s.nextId+1,addOpen:false,detailState:s.detailState==='empty'?'members':s.detailState}))})),
+      // delete
+      deleteTarget:dt, askDeleteCurrent:()=>this.setState({deleteId:1}),
+      cancelDelete:()=>this.setState({deleteId:null}),
+      confirmDelete:()=>this.setState(s=>({holdings:s.holdings.filter(h=>h.id!==s.deleteId),deleteId:null,screen:'list',listState:'list'})),
+      toggleTheme:()=>this.setState(s=>({theme:s.theme==='light'?'dark':'light'})),
+      goList:()=>this.setState({screen:'list'}), goDetail:()=>this.setState({screen:'detail'}),
+      stList:()=>this.setState({listState:'list'}),
+      setLight:()=>this.setState({theme:'light'}),setDark:()=>this.setState({theme:'dark'}),
+      setDesktop:()=>this.setState({device:'desktop'}),setTablet:()=>this.setState({device:'tablet'}),setMobile:()=>this.setState({device:'mobile'})
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -9,9 +9,9 @@ import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import (
+    JSON,
     DateTime,
     ForeignKey,
-    JSON,
     String,
     UniqueConstraint,
 )
@@ -124,6 +124,13 @@ class Holding(Base):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    # Сводка последней консолидации (B3): NPV и ставка группы (строками, как model),
+    # момент расчёта. NULL — консолидации ещё не было.
+    last_consolidation_npv: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    last_consolidation_rate: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    last_consolidation_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class HoldingMember(Base):
@@ -158,3 +165,30 @@ class Project(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_now, onupdate=_now
     )
+    # Сводка последнего успешного расчёта (B1). Decimal хранится строкой —
+    # как и в model (точность без плавающей запятой). NULL — расчёта не было.
+    last_npv: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    last_irr: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    last_pb_months: Mapped[int | None] = mapped_column(nullable=True)
+    last_engine_version: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    last_calculated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class AnalysisJob(Base):
+    """Фоновая задача анализа (Celery): реестр владения для изоляции арендатора.
+
+    Статус и результат хранит бэкенд Celery; здесь — привязка ``job_id`` к организации
+    (чтобы чужой арендатор не мог опросить задачу) и тип/время для аудита.
+    """
+
+    __tablename__ = "analysis_jobs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)  # = id задачи Celery
+    organization_id: Mapped[str] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    project_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)  # "monte_carlo"
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

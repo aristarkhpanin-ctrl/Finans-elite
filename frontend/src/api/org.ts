@@ -1,4 +1,5 @@
 import { api } from "./client";
+import type { Schema } from "./gen";
 
 export const ROLES: [string, string][] = [
   ["owner", "Владелец"],
@@ -10,36 +11,15 @@ export const ROLES: [string, string][] = [
 
 export const roleLabel = (role: string) => ROLES.find(([k]) => k === role)?.[1] ?? role;
 
-export interface Member {
-  user_id: string;
-  email: string;
-  full_name: string;
-  role: string;
-}
+// Типы ответов — из сгенерированной OpenAPI-схемы (см. gen.ts).
+export type Member = Schema<"MemberOut">;
+export type Plan = Schema<"PlanOut">;
+export type Subscription = Schema<"SubscriptionOut">;
+export type CheckoutResponse = Schema<"CheckoutResponse">;
 
-export interface Plan {
-  code: string;
-  name: string;
-  price_rub: number;
-  max_projects: number | null;
-  max_members: number | null;
-}
-
-export interface Subscription {
-  plan_code: string;
-  plan_name: string;
-  status: string;
-  current_period_end: string | null;
-  max_projects: number | null;
-  max_members: number | null;
-  used_projects: number;
-  used_members: number;
-}
-
-export interface CheckoutResponse {
-  activated: boolean;
-  payment_id: string | null;
-  confirmation_url: string | null;
+export async function createOrganization(name: string): Promise<{ id: string; name: string }> {
+  const { data } = await api.post<{ id: string; name: string }>("/api/v1/organizations", { name });
+  return data;
 }
 
 export async function getMembers(orgId: string): Promise<Member[]> {
@@ -50,6 +30,15 @@ export async function getMembers(orgId: string): Promise<Member[]> {
 export async function addMember(orgId: string, body: { email: string; full_name: string; role: string }): Promise<Member> {
   const { data } = await api.post<Member>(`/api/v1/organizations/${orgId}/members`, body);
   return data;
+}
+
+export async function patchMemberRole(orgId: string, userId: string, role: string): Promise<Member> {
+  const { data } = await api.patch<Member>(`/api/v1/organizations/${orgId}/members/${userId}`, { role });
+  return data;
+}
+
+export async function removeMember(orgId: string, userId: string): Promise<void> {
+  await api.delete(`/api/v1/organizations/${orgId}/members/${userId}`);
 }
 
 export async function getPlans(): Promise<Plan[]> {

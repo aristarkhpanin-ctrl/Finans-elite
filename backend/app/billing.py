@@ -60,7 +60,7 @@ class PaymentProvider(ABC):
                        customer_email: str) -> CheckoutResult:
         """Инициировать смену тарифа (сразу или через платёж)."""
 
-    def handle_webhook(self, db: Session, event: dict) -> None:
+    def handle_webhook(self, db: Session, event: dict) -> None:  # noqa: B027 — необязательный хук (провайдер переопределяет по желанию)
         """Обработать уведомление провайдера (по умолчанию — игнор)."""
 
 

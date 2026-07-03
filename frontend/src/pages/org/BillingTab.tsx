@@ -1,15 +1,42 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { httpStatus } from "../../api/client";
 import { useState } from "react";
 import { checkout, getPlans, getSubscription, type Plan } from "../../api/org";
-import { Button, Card } from "../../components/ui";
+import { useToast } from "../../components/Toast";
+import { Button, Modal, Skeleton } from "../../components/ui";
 
-function usage(used: number, limit: number | null): string {
-  return limit === null ? `${used} / ∞` : `${used} / ${limit}`;
+const price = (rub: number) => (rub === 0 ? "Бесплатно" : `${rub.toLocaleString("ru-RU")} ₽`);
+
+/** Ключевые фичи плана по коду (для карточек). */
+const PLAN_FEATURES: Record<string, string[]> = {
+  free: ["4 отчёта + показатели", "Оценка бизнеса 5 методами", "Экспорт CSV/XLSX"],
+  team: ["Всё из Free", "Холдинги и консолидация", "Анализ рисков"],
+  business: ["Всё из Team", "Приоритетная поддержка", "Расширенные квоты"],
+};
+
+function QuotaBar({ label, used, max }: { label: string; used: number; max: number | null }) {
+  const pct = max === null ? 0 : Math.min(100, Math.round((used / Math.max(max, 1)) * 100));
+  const warn = max !== null && pct >= 80;
+  return (
+    <div>
+      <div className="quota-item__top">
+        <span className="quota-item__label">{label}</span>
+        <span className="quota-item__val">
+          {used} / {max ?? "∞"}
+        </span>
+      </div>
+      <div className="quota-track">
+        <div className={"quota-fill" + (warn ? " quota-fill--warn" : "")} style={{ width: max === null ? "8%" : `${pct}%` }} />
+      </div>
+      {warn && <div className="field-note" style={{ marginTop: 4, color: "var(--warn-text)" }}>Близко к лимиту тарифа</div>}
+    </div>
+  );
 }
 
-export function BillingTab({ orgId }: { orgId: string }) {
+export function BillingTab({ orgId, canManage }: { orgId: string; canManage: boolean }) {
   const qc = useQueryClient();
-  const [msg, setMsg] = useState("");
+  const toast = useToast();
+  const [target, setTarget] = useState<Plan | null>(null);
 
   const sub = useQuery({ queryKey: ["subscription", orgId], queryFn: () => getSubscription(orgId) });
   const plans = useQuery({ queryKey: ["plans"], queryFn: getPlans });
@@ -17,57 +44,150 @@ export function BillingTab({ orgId }: { orgId: string }) {
   const change = useMutation({
     mutationFn: (code: string) => checkout(orgId, code),
     onSuccess: (res) => {
+      setTarget(null);
       if (res.confirmation_url) {
         window.location.assign(res.confirmation_url); // оплата ЮKassa
       } else {
-        setMsg("Тариф изменён");
         qc.invalidateQueries({ queryKey: ["subscription", orgId] });
-        setTimeout(() => setMsg(""), 2500);
+        toast("Тариф изменён", { kind: "success" });
       }
     },
-    onError: (e: any) => setMsg(e?.response?.status === 403 ? "Нужны права владельца" : "Не удалось сменить тариф"),
+    onError: (e: unknown) =>
+      toast(httpStatus(e) === 403 ? "Нужны права владельца" : "Не удалось сменить тариф", { kind: "error" }),
   });
 
-  const planCard = (p: Plan) => {
-    const current = sub.data?.plan_code === p.code;
+  if (sub.isLoading || plans.isLoading) {
     return (
-      <Card key={p.code} style={{ borderColor: current ? "var(--primary)" : undefined }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-          <strong style={{ fontSize: 16 }}>{p.name}</strong>
-          <span className="muted">{p.price_rub.toLocaleString("ru-RU")} ₽/мес</span>
+      <div>
+        <Skeleton height={120} style={{ borderRadius: 14, marginBottom: 20 }} />
+        <div className="plan-grid">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} height={220} style={{ borderRadius: 14 }} />
+          ))}
         </div>
-        <ul className="muted" style={{ paddingLeft: 18, margin: "10px 0" }}>
-          <li>Проектов: {p.max_projects ?? "без лимита"}</li>
-          <li>Участников: {p.max_members ?? "без лимита"}</li>
-        </ul>
-        {current ? (
-          <Button variant="ghost" disabled>Текущий тариф</Button>
-        ) : (
-          <Button onClick={() => change.mutate(p.code)} disabled={change.isPending}>Перейти</Button>
-        )}
-      </Card>
+      </div>
     );
-  };
+  }
+  if (sub.isError || !sub.data) {
+    return (
+      <div className="error-state">
+        <div className="error-state__ico">!</div>
+        <div className="error-state__title">Не удалось загрузить тариф</div>
+        <Button onClick={() => sub.refetch()}>Повторить</Button>
+      </div>
+    );
+  }
+
+  const s = sub.data;
+  const currentPlan = plans.data?.find((p) => p.code === s.plan_code);
 
   return (
     <div>
-      {sub.data && (
-        <Card style={{ marginBottom: 18 }}>
-          <h3 style={{ marginTop: 0 }}>Текущая подписка</h3>
-          <div className="form-grid">
-            <div><div className="m-label">Тариф</div><div className="m-value" style={{ fontSize: 18 }}>{sub.data.plan_name}</div></div>
-            <div><div className="m-label">Статус</div><div style={{ fontWeight: 600 }}>{sub.data.status}</div></div>
-            <div><div className="m-label">Проекты</div><div style={{ fontWeight: 600 }}>{usage(sub.data.used_projects, sub.data.max_projects)}</div></div>
-            <div><div className="m-label">Участники</div><div style={{ fontWeight: 600 }}>{usage(sub.data.used_members, sub.data.max_members)}</div></div>
+      <div className="billing-grid">
+        <div className="plan-current">
+          <div className="plan-current__label">Текущий тариф</div>
+          <div className="plan-current__name">
+            {s.plan_name}
+            <span className="plan-active-dot" title="Активна" />
           </div>
-          {msg && <p style={{ color: "var(--success)" }}>{msg}</p>}
-        </Card>
+          <div className="plan-current__price">
+            {currentPlan ? price(currentPlan.price_rub) : "—"}
+            {currentPlan && currentPlan.price_rub > 0 && <span style={{ color: "var(--subtle)", fontWeight: 500 }}> / мес</span>}
+          </div>
+          {s.current_period_end && (
+            <div className="plan-current__note">
+              Продление {new Date(s.current_period_end).toLocaleDateString("ru-RU")}
+            </div>
+          )}
+        </div>
+
+        <div className="quota-card">
+          <QuotaBar label="Проекты" used={s.used_projects} max={s.max_projects ?? null} />
+          <QuotaBar label="Участники" used={s.used_members} max={s.max_members ?? null} />
+        </div>
+      </div>
+
+      <div className="terms-head">Тарифные планы</div>
+      {plans.data && (
+        <div className="plan-grid">
+          {plans.data.map((p) => {
+            const current = p.code === s.plan_code;
+            return (
+              <div key={p.code} className={"plan-card" + (current ? " plan-card--current" : "")}>
+                {current && <span className="plan-ribbon">Текущий</span>}
+                <div className="plan-card__name">{p.name}</div>
+                <div className="plan-card__price">
+                  {price(p.price_rub)}
+                  {p.price_rub > 0 && <small> / мес</small>}
+                </div>
+                <div className="plan-card__limits">
+                  ▢ {p.max_projects ?? "∞"} проектов · ○ {p.max_members ?? "∞"} участников
+                </div>
+                <div className="plan-feats">
+                  {(PLAN_FEATURES[p.code] ?? []).map((f) => (
+                    <div className="plan-feat" key={f}>
+                      <span className="plan-feat__check">✓</span>
+                      {f}
+                    </div>
+                  ))}
+                </div>
+                {current ? (
+                  <Button variant="ghost" disabled>
+                    Текущий тариф
+                  </Button>
+                ) : (
+                  <Button disabled={!canManage} onClick={() => setTarget(p)}>
+                    Перейти
+                  </Button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {!canManage && (
+        <p className="muted" style={{ marginTop: 12 }}>
+          🔒 Смена тарифа доступна только владельцу организации.
+        </p>
       )}
 
-      <h3>Тарифы</h3>
-      {plans.data && (
-        <div className="form-grid">{plans.data.map(planCard)}</div>
-      )}
+      {/* Модал смены тарифа */}
+      <Modal
+        open={!!target}
+        onClose={() => !change.isPending && setTarget(null)}
+        title="Смена тарифа"
+        maxWidth={440}
+        actions={
+          <>
+            <Button variant="ghost" disabled={change.isPending} onClick={() => setTarget(null)}>
+              Отмена
+            </Button>
+            <Button loading={change.isPending} onClick={() => target && change.mutate(target.code)}>
+              Подтвердить
+            </Button>
+          </>
+        }
+      >
+        {target && (
+          <>
+            <div className="plan-diff">
+              <div className="plan-diff__box">
+                <div className="plan-diff__label">Сейчас</div>
+                <div className="plan-diff__val">{s.plan_name}</div>
+              </div>
+              <span className="plan-diff__arrow">→</span>
+              <div className="plan-diff__box" style={{ background: "var(--primary-soft)" }}>
+                <div className="plan-diff__label">Новый</div>
+                <div className="plan-diff__val">{target.name}</div>
+              </div>
+            </div>
+            <div className="modal__sub" style={{ margin: 0 }}>
+              Стоимость нового тарифа — <b style={{ color: "var(--text)" }}>{price(target.price_rub)}{target.price_rub > 0 ? " / мес" : ""}</b>.
+              {target.price_rub > 0 ? " После подтверждения откроется страница оплаты." : " Тариф активируется сразу."}
+            </div>
+          </>
+        )}
+      </Modal>
     </div>
   );
 }

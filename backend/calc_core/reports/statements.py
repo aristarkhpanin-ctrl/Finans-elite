@@ -34,8 +34,14 @@ class Statement:
         self[code] = series
 
 
-def build_income(leaves: dict[str, list[Decimal]], n: int, profit_tax_rate: Decimal) -> Statement:
-    """Собрать ОПУ (I1–I28). ``leaves`` содержит листовые строки; итоги вычисляются здесь."""
+def build_income(leaves: dict[str, list[Decimal]], n: int, profit_tax_rate: Decimal,
+                 benefit_share: Decimal = Decimal(0)) -> Statement:
+    """Собрать ОПУ (I1–I28). ``leaves`` содержит листовые строки; итоги вычисляются здесь.
+
+    Налоговый блок (SPEC §11, §22.7) считается **последовательно**: убыток периода
+    накапливается и уменьшает налоговую базу будущих прибыльных периодов (перенос убытков,
+    `I22`); доля ``benefit_share`` налогооблагаемой прибыли освобождается от налога (льгота).
+    """
     s = Statement(L.INCOME_LINES, n)
     for code, series in leaves.items():
         s[code] = series
@@ -47,12 +53,31 @@ def build_income(leaves: dict[str, list[Decimal]], n: int, profit_tax_rate: Deci
     s["I19"] = add(s["I17"], s["I18"])                           # I17 + I18
     # I23 = I8 − I9 − I16 − I19 + I20 − I21
     s["I23"] = add(sub(sub(sub(s["I8"], s["I9"]), s["I16"]), s["I19"]), sub(s["I20"], s["I21"]))
-    # I26 = I23 + I24 + I25 − I22  (льготы — следующая фаза)
-    s["I26"] = sub(add(s["I23"], s["I24"], s["I25"]), s["I22"])
-    # I27 = max(0, I26) · ставка
-    s["I27"] = [max(Decimal(0), v) * profit_tax_rate for v in s["I26"]]
-    # I28 = I23 + I25 − I27
-    s["I28"] = sub(add(s["I23"], s["I25"]), s["I27"])
+
+    # --- Налоговый блок: перенос убытков (I22) + льгота + налог (последовательно) ---
+    # База до переноса = I23 + I25 (I24 — невычитаемые, в базу не входят, см. §22.1).
+    i22 = zeros(n)
+    i26 = zeros(n)
+    i27 = zeros(n)
+    loss_pool = Decimal(0)  # накопленные непокрытые убытки (хранятся как ≥0)
+    for t in range(n):
+        base = s["I23"][t] + s["I25"][t]
+        if base < 0:
+            loss_pool += -base                       # убыток периода → в пул
+            taxable = base                           # I26 < 0, налога нет
+        else:
+            applied = min(loss_pool, base)           # покрываем прибыль накопленным убытком
+            i22[t] = applied
+            loss_pool -= applied
+            taxable = base - applied
+        exempt = benefit_share * taxable if taxable > 0 else Decimal(0)  # льгота
+        i26[t] = taxable - exempt
+        i27[t] = max(Decimal(0), i26[t]) * profit_tax_rate
+    s["I22"] = i22
+    s["I26"] = i26
+    s["I27"] = i27
+    # I28 = I23 + I25 − I24 − I27  (издержки за счёт прибыли уменьшают чистую прибыль).
+    s["I28"] = sub(sub(add(s["I23"], s["I25"]), s["I24"]), s["I27"])
     return s
 
 
@@ -132,3 +157,30 @@ def build_balance(leaves: dict[str, list[Decimal]], n: int) -> Statement:
     # B34 = B25 + B26 + B33
     s["B34"] = add(s["B25"], s["B26"], s["B33"])
     return s
+
+
+def opening_balance(cash, fixed_assets_net, debt, paid_in_capital,
+                    retained_earnings, foreign_monetary_base=Decimal(0),
+                    receivables=Decimal(0), payables=Decimal(0),
+                    raw_materials=Decimal(0), finished_goods=Decimal(0)) -> dict[str, Decimal]:
+    """Балансовые величины на начало проекта (t = −1) из стартового баланса.
+
+    Нужны для «средних за период» в коэффициентах (SPEC §18): среднее за период t = 0
+    берётся как (начало + конец)/2, где «начало» — этот стартовый баланс. Субтоталы
+    (B8, B11, B20, B33…) вычисляются теми же формулами, что и обычный баланс.
+    ``foreign_monetary_base`` — опорная валютная позиция в основной валюте (→ B6).
+    """
+    leaves = {
+        "B1": [cash],
+        "B2": [receivables],
+        "B3": [raw_materials],
+        "B5": [finished_goods],
+        "B6": [foreign_monetary_base],
+        "B14": [fixed_assets_net],   # остаточная стоимость ОС (v0 → оборудование)
+        "B23": [payables],
+        "B26": [debt],
+        "B27": [paid_in_capital],
+        "B32": [retained_earnings],
+    }
+    s = build_balance(leaves, 1)
+    return {code: s[code][0] for code in s.order}

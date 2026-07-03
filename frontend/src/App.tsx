@@ -1,22 +1,41 @@
 import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Layout } from "./components/Layout";
+import { Splash } from "./components/Splash";
+import { ToastProvider } from "./components/Toast";
+import { HoldingDetailPage } from "./pages/HoldingDetailPage";
+import { HoldingsPage } from "./pages/HoldingsPage";
 import { LoginPage } from "./pages/LoginPage";
 import { OrganizationPage } from "./pages/OrganizationPage";
 import { ProjectEditorPage } from "./pages/ProjectEditorPage";
 import { ProjectsPage } from "./pages/ProjectsPage";
 import { RegisterPage } from "./pages/RegisterPage";
 
-// Страницы с recharts грузим лениво (code-split).
+// Тяжёлые страницы результатов/анализа грузим лениво (code-split).
 const ProjectResultsPage = lazy(() =>
   import("./pages/ProjectResultsPage").then((m) => ({ default: m.ProjectResultsPage })),
 );
+// Dev-песочница UI-кита: только в DEV-сборке (в прод-бандл не попадает).
+const DevUiPage = import.meta.env.DEV
+  ? lazy(() => import("./pages/DevUiPage").then((m) => ({ default: m.DevUiPage })))
+  : null;
 const ProjectAnalysisPage = lazy(() =>
   import("./pages/ProjectAnalysisPage").then((m) => ({ default: m.ProjectAnalysisPage })),
 );
 
 export function App() {
+  return (
+    <ErrorBoundary>
+      <ToastProvider>
+        <AppRoutes />
+      </ToastProvider>
+    </ErrorBoundary>
+  );
+}
+
+function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
@@ -29,12 +48,14 @@ export function App() {
         }
       >
         <Route path="/projects" element={<ProjectsPage />} />
+        <Route path="/holdings" element={<HoldingsPage />} />
+        <Route path="/holdings/:id" element={<HoldingDetailPage />} />
         <Route path="/organization" element={<OrganizationPage />} />
         <Route path="/projects/:id" element={<ProjectEditorPage />} />
         <Route
           path="/projects/:id/results"
           element={
-            <Suspense fallback={<p className="muted">Загрузка…</p>}>
+            <Suspense fallback={<Splash />}>
               <ProjectResultsPage />
             </Suspense>
           }
@@ -42,13 +63,23 @@ export function App() {
         <Route
           path="/projects/:id/analysis"
           element={
-            <Suspense fallback={<p className="muted">Загрузка…</p>}>
+            <Suspense fallback={<Splash />}>
               <ProjectAnalysisPage />
             </Suspense>
           }
         />
         <Route path="/" element={<Navigate to="/projects" replace />} />
       </Route>
+      {DevUiPage && (
+        <Route
+          path="/dev/ui"
+          element={
+            <Suspense fallback={<Splash />}>
+              <DevUiPage />
+            </Suspense>
+          }
+        />
+      )}
       <Route path="*" element={<Navigate to="/projects" replace />} />
     </Routes>
   );

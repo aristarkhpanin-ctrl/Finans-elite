@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Inter';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-600-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:700;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-700-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-600-normal.woff2') format('woff2');}
+</style>
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  input,select{font-family:inherit;}
+  input::placeholder{color:inherit;opacity:.4;}
+  select{appearance:none;-webkit-appearance:none;}
+  .fe-scroll::-webkit-scrollbar{height:10px;}
+  .fe-scroll::-webkit-scrollbar-thumb{background:rgba(120,113,108,.35);border-radius:5px;border:3px solid transparent;background-clip:padding-box;}
+  .fe-scroll::-webkit-scrollbar-track{background:transparent;}
+  @keyframes fe-fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  @keyframes fe-toast{0%{opacity:0;transform:translateY(-6px)}12%{opacity:1;transform:none}82%{opacity:1}100%{opacity:0;transform:translateY(-4px)}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}" data-screen-label="07 — Издержки">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+      <div style="width:26px;height:26px;flex:none;border-radius:8px;overflow:hidden;"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="26px,26px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Этап&nbsp;7 · Вкладка «Издержки»</span>
+        <span style="{{ s.barSub }}">Финанс-Элит · прямые и постоянные</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Состояние</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segFilled }}" onClick="{{ setFilled }}">Заполнено</button><button style="{{ s.segEmpty }}" onClick="{{ setEmpty }}">Пусто</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Горизонт</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segN12 }}" onClick="{{ setN12 }}">12&nbsp;мес</button><button style="{{ s.segN24 }}" onClick="{{ setN24 }}">24&nbsp;мес</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Ошибка</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segErrOff }}" onClick="{{ errOff }}">Нет</button><button style="{{ s.segErrOn }}" onClick="{{ errOn }}">Отсрочка</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Свет</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тьма</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}">
+
+      <div style="{{ s.subheader }}">
+        <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1;">
+          <button style="{{ s.backBtn }}">←</button>
+          <span style="{{ s.projName }}">Завод полимерной упаковки</span>
+          <span style="{{ s.savedChip }}">✓ Сохранено</span>
+        </div>
+        <div style="{{ s.subActions }}">
+          <div style="{{ s.modeSeg }}"><button style="{{ s.modeEditor }}">Редактор</button><button style="{{ s.modeOther }}">Результаты</button><button style="{{ s.modeOther }}">Анализ</button></div>
+          <button style="{{ s.calcBtn }}" style-hover="{{ s.calcBtnHover }}">Рассчитать →</button>
+        </div>
+      </div>
+
+      <div style="{{ s.tabBarWrap }}">
+        <div style="{{ s.tabBar }}" class="fe-scroll">
+          <sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="7">
+          <button style="{{ tb.style }}"><span>{{ tb.label }}</span><sc-if value="{{ tb.badge }}" hint-placeholder-val=""><span style="{{ tb.badgeStyle }}">{{ tb.badge }}</span></sc-if></button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="{{ s.content }}">
+
+        <!-- ============ SECTION 1: ПРЯМЫЕ ============ -->
+        <div style="{{ s.sectionWrap }}">
+          <div style="{{ s.sectionHead }}">
+            <div style="min-width:0;">
+              <div style="{{ s.sectionTitleRow }}"><span style="{{ s.sectionDotDirect }}"></span><span style="{{ s.sectionTitle }}">Прямые издержки</span><sc-if value="{{ directCountChip }}" hint-placeholder-val=""><span style="{{ s.countChip }}">{{ directCountChip }}</span></sc-if></div>
+              <div style="{{ s.sectionDesc }}">Материалы и сдельная оплата — формируют себестоимость продукции (COGS).</div>
+            </div>
+            <button style="{{ s.addBtn }}" style-hover="{{ s.addBtnHover }}" onClick="{{ addDirect }}">＋&nbsp;&nbsp;Статья</button>
+          </div>
+
+          <sc-if value="{{ directEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.empty }}">
+            <div style="{{ s.emptyIco }}"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-5 9 5-9 5-9-5z" stroke-linejoin="round"/><path d="M3 9v6l9 5 9-5V9M12 14v6" stroke-linejoin="round"/></svg></div>
+            <div style="{{ s.emptyTitle }}">Нет прямых издержек</div>
+            <div style="{{ s.emptySub }}">Материалы и сдельная оплата формируют себестоимость продукции (COGS).</div>
+            <button style="{{ s.emptyBtn }}" style-hover="{{ s.addBtnHover }}" onClick="{{ addDirect }}">＋&nbsp;&nbsp;Добавить статью</button>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ directHas }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:14px;">
+          <sc-for list="{{ directItems }}" as="it" hint-placeholder-count="2">
+          <div style="{{ it.card }}">
+            <sc-if value="{{ it.toast }}" hint-placeholder-val=""><div style="{{ it.toastStyle }}"><span>↧</span>{{ it.toast }}</div></sc-if>
+            <div style="{{ s.cardHead }}">
+              <div style="{{ it.idxStyle }}">{{ it.idx }}</div>
+              <div style="{{ s.nameField }}" style-hover="{{ s.nameFieldHover }}"><input style="{{ s.nameInput }}" value="{{ it.name }}" placeholder="Название статьи" onChange="{{ it.onName }}"></div>
+              <sc-for list="{{ it.chips }}" as="c" hint-placeholder-count="1"><span style="{{ c.style }}">{{ c.text }}</span></sc-for>
+              <button style="{{ s.delBtn }}" style-hover="{{ s.delBtnHover }}" onClick="{{ it.delete }}" title="Удалить"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2M6 7l1 13a1 1 0 001 1h8a1 1 0 001-1l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            </div>
+
+            <div style="{{ s.gridHint }}"><span>⊞</span>Вставьте ряд из Excel в любую ячейку · Σ и среднее считаются автоматически</div>
+            <div style="{{ s.scrollWrap }}" class="fe-scroll"><div style="{{ s.gridInner }}">
+              <div style="display:flex;"><div style="{{ s.corner }}">Период&nbsp;→</div><sc-for list="{{ months }}" as="m" hint-placeholder-count="12"><div style="{{ s.monthCell }}">{{ m.label }}</div></sc-for></div>
+              <div style="display:flex;">
+                <div style="{{ s.rowLabel }}"><div style="{{ s.rowTitle }}">{{ it.sumLabel }}</div><div style="{{ s.sumChip }}">{{ it.sum }}</div><button style="{{ s.fillBtn }}" onClick="{{ it.fillAll }}">↘ заполнить все</button></div>
+                <sc-for list="{{ it.cells }}" as="c" hint-placeholder-count="12"><input style="{{ c.style }}" inputmode="decimal" data-fe-cell="{{ c.cellId }}" value="{{ c.value }}" onChange="{{ c.onChange }}" onFocus="{{ c.onFocus }}" onBlur="{{ c.onBlur }}"></sc-for>
+              </div>
+            </div></div>
+
+            <div style="{{ s.ctrlGrid }}">
+              <div style="display:flex;flex-direction:column;gap:7px;">
+                <label style="{{ s.fieldLabel }}">Тип статьи</label>
+                <div style="{{ s.selBox }}"><select style="{{ s.selectEl }}" value="{{ it.typeVal }}" onChange="{{ it.onType }}"><option value="materials">Материалы</option><option value="piece">Сдельная зарплата</option></select><span style="{{ s.selChev }}">▾</span></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:7px;">
+                <div style="{{ s.labelRow }}"><label style="{{ s.fieldLabel }}">Отсрочка оплаты</label><span style="{{ s.hintWrap }}"><span style="{{ s.hintBadge }}" title="{{ it.deferHint }}" onMouseEnter="{{ it.deferHoverOn }}" onMouseLeave="{{ it.hoverOff }}">?</span><sc-if value="{{ it.deferTip }}" hint-placeholder-val="{{ false }}"><span style="{{ s.tooltip }}">{{ it.deferHint }}</span></sc-if></span></div>
+                <div style="{{ it.deferBox }}"><input style="{{ s.termInput }}" inputmode="decimal" value="{{ it.defer }}" onChange="{{ it.onDefer }}" onFocus="{{ it.deferFocus }}" onBlur="{{ it.blur }}"><span style="{{ s.termSuffix }}">мес.</span></div>
+                <sc-if value="{{ it.deferErr }}" hint-placeholder-val=""><div style="{{ s.fieldErr }}">{{ it.deferErr }}</div></sc-if>
+                <sc-if value="{{ it.deferNote }}" hint-placeholder-val=""><div style="{{ s.fieldNote }}">{{ it.deferNote }}</div></sc-if>
+              </div>
+              <sc-if value="{{ it.showAdvance }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;flex-direction:column;gap:7px;">
+                <div style="{{ s.labelRow }}"><label style="{{ s.fieldLabel }}">Опережающая закупка</label><span style="{{ s.hintWrap }}"><span style="{{ s.hintBadge }}" title="{{ it.advHint }}" onMouseEnter="{{ it.advHoverOn }}" onMouseLeave="{{ it.hoverOff }}">?</span><sc-if value="{{ it.advTip }}" hint-placeholder-val="{{ false }}"><span style="{{ s.tooltip }}">{{ it.advHint }}</span></sc-if></span></div>
+                <div style="{{ it.advBox }}"><input style="{{ s.termInput }}" inputmode="decimal" value="{{ it.advance }}" onChange="{{ it.onAdvance }}" onFocus="{{ it.advFocus }}" onBlur="{{ it.blur }}"><span style="{{ s.termSuffix }}">мес.</span></div>
+                <div style="{{ s.fieldNote }}">→ Запас сырья</div>
+              </div>
+              </sc-if>
+            </div>
+
+            <sc-if value="{{ it.showCurrencyFlag }}" hint-placeholder-val="{{ true }}">
+            <label style="{{ it.flagRowCur }}" onClick="{{ it.toggleCurrency }}">
+              <span style="{{ it.switchCur }}"><span style="{{ it.knobCur }}"></span></span>
+              <span style="min-width:0;"><span style="{{ s.flagLabel }}">Валютный материал (по курсу закупки)</span><span style="{{ s.flagHelp }}">Сумма задаётся в валюте; пересчёт в ₽ по курсу на дату закупки.</span></span>
+            </label>
+            </sc-if>
+          </div>
+          </sc-for>
+          </div>
+          </sc-if>
+        </div>
+
+        <!-- ============ SECTION 2: ПОСТОЯННЫЕ ============ -->
+        <div style="{{ s.sectionWrap }}">
+          <div style="{{ s.sectionHead }}">
+            <div style="min-width:0;">
+              <div style="{{ s.sectionTitleRow }}"><span style="{{ s.sectionDotFixed }}"></span><span style="{{ s.sectionTitle }}">Постоянные издержки</span><sc-if value="{{ fixedCountChip }}" hint-placeholder-val=""><span style="{{ s.countChip }}">{{ fixedCountChip }}</span></sc-if></div>
+              <div style="{{ s.sectionDesc }}">Аренда, зарплата, реклама… — не зависят от объёма выпуска.</div>
+            </div>
+            <button style="{{ s.addBtn }}" style-hover="{{ s.addBtnHover }}" onClick="{{ addFixed }}">＋&nbsp;&nbsp;Статья</button>
+          </div>
+
+          <sc-if value="{{ fixedEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.empty }}">
+            <div style="{{ s.emptyIco }}"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="1.6"/><path d="M8 7h2M8 11h2M8 15h2M14 7h2M14 11h2M14 15h2" stroke-linecap="round"/></svg></div>
+            <div style="{{ s.emptyTitle }}">Нет постоянных издержек</div>
+            <div style="{{ s.emptySub }}">Аренда, зарплата, реклама… — не зависят от объёма выпуска.</div>
+            <button style="{{ s.emptyBtn }}" style-hover="{{ s.addBtnHover }}" onClick="{{ addFixed }}">＋&nbsp;&nbsp;Добавить статью</button>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ fixedHas }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:14px;">
+          <sc-for list="{{ fixedItems }}" as="it" hint-placeholder-count="2">
+          <div style="{{ it.card }}">
+            <sc-if value="{{ it.toast }}" hint-placeholder-val=""><div style="{{ it.toastStyle }}"><span>↧</span>{{ it.toast }}</div></sc-if>
+            <div style="{{ s.cardHead }}">
+              <div style="{{ it.idxStyle }}">{{ it.idx }}</div>
+              <div style="{{ s.nameField }}" style-hover="{{ s.nameFieldHover }}"><input style="{{ s.nameInput }}" value="{{ it.name }}" placeholder="Название статьи" onChange="{{ it.onName }}"></div>
+              <sc-for list="{{ it.chips }}" as="c" hint-placeholder-count="1"><span style="{{ c.style }}">{{ c.text }}</span></sc-for>
+              <button style="{{ s.delBtn }}" style-hover="{{ s.delBtnHover }}" onClick="{{ it.delete }}" title="Удалить"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2M6 7l1 13a1 1 0 001 1h8a1 1 0 001-1l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            </div>
+
+            <div style="{{ s.gridHint }}"><span>⊞</span>Вставьте ряд из Excel в любую ячейку · Σ и среднее считаются автоматически</div>
+            <div style="{{ s.scrollWrap }}" class="fe-scroll"><div style="{{ s.gridInner }}">
+              <div style="display:flex;"><div style="{{ s.corner }}">Период&nbsp;→</div><sc-for list="{{ months }}" as="m" hint-placeholder-count="12"><div style="{{ s.monthCell }}">{{ m.label }}</div></sc-for></div>
+              <div style="display:flex;">
+                <div style="{{ s.rowLabel }}"><div style="{{ s.rowTitle }}">{{ it.sumLabel }}</div><div style="{{ s.sumChip }}">{{ it.sum }}</div><button style="{{ s.fillBtn }}" onClick="{{ it.fillAll }}">↘ заполнить все</button></div>
+                <sc-for list="{{ it.cells }}" as="c" hint-placeholder-count="12"><input style="{{ c.style }}" inputmode="decimal" data-fe-cell="{{ c.cellId }}" value="{{ c.value }}" onChange="{{ c.onChange }}" onFocus="{{ c.onFocus }}" onBlur="{{ c.onBlur }}"></sc-for>
+              </div>
+            </div></div>
+
+            <div style="{{ s.ctrlGrid }}">
+              <div style="display:flex;flex-direction:column;gap:7px;">
+                <label style="{{ s.fieldLabel }}">Функция</label>
+                <div style="{{ s.selBox }}"><select style="{{ s.selectEl }}" value="{{ it.funcVal }}" onChange="{{ it.onFunc }}"><option value="admin">Административные</option><option value="prod">Производственные</option><option value="mkt">Маркетинговые</option><option value="wage_admin">Зарплата администрации</option><option value="wage_prod">Зарплата производства</option><option value="wage_mkt">Зарплата маркетинга</option></select><span style="{{ s.selChev }}">▾</span></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:7px;">
+                <div style="{{ s.labelRow }}"><label style="{{ s.fieldLabel }}">Отсрочка оплаты</label><span style="{{ s.hintWrap }}"><span style="{{ s.hintBadge }}" title="{{ it.deferHint }}" onMouseEnter="{{ it.deferHoverOn }}" onMouseLeave="{{ it.hoverOff }}">?</span><sc-if value="{{ it.deferTip }}" hint-placeholder-val="{{ false }}"><span style="{{ s.tooltip }}">{{ it.deferHint }}</span></sc-if></span></div>
+                <div style="{{ it.deferBox }}"><input style="{{ s.termInput }}" inputmode="decimal" value="{{ it.defer }}" onChange="{{ it.onDefer }}" onFocus="{{ it.deferFocus }}" onBlur="{{ it.blur }}"><span style="{{ s.termSuffix }}">мес.</span></div>
+                <sc-if value="{{ it.deferErr }}" hint-placeholder-val=""><div style="{{ s.fieldErr }}">{{ it.deferErr }}</div></sc-if>
+                <sc-if value="{{ it.deferNote }}" hint-placeholder-val=""><div style="{{ s.fieldNote }}">{{ it.deferNote }}</div></sc-if>
+              </div>
+            </div>
+
+            <div style="{{ s.flagsWrap }}">
+              <label style="{{ it.flagRowProfit }}" onClick="{{ it.toggleProfit }}">
+                <span style="{{ it.switchProfit }}"><span style="{{ it.knobProfit }}"></span></span>
+                <span style="min-width:0;"><span style="{{ s.flagLabel }}">Из прибыли (невычитаемая)</span><span style="{{ s.flagHelp }}">Не уменьшает налогооблагаемую прибыль — выплата из чистой прибыли.</span></span>
+              </label>
+              <label style="{{ it.flagRowCur }}" onClick="{{ it.toggleCurrency }}">
+                <span style="{{ it.switchCur }}"><span style="{{ it.knobCur }}"></span></span>
+                <span style="min-width:0;"><span style="{{ s.flagLabel }}">Валютная (услуга, по курсу FX)</span><span style="{{ s.flagHelp }}">Сумма задаётся в валюте; пересчёт в ₽ по курсу на дату оплаты.</span></span>
+              </label>
+            </div>
+          </div>
+          </sc-for>
+          </div>
+          </sc-if>
+        </div>
+
+        <div style="{{ s.bottomPad }}"></div>
+      </div>
+
+      <div style="{{ s.saveBar }}">
+        <div style="{{ s.saveStatus }}">
+          <sc-if value="{{ dirty }}" hint-placeholder-val="{{ false }}"><span style="{{ s.dirtyDot }}"></span><span style="{{ s.saveTextDirty }}">Несохранённые изменения</span></sc-if>
+          <sc-if value="{{ clean }}" hint-placeholder-val="{{ true }}"><span style="{{ s.savedCheck }}">✓</span><span style="{{ s.saveTextSaved }}">Все изменения сохранены</span></sc-if>
+        </div>
+        <button style="{{ s.saveBtn }}" style-hover="{{ s.saveBtnHover }}" onClick="{{ save }}" disabled="{{ clean }}">Сохранить</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  seedDirect(){
+    const mk=(base)=>Array.from({length:24},()=>String(base));
+    return [
+      {id:1,name:'Гранулят ПВД (сырьё)',type:'materials',currency:false,defer:'1',advance:'1',sum:mk(40000)},
+      {id:2,name:'Краситель (импорт)',type:'materials',currency:true,defer:'0',advance:'2',sum:mk(8000)},
+      {id:3,name:'Сдельная оплата упаковки',type:'piece',currency:false,defer:'0',advance:'0',sum:mk(25000)}
+    ];
+  }
+  seedFixed(){
+    const mk=(base)=>Array.from({length:24},()=>String(base));
+    return [
+      {id:11,name:'Аренда цеха и склада',func:'admin',fromProfit:false,currency:false,defer:'0',sum:mk(15000)},
+      {id:12,name:'Зарплата администрации',func:'wage_admin',fromProfit:false,currency:false,defer:'0',sum:mk(60000)},
+      {id:13,name:'Реклама и продвижение',func:'mkt',fromProfit:false,currency:false,defer:'1',sum:mk(20000)},
+      {id:14,name:'Премии из чистой прибыли',func:'wage_admin',fromProfit:true,currency:false,defer:'0',sum:mk(30000)}
+    ];
+  }
+  state = {
+    theme:'light', device:'desktop', N:12, demo:'filled',
+    direct:this.seedDirect(), fixed:this.seedFixed(),
+    dirty:false, focusKey:null, hoverHint:null, pasted:{}, toast:null, toastKey:null
+  };
+
+  componentDidMount(){
+    this._ph=(e)=>{ const el=(e.target&&e.target.closest&&e.target.closest('[data-fe-cell]'))||null; if(!el) return;
+      const cd=e.clipboardData||window.clipboardData; const txt=(cd&&cd.getData('text'))||''; const parts=txt.split(/[\t\n\r]+/).map(x=>x.trim()).filter(x=>x!==''); if(parts.length<2) return;
+      e.preventDefault(); const ps=el.getAttribute('data-fe-cell').split('|'); this.applyPaste(ps[0],+ps[1],+ps[2],parts); };
+    window.addEventListener('paste',this._ph,true);
+  }
+  componentWillUnmount(){clearTimeout(this._pt); if(this._ph) window.removeEventListener('paste',this._ph,true);}
+
+  THEME(){
+    const light={pageBg:'#F3F2F0',bg:'#FAFAF9',surface:'#FFFFFF',surface2:'#F5F5F4',cellBg:'#FFFFFF',border:'#E7E5E4',borderStrong:'#D6D3D1',gridLine:'#EFEDEB',text:'#1C1917',muted:'#57534E',subtle:'#A8A29E',primary:'#0E9C6E',primaryHover:'#0B8560',primaryText:'#FFFFFF',primaryBg:'#E2F4EC',primarySoft:'#EFF8F3',danger:'#C13A30',dangerBg:'#FBE9E7',dangerBorder:'#F2C8C2',warn:'#B86E00',warnBg:'#FAEFD9',warnBorder:'#F0DDB5',warnText:'#8A5300',infoBg:'#E5EEFC',infoBorder:'#CFE0FA',infoText:'#1F58BE',violet:'#7C5CFF',violetBg:'#F1ECFE',violetText:'#5B3FD6',ring:'rgba(14,156,110,.22)',shadow:'0 18px 48px -20px rgba(28,25,23,.28), 0 2px 6px rgba(28,25,23,.05)',menuShadow:'0 24px 56px -16px rgba(28,25,23,.34)',barBg:'#FFFFFF',segBg:'#F0EEEC',segActiveBg:'#FFFFFF',headerBg:'#FFFFFF',stickyBg:'#FFFFFF',brandMid:'#0C7250',brandTo:'#0E9C6E'};
+    const dark={pageBg:'#141210',bg:'#1A1816',surface:'#232020',surface2:'#2C2825',cellBg:'#1C1A18',border:'#39332F',borderStrong:'#4A433E',gridLine:'#332E2A',text:'#F6F4F2',muted:'#B7B0A9',subtle:'#7E756D',primary:'#12B07D',primaryHover:'#19C28B',primaryText:'#06241A',primaryBg:'rgba(18,176,125,.16)',primarySoft:'rgba(18,176,125,.10)',danger:'#F0796E',dangerBg:'rgba(210,69,59,.16)',dangerBorder:'rgba(240,121,110,.32)',warn:'#E0A23A',warnBg:'rgba(224,162,58,.16)',warnBorder:'rgba(224,162,58,.3)',warnText:'#E8C07A',infoBg:'rgba(45,111,237,.18)',infoBorder:'rgba(94,147,255,.3)',infoText:'#9CC0FF',violet:'#A78BFA',violetBg:'rgba(124,92,255,.18)',violetText:'#C4B0FF',ring:'rgba(25,194,139,.34)',shadow:'0 28px 64px -24px rgba(0,0,0,.72)',menuShadow:'0 28px 64px -20px rgba(0,0,0,.8)',barBg:'#1E1B19',segBg:'#16140F',segActiveBg:'#2C2825',headerBg:'#1E1B19',stickyBg:'#232020',brandMid:'#0A5A40',brandTo:'#0E7A57'};
+    return this.state.theme==='dark'?{...dark,pageBg:'#000000',bg:'#0C0F0C',surface:'#212525',surface2:'#2A312A',sk:'#2A312A',cellBg:'#161A16',border:'#485346',borderStrong:'#677D64',gridLine:'#232823',text:'#DDFFDC',muted:'#93A091',subtle:'#677D64',primary:'#7FEE64',primaryHover:'#95F47D',primaryText:'#000000',accent:'#7FEE64',primaryBg:'rgba(127,238,100,.15)',primarySoft:'rgba(127,238,100,.09)',good:'#7FEE64',goodBg:'rgba(127,238,100,.15)',goodBorder:'rgba(127,238,100,.32)',danger:'#F0796E',dangerHover:'#F4988F',dangerBg:'rgba(240,121,110,.15)',dangerBorder:'rgba(240,121,110,.32)',dangerText:'#F4B0A8',warn:'#E0A23A',warnBg:'rgba(224,162,58,.16)',warnBorder:'rgba(224,162,58,.32)',info:'#AED2A4',infoBg:'rgba(174,210,164,.15)',ring:'rgba(127,238,100,.4)',shadow:'0 30px 70px -34px rgba(0,0,0,.9)',menuShadow:'0 22px 52px -16px rgba(0,0,0,.82)',barBg:'#0C0F0C',barBorder:'#1D231D',segBg:'#0B0E0B',segActiveBg:'#2A312A',headerBg:'#0C0F0C',stickyBg:'#212525',brandMid:'#3E4A3C',brandTo:'#7FEE64',violet:'#C8F9B6',violetBg:'rgba(200,249,182,.14)',subtotalBg:'#1C201C',grandBg:'rgba(127,238,100,.12)',hov:'#262C25',hovlab:'#2C322B',ico1:'#7FEE64',ico1Bg:'rgba(127,238,100,.15)',ico2:'#AED2A4',ico2Bg:'rgba(174,210,164,.15)',ico3:'#C8F9B6',ico3Bg:'rgba(200,249,182,.14)',ico4:'#E0A23A',ico4Bg:'rgba(224,162,58,.16)',inputBg:'#161A16',success:'#7FEE64',successBg:'rgba(127,238,100,.16)'}:{...light,pageBg:'#E4F1E0',bg:'#F4FAF2',surface:'#FFFFFF',surface2:'#EDF5EA',sk:'#E3EEDF',cellBg:'#FFFFFF',border:'#D2E4CD',borderStrong:'#B4CCAE',gridLine:'#E8F1E5',text:'#16201A',muted:'#46584A',subtle:'#6E8270',primary:'#7FEE64',primaryHover:'#6FE253',primaryText:'#06210E',accent:'#138A45',primaryBg:'#DBF3D2',primarySoft:'#EAF8E4',good:'#0E7A4F',goodBg:'#DBF1E2',goodBorder:'#B7DEC6',danger:'#C0473B',dangerHover:'#A53A30',dangerBg:'#FAE7E4',dangerBorder:'#EECFCA',dangerText:'#8F2F26',warn:'#B07A12',warnBg:'#FBF0D8',warnBorder:'#ECDDB4',info:'#3E7D52',infoBg:'#E6EFE2',ring:'rgba(56,194,75,.3)',shadow:'0 18px 44px -22px rgba(20,40,24,.22), 0 2px 6px rgba(20,40,24,.05)',menuShadow:'0 24px 56px -16px rgba(20,40,24,.28)',barBg:'#FFFFFF',barBorder:'#D2E4CD',segBg:'#E7F0E3',segActiveBg:'#FFFFFF',headerBg:'#FFFFFF',stickyBg:'#FFFFFF',brandMid:'#138A45',brandTo:'#7FEE64',violet:'#3E7D52',violetBg:'#E6EFE2',subtotalBg:'#EDF3EA',grandBg:'#DBF1E2',hov:'#F1F7EE',hovlab:'#EAF2E6',ico1:'#138A45',ico1Bg:'#DBF3D2',ico2:'#3E7D52',ico2Bg:'#E6EFE2',ico3:'#5FA86A',ico3Bg:'#E3F0DE',ico4:'#B07A12',ico4Bg:'#FBF0D8',inputBg:'#FFFFFF',success:'#0E7A4F',successBg:'#DBF1E2'};
+  }
+  DIM(){const dv=this.state.device,m=dv==='mobile',tab=dv==='tablet'; return {frame:m?402:tab?864:1180, radius:m?30:tab?18:14, pad:m?16:tab?22:30, lbl:m?116:178, cw:m?70:88, mobile:m};}
+
+  num(x){ if(x==null||x==='')return 0; return parseFloat(String(x).replace(/\s/g,'').replace(',','.'))||0; }
+  fmtInt(n){ n=Math.round(n); const neg=n<0; n=Math.abs(n); let s=String(n).replace(/\B(?=(\d{3})+(?!\d))/g,'\u00A0'); return (neg?'−':'')+s; }
+  fmtMoney(n){ const a=Math.abs(n); if(a>=1e6) return (n/1e6).toFixed(2).replace('.',',')+'\u00A0млн'; return this.fmtInt(n); }
+  norm(x){ x=String(x).trim().replace(/[^0-9.,\-]/g,''); const lc=x.lastIndexOf(','), ld=x.lastIndexOf('.'); if(ld>lc){ x=x.replace(/,/g,'').replace('.',','); } return x; }
+  plural(n,a,b,c){n=Math.abs(+n)%100;const n1=n%10;if(n>10&&n<20)return c;if(n1>1&&n1<5)return b;if(n1===1)return a;return c;}
+
+  setCell(sec,idx,ci){ return (e)=>{ const val=e.target.value; this.setState(s=>({dirty:true,[sec]:s[sec].map((p,i)=>i!==idx?p:({...p,sum:p.sum.map((c,k)=>k===ci?val:c)}))})); }; }
+  fillAll(sec,idx){ return ()=>{ this.setState(s=>({dirty:true,[sec]:s[sec].map((p,i)=>{ if(i!==idx)return p; const first=p.sum[0]||''; return {...p,sum:p.sum.map((c,k)=>k<s.N?first:c)}; })})); }; }
+  applyPaste(sec,idx,ci,parts){ this.setState(s=>{ const pasted={...s.pasted}; const list=s[sec].map((p,i)=>{ if(i!==idx)return p; const arr=p.sum.slice(); for(let k=0;k<parts.length;k++){ const tgt=ci+k; if(tgt<s.N){ arr[tgt]=this.norm(parts[k]); pasted[sec+'-'+idx+'-'+tgt]=1; } } return {...p,sum:arr}; }); const filled=Math.min(parts.length,s.N-ci); return {dirty:true,[sec]:list,pasted,toast:'Вставлено из Excel: '+filled+' '+this.plural(filled,'значение','значения','значений'),toastKey:sec+'-'+idx}; });
+    clearTimeout(this._pt); this._pt=setTimeout(()=>this.setState({pasted:{},toast:null,toastKey:null}),2600); }
+
+  setField(sec,idx,key){ return (e)=>{ const val=e.target.value; this.setState(s=>({dirty:true,[sec]:s[sec].map((p,i)=>i!==idx?p:({...p,[key]:val}))})); }; }
+  toggleFlag(sec,idx,key){ return ()=>{ this.setState(s=>({dirty:true,[sec]:s[sec].map((p,i)=>i!==idx?p:({...p,[key]:!p[key]}))})); }; }
+  delItem(sec,idx){ return ()=>{ this.setState(s=>({dirty:true,[sec]:s[sec].filter((_,i)=>i!==idx)})); }; }
+  addDirect=()=>{ this.setState(s=>({dirty:true,direct:[...s.direct,{id:Date.now(),name:'',type:'materials',currency:false,defer:'0',advance:'0',sum:Array(24).fill('')}]})); };
+  addFixed=()=>{ this.setState(s=>({dirty:true,fixed:[...s.fixed,{id:Date.now(),name:'',func:'admin',fromProfit:false,currency:false,defer:'0',sum:Array(24).fill('')}]})); };
+
+  renderVals(){
+    const st=this.state, t=this.THEME(), d=this.DIM(), N=st.N;
+    const seg=(a)=>`appearance:none;border:none;cursor:pointer;font:600 11.5px Inter,sans-serif;padding:6px 10px;border-radius:7px;white-space:nowrap;color:${a?t.text:t.subtle};background:${a?t.segActiveBg:'transparent'};box-shadow:${a?'0 1px 2px rgba(0,0,0,.14)':'none'};transition:.14s;`;
+    const segWrap=`display:flex;gap:3px;padding:3px;background:${t.segBg};border-radius:9px;`;
+    const mode=(a)=>`appearance:none;border:none;cursor:pointer;font:600 12.5px Inter,sans-serif;padding:7px 13px;border-radius:8px;white-space:nowrap;color:${a?t.primaryText:t.muted};background:${a?t.primary:'transparent'};box-shadow:${a?'0 1px 2px rgba(0,0,0,.14)':'none'};`;
+    const cw=d.cw, lbl=d.lbl;
+    const months=Array.from({length:N},(_,i)=>({label:'М'+(i+1)}));
+    const direct=st.demo==='empty'?[]:st.direct, fixed=st.demo==='empty'?[]:st.fixed;
+
+    const cellBase=(focused,pasted)=>`width:${cw}px;flex:none;height:36px;border:none;border-right:1px solid ${t.gridLine};border-bottom:1px solid ${t.gridLine};background:${pasted?t.primaryBg:t.cellBg};color:${t.text};font:500 12.5px 'JetBrains Mono',monospace;text-align:right;padding:0 9px;outline:none;${focused?'box-shadow:inset 0 0 0 2px '+t.primary+';position:relative;z-index:1;':''}transition:background .4s;`;
+
+    const chip=(text,kind)=>{ const map={type:[t.muted,t.surface2,t.border],mat:[t.primary,t.primaryBg,'transparent'],cur:[t.infoText,t.infoBg,t.infoBorder],profit:[t.warnText,t.warnBg,t.warnBorder],func:[t.violetText,t.violetBg,'transparent']}; const c=map[kind]||map.type; return {text,style:`font:600 10.5px Inter,sans-serif;color:${c[0]};background:${c[1]};border:1px solid ${c[2]};padding:3px 8px;border-radius:6px;white-space:nowrap;flex:none;`}; };
+
+    const buildCells=(sec,idx,item)=>Array.from({length:N},(_,ci)=>{ const k=sec+'-'+idx+'-'+ci; const focused=st.focusKey===k; const pasted=!!st.pasted[k];
+      return {cellId:sec+'|'+idx+'|'+ci, value:item.sum[ci], style:cellBase(focused,pasted)+(ci===N-1?'border-right:none;':''), onChange:this.setCell(sec,idx,ci), onFocus:()=>this.setState({focusKey:k}), onBlur:()=>this.setState({focusKey:null})}; });
+
+    const termBox=(key,sec,idx,err)=>{ const fk='term-'+sec+'-'+idx+'-'+key; const focused=st.focusKey===fk; return `display:flex;align-items:center;height:40px;border-radius:8px;background:${t.surface};border:1.5px solid ${err?t.danger:(focused?t.primary:t.border)};box-shadow:${focused?'0 0 0 3px '+t.ring:'none'};overflow:hidden;transition:.14s;`; };
+    const switchStyle=(on)=>`flex:none;width:38px;height:22px;border-radius:11px;background:${on?t.primary:t.borderStrong};position:relative;transition:.16s;margin-top:1px;`;
+    const knobStyle=(on)=>`position:absolute;top:2px;left:${on?'18px':'2px'};width:18px;height:18px;border-radius:50%;background:#fff;transition:.16s;box-shadow:0 1px 2px rgba(0,0,0,.3);`;
+    const flagRow=(on)=>`display:flex;align-items:flex-start;gap:11px;padding:11px 13px;border-radius:11px;border:1px solid ${on?t.primary:t.border};background:${on?t.primarySoft:t.surface2};cursor:pointer;transition:.14s;flex:1;min-width:240px;`;
+
+    const buildDirect=(item,idx)=>{
+      const isMat=item.type==='materials';
+      const sum=item.sum.slice(0,N).reduce((a,c)=>a+this.num(c),0);
+      const avg=sum/Math.max(N,1);
+      const deferErr = this.num(item.defer)<0 ? 'Не может быть отрицательным' : '';
+      const chips=[]; chips.push(chip(isMat?'Материалы':'Сдельная ЗП', isMat?'mat':'type')); if(item.currency) chips.push(chip('Валютный','cur'));
+      return {idx:String(idx+1), name:item.name, chips,
+        idxStyle:`flex:none;width:26px;height:26px;border-radius:8px;background:${t.primaryBg};color:${t.primary};font:700 12px 'JetBrains Mono',monospace;display:flex;align-items:center;justify-content:center;`,
+        card:`position:relative;background:${t.surface};border:1px solid ${t.border};border-radius:16px;padding:${d.mobile?14:20}px;animation:fe-fade .25s ease;`,
+        toast:st.toastKey===('direct-'+idx)?st.toast:'', toastStyle:`position:absolute;top:14px;right:14px;z-index:5;display:flex;align-items:center;gap:6px;padding:6px 11px;border-radius:8px;background:${t.primary};color:${t.primaryText};font:600 11.5px Inter,sans-serif;box-shadow:${t.menuShadow};animation:fe-toast 2.6s ease forwards;`,
+        sumLabel:item.currency?'Сумма, вал.':'Сумма, ₽', sum:'Σ '+this.fmtMoney(sum)+(item.currency?' вал.':' ₽'),
+        cells:buildCells('direct',idx,item), fillAll:this.fillAll('direct',idx),
+        onName:this.setField('direct',idx,'name'), delete:this.delItem('direct',idx),
+        typeVal:item.type, onType:this.setField('direct',idx,'type'),
+        defer:item.defer, onDefer:this.setField('direct',idx,'defer'), deferBox:termBox('defer','direct',idx,!!deferErr), deferErr, deferNote:'→ Кредиторская задолженность',
+        deferHint:'Задержка оплаты поставщику после поставки → формирует кредиторскую задолженность',
+        deferFocus:()=>this.setState({focusKey:'term-direct-'+idx+'-defer'}), blur:()=>this.setState({focusKey:null}),
+        deferHoverOn:()=>this.setState({hoverHint:'d-defer-'+idx}), advHoverOn:()=>this.setState({hoverHint:'d-adv-'+idx}), hoverOff:()=>this.setState({hoverHint:null}),
+        deferTip:st.hoverHint==='d-defer-'+idx, advTip:st.hoverHint==='d-adv-'+idx,
+        showAdvance:isMat, advance:item.advance, onAdvance:this.setField('direct',idx,'advance'), advBox:termBox('advance','direct',idx,false),
+        advHint:'За сколько месяцев заранее закупается материал → формирует запас сырья',
+        advFocus:()=>this.setState({focusKey:'term-direct-'+idx+'-advance'}),
+        showCurrencyFlag:true, toggleCurrency:this.toggleFlag('direct',idx,'currency'),
+        flagRowCur:flagRow(item.currency), switchCur:switchStyle(item.currency), knobCur:knobStyle(item.currency)
+      };
+    };
+
+    const funcLabels={admin:'Административные',prod:'Производственные',mkt:'Маркетинговые',wage_admin:'Зарплата администрации',wage_prod:'Зарплата производства',wage_mkt:'Зарплата маркетинга'};
+    const buildFixed=(item,idx)=>{
+      const sum=item.sum.slice(0,N).reduce((a,c)=>a+this.num(c),0);
+      const deferErr = this.num(item.defer)<0 ? 'Не может быть отрицательным' : '';
+      const chips=[chip(funcLabels[item.func],'func')]; if(item.fromProfit) chips.push(chip('Из прибыли','profit')); if(item.currency) chips.push(chip('Валютная','cur'));
+      return {idx:String(idx+1), name:item.name, chips,
+        idxStyle:`flex:none;width:26px;height:26px;border-radius:8px;background:${t.violetBg};color:${t.violetText};font:700 12px 'JetBrains Mono',monospace;display:flex;align-items:center;justify-content:center;`,
+        card:`position:relative;background:${t.surface};border:1px solid ${t.border};border-radius:16px;padding:${d.mobile?14:20}px;animation:fe-fade .25s ease;`,
+        toast:st.toastKey===('fixed-'+idx)?st.toast:'', toastStyle:`position:absolute;top:14px;right:14px;z-index:5;display:flex;align-items:center;gap:6px;padding:6px 11px;border-radius:8px;background:${t.primary};color:${t.primaryText};font:600 11.5px Inter,sans-serif;box-shadow:${t.menuShadow};animation:fe-toast 2.6s ease forwards;`,
+        sumLabel:item.currency?'Сумма, вал.':'Сумма, ₽', sum:'Σ '+this.fmtMoney(sum)+(item.currency?' вал.':' ₽'),
+        cells:buildCells('fixed',idx,item), fillAll:this.fillAll('fixed',idx),
+        onName:this.setField('fixed',idx,'name'), delete:this.delItem('fixed',idx),
+        funcVal:item.func, onFunc:this.setField('fixed',idx,'func'),
+        defer:item.defer, onDefer:this.setField('fixed',idx,'defer'), deferBox:termBox('defer','fixed',idx,!!deferErr), deferErr, deferNote:'→ Кредиторская задолженность',
+        deferHint:'Задержка оплаты после начисления → формирует кредиторскую задолженность',
+        deferFocus:()=>this.setState({focusKey:'term-fixed-'+idx+'-defer'}), blur:()=>this.setState({focusKey:null}),
+        deferHoverOn:()=>this.setState({hoverHint:'f-defer-'+idx}), hoverOff:()=>this.setState({hoverHint:null}), deferTip:st.hoverHint==='f-defer-'+idx,
+        toggleProfit:this.toggleFlag('fixed',idx,'fromProfit'), flagRowProfit:flagRow(item.fromProfit), switchProfit:switchStyle(item.fromProfit), knobProfit:knobStyle(item.fromProfit),
+        toggleCurrency:this.toggleFlag('fixed',idx,'currency'), flagRowCur:flagRow(item.currency), switchCur:switchStyle(item.currency), knobCur:knobStyle(item.currency)
+      };
+    };
+
+    const tabDefs=[['Проект',''],['Сбыт','2'],['Издержки',String((direct.length+fixed.length)||'')],['Инвестиции','1'],['Финансирование','1'],['Валюта и старт',''],['Факт.','']];
+    const tabs=tabDefs.map(([label,badge])=>{ const active=label==='Издержки';
+      return {label,badge,
+        style:`appearance:none;border:none;background:none;cursor:pointer;display:inline-flex;align-items:center;gap:7px;font:600 13.5px Inter,sans-serif;color:${active?t.text:t.muted};padding:0 3px;height:46px;border-bottom:2px solid ${active?t.primary:'transparent'};white-space:nowrap;`,
+        badgeStyle:`font:600 10.5px 'JetBrains Mono',monospace;color:${active?t.primary:t.subtle};background:${active?t.primaryBg:t.surface2};padding:1px 6px;border-radius:20px;min-width:18px;text-align:center;`};
+    });
+
+    const s={
+      page:`min-height:100vh;background:${t.pageBg};color:${t.text};display:flex;flex-direction:column;transition:background .25s;`,
+      bar:`display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:13px 20px;background:${t.barBg};border-bottom:1px solid ${t.border};position:sticky;top:0;z-index:60;`,
+      barDot:`width:26px;height:26px;border-radius:7px;flex:none;background:linear-gradient(150deg,${t.brandMid},${t.brandTo});`,
+      barTitle:`font:700 13px Inter,sans-serif;letter-spacing:-.01em;color:${t.text};white-space:nowrap;`,
+      barSub:`font:500 11px Inter,sans-serif;color:${t.subtle};white-space:nowrap;`,
+      barLabel:`font:600 9.5px Inter,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:${t.subtle};`,
+      seg:segWrap,
+      segFilled:seg(st.demo==='filled'),segEmpty:seg(st.demo==='empty'),
+      segN12:seg(N===12),segN24:seg(N===24),
+      segErrOff:seg(st.direct[0]&&this.num(st.direct[0].defer)>=0),segErrOn:seg(st.direct[0]&&this.num(st.direct[0].defer)<0),
+      segLight:seg(st.theme==='light'),segDark:seg(st.theme==='dark'),
+      segDesktop:seg(st.device==='desktop'),segTablet:seg(st.device==='tablet'),segMobile:seg(st.device==='mobile'),
+
+      stage:`flex:1;display:flex;justify-content:center;align-items:flex-start;padding:${d.mobile?'22px 12px':'34px 24px'};`,
+      frame:`position:relative;width:100%;max-width:${d.frame}px;background:${t.bg};border:1px solid ${t.border};border-radius:${d.radius}px;box-shadow:${t.shadow};overflow:hidden;display:flex;flex-direction:column;`,
+
+      subheader:`display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:13px ${d.pad}px;background:${t.headerBg};border-bottom:1px solid ${t.border};`,
+      backBtn:`appearance:none;cursor:pointer;width:34px;height:34px;border-radius:8px;border:1px solid ${t.border};background:${t.surface};color:${t.muted};font:600 14px Inter;flex:none;`,
+      projName:`font:700 ${d.mobile?16:19}px Inter,sans-serif;letter-spacing:-.02em;color:${t.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;`,
+      savedChip:`font:600 11px Inter,sans-serif;color:${t.subtle};background:${t.surface2};border:1px solid ${t.border};padding:3px 8px;border-radius:9999px;white-space:nowrap;flex:none;${d.mobile?'display:none;':''}`,
+      subActions:`display:flex;align-items:center;gap:10px;flex-wrap:wrap;${d.mobile?'width:100%;':''}`,
+      modeSeg:`display:flex;gap:3px;padding:3px;background:${t.segBg};border-radius:10px;${d.mobile?'flex:1;':''}`,
+      modeEditor:mode(true),modeOther:mode(false),
+      calcBtn:`appearance:none;border:none;cursor:pointer;height:40px;padding:0 16px;border-radius:10px;background:${t.primary};color:${t.primaryText};font:600 13px Inter,sans-serif;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.12);transition:.14s;`,
+      calcBtnHover:`background:${t.primaryHover};`,
+
+      tabBarWrap:`background:${t.headerBg};border-bottom:1px solid ${t.border};padding:0 ${d.pad}px;`,
+      tabBar:`display:flex;align-items:center;gap:${d.mobile?14:22}px;overflow-x:auto;`,
+
+      content:`flex:1;padding:${d.pad}px;display:flex;flex-direction:column;gap:30px;`,
+      sectionWrap:``,
+      sectionHead:`display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:16px;`,
+      sectionTitleRow:`display:flex;align-items:center;gap:9px;`,
+      sectionDotDirect:`width:9px;height:9px;border-radius:3px;background:${t.primary};`,
+      sectionDotFixed:`width:9px;height:9px;border-radius:3px;background:${t.violet};`,
+      sectionTitle:`font:700 ${d.mobile?17:19}px Inter,sans-serif;letter-spacing:-.02em;color:${t.text};`,
+      countChip:`font:600 11px 'JetBrains Mono',monospace;color:${t.muted};background:${t.surface2};border:1px solid ${t.border};padding:2px 8px;border-radius:20px;`,
+      sectionDesc:`font:400 13px Inter,sans-serif;color:${t.muted};margin-top:4px;`,
+      addBtn:`appearance:none;border:none;cursor:pointer;height:38px;padding:0 15px;border-radius:10px;background:${t.primary};color:${t.primaryText};font:600 13px Inter,sans-serif;white-space:nowrap;flex:none;box-shadow:0 1px 2px rgba(0,0,0,.12);transition:.14s;`,
+      addBtnHover:`background:${t.primaryHover};`,
+
+      empty:`text-align:center;padding:40px 24px;background:${t.surface};border:1px dashed ${t.borderStrong};border-radius:16px;display:flex;flex-direction:column;align-items:center;`,
+      emptyIco:`width:52px;height:52px;border-radius:14px;background:${t.surface2};color:${t.subtle};display:flex;align-items:center;justify-content:center;margin-bottom:14px;`,
+      emptyTitle:`font:700 17px Inter,sans-serif;color:${t.text};`,
+      emptySub:`font:400 13.5px/1.5 Inter,sans-serif;color:${t.muted};max-width:400px;margin:7px auto 18px;`,
+      emptyBtn:`appearance:none;border:none;cursor:pointer;height:42px;padding:0 20px;border-radius:11px;background:${t.primary};color:${t.primaryText};font:600 13.5px Inter,sans-serif;box-shadow:0 1px 2px rgba(0,0,0,.12);transition:.14s;`,
+
+      cardHead:`display:flex;align-items:center;gap:10px;margin-bottom:15px;flex-wrap:wrap;`,
+      nameField:`flex:1;min-width:140px;border-radius:9px;border:1px solid transparent;transition:.14s;`,
+      nameFieldHover:`border-color:${t.border};background:${t.surface2};`,
+      nameInput:`width:100%;height:36px;border:none;outline:none;background:transparent;color:${t.text};font:700 15.5px Inter,sans-serif;letter-spacing:-.01em;padding:0 10px;`,
+      delBtn:`appearance:none;cursor:pointer;width:34px;height:34px;border-radius:9px;border:1px solid ${t.border};background:${t.surface};color:${t.danger};flex:none;display:flex;align-items:center;justify-content:center;transition:.14s;`,
+      delBtnHover:`background:${t.dangerBg};border-color:${t.dangerBorder};`,
+
+      gridHint:`display:flex;align-items:center;gap:7px;font:500 11px Inter,sans-serif;color:${t.subtle};margin-bottom:8px;`,
+      scrollWrap:`border:1px solid ${t.border};border-radius:16px;overflow-x:auto;overflow-y:hidden;background:${t.cellBg};`,
+      gridInner:`width:max-content;min-width:100%;`,
+      corner:`width:${lbl}px;flex:none;position:sticky;left:0;z-index:4;background:${t.stickyBg};border-right:1px solid ${t.border};border-bottom:1px solid ${t.border};padding:8px 12px;font:600 10.5px Inter,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:${t.subtle};display:flex;align-items:center;`,
+      monthCell:`width:${cw}px;flex:none;height:35px;display:flex;align-items:center;justify-content:flex-end;border-right:1px solid ${t.gridLine};border-bottom:1px solid ${t.border};padding:0 9px;font:600 11px 'JetBrains Mono',monospace;color:${t.subtle};background:${t.surface2};`,
+      rowLabel:`width:${lbl}px;flex:none;position:sticky;left:0;z-index:3;background:${t.stickyBg};border-right:1px solid ${t.border};border-bottom:1px solid ${t.gridLine};padding:7px 12px;display:flex;flex-direction:column;gap:4px;justify-content:center;`,
+      rowTitle:`font:600 12px Inter,sans-serif;color:${t.text};`,
+      sumChip:`font:600 11.5px 'JetBrains Mono',monospace;color:${t.primary};`,
+      fillBtn:`appearance:none;border:none;background:none;cursor:pointer;padding:0;font:600 10.5px Inter,sans-serif;color:${t.subtle};text-align:left;`,
+
+      ctrlGrid:`display:grid;grid-template-columns:repeat(${d.mobile?1:3},1fr);gap:14px 16px;margin-top:16px;`,
+      fieldLabel:`font:600 12.5px Inter,sans-serif;color:${t.muted};`,
+      labelRow:`display:flex;align-items:center;gap:6px;`,
+      hintWrap:`position:relative;display:inline-flex;`,
+      hintBadge:`width:15px;height:15px;border-radius:50%;border:1px solid ${t.borderStrong};color:${t.subtle};font:700 9.5px Geist;display:flex;align-items:center;justify-content:center;cursor:help;`,
+      tooltip:`position:absolute;bottom:22px;left:50%;transform:translateX(-50%);width:210px;padding:8px 10px;border-radius:8px;background:${t.text};color:${t.bg};font:500 11.5px/1.4 Inter,sans-serif;box-shadow:${t.menuShadow};z-index:40;text-align:left;`,
+      selBox:`position:relative;display:flex;align-items:center;height:40px;border-radius:8px;background:${t.surface};border:1.5px solid ${t.border};overflow:hidden;`,
+      selectEl:`flex:1;min-width:0;height:100%;border:none;outline:none;background:transparent;color:${t.text};font:500 13.5px Inter,sans-serif;padding:0 32px 0 12px;cursor:pointer;`,
+      selChev:`position:absolute;right:12px;top:50%;transform:translateY(-50%);color:${t.subtle};font-size:11px;pointer-events:none;`,
+      termInput:`flex:1;min-width:0;height:100%;border:none;outline:none;background:transparent;color:${t.text};font:500 13.5px 'JetBrains Mono',monospace;text-align:right;padding:0 10px;`,
+      termSuffix:`flex:none;padding:0 11px;height:100%;display:flex;align-items:center;font:500 12px Inter,sans-serif;color:${t.subtle};border-left:1px solid ${t.border};background:${t.surface2};white-space:nowrap;`,
+      fieldErr:`font:500 11.5px Inter,sans-serif;color:${t.danger};`,
+      fieldNote:`font:500 11px Inter,sans-serif;color:${t.subtle};`,
+
+      flagsWrap:`display:flex;gap:12px;flex-wrap:wrap;margin-top:14px;`,
+      flagLabel:`display:block;font:600 12.5px Inter,sans-serif;color:${t.text};`,
+      flagHelp:`display:block;font:400 11.5px/1.4 Inter,sans-serif;color:${t.subtle};margin-top:2px;`,
+
+      bottomPad:`height:4px;`,
+      saveBar:`position:sticky;bottom:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px ${d.pad}px;background:${t.headerBg};border-top:1px solid ${t.border};box-shadow:0 -8px 24px -16px rgba(0,0,0,.28);`,
+      saveStatus:`display:flex;align-items:center;gap:9px;`,
+      dirtyDot:`width:8px;height:8px;border-radius:50%;background:${t.warn};flex:none;`,
+      saveTextDirty:`font:600 13px Inter,sans-serif;color:${t.warn};`,
+      savedCheck:`flex:none;width:18px;height:18px;border-radius:50%;background:${t.primaryBg};color:${t.primary};font:700 11px Geist;display:flex;align-items:center;justify-content:center;`,
+      saveTextSaved:`font:500 13px Inter,sans-serif;color:${t.subtle};`,
+      saveBtn:`appearance:none;border:none;cursor:${st.dirty?'pointer':'default'};height:38px;padding:0 20px;border-radius:9px;background:${st.dirty?t.primary:t.surface2};color:${st.dirty?t.primaryText:t.subtle};font:600 13.5px Inter,sans-serif;box-shadow:${st.dirty?'0 1px 2px rgba(0,0,0,.12)':'none'};transition:.14s;`,
+      saveBtnHover:`background:${st.dirty?t.primaryHover:t.surface2};`
+    };
+
+    return {s,t,months,tabs,
+      directItems:direct.map(buildDirect), fixedItems:fixed.map(buildFixed),
+      directEmpty:direct.length===0, directHas:direct.length>0, fixedEmpty:fixed.length===0, fixedHas:fixed.length>0,
+      directCountChip:direct.length?String(direct.length):'', fixedCountChip:fixed.length?String(fixed.length):'',
+      dirty:st.dirty, clean:!st.dirty,
+      addDirect:this.addDirect, addFixed:this.addFixed, save:()=>this.setState({dirty:false}),
+      setFilled:()=>this.setState({demo:'filled'}), setEmpty:()=>this.setState({demo:'empty'}),
+      setN12:()=>this.setState({N:12}), setN24:()=>this.setState({N:24}),
+      errOn:()=>this.setState(s=>({dirty:true,direct:s.direct.map((p,i)=>i===0?{...p,defer:'-1'}:p)})),
+      errOff:()=>this.setState(s=>({dirty:true,direct:s.direct.map((p,i)=>i===0?{...p,defer:'1'}:p)})),
+      setLight:()=>this.setState({theme:'light'}), setDark:()=>this.setState({theme:'dark'}),
+      setDesktop:()=>this.setState({device:'desktop'}), setTablet:()=>this.setState({device:'tablet'}), setMobile:()=>this.setState({device:'mobile'})
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -11,7 +11,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from . import crud
-from .database import get_db
+from .database import get_db, set_tenant
 from .db_models import User
 from .rbac import Perm, has_permission
 from .security import decode_token
@@ -46,8 +46,11 @@ def current_org_id(
     if x_organization_id is not None:
         if x_organization_id not in org_ids:
             raise HTTPException(status_code=403, detail="Нет доступа к организации")
-        return x_organization_id
-    return memberships[0].organization_id
+        org_id = x_organization_id
+    else:
+        org_id = memberships[0].organization_id
+    set_tenant(db, org_id)  # RLS: изоляция арендатора на уровне БД (PostgreSQL)
+    return org_id
 
 
 def require_membership(

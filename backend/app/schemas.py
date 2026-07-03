@@ -8,7 +8,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from calc_core import ProjectModel
 from calc_core.reports.result import CalcResult
@@ -31,6 +31,8 @@ class MetricsOut(BaseModel):
     pi: Optional[Decimal] = None
     pb_months: Optional[int] = None
     dpb_months: Optional[int] = None
+    pv_investments: Optional[Decimal] = None
+    peak_financing_need: Optional[Decimal] = None
 
 
 class RatiosOut(BaseModel):
@@ -46,6 +48,14 @@ class BreakEvenOut(BaseModel):
     margin_of_safety: list[Optional[Decimal]]
 
 
+class ValuationOut(BaseModel):
+    net_assets: Decimal
+    gordon_value: Optional[Decimal] = None
+    dividend_value: Optional[Decimal] = None
+    earnings_multiple_value: Optional[Decimal] = None
+    liquidation_value: Optional[Decimal] = None
+
+
 class CalcResponse(BaseModel):
     engine_version: str
     n: int
@@ -56,6 +66,7 @@ class CalcResponse(BaseModel):
     metrics: MetricsOut
     ratios: RatiosOut
     break_even: BreakEvenOut
+    valuation: ValuationOut
     actualized_cashflow: Optional[StatementOut] = None
     cashflow_variance: Optional[StatementOut] = None
     warnings: list[str]
@@ -73,11 +84,24 @@ class ProjectUpdate(BaseModel):
     model: Optional[ProjectModel] = None
 
 
+class LastCalcOut(BaseModel):
+    """Сводка последнего успешного расчёта (B1)."""
+
+    npv: Decimal
+    irr_annual: Optional[Decimal] = None
+    pb_months: Optional[int] = None
+    engine_version: str
+    calculated_at: datetime
+
+
 class ProjectSummary(BaseModel):
     id: str
     name: str
     created_at: datetime
     updated_at: datetime
+    last_calc: Optional[LastCalcOut] = None
+    # Модель менялась после последнего расчёта (или расчёта не было) → «Черновик».
+    is_stale: bool = True
 
 
 class ProjectOut(ProjectSummary):
@@ -107,6 +131,10 @@ class MemberCreate(BaseModel):
     email: str
     full_name: str = ""
     role: str = "viewer"
+
+
+class MemberPatch(BaseModel):
+    role: str
 
 
 class MemberOut(BaseModel):
@@ -218,16 +246,57 @@ class MonteCarloRequest(BaseModel):
     uncertain: list[UncertainParamIn] = []
 
 
+class HistogramBinOut(BaseModel):
+    """Столбец гистограммы NPV (B5); ``from_`` сериализуется как ``from``."""
+
+    from_: Decimal = Field(serialization_alias="from")
+    to: Decimal
+    count: int
+
+    model_config = {"populate_by_name": True}
+
+
 class MonteCarloResponse(BaseModel):
     iterations: int
     npv_mean: Decimal
     npv_std: Decimal
+    npv_sem: Decimal           # стандартная ошибка среднего = σ/√N
     npv_min: Decimal
     npv_max: Decimal
+    npv_p5: Decimal            # VaR 95% (5-й перцентиль)
     npv_p10: Decimal
     npv_p50: Decimal
     npv_p90: Decimal
+    npv_p95: Decimal
+    npv_cvar_5: Decimal        # CVaR/ES 95% (среднее худших 5%)
     probability_npv_positive: Decimal
+    histogram: list[HistogramBinOut] = []
+
+
+def monte_carlo_response(res) -> "MonteCarloResponse":
+    """Собрать ответ Монте-Карло из результата ядра (общий код для sync и фоновой задачи)."""
+    return MonteCarloResponse(
+        iterations=res.iterations, npv_mean=res.npv_mean, npv_std=res.npv_std,
+        npv_sem=res.npv_sem, npv_min=res.npv_min, npv_max=res.npv_max,
+        npv_p5=res.npv_p5, npv_p10=res.npv_p10, npv_p50=res.npv_p50,
+        npv_p90=res.npv_p90, npv_p95=res.npv_p95, npv_cvar_5=res.npv_cvar_5,
+        probability_npv_positive=res.probability_npv_positive,
+        histogram=[HistogramBinOut(from_=b.from_, to=b.to, count=b.count) for b in res.histogram],
+    )
+
+
+# --- Фоновые задачи анализа (Celery) ---
+
+class JobSubmitResponse(BaseModel):
+    job_id: str
+    status: str = "pending"
+
+
+class JobStatusResponse(BaseModel):
+    job_id: str
+    status: str                                # pending | running | success | failure
+    result: MonteCarloResponse | None = None   # заполнено при status=success
+    error: str | None = None                   # заполнено при status=failure
 
 
 # --- What-If (9.1) ---
@@ -282,11 +351,42 @@ class HoldingMemberOut(BaseModel):
     role: str
 
 
+class HoldingConsolidationOut(BaseModel):
+    """Сводка последней консолидации холдинга (B3)."""
+
+    npv: Decimal
+    rate: Decimal
+    at: datetime
+
+
 class HoldingOut(BaseModel):
     id: str
     name: str
     created_at: datetime
     members: list[HoldingMemberOut] = []
+    last_consolidation: Optional[HoldingConsolidationOut] = None
+
+
+class HoldingMemberPatch(BaseModel):
+    role: str  # parent | subsidiary
+
+
+class PerProjectOut(BaseModel):
+    """Вклад одного проекта в консолидацию (B3)."""
+
+    project_id: str
+    name: str
+    role: str
+    npv: Decimal
+    irr_annual: Optional[Decimal] = None
+    revenue_total: Decimal
+    net_profit_total: Decimal
+
+
+class ConsolidateResponse(CalcResponse):
+    """Сводный бюджет холдинга + разбивка вклада по проектам (B3)."""
+
+    per_project: list[PerProjectOut] = []
 
 
 def _statement_out(s: Statement) -> StatementOut:
@@ -310,6 +410,8 @@ def to_response(r: CalcResult) -> CalcResponse:
             pi=r.metrics.pi,
             pb_months=r.metrics.pb_months,
             dpb_months=r.metrics.dpb_months,
+            pv_investments=r.metrics.pv_investments,
+            peak_financing_need=r.metrics.peak_financing_need,
         ),
         ratios=RatiosOut(
             liquidity=r.ratios.liquidity,
@@ -321,6 +423,13 @@ def to_response(r: CalcResult) -> CalcResponse:
         break_even=BreakEvenOut(
             break_even_revenue=r.break_even.break_even_revenue,
             margin_of_safety=r.break_even.margin_of_safety,
+        ),
+        valuation=ValuationOut(
+            net_assets=r.valuation.net_assets,
+            gordon_value=r.valuation.gordon_value,
+            dividend_value=r.valuation.dividend_value,
+            earnings_multiple_value=r.valuation.earnings_multiple_value,
+            liquidation_value=r.valuation.liquidation_value,
         ),
         actualized_cashflow=_statement_out(r.actualized_cashflow) if r.actualized_cashflow else None,
         cashflow_variance=_statement_out(r.cashflow_variance) if r.cashflow_variance else None,

@@ -1,0 +1,29 @@
+# Общесистемный мусор и настройки среды (специфичные игноры — в backend/ и frontend/).
+
+# macOS / Windows / Linux
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+Desktop.ini
+
+# Редакторы / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Окружение
+.env
+.env.*
+!.env.example
+
+# Кэши инструментов (на случай запуска из корня)
+__pycache__/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+node_modules/

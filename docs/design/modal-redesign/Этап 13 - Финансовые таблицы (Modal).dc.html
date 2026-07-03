@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Inter';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-600-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:700;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-700-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-600-normal.woff2') format('woff2');}
+</style>
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  .fe-scroll::-webkit-scrollbar{height:11px;width:11px;}
+  .fe-scroll::-webkit-scrollbar-thumb{background:rgba(120,113,108,.4);border-radius:6px;border:3px solid transparent;background-clip:padding-box;}
+  .fe-scroll::-webkit-scrollbar-track{background:transparent;}
+  @keyframes fe-pulse{from{opacity:.5}to{opacity:1}}
+  @keyframes fe-fade{from{opacity:0}to{opacity:1}}
+  .fe-trow:hover .fe-tcell{background:var(--hov)!important;}
+  .fe-trow:hover .fe-tlabel{background:var(--hovlab)!important;}
+</style>
+</helmet>
+
+<div style="{{ s.page }}" data-screen-label="13 — Финансовые таблицы">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+      <div style="width:26px;height:26px;flex:none;border-radius:8px;overflow:hidden;"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="26px,26px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Этап&nbsp;13 · Финансовые таблицы</span>
+        <span style="{{ s.barSub }}">Финанс-Элит · 4 отчёта</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Отчёт</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segOpu }}" onClick="{{ setOpu }}">ОПУ</button><button style="{{ s.segCf }}" onClick="{{ setCf }}">Кэш-фло</button><button style="{{ s.segBal }}" onClick="{{ setBal }}">Баланс</button><button style="{{ s.segPu }}" onClick="{{ setPu }}">Прибыль</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Горизонт</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segN3 }}" onClick="{{ setN3 }}">3</button><button style="{{ s.segN12 }}" onClick="{{ setN12 }}">12</button><button style="{{ s.segN24 }}" onClick="{{ setN24 }}">24</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Состояние</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segReady }}" onClick="{{ setReady }}">Готово</button><button style="{{ s.segLoad }}" onClick="{{ setLoad }}">Загрузка</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Свет</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тьма</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}">
+
+      <div style="{{ s.rHeader }}">
+        <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1;">
+          <button style="{{ s.backBtn }}">←</button>
+          <div style="min-width:0;"><div style="{{ s.rTitle }}">Результаты</div><div style="{{ s.rProject }}">Завод полимерной упаковки</div></div>
+        </div>
+        <div style="{{ s.rActions }}"><span style="{{ s.versionChip }}">движок 0.9.9</span><button style="{{ s.exportBtn }}">CSV</button><button style="{{ s.exportBtn }}">XLSX</button><button style="{{ s.exportBtn }}">Печать</button></div>
+      </div>
+
+      <div style="{{ s.tabBarWrap }}"><div style="{{ s.tabBar }}" class="fe-scroll">
+        <sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="7"><button style="{{ tb.style }}">{{ tb.label }}</button></sc-for>
+      </div></div>
+
+      <div style="{{ s.content }}">
+
+        <div style="{{ s.reportHead }}">
+          <div style="min-width:0;">
+            <div style="{{ s.reportTitle }}">{{ reportTitle }}</div>
+            <div style="{{ s.reportSub }}">{{ reportSub }}</div>
+          </div>
+          <div style="{{ s.reportSwitch }}">
+            <button style="{{ s.swOpu }}" onClick="{{ setOpu }}">Прибыли и&nbsp;убытки</button>
+            <button style="{{ s.swCf }}" onClick="{{ setCf }}">Кэш-фло</button>
+            <button style="{{ s.swBal }}" onClick="{{ setBal }}">Баланс</button>
+            <button style="{{ s.swPu }}" onClick="{{ setPu }}">Использование прибыли</button>
+          </div>
+        </div>
+
+        <!-- LOADING -->
+        <sc-if value="{{ isLoad }}" hint-placeholder-val="{{ false }}">
+        <div style="{{ s.skTable }}">
+          <div style="{{ s.skRow }}"></div><div style="{{ s.skRow }}"></div><div style="{{ s.skRowBold }}"></div><div style="{{ s.skRow }}"></div><div style="{{ s.skRow }}"></div><div style="{{ s.skRowBold }}"></div><div style="{{ s.skRow }}"></div><div style="{{ s.skRow }}"></div><div style="{{ s.skRow }}"></div><div style="{{ s.skRowBold }}"></div>
+        </div>
+        </sc-if>
+
+        <!-- TABLE -->
+        <sc-if value="{{ isReady }}" hint-placeholder-val="{{ true }}">
+        <div style="{{ s.tableShell }}" class="fe-scroll">
+          <div style="{{ s.tableInner }}">
+            <!-- header -->
+            <div style="{{ s.theadRow }}">
+              <div style="{{ s.corner }}"><span style="{{ s.cornerCode }}">код</span><span>Статья</span></div>
+              <sc-for list="{{ months }}" as="m" hint-placeholder-count="12"><div style="{{ m.style }}" onMouseEnter="{{ m.hoverOn }}" onMouseLeave="{{ colOff }}">{{ m.label }}</div></sc-for>
+            </div>
+            <!-- rows -->
+            <sc-for list="{{ rows }}" as="r" hint-placeholder-count="14">
+            <div style="{{ r.rowStyle }}" class="fe-trow">
+              <div style="{{ r.labelStyle }}" class="fe-tlabel"><span style="{{ r.codeStyle }}">{{ r.code }}</span><span style="{{ r.nameStyle }}">{{ r.name }}</span></div>
+              <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="12"><div style="{{ c.style }}" class="fe-tcell">{{ c.text }}</div></sc-for>
+            </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="{{ s.legendRow }}">
+          <span style="{{ s.legendItem }}"><span style="{{ s.legSub }}"></span>итоговая строка</span>
+          <span style="{{ s.legendItem }}"><span style="{{ s.legNeg }}"></span>отрицательное (в скобках)</span>
+          <span style="{{ s.legendItem }}"><span style="{{ s.legZero }}">—</span>ноль</span>
+          <span style="{{ s.legendHint }}">← прокрутка по месяцам · первая колонка и заголовок закреплены →</span>
+        </div>
+        </sc-if>
+
+        <div style="{{ s.bottomPad }}"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { theme:'light', device:'desktop', report:'opu', N:12, calc:'ready', hoverCol:null };
+
+  THEME(){
+    const light={pageBg:'#F3F2F0',bg:'#FAFAF9',surface:'#FFFFFF',surface2:'#F5F5F4',sk:'#ECEAE8',border:'#E7E5E4',gridLine:'#F0EEEC',text:'#1C1917',muted:'#57534E',subtle:'#A8A29E',primary:'#0E9C6E',primaryHover:'#0B8560',primaryText:'#FFFFFF',primaryBg:'#E2F4EC',danger:'#C13A30',subtotalBg:'#F3F1EF',grandBg:'#E2F4EC',hov:'#FAFAF8',hovlab:'#F2F0EE',colHov:'rgba(14,156,110,.05)',shadow:'0 18px 48px -20px rgba(28,25,23,.28), 0 2px 6px rgba(28,25,23,.05)',barBg:'#FFFFFF',segBg:'#F0EEEC',segActiveBg:'#FFFFFF',headerBg:'#FFFFFF',stickyBg:'#FFFFFF',brandMid:'#0C7250',brandTo:'#0E9C6E'};
+    const dark={pageBg:'#141210',bg:'#1A1816',surface:'#232020',surface2:'#2C2825',sk:'#2F2B27',border:'#39332F',gridLine:'#2A2622',text:'#F6F4F2',muted:'#B7B0A9',subtle:'#7E756D',primary:'#12B07D',primaryHover:'#19C28B',primaryText:'#06241A',primaryBg:'rgba(18,176,125,.16)',danger:'#F0796E',subtotalBg:'#2A2521',grandBg:'rgba(18,176,125,.16)',hov:'#262220',hovlab:'#2C2724',colHov:'rgba(25,194,139,.08)',shadow:'0 28px 64px -24px rgba(0,0,0,.72)',barBg:'#1E1B19',segBg:'#16140F',segActiveBg:'#2C2825',headerBg:'#1E1B19',stickyBg:'#232020',brandMid:'#0A5A40',brandTo:'#0E7A57'};
+    return this.state.theme==='dark'?{...dark,pageBg:'#000000',bg:'#0C0F0C',surface:'#212525',surface2:'#2A312A',sk:'#2A312A',cellBg:'#161A16',border:'#485346',borderStrong:'#677D64',gridLine:'#232823',text:'#DDFFDC',muted:'#93A091',subtle:'#677D64',primary:'#7FEE64',primaryHover:'#95F47D',primaryText:'#000000',accent:'#7FEE64',primaryBg:'rgba(127,238,100,.15)',primarySoft:'rgba(127,238,100,.09)',good:'#7FEE64',goodBg:'rgba(127,238,100,.15)',goodBorder:'rgba(127,238,100,.32)',danger:'#F0796E',dangerHover:'#F4988F',dangerBg:'rgba(240,121,110,.15)',dangerBorder:'rgba(240,121,110,.32)',dangerText:'#F4B0A8',warn:'#E0A23A',warnBg:'rgba(224,162,58,.16)',warnBorder:'rgba(224,162,58,.32)',info:'#AED2A4',infoBg:'rgba(174,210,164,.15)',ring:'rgba(127,238,100,.4)',shadow:'0 30px 70px -34px rgba(0,0,0,.9)',menuShadow:'0 22px 52px -16px rgba(0,0,0,.82)',barBg:'#0C0F0C',barBorder:'#1D231D',segBg:'#0B0E0B',segActiveBg:'#2A312A',headerBg:'#0C0F0C',stickyBg:'#212525',brandMid:'#3E4A3C',brandTo:'#7FEE64',violet:'#C8F9B6',violetBg:'rgba(200,249,182,.14)',subtotalBg:'#1C201C',grandBg:'rgba(127,238,100,.12)',hov:'#262C25',hovlab:'#2C322B',ico1:'#7FEE64',ico1Bg:'rgba(127,238,100,.15)',ico2:'#AED2A4',ico2Bg:'rgba(174,210,164,.15)',ico3:'#C8F9B6',ico3Bg:'rgba(200,249,182,.14)',ico4:'#E0A23A',ico4Bg:'rgba(224,162,58,.16)',inputBg:'#161A16',success:'#7FEE64',successBg:'rgba(127,238,100,.16)'}:{...light,pageBg:'#E4F1E0',bg:'#F4FAF2',surface:'#FFFFFF',surface2:'#EDF5EA',sk:'#E3EEDF',cellBg:'#FFFFFF',border:'#D2E4CD',borderStrong:'#B4CCAE',gridLine:'#E8F1E5',text:'#16201A',muted:'#46584A',subtle:'#6E8270',primary:'#7FEE64',primaryHover:'#6FE253',primaryText:'#06210E',accent:'#138A45',primaryBg:'#DBF3D2',primarySoft:'#EAF8E4',good:'#0E7A4F',goodBg:'#DBF1E2',goodBorder:'#B7DEC6',danger:'#C0473B',dangerHover:'#A53A30',dangerBg:'#FAE7E4',dangerBorder:'#EECFCA',dangerText:'#8F2F26',warn:'#B07A12',warnBg:'#FBF0D8',warnBorder:'#ECDDB4',info:'#3E7D52',infoBg:'#E6EFE2',ring:'rgba(56,194,75,.3)',shadow:'0 18px 44px -22px rgba(20,40,24,.22), 0 2px 6px rgba(20,40,24,.05)',menuShadow:'0 24px 56px -16px rgba(20,40,24,.28)',barBg:'#FFFFFF',barBorder:'#D2E4CD',segBg:'#E7F0E3',segActiveBg:'#FFFFFF',headerBg:'#FFFFFF',stickyBg:'#FFFFFF',brandMid:'#138A45',brandTo:'#7FEE64',violet:'#3E7D52',violetBg:'#E6EFE2',subtotalBg:'#EDF3EA',grandBg:'#DBF1E2',hov:'#F1F7EE',hovlab:'#EAF2E6',ico1:'#138A45',ico1Bg:'#DBF3D2',ico2:'#3E7D52',ico2Bg:'#E6EFE2',ico3:'#5FA86A',ico3Bg:'#E3F0DE',ico4:'#B07A12',ico4Bg:'#FBF0D8',inputBg:'#FFFFFF',success:'#0E7A4F',successBg:'#DBF1E2'};
+  }
+  DIM(){const dv=this.state.device,m=dv==='mobile',tab=dv==='tablet'; return {frame:m?402:tab?864:1240, radius:m?30:tab?18:14, pad:m?14:tab?20:30, lbl:m?188:300, cw:m?94:104, mobile:m};}
+  fmt(n){ if(n===0||n==null) return {text:'—',kind:'zero'}; const neg=n<0; const a=Math.abs(Math.round(n)); let s=String(a).replace(/\B(?=(\d{3})+(?!\d))/g,'\u00A0'); return {text: neg?('('+s+')'):s, kind: neg?'neg':'pos'}; }
+
+  buildTable(report){
+    const N=24; const arr=(f)=>Array.from({length:N},(_,i)=>Math.round(f(i)));
+    const sum=(...as)=>arr(i=>as.reduce((a,x)=>a+x[i],0));
+    if(report==='opu'){
+      const rev=arr(i=>300000+i*9000);
+      const mat=arr(i=>-(120000+i*3600));
+      const plab=arr(i=>-(45000+i*1200));
+      const margin=sum(rev,mat,plab);
+      const fixprod=arr(()=>-25000), amortp=arr(()=>-12000);
+      const gross=sum(margin,fixprod,amortp);
+      const ebitda=arr(i=>gross[i]-amortp[i]);
+      const comm=arr(()=>-20000), admin=arr(()=>-35000), mkt=arr(i=>-(18000)), fotA=arr(()=>-40000), ins=arr(()=>-15000), ptax=arr(()=>-3000), oth=arr(()=>-5000);
+      const ebit=sum(gross,comm,admin,mkt,fotA,ins,ptax,oth);
+      const intp=arr(i=>-(28000-i*700>0?28000-i*700:0)), intr=arr(i=>i>=8?6000:0);
+      const pbt=sum(ebit,intp,intr);
+      const tax=arr(i=>pbt[i]>0?-Math.round(pbt[i]*0.2):0), othtax=arr(()=>-2000);
+      const net=sum(pbt,tax,othtax);
+      const div=arr(i=>i>=6?-80000:0), fromp=arr(()=>-10000);
+      const ret=sum(net,div,fromp);
+      let c1=0,c2=0; const cumNet=net.map(x=>c1+=x); const cumRet=ret.map(x=>c2+=x);
+      const R=(code,name,vals,sub)=>({code,name,vals,sub:!!sub});
+      return [R('I1','Выручка (нетто)',rev),R('I2','Прямые материалы',mat),R('I3','Прямая зарплата + взносы',plab),
+        R('I4','Маржинальная прибыль',margin,1),R('I5','Постоянные производств. расходы',fixprod),R('I6','Амортизация производства',amortp),
+        R('I7','Валовая прибыль',gross,1),R('I8','EBITDA',ebitda,1),R('I9','Коммерческие расходы',comm),R('I10','Управленческие расходы',admin),
+        R('I11','Маркетинг и реклама',mkt),R('I12','ФОТ администрации',fotA),R('I13','Страховые взносы',ins),R('I14','Налог на имущество',ptax),R('I15','Прочие операционные',oth),
+        R('I16','Операционная прибыль (EBIT)',ebit,1),R('I17','Проценты к уплате',intp),R('I18','Проценты к получению',intr),
+        R('I19','Прибыль до налогообложения',pbt,1),R('I20','Налог на прибыль',tax),R('I22','Прочие налоги',othtax),
+        R('I23','Чистая прибыль периода',net,1),R('I24','Дивиденды',div),R('I25','Расходы из прибыли',fromp),
+        R('I26','Нераспределённая прибыль периода',ret,1),R('I27','Чистая прибыль, накопл.',cumNet),R('I28','Нераспределённая, накопл.',cumRet,2)];
+    }
+    if(report==='cf'){
+      const inflow=arr(i=>330000+i*9500), recv=arr(i=>i<2?-40000:15000);
+      const opIn=sum(inflow,recv);
+      const matPay=arr(i=>-(120000+i*3600)), salPay=arr(()=>-130000), taxPay=arr(()=>-48000), othPay=arr(()=>-60000);
+      const opOut=sum(matPay,salPay,taxPay,othPay);
+      const opNet=sum(opIn,opOut);
+      const capex=arr(i=>i===0?-2400000:(i===0?0:0)), assetSale=arr(i=>i===23?3500000:0);
+      const invNet=sum(capex,assetSale);
+      const equity=arr(i=>i===0?5000000:(i===5?2000000:0)), loanIn=arr(i=>i===0?6000000:0), loanRepay=arr(i=>i>=3?-180000:0), divPaid=arr(i=>i>=6?-80000:0);
+      const finNet=sum(equity,loanIn,loanRepay,divPaid);
+      const netCF=sum(opNet,invNet,finNet);
+      let c=1000000; const cashEnd=netCF.map(x=>{const s=c; c+=x; return c;}); 
+      let c0=1000000; const cashBeg=netCF.map(x=>{const s=c0; c0+=x; return s;});
+      const R=(code,name,vals,sub)=>({code,name,vals,sub:!!sub});
+      return [R('C1','Поступления от продаж',inflow),R('C2','Δ дебиторской задолженности',recv),
+        R('C13','Операционный приток, итого',opIn,1),R('C3','Оплата материалов',matPay),R('C4','Оплата труда',salPay),R('C5','Налоги уплаченные',taxPay),R('C6','Прочие выплаты',othPay),
+        R('C14','Операционный отток, итого',opOut,1),R('C20','Денежный поток от операций',opNet,1),
+        R('C7','Капитальные вложения',capex),R('C8','Продажа активов',assetSale),R('C21','Поток от инвестиций',invNet,1),
+        R('C9','Взносы в капитал',equity),R('C10','Привлечение займов',loanIn),R('C11','Погашение займов',loanRepay),R('C12','Дивиденды выплаченные',divPaid),
+        R('C27','Поток от финансирования',finNet,1),R('C28','Чистый денежный поток',netCF,1),
+        R('C15','Денежные средства на начало',cashBeg),R('C29','Денежные средства на конец',cashEnd,2)];
+    }
+    if(report==='bal'){
+      const cash=arr(i=>1000000+i*120000), recv=arr(i=>600000+i*8000), raw=arr(i=>400000+i*4000), goods=arr(i=>300000+i*3000);
+      const fixed=arr(i=>Math.max(8000000-i*33000,0));
+      const curA=sum(cash,recv,raw,goods);
+      const totA=sum(curA,fixed);
+      const payables=arr(i=>700000+i*3000), shortLoan=arr(i=>Math.max(300000-i*8000,0));
+      const curL=sum(payables,shortLoan);
+      const longLoan=arr(i=>Math.max(4000000-i*120000,0));
+      const totLiab=sum(curL,longLoan);
+      const capital=arr(()=>5000000);
+      const retained=arr(i=>totA[i]-totLiab[i]-capital[i]);
+      const equity=sum(capital,retained);
+      const totPass=sum(totLiab,equity);
+      const R=(code,name,vals,sub)=>({code,name,vals,sub:!!sub});
+      return [R('B1','Денежные средства',cash),R('B2','Дебиторская задолженность',recv),R('B3','Запасы сырья',raw),R('B4','Запасы готовой продукции',goods),
+        R('B8','Оборотные активы, итого',curA,1),R('B9','Основные средства (остат.)',fixed),
+        R('B11','Внеоборотные активы, итого',fixed,1),R('B20','СУММАРНЫЙ АКТИВ',totA,2),
+        R('B12','Кредиторская задолженность',payables),R('B13','Краткосрочные займы',shortLoan),R('B16','Краткосрочные обязательства',curL,1),
+        R('B17','Долгосрочные займы',longLoan),R('B25','Обязательства, итого',totLiab,1),
+        R('B26','Акционерный капитал',capital),R('B27','Нераспределённая прибыль',retained),R('B33','Собственный капитал, итого',equity,1),
+        R('B34','СУММАРНЫЙ ПАССИВ',totPass,2)];
+    }
+    const npAfterTax=arr(i=>120000+i*4000), divs=arr(i=>i>=6?-80000:0), reserve=arr(()=>-15000), social=arr(()=>-8000);
+    const distributed=sum(divs,reserve,social);
+    const toRetained=sum(npAfterTax,distributed);
+    let cc=0; const cumRetained=toRetained.map(x=>cc+=x);
+    const R=(code,name,vals,sub)=>({code,name,vals,sub:!!sub});
+    return [R('P1','Чистая прибыль к распределению',npAfterTax),
+      R('P3','Распределено, итого',distributed,1),R('P4','— дивиденды',divs),R('P5','— резервный фонд',reserve),R('P6','— социальные программы',social),
+      R('P2','Реинвестировано в период',toRetained,1),R('P7','Нераспределённая, накопл.',cumRetained,2)];
+  }
+
+  renderVals(){
+    const st=this.state, t=this.THEME(), d=this.DIM(), N=st.N, cw=d.cw, lbl=d.lbl;
+    const seg=(a)=>`appearance:none;border:none;cursor:pointer;font:600 11.5px Inter,sans-serif;padding:6px 10px;border-radius:7px;white-space:nowrap;color:${a?t.text:t.subtle};background:${a?t.segActiveBg:'transparent'};box-shadow:${a?'0 1px 2px rgba(0,0,0,.14)':'none'};transition:.14s;`;
+    const segWrap=`display:flex;gap:3px;padding:3px;background:${t.segBg};border-radius:9px;`;
+    const rep=st.report;
+    const titles={opu:['Отчёт о прибылях и убытках','Помесячный финансовый результат, ₽'],cf:['Отчёт о движении денежных средств','Притоки и оттоки по месяцам, ₽'],bal:['Баланс','Активы и пассивы на конец каждого месяца, ₽'],pu:['Использование прибыли','Распределение чистой прибыли, ₽']};
+    const tt=titles[rep];
+    const tableRows=this.buildTable(rep);
+
+    const months=Array.from({length:N},(_,i)=>({label:'М'+(i+1), idx:i,
+      style:`width:${cw}px;flex:none;height:38px;display:flex;align-items:center;justify-content:flex-end;padding:0 12px;font:600 11px 'JetBrains Mono',monospace;color:${st.hoverCol===i?t.primary:t.subtle};background:${st.hoverCol===i?t.primaryBg:t.surface2};border-right:1px solid ${t.gridLine};border-bottom:1.5px solid ${t.border};position:sticky;top:0;z-index:5;cursor:default;`,
+      hoverOn:()=>this.setState({hoverCol:i})}));
+
+    const rows=tableRows.map((r)=>{
+      const grand=r.sub===2, sub=r.sub===1;
+      const rowBg = grand?t.grandBg:(sub?t.subtotalBg:t.surface);
+      const labBg = grand?t.grandBg:(sub?t.subtotalBg:t.stickyBg);
+      const weight = (grand||sub)?'700':'500';
+      const cells=r.vals.slice(0,N).map((v,ci)=>{ const f=this.fmt(v); const col=f.kind==='neg'?t.danger:(f.kind==='zero'?t.subtle:t.text);
+        const colHovBg = st.hoverCol===ci? (grand||sub? rowBg : t.colHov) : rowBg;
+        return {text:f.text, style:`width:${cw}px;flex:none;height:36px;display:flex;align-items:center;justify-content:flex-end;padding:0 12px;font:${weight} 12.5px 'JetBrains Mono',monospace;color:${col};background:${colHovBg};border-right:1px solid ${t.gridLine};border-bottom:1px solid ${t.gridLine};${f.kind==='zero'?'opacity:.6;':''}`};
+      });
+      return {code:r.code, name:r.name,
+        rowStyle:`display:flex;${(grand||sub)?'':''}`,
+        labelStyle:`width:${lbl}px;flex:none;height:36px;display:flex;align-items:center;gap:10px;padding:0 14px;background:${labBg};border-right:1.5px solid ${t.border};border-bottom:1px solid ${t.gridLine};position:sticky;left:0;z-index:4;`,
+        codeStyle:`font:600 10px 'JetBrains Mono',monospace;color:${grand?t.primary:t.subtle};background:${grand?t.surface:t.surface2};border:1px solid ${t.border};padding:1px 5px;border-radius:4px;flex:none;min-width:30px;text-align:center;`,
+        nameStyle:`font:${weight} 12.5px Inter,sans-serif;color:${t.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${grand?'letter-spacing:.01em;':''}`,
+        cells};
+    });
+
+    const tabs=['Сводка','Прибыли и убытки','Кэш-фло','Баланс','Коэффициенты','Графики','План-факт'].map((label)=>{ const active=(label==='Прибыли и убытки'&&rep==='opu')||(label==='Кэш-фло'&&rep==='cf')||(label==='Баланс'&&rep==='bal');
+      return {label, style:`appearance:none;border:none;background:none;cursor:pointer;font:600 13.5px Inter,sans-serif;color:${active?t.text:t.muted};padding:0 3px;height:46px;border-bottom:2px solid ${active?t.primary:'transparent'};white-space:nowrap;`};
+    });
+    const swActive=(k)=>`appearance:none;cursor:pointer;height:34px;padding:0 13px;border-radius:8px;border:1px solid ${rep===k?t.primary:t.border};background:${rep===k?t.primaryBg:t.surface};color:${rep===k?t.primary:t.muted};font:600 12px Inter,sans-serif;white-space:nowrap;transition:.14s;`;
+
+    const s={
+      page:`min-height:100vh;background:${t.pageBg};color:${t.text};display:flex;flex-direction:column;transition:background .25s;`,
+      bar:`display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:13px 20px;background:${t.barBg};border-bottom:1px solid ${t.border};position:sticky;top:0;z-index:60;`,
+      barDot:`width:26px;height:26px;border-radius:7px;flex:none;background:linear-gradient(150deg,${t.brandMid},${t.brandTo});`,
+      barTitle:`font:700 13px Inter,sans-serif;letter-spacing:-.01em;color:${t.text};white-space:nowrap;`,
+      barSub:`font:500 11px Inter,sans-serif;color:${t.subtle};white-space:nowrap;`,
+      barLabel:`font:600 9.5px Inter,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:${t.subtle};`,
+      seg:segWrap, segOpu:seg(rep==='opu'),segCf:seg(rep==='cf'),segBal:seg(rep==='bal'),segPu:seg(rep==='pu'),
+      segN3:seg(N===3),segN12:seg(N===12),segN24:seg(N===24),
+      segReady:seg(st.calc==='ready'),segLoad:seg(st.calc==='loading'),
+      segLight:seg(st.theme==='light'),segDark:seg(st.theme==='dark'),segDesktop:seg(st.device==='desktop'),segTablet:seg(st.device==='tablet'),segMobile:seg(st.device==='mobile'),
+
+      stage:`flex:1;display:flex;justify-content:center;align-items:flex-start;padding:${d.mobile?'22px 10px':'34px 24px'};`,
+      frame:`position:relative;width:100%;max-width:${d.frame}px;background:${t.bg};border:1px solid ${t.border};border-radius:${d.radius}px;box-shadow:${t.shadow};overflow:hidden;`,
+      rHeader:`display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:14px ${d.pad}px;background:${t.headerBg};border-bottom:1px solid ${t.border};`,
+      backBtn:`appearance:none;cursor:pointer;width:34px;height:34px;border-radius:8px;border:1px solid ${t.border};background:${t.surface};color:${t.muted};font:600 14px Inter;flex:none;`,
+      rTitle:`font:700 ${d.mobile?18:22}px 'Satoshi',Inter,sans-serif;letter-spacing:-.025em;color:${t.text};`,
+      rProject:`font:500 12px Inter,sans-serif;color:${t.subtle};margin-top:1px;`,
+      rActions:`display:flex;align-items:center;gap:7px;flex-wrap:wrap;`,
+      versionChip:`font:600 11px 'JetBrains Mono',monospace;color:${t.subtle};background:${t.surface2};border:1px solid ${t.border};padding:4px 9px;border-radius:7px;${d.mobile?'display:none;':''}`,
+      exportBtn:`appearance:none;cursor:pointer;height:34px;padding:0 12px;border-radius:8px;border:1px solid ${t.border};background:${t.surface};color:${t.muted};font:600 12px Inter,sans-serif;`,
+      tabBarWrap:`background:${t.headerBg};border-bottom:1px solid ${t.border};padding:0 ${d.pad}px;`,
+      tabBar:`display:flex;align-items:center;gap:${d.mobile?14:22}px;overflow-x:auto;`,
+
+      content:`padding:${d.pad}px;`,
+      reportHead:`display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px;`,
+      reportTitle:`font:700 ${d.mobile?17:20}px 'Satoshi',Inter,sans-serif;letter-spacing:-.02em;color:${t.text};`,
+      reportSub:`font:400 12.5px Inter,sans-serif;color:${t.muted};margin-top:4px;`,
+      reportSwitch:`display:flex;gap:7px;flex-wrap:wrap;`,
+      swOpu:swActive('opu'),swCf:swActive('cf'),swBal:swActive('bal'),swPu:swActive('pu'),
+
+      skTable:`border:1px solid ${t.border};border-radius:16px;overflow:hidden;background:${t.surface};padding:0;`,
+      skRow:`height:36px;border-bottom:1px solid ${t.gridLine};background:linear-gradient(90deg,${t.sk} 30%,transparent 30%);background-size:${lbl}px 100%;background-repeat:no-repeat;animation:fe-pulse 1.4s ease-in-out infinite alternate;`,
+      skRowBold:`height:36px;border-bottom:1px solid ${t.gridLine};background:${t.subtotalBg};animation:fe-pulse 1.4s ease-in-out infinite alternate;`,
+
+      tableShell:`border:1px solid ${t.border};border-radius:16px;overflow:auto;background:${t.surface};max-height:${d.mobile?460:560}px;--hov:${t.hov};--hovlab:${t.hovlab};`,
+      tableInner:`width:max-content;min-width:100%;`,
+      theadRow:`display:flex;position:sticky;top:0;z-index:6;`,
+      corner:`width:${lbl}px;flex:none;height:38px;display:flex;flex-direction:column;justify-content:center;gap:1px;padding:0 14px;background:${t.stickyBg};border-right:1.5px solid ${t.border};border-bottom:1.5px solid ${t.border};position:sticky;left:0;z-index:7;`,
+      cornerCode:`font:600 8.5px Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:${t.subtle};`,
+
+      legendRow:`display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-top:12px;`,
+      legendItem:`display:flex;align-items:center;gap:6px;font:500 11.5px Inter,sans-serif;color:${t.muted};`,
+      legSub:`width:14px;height:11px;border-radius:3px;background:${t.subtotalBg};border:1px solid ${t.border};`,
+      legNeg:`width:11px;height:11px;border-radius:3px;background:${t.danger};`,
+      legZero:`font:600 12px 'JetBrains Mono',monospace;color:${t.subtle};`,
+      legendHint:`margin-left:auto;font:500 11px Inter,sans-serif;color:${t.subtle};${d.mobile?'display:none;':''}`,
+      bottomPad:`height:6px;`
+    };
+
+    return {s,t,tabs,months,rows,
+      reportTitle:tt[0], reportSub:tt[1],
+      isReady:st.calc==='ready', isLoad:st.calc==='loading',
+      colOff:()=>this.setState({hoverCol:null}),
+      setOpu:()=>this.setState({report:'opu'}),setCf:()=>this.setState({report:'cf'}),setBal:()=>this.setState({report:'bal'}),setPu:()=>this.setState({report:'pu'}),
+      setN3:()=>this.setState({N:3}),setN12:()=>this.setState({N:12}),setN24:()=>this.setState({N:24}),
+      setReady:()=>this.setState({calc:'ready'}),setLoad:()=>this.setState({calc:'loading'}),
+      setLight:()=>this.setState({theme:'light'}),setDark:()=>this.setState({theme:'dark'}),
+      setDesktop:()=>this.setState({device:'desktop'}),setTablet:()=>this.setState({device:'tablet'}),setMobile:()=>this.setState({device:'mobile'})
+    };
+  }
+}
+</script>
+</body>
+</html>

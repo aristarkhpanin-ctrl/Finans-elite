@@ -6,11 +6,19 @@
 """
 from __future__ import annotations
 
-from decimal import Decimal, ROUND_HALF_UP, getcontext
+from decimal import ROUND_HALF_EVEN, ROUND_HALF_UP, Context, Decimal, getcontext
 from typing import Union
 
-# Рабочая точность ядра: с запасом, округление результата — только на границе отображения.
-getcontext().prec = 34
+#: Единый контекст вычислений ядра. Точность с запасом (округление результата — только
+#: на границе отображения через :func:`quantize`), округление зафиксировано явно. Контекст
+#: применяется вокруг ``run()`` через ``localcontext`` — результат не зависит ни от потока
+#: (``getcontext()`` thread-local: воркеры FastAPI иначе считали бы с дефолтным prec=28),
+#: ни от хоста. Менять prec/rounding — только через golden-master.
+CALC_CONTEXT = Context(prec=34, rounding=ROUND_HALF_EVEN)
+
+# Дефолт текущего потока — тот же контекст (для Decimal-операций вне run()).
+getcontext().prec = CALC_CONTEXT.prec
+getcontext().rounding = CALC_CONTEXT.rounding
 
 Number = Union[Decimal, int, str]
 

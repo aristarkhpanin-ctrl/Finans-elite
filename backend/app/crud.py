@@ -4,12 +4,16 @@
 """
 from __future__ import annotations
 
-from sqlalchemy import func, select
+from datetime import datetime, timezone
+from decimal import Decimal
+
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from calc_core import ProjectModel
 
 from .db_models import (
+    AnalysisJob,
     Holding,
     HoldingMember,
     Membership,
@@ -21,6 +25,17 @@ from .db_models import (
 )
 from .plans import DEFAULT_PLAN
 
+# --- Фоновые задачи анализа (Celery) ---
+
+def create_analysis_job(db: Session, job_id: str, org_id: str, project_id: str, kind: str) -> AnalysisJob:
+    job = AnalysisJob(id=job_id, organization_id=org_id, project_id=project_id, kind=kind)
+    db.add(job)
+    db.commit()
+    return job
+
+
+def get_analysis_job(db: Session, job_id: str) -> AnalysisJob | None:
+    return db.get(AnalysisJob, job_id)
 
 # --- Организации ---
 
@@ -179,6 +194,18 @@ def get_role(db: Session, org_id: str, user_id: str) -> str | None:
     return membership.role if membership else None
 
 
+def set_membership_role(db: Session, membership: Membership, role: str) -> Membership:
+    membership.role = role
+    db.commit()
+    db.refresh(membership)
+    return membership
+
+
+def remove_membership(db: Session, membership: Membership) -> None:
+    db.delete(membership)
+    db.commit()
+
+
 def list_user_organizations(db: Session, user_id: str) -> list[tuple[Organization, str]]:
     rows = db.execute(
         select(Organization, Membership.role)
@@ -248,6 +275,39 @@ def load_model(project: Project) -> ProjectModel:
     return ProjectModel.model_validate(project.model)
 
 
+def duplicate_project(db: Session, project: Project, name: str) -> Project:
+    """Копия проекта (B2): модель целиком, сводка расчёта не переносится."""
+    copy = Project(organization_id=project.organization_id, name=name, model=project.model)
+    db.add(copy)
+    db.commit()
+    db.refresh(copy)
+    return copy
+
+
+def save_calc_summary(db: Session, project: Project, *, npv: Decimal,
+                      irr_annual: Decimal | None, pb_months: int | None,
+                      engine_version: str) -> None:
+    """Сохранить сводку успешного расчёта (B1).
+
+    Core-update с явным ``updated_at = Project.updated_at``: иначе onupdate
+    сдвинул бы updated_at и проект сразу считался бы «изменён после расчёта».
+    """
+    db.execute(
+        update(Project)
+        .where(Project.id == project.id)
+        .values(
+            last_npv=str(npv),
+            last_irr=None if irr_annual is None else str(irr_annual),
+            last_pb_months=pb_months,
+            last_engine_version=engine_version,
+            last_calculated_at=datetime.now(timezone.utc),
+            updated_at=Project.updated_at,
+        )
+    )
+    db.commit()
+    db.refresh(project)
+
+
 # --- Холдинги (9.3) ---
 
 def create_holding(db: Session, org_id: str, name: str) -> Holding:
@@ -300,3 +360,26 @@ def list_holding_members(db: Session, holding_id: str) -> list[HoldingMember]:
     return list(
         db.scalars(select(HoldingMember).where(HoldingMember.holding_id == holding_id))
     )
+
+
+def get_holding_member(db: Session, holding_id: str, project_id: str) -> HoldingMember | None:
+    return db.scalar(
+        select(HoldingMember).where(
+            HoldingMember.holding_id == holding_id, HoldingMember.project_id == project_id
+        )
+    )
+
+
+def remove_holding_member(db: Session, member: HoldingMember) -> None:
+    db.delete(member)
+    db.commit()
+
+
+def save_holding_consolidation(db: Session, holding: Holding, *, npv: Decimal,
+                               rate: Decimal) -> None:
+    """Сохранить сводку последней консолидации холдинга (B3)."""
+    holding.last_consolidation_npv = str(npv)
+    holding.last_consolidation_rate = str(rate)
+    holding.last_consolidation_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(holding)

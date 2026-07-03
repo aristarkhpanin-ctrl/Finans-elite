@@ -8,13 +8,23 @@ from .. import crud
 from ..database import get_db
 from ..db_models import User
 from ..deps import current_user
+from ..ratelimit import rate_limit
 from ..schemas import LoginRequest, RegisterRequest, TokenResponse, UserOut
 from ..security import create_access_token, hash_password, verify_password
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
+# Защита от перебора: ограничение попыток в минуту с одного IP.
+_register_limit = rate_limit("register", limit=10, window_seconds=60)
+_login_limit = rate_limit("login", limit=20, window_seconds=60)
 
-@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/register",
+    response_model=TokenResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(_register_limit)],
+)
 def register(body: RegisterRequest, db: Session = Depends(get_db)) -> TokenResponse:
     """Регистрация: создаёт пользователя, его организацию и членство (owner)."""
     if crud.get_user_by_email(db, body.email) is not None:
@@ -25,7 +35,7 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)) -> TokenRespo
     return TokenResponse(access_token=create_access_token(user.id))
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=TokenResponse, dependencies=[Depends(_login_limit)])
 def login(body: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
     """Вход по email и паролю → токен доступа."""
     user = crud.get_user_by_email(db, body.email)

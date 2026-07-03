@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  input,button{font-family:inherit;}
+  input::placeholder{color:inherit;opacity:.4;}
+  .sg-scroll::-webkit-scrollbar{height:9px;width:9px;}
+  .sg-scroll::-webkit-scrollbar-thumb{background:rgba(120,140,118,.4);border-radius:5px;border:2px solid transparent;background-clip:padding-box;}
+  @keyframes sg-pulse{from{opacity:.5}to{opacity:1}}
+  @keyframes sg-fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes sg-spin{to{transform:rotate(360deg)}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:11px;min-width:0;">
+      <div style="{{ s.barCube }}"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="30px,30px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Стиль-гайд · Modal × Финанс-Элит</span>
+        <span style="{{ s.barSub }}">фосфорный терминал · зелёный куб · обе темы</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Свет</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тьма</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}">
+
+      <!-- HERO -->
+      <div style="{{ s.hero }}">
+        <div style="{{ s.heroText }}">
+          <div style="{{ s.eyebrow }}"><span style="{{ s.eyebrowDot }}"></span>DESIGN SYSTEM · V1</div>
+          <h1 style="{{ s.display }}">Фосфорный терминал, выверенный до пикселя</h1>
+          <p style="{{ s.heroSub }}">Дисциплинированная зелёная палитра, острые радиусы и единственный объект веса — светящийся куб. Тёмная тема как двигатель, светлая — как выдох. Функционал «Финанс-Элит» сохранён полностью.</p>
+          <div style="{{ s.ctaRow }}">
+            <button style="{{ s.btnPrimary }}" style-hover="{{ s.btnPrimaryHover }}">Запустить расчёт</button>
+            <button style="{{ s.btnGhost }}" style-hover="{{ s.btnGhostHover }}">Документация</button>
+          </div>
+        </div>
+        <div style="{{ s.heroCube }}"><dc-import name="Cube Hero" backdrop="transparent" style="width:100%;height:100%" hint-size="100%,100%"></dc-import></div>
+      </div>
+
+      <div style="{{ s.body }}">
+
+        <!-- ПАЛИТРА -->
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">01 · ПАЛИТРА</div>
+          <div style="{{ s.secTitle }}">Зелёно-тонированная система</div>
+          <div style="{{ s.secLead }}">Каждый нейтральный оттенок уведён в зелёный — никаких холодных серых. Reactor Green только для действия. Красный и янтарь — приглушённые, строго для финансовой семантики.</div>
+          <div style="{{ s.swGroupLabel }}">Поверхности и нейтральные</div>
+          <div style="{{ s.swatchGrid }}">
+            <sc-for list="{{ neutralSwatches }}" as="w" hint-placeholder-count="8"><div style="{{ w.cardStyle }}"><div style="{{ w.chipStyle }}"></div><div style="{{ s.swMeta }}"><div style="{{ s.swName }}">{{ w.name }}</div><div style="{{ s.swHex }}">{{ w.hex }}</div></div></div></sc-for>
+          </div>
+          <div style="{{ s.swGroupLabel }}">Акцент и семантика</div>
+          <div style="{{ s.swatchGrid }}">
+            <sc-for list="{{ accentSwatches }}" as="w" hint-placeholder-count="6"><div style="{{ w.cardStyle }}"><div style="{{ w.chipStyle }}"></div><div style="{{ s.swMeta }}"><div style="{{ s.swName }}">{{ w.name }}</div><div style="{{ s.swHex }}">{{ w.hex }}</div></div></div></sc-for>
+          </div>
+        </div>
+
+        <!-- ТИПОГРАФИКА -->
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">02 · ТИПОГРАФИКА</div>
+          <div style="{{ s.secTitle }}">Satoshi для голоса бренда, Inter для продукта</div>
+          <div style="{{ s.secLead }}">Дисплейный гротеск с тугим трекингом — заголовки «вырезаны». Inter ведёт весь UI. Числа — моноширинный JetBrains Mono, как вывод терминала.</div>
+          <div style="{{ s.typeCard }}">
+            <div style="{{ s.typeRow }}"><span style="{{ s.typeTag }}">display · 54</span><span style="{{ s.typeDisplay }}">Сводный бюджет</span></div>
+            <div style="{{ s.typeRow }}"><span style="{{ s.typeTag }}">heading · 32</span><span style="{{ s.typeHeading }}">Анализ чувствительности</span></div>
+            <div style="{{ s.typeRow }}"><span style="{{ s.typeTag }}">subhead · 20</span><span style="{{ s.typeSub }}">Денежный поток от операций</span></div>
+            <div style="{{ s.typeRow }}"><span style="{{ s.typeTag }}">body · 16</span><span style="{{ s.typeBody }}">Положительный NPV при ставке 18%, окупаемость в пределах горизонта, кассовых разрывов нет.</span></div>
+            <div style="{{ s.typeRow }}"><span style="{{ s.typeTag }}">eyebrow · 12</span><span style="{{ s.typeEyebrow }}">PROGRAMMABLE FINANCE</span></div>
+            <div style="{{ s.typeRow }}"><span style="{{ s.typeTag }}">mono · число</span><span style="{{ s.typeMono }}">+18 420 000 ₽</span></div>
+          </div>
+        </div>
+
+        <!-- КНОПКИ И ПОЛЯ -->
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">03 · КНОПКИ И ПОЛЯ</div>
+          <div style="{{ s.secTitle }}">Острые формы, видимый фокус</div>
+          <div style="{{ s.secLead }}">Кнопки 4px, поля 8px. Reactor-заливка — «рубильник». Фокус всегда виден кольцом цвета акцента.</div>
+          <div style="{{ s.ctrlCard }}">
+            <div style="{{ s.ctrlRow }}">
+              <button style="{{ s.btnPrimary }}" style-hover="{{ s.btnPrimaryHover }}">Основное</button>
+              <button style="{{ s.btnGhost }}" style-hover="{{ s.btnGhostHover }}">Вторичное</button>
+              <button style="{{ s.btnDanger }}" style-hover="{{ s.btnDangerHover }}">Удалить</button>
+              <a style="{{ s.textLink }}">Текст-ссылка →</a>
+            </div>
+            <div style="{{ s.ctrlRow }}">
+              <input style="{{ s.input }}" style-focus="{{ s.inputFocus }}" placeholder="Название проекта">
+              <div style="{{ s.segDemo }}"><button style="{{ s.segDemoActive }}">План</button><button style="{{ s.segDemoOff }}">Факт</button><button style="{{ s.segDemoOff }}">Δ</button></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ПОВЕРХНОСТИ -->
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">04 · ПОВЕРХНОСТИ</div>
+          <div style="{{ s.secTitle }}">Глубина из стопки, не из теней</div>
+          <div style="{{ s.secLead }}">Void → Carbon → Moss → Fern. На тёмной теме — плоско, иерархия только цветом поверхности.</div>
+          <div style="{{ s.surfStack }}">
+            <div style="{{ s.surf0 }}">Void · канва
+              <div style="{{ s.surf1 }}">Carbon · карта / навбар
+                <div style="{{ s.surf2 }}">Moss · контейнер
+                  <div style="{{ s.surf3 }}">Fern · активный</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ТАБЛИЦА -->
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">05 · ТАБЛИЦА</div>
+          <div style="{{ s.secTitle }}">Числа как фосфор</div>
+          <div style="{{ s.secLead }}">Моноширинные значения, зелёно-тонированные линии, итог — Reactor. Отрицательное — приглушённый коралл (в скобках).</div>
+          <div style="{{ s.tbl }}">
+            <div style="{{ s.tblHead }}"><div style="{{ s.tblHCell }}">Статья</div><div style="{{ s.tblHNum }}">М1</div><div style="{{ s.tblHNum }}">М2</div><div style="{{ s.tblHNum }}">Итого</div></div>
+            <sc-for list="{{ tableRows }}" as="r" hint-placeholder-count="4">
+            <div style="{{ r.rowStyle }}"><div style="{{ s.tblLabel }}">{{ r.label }}</div><sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="3"><div style="{{ c.style }}">{{ c.text }}</div></sc-for></div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- ЧИПЫ И СТАТУСЫ -->
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">06 · ЧИПЫ И СТАТУСЫ</div>
+          <div style="{{ s.secTitle }}">Один акцент, дисциплина смысла</div>
+          <div style="{{ s.chipRow }}">
+            <sc-for list="{{ chips }}" as="c" hint-placeholder-count="6"><span style="{{ c.style }}"><span style="{{ c.dotStyle }}"></span>{{ c.label }}</span></sc-for>
+          </div>
+        </div>
+
+        <!-- ГРАФИКИ -->
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">07 · ГРАФИКИ</div>
+          <div style="{{ s.secTitle }}">Палитра серий</div>
+          <div style="{{ s.secLead }}">Reactor и его оттенки + один коралл для «хуже плана». Сетка и оси — зелёно-тонированные.</div>
+          <div style="{{ s.chartCard }}">
+            <div style="{{ s.chartBox }}">{{ chartDemo }}</div>
+            <div style="{{ s.legendRow }}"><sc-for list="{{ chartLegend }}" as="l" hint-placeholder-count="4"><span style="{{ l.style }}"><span style="{{ l.dotStyle }}"></span>{{ l.label }}</span></sc-for></div>
+          </div>
+        </div>
+
+        <!-- КУБ -->
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">08 · ФИРМЕННЫЙ КУБ</div>
+          <div style="{{ s.secTitle }}">Единственный объект веса</div>
+          <div style="{{ s.secLead }}">Cube Hero — теперь единственный кубический компонент в системе, от навбара до сплеша: меняется только богатство сцены. Полная сцена (пол, звёзды, орбита частиц) — витринные моменты. Компакт — пустые состояния и вердикты. Мини — навигация. Не злоупотреблять — единственный тяжёлый объект в системе.</div>
+          <div style="{{ s.cubeRow }}">
+            <div style="{{ s.cubeCell }}"><div style="{{ s.cubeBoxLg }}"><dc-import name="Cube Hero" backdrop="transparent" style="width:100%;height:100%" hint-size="170px,170px"></dc-import></div><div style="{{ s.cubeCap }}">полная сцена · hero / CTA</div></div>
+            <div style="{{ s.cubeCell }}"><div style="{{ s.cubeBoxMd }}"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" style="width:100%;height:100%" hint-size="120px,120px"></dc-import></div><div style="{{ s.cubeCap }}">компакт · пустые состояния / вердикты</div></div>
+            <div style="{{ s.cubeCell }}"><div style="{{ s.cubeBoxSm }}"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="64px,64px"></dc-import></div><div style="{{ s.cubeCap }}">мини · навигация</div></div>
+          </div>
+        </div>
+
+        <div style="height:10px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { theme:'dark', device:'desktop' };
+
+  // ===== CANONICAL MODAL TOKENS — copy this whole THEME() into every screen on rollout =====
+  THEME(){
+    const dark={
+      pageBg:'#000000', bg:'#000000', surface:'#212525', surface2:'#2A312A', surface3:'#3E4A3C', sk:'#2A312A',
+      border:'#485346', borderStrong:'#677D64', gridLine:'#232823',
+      text:'#DDFFDC', muted:'#93A091', subtle:'#677D64',
+      primary:'#7FEE64', primaryHover:'#95F47D', primaryText:'#000000', accent:'#7FEE64',
+      primaryBg:'rgba(127,238,100,0.15)', primarySoft:'rgba(127,238,100,0.09)',
+      good:'#7FEE64', goodBg:'rgba(127,238,100,0.15)', goodBorder:'rgba(127,238,100,0.34)',
+      danger:'#F0796E', dangerHover:'#F4988F', dangerBg:'rgba(240,121,110,0.15)', dangerBorder:'rgba(240,121,110,0.34)',
+      warn:'#E0A23A', warnBg:'rgba(224,162,58,0.16)', warnBorder:'rgba(224,162,58,0.32)',
+      info:'#AED2A4', infoBg:'rgba(174,210,164,0.15)',
+      ring:'rgba(127,238,100,0.40)',
+      shadow:'0 30px 70px -34px rgba(0,0,0,0.9)', menuShadow:'0 28px 64px -18px rgba(0,0,0,0.85)',
+      barBg:'#0C0F0C', segBg:'#0B0E0B', segActiveBg:'#2A312A', headerBg:'#0C0F0C', brandMid:'#3E4A3C', brandTo:'#7FEE64'
+    };
+    const light={
+      pageBg:'#E4F1E0', bg:'#F4FAF2', surface:'#FFFFFF', surface2:'#EDF5EA', surface3:'#DEEBD8', sk:'#E3EEDF',
+      border:'#D2E4CD', borderStrong:'#B4CCAE', gridLine:'#E8F1E5',
+      text:'#16201A', muted:'#46584A', subtle:'#6E8270',
+      primary:'#7FEE64', primaryHover:'#6FE253', primaryText:'#06210E', accent:'#138A45',
+      primaryBg:'#DBF3D2', primarySoft:'#EAF8E4',
+      good:'#0E7A4F', goodBg:'#DBF1E2', goodBorder:'#B7DEC6',
+      danger:'#C0473B', dangerHover:'#A53A30', dangerBg:'#FAE7E4', dangerBorder:'#EECFCA',
+      warn:'#B07A12', warnBg:'#FBF0D8', warnBorder:'#ECDDB4',
+      info:'#5C7E54', infoBg:'#E6EFE2',
+      ring:'rgba(56,194,75,0.30)',
+      shadow:'0 18px 44px -22px rgba(20,40,24,0.22), 0 2px 6px rgba(20,40,24,0.05)', menuShadow:'0 24px 56px -16px rgba(20,40,24,0.28)',
+      barBg:'#FFFFFF', segBg:'#E7F0E3', segActiveBg:'#FFFFFF', headerBg:'#FFFFFF', brandMid:'#3E4A3C', brandTo:'#7FEE64'
+    };
+    return this.state.theme==='dark'?dark:light;
+  }
+  DIM(){ const d=this.state.device; if(d==='mobile')return{frame:402,radius:26,pad:16,cols:2,mob:true}; if(d==='tablet')return{frame:864,radius:18,pad:24,cols:4,mob:false}; return{frame:1240,radius:14,pad:34,cols:4,mob:false}; }
+
+  E(tag,p,k){ return React.createElement(tag,p,k); }
+
+  renderVals(){
+    const st=this.state, t=this.THEME(), d=this.DIM();
+    const FD="'Satoshi','Inter',-apple-system,sans-serif", FU="'Inter',-apple-system,sans-serif", FM="'JetBrains Mono',ui-monospace,monospace";
+    const seg=(a)=>`appearance:none;border:none;cursor:pointer;font:600 12px ${FU};padding:6px 11px;border-radius:7px;white-space:nowrap;color:${a?t.text:t.subtle};background:${a?t.segActiveBg:'transparent'};box-shadow:${a?'0 1px 2px rgba(0,0,0,.18)':'none'};transition:.14s;`;
+    const segWrap=`display:flex;gap:3px;padding:3px;background:${t.segBg};border-radius:9px;`;
+
+    // swatches
+    const sw=(name,val)=>{ const lum=this.lum(val); return {name,hex:(val[0]==='#'?val.toUpperCase():val),cardStyle:`display:flex;flex-direction:column;gap:0;border:1px solid ${t.border};border-radius:10px;overflow:hidden;background:${t.surface};`,chipStyle:`height:54px;background:${val};border-bottom:1px solid ${t.border};`}; };
+    const neutralSwatches=[sw('Void / canvas',t.pageBg),sw('Carbon · surface',t.surface),sw('Moss · surface 2',t.surface2),sw('Fern · surface 3',t.surface3),sw('Border',t.border),sw('Border strong',t.borderStrong),sw('Text',t.text),sw('Subtle',t.subtle)];
+    const accentSwatches=[sw('Reactor · primary',t.primary),sw('Accent · text',t.accent),sw('Soft glow',t.primarySoft),sw('Positive',t.good),sw('Danger',t.danger),sw('Warn',t.warn)];
+
+    // table
+    const cell=(text,kind)=>({text,style:`width:96px;flex:none;text-align:right;padding:11px 14px;font:600 12.5px ${FM};color:${kind==='neg'?t.danger:(kind==='grand'?t.primary:t.text)};`});
+    const mkRow=(label,a,b,tot,grand)=>({label,rowStyle:`display:flex;${grand?`background:${t.primarySoft};`:''}border-bottom:1px solid ${t.gridLine};`,cells:[cell(a),cell(b),cell(tot,grand?'grand':null)]});
+    const tableRows=[ mkRow('Поступления','4 120','4 380','25 900'), mkRow('Оплата материалов','(1 480)','(1 510)','(9 200)'), {label:'Прочие',rowStyle:`display:flex;border-bottom:1px solid ${t.gridLine};`,cells:[cell('(620)','neg'),cell('(640)','neg'),cell('(3 800)','neg')]}, mkRow('Чистый поток','2 020','2 230','12 900',true) ];
+
+    // chips
+    const chip=(label,kind)=>{ const map={active:[t.primary,t.primaryBg],neutral:[t.subtle,t.surface2],problem:[t.danger,t.dangerBg],warn:[t.warn,t.warnBg],info:[t.info,t.infoBg]}; const [c,bg]=map[kind];
+      return {label,style:`display:inline-flex;align-items:center;gap:7px;height:28px;padding:0 12px;border-radius:9999px;font:600 12px ${FU};color:${c};background:${bg};white-space:nowrap;`,dotStyle:`width:7px;height:7px;border-radius:50%;background:${c};flex:none;`}; };
+    const chips=[chip('Активно',' active'.trim()),chip('Рассчитан','active'),chip('Черновик','warn'),chip('Кассовый разрыв','problem'),chip('Дочерний','info'),chip('Наблюдатель','neutral')];
+
+    // chart palette
+    const PAL=this.state.theme==='dark'?['#7FEE64','#C8F9B6','#AED2A4','#677D64','#F0796E']:['#138A45','#5FA86A','#8FB98A','#6E8270','#C0473B'];
+    const chartLegend=['Выручка','Поток','EBITDA','Прочее','Хуже плана'].map((label,i)=>({label,style:`display:inline-flex;align-items:center;gap:6px;font:600 11.5px ${FU};color:${t.muted};`,dotStyle:`width:11px;height:3px;border-radius:2px;background:${PAL[i]};flex:none;`}));
+    const chartDemo=this.buildChart(t,PAL,FM);
+
+    const small=d.mob;
+    const s={
+      page:`min-height:100vh;background:${t.pageBg};color:${t.text};display:flex;flex-direction:column;transition:background .25s;`,
+      bar:`display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:12px 20px;background:${t.barBg};border-bottom:1px solid ${t.border};position:sticky;top:0;z-index:60;`,
+      barCube:`width:30px;height:30px;flex:none;border-radius:8px;overflow:hidden;`,
+      barTitle:`font:600 13px ${FU};letter-spacing:-.01em;color:${t.text};white-space:nowrap;`,
+      barSub:`font:500 11px ${FU};color:${t.subtle};white-space:nowrap;`,
+      barLabel:`font:600 9.5px ${FU};letter-spacing:.08em;text-transform:uppercase;color:${t.subtle};`,
+      seg:segWrap, segLight:seg(st.theme==='light'),segDark:seg(st.theme==='dark'),segDesktop:seg(st.device==='desktop'),segTablet:seg(st.device==='tablet'),segMobile:seg(st.device==='mobile'),
+
+      stage:`flex:1;display:flex;justify-content:center;align-items:flex-start;padding:${small?'22px 10px':'34px 24px'};`,
+      frame:`position:relative;width:100%;max-width:${d.frame}px;background:${t.bg};border:1px solid ${t.border};border-radius:${d.radius}px;box-shadow:${t.shadow};overflow:hidden;`,
+
+      hero:`display:flex;align-items:center;justify-content:space-between;gap:30px;padding:${small?'34px 20px':'58px '+d.pad+'px'};background:${t.pageBg};border-bottom:1px solid ${t.border};${small?'flex-direction:column;text-align:center;':''}`,
+      heroText:`min-width:0;max-width:560px;`,
+      eyebrow:`display:inline-flex;align-items:center;gap:8px;font:600 12px ${FU};letter-spacing:.1em;text-transform:uppercase;color:${t.accent};`,
+      eyebrowDot:`width:6px;height:6px;border-radius:50%;background:${t.primary};`,
+      display:`font:500 ${small?34:54}px/1.05 ${FD};letter-spacing:-.03em;color:${t.text};margin:16px 0 0;`,
+      heroSub:`font:400 ${small?15:16.5}px/1.55 ${FU};letter-spacing:-.01em;color:${t.muted};margin:18px 0 0;`,
+      ctaRow:`display:flex;gap:12px;margin-top:26px;flex-wrap:wrap;${small?'justify-content:center;':''}`,
+      heroCube:`width:${small?180:230}px;height:${small?180:230}px;flex:none;border-radius:16px;overflow:hidden;`,
+
+      btnPrimary:`appearance:none;border:none;cursor:pointer;height:42px;padding:0 22px;border-radius:4px;background:${t.primary};color:${t.primaryText};font:600 14px ${FU};letter-spacing:-.01em;transition:.14s;`,
+      btnPrimaryHover:`background:${t.primaryHover};`,
+      btnGhost:`appearance:none;cursor:pointer;height:42px;padding:0 20px;border-radius:4px;background:transparent;border:1px solid ${t.border};color:${t.text};font:600 14px ${FU};transition:.14s;`,
+      btnGhostHover:`border-color:${t.primary};`,
+      btnDanger:`appearance:none;border:none;cursor:pointer;height:42px;padding:0 20px;border-radius:4px;background:${t.danger};color:#fff;font:600 14px ${FU};transition:.14s;`,
+      btnDangerHover:`background:${t.dangerHover};`,
+      textLink:`cursor:pointer;align-self:center;font:600 14px ${FU};color:${t.accent};border-bottom:1px solid ${t.borderStrong};border-radius:8px;padding-bottom:1px;`,
+
+      body:`padding:${small?22:36}px ${d.pad}px;display:flex;flex-direction:column;gap:${small?40:56}px;`,
+      section:`animation:sg-fade .3s ease;`,
+      secEyebrow:`font:600 11px ${FU};letter-spacing:.1em;text-transform:uppercase;color:${t.subtle};`,
+      secTitle:`font:500 ${small?22:30}px/1.15 ${FD};letter-spacing:-.025em;color:${t.text};margin:10px 0 0;`,
+      secLead:`font:400 14px/1.6 ${FU};color:${t.muted};margin:10px 0 22px;max-width:640px;`,
+
+      swGroupLabel:`font:600 11px ${FU};letter-spacing:.06em;text-transform:uppercase;color:${t.subtle};margin:18px 0 11px;`,
+      swatchGrid:`display:grid;grid-template-columns:repeat(${d.cols},1fr);gap:12px;`,
+      swMeta:`padding:9px 11px;`, swName:`font:600 12px ${FU};color:${t.text};`, swHex:`font:500 11px ${FM};color:${t.subtle};margin-top:2px;`,
+
+      typeCard:`background:${t.surface};border:1px solid ${t.border};border-radius:16px;padding:6px 20px;`,
+      typeRow:`display:flex;align-items:baseline;gap:18px;padding:16px 0;border-bottom:1px solid ${t.gridLine};${small?'flex-direction:column;gap:6px;':''}`,
+      typeTag:`width:120px;flex:none;font:500 11px ${FM};color:${t.subtle};`,
+      typeDisplay:`font:500 40px ${FD};letter-spacing:-.03em;color:${t.text};`,
+      typeHeading:`font:500 28px ${FD};letter-spacing:-.02em;color:${t.text};`,
+      typeSub:`font:500 20px ${FU};letter-spacing:-.01em;color:${t.text};`,
+      typeBody:`font:400 16px/1.5 ${FU};color:${t.muted};`,
+      typeEyebrow:`font:600 12px ${FU};letter-spacing:.1em;text-transform:uppercase;color:${t.accent};`,
+      typeMono:`font:600 20px ${FM};color:${t.good};`,
+
+      ctrlCard:`background:${t.surface};border:1px solid ${t.border};border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:16px;`,
+      ctrlRow:`display:flex;gap:12px;flex-wrap:wrap;align-items:center;`,
+      input:`height:42px;border-radius:8px;background:${t.bg};border:1.5px solid ${t.border};color:${t.text};font:500 14px ${FU};padding:0 14px;outline:none;min-width:200px;flex:1;transition:.14s;`,
+      inputFocus:`border-color:${t.primary};box-shadow:0 0 0 3px ${t.ring};`,
+      segDemo:`display:flex;gap:3px;padding:3px;background:${t.segBg};border-radius:8px;`,
+      segDemoActive:`appearance:none;border:none;cursor:pointer;font:600 12.5px ${FU};padding:7px 14px;border-radius:5px;color:${t.text};background:${t.segActiveBg};box-shadow:0 1px 2px rgba(0,0,0,.18);`,
+      segDemoOff:`appearance:none;border:none;cursor:pointer;font:600 12.5px ${FU};padding:7px 14px;border-radius:5px;color:${t.subtle};background:transparent;`,
+
+      surfStack:`background:${t.pageBg};border:1px solid ${t.border};border-radius:16px;padding:20px;font:600 12px ${FU};color:${t.subtle};`,
+      surf0:`padding:18px;border-radius:12px;background:${t.pageBg};`,
+      surf1:`margin-top:12px;padding:18px;border-radius:12px;background:${t.surface};color:${t.text};border:1px solid ${t.border};`,
+      surf2:`margin-top:12px;padding:18px;border-radius:10px;background:${t.surface2};color:${t.text};`,
+      surf3:`margin-top:12px;padding:14px;border-radius:8px;background:${t.surface3};color:${t.text};`,
+
+      tbl:`border:1px solid ${t.border};border-radius:14px;overflow:hidden;background:${t.surface};`,
+      tblHead:`display:flex;background:${t.surface2};border-bottom:1.5px solid ${t.border};`,
+      tblHCell:`flex:1;min-width:120px;padding:10px 14px;font:600 10.5px ${FU};letter-spacing:.05em;text-transform:uppercase;color:${t.subtle};`,
+      tblHNum:`width:96px;flex:none;text-align:right;padding:10px 14px;font:600 10.5px ${FU};letter-spacing:.05em;text-transform:uppercase;color:${t.subtle};`,
+      tblLabel:`flex:1;min-width:120px;padding:11px 14px;font:600 13px ${FU};color:${t.text};`,
+
+      chipRow:`display:flex;gap:10px;flex-wrap:wrap;`,
+      chartCard:`background:${t.surface};border:1px solid ${t.border};border-radius:16px;padding:18px;`,
+      chartBox:`width:100%;height:200px;`,
+      legendRow:`display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;`,
+
+      cubeRow:`display:flex;gap:22px;flex-wrap:wrap;align-items:flex-end;`,
+      cubeCell:`display:flex;flex-direction:column;align-items:center;gap:10px;`,
+      cubeBoxLg:`width:170px;height:170px;background:${t.pageBg};border:1px solid ${t.border};border-radius:16px;overflow:hidden;`,
+      cubeBoxMd:`width:120px;height:120px;background:${t.pageBg};border:1px solid ${t.border};border-radius:14px;overflow:hidden;`,
+      cubeBoxSm:`width:64px;height:64px;background:${t.surface};border:1px solid ${t.border};border-radius:12px;overflow:hidden;`,
+      cubeCap:`font:500 11.5px ${FU};color:${t.subtle};`
+    };
+
+    return {s,
+      neutralSwatches, accentSwatches, tableRows, chips, chartLegend, chartDemo,
+      setLight:()=>this.setState({theme:'light'}),setDark:()=>this.setState({theme:'dark'}),
+      setDesktop:()=>this.setState({device:'desktop'}),setTablet:()=>this.setState({device:'tablet'}),setMobile:()=>this.setState({device:'mobile'})
+    };
+  }
+
+  lum(){ return 0; }
+  buildChart(t,PAL,FM){
+    const E=this.E.bind(this); const W=560,H=200,mL=20,mR=14,mT=16,mB=24; const x0=mL,x1=W-mR,y0=H-mB,y1=mT,iw=x1-x0,ih=y0-y1;
+    const series=[ [8,10,9,13,15,18], [6,7,9,8,11,13], [4,5,5,7,8,9] ];
+    const max=20,min=0; const n=series[0].length;
+    const X=(i)=>x0+(i/(n-1))*iw, Y=(v)=>y0-(v-min)/(max-min)*ih;
+    const kids=[];
+    for(let k=0;k<=4;k++){ const v=min+(max-min)*k/4, y=Y(v); kids.push(E('line',{key:'g'+k,x1:x0,y1:y,x2:x1,y2:y,stroke:t.gridLine,strokeWidth:1})); kids.push(E('text',{key:'t'+k,x:x0-4,y:y+3,textAnchor:'end',style:{font:'600 9px '+FM,fill:t.subtle}},String(Math.round(v)))); }
+    series.forEach((s,si)=>{ const pts=s.map((v,i)=>X(i).toFixed(1)+','+Y(v).toFixed(1)).join(' '); kids.push(E('polyline',{key:'l'+si,points:pts,fill:'none',stroke:PAL[si],strokeWidth:si===0?2.6:1.8,strokeLinecap:'round',strokeLinejoin:'round',opacity:si===0?1:.85})); s.forEach((v,i)=>{ if(si===0)kids.push(E('circle',{key:'m'+si+i,cx:X(i),cy:Y(v),r:3,fill:PAL[si],stroke:t.surface,strokeWidth:1.4})); }); });
+    return E('svg',{width:'100%',height:'100%',viewBox:'0 0 '+W+' '+H,preserveAspectRatio:'xMidYMid meet',style:{display:'block'}},kids);
+  }
+}
+</script>
+</body>
+</html>

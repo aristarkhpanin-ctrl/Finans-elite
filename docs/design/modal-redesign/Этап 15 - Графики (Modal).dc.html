@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Inter';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-600-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:700;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-700-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-600-normal.woff2') format('woff2');}
+</style>
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  .fe-scroll::-webkit-scrollbar{height:10px;width:10px;}
+  .fe-scroll::-webkit-scrollbar-thumb{background:rgba(120,113,108,.4);border-radius:5px;border:3px solid transparent;background-clip:padding-box;}
+  .fe-scroll::-webkit-scrollbar-track{background:transparent;}
+  @keyframes fe-pulse{from{opacity:.5}to{opacity:1}}
+  @keyframes fe-fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}" data-screen-label="15 — Графики">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+      <div style="width:26px;height:26px;flex:none;border-radius:8px;overflow:hidden;"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="26px,26px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Этап&nbsp;15 · Графики</span>
+        <span style="{{ s.barSub }}">Финанс-Элит · 6 визуализаций</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Горизонт</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segN3 }}" onClick="{{ setN3 }}">3</button><button style="{{ s.segN12 }}" onClick="{{ setN12 }}">12</button><button style="{{ s.segN24 }}" onClick="{{ setN24 }}">24</button></div></div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Состояние</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segReady }}" onClick="{{ setReady }}">Готово</button><button style="{{ s.segEmpty }}" onClick="{{ setEmpty }}">Пусто</button><button style="{{ s.segLoad }}" onClick="{{ setLoad }}">Загрузка</button></div></div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Свет</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тьма</button></div></div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div></div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}">
+
+      <div style="{{ s.rHeader }}">
+        <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1;">
+          <button style="{{ s.backBtn }}">←</button>
+          <div style="min-width:0;"><div style="{{ s.rTitle }}">Результаты</div><div style="{{ s.rProject }}">Завод полимерной упаковки</div></div>
+        </div>
+        <div style="{{ s.rActions }}"><span style="{{ s.versionChip }}">движок 0.9.9</span><button style="{{ s.exportBtn }}">PNG</button><button style="{{ s.exportBtn }}">Печать</button></div>
+      </div>
+
+      <div style="{{ s.tabBarWrap }}"><div style="{{ s.tabBar }}" class="fe-scroll">
+        <sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="7"><button style="{{ tb.style }}">{{ tb.label }}</button></sc-for>
+      </div></div>
+
+      <div style="{{ s.content }}">
+
+        <div style="{{ s.pageHead }}">
+          <div style="min-width:0;">
+            <div style="{{ s.pageTitle }}">Аналитические графики</div>
+            <div style="{{ s.pageSub }}">6 визуализаций на единой графической теме · горизонт {{ nLabel }} мес</div>
+          </div>
+        </div>
+
+        <div style="{{ s.gridWrap }}">
+          <sc-for list="{{ cards }}" as="c" hint-placeholder-count="6">
+          <div data-chart-card="{{ c.id }}" style="{{ c.cardStyle }}">
+            <div style="{{ s.cardHead }}"><div style="min-width:0;"><div style="{{ s.cardTitle }}">{{ c.title }}</div><div style="{{ s.cardSub }}">{{ c.sub }}</div></div></div>
+            <sc-if value="{{ c.showLegend }}" hint-placeholder-val="{{ true }}">
+            <div style="{{ s.legendWrap }}"><sc-for list="{{ c.legend }}" as="lg" hint-placeholder-count="3"><span style="{{ lg.style }}"><span style="{{ lg.dotStyle }}"></span>{{ lg.label }}<sc-if value="{{ lg.value }}" hint-placeholder-val=""><span style="{{ s.legVal }}">{{ lg.value }}</span></sc-if></span></sc-for></div>
+            </sc-if>
+            <sc-if value="{{ c.loading }}" hint-placeholder-val="{{ false }}"><div style="{{ c.skBox }}"></div></sc-if>
+            <sc-if value="{{ c.show }}" hint-placeholder-val="{{ true }}"><div style="{{ c.chartBox }}">{{ c.el }}</div></sc-if>
+            <sc-if value="{{ c.hasTip }}" hint-placeholder-val="{{ false }}">
+            <div style="{{ c.tipStyle }}"><div style="{{ s.tipTitle }}">{{ c.tipTitle }}</div><sc-for list="{{ c.tipRows }}" as="r" hint-placeholder-count="2"><div style="{{ s.tipRow }}"><span style="{{ r.dotStyle }}"></span><span style="{{ s.tipLabel }}">{{ r.label }}</span><span style="{{ s.tipVal }}">{{ r.val }}</span></div></sc-for></div>
+            </sc-if>
+          </div>
+          </sc-for>
+        </div>
+
+        <div style="{{ s.bottomPad }}"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { theme:'light', device:'desktop', N:12, calc:'ready', tip:null };
+
+  THEME(){
+    const light={pageBg:'#F3F2F0',bg:'#FAFAF9',surface:'#FFFFFF',surface2:'#F5F5F4',border:'#E7E5E4',borderStrong:'#D6D3D1',gridLine:'#EFEDEB',text:'#1C1917',muted:'#57534E',subtle:'#A8A29E',primary:'#0E9C6E',primaryHover:'#0B8560',primaryText:'#FFFFFF',primaryBg:'#E2F4EC',danger:'#C13A30',sk:'#ECEAE8',shadow:'0 18px 48px -20px rgba(28,25,23,.28), 0 2px 6px rgba(28,25,23,.05)',barBg:'#FFFFFF',segBg:'#F0EEEC',segActiveBg:'#FFFFFF',headerBg:'#FFFFFF',brandMid:'#0C7250',brandTo:'#0E9C6E'};
+    const dark={pageBg:'#141210',bg:'#1A1816',surface:'#232020',surface2:'#2C2825',border:'#39332F',borderStrong:'#4A433E',gridLine:'#332E2A',text:'#F6F4F2',muted:'#B7B0A9',subtle:'#7E756D',primary:'#12B07D',primaryHover:'#19C28B',primaryText:'#06241A',primaryBg:'rgba(18,176,125,.16)',danger:'#F0796E',sk:'#2F2B27',shadow:'0 28px 64px -24px rgba(0,0,0,.72)',barBg:'#1E1B19',segBg:'#16140F',segActiveBg:'#2C2825',headerBg:'#1E1B19',brandMid:'#0A5A40',brandTo:'#0E7A57'};
+    return this.state.theme==='dark'?{...dark,pageBg:'#000000',bg:'#0C0F0C',surface:'#212525',surface2:'#2A312A',sk:'#2A312A',cellBg:'#161A16',border:'#485346',borderStrong:'#677D64',gridLine:'#232823',text:'#DDFFDC',muted:'#93A091',subtle:'#677D64',primary:'#7FEE64',primaryHover:'#95F47D',primaryText:'#000000',accent:'#7FEE64',primaryBg:'rgba(127,238,100,.15)',primarySoft:'rgba(127,238,100,.09)',good:'#7FEE64',goodBg:'rgba(127,238,100,.15)',goodBorder:'rgba(127,238,100,.32)',danger:'#F0796E',dangerHover:'#F4988F',dangerBg:'rgba(240,121,110,.15)',dangerBorder:'rgba(240,121,110,.32)',dangerText:'#F4B0A8',warn:'#E0A23A',warnBg:'rgba(224,162,58,.16)',warnBorder:'rgba(224,162,58,.32)',info:'#AED2A4',infoBg:'rgba(174,210,164,.15)',ring:'rgba(127,238,100,.4)',shadow:'0 30px 70px -34px rgba(0,0,0,.9)',menuShadow:'0 22px 52px -16px rgba(0,0,0,.82)',barBg:'#0C0F0C',barBorder:'#1D231D',segBg:'#0B0E0B',segActiveBg:'#2A312A',headerBg:'#0C0F0C',stickyBg:'#212525',brandMid:'#3E4A3C',brandTo:'#7FEE64',violet:'#C8F9B6',violetBg:'rgba(200,249,182,.14)',subtotalBg:'#1C201C',grandBg:'rgba(127,238,100,.12)',hov:'#262C25',hovlab:'#2C322B',ico1:'#7FEE64',ico1Bg:'rgba(127,238,100,.15)',ico2:'#AED2A4',ico2Bg:'rgba(174,210,164,.15)',ico3:'#C8F9B6',ico3Bg:'rgba(200,249,182,.14)',ico4:'#E0A23A',ico4Bg:'rgba(224,162,58,.16)',inputBg:'#161A16',success:'#7FEE64',successBg:'rgba(127,238,100,.16)'}:{...light,pageBg:'#E4F1E0',bg:'#F4FAF2',surface:'#FFFFFF',surface2:'#EDF5EA',sk:'#E3EEDF',cellBg:'#FFFFFF',border:'#D2E4CD',borderStrong:'#B4CCAE',gridLine:'#E8F1E5',text:'#16201A',muted:'#46584A',subtle:'#6E8270',primary:'#7FEE64',primaryHover:'#6FE253',primaryText:'#06210E',accent:'#138A45',primaryBg:'#DBF3D2',primarySoft:'#EAF8E4',good:'#0E7A4F',goodBg:'#DBF1E2',goodBorder:'#B7DEC6',danger:'#C0473B',dangerHover:'#A53A30',dangerBg:'#FAE7E4',dangerBorder:'#EECFCA',dangerText:'#8F2F26',warn:'#B07A12',warnBg:'#FBF0D8',warnBorder:'#ECDDB4',info:'#3E7D52',infoBg:'#E6EFE2',ring:'rgba(56,194,75,.3)',shadow:'0 18px 44px -22px rgba(20,40,24,.22), 0 2px 6px rgba(20,40,24,.05)',menuShadow:'0 24px 56px -16px rgba(20,40,24,.28)',barBg:'#FFFFFF',barBorder:'#D2E4CD',segBg:'#E7F0E3',segActiveBg:'#FFFFFF',headerBg:'#FFFFFF',stickyBg:'#FFFFFF',brandMid:'#138A45',brandTo:'#7FEE64',violet:'#3E7D52',violetBg:'#E6EFE2',subtotalBg:'#EDF3EA',grandBg:'#DBF1E2',hov:'#F1F7EE',hovlab:'#EAF2E6',ico1:'#138A45',ico1Bg:'#DBF3D2',ico2:'#3E7D52',ico2Bg:'#E6EFE2',ico3:'#5FA86A',ico3Bg:'#E3F0DE',ico4:'#B07A12',ico4Bg:'#FBF0D8',inputBg:'#FFFFFF',success:'#0E7A4F',successBg:'#DBF1E2'};
+  }
+  DIM(){const dv=this.state.device,m=dv==='mobile',tab=dv==='tablet'; return {frame:m?402:tab?864:1240, radius:m?30:tab?18:14, pad:m?14:tab?20:30, mobile:m};}
+  PAL(){ const dk=this.state.theme==='dark';
+    const cat=dk?['#7FEE64','#AED2A4','#C8F9B6','#E0A23A','#F0796E','#5FD9A6','#9BD08E']:['#138A45','#3E7D52','#5FA86A','#B07A12','#C0473B','#1E9E6E','#6B9E5E'];
+    const t=this.THEME(); return {op:cat[0],inv:cat[2],cash:cat[3],pos:t.primary,neg:t.danger,cat}; }
+
+  E(tag,props,kids){ return React.createElement(tag,props,kids); }
+  svg(P,kids){ return this.E('svg',{width:'100%',height:'100%',viewBox:'0 0 '+P.w+' '+P.h,preserveAspectRatio:'xMidYMid meet',style:{display:'block'}},kids); }
+  frame(P){ return {x0:P.mL,x1:P.w-P.mR,y0:P.h-P.mB,y1:P.mT,iw:P.w-P.mL-P.mR,ih:P.h-P.mT-P.mB}; }
+  ax(v){ const a=Math.abs(v); if(a>=1e6){ let s=(v/1e6).toFixed(a<1e7?1:0).replace('.',','); return s+'м'; } if(a>=1e3) return Math.round(v/1e3)+'к'; return Math.round(v)+''; }
+  money(v){ const neg=v<0,a=Math.abs(Math.round(v)); let s=String(a).replace(/\B(?=(\d{3})+(?!\d))/g,'\u00A0'); return (neg?'\u2212':'')+s+' \u20BD'; }
+  monthLabels(N){ return Array.from({length:N},(_,i)=> (N<=12||i%3===0||i===N-1)?('М'+(i+1)):null); }
+
+  axisLayer(ctx,F,min,max,labels,zeroEmph){
+    const E=this.E.bind(this),t=ctx.t,kids=[],ticks=4;
+    for(let k=0;k<=ticks;k++){ const v=min+(max-min)*k/ticks; const y=F.y0-(v-min)/((max-min)||1)*F.ih; const zero=Math.abs(v)<1e-6;
+      kids.push(E('line',{key:'g'+k,x1:F.x0,y1:y,x2:F.x1,y2:y,stroke:(zero&&zeroEmph)?t.borderStrong:t.gridLine,strokeWidth:(zero&&zeroEmph)?1.4:1}));
+      kids.push(E('text',{key:'gl'+k,x:F.x0-8,y:y+3.5,textAnchor:'end',style:{font:"600 10px 'JetBrains Mono',monospace",fill:t.subtle}}, this.ax(v))); }
+    if(labels){ const n=labels.length; labels.forEach((lb,i)=>{ if(lb==null)return; const x=F.x0+(i+0.5)/n*F.iw; kids.push(E('text',{key:'x'+i,x:x,y:F.y0+16,textAnchor:'middle',style:{font:"600 9.5px 'JetBrains Mono',monospace",fill:t.subtle}}, lb)); }); }
+    return kids;
+  }
+  hoverBand(ctx,i,n,F,card,title,rows){ return this.E('rect',{key:'hb'+i,x:F.x0+i/n*F.iw,y:F.y1,width:F.iw/n,height:F.ih,fill:'transparent',style:{cursor:'crosshair'},onMouseEnter:ctx.mkTip(card,title,rows),onMouseMove:ctx.mkTip(card,title,rows),onMouseLeave:ctx.clearTip}); }
+  emptyEl(ctx,P){ const E=this.E.bind(this),t=ctx.t,F=this.frame(P); return this.svg(P,[
+    E('rect',{key:'r',x:F.x0,y:F.y1,width:F.iw,height:F.ih,fill:'none',stroke:t.gridLine,strokeWidth:1,strokeDasharray:'4 5',rx:8}),
+    E('text',{key:'t',x:P.w/2,y:P.h/2-2,textAnchor:'middle',style:{font:"600 13px Inter,sans-serif",fill:t.subtle}},'Нет данных для графика'),
+    E('text',{key:'t2',x:P.w/2,y:P.h/2+16,textAnchor:'middle',style:{font:"500 10px Inter,sans-serif",fill:t.subtle}},'Запустите расчёт, чтобы построить визуализацию') ]); }
+
+  chartCashflow(ctx,op,inv,cash){
+    const E=this.E.bind(this),P=ctx.P,F=this.frame(P),N=ctx.N,pal=ctx.pal;
+    let bmin=Math.min(0,...op,...inv),bmax=Math.max(0,...op,...inv); const pd=(bmax-bmin)*0.08; bmin-=pd; bmax+=pd;
+    const Yb=(v)=>F.y0-(v-bmin)/((bmax-bmin)||1)*F.ih;
+    const cmin=Math.min(...cash)*0.92,cmax=Math.max(...cash)*1.05; const Yc=(v)=>F.y0-(v-cmin)/((cmax-cmin)||1)*F.ih;
+    const kids=this.axisLayer(ctx,F,bmin,bmax,this.monthLabels(N),true);
+    const band=F.iw/N,bw=Math.min(band*0.3,15),z=Yb(0);
+    for(let i=0;i<N;i++){ const cx=F.x0+(i+0.5)*band;
+      const oy=Yb(op[i]); kids.push(E('rect',{key:'o'+i,x:cx-bw-1.5,y:Math.min(oy,z),width:bw,height:Math.abs(oy-z),rx:2,fill:pal.op}));
+      const iy=Yb(inv[i]); kids.push(E('rect',{key:'i'+i,x:cx+1.5,y:Math.min(iy,z),width:bw,height:Math.abs(iy-z),rx:2,fill:pal.inv})); }
+    const pts=cash.map((v,i)=>(F.x0+(i+0.5)*band).toFixed(1)+','+Yc(v).toFixed(1)).join(' ');
+    kids.push(E('polyline',{key:'cl',points:pts,fill:'none',stroke:pal.cash,strokeWidth:2.2,strokeLinecap:'round',strokeLinejoin:'round'}));
+    cash.forEach((v,i)=>kids.push(E('circle',{key:'cc'+i,cx:F.x0+(i+0.5)*band,cy:Yc(v),r:2.3,fill:pal.cash})));
+    for(let i=0;i<N;i++) kids.push(this.hoverBand(ctx,i,N,F,'cashflow','М'+(i+1),[{label:'Операционный',val:ctx.money(op[i]),dot:pal.op},{label:'Инвестиционный',val:ctx.money(inv[i]),dot:pal.inv},{label:'Остаток денег',val:ctx.money(cash[i]),dot:pal.cash}]));
+    return this.svg(P,kids);
+  }
+  chartPayback(ctx,cum){
+    const E=this.E.bind(this),t=ctx.t,P=ctx.P,F=this.frame(P),N=ctx.N,pal=ctx.pal;
+    let min=Math.min(0,...cum),max=Math.max(0,...cum); const sp=(max-min)||1; min-=sp*0.1; max+=sp*0.1;
+    const Y=(v)=>F.y0-(v-min)/((max-min)||1)*F.ih, band=F.iw/N, cx=(i)=>F.x0+(i+0.5)*band, zeroY=Y(0);
+    const kids=this.axisLayer(ctx,F,min,max,this.monthLabels(N),false);
+    const lp=cum.map((v,i)=>cx(i).toFixed(1)+','+Y(v).toFixed(1));
+    kids.push(E('polygon',{key:'ar',points:cx(0).toFixed(1)+','+zeroY.toFixed(1)+' '+lp.join(' ')+' '+cx(N-1).toFixed(1)+','+zeroY.toFixed(1),fill:pal.pos,opacity:.14}));
+    kids.push(E('polyline',{key:'ln',points:lp.join(' '),fill:'none',stroke:pal.pos,strokeWidth:2.4,strokeLinecap:'round',strokeLinejoin:'round'}));
+    kids.push(E('line',{key:'z',x1:F.x0,y1:zeroY,x2:F.x1,y2:zeroY,stroke:t.danger,strokeWidth:1.4,strokeDasharray:'6 4'}));
+    kids.push(E('text',{key:'zt',x:F.x1-2,y:zeroY-5,textAnchor:'end',style:{font:"600 9px 'JetBrains Mono',monospace",fill:t.danger}},'0 — окупаемость'));
+    let pb=-1; for(let i=0;i<N;i++){ if(cum[i]>=0){pb=i;break;} }
+    if(pb>=0){ const px=cx(pb);
+      kids.push(E('line',{key:'pl',x1:px,y1:F.y1,x2:px,y2:F.y0,stroke:pal.pos,strokeWidth:1.4,strokeDasharray:'4 3'}));
+      kids.push(E('circle',{key:'pc',cx:px,cy:Y(cum[pb]),r:3.2,fill:pal.pos,stroke:t.surface,strokeWidth:1.4}));
+      kids.push(E('text',{key:'pt',x:px,y:F.y1+10,textAnchor:px>F.x0+F.iw*0.7?'end':'middle',style:{font:"700 9.5px Inter,sans-serif",fill:pal.pos}},'Окупаемость · М'+(pb+1))); }
+    for(let i=0;i<N;i++) kids.push(this.hoverBand(ctx,i,N,F,'payback','М'+(i+1),[{label:'Накопл. поток',val:ctx.money(cum[i]),dot:pal.pos}]));
+    return this.svg(P,kids);
+  }
+  chartNet(ctx,net){
+    const E=this.E.bind(this),P=ctx.P,F=this.frame(P),N=ctx.N,pal=ctx.pal;
+    let min=Math.min(0,...net),max=Math.max(0,...net); const pd=(max-min)*0.1; min-=pd; max+=pd;
+    const Y=(v)=>F.y0-(v-min)/((max-min)||1)*F.ih, band=F.iw/N, bw=Math.min(band*0.5,20), z=Y(0);
+    const kids=this.axisLayer(ctx,F,min,max,this.monthLabels(N),true);
+    for(let i=0;i<N;i++){ const cx=F.x0+(i+0.5)*band, y=Y(net[i]), pos=net[i]>=0;
+      kids.push(E('rect',{key:'b'+i,x:cx-bw/2,y:Math.min(y,z),width:bw,height:Math.abs(y-z),rx:2.5,fill:pos?pal.pos:pal.neg})); }
+    for(let i=0;i<N;i++) kids.push(this.hoverBand(ctx,i,N,F,'net','М'+(i+1),[{label:'Чистая прибыль',val:ctx.money(net[i]),dot:net[i]>=0?pal.pos:pal.neg}]));
+    return this.svg(P,kids);
+  }
+  chartAssets(ctx,comps,labels){
+    const E=this.E.bind(this),t=ctx.t,P=ctx.P,F=this.frame(P),N=ctx.N,pal=ctx.pal;
+    const totals=Array.from({length:N},(_,i)=>comps.reduce((a,c)=>a+c[i],0)), max=Math.max(...totals)*1.05||1;
+    const Y=(v)=>F.y0-v/max*F.ih, band=F.iw/N, bw=Math.min(band*0.6,26);
+    const kids=this.axisLayer(ctx,F,0,max,this.monthLabels(N),false);
+    for(let i=0;i<N;i++){ const cx=F.x0+(i+0.5)*band; let acc=0;
+      comps.forEach((c,k)=>{ const v=c[i],y0=Y(acc),y1=Y(acc+v); acc+=v; kids.push(E('rect',{key:'s'+i+'_'+k,x:cx-bw/2,y:y1,width:bw,height:Math.max(y0-y1,0),fill:pal.cat[k]})); }); }
+    for(let i=0;i<N;i++){ const rows=comps.map((c,k)=>({label:labels[k],val:ctx.money(c[i]),dot:pal.cat[k]})); rows.push({label:'Суммарный актив',val:ctx.money(totals[i]),dot:t.text}); kids.push(this.hoverBand(ctx,i,N,F,'assets','М'+(i+1),rows)); }
+    return this.svg(P,kids);
+  }
+  chartCosts(ctx,values,labels){
+    const E=this.E.bind(this),t=ctx.t,P=ctx.P,pal=ctx.pal,total=values.reduce((a,b)=>a+b,0)||1;
+    const cx=P.w*0.42,cy=P.h*0.52,r=Math.min(P.w*0.3,P.h*0.4),ri=r*0.58; let ang=-Math.PI/2; const kids=[];
+    values.forEach((v,k)=>{ const a2=ang+v/total*Math.PI*2, large=(a2-ang)>Math.PI?1:0;
+      const x1=cx+r*Math.cos(ang),y1=cy+r*Math.sin(ang),x2=cx+r*Math.cos(a2),y2=cy+r*Math.sin(a2),xi2=cx+ri*Math.cos(a2),yi2=cy+ri*Math.sin(a2),xi1=cx+ri*Math.cos(ang),yi1=cy+ri*Math.sin(ang);
+      const d='M'+x1+','+y1+' A'+r+','+r+' 0 '+large+' 1 '+x2+','+y2+' L'+xi2+','+yi2+' A'+ri+','+ri+' 0 '+large+' 0 '+xi1+','+yi1+' Z';
+      const pct=(v/total*100).toFixed(1).replace('.',','); const rows=[{label:'Сумма',val:ctx.money(v),dot:pal.cat[k]},{label:'Доля',val:pct+'%',dot:pal.cat[k]}];
+      kids.push(E('path',{key:'p'+k,d:d,fill:pal.cat[k],stroke:t.surface,strokeWidth:1.5,style:{cursor:'crosshair'},onMouseEnter:ctx.mkTip('costs',labels[k],rows),onMouseMove:ctx.mkTip('costs',labels[k],rows),onMouseLeave:ctx.clearTip})); ang=a2; });
+    kids.push(E('text',{key:'c1',x:cx,y:cy-2,textAnchor:'middle',style:{font:"700 16px 'JetBrains Mono',monospace",fill:t.text}}, this.ax(total)));
+    kids.push(E('text',{key:'c2',x:cx,y:cy+14,textAnchor:'middle',style:{font:"600 9px Inter,sans-serif",fill:t.subtle}},'издержки, ₽'));
+    return this.svg(P,kids);
+  }
+  chartValuation(ctx,methods){
+    const E=this.E.bind(this),t=ctx.t,P=ctx.P,F=this.frame(P),pal=ctx.pal,vals=methods.map(m=>m[1]);
+    let min=Math.min(0,...vals),max=Math.max(0,...vals); const pd=(max-min)*0.16; min-=pd; max+=pd;
+    const Y=(v)=>F.y0-(v-min)/((max-min)||1)*F.ih, n=methods.length, band=F.iw/n, bw=Math.min(band*0.5,48), z=Y(0);
+    const kids=this.axisLayer(ctx,F,min,max,null,true);
+    kids.push(E('text',{key:'un',x:F.x0,y:F.y1-3,style:{font:"600 9px Inter,sans-serif",fill:t.subtle}},'млн ₽'));
+    methods.forEach((m,k)=>{ const cx=F.x0+(k+0.5)*band, v=m[1], y=Y(v), pos=v>=0, rows=[{label:'Оценка',val:ctx.money(v*1e6),dot:pos?pal.pos:pal.neg}];
+      kids.push(E('rect',{key:'b'+k,x:cx-bw/2,y:Math.min(y,z),width:bw,height:Math.abs(y-z),rx:3,fill:pos?pal.pos:pal.neg,style:{cursor:'crosshair'},onMouseEnter:ctx.mkTip('val',m[0],rows),onMouseMove:ctx.mkTip('val',m[0],rows),onMouseLeave:ctx.clearTip}));
+      kids.push(E('text',{key:'v'+k,x:cx,y:pos?y-6:y+13,textAnchor:'middle',style:{font:"700 11px 'JetBrains Mono',monospace",fill:pos?t.text:pal.neg}}, (v<0?'\u2212':'')+Math.abs(v).toFixed(1).replace('.',',')));
+      kids.push(E('text',{key:'n'+k,x:cx,y:F.y0+16,textAnchor:'middle',style:{font:"600 9.5px Inter,sans-serif",fill:t.subtle}}, m[2])); });
+    return this.svg(P,kids);
+  }
+
+  renderVals(){
+    const st=this.state,t=this.THEME(),d=this.DIM(),N=st.N,pal=this.PAL();
+    const seg=(a)=>`appearance:none;border:none;cursor:pointer;font:600 11.5px Inter,sans-serif;padding:6px 10px;border-radius:7px;white-space:nowrap;color:${a?t.text:t.subtle};background:${a?t.segActiveBg:'transparent'};box-shadow:${a?'0 1px 2px rgba(0,0,0,.14)':'none'};transition:.14s;`;
+    const segWrap=`display:flex;gap:3px;padding:3px;background:${t.segBg};border-radius:9px;`;
+    const A=(f)=>Array.from({length:24},(_,i)=>Math.round(f(i)));
+    const op24=A(i=>-200000+i*52000+Math.sin(i/2)*16000);
+    const inv24=A(i=> i===0?-1200000:(i===23?900000:(i%6===0?-110000:0)));
+    let run=0; const cumNet24=op24.map((v,i)=>{run+=v+inv24[i]; return run;});
+    const cash24=cumNet24.map(v=>v+12000000);
+    const net24=A(i=>-150000+i*40000+Math.sin(i/1.7)*10000);
+    const cashC=A(i=>1000000+i*120000),recvC=A(i=>600000+i*9000),invC=A(i=>400000+i*6000),finC=A(i=> i>8?300000+(i-8)*15000:0),preC=A(i=>150000+i*2000),fixC=A(i=>Math.max(8000000-i*60000,2000000));
+    const comps24=[cashC,recvC,invC,finC,preC,fixC], assetLabels=['Деньги','Дебиторка','Запасы','Финвложения','Предоплаты','Внеоборотные'];
+    const costVals=[4200000,3100000,1800000,900000,600000,1100000,400000], costLabels=['Материалы','Зарплата','Общие','Амортизация','Проценты','Налоги','Прочие'];
+    const valM=[['Чистые активы',12.4,'Чист. активы'],['Метод Гордона',18.7,'Гордон'],['DDM (дивиденды)',-3.5,'DDM'],['Мультипликаторы',21.5,'Мультипл.'],['Ликвидационная',8.1,'Ликвид.']];
+    const sl=(a)=>a.slice(0,N);
+
+    const mkTip=(card,title,rows)=>(e)=>{ const host=e.currentTarget.closest('[data-chart-card]'); if(!host)return; const r=host.getBoundingClientRect(); this.setState({tip:{card,x:e.clientX-r.left,y:e.clientY-r.top,title,rows}}); };
+    const clearTip=()=>this.setState({tip:null});
+    const ctx={t,pal,N,mkTip,clearTip,money:(v)=>this.money(v)};
+    const Pfull={w:1100,h:240,mL:54,mR:18,mT:18,mB:26}, Phalf={w:560,h:240,mL:48,mR:16,mT:16,mB:26}, Ppie={w:340,h:240,mL:10,mR:10,mT:10,mB:10}, Pval={w:560,h:240,mL:34,mR:14,mT:26,mB:36};
+    const empty=st.calc==='empty';
+    const C=(P,fn)=> empty? this.emptyEl(ctx,P) : fn();
+
+    const defs=[
+      {id:'cashflow',span:2,h:d.mobile?230:250,P:Pfull,title:'Денежный поток',sub:'Операционный и инвестиционный поток · линия остатка денег',legend:[{l:'Операционный',c:pal.op},{l:'Инвестиционный',c:pal.inv},{l:'Остаток денег',c:pal.cash,line:true}],el:()=>this.chartCashflow({...ctx,P:Pfull},sl(op24),sl(inv24),sl(cash24))},
+      {id:'payback',span:1,h:d.mobile?230:250,P:Phalf,title:'Накопленный поток · окупаемость',sub:'Кумулятивный поток до финансирования · отметка PB',legend:[{l:'Накопленный поток',c:pal.pos},{l:'Нулевая линия',c:t.danger,line:true}],el:()=>this.chartPayback({...ctx,P:Phalf},sl(cumNet24))},
+      {id:'net',span:1,h:d.mobile?230:250,P:Phalf,title:'Чистая прибыль',sub:'Помесячно · убыток — красным',legend:[{l:'Прибыль',c:pal.pos},{l:'Убыток',c:pal.neg}],el:()=>this.chartNet({...ctx,P:Phalf},sl(net24))},
+      {id:'assets',span:2,h:d.mobile?250:270,P:Pfull,title:'Структура активов',sub:'Накопительные столбцы · сумма = суммарный актив',legend:assetLabels.map((l,k)=>({l,c:pal.cat[k]})),el:()=>this.chartAssets({...ctx,P:Pfull},comps24.map(sl),assetLabels)},
+      {id:'costs',span:1,h:d.mobile?250:270,P:Ppie,title:'Структура издержек',sub:'За весь период проекта',legend:costLabels.map((l,k)=>({l,c:pal.cat[k],value:(costVals[k]/costVals.reduce((a,b)=>a+b,0)*100).toFixed(0)+'%'})),el:()=>this.chartCosts({...ctx,P:Ppie},costVals,costLabels)},
+      {id:'val',span:1,h:d.mobile?250:270,P:Pval,title:'Оценка бизнеса',sub:'Сравнение методов · отрицательные — красным',legend:[{l:'Положительная',c:pal.pos},{l:'Отрицательная',c:pal.neg}],el:()=>this.chartValuation({...ctx,P:Pval},valM)}
+    ];
+
+    const legChip=(lg)=>({label:lg.l, value:lg.value||'', dotStyle:`width:${lg.line?14:9}px;height:${lg.line?3:9}px;border-radius:${lg.line?2:3}px;background:${lg.c};flex:none;`, style:`display:inline-flex;align-items:center;gap:6px;font:500 11.5px Inter,sans-serif;color:${t.muted};`});
+
+    const cards=defs.map(c=>{
+      const tp=st.tip, hasTip=!!(tp&&tp.card===c.id&&st.calc==='ready');
+      return {id:c.id, title:c.title, sub:c.sub,
+        cardStyle:`position:relative;grid-column:${d.mobile?'1 / -1':(c.span===2?'1 / -1':'auto')};background:${t.surface};border:1px solid ${t.border};border-radius:16px;padding:${d.mobile?14:18}px;display:flex;flex-direction:column;animation:fe-fade .3s ease;overflow:hidden;`,
+        legend:c.legend.map(legChip), showLegend:st.calc==='ready',
+        loading:st.calc==='loading', show:st.calc!=='loading',
+        skBox:`width:100%;height:${c.h}px;margin-top:12px;border-radius:10px;background:${t.sk};animation:fe-pulse 1.4s ease-in-out infinite alternate;`,
+        chartBox:`width:100%;height:${c.h}px;margin-top:10px;`,
+        el: C(c.P,c.el),
+        hasTip, tipStyle: hasTip?`position:absolute;pointer-events:none;z-index:30;min-width:158px;padding:9px 11px;border-radius:9px;background:${t.text};box-shadow:${t.shadow};left:${tp.x}px;top:${tp.y}px;transform:translate(-50%,calc(-100% - 14px));`:'display:none;',
+        tipTitle: hasTip?tp.title:'', tipRows: hasTip?tp.rows.map(r=>({label:r.label,val:r.val,dotStyle:`width:8px;height:8px;border-radius:2px;flex:none;background:${r.dot};`})):[]
+      };
+    });
+
+    const tabs=['Сводка','Прибыли и убытки','Кэш-фло','Баланс','Коэффициенты','Графики','План-факт'].map(label=>{ const active=label==='Графики';
+      return {label, style:`appearance:none;border:none;background:none;cursor:pointer;font:600 13.5px Inter,sans-serif;color:${active?t.text:t.muted};padding:0 3px;height:46px;border-bottom:2px solid ${active?t.primary:'transparent'};white-space:nowrap;`}; });
+
+    const s={
+      page:`min-height:100vh;background:${t.pageBg};color:${t.text};display:flex;flex-direction:column;transition:background .25s;`,
+      bar:`display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:13px 20px;background:${t.barBg};border-bottom:1px solid ${t.border};position:sticky;top:0;z-index:60;`,
+      barDot:`width:26px;height:26px;border-radius:7px;flex:none;background:linear-gradient(150deg,${t.brandMid},${t.brandTo});`,
+      barTitle:`font:700 13px Inter,sans-serif;letter-spacing:-.01em;color:${t.text};white-space:nowrap;`,
+      barSub:`font:500 11px Inter,sans-serif;color:${t.subtle};white-space:nowrap;`,
+      barLabel:`font:600 9.5px Inter,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:${t.subtle};`,
+      seg:segWrap, segN3:seg(N===3),segN12:seg(N===12),segN24:seg(N===24),
+      segReady:seg(st.calc==='ready'),segEmpty:seg(st.calc==='empty'),segLoad:seg(st.calc==='loading'),
+      segLight:seg(st.theme==='light'),segDark:seg(st.theme==='dark'),segDesktop:seg(st.device==='desktop'),segTablet:seg(st.device==='tablet'),segMobile:seg(st.device==='mobile'),
+
+      stage:`flex:1;display:flex;justify-content:center;align-items:flex-start;padding:${d.mobile?'22px 10px':'34px 24px'};`,
+      frame:`position:relative;width:100%;max-width:${d.frame}px;background:${t.bg};border:1px solid ${t.border};border-radius:${d.radius}px;box-shadow:${t.shadow};overflow:hidden;`,
+      rHeader:`display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:14px ${d.pad}px;background:${t.headerBg};border-bottom:1px solid ${t.border};`,
+      backBtn:`appearance:none;cursor:pointer;width:34px;height:34px;border-radius:8px;border:1px solid ${t.border};background:${t.surface};color:${t.muted};font:600 14px Inter;flex:none;`,
+      rTitle:`font:700 ${d.mobile?18:22}px 'Satoshi',Inter,sans-serif;letter-spacing:-.025em;color:${t.text};`,
+      rProject:`font:500 12px Inter,sans-serif;color:${t.subtle};margin-top:1px;`,
+      rActions:`display:flex;align-items:center;gap:7px;flex-wrap:wrap;`,
+      versionChip:`font:600 11px 'JetBrains Mono',monospace;color:${t.subtle};background:${t.surface2};border:1px solid ${t.border};padding:4px 9px;border-radius:7px;${d.mobile?'display:none;':''}`,
+      exportBtn:`appearance:none;cursor:pointer;height:34px;padding:0 12px;border-radius:8px;border:1px solid ${t.border};background:${t.surface};color:${t.muted};font:600 12px Inter,sans-serif;`,
+      tabBarWrap:`background:${t.headerBg};border-bottom:1px solid ${t.border};padding:0 ${d.pad}px;`,
+      tabBar:`display:flex;align-items:center;gap:${d.mobile?14:22}px;overflow-x:auto;`,
+
+      content:`padding:${d.pad}px;`,
+      pageHead:`margin-bottom:20px;`,
+      pageTitle:`font:700 ${d.mobile?18:22}px 'Satoshi',Inter,sans-serif;letter-spacing:-.025em;color:${t.text};`,
+      pageSub:`font:400 12.5px Inter,sans-serif;color:${t.muted};margin-top:4px;`,
+      gridWrap:`display:grid;grid-template-columns:${d.mobile?'1fr':'repeat(2,minmax(0,1fr))'};gap:${d.mobile?14:18}px;`,
+      cardHead:`display:flex;align-items:flex-start;justify-content:space-between;gap:10px;`,
+      cardTitle:`font:700 ${d.mobile?15:16.5}px Inter,sans-serif;letter-spacing:-.015em;color:${t.text};`,
+      cardSub:`font:400 11.5px Inter,sans-serif;color:${t.subtle};margin-top:2px;`,
+      legendWrap:`display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:11px;`,
+      legVal:`font:600 11px 'JetBrains Mono',monospace;color:${t.subtle};margin-left:2px;`,
+      tipTitle:`font:700 11px 'JetBrains Mono',monospace;color:${t.bg};opacity:.7;margin-bottom:5px;`,
+      tipRow:`display:flex;align-items:center;gap:7px;margin-top:3px;`,
+      tipLabel:`font:500 11px Inter,sans-serif;color:${t.bg};`,
+      tipVal:`margin-left:auto;padding-left:14px;font:600 11px 'JetBrains Mono',monospace;color:${t.bg};`,
+      bottomPad:`height:6px;`
+    };
+
+    return {s,t,tabs,cards, nLabel:String(N),
+      setN3:()=>this.setState({N:3,tip:null}),setN12:()=>this.setState({N:12,tip:null}),setN24:()=>this.setState({N:24,tip:null}),
+      setReady:()=>this.setState({calc:'ready'}),setEmpty:()=>this.setState({calc:'empty',tip:null}),setLoad:()=>this.setState({calc:'loading',tip:null}),
+      setLight:()=>this.setState({theme:'light'}),setDark:()=>this.setState({theme:'dark'}),
+      setDesktop:()=>this.setState({device:'desktop'}),setTablet:()=>this.setState({device:'tablet'}),setMobile:()=>this.setState({device:'mobile'})
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,4 +1,5 @@
 import { api } from "./client";
+import type { Schema } from "./gen";
 
 export const SENSITIVITY_PARAMS: [string, string][] = [
   ["sales_price", "Цена сбыта"],
@@ -8,16 +9,12 @@ export const SENSITIVITY_PARAMS: [string, string][] = [
   ["discount_rate", "Ставка дисконтирования"],
 ];
 
+// Ответы — из сгенерированной OpenAPI-схемы; входные тела запросов — руками
+// (у kind — строгий union, точнее бэкендового str).
+
 // --- Чувствительность ---
-export interface SensitivityPoint {
-  factor: string;
-  npv: string;
-  irr_annual: string | null;
-}
-export interface SensitivityResponse {
-  param: string;
-  points: SensitivityPoint[];
-}
+export type SensitivityPoint = Schema<"SensitivityPointOut">;
+export type SensitivityResponse = Schema<"SensitivityResponse">;
 export async function runSensitivity(id: string, param: string, factors: string[]): Promise<SensitivityResponse> {
   const { data } = await api.post<SensitivityResponse>(`/api/v1/projects/${id}/sensitivity`, { param, factors });
   return data;
@@ -36,22 +33,27 @@ export interface UncertainParamIn {
   param: string;
   distribution: DistributionIn;
 }
-export interface MonteCarloResponse {
-  iterations: number;
-  npv_mean: string;
-  npv_std: string;
-  npv_min: string;
-  npv_max: string;
-  npv_p10: string;
-  npv_p50: string;
-  npv_p90: string;
-  probability_npv_positive: string;
-}
-export async function runMonteCarlo(
-  id: string,
-  body: { iterations: number; seed: number; uncertain: UncertainParamIn[] },
-): Promise<MonteCarloResponse> {
+export type HistogramBin = Schema<"HistogramBinOut">;
+export type MonteCarloResponse = Schema<"MonteCarloResponse">;
+export type JobSubmit = Schema<"JobSubmitResponse">;
+export type JobStatus = Schema<"JobStatusResponse">;
+
+type MonteCarloBody = { iterations: number; seed: number; uncertain: UncertainParamIn[] };
+
+export async function runMonteCarlo(id: string, body: MonteCarloBody): Promise<MonteCarloResponse> {
   const { data } = await api.post<MonteCarloResponse>(`/api/v1/projects/${id}/monte-carlo`, body);
+  return data;
+}
+
+/** Поставить Монте-Карло в очередь (фоновый воркер) → id задачи. */
+export async function submitMonteCarloAsync(id: string, body: MonteCarloBody): Promise<JobSubmit> {
+  const { data } = await api.post<JobSubmit>(`/api/v1/projects/${id}/monte-carlo/async`, body);
+  return data;
+}
+
+/** Опросить статус/результат фоновой задачи анализа. */
+export async function getJob(jobId: string): Promise<JobStatus> {
+  const { data } = await api.get<JobStatus>(`/api/v1/analysis/jobs/${jobId}`);
   return data;
 }
 
@@ -64,17 +66,16 @@ export interface ScenarioIn {
   name: string;
   adjustments: ScenarioAdjustmentIn[];
 }
-export interface ScenarioResult {
-  name: string;
-  npv: string;
-  irr_annual: string | null;
-  pi: string | null;
-  pb_months: number | null;
-}
-export interface WhatIfResponse {
-  scenarios: ScenarioResult[];
-}
-export async function runWhatIf(id: string, scenarios: ScenarioIn[]): Promise<WhatIfResponse> {
-  const { data } = await api.post<WhatIfResponse>(`/api/v1/projects/${id}/what-if`, { scenarios });
+export type ScenarioResult = Schema<"ScenarioResultOut">;
+export type WhatIfResponse = Schema<"WhatIfResponse">;
+export async function runWhatIf(
+  id: string,
+  scenarios: ScenarioIn[],
+  includeBase = true,
+): Promise<WhatIfResponse> {
+  const { data } = await api.post<WhatIfResponse>(`/api/v1/projects/${id}/what-if`, {
+    scenarios,
+    include_base: includeBase,
+  });
   return data;
 }

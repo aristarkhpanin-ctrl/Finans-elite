@@ -5,27 +5,27 @@
 """
 from __future__ import annotations
 
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from calc_core import run
 from calc_core.engine import ModelError
-from calc_core.montecarlo import (
-    Distribution,
-    MonteCarloConfig,
-    UncertainParam,
-    run_monte_carlo,
-)
+from calc_core.montecarlo import run_monte_carlo
 from calc_core.sensitivity import SENSITIVITY_PARAMS, run_sensitivity
 from calc_core.whatif import Scenario, ScenarioAdjustment, run_what_if
 
 from .. import billing, crud
+from ..analysis_service import build_mc_config
 from ..database import get_db
 from ..db_models import Project
 from ..deps import require_permission
 from ..rbac import Perm
 from ..schemas import (
     CalcResponse,
+    JobSubmitResponse,
+    LastCalcOut,
     MonteCarloRequest,
     MonteCarloResponse,
     ProjectCreate,
@@ -38,8 +38,10 @@ from ..schemas import (
     SensitivityResponse,
     WhatIfRequest,
     WhatIfResponse,
+    monte_carlo_response,
     to_response,
 )
+from ..tasks import monte_carlo_task
 
 # Лимит итераций для синхронного Монте-Карло (большие N — фоновой задачей, ARCHITECTURE §9).
 _MAX_MC_ITERATIONS = 2000
@@ -47,13 +49,26 @@ _MAX_MC_ITERATIONS = 2000
 router = APIRouter(prefix="/api/v1/projects", tags=["projects"])
 
 
+def _last_calc(p: Project) -> LastCalcOut | None:
+    if p.last_npv is None or p.last_calculated_at is None or p.last_engine_version is None:
+        return None
+    return LastCalcOut(npv=p.last_npv, irr_annual=p.last_irr, pb_months=p.last_pb_months,
+                       engine_version=p.last_engine_version, calculated_at=p.last_calculated_at)
+
+
+def _is_stale(p: Project) -> bool:
+    return p.last_calculated_at is None or p.updated_at > p.last_calculated_at
+
+
 def _summary(p: Project) -> ProjectSummary:
-    return ProjectSummary(id=p.id, name=p.name, created_at=p.created_at, updated_at=p.updated_at)
+    return ProjectSummary(id=p.id, name=p.name, created_at=p.created_at, updated_at=p.updated_at,
+                          last_calc=_last_calc(p), is_stale=_is_stale(p))
 
 
 def _out(p: Project) -> ProjectOut:
     return ProjectOut(id=p.id, name=p.name, created_at=p.created_at,
-                      updated_at=p.updated_at, model=crud.load_model(p))
+                      updated_at=p.updated_at, model=crud.load_model(p),
+                      last_calc=_last_calc(p), is_stale=_is_stale(p))
 
 
 def _require(db: Session, org_id: str, project_id: str) -> Project:
@@ -104,16 +119,31 @@ def delete_project(project_id: str,
     crud.delete_project(db, _require(db, org_id, project_id))
 
 
+@router.post("/{project_id}/duplicate", response_model=ProjectOut,
+             status_code=status.HTTP_201_CREATED)
+def duplicate_project(project_id: str,
+                      org_id: str = Depends(require_permission(Perm.PROJECT_CREATE)),
+                      db: Session = Depends(get_db)) -> ProjectOut:
+    """Дублировать проект (B2): модель целиком, имя «{name} (копия)», квота как в create."""
+    project = _require(db, org_id, project_id)
+    billing.ensure_project_quota(db, org_id)
+    return _out(crud.duplicate_project(db, project, f"{project.name} (копия)"))
+
+
 @router.post("/{project_id}/calculate", response_model=CalcResponse)
 def calculate_project(project_id: str,
                       org_id: str = Depends(require_permission(Perm.PROJECT_CALCULATE)),
                       db: Session = Depends(get_db)) -> CalcResponse:
-    """Рассчитать сохранённый проект (право project.calculate)."""
+    """Рассчитать сохранённый проект (право project.calculate); сводка — на проект (B1)."""
     project = _require(db, org_id, project_id)
     try:
         result = run(crud.load_model(project))
     except (ModelError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    crud.save_calc_summary(db, project, npv=result.metrics.npv,
+                           irr_annual=result.metrics.irr_annual,
+                           pb_months=result.metrics.pb_months,
+                           engine_version=result.engine_version)
     return to_response(result)
 
 
@@ -145,25 +175,30 @@ def monte_carlo(project_id: str, body: MonteCarloRequest,
     if not 1 <= body.iterations <= _MAX_MC_ITERATIONS:
         raise HTTPException(status_code=422,
                             detail=f"iterations должно быть от 1 до {_MAX_MC_ITERATIONS}")
-    config = MonteCarloConfig(
-        iterations=body.iterations,
-        seed=body.seed,
-        uncertain=[UncertainParam(param=u.param, distribution=Distribution(
-            kind=u.distribution.kind, low=u.distribution.low, high=u.distribution.high,
-            mean=u.distribution.mean, std=u.distribution.std, mode=u.distribution.mode))
-            for u in body.uncertain],
-    )
     project = _require(db, org_id, project_id)
     try:
-        res = run_monte_carlo(crud.load_model(project), config)
+        res = run_monte_carlo(crud.load_model(project), build_mc_config(body))
     except (ModelError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    return MonteCarloResponse(
-        iterations=res.iterations, npv_mean=res.npv_mean, npv_std=res.npv_std,
-        npv_min=res.npv_min, npv_max=res.npv_max, npv_p10=res.npv_p10,
-        npv_p50=res.npv_p50, npv_p90=res.npv_p90,
-        probability_npv_positive=res.probability_npv_positive,
+    return monte_carlo_response(res)
+
+
+@router.post("/{project_id}/monte-carlo/async", response_model=JobSubmitResponse,
+             status_code=status.HTTP_202_ACCEPTED)
+def monte_carlo_async(project_id: str, body: MonteCarloRequest,
+                      org_id: str = Depends(require_permission(Perm.PROJECT_CALCULATE)),
+                      db: Session = Depends(get_db)) -> JobSubmitResponse:
+    """Поставить Монте-Карло в очередь (фоновый воркер). Опрос — GET /analysis/jobs/{id}."""
+    if not 1 <= body.iterations <= _MAX_MC_ITERATIONS:
+        raise HTTPException(status_code=422,
+                            detail=f"iterations должно быть от 1 до {_MAX_MC_ITERATIONS}")
+    project = _require(db, org_id, project_id)
+    job_id = uuid.uuid4().hex
+    crud.create_analysis_job(db, job_id, org_id, project_id, "monte_carlo")
+    monte_carlo_task.apply_async(
+        args=[project.model, body.model_dump(mode="json")], task_id=job_id,
     )
+    return JobSubmitResponse(job_id=job_id)
 
 
 @router.post("/{project_id}/what-if", response_model=WhatIfResponse)

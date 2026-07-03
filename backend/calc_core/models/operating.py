@@ -38,6 +38,9 @@ class SalesLine(BaseModel):
     volume: list[Decimal] = Field(default_factory=list)  # натуральный объём по месяцам
     price: list[Decimal] = Field(default_factory=list)    # цена за единицу по месяцам
     payment: PaymentTerms = PaymentTerms()
+    # Экспорт во 2-й валюте: цена в валюте, пересчёт выручки/денег/дебиторки по FX[t]
+    # (без НДС); валютная дебиторка переоценивается → I25 (SPEC §22.3). По умолчанию — рубли.
+    foreign: bool = False
 
 
 class ProductionLine(BaseModel):
@@ -63,6 +66,10 @@ class DirectCostLine(BaseModel):
     amount: list[Decimal] = Field(default_factory=list)
     payment_delay_months: int = Field(default=0, ge=0)  # задержка оплаты → кредиторка (B23)
     stock_lead_months: int = Field(default=0, ge=0)     # опережающая закупка → сырьё (B3)
+    # Материал во 2-й валюте (импорт, без НДС в v0): закупка/сырьё (B3) — по курсу закупки
+    # (немонетарный актив, историческая стоимость); валютная кредиторка переоценивается по
+    # FX[t] → I25 (рост курса → убыток). Применяется к материалам; по умолчанию — рубли.
+    foreign: bool = False
 
 
 class FixedCostLine(BaseModel):
@@ -72,6 +79,11 @@ class FixedCostLine(BaseModel):
     function: CostFunction = CostFunction.ADMIN
     amount: list[Decimal] = Field(default_factory=list)
     payment_delay_months: int = Field(default=0, ge=0)  # задержка оплаты → кредиторка (B23)
+    # «Из прибыли»: невычитаемая издержка — идёт в I24, не уменьшает налоговую базу.
+    from_profit: bool = False
+    # Издержка во 2-й валюте (услуга, без НДС): пересчёт по FX[t], валютная кредиторка
+    # переоценивается → I25 (рост курса → убыток). По умолчанию — основная валюта.
+    foreign: bool = False
 
 
 class OperatingPlan(BaseModel):

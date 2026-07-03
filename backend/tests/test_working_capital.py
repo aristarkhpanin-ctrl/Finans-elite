@@ -5,7 +5,7 @@ from calc_core import run
 from calc_core.engine.timing import cost_timing, sales_timing
 from calc_core.models import PaymentTerms
 from calc_core.samples import build_sample_project
-from calc_core.series import cumulative, sub, add
+from calc_core.series import add, cumulative, sub
 
 
 def _terms(prepay="0", lead=0, delay=0):

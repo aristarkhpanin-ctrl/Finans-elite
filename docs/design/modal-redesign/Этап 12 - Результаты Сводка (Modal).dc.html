@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Inter';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-600-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:700;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-700-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-600-normal.woff2') format('woff2');}
+</style>
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  .fe-scroll::-webkit-scrollbar{height:10px;}
+  .fe-scroll::-webkit-scrollbar-thumb{background:rgba(120,113,108,.35);border-radius:5px;border:3px solid transparent;background-clip:padding-box;}
+  @keyframes fe-pulse{from{opacity:.5}to{opacity:1}}
+  @keyframes fe-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes fe-spin{to{transform:rotate(360deg)}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}" data-screen-label="12 — Результаты и Сводка">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+      <div style="width:26px;height:26px;flex:none;border-radius:8px;overflow:hidden;"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="26px,26px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Этап&nbsp;12 · Результаты + Сводка</span>
+        <span style="{{ s.barSub }}">Финанс-Элит · вердикт расчёта</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Сценарий</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segProfit }}" onClick="{{ setProfit }}">Прибыльный</button><button style="{{ s.segLoss }}" onClick="{{ setLoss }}">Убыточный</button><button style="{{ s.segGap }}" onClick="{{ setGap }}">Кассовый разрыв</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Состояние</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segReady }}" onClick="{{ setReady }}">Готово</button><button style="{{ s.segCalc }}" onClick="{{ setCalc }}">Расчёт</button><button style="{{ s.segErr }}" onClick="{{ setErr }}">Ошибка</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Свет</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тьма</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}">
+
+      <!-- RESULTS HEADER -->
+      <div style="{{ s.rHeader }}">
+        <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1;">
+          <button style="{{ s.backBtn }}" style-hover="{{ s.backHover }}">←<sc-if value="{{ showBackText }}" hint-placeholder-val="{{ true }}"><span style="margin-left:6px;">Редактор</span></sc-if></button>
+          <div style="min-width:0;">
+            <div style="{{ s.rTitle }}">Результаты</div>
+            <div style="{{ s.rProject }}">Завод полимерной упаковки · действующее предприятие</div>
+          </div>
+        </div>
+        <div style="{{ s.rActions }}">
+          <span style="{{ s.versionChip }}">движок 0.9.9</span>
+          <sc-if value="{{ showExports }}" hint-placeholder-val="{{ true }}">
+          <div style="{{ s.exportGroup }}">
+            <button style="{{ s.exportBtn }}" style-hover="{{ s.exportHover }}">CSV</button>
+            <button style="{{ s.exportBtn }}" style-hover="{{ s.exportHover }}">XLSX</button>
+            <button style="{{ s.exportBtnIco }}" style-hover="{{ s.exportHover }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M8 14h8v7H8z" stroke-linecap="round" stroke-linejoin="round"/></svg><span style="margin-left:6px;">Печать / PDF</span></button>
+          </div>
+          </sc-if>
+        </div>
+      </div>
+
+      <!-- LOADING -->
+      <sc-if value="{{ isCalc }}" hint-placeholder-val="{{ false }}">
+      <div style="{{ s.calcBar }}"><span style="{{ s.spinner }}"></span><span style="{{ s.calcText }}">Идёт расчёт модели…</span><span style="{{ s.calcSub }}">помесячный пересчёт 4 отчётов и показателей</span></div>
+      <div style="{{ s.content }}">
+        <div style="{{ s.cardRow }}"><div style="{{ s.skCard }}"></div><div style="{{ s.skCard }}"></div><div style="{{ s.skCard }}"></div><div style="{{ s.skCard }}"></div><div style="{{ s.skCard }}"></div><div style="{{ s.skCard }}"></div></div>
+        <div style="{{ s.skTab }}"></div>
+        <div style="{{ s.cardRow }}"><div style="{{ s.skVerdict }}"></div><div style="{{ s.skVerdict }}"></div><div style="{{ s.skVerdict }}"></div><div style="{{ s.skVerdict }}"></div><div style="{{ s.skVerdict }}"></div><div style="{{ s.skVerdict }}"></div></div>
+      </div>
+      </sc-if>
+
+      <!-- ERROR -->
+      <sc-if value="{{ isErr }}" hint-placeholder-val="{{ false }}">
+      <div style="{{ s.content }}">
+        <div style="{{ s.errorBlock }}">
+          <div style="{{ s.errorIco }}">!</div>
+          <div style="{{ s.errorTitle }}">Ошибка расчёта</div>
+          <div style="{{ s.errorSub }}">Стартовый баланс не сходится: актив 1 240 000 ₽ ≠ пассив 1 180 000 ₽. Исправьте расхождение во вкладке «Валюта и старт» и запустите расчёт заново.</div>
+          <div style="{{ s.errorActions }}"><button style="{{ s.errorBtnGhost }}">← К редактору</button><button style="{{ s.errorBtnPrimary }}">Открыть «Валюта и старт»</button></div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- READY -->
+      <sc-if value="{{ isReady }}" hint-placeholder-val="{{ true }}">
+      <div style="{{ s.content }}">
+
+        <!-- warnings banner -->
+        <sc-if value="{{ hasWarnings }}" hint-placeholder-val="{{ false }}">
+        <div style="{{ s.warnBanner }}">
+          <span style="{{ s.warnBannerIco }}">⚠</span>
+          <div style="min-width:0;flex:1;">
+            <div style="{{ s.warnBannerTitle }}">Предупреждения расчёта ({{ warnCount }})</div>
+            <sc-for list="{{ warnings }}" as="w" hint-placeholder-count="2"><div style="{{ s.warnBannerItem }}"><span style="{{ w.dot }}"></span>{{ w.text }}</div></sc-for>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- EFFICIENCY METRIC CARDS -->
+        <div style="{{ s.sectionLabel }}">Показатели эффективности</div>
+        <div style="{{ s.metricGrid }}">
+          <sc-for list="{{ efficiency }}" as="m" hint-placeholder-count="6">
+          <div style="{{ s.metricCard }}">
+            <div style="{{ s.metricTop }}"><span style="{{ s.metricLabel }}">{{ m.label }}</span><span style="{{ s.hintWrap }}"><span style="{{ s.hintBadge }}" title="{{ m.hint }}" onMouseEnter="{{ m.hoverOn }}" onMouseLeave="{{ hoverOff }}">?</span><sc-if value="{{ m.tip }}" hint-placeholder-val="{{ false }}"><span style="{{ s.tooltip }}">{{ m.hint }}</span></sc-if></span></div>
+            <div style="{{ m.valueStyle }}">{{ m.value }}</div>
+            <div style="{{ m.subStyle }}">{{ m.sub }}</div>
+          </div>
+          </sc-for>
+        </div>
+
+        <!-- VALUATION CARDS -->
+        <div style="{{ s.sectionLabel }}">Оценка бизнеса</div>
+        <div style="{{ s.valGrid }}">
+          <sc-for list="{{ valuation }}" as="m" hint-placeholder-count="5">
+          <div style="{{ s.valCard }}">
+            <div style="{{ s.metricTop }}"><span style="{{ s.metricLabelSm }}">{{ m.label }}</span><span style="{{ s.hintWrap }}"><span style="{{ s.hintBadge }}" title="{{ m.hint }}" onMouseEnter="{{ m.hoverOn }}" onMouseLeave="{{ hoverOff }}">?</span><sc-if value="{{ m.tip }}" hint-placeholder-val="{{ false }}"><span style="{{ s.tooltip }}">{{ m.hint }}</span></sc-if></span></div>
+            <div style="{{ m.valueStyle }}">{{ m.value }}</div>
+          </div>
+          </sc-for>
+        </div>
+
+        <!-- TAB BAR -->
+        <div style="{{ s.tabBarWrap }}"><div style="{{ s.tabBar }}" class="fe-scroll">
+          <sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="7"><button style="{{ tb.style }}">{{ tb.label }}</button></sc-for>
+        </div></div>
+
+        <!-- СВОДКА: verdict cards -->
+        <div style="{{ s.verdictGrid }}">
+          <sc-for list="{{ verdicts }}" as="v" hint-placeholder-count="9">
+          <div style="{{ v.card }}">
+            <sc-if value="{{ v.showCubeAccent }}" hint-placeholder-val="">
+            <div style="position:absolute;inset:0;opacity:0.16;pointer-events:none;"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" motion-speed="calm" pointer-tilt="{{ false }}" style="width:100%;height:100%" hint-size="100%,100%"></dc-import></div>
+            </sc-if>
+            <div style="{{ v.stripe }}"></div>
+            <div style="{{ s.verdictBody }}">
+              <div style="{{ s.verdictHead }}"><span style="{{ s.verdictTitle }}">{{ v.title }}</span><span style="{{ v.badge }}">{{ v.badgeText }}</span></div>
+              <div style="{{ v.valueStyle }}">{{ v.value }}</div>
+              <div style="{{ s.verdictMsg }}">{{ v.message }}</div>
+              <sc-if value="{{ v.sub }}" hint-placeholder-val=""><div style="{{ s.verdictSub }}">{{ v.sub }}</div></sc-if>
+            </div>
+          </div>
+          </sc-for>
+        </div>
+
+        <!-- warnings block bottom -->
+        <sc-if value="{{ hasWarnings }}" hint-placeholder-val="{{ false }}">
+        <div style="{{ s.warnBlock }}">
+          <div style="{{ s.warnBlockHead }}"><span style="{{ s.warnBlockIco }}">⚠</span>Замечания по расчёту</div>
+          <sc-for list="{{ warnings }}" as="w" hint-placeholder-count="2"><div style="{{ w.rowStyle }}"><span style="{{ w.dot }}"></span><span style="{{ s.warnRowText }}">{{ w.text }}</span><span style="{{ w.levelChip }}">{{ w.levelText }}</span></div></sc-for>
+        </div>
+        </sc-if>
+
+        <div style="{{ s.bottomPad }}"></div>
+      </div>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { theme:'light', device:'desktop', scenario:'profit', calc:'ready', hoverHint:null };
+
+  THEME(){
+    const light={pageBg:'#F3F2F0',bg:'#FAFAF9',surface:'#FFFFFF',surface2:'#F5F5F4',sk:'#ECEAE8',border:'#E7E5E4',borderStrong:'#D6D3D1',text:'#1C1917',muted:'#57534E',subtle:'#A8A29E',primary:'#0E9C6E',primaryHover:'#0B8560',primaryText:'#FFFFFF',primaryBg:'#E2F4EC',good:'#0E7A4F',goodBg:'#E2F4EC',goodBorder:'#BFE6D3',warn:'#B86E00',warnBg:'#FAEFD9',warnBorder:'#F0DDB5',warnText:'#8A5300',bad:'#C13A30',badBg:'#FBE9E7',badBorder:'#F2C8C2',badText:'#A8322A',neutral:'#57534E',neutralBg:'#F5F5F4',shadow:'0 18px 48px -20px rgba(28,25,23,.28), 0 2px 6px rgba(28,25,23,.05)',menuShadow:'0 16px 40px -12px rgba(28,25,23,.3)',barBg:'#FFFFFF',segBg:'#F0EEEC',segActiveBg:'#FFFFFF',headerBg:'#FFFFFF',brandMid:'#0C7250',brandTo:'#0E9C6E'};
+    const dark={pageBg:'#141210',bg:'#1A1816',surface:'#232020',surface2:'#2C2825',sk:'#2F2B27',border:'#39332F',borderStrong:'#4A433E',text:'#F6F4F2',muted:'#B7B0A9',subtle:'#7E756D',primary:'#12B07D',primaryHover:'#19C28B',primaryText:'#06241A',primaryBg:'rgba(18,176,125,.16)',good:'#34C77B',goodBg:'rgba(18,176,125,.16)',goodBorder:'rgba(52,199,123,.3)',warn:'#E0A23A',warnBg:'rgba(224,162,58,.16)',warnBorder:'rgba(224,162,58,.3)',warnText:'#E8C07A',bad:'#F0796E',badBg:'rgba(210,69,59,.16)',badBorder:'rgba(240,121,110,.32)',badText:'#F4B0A8',neutral:'#B7B0A9',neutralBg:'#2C2825',shadow:'0 28px 64px -24px rgba(0,0,0,.72)',menuShadow:'0 20px 48px -16px rgba(0,0,0,.7)',barBg:'#1E1B19',segBg:'#16140F',segActiveBg:'#2C2825',headerBg:'#1E1B19',brandMid:'#0A5A40',brandTo:'#0E7A57'};
+    return this.state.theme==='dark'?{...dark,pageBg:'#000000',bg:'#0C0F0C',surface:'#212525',surface2:'#2A312A',sk:'#2A312A',cellBg:'#161A16',border:'#485346',borderStrong:'#677D64',gridLine:'#232823',text:'#DDFFDC',muted:'#93A091',subtle:'#677D64',primary:'#7FEE64',primaryHover:'#95F47D',primaryText:'#000000',accent:'#7FEE64',primaryBg:'rgba(127,238,100,.15)',primarySoft:'rgba(127,238,100,.09)',good:'#7FEE64',goodBg:'rgba(127,238,100,.15)',goodBorder:'rgba(127,238,100,.32)',danger:'#F0796E',dangerHover:'#F4988F',dangerBg:'rgba(240,121,110,.15)',dangerBorder:'rgba(240,121,110,.32)',dangerText:'#F4B0A8',warn:'#E0A23A',warnBg:'rgba(224,162,58,.16)',warnBorder:'rgba(224,162,58,.32)',info:'#AED2A4',infoBg:'rgba(174,210,164,.15)',ring:'rgba(127,238,100,.4)',shadow:'0 30px 70px -34px rgba(0,0,0,.9)',menuShadow:'0 22px 52px -16px rgba(0,0,0,.82)',barBg:'#0C0F0C',barBorder:'#1D231D',segBg:'#0B0E0B',segActiveBg:'#2A312A',headerBg:'#0C0F0C',stickyBg:'#212525',brandMid:'#3E4A3C',brandTo:'#7FEE64',violet:'#C8F9B6',violetBg:'rgba(200,249,182,.14)',subtotalBg:'#1C201C',grandBg:'rgba(127,238,100,.12)',hov:'#262C25',hovlab:'#2C322B',ico1:'#7FEE64',ico1Bg:'rgba(127,238,100,.15)',ico2:'#AED2A4',ico2Bg:'rgba(174,210,164,.15)',ico3:'#C8F9B6',ico3Bg:'rgba(200,249,182,.14)',ico4:'#E0A23A',ico4Bg:'rgba(224,162,58,.16)',inputBg:'#161A16',success:'#7FEE64',successBg:'rgba(127,238,100,.16)'}:{...light,pageBg:'#E4F1E0',bg:'#F4FAF2',surface:'#FFFFFF',surface2:'#EDF5EA',sk:'#E3EEDF',cellBg:'#FFFFFF',border:'#D2E4CD',borderStrong:'#B4CCAE',gridLine:'#E8F1E5',text:'#16201A',muted:'#46584A',subtle:'#6E8270',primary:'#7FEE64',primaryHover:'#6FE253',primaryText:'#06210E',accent:'#138A45',primaryBg:'#DBF3D2',primarySoft:'#EAF8E4',good:'#0E7A4F',goodBg:'#DBF1E2',goodBorder:'#B7DEC6',danger:'#C0473B',dangerHover:'#A53A30',dangerBg:'#FAE7E4',dangerBorder:'#EECFCA',dangerText:'#8F2F26',warn:'#B07A12',warnBg:'#FBF0D8',warnBorder:'#ECDDB4',info:'#3E7D52',infoBg:'#E6EFE2',ring:'rgba(56,194,75,.3)',shadow:'0 18px 44px -22px rgba(20,40,24,.22), 0 2px 6px rgba(20,40,24,.05)',menuShadow:'0 24px 56px -16px rgba(20,40,24,.28)',barBg:'#FFFFFF',barBorder:'#D2E4CD',segBg:'#E7F0E3',segActiveBg:'#FFFFFF',headerBg:'#FFFFFF',stickyBg:'#FFFFFF',brandMid:'#138A45',brandTo:'#7FEE64',violet:'#3E7D52',violetBg:'#E6EFE2',subtotalBg:'#EDF3EA',grandBg:'#DBF1E2',hov:'#F1F7EE',hovlab:'#EAF2E6',ico1:'#138A45',ico1Bg:'#DBF3D2',ico2:'#3E7D52',ico2Bg:'#E6EFE2',ico3:'#5FA86A',ico3Bg:'#E3F0DE',ico4:'#B07A12',ico4Bg:'#FBF0D8',inputBg:'#FFFFFF',success:'#0E7A4F',successBg:'#DBF1E2'};
+  }
+  DIM(){const d=this.state.device; if(d==='mobile')return{frame:402,radius:30,pad:16,mcols:1,vcols:1,vc:1,backText:false}; if(d==='tablet')return{frame:864,radius:18,pad:24,mcols:2,vcols:2,vc:2,backText:true}; return{frame:1240,radius:14,pad:32,mcols:3,vcols:5,vc:3,backText:true};}
+
+  data(t){
+    const S={good:t.good,warn:t.warn,bad:t.bad,neutral:t.neutral};
+    const eff=(label,value,sub,col,hint)=>({label,value,sub,col,hint});
+    const val=(label,value,col,hint)=>({label,value,col,hint});
+    const vd=(title,value,message,sub,status)=>({title,value,message,sub,status});
+    if(this.state.scenario==='loss'){
+      return {
+        chip:{text:'Убыточный',col:'bad'},
+        warnings:[{level:'warn',text:'Период 0: продажи превышают доступный запас готовой продукции'},{level:'warn',text:'IRR ниже ставки дисконтирования — проект не окупает стоимость капитала'}],
+        efficiency:[eff('NPV','−4,2 млн ₽','Разрушает стоимость','bad','Чистая приведённая стоимость — сумма дисконтированных потоков. Отрицательная — проект уничтожает стоимость.'),
+          eff('IRR','6,4%','Ниже ставки 18%','bad','Внутренняя норма доходности — ставка, при которой NPV = 0.'),
+          eff('PI','0,82','< 1 — неэффективно','bad','Индекс прибыльности — дисконтированные притоки ÷ вложения.'),
+          eff('Срок окупаемости','> горизонта','Не окупается','bad','Месяц, когда накопленный поток становится положительным.'),
+          eff('Дисконт. окупаемость','—','Не достигается','bad','То же по дисконтированному потоку.'),
+          eff('Потребность в финанс.','9,0 млн ₽','Максимальный дефицит','neutral','Максимальный накопленный кассовый дефицит за горизонт.')],
+        valuation:[val('Чистые активы','8,2 млн ₽','neutral','Активы минус обязательства на конец горизонта.'),
+          val('Модель Гордона','—','bad','Оценка по бесконечному росту дивидендов. Не считается при g ≥ ставки.'),
+          val('DDM','4,1 млн ₽','neutral','Дисконтированные дивиденды за горизонт.'),
+          val('По мультипликатору','3,4 млн ₽','neutral','Прибыль × мультипликатор отрасли.'),
+          val('Ликвидационная','6,0 млн ₽','neutral','Стоимость при распродаже активов.')],
+        verdicts:[vd('Чистая приведённая стоимость (NPV)','−4,2 млн ₽','Проект разрушает стоимость','При ставке 18% дисконтированные оттоки превышают притоки','bad'),
+          vd('Внутренняя норма доходности (IRR)','6,4%','Ниже стоимости капитала (18%)','Проект не покрывает требуемую доходность','bad'),
+          vd('Индекс прибыльности (PI)','0,82','Каждый ₽ вложений возвращает 0,82 ₽','Меньше 1 — вложения не окупаются','bad'),
+          vd('Срок окупаемости','Не окупается','Накопленный поток не выходит в плюс','В пределах горизонта планирования','bad'),
+          vd('Минимальный остаток денег','+0,3 млн ₽','Кассовых разрывов нет','Но запас прочности минимальный','warn'),
+          vd('Потребность в финансировании','9,0 млн ₽','Требуется привлечь капитал','Максимальный накопленный дефицит','warn'),
+          vd('Текущая ликвидность','1,1','На грани нормы','Норма ≥ 1,5 — устойчиво','warn'),
+          vd('Накопленная прибыль','−2,1 млн ₽','Убыток за горизонт','Проект не вышел на прибыльность','bad'),
+          vd('Чистые активы (оценка)','8,2 млн ₽','Капитал сокращается','Активы минус обязательства','neutral')]
+      };
+    }
+    if(this.state.scenario==='gap'){
+      return {
+        chip:{text:'Кассовый разрыв',col:'bad'},
+        warnings:[{level:'error',text:'Период 7: кассовый разрыв −2,4 млн ₽ — требуется финансирование'},{level:'warn',text:'Период 0: продажи превышают доступный запас готовой продукции'}],
+        efficiency:[eff('NPV','+9,1 млн ₽','Создаёт стоимость','good','Чистая приведённая стоимость — сумма дисконтированных потоков.'),
+          eff('IRR','27,3%','Выше ставки 18%','good','Внутренняя норма доходности.'),
+          eff('PI','1,46','> 1 — эффективно','good','Индекс прибыльности.'),
+          eff('Срок окупаемости','15 мес','В пределах горизонта','good','Месяц выхода накопленного потока в плюс.'),
+          eff('Дисконт. окупаемость','19 мес','По дисконт. потоку','warn','Дисконтированная окупаемость.'),
+          eff('Потребность в финанс.','11,5 млн ₽','Высокая — есть разрыв','bad','Максимальный накопленный дефицит.')],
+        valuation:[val('Чистые активы','17,4 млн ₽','neutral','Активы минус обязательства.'),
+          val('Модель Гордона','33,8 млн ₽','good','Оценка по росту дивидендов.'),
+          val('DDM','29,1 млн ₽','neutral','Дисконтированные дивиденды.'),
+          val('По мультипликатору','27,5 млн ₽','neutral','Прибыль × мультипликатор.'),
+          val('Ликвидационная','12,9 млн ₽','neutral','Стоимость при распродаже.')],
+        verdicts:[vd('Чистая приведённая стоимость (NPV)','+9,1 млн ₽','Проект создаёт стоимость','При ставке 18% притоки превышают оттоки','good'),
+          vd('Внутренняя норма доходности (IRR)','27,3%','Выше стоимости капитала','Доходность выше требуемой','good'),
+          vd('Индекс прибыльности (PI)','1,46','Каждый ₽ возвращает 1,46 ₽','Больше 1 — эффективно','good'),
+          vd('Срок окупаемости','15 мес','Дисконтированный — 19 мес','В пределах горизонта','good'),
+          vd('Минимальный остаток денег','−2,4 млн ₽','Кассовый разрыв — требуется финансирование','Период 7: денег недостаточно для платежей','bad'),
+          vd('Потребность в финансировании','11,5 млн ₽','Привлеките кредитную линию','Включите автоподбор финансирования','bad'),
+          vd('Текущая ликвидность','0,7','Ниже нормы','Краткосрочные обязательства не покрыты','bad'),
+          vd('Накопленная прибыль','+12,6 млн ₽','Прибыль есть','Но распределена во времени неравномерно','good'),
+          vd('Чистые активы (оценка)','17,4 млн ₽','Капитал растёт','Активы минус обязательства','neutral')]
+      };
+    }
+    return {
+      chip:{text:'Прибыльный',col:'good'},
+      warnings:[{level:'warn',text:'Период 0: продажи превышают доступный запас готовой продукции'}],
+      efficiency:[eff('NPV','+18,4 млн ₽','Создаёт стоимость','good','Чистая приведённая стоимость — сумма дисконтированных денежных потоков. Положительная — проект создаёт стоимость.'),
+        eff('IRR','38,5%','Выше ставки 18%','good','Внутренняя норма доходности — ставка, при которой NPV = 0. Сравнивается со ставкой дисконтирования.'),
+        eff('PI','1,92','> 1 — эффективно','good','Индекс прибыльности — отношение дисконтированных притоков к вложениям. Больше 1 — эффективно.'),
+        eff('Срок окупаемости','11 мес','В пределах горизонта','good','Месяц, когда накопленный денежный поток становится положительным.'),
+        eff('Дисконт. окупаемость','14 мес','По дисконт. потоку','good','То же, но по дисконтированному потоку — учитывает стоимость денег во времени.'),
+        eff('Потребность в финанс.','6,5 млн ₽','Покрыта капиталом','neutral','Максимальный накопленный кассовый дефицит — сколько нужно привлечь.')],
+      valuation:[val('Чистые активы','22,1 млн ₽','neutral','Балансовая стоимость: активы минус обязательства на конец горизонта.'),
+        val('Модель Гордона','41,5 млн ₽','good','Оценка по бесконечному росту дивидендов (g < ставки дисконтирования).'),
+        val('DDM','38,2 млн ₽','neutral','Дисконтированная стоимость дивидендов за горизонт планирования.'),
+        val('По мультипликатору','35,0 млн ₽','neutral','Чистая прибыль × отраслевой мультипликатор.'),
+        val('Ликвидационная','16,8 млн ₽','neutral','Оценка стоимости при распродаже активов и погашении долгов.')],
+      verdicts:[vd('Чистая приведённая стоимость (NPV)','+18,4 млн ₽','Проект создаёт стоимость','При ставке 18% дисконтированные притоки превышают вложения','good'),
+        vd('Внутренняя норма доходности (IRR)','38,5%','Существенно выше ставки (18%)','Высокий запас доходности над стоимостью капитала','good'),
+        vd('Индекс прибыльности (PI)','1,92','Каждый ₽ вложений возвращает 1,92 ₽','Больше 1 — проект эффективен','good'),
+        vd('Срок окупаемости','11 мес','Дисконтированный — 14 мес','Быстрый возврат в пределах горизонта','good'),
+        vd('Минимальный остаток денег','+1,2 млн ₽','Кассовых разрывов нет','Денежного потока хватает на все платежи','good'),
+        vd('Потребность в финансировании','6,5 млн ₽','Покрыта собственным капиталом','Максимальный накопленный дефицит','neutral'),
+        vd('Текущая ликвидность','2,3','Устойчивая платёжеспособность','Норма ≥ 1,5 — с запасом','good'),
+        vd('Накопленная прибыль','+24,8 млн ₽','Стабильный рост прибыли','За горизонт планирования','good'),
+        vd('Чистые активы (оценка)','22,1 млн ₽','Капитал уверенно растёт','Активы минус обязательства','neutral')]
+    };
+  }
+
+  renderVals(){
+    const st=this.state, t=this.THEME(), d=this.DIM();
+    const seg=(a)=>`appearance:none;border:none;cursor:pointer;font:600 11.5px Inter,sans-serif;padding:6px 10px;border-radius:7px;white-space:nowrap;color:${a?t.text:t.subtle};background:${a?t.segActiveBg:'transparent'};box-shadow:${a?'0 1px 2px rgba(0,0,0,.14)':'none'};transition:.14s;`;
+    const segWrap=`display:flex;gap:3px;padding:3px;background:${t.segBg};border-radius:9px;`;
+    const colMap={good:t.good,warn:t.warn,bad:t.bad,neutral:t.neutral};
+    const colBg={good:t.goodBg,warn:t.warnBg,bad:t.badBg,neutral:t.neutralBg};
+    const colBorder={good:t.goodBorder,warn:t.warnBorder,bad:t.badBorder,neutral:t.border};
+    const colText={good:t.good,warn:t.warnText,bad:t.badText,neutral:t.muted};
+    const D=this.data(t);
+
+    const mkMetric=(m,i,big)=>({label:m.label, value:m.value, sub:m.sub||'', hint:m.hint,
+      valueStyle:`font:600 ${big?22:18}px 'JetBrains Mono',monospace;letter-spacing:-.01em;color:${colMap[m.col]||t.text};margin-top:${big?9:7}px;`,
+      subStyle:`font:600 11.5px Inter,sans-serif;color:${colText[m.col]||t.subtle};margin-top:5px;`,
+      hoverOn:()=>this.setState({hoverHint:(big?'e':'v')+i}), tip:st.hoverHint===((big?'e':'v')+i)});
+
+    const efficiency=D.efficiency.map((m,i)=>mkMetric(m,i,true));
+    const valuation=D.valuation.map((m,i)=>mkMetric(m,i,false));
+
+    const badgeMap={good:['✓ хорошо',t.good,t.goodBg],warn:['внимание',t.warnText,t.warnBg],bad:['риск',t.badText,t.badBg],neutral:['инфо',t.muted,t.neutralBg]};
+    const verdicts=D.verdicts.map((v,vi)=>{ const bm=badgeMap[v.status];
+      return {title:v.title, value:v.value, message:v.message, sub:v.sub||'',
+        showCubeAccent: vi===0 && v.status==='good',
+        card:`position:relative;display:flex;background:${t.surface};border:1px solid ${t.border};border-radius:16px;overflow:hidden;animation:fe-fade .3s ease;`,
+        stripe:`width:4px;flex:none;background:${colMap[v.status]};`,
+        valueStyle:`font:700 24px 'JetBrains Mono',monospace;letter-spacing:-.02em;color:${v.status==='bad'?t.bad:(v.status==='good'?t.text:t.text)};margin:4px 0 8px;`,
+        badge:`font:600 10px Inter,sans-serif;color:${bm[1]};background:${bm[2]};padding:2px 8px;border-radius:5px;white-space:nowrap;flex:none;`,
+        badgeText:bm[0]};
+    });
+
+    const warnings=D.warnings.map((w)=>({text:w.text, level:w.level,
+      dot:`width:6px;height:6px;border-radius:50%;flex:none;margin-top:6px;background:${w.level==='error'?t.bad:t.warn};`,
+      rowStyle:`display:flex;align-items:flex-start;gap:10px;padding:11px 0;border-top:1px solid ${t.border};`,
+      levelChip:`font:600 10px Inter,sans-serif;color:${w.level==='error'?t.badText:t.warnText};background:${w.level==='error'?t.badBg:t.warnBg};padding:2px 8px;border-radius:5px;white-space:nowrap;flex:none;`,
+      levelText:w.level==='error'?'ошибка':'предупр.'}));
+
+    const tabs=['Сводка','Прибыли и убытки','Кэш-фло','Баланс','Коэффициенты','Графики','План-факт'].map((label,i)=>({label,
+      style:`appearance:none;border:none;background:none;cursor:pointer;font:600 13.5px Inter,sans-serif;color:${i===0?t.text:t.muted};padding:0 3px;height:46px;border-bottom:2px solid ${i===0?t.primary:'transparent'};white-space:nowrap;`}));
+
+    const sk=(h)=>`height:${h}px;border-radius:13px;background:${t.sk};animation:fe-pulse 1.4s ease-in-out infinite alternate;`;
+
+    const s={
+      page:`min-height:100vh;background:${t.pageBg};color:${t.text};display:flex;flex-direction:column;transition:background .25s;`,
+      bar:`display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:13px 20px;background:${t.barBg};border-bottom:1px solid ${t.border};position:sticky;top:0;z-index:60;`,
+      barDot:`width:26px;height:26px;border-radius:7px;flex:none;background:linear-gradient(150deg,${t.brandMid},${t.brandTo});`,
+      barTitle:`font:700 13px Inter,sans-serif;letter-spacing:-.01em;color:${t.text};white-space:nowrap;`,
+      barSub:`font:500 11px Inter,sans-serif;color:${t.subtle};white-space:nowrap;`,
+      barLabel:`font:600 9.5px Inter,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:${t.subtle};`,
+      seg:segWrap, segProfit:seg(st.scenario==='profit'),segLoss:seg(st.scenario==='loss'),segGap:seg(st.scenario==='gap'),
+      segReady:seg(st.calc==='ready'),segCalc:seg(st.calc==='loading'),segErr:seg(st.calc==='error'),
+      segLight:seg(st.theme==='light'),segDark:seg(st.theme==='dark'),segDesktop:seg(st.device==='desktop'),segTablet:seg(st.device==='tablet'),segMobile:seg(st.device==='mobile'),
+
+      stage:`flex:1;display:flex;justify-content:center;align-items:flex-start;padding:${d.frame<500?'22px 12px':'34px 24px'};`,
+      frame:`position:relative;width:100%;max-width:${d.frame}px;background:${t.bg};border:1px solid ${t.border};border-radius:${d.radius}px;box-shadow:${t.shadow};overflow:hidden;`,
+
+      rHeader:`display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:16px ${d.pad}px;background:${t.headerBg};border-bottom:1px solid ${t.border};`,
+      backBtn:`appearance:none;cursor:pointer;display:inline-flex;align-items:center;height:36px;padding:0 ${d.backText?'12px':'0'};${d.backText?'':'width:36px;justify-content:center;'}border-radius:8px;border:1px solid ${t.border};background:${t.surface};color:${t.muted};font:600 13px Inter,sans-serif;flex:none;transition:.14s;`,
+      backHover:`background:${t.surface2};color:${t.text};`,
+      rTitle:`font:700 ${d.frame<500?20:24}px Inter,sans-serif;letter-spacing:-.025em;color:${t.text};`,
+      rProject:`font:500 12.5px Inter,sans-serif;color:${t.subtle};margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`,
+      rActions:`display:flex;align-items:center;gap:10px;flex-wrap:wrap;`,
+      versionChip:`font:600 11px 'JetBrains Mono',monospace;color:${t.subtle};background:${t.surface2};border:1px solid ${t.border};padding:4px 9px;border-radius:7px;${d.frame<500?'display:none;':''}`,
+      exportGroup:`display:flex;align-items:center;gap:6px;`,
+      exportBtn:`appearance:none;cursor:pointer;height:36px;padding:0 13px;border-radius:9px;border:1px solid ${t.border};background:${t.surface};color:${t.muted};font:600 12.5px Inter,sans-serif;transition:.14s;`,
+      exportBtnIco:`appearance:none;cursor:pointer;height:36px;padding:0 14px;border-radius:9px;border:1px solid ${t.border};background:${t.surface};color:${t.text};font:600 12.5px Inter,sans-serif;display:inline-flex;align-items:center;transition:.14s;`,
+      exportHover:`background:${t.surface2};border-color:${t.borderStrong};color:${t.text};`,
+
+      calcBar:`display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px ${d.pad}px;background:${t.primaryBg};border-bottom:1px solid ${t.border};`,
+      spinner:`width:18px;height:18px;border-radius:50%;border:2.5px solid ${t.primary};border-top-color:transparent;animation:fe-spin .7s linear infinite;flex:none;`,
+      calcText:`font:700 14px Inter,sans-serif;color:${t.primary};`,
+      calcSub:`font:500 12.5px Inter,sans-serif;color:${t.muted};`,
+
+      content:`padding:${d.pad}px;`,
+      errorBlock:`text-align:center;padding:56px 24px;background:${t.surface};border:1px solid ${t.badBorder};border-radius:16px;display:flex;flex-direction:column;align-items:center;`,
+      errorIco:`width:54px;height:54px;border-radius:50%;background:${t.badBg};color:${t.bad};font:700 26px Inter;display:flex;align-items:center;justify-content:center;margin-bottom:18px;`,
+      errorTitle:`font:700 20px 'Satoshi',Inter,sans-serif;color:${t.text};`,
+      errorSub:`font:400 14px/1.6 Inter,sans-serif;color:${t.muted};max-width:480px;margin:9px auto 22px;`,
+      errorActions:`display:flex;gap:10px;flex-wrap:wrap;justify-content:center;`,
+      errorBtnGhost:`appearance:none;cursor:pointer;height:42px;padding:0 18px;border-radius:4px;border:1px solid ${t.borderStrong};background:${t.surface};color:${t.text};font:600 13.5px Inter,sans-serif;`,
+      errorBtnPrimary:`appearance:none;border:none;cursor:pointer;height:42px;padding:0 18px;border-radius:4px;background:${t.primary};color:${t.primaryText};font:600 13.5px Inter,sans-serif;`,
+
+      warnBanner:`display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-radius:13px;background:${t.warnBg};border:1px solid ${t.warnBorder};margin-bottom:22px;`,
+      warnBannerIco:`font-size:16px;flex:none;color:${t.warn};`,
+      warnBannerTitle:`font:700 13px Inter,sans-serif;color:${t.warnText};margin-bottom:6px;`,
+      warnBannerItem:`display:flex;align-items:flex-start;gap:8px;font:500 12.5px/1.45 Inter,sans-serif;color:${t.warnText};margin-top:3px;`,
+
+      sectionLabel:`font:600 11px Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:${t.subtle};margin:0 0 12px;`,
+      metricGrid:`display:grid;grid-template-columns:repeat(${d.mcols},1fr);gap:13px;margin-bottom:24px;`,
+      metricCard:`background:${t.surface};border:1px solid ${t.border};border-radius:16px;padding:16px;`,
+      metricTop:`display:flex;align-items:center;justify-content:space-between;gap:8px;`,
+      metricLabel:`font:600 12.5px Inter,sans-serif;color:${t.muted};`,
+      metricLabelSm:`font:600 12px Inter,sans-serif;color:${t.muted};`,
+      hintWrap:`position:relative;display:inline-flex;`,
+      hintBadge:`width:15px;height:15px;border-radius:50%;border:1px solid ${t.borderStrong};color:${t.subtle};font:700 9.5px Inter;display:flex;align-items:center;justify-content:center;cursor:help;flex:none;`,
+      tooltip:`position:absolute;top:22px;right:0;width:230px;padding:9px 11px;border-radius:9px;background:${t.text};color:${t.bg};font:500 11.5px/1.45 Inter,sans-serif;box-shadow:${t.menuShadow};z-index:40;text-align:left;`,
+      valGrid:`display:grid;grid-template-columns:repeat(${d.vcols},1fr);gap:13px;margin-bottom:24px;`,
+      valCard:`background:${t.surface};border:1px solid ${t.border};border-radius:16px;padding:15px;`,
+
+      tabBarWrap:`border-bottom:1px solid ${t.border};margin-bottom:20px;`,
+      tabBar:`display:flex;align-items:center;gap:${d.frame<500?14:22}px;overflow-x:auto;`,
+
+      verdictGrid:`display:grid;grid-template-columns:repeat(${d.vc},1fr);gap:14px;margin-bottom:24px;`,
+      verdictBody:`flex:1;min-width:0;padding:16px 16px 16px 15px;`,
+      verdictHead:`display:flex;align-items:flex-start;justify-content:space-between;gap:8px;`,
+      verdictTitle:`font:600 12.5px Inter,sans-serif;color:${t.muted};`,
+      verdictMsg:`font:600 13px/1.4 Inter,sans-serif;color:${t.text};`,
+      verdictSub:`font:400 11.5px/1.4 Inter,sans-serif;color:${t.subtle};margin-top:5px;`,
+
+      warnBlock:`background:${t.surface};border:1px solid ${t.border};border-radius:16px;padding:18px;`,
+      warnBlockHead:`display:flex;align-items:center;gap:8px;font:700 14px Inter,sans-serif;color:${t.text};margin-bottom:6px;`,
+      warnBlockIco:`color:${t.warn};font-size:15px;`,
+      warnRowText:`flex:1;min-width:0;font:500 12.5px/1.45 Inter,sans-serif;color:${t.muted};`,
+
+      skCard:sk(96), skVerdict:sk(116), skTab:sk(46),
+      cardRow:`display:grid;grid-template-columns:repeat(${d.mcols},1fr);gap:13px;margin-bottom:22px;`,
+      bottomPad:`height:4px;`
+    };
+
+    return {s,t,tabs,efficiency,valuation,verdicts,warnings,
+      showBackText:d.backText, showExports:d.frame>=500||true,
+      isReady:st.calc==='ready', isCalc:st.calc==='loading', isErr:st.calc==='error',
+      hasWarnings:D.warnings.length>0, warnCount:String(D.warnings.length),
+      hoverOff:()=>this.setState({hoverHint:null}),
+      setProfit:()=>this.setState({scenario:'profit'}),setLoss:()=>this.setState({scenario:'loss'}),setGap:()=>this.setState({scenario:'gap'}),
+      setReady:()=>this.setState({calc:'ready'}),setCalc:()=>this.setState({calc:'loading'}),setErr:()=>this.setState({calc:'error'}),
+      setLight:()=>this.setState({theme:'light'}),setDark:()=>this.setState({theme:'dark'}),
+      setDesktop:()=>this.setState({device:'desktop'}),setTablet:()=>this.setState({device:'tablet'}),setMobile:()=>this.setState({device:'mobile'})
+    };
+  }
+}
+</script>
+</body>
+</html>

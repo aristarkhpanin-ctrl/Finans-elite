@@ -5,7 +5,6 @@ import pytest
 
 from app.rbac import Perm, Role, has_permission
 
-
 # --- матрица прав (юнит) ---
 
 def test_permission_hierarchy():
@@ -100,3 +99,59 @@ def test_my_organizations_lists_roles(client, team):
     # у пользователя своя организация (owner) и команда (viewer)
     roles = {o["name"]: o["role"] for o in orgs}
     assert roles["Команда"] == "viewer"
+
+
+# --- B4: управление участниками организации (patch role / delete) ---
+
+def _uid(client, org_id, headers, email):
+    members = client.get(f"/api/v1/organizations/{org_id}/members", headers=headers).json()
+    return next(m["user_id"] for m in members if m["email"] == email)
+
+
+def test_owner_changes_member_role(client, team):
+    team.member("v@e.ru", "viewer")
+    uid = _uid(client, team.org_id, team.owner, "v@e.ru")
+    r = client.patch(f"/api/v1/organizations/{team.org_id}/members/{uid}",
+                     json={"role": "editor"}, headers=team.owner)
+    assert r.status_code == 200 and r.json()["role"] == "editor"
+
+
+def test_owner_removes_member(client, team):
+    team.member("v@e.ru", "viewer")
+    uid = _uid(client, team.org_id, team.owner, "v@e.ru")
+    assert client.delete(f"/api/v1/organizations/{team.org_id}/members/{uid}",
+                         headers=team.owner).status_code == 204
+    emails = [m["email"] for m in client.get(f"/api/v1/organizations/{team.org_id}/members",
+                                             headers=team.owner).json()]
+    assert "v@e.ru" not in emails
+
+
+def test_viewer_cannot_manage_members(client, team):
+    viewer = team.member("v@e.ru", "viewer")
+    team.member("t@e.ru", "editor")
+    uid = _uid(client, team.org_id, team.owner, "t@e.ru")
+    assert client.patch(f"/api/v1/organizations/{team.org_id}/members/{uid}",
+                        json={"role": "viewer"}, headers=viewer).status_code == 403
+    assert client.delete(f"/api/v1/organizations/{team.org_id}/members/{uid}",
+                         headers=viewer).status_code == 403
+
+
+def test_cannot_demote_or_remove_owner(client, team):
+    owner_uid = _uid(client, team.org_id, team.owner, "owner@e.ru")
+    assert client.patch(f"/api/v1/organizations/{team.org_id}/members/{owner_uid}",
+                        json={"role": "admin"}, headers=team.owner).status_code == 409
+    assert client.delete(f"/api/v1/organizations/{team.org_id}/members/{owner_uid}",
+                         headers=team.owner).status_code == 409
+
+
+def test_cannot_remove_self(client, team):
+    admin = team.member("adm@e.ru", "admin")
+    uid = _uid(client, team.org_id, team.owner, "adm@e.ru")
+    # админ пытается удалить сам себя
+    assert client.delete(f"/api/v1/organizations/{team.org_id}/members/{uid}",
+                         headers=admin).status_code == 409
+
+
+def test_member_not_found_404(client, team):
+    assert client.patch(f"/api/v1/organizations/{team.org_id}/members/ghost",
+                        json={"role": "viewer"}, headers=team.owner).status_code == 404

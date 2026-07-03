@@ -16,15 +16,21 @@ class StartingBalance(BaseModel):
 
     cash: Decimal = Decimal(0)                 # → B1
     fixed_assets_net: Decimal = Decimal(0)     # → B11 (остаточная стоимость ОС)
+    foreign_monetary: Decimal = Decimal(0)     # монетарный актив во 2-й валюте, ед. валюты → B6
+    receivables: Decimal = Decimal(0)          # дебиторка на старте → B2 (инкассируется в мес. 0)
+    payables: Decimal = Decimal(0)             # кредиторка на старте → B23 (оплачивается в мес. 0)
+    raw_materials: Decimal = Decimal(0)        # запас сырья на старте → B3 (поддерживаемый уровень)
+    finished_goods: Decimal = Decimal(0)       # запас ГП на старте → B5 (поддерживаемый уровень)
     debt: Decimal = Decimal(0)                 # → B26 (долгосрочные займы)
     paid_in_capital: Decimal = Decimal(0)      # → B27 (обыкновенные акции)
     retained_earnings: Decimal = Decimal(0)    # → B32 (нераспределённая прибыль)
 
     def assets(self) -> Decimal:
-        return self.cash + self.fixed_assets_net
+        return (self.cash + self.fixed_assets_net + self.receivables
+                + self.raw_materials + self.finished_goods)
 
     def liabilities_equity(self) -> Decimal:
-        return self.debt + self.paid_in_capital + self.retained_earnings
+        return self.debt + self.paid_in_capital + self.retained_earnings + self.payables
 
 
 class Company(BaseModel):

@@ -23,6 +23,20 @@ export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "",
 });
 
+/** HTTP-статус из ошибки axios (или undefined — не сетевая/HTTP ошибка). */
+export function httpStatus(e: unknown): number | undefined {
+  return axios.isAxiosError(e) ? e.response?.status : undefined;
+}
+
+/** Текст `detail` из тела ответа об ошибке (FastAPI), если он строковый. */
+export function httpDetail(e: unknown): string | undefined {
+  if (axios.isAxiosError(e)) {
+    const detail = (e.response?.data as { detail?: unknown } | undefined)?.detail;
+    if (typeof detail === "string") return detail;
+  }
+  return undefined;
+}
+
 // Подставляем токен и текущую организацию в каждый запрос.
 api.interceptors.request.use((config) => {
   const token = getToken();

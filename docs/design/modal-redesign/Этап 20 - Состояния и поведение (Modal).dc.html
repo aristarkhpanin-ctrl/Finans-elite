@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Inter';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-600-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-weight:700;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-700-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-600-normal.woff2') format('woff2');}
+</style>
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  input,select,button{font-family:inherit;}
+  input::placeholder{color:inherit;opacity:.45;}
+  .g20-scroll::-webkit-scrollbar{height:9px;width:9px;}
+  .g20-scroll::-webkit-scrollbar-thumb{background:rgba(120,113,108,.4);border-radius:5px;border:2px solid transparent;background-clip:padding-box;}
+  @keyframes fe-pulse{from{opacity:.5}to{opacity:1}}
+  @keyframes fe-fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes fe-spin{to{transform:rotate(360deg)}}
+  @keyframes fe-toastin{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
+  @keyframes fe-slidein{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+  @keyframes fe-pop{0%{transform:scale(.92);opacity:0}100%{transform:scale(1);opacity:1}}
+  @keyframes fe-conv{0%{transform:scaleX(.2)}100%{transform:scaleX(1)}}
+  @keyframes fe-rowsweep{from{background-position:-200% 0}to{background-position:200% 0}}
+  .g20-hoverrow{transition:background .14s;}
+  .g20-hoverrow:hover{background:var(--hov)!important;}
+  .g20-focusdemo:focus{outline:none;border-color:var(--pri)!important;box-shadow:0 0 0 3px var(--ring)!important;}
+</style>
+</helmet>
+
+<div style="{{ s.page }}" data-screen-label="20 — Состояния и поведение">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+      <div style="width:26px;height:26px;flex:none;border-radius:8px;overflow:hidden;"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="26px,26px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Этап&nbsp;20 · Состояния и поведение</span>
+        <span style="{{ s.barSub }}">Финанс-Элит · сквозная проработка</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Свет</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тьма</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOASTS LAYER -->
+  <div style="{{ s.toastLayer }}">
+    <sc-for list="{{ toasts }}" as="t" hint-placeholder-count="0">
+      <div style="{{ t.style }}"><span style="{{ t.icoStyle }}">{{ t.ico }}</span><div style="min-width:0;flex:1;"><div style="{{ t.titleStyle }}">{{ t.title }}</div><sc-if value="{{ t.sub }}" hint-placeholder-val=""><div style="{{ s.toastSub }}">{{ t.sub }}</div></sc-if></div><button style="{{ s.toastX }}" onClick="{{ t.dismiss }}">✕</button></div>
+    </sc-for>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}">
+
+      <div style="{{ s.guideHead }}">
+        <div style="min-width:0;">
+          <div style="{{ s.kicker }}">Гайд · дизайн-система поведения</div>
+          <h1 style="{{ s.h1 }}">Состояния и поведение</h1>
+          <div style="{{ s.lead }}">Единые правила для тёмной темы, адаптива, состояний загрузки, тостов, подтверждений и микровзаимодействий — то, что превращает набор экранов в цельный продукт.</div>
+        </div>
+      </div>
+
+      <div style="{{ s.body }}">
+
+        <div style="{{ s.railWrap }}"><div style="{{ s.rail }}" class="g20-scroll">
+          <sc-for list="{{ rail }}" as="r" hint-placeholder-count="9">
+            <button style="{{ r.style }}" onClick="{{ r.go }}"><span style="{{ r.numStyle }}">{{ r.num }}</span><span style="{{ s.railLabel }}">{{ r.label }}</span></button>
+          </sc-for>
+        </div></div>
+
+        <div style="{{ s.panel }}">
+
+          <!-- ===== ОБЗОР ===== -->
+          <sc-if value="{{ secObzor }}" hint-placeholder-val="{{ true }}">
+          <div style="{{ s.secWrap }}">
+            <div style="{{ s.secTag }}">Принципы</div>
+            <div style="{{ s.secTitle }}">Шесть правил отполированного интерфейса</div>
+            <div style="{{ s.secLead }}">Эти принципы применяются на каждом экране продукта. Разделы ниже показывают их в действии.</div>
+            <div style="{{ s.principleGrid }}">
+              <sc-for list="{{ principles }}" as="p" hint-placeholder-count="6">
+              <div style="{{ s.principleCard }}"><div style="{{ p.numStyle }}">{{ p.num }}</div><div style="{{ s.principleTitle }}">{{ p.title }}</div><div style="{{ s.principleDesc }}">{{ p.desc }}</div></div>
+              </sc-for>
+            </div>
+          </div>
+          </sc-if>
+
+          <!-- ===== СОСТОЯНИЯ ===== -->
+          <sc-if value="{{ secStates }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.secWrap }}">
+            <div style="{{ s.secTag }}">Состояния данных</div>
+            <div style="{{ s.secTitle }}">Загрузка · Пусто · Ошибка · Готово</div>
+            <div style="{{ s.secLead }}">Любой блок с данными проходит один и тот же цикл. Скелетон повторяет финальную раскладку, пустое состояние зовёт к действию, ошибка объясняет и предлагает повтор.</div>
+            <div style="{{ s.demoTabs }}"><sc-for list="{{ stateTabs }}" as="b" hint-placeholder-count="4"><button style="{{ b.style }}" onClick="{{ b.go }}">{{ b.label }}</button></sc-for></div>
+            <div style="{{ s.demoStage }}">
+              <sc-if value="{{ stSkeleton }}" hint-placeholder-val="{{ true }}">
+              <div style="{{ s.demoCard }}"><sc-for list="{{ skRows }}" as="i" hint-placeholder-count="4"><div style="{{ s.skLine }}" style="width:{{ i.w }};"></div></sc-for></div>
+              </sc-if>
+              <sc-if value="{{ stLoaded }}" hint-placeholder-val="">
+              <div style="{{ s.demoCard }}"><div style="{{ s.loadedHead }}"><span style="{{ s.loadedDot }}"></span>Денежный поток, итог за год</div><div style="{{ s.loadedBig }}">+8 420 000 ₽</div><div style="{{ s.loadedSub }}">12 месяцев · без кассовых разрывов</div></div>
+              </sc-if>
+              <sc-if value="{{ stEmpty }}" hint-placeholder-val="">
+              <div style="{{ s.demoEmpty }}"><div style="{{ s.demoEmptyIco }}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h16v12H4zM4 7l2-3h12l2 3M9 12h6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div style="{{ s.demoEmptyTitle }}">Пока нет данных расчёта</div><div style="{{ s.demoEmptySub }}">Заполните вкладку «Сбыт» и нажмите «Рассчитать».</div><button style="{{ s.demoCta }}" onClick="{{ demoLoaded }}">Перейти к вводу</button></div>
+              </sc-if>
+              <sc-if value="{{ stError }}" hint-placeholder-val="">
+              <div style="{{ s.demoErr }}"><div style="{{ s.demoErrIco }}">!</div><div style="min-width:0;"><div style="{{ s.demoErrTitle }}">Расчёт не сошёлся</div><div style="{{ s.demoErrSub }}">Баланс не сведён: актив ≠ пассив на М7. Проверьте начальные остатки.</div><button style="{{ s.demoRetry }}" onClick="{{ demoSkeleton }}">↻ Повторить расчёт</button></div></div>
+              </sc-if>
+            </div>
+            <div style="{{ s.ruleRow }}"><span style="{{ s.ruleDot }}"></span>Скелетон держит ту же сетку, что и контент — переход не «прыгает».</div>
+          </div>
+          </sc-if>
+
+          <!-- ===== ТОСТЫ ===== -->
+          <sc-if value="{{ secToasts }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.secWrap }}">
+            <div style="{{ s.secTag }}">Обратная связь</div>
+            <div style="{{ s.secTitle }}">Тосты</div>
+            <div style="{{ s.secLead }}">Короткое неблокирующее уведомление о результате действия. Появляется справа сверху, живёт ~3 секунды, складывается в стопку. Нажмите кнопки — увидите вживую.</div>
+            <div style="{{ s.triggerRow }}">
+              <button style="{{ s.trigSuccess }}" onClick="{{ toastSaved }}"><span style="{{ s.trigIco }}">✓</span>Сохранено</button>
+              <button style="{{ s.trigInfo }}" onClick="{{ toastCopied }}"><span style="{{ s.trigIcoInfo }}">⧉</span>Скопировано</button>
+              <button style="{{ s.trigWarn }}" onClick="{{ toastSync }}"><span style="{{ s.trigIcoWarn }}">↻</span>Синхронизация</button>
+              <button style="{{ s.trigError }}" onClick="{{ toastError }}"><span style="{{ s.trigIcoErr }}">!</span>Ошибка</button>
+            </div>
+            <div style="{{ s.anatomyCard }}">
+              <div style="{{ s.anatomyTitle }}">Анатомия</div>
+              <div style="{{ s.anatomyRow }}"><span style="{{ s.anatomyKey }}">Иконка-статус</span><span style="{{ s.anatomyVal }}">цвет = тип: успех/инфо/предупреждение/ошибка</span></div>
+              <div style="{{ s.anatomyRow }}"><span style="{{ s.anatomyKey }}">Заголовок + деталь</span><span style="{{ s.anatomyVal }}">что произошло, опционально — подробность</span></div>
+              <div style="{{ s.anatomyRow }}"><span style="{{ s.anatomyKey }}">Закрытие</span><span style="{{ s.anatomyVal }}">авто через 3с или крестик · стопка до 3 шт.</span></div>
+            </div>
+          </div>
+          </sc-if>
+
+          <!-- ===== ПОДТВЕРЖДЕНИЯ ===== -->
+          <sc-if value="{{ secConfirms }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.secWrap }}">
+            <div style="{{ s.secTag }}">Защита от ошибок</div>
+            <div style="{{ s.secTitle }}">Подтверждения</div>
+            <div style="{{ s.secLead }}">Необратимые и рискованные действия требуют явного подтверждения в модальном окне. Деструктивные — с красной акцентной кнопкой. Нажмите, чтобы увидеть каждый сценарий.</div>
+            <div style="{{ s.confirmGrid }}">
+              <button style="{{ s.confirmTrig }}" onClick="{{ openDelete }}"><div style="{{ s.confirmTrigIcoD }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2M6 7l1 13a1 1 0 001 1h8a1 1 0 001-1l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div style="text-align:left;min-width:0;"><div style="{{ s.confirmTrigTitle }}">Удаление проекта</div><div style="{{ s.confirmTrigSub }}">деструктивное · красная кнопка</div></div></button>
+              <button style="{{ s.confirmTrig }}" onClick="{{ openUnsaved }}"><div style="{{ s.confirmTrigIcoW }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 9v4M12 17h.01M10.3 4l-7 12a2 2 0 001.7 3h14a2 2 0 001.7-3l-7-12a2 2 0 00-3.4 0z" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div style="text-align:left;min-width:0;"><div style="{{ s.confirmTrigTitle }}">Уход с несохранёнными</div><div style="{{ s.confirmTrigSub }}">предупреждение · 3 выбора</div></div></button>
+              <button style="{{ s.confirmTrig }}" onClick="{{ openPlan }}"><div style="{{ s.confirmTrigIcoP }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12h16M14 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div style="text-align:left;min-width:0;"><div style="{{ s.confirmTrigTitle }}">Смена тарифа</div><div style="{{ s.confirmTrigSub }}">нейтральное · подтверждение</div></div></button>
+            </div>
+          </div>
+          </sc-if>
+
+          <!-- ===== ТЁМНАЯ ТЕМА ===== -->
+          <sc-if value="{{ secDark }}" hint-placeholder-val="">
+          <div style="{{ s.secWrap }}">
+            <div style="{{ s.secTag }}">Палитра</div>
+            <div style="{{ s.secTitle }}">Тёмная тема — равноправная, не инверсия</div>
+            <div style="{{ s.secLead }}">Переключите тему вверху справа — каждый компонент остаётся читаемым. Отдельная палитра с приглушёнными цветными блоками и выверенным контрастом, без выжженных белых карточек.</div>
+            <div style="{{ s.sampleGrid }}">
+              <div style="{{ s.verdictCard }}"><div style="{{ s.verdictMark }}">✓</div><div style="min-width:0;"><div style="{{ s.verdictTitle }}">Проект создаёт стоимость</div><div style="{{ s.verdictSub }}">NPV +18,4 млн ₽ · окупаемость 11 мес</div></div></div>
+              <div style="{{ s.legendCard }}"><div style="{{ s.microCardTitle }}">Легенда графика</div><div style="{{ s.legendChipRow }}"><sc-for list="{{ legendItems }}" as="l" hint-placeholder-count="5"><span style="{{ l.chipStyle }}"><span style="{{ l.dotStyle }}"></span>{{ l.label }}</span></sc-for></div></div>
+              <div style="{{ s.alertWarn }}"><div style="{{ s.alertIcoW }}">!</div><div style="min-width:0;"><div style="{{ s.alertTitleW }}">Близко к лимиту участников</div><div style="{{ s.alertSub }}">Использовано 8 из 10 мест в тарифе «Бизнес».</div></div></div>
+              <div style="{{ s.alertDanger }}"><div style="{{ s.alertIcoD }}">!</div><div style="min-width:0;"><div style="{{ s.alertTitleD }}">Кассовый разрыв в М7</div><div style="{{ s.alertSub }}">Остаток денежных средств отрицательный — добавьте финансирование.</div></div></div>
+            </div>
+            <div style="{{ s.checklistCard }}"><div style="{{ s.checklistTitle }}">Что проверено в тёмной теме</div><sc-for list="{{ darkChecklist }}" as="c" hint-placeholder-count="5"><div style="{{ s.checkItem }}"><span style="{{ s.checkMark }}">✓</span>{{ c }}</div></sc-for></div>
+          </div>
+          </sc-if>
+
+          <!-- ===== АДАПТИВ ===== -->
+          <sc-if value="{{ secAdaptive }}" hint-placeholder-val="">
+          <div style="{{ s.secWrap }}">
+            <div style="{{ s.secTag }}">Отзывчивость</div>
+            <div style="{{ s.secTitle }}">Адаптив без потерь контента</div>
+            <div style="{{ s.secLead }}">Ключевые экраны переживают сжатие до планшета и телефона по предсказуемым паттернам. Переключите «Устройство» вверху — этот гайд перестраивается так же.</div>
+            <div style="{{ s.patternGrid }}">
+              <sc-for list="{{ patterns }}" as="p" hint-placeholder-count="4">
+              <div style="{{ s.patternCard }}">
+                <div style="{{ s.patternDiagram }}"><div style="width:34px;height:100%;border-radius:4px;background:rgba(120,120,120,.28);flex:none;"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px;"><div style="height:7px;border-radius:3px;background:rgba(120,120,120,.2);"></div><div style="height:7px;border-radius:3px;background:rgba(120,120,120,.16);width:80%;"></div><div style="height:7px;border-radius:3px;background:rgba(120,120,120,.2);width:90%;"></div><div style="height:7px;border-radius:3px;background:rgba(120,120,120,.14);width:60%;"></div></div></div>
+                <div style="{{ s.patternLabel }}">{{ p.label }}</div>
+                <div style="{{ s.patternDesc }}">{{ p.desc }}</div>
+              </div>
+              </sc-for>
+            </div>
+            <div style="{{ s.adaptiveNote }}"><span style="{{ s.adaptiveNoteIco }}">↹</span>Этот гайд — живой пример: на Tablet рейл сужается, на Mobile превращается в горизонтальную ленту разделов.</div>
+          </div>
+          </sc-if>
+
+          <!-- ===== МИКРОВЗАИМОДЕЙСТВИЯ ===== -->
+          <sc-if value="{{ secMicro }}" hint-placeholder-val="">
+          <div style="{{ s.secWrap }}">
+            <div style="{{ s.secTag }}">Отклик</div>
+            <div style="{{ s.secTitle }}">Микровзаимодействия</div>
+            <div style="{{ s.secLead }}">Маленькие отклики, которые делают интерфейс «живым». Каждый блок ниже — интерактивный.</div>
+            <div style="{{ s.microStack }}">
+              <div style="{{ s.microCard }}">
+                <div style="{{ s.microCardTitle }}">Пересчёт модели</div>
+                <div style="{{ s.microCardSub }}">«Рассчитать» → лоадер → результат. Кнопка блокируется на время расчёта.</div>
+                <div style="{{ s.microRow }}">
+                  <button style="{{ s.recalcBtn }}" onClick="{{ doRecalc }}"><sc-if value="{{ calcLoading }}" hint-placeholder-val=""><span style="{{ s.recalcSpin }}"></span></sc-if><span>{{ recalcBtnText }}</span></button>
+                  <sc-if value="{{ calcDone }}" hint-placeholder-val=""><div style="{{ s.recalcResult }}">✓ Готово · NPV +18,4 млн ₽</div></sc-if>
+                  <sc-if value="{{ calcIdle }}" hint-placeholder-val="{{ true }}"><span style="{{ s.recalcIdleHint }}">Нажмите, чтобы запустить пересчёт</span></sc-if>
+                </div>
+              </div>
+              <div style="{{ s.microCard }}">
+                <div style="{{ s.microCardTitle }}">Индикатор сходимости баланса</div>
+                <div style="{{ s.microCardSub }}">Состояние сведения актив = пассив обновляется в реальном времени.</div>
+                <div style="{{ s.convWrap }}">
+                  <span style="{{ convChipStyle }}"><span style="{{ convDotStyle }}">{{ convDotIco }}</span>{{ convLabel }}</span>
+                  <div style="{{ s.convBarTrack }}"><div style="{{ convBarStyle }}"></div></div>
+                  <button style="{{ s.convToggle }}" onClick="{{ toggleConverged }}">{{ convToggleText }}</button>
+                </div>
+              </div>
+              <div style="{{ s.microCard }}">
+                <div style="{{ s.microCardTitle }}">Панель валидации</div>
+                <div style="{{ s.microCardSub }}">Появляется по действию, выезжает сбоку, перечисляет замечания.</div>
+                <button style="{{ s.valBtn }}" onClick="{{ toggleValidation }}">{{ valBtnText }}</button>
+                <sc-if value="{{ validationOpen }}" hint-placeholder-val="">
+                <div style="{{ s.valPanel }}"><div style="{{ s.valPanelHead }}">⚠ 3 замечания валидации</div><sc-for list="{{ valIssues }}" as="v" hint-placeholder-count="3"><div style="{{ s.valIssue }}"><span style="{{ s.valIssueDot }}"></span>{{ v }}</div></sc-for></div>
+                </sc-if>
+              </div>
+              <div style="{{ s.microCard }}">
+                <div style="{{ s.microCardTitle }}">Переключение вкладок</div>
+                <div style="{{ s.microCardSub }}">Активная вкладка подчёркнута; смена — плавная.</div>
+                <div style="{{ s.microTabBar }}"><sc-for list="{{ microTabs }}" as="tb" hint-placeholder-count="3"><button style="{{ tb.style }}" onClick="{{ tb.go }}">{{ tb.label }}</button></sc-for></div>
+                <div style="padding:14px 2px 0;font:400 13px/1.55 Geist,sans-serif;color:{{ t.muted }};">{{ microTabBody }}</div>
+              </div>
+              <div style="{{ s.microCard }}">
+                <div style="{{ s.microCardTitle }}">Ховер строк таблицы</div>
+                <div style="{{ s.microCardSub }}">Наведите курсор — строка мягко подсвечивается.</div>
+                <div style="{{ s.hoverTableCard }}"><sc-for list="{{ hoverRows }}" as="r" hint-placeholder-count="4"><div style="{{ s.hoverRow }}" class="g20-hoverrow"><span>{{ r.k }}</span><span style="{{ s.hoverRowNum }}">{{ r.v }}</span></div></sc-for></div>
+              </div>
+            </div>
+          </div>
+          </sc-if>
+
+          <!-- ===== ДОСТУПНОСТЬ ===== -->
+          <sc-if value="{{ secA11y }}" hint-placeholder-val="">
+          <div style="{{ s.secWrap }}">
+            <div style="{{ s.secTag }}">Доступность</div>
+            <div style="{{ s.secTitle }}">Фокус, клавиатура, контраст</div>
+            <div style="{{ s.secLead }}">Доступность встроена с самого начала. Нажмите Tab — фокус виден всегда; контраст текста не ниже AA.</div>
+            <div style="{{ s.a11yCard }}">
+              <div style="{{ s.microCardTitle }}">Видимое состояние фокуса</div>
+              <div style="{{ s.microCardSub }}">Кликните в поле или пройдите Tab — появляется кольцо фокуса цвета акцента.</div>
+              <div style="{{ s.a11yRow }}">
+                <input style="{{ s.focusInput }}" class="g20-focusdemo" placeholder="Название проекта" />
+                <input style="{{ s.focusInput }}" class="g20-focusdemo" placeholder="Ставка, %" />
+                <button style="{{ s.focusBtn }}" class="g20-focusdemo">Рассчитать</button>
+              </div>
+              <div style="{{ s.kbdNote }}">Навигация с клавиатуры: <span style="{{ s.kbd }}">Tab</span> между полями · <span style="{{ s.kbd }}">Enter</span> подтверждает · <span style="{{ s.kbd }}">Esc</span> закрывает диалог</div>
+            </div>
+            <div style="{{ s.a11yCard }}">
+              <div style="{{ s.microCardTitle }}">Контраст по WCAG</div>
+              <div style="{{ s.microCardSub }}">Ключевые сочетания текст/фон проверены в обеих темах.</div>
+              <div style="{{ s.contrastGrid }}">
+                <sc-for list="{{ contrastSwatches }}" as="c" hint-placeholder-count="3"><div style="{{ c.swatchStyle }}"><div style="{{ c.textStyle }}">{{ c.label }}</div><span style="{{ c.ratioStyle }}">{{ c.ratio }} · {{ c.pass }}</span></div></sc-for>
+              </div>
+            </div>
+          </div>
+          </sc-if>
+
+          <!-- ===== ПЕЧАТЬ ===== -->
+          <sc-if value="{{ secPrint }}" hint-placeholder-val="">
+          <div style="{{ s.secWrap }}">
+            <div style="{{ s.secTag }}">Вывод</div>
+            <div style="{{ s.secTitle }}">Печать и PDF</div>
+            <div style="{{ s.secLead }}">Финальная вычитка печатной раскладки A4 (Этап 16). Документ остаётся аккуратным в ч/б и при сложных переносах.</div>
+            <div style="{{ s.printWrap }}">
+              <div style="{{ s.checklistCard }}"><div style="{{ s.checklistTitle }}">Чек-лист вычитки</div><sc-for list="{{ printChecklist }}" as="c" hint-placeholder-count="5"><div style="{{ s.checkItem }}"><span style="{{ s.checkMark }}">✓</span>{{ c }}</div></sc-for></div>
+              <div style="{{ s.printThumb }}">
+                <div style="{{ s.printThumbBand }}"><span style="{{ s.printThumbBrand }}">Финанс-Элит</span><span style="{{ s.printThumbDate }}">26.06.2026</span></div>
+                <div style="{{ s.printThumbTitle }}">Завод полимерной упаковки</div>
+                <div style="{{ s.printThumbSub }}">Отчёт по финансовой модели · A4</div>
+                <div style="{{ s.printThumbRows }}"><div style="{{ s.printThumbLine }}" style="width:90%;"></div><div style="{{ s.printThumbLine }}" style="width:78%;"></div><div style="{{ s.printThumbLine }}" style="width:84%;"></div><div style="{{ s.printThumbLine }}" style="width:66%;"></div></div>
+                <div style="{{ s.printThumbFoot }}"><span>движок 0.9.9</span><span>Стр. 1 / 5</span></div>
+              </div>
+            </div>
+          </div>
+          </sc-if>
+
+          <!--MORE-->
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIRM MODAL -->
+  <sc-if value="{{ confirmOpen }}" hint-placeholder-val="">
+  <div style="{{ s.overlay }}" onClick="{{ closeConfirm }}"></div>
+  <div style="{{ s.modalWrap }}"><div style="{{ s.modal }}">
+    <div style="{{ confirmIcoStyle }}">{{ confirmIco }}</div>
+    <div style="{{ s.modalTitle }}">{{ confirmTitle }}</div>
+    <div style="{{ s.modalSub }}">{{ confirmText }}</div>
+    <div style="{{ s.modalActions }}">
+      <sc-if value="{{ confirmThird }}" hint-placeholder-val="">
+      <button style="{{ s.btnGhost }}" onClick="{{ closeConfirm }}">{{ confirmCancelLabel }}</button>
+      <button style="{{ s.btnGhostStrong }}" onClick="{{ confirmThirdAction }}">{{ confirmThirdLabel }}</button>
+      </sc-if>
+      <sc-if value="{{ confirmTwo }}" hint-placeholder-val="{{ true }}">
+      <button style="{{ s.btnGhost }}" onClick="{{ closeConfirm }}">Отмена</button>
+      </sc-if>
+      <button style="{{ confirmPrimaryStyle }}" onClick="{{ confirmAction }}">{{ confirmPrimaryLabel }}</button>
+    </div>
+  </div></div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { theme:'light', device:'desktop', section:'obzor',
+    demoState:'skeleton', toasts:[], nextToast:1, confirm:null,
+    calc:'idle', converged:true, validationOpen:false, microTab:'income' };
+
+  componentWillUnmount(){ (this._timers||[]).forEach(clearTimeout); if(this._calcT)clearTimeout(this._calcT); }
+
+  THEME(){
+    const light={pageBg:'#F3F2F0',bg:'#FAFAF9',surface:'#FFFFFF',surface2:'#F5F5F4',sk:'#EAE8E6',border:'#E7E5E4',borderStrong:'#D6D3D1',gridLine:'#EFEDEB',text:'#1C1917',muted:'#57534E',subtle:'#A8A29E',primary:'#0E9C6E',primaryHover:'#0B8560',primaryText:'#FFFFFF',primaryBg:'#E2F4EC',primarySoft:'#EFF8F3',good:'#0E7A4F',danger:'#C13A30',dangerBg:'#FBE9E7',dangerBorder:'#F2C8C2',warn:'#B86E00',warnBg:'#FAEFD9',warnBorder:'#EAD7AC',info:'#2D6FE0',infoBg:'#E5EEFC',ring:'rgba(14,156,110,.22)',shadow:'0 18px 48px -20px rgba(28,25,23,.28), 0 2px 6px rgba(28,25,23,.05)',menuShadow:'0 24px 56px -16px rgba(28,25,23,.34)',toastBg:'#FFFFFF',barBg:'#FFFFFF',segBg:'#F0EEEC',segActiveBg:'#FFFFFF',headerBg:'#FFFFFF',railActiveBg:'#FFFFFF',brandMid:'#0C7250',brandTo:'#0E9C6E'};
+    const dark={pageBg:'#141210',bg:'#1A1816',surface:'#232020',surface2:'#2C2825',sk:'#2F2B27',border:'#39332F',borderStrong:'#4A433E',gridLine:'#332E2A',text:'#F6F4F2',muted:'#B7B0A9',subtle:'#7E756D',primary:'#12B07D',primaryHover:'#19C28B',primaryText:'#06241A',primaryBg:'rgba(18,176,125,.16)',primarySoft:'rgba(18,176,125,.10)',good:'#34C77B',danger:'#F0796E',dangerBg:'rgba(210,69,59,.16)',dangerBorder:'rgba(240,121,110,.32)',warn:'#E0A23A',warnBg:'rgba(224,162,58,.16)',warnBorder:'rgba(224,162,58,.34)',info:'#5E93FF',infoBg:'rgba(45,111,237,.18)',ring:'rgba(25,194,139,.34)',shadow:'0 28px 64px -24px rgba(0,0,0,.72)',menuShadow:'0 28px 64px -20px rgba(0,0,0,.8)',toastBg:'#2C2825',barBg:'#1E1B19',segBg:'#16140F',segActiveBg:'#2C2825',headerBg:'#1E1B19',railActiveBg:'#2C2825',brandMid:'#0A5A40',brandTo:'#0E7A57'};
+    return this.state.theme==='dark'?{...dark,pageBg:'#000000',bg:'#0C0F0C',surface:'#212525',surface2:'#2A312A',sk:'#2A312A',cellBg:'#161A16',border:'#485346',borderStrong:'#677D64',gridLine:'#232823',text:'#DDFFDC',muted:'#93A091',subtle:'#677D64',primary:'#7FEE64',primaryHover:'#95F47D',primaryText:'#000000',accent:'#7FEE64',primaryBg:'rgba(127,238,100,.15)',primarySoft:'rgba(127,238,100,.09)',good:'#7FEE64',goodBg:'rgba(127,238,100,.15)',goodBorder:'rgba(127,238,100,.32)',danger:'#F0796E',dangerHover:'#F4988F',dangerBg:'rgba(240,121,110,.15)',dangerBorder:'rgba(240,121,110,.32)',dangerText:'#F4B0A8',warn:'#E0A23A',warnBg:'rgba(224,162,58,.16)',warnBorder:'rgba(224,162,58,.32)',info:'#AED2A4',infoBg:'rgba(174,210,164,.15)',ring:'rgba(127,238,100,.4)',shadow:'0 30px 70px -34px rgba(0,0,0,.9)',menuShadow:'0 22px 52px -16px rgba(0,0,0,.82)',barBg:'#0C0F0C',barBorder:'#1D231D',segBg:'#0B0E0B',segActiveBg:'#2A312A',headerBg:'#0C0F0C',stickyBg:'#212525',brandMid:'#3E4A3C',brandTo:'#7FEE64',violet:'#C8F9B6',violetBg:'rgba(200,249,182,.14)',subtotalBg:'#1C201C',grandBg:'rgba(127,238,100,.12)',hov:'#262C25',hovlab:'#2C322B',ico1:'#7FEE64',ico1Bg:'rgba(127,238,100,.15)',ico2:'#AED2A4',ico2Bg:'rgba(174,210,164,.15)',ico3:'#C8F9B6',ico3Bg:'rgba(200,249,182,.14)',ico4:'#E0A23A',ico4Bg:'rgba(224,162,58,.16)',inputBg:'#161A16',success:'#7FEE64',successBg:'rgba(127,238,100,.16)'}:{...light,pageBg:'#E4F1E0',bg:'#F4FAF2',surface:'#FFFFFF',surface2:'#EDF5EA',sk:'#E3EEDF',cellBg:'#FFFFFF',border:'#D2E4CD',borderStrong:'#B4CCAE',gridLine:'#E8F1E5',text:'#16201A',muted:'#46584A',subtle:'#6E8270',primary:'#7FEE64',primaryHover:'#6FE253',primaryText:'#06210E',accent:'#138A45',primaryBg:'#DBF3D2',primarySoft:'#EAF8E4',good:'#0E7A4F',goodBg:'#DBF1E2',goodBorder:'#B7DEC6',danger:'#C0473B',dangerHover:'#A53A30',dangerBg:'#FAE7E4',dangerBorder:'#EECFCA',dangerText:'#8F2F26',warn:'#B07A12',warnBg:'#FBF0D8',warnBorder:'#ECDDB4',info:'#3E7D52',infoBg:'#E6EFE2',ring:'rgba(56,194,75,.3)',shadow:'0 18px 44px -22px rgba(20,40,24,.22), 0 2px 6px rgba(20,40,24,.05)',menuShadow:'0 24px 56px -16px rgba(20,40,24,.28)',barBg:'#FFFFFF',barBorder:'#D2E4CD',segBg:'#E7F0E3',segActiveBg:'#FFFFFF',headerBg:'#FFFFFF',stickyBg:'#FFFFFF',brandMid:'#138A45',brandTo:'#7FEE64',violet:'#3E7D52',violetBg:'#E6EFE2',subtotalBg:'#EDF3EA',grandBg:'#DBF1E2',hov:'#F1F7EE',hovlab:'#EAF2E6',ico1:'#138A45',ico1Bg:'#DBF3D2',ico2:'#3E7D52',ico2Bg:'#E6EFE2',ico3:'#5FA86A',ico3Bg:'#E3F0DE',ico4:'#B07A12',ico4Bg:'#FBF0D8',inputBg:'#FFFFFF',success:'#0E7A4F',successBg:'#DBF1E2'};
+  }
+  DIM(){ const d=this.state.device; if(d==='mobile')return{frame:402,radius:30,pad:16,rail:'chips'}; if(d==='tablet')return{frame:864,radius:18,pad:24,rail:'side'}; return{frame:1240,radius:14,pad:34,rail:'side'}; }
+
+  pushTimer(fn,ms){ this._timers=this._timers||[]; const id=setTimeout(fn,ms); this._timers.push(id); return id; }
+  fireToast(kind,title,sub){ const id=this.state.nextToast; const ico={success:'✓',info:'⧉',warn:'↻',error:'!'}[kind];
+    this.setState(s=>{ const arr=[...s.toasts,{id,kind,title,sub,ico}]; return {toasts:arr.slice(-3),nextToast:s.nextToast+1}; });
+    this.pushTimer(()=>this.setState(s=>({toasts:s.toasts.filter(t=>t.id!==id)})),3200);
+  }
+  dismissToast(id){ this.setState(s=>({toasts:s.toasts.filter(t=>t.id!==id)})); }
+  recalc(){ if(this.state.calc==='calculating')return; this.setState({calc:'calculating'}); if(this._calcT)clearTimeout(this._calcT); this._calcT=this.pushTimer(()=>this.setState({calc:'done'}),1700); }
+
+  renderVals(){
+    const st=this.state, t=this.THEME(), d=this.DIM();
+    const seg=(a)=>`appearance:none;border:none;cursor:pointer;font:600 12px Inter,sans-serif;padding:6px 11px;border-radius:7px;white-space:nowrap;color:${a?t.text:t.subtle};background:${a?t.segActiveBg:'transparent'};box-shadow:${a?'0 1px 2px rgba(0,0,0,.14)':'none'};transition:.14s;`;
+    const segWrap=`display:flex;gap:3px;padding:3px;background:${t.segBg};border-radius:9px;`;
+    const small=d.frame<500, sideRail=d.rail==='side';
+
+    const railDefs=[['obzor','Обзор'],['dark','Тёмная тема'],['adaptive','Адаптив'],['states','Состояния'],['toasts','Тосты'],['confirms','Подтверждения'],['micro','Микро­взаимодействия'],['a11y','Доступность'],['print','Печать / PDF']];
+    const rail=railDefs.map(([id,label],i)=>{ const active=st.section===id;
+      return {label, num:String(i+1).padStart(2,'0'), go:()=>this.setState({section:id}),
+        style:`appearance:none;cursor:pointer;display:flex;align-items:center;gap:10px;${sideRail?'width:100%;':''}padding:${sideRail?'10px 12px':'8px 12px'};border-radius:10px;border:1px solid ${active?t.border:'transparent'};background:${active?t.railActiveBg:'transparent'};text-align:left;white-space:nowrap;${active?`box-shadow:0 1px 2px rgba(0,0,0,.06);`:''}transition:.14s;`,
+        numStyle:`font:600 10px 'JetBrains Mono',monospace;color:${active?t.primary:t.subtle};flex:none;`};
+    });
+
+    const principles=[
+      ['01','Тёмная тема — равноправна','Не инверсия, а отдельная палитра. Никаких выжженных белых блоков; таблицы, графики и вердикты читаются одинаково.'],
+      ['02','Адаптив без потерь','Таблицы → горизонтальный скролл с закреплённой колонкой; формы → одна колонка; навигация → бургер. Контент не режется.'],
+      ['03','Состояния предсказуемы','Каждый блок данных умеет: скелетон, пусто, ошибку, готово. Один паттерн на весь продукт.'],
+      ['04','Обратная связь мгновенна','Любое действие отвечает — тост, спиннер, смена индикатора. Пользователь не гадает.'],
+      ['05','Ошибки обратимы','Рискованные действия — через подтверждение. Деструктив — красным. Всегда есть «Отмена».'],
+      ['06','Доступность встроена','Видимый фокус, навигация с клавиатуры, контраст не ниже AA. Не «потом», а сразу.']
+    ].map(([num,title,desc])=>({num,title,desc,numStyle:`font:700 13px 'JetBrains Mono',monospace;color:${t.primary};margin-bottom:10px;`}));
+
+    // states demo
+    const ds=st.demoState;
+    const stateTabs=[['skeleton','Загрузка'],['loaded','Готово'],['empty','Пусто'],['error','Ошибка']].map(([v,label])=>({label,style:`appearance:none;cursor:pointer;font:600 12.5px Inter,sans-serif;padding:8px 14px;border-radius:9px;border:1px solid ${ds===v?t.primary:t.border};background:${ds===v?t.primarySoft:t.surface};color:${ds===v?t.primary:t.muted};transition:.12s;`,go:()=>this.setState({demoState:v})}));
+    const skRows=[{w:'70%'},{w:'94%'},{w:'82%'},{w:'60%'}];
+
+    // toasts render
+    const toastConf={success:{c:t.good,bg:t.primaryBg},info:{c:t.info,bg:t.infoBg},warn:{c:t.warn,bg:t.warnBg},error:{c:t.danger,bg:t.dangerBg}};
+    const toasts=st.toasts.map(tt=>{ const tc=toastConf[tt.kind];
+      return {ico:tt.ico, title:tt.title, sub:tt.sub, dismiss:()=>this.dismissToast(tt.id),
+        style:`display:flex;align-items:flex-start;gap:11px;width:300px;max-width:78vw;padding:13px 14px;border-radius:12px;background:${t.toastBg};border:1px solid ${t.border};box-shadow:${t.menuShadow};animation:fe-toastin .22s cubic-bezier(.2,.8,.2,1);`,
+        icoStyle:`width:24px;height:24px;border-radius:7px;flex:none;display:flex;align-items:center;justify-content:center;font:700 12px Geist;color:${tc.c};background:${tc.bg};`,
+        titleStyle:`font:600 13px Inter,sans-serif;color:${t.text};`};
+    });
+
+    // confirm modal data
+    const cf=st.confirm;
+    const confirmMap={
+      delete:{ico:'🗑',title:'Удалить проект?',text:'Проект «Завод полимерной упаковки» и все расчёты будут удалены безвозвратно.',primary:'Удалить',kind:'danger',two:true},
+      unsaved:{ico:'⚠',title:'Сохранить изменения?',text:'Во вкладке «Сбыт» есть несохранённые изменения. Сохранить перед уходом?',primary:'Сохранить',third:'Не сохранять',cancel:'Остаться',kind:'primary',two:false},
+      plan:{ico:'→',title:'Сменить тариф?',text:'Вы переходите с «Бизнес» на «Команда». Изменение вступит в силу со следующего периода.',primary:'Подтвердить',kind:'primary',two:true}
+    };
+    const c=cf?confirmMap[cf]:null;
+
+    const s={
+      page:`min-height:100vh;background:${t.pageBg};color:${t.text};display:flex;flex-direction:column;transition:background .25s;--hov:${t.surface2};--pri:${t.primary};--ring:${t.ring};`,
+      bar:`display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:13px 22px;background:${t.barBg};border-bottom:1px solid ${t.border};position:sticky;top:0;z-index:60;`,
+      barDot:`width:26px;height:26px;border-radius:7px;flex:none;background:linear-gradient(150deg,${t.brandMid},${t.brandTo});`,
+      barTitle:`font:700 13px Inter,sans-serif;letter-spacing:-.01em;color:${t.text};white-space:nowrap;`,
+      barSub:`font:500 11px Inter,sans-serif;color:${t.subtle};white-space:nowrap;`,
+      barLabel:`font:600 9.5px Inter,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:${t.subtle};`,
+      seg:segWrap, segLight:seg(st.theme==='light'),segDark:seg(st.theme==='dark'),segDesktop:seg(st.device==='desktop'),segTablet:seg(st.device==='tablet'),segMobile:seg(st.device==='mobile'),
+
+      toastLayer:`position:fixed;top:78px;right:22px;z-index:95;display:flex;flex-direction:column;gap:10px;align-items:flex-end;pointer-events:none;`,
+      toastSub:`font:400 11.5px Inter,sans-serif;color:${t.muted};margin-top:2px;`,
+      toastX:`appearance:none;pointer-events:auto;cursor:pointer;width:20px;height:20px;border:none;background:none;color:${t.subtle};font-size:11px;flex:none;`,
+
+      stage:`flex:1;display:flex;justify-content:center;align-items:flex-start;padding:${small?'26px 12px':'40px 24px'};`,
+      frame:`position:relative;width:100%;max-width:${d.frame}px;background:${t.bg};border:1px solid ${t.border};border-radius:${d.radius}px;box-shadow:${t.shadow};overflow:hidden;`,
+      guideHead:`padding:${small?24:38}px ${d.pad}px ${small?20:26}px;background:${t.headerBg};border-bottom:1px solid ${t.border};`,
+      kicker:`font:600 11px Inter,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:${t.primary};`,
+      h1:`font:700 ${small?28:40}px 'Satoshi',Inter,sans-serif;letter-spacing:-.03em;color:${t.text};margin:10px 0 0;`,
+      lead:`font:400 ${small?14:15.5}px/1.6 Inter,sans-serif;color:${t.muted};margin-top:12px;max-width:640px;`,
+
+      body:`display:${sideRail?'grid':'block'};${sideRail?`grid-template-columns:${d.frame<900?210:248}px 1fr;`:''}`,
+      railWrap:`${sideRail?`border-right:1px solid ${t.border};`:`border-bottom:1px solid ${t.border};`}background:${t.surface2};`,
+      rail:`display:flex;${sideRail?'flex-direction:column;':'overflow-x:auto;'}gap:4px;padding:${sideRail?`16px 14px`:'12px 14px'};${sideRail?'position:sticky;top:62px;':''}`,
+      railLabel:`font:600 12.5px Inter,sans-serif;color:inherit;`,
+
+      panel:`padding:${small?20:32}px ${d.pad}px;min-width:0;`,
+      secWrap:`animation:fe-fade .28s ease;max-width:760px;`,
+      secTag:`display:inline-block;font:600 10.5px Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:${t.primary};background:${t.primaryBg};padding:4px 10px;border-radius:7px;`,
+      secTitle:`font:700 ${small?22:27}px 'Satoshi',Inter,sans-serif;letter-spacing:-.025em;color:${t.text};margin:14px 0 0;`,
+      secLead:`font:400 14px/1.6 Inter,sans-serif;color:${t.muted};margin:10px 0 24px;`,
+
+      principleGrid:`display:grid;grid-template-columns:repeat(${small?1:2},1fr);gap:14px;`,
+      principleCard:`padding:18px;border-radius:16px;border:1px solid ${t.border};background:${t.surface};`,
+      principleTitle:`font:700 15px Inter,sans-serif;color:${t.text};letter-spacing:-.01em;`,
+      principleDesc:`font:400 12.5px/1.55 Inter,sans-serif;color:${t.muted};margin-top:7px;`,
+
+      demoTabs:`display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;`,
+      demoStage:`min-height:150px;display:flex;`,
+      demoCard:`flex:1;background:${t.surface};border:1px solid ${t.border};border-radius:16px;padding:20px;`,
+      skLine:`height:13px;border-radius:7px;background:${t.sk};animation:fe-pulse 1.5s ease-in-out infinite alternate;margin-bottom:12px;`,
+      loadedHead:`display:flex;align-items:center;gap:8px;font:600 13px Inter,sans-serif;color:${t.muted};`,
+      loadedDot:`width:8px;height:8px;border-radius:50%;background:${t.primary};`,
+      loadedBig:`font:700 32px 'JetBrains Mono',monospace;letter-spacing:-.02em;color:${t.good};margin:12px 0 4px;`,
+      loadedSub:`font:400 13px Inter,sans-serif;color:${t.subtle};`,
+      demoEmpty:`flex:1;text-align:center;padding:30px 24px;border:1px dashed ${t.borderStrong};border-radius:14px;display:flex;flex-direction:column;align-items:center;`,
+      demoEmptyIco:`width:50px;height:50px;border-radius:13px;background:${t.surface2};color:${t.subtle};display:flex;align-items:center;justify-content:center;margin-bottom:14px;`,
+      demoEmptyTitle:`font:700 16px Inter,sans-serif;color:${t.text};`,
+      demoEmptySub:`font:400 13px Inter,sans-serif;color:${t.muted};margin:6px 0 16px;`,
+      demoCta:`appearance:none;border:none;cursor:pointer;height:38px;padding:0 16px;border-radius:4px;background:${t.primary};color:${t.primaryText};font:600 13px Inter,sans-serif;`,
+      demoErr:`flex:1;display:flex;align-items:flex-start;gap:14px;padding:20px;border:1px solid ${t.dangerBorder};border-radius:16px;background:${t.dangerBg};`,
+      demoErrIco:`width:34px;height:34px;border-radius:50%;background:${t.surface};color:${t.danger};font:700 18px Geist;display:flex;align-items:center;justify-content:center;flex:none;`,
+      demoErrTitle:`font:700 15px Inter,sans-serif;color:${t.danger};`,
+      demoErrSub:`font:400 12.5px/1.5 Inter,sans-serif;color:${t.danger};opacity:.9;margin-top:3px;`,
+      demoRetry:`appearance:none;cursor:pointer;margin-top:12px;height:34px;padding:0 14px;border-radius:8px;border:1px solid ${t.dangerBorder};background:${t.surface};color:${t.danger};font:600 12.5px Inter,sans-serif;`,
+      ruleRow:`display:flex;align-items:center;gap:9px;margin-top:18px;font:500 12.5px Inter,sans-serif;color:${t.muted};`,
+      ruleDot:`width:6px;height:6px;border-radius:50%;background:${t.primary};flex:none;`,
+
+      triggerRow:`display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px;`,
+      trigSuccess:`appearance:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 16px;border-radius:11px;border:1px solid ${t.border};background:${t.surface};color:${t.text};font:600 13px Inter,sans-serif;`,
+      trigInfo:`appearance:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 16px;border-radius:11px;border:1px solid ${t.border};background:${t.surface};color:${t.text};font:600 13px Inter,sans-serif;`,
+      trigWarn:`appearance:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 16px;border-radius:11px;border:1px solid ${t.border};background:${t.surface};color:${t.text};font:600 13px Inter,sans-serif;`,
+      trigError:`appearance:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 16px;border-radius:11px;border:1px solid ${t.border};background:${t.surface};color:${t.text};font:600 13px Inter,sans-serif;`,
+      trigIco:`width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;font:700 11px Geist;color:${t.good};background:${t.primaryBg};`,
+      trigIcoInfo:`width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;font:700 11px Geist;color:${t.info};background:${t.infoBg};`,
+      trigIcoWarn:`width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;font:700 11px Geist;color:${t.warn};background:${t.warnBg};`,
+      trigIcoErr:`width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;font:700 11px Geist;color:${t.danger};background:${t.dangerBg};`,
+      anatomyCard:`background:${t.surface};border:1px solid ${t.border};border-radius:16px;padding:18px;`,
+      anatomyTitle:`font:700 13px Inter,sans-serif;color:${t.text};margin-bottom:12px;`,
+      anatomyRow:`display:flex;gap:14px;padding:9px 0;border-top:1px solid ${t.gridLine};flex-wrap:wrap;`,
+      anatomyKey:`width:160px;flex:none;font:600 12.5px Inter,sans-serif;color:${t.text};`,
+      anatomyVal:`flex:1;min-width:180px;font:400 12.5px Inter,sans-serif;color:${t.muted};`,
+
+      confirmGrid:`display:grid;grid-template-columns:repeat(${small?1:3},1fr);gap:14px;`,
+      confirmTrig:`appearance:none;cursor:pointer;display:flex;align-items:center;gap:12px;padding:16px;border-radius:14px;border:1px solid ${t.border};background:${t.surface};transition:.14s;`,
+      confirmTrigIcoD:`width:40px;height:40px;border-radius:11px;flex:none;background:${t.dangerBg};color:${t.danger};display:flex;align-items:center;justify-content:center;`,
+      confirmTrigIcoW:`width:40px;height:40px;border-radius:11px;flex:none;background:${t.warnBg};color:${t.warn};display:flex;align-items:center;justify-content:center;`,
+      confirmTrigIcoP:`width:40px;height:40px;border-radius:11px;flex:none;background:${t.primaryBg};color:${t.primary};display:flex;align-items:center;justify-content:center;`,
+      confirmTrigTitle:`font:600 13.5px Inter,sans-serif;color:${t.text};`,
+      confirmTrigSub:`font:400 11.5px Inter,sans-serif;color:${t.subtle};margin-top:2px;`,
+
+      overlay:`position:fixed;inset:0;background:rgba(10,8,6,.5);z-index:90;animation:fe-fade .15s;`,
+      modalWrap:`position:fixed;inset:0;z-index:91;display:flex;align-items:center;justify-content:center;padding:24px;`,
+      modal:`width:100%;max-width:430px;background:${t.surface};border:1px solid ${t.border};border-radius:18px;box-shadow:${t.menuShadow};padding:26px;text-align:center;animation:fe-pop .2s ease;`,
+      modalTitle:`font:700 19px Inter,sans-serif;letter-spacing:-.01em;color:${t.text};`,
+      modalSub:`font:400 14px/1.55 Inter,sans-serif;color:${t.muted};margin:9px 0 22px;`,
+      modalActions:`display:flex;gap:10px;flex-wrap:wrap;`,
+      btnGhost:`flex:1;min-width:90px;height:44px;border-radius:4px;border:1px solid ${t.borderStrong};background:${t.surface};color:${t.text};font:600 13.5px Inter,sans-serif;cursor:pointer;`,
+      btnGhostStrong:`flex:1;min-width:90px;height:44px;border-radius:4px;border:1px solid ${t.borderStrong};background:${t.surface2};color:${t.text};font:600 13.5px Inter,sans-serif;cursor:pointer;`,
+
+      // dark theme samples
+      sampleGrid:`display:grid;grid-template-columns:repeat(${small?1:2},1fr);gap:14px;margin-bottom:24px;`,
+      verdictCard:`display:flex;align-items:center;gap:13px;padding:16px;border-radius:14px;border:1px solid ${t.dangerBorder===t.dangerBorder?t.border:t.border};border-left:4px solid ${t.primary};background:${t.primarySoft};`,
+      verdictMark:`width:34px;height:34px;border-radius:50%;background:${t.primary};color:#fff;font:700 17px Geist;display:flex;align-items:center;justify-content:center;flex:none;`,
+      verdictTitle:`font:700 15px Inter,sans-serif;color:${t.text};`,
+      verdictSub:`font:400 12px Inter,sans-serif;color:${t.muted};margin-top:2px;`,
+      alertWarn:`display:flex;align-items:flex-start;gap:11px;padding:14px;border-radius:13px;border:1px solid ${t.warnBorder};background:${t.warnBg};`,
+      alertDanger:`display:flex;align-items:flex-start;gap:11px;padding:14px;border-radius:13px;border:1px solid ${t.dangerBorder};background:${t.dangerBg};`,
+      alertIcoW:`width:26px;height:26px;border-radius:7px;flex:none;background:${t.surface};color:${t.warn};font:700 14px Geist;display:flex;align-items:center;justify-content:center;`,
+      alertIcoD:`width:26px;height:26px;border-radius:7px;flex:none;background:${t.surface};color:${t.danger};font:700 14px Geist;display:flex;align-items:center;justify-content:center;`,
+      alertTitleW:`font:600 13px Inter,sans-serif;color:${t.warn};`,
+      alertTitleD:`font:600 13px Inter,sans-serif;color:${t.danger};`,
+      alertSub:`font:400 11.5px/1.45 Inter,sans-serif;color:${t.muted};margin-top:2px;`,
+      miniTableCard:`border:1px solid ${t.border};border-radius:13px;overflow:hidden;background:${t.surface};`,
+      miniТHead:`display:flex;background:${t.surface2};border-bottom:1.5px solid ${t.border};`,
+      miniTH:`flex:1;padding:8px 12px;font:600 9.5px Inter,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:${t.subtle};`,
+      miniTHnum:`width:80px;flex:none;text-align:right;padding:8px 12px;font:600 9.5px Inter,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:${t.subtle};`,
+      legendCard:`border:1px solid ${t.border};border-radius:13px;background:${t.surface};padding:16px;display:flex;flex-direction:column;justify-content:center;gap:10px;`,
+      legendChipRow:`display:flex;gap:14px;flex-wrap:wrap;`,
+      checklistCard:`background:${t.surface};border:1px solid ${t.border};border-radius:14px;padding:18px;`,
+      checklistTitle:`font:700 13px Inter,sans-serif;color:${t.text};margin-bottom:13px;`,
+      checkItem:`display:flex;align-items:flex-start;gap:10px;padding:7px 0;font:400 13px Inter,sans-serif;color:${t.muted};`,
+      checkMark:`flex:none;width:18px;height:18px;border-radius:50%;background:${t.primaryBg};color:${t.primary};font:700 9px Geist;display:flex;align-items:center;justify-content:center;margin-top:1px;`,
+
+      // adaptive
+      patternGrid:`display:grid;grid-template-columns:repeat(${small?1:2},1fr);gap:14px;margin-bottom:22px;`,
+      patternCard:`border:1px solid ${t.border};border-radius:14px;background:${t.surface};padding:16px;`,
+      patternDiagram:`height:84px;border-radius:10px;background:${t.surface2};border:1px solid ${t.gridLine};display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;margin-bottom:13px;overflow:hidden;`,
+      patternLabel:`font:700 14px Inter,sans-serif;color:${t.text};`,
+      patternDesc:`font:400 12px/1.5 Inter,sans-serif;color:${t.muted};margin-top:5px;`,
+      adaptiveNote:`display:flex;align-items:center;gap:10px;padding:13px 16px;border-radius:12px;background:${t.primarySoft};border:1px solid ${t.primaryBg};font:500 12.5px Inter,sans-serif;color:${t.text};`,
+      adaptiveNoteIco:`width:24px;height:24px;border-radius:7px;flex:none;background:${t.primary};color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;`,
+
+      // micro
+      microStack:`display:flex;flex-direction:column;gap:14px;`,
+      microCard:`border:1px solid ${t.border};border-radius:14px;background:${t.surface};padding:18px;`,
+      microCardTitle:`font:700 14px Inter,sans-serif;color:${t.text};`,
+      microCardSub:`font:400 12px/1.5 Inter,sans-serif;color:${t.muted};margin:4px 0 14px;`,
+      microRow:`display:flex;align-items:center;gap:14px;flex-wrap:wrap;`,
+      recalcBtn:`appearance:none;border:none;cursor:pointer;height:42px;padding:0 20px;border-radius:4px;background:${t.primary};color:${t.primaryText};font:600 13.5px Inter,sans-serif;display:inline-flex;align-items:center;gap:9px;box-shadow:0 1px 2px rgba(0,0,0,.12);`,
+      recalcSpin:`width:15px;height:15px;border-radius:50%;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;animation:fe-spin .7s linear infinite;`,
+      recalcResult:`display:inline-flex;align-items:center;gap:9px;padding:9px 14px;border-radius:10px;background:${t.primarySoft};border:1px solid ${t.primaryBg};font:600 13px Inter,sans-serif;color:${t.good};animation:fe-fade .3s ease;`,
+      recalcIdleHint:`font:400 12.5px Inter,sans-serif;color:${t.subtle};`,
+      convWrap:`display:flex;align-items:center;gap:14px;flex-wrap:wrap;`,
+      convChip:`display:inline-flex;align-items:center;gap:9px;padding:10px 15px;border-radius:11px;font:600 13px Inter,sans-serif;`,
+      convDot:`width:16px;height:16px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;`,
+      convBarTrack:`width:120px;height:6px;border-radius:4px;background:${t.surface2};overflow:hidden;`,
+      convToggle:`appearance:none;cursor:pointer;height:38px;padding:0 15px;border-radius:10px;border:1px solid ${t.borderStrong};background:${t.surface};color:${t.text};font:600 12.5px Inter,sans-serif;`,
+      valBtn:`appearance:none;cursor:pointer;height:40px;padding:0 16px;border-radius:10px;border:1px solid ${t.borderStrong};background:${t.surface};color:${t.text};font:600 13px Inter,sans-serif;`,
+      valPanel:`margin-top:14px;border:1px solid ${t.warnBorder};border-radius:12px;background:${t.warnBg};padding:14px;animation:fe-slidein .26s cubic-bezier(.2,.8,.2,1);`,
+      valPanelHead:`display:flex;align-items:center;gap:8px;font:700 12.5px Inter,sans-serif;color:${t.warn};margin-bottom:9px;`,
+      valIssue:`display:flex;align-items:flex-start;gap:8px;padding:5px 0;font:400 12px Inter,sans-serif;color:${t.text};`,
+      valIssueDot:`width:6px;height:6px;border-radius:50%;background:${t.warn};flex:none;margin-top:6px;`,
+      microTabBar:`display:flex;gap:4px;border-bottom:1px solid ${t.border};margin-bottom:0;`,
+      microTabInkWrap:`position:relative;`,
+      hoverTableCard:`border:1px solid ${t.border};border-radius:11px;overflow:hidden;`,
+      hoverRow:`display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid ${t.gridLine};font:500 13px Inter,sans-serif;color:${t.text};cursor:default;`,
+      hoverRowNum:`font:600 13px 'JetBrains Mono',monospace;color:${t.muted};`,
+
+      // a11y
+      a11yCard:`border:1px solid ${t.border};border-radius:14px;background:${t.surface};padding:18px;margin-bottom:14px;`,
+      a11yRow:`display:flex;gap:12px;flex-wrap:wrap;align-items:center;`,
+      focusInput:`height:44px;border-radius:11px;background:${t.bg};border:1.5px solid ${t.border};color:${t.text};font:500 14px Inter,sans-serif;padding:0 14px;outline:none;flex:1;min-width:160px;`,
+      focusBtn:`appearance:none;cursor:pointer;height:44px;padding:0 18px;border-radius:11px;border:1.5px solid ${t.border};background:${t.surface};color:${t.text};font:600 13.5px Inter,sans-serif;outline:none;`,
+      kbdNote:`display:flex;align-items:center;gap:8px;flex-wrap:wrap;font:400 12.5px Inter,sans-serif;color:${t.muted};margin-top:13px;`,
+      kbd:`display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:6px;border:1px solid ${t.borderStrong};border-bottom-width:2px;background:${t.surface2};color:${t.text};font:600 11px 'JetBrains Mono',monospace;`,
+      contrastGrid:`display:grid;grid-template-columns:repeat(${small?1:3},1fr);gap:12px;`,
+      contrastSwatch:`border-radius:12px;padding:16px;border:1px solid ${t.border};`,
+      contrastRatio:`font:600 11px 'JetBrains Mono',monospace;margin-top:8px;display:inline-block;padding:2px 8px;border-radius:6px;`,
+
+      // print
+      printWrap:`display:grid;grid-template-columns:${small?'1fr':'1fr 280px'};gap:18px;align-items:start;`,
+      printThumb:`aspect-ratio:1.414;border:1px solid ${t.border};border-radius:8px;background:#FFFFFF;box-shadow:${t.shadow};padding:16px;display:flex;flex-direction:column;`,
+      printThumbBand:`display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #1C1917;padding-bottom:8px;`,
+      printThumbBrand:`font:700 11px Inter,sans-serif;color:#1C1917;`,
+      printThumbDate:`font:500 8px 'JetBrains Mono',monospace;color:#A8A29E;`,
+      printThumbTitle:`font:700 15px Inter,sans-serif;color:#1C1917;margin-top:11px;letter-spacing:-.02em;`,
+      printThumbSub:`font:500 8px Inter,sans-serif;color:#6E655E;margin-top:3px;`,
+      printThumbRows:`margin-top:11px;display:flex;flex-direction:column;gap:5px;`,
+      printThumbLine:`height:5px;border-radius:2px;background:#ECE8E3;`,
+      printThumbFoot:`margin-top:auto;display:flex;justify-content:space-between;font:500 6px Inter,sans-serif;color:#A8A29E;border-top:1px solid #ECE8E3;padding-top:7px;`
+    };
+
+    return {s,
+      setLight:()=>this.setState({theme:'light'}),setDark:()=>this.setState({theme:'dark'}),
+      setDesktop:()=>this.setState({device:'desktop'}),setTablet:()=>this.setState({device:'tablet'}),setMobile:()=>this.setState({device:'mobile'}),
+      rail, principles,
+      secObzor:st.section==='obzor', secDark:st.section==='dark', secAdaptive:st.section==='adaptive', secStates:st.section==='states', secToasts:st.section==='toasts', secConfirms:st.section==='confirms', secMicro:st.section==='micro', secA11y:st.section==='a11y', secPrint:st.section==='print',
+      stateTabs, skRows, stSkeleton:ds==='skeleton',stLoaded:ds==='loaded',stEmpty:ds==='empty',stError:ds==='error',
+      demoLoaded:()=>this.setState({demoState:'loaded'}), demoSkeleton:()=>this.setState({demoState:'skeleton'}),
+      toasts,
+      toastSaved:()=>this.fireToast('success','Сохранено','Проект обновлён'),
+      toastCopied:()=>this.fireToast('info','Скопировано','Ссылка в буфере обмена'),
+      toastSync:()=>this.fireToast('warn','Синхронизация…','Подключение к движку 0.9.9'),
+      toastError:()=>this.fireToast('error','Ошибка сохранения','Проверьте соединение'),
+      openDelete:()=>this.setState({confirm:'delete'}), openUnsaved:()=>this.setState({confirm:'unsaved'}), openPlan:()=>this.setState({confirm:'plan'}),
+      confirmOpen:cf?'1':'', closeConfirm:()=>this.setState({confirm:null}),
+      confirmIco:c?c.ico:'', confirmTitle:c?c.title:'', confirmText:c?c.text:'',
+      confirmIcoStyle:c?`width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 16px;background:${c.kind==='danger'?t.dangerBg:t.primaryBg};color:${c.kind==='danger'?t.danger:t.primary};`:'',
+      confirmPrimaryStyle:c?`flex:1;min-width:110px;height:44px;border-radius:11px;border:none;cursor:pointer;font:600 13.5px Inter,sans-serif;color:#fff;background:${c.kind==='danger'?t.danger:t.primary};`:'',
+      confirmPrimaryLabel:c?c.primary:'', confirmTwo:!!(c&&c.two), confirmThird:!!(c&&c.third),
+      confirmThirdLabel:c&&c.third?c.third:'', confirmCancelLabel:c&&c.cancel?c.cancel:'Отмена',
+      confirmAction:()=>{ const k=cf; this.setState({confirm:null}); if(k==='delete')this.fireToast('success','Проект удалён'); if(k==='plan')this.fireToast('success','Тариф изменён','Теперь «Команда»'); if(k==='unsaved')this.fireToast('success','Изменения сохранены'); },
+      confirmThirdAction:()=>{ this.setState({confirm:null}); this.fireToast('info','Изменения не сохранены'); },
+
+      // dark theme
+      darkChecklist:['Таблицы: фон строк, закреплённая колонка и линии сетки читаемы','Графики: оси, сетка и серии перекрашены под тёмный фон','Алерты и вердикты: цветные блоки приглушены, текст контрастен','Нет «выжженных» белых карточек — поверхности используют палитру','Тени заменены на более глубокие, границы — на более светлые'],
+      legendItems:(this.state.theme==='dark'?['#19C28B','#5E93FF','#A78BFA','#E0A23A','#F0796E']:['#0E9C6E','#2D6FE0','#7C5CFF','#C98A1E','#C13A30']).map((c,i)=>({label:['Выручка','Поток','Прибыль','EBITDA','NPV'][i],dotStyle:`width:11px;height:3px;border-radius:2px;background:${c};flex:none;`,chipStyle:`display:inline-flex;align-items:center;gap:6px;font:600 11.5px Inter,sans-serif;color:${t.muted};`})),
+      patterns:[
+        {label:'Таблицы → скролл + закреп',desc:'Горизонтальный скролл; первая колонка («Статья») закреплена, итоги — справа.',kind:'table'},
+        {label:'Формы → одна колонка',desc:'Многоколоночные формы сворачиваются в одну; поля на всю ширину.',kind:'form'},
+        {label:'Навигация → бургер',desc:'Верхнее меню прячется в бургер; селектор организации — иконкой.',kind:'nav'},
+        {label:'Помесячный ряд → свайп',desc:'12 месяцев не помещаются — горизонтальный свайп с индикатором.',kind:'swipe'}
+      ].map(p=>({...p})),
+      // micro: recalc
+      calcIdle:this.state.calc==='idle', calcLoading:this.state.calc==='calculating', calcDone:this.state.calc==='done',
+      recalcBtnText:this.state.calc==='calculating'?'Расчёт…':(this.state.calc==='done'?'Пересчитать':'Рассчитать'),
+      doRecalc:()=>this.recalc(),
+      // micro: convergence
+      converged:this.state.converged,
+      convChipStyle:`display:inline-flex;align-items:center;gap:9px;padding:10px 15px;border-radius:11px;font:600 13px Inter,sans-serif;color:${this.state.converged?t.good:t.warn};background:${this.state.converged?t.primarySoft:t.warnBg};border:1px solid ${this.state.converged?t.primaryBg:t.warnBorder};`,
+      convDotStyle:`width:16px;height:16px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;background:${this.state.converged?t.primary:t.warn};`,
+      convDotIco:this.state.converged?'✓':'↻',
+      convLabel:this.state.converged?'Баланс сведён · актив = пассив':'Сходимость баланса…',
+      convBarStyle:`height:100%;border-radius:4px;background:${this.state.converged?t.primary:t.warn};${this.state.converged?'width:100%;':'width:64%;animation:fe-conv 1.1s ease-in-out infinite alternate;transform-origin:left;'}`,
+      convToggleText:this.state.converged?'Показать пересчёт':'Свести баланс',
+      toggleConverged:()=>this.setState(s=>({converged:!s.converged})),
+      // micro: validation
+      validationOpen:this.state.validationOpen, toggleValidation:()=>this.setState(s=>({validationOpen:!s.validationOpen})),
+      valBtnText:this.state.validationOpen?'Скрыть валидацию':'Показать валидацию',
+      valIssues:['М3: отрицательный остаток денежных средств','«Прямые издержки» превышают выручку в М1','Не задан срок службы для актива «Линия розлива»'],
+      // micro: tabs
+      microTabs:[['income','ОПУ'],['cashflow','Кэш-фло'],['balance','Баланс']].map(([v,label],i)=>{ const active=this.state.microTab===v;
+        return {label, go:()=>this.setState({microTab:v}),
+          style:`appearance:none;background:none;border:none;border-bottom:2px solid ${active?t.primary:'transparent'};cursor:pointer;font:600 13.5px Inter,sans-serif;color:${active?t.text:t.muted};padding:9px 14px;transition:color .16s;`};
+      }),
+      microTabBody:{income:'Отчёт о прибылях и убытках — выручка, расходы, чистая прибыль помесячно.',cashflow:'Движение денежных средств — операционный, инвестиционный и финансовый потоки.',balance:'Баланс — активы и пассивы на конец каждого периода, проверка сведения.'}[this.state.microTab],
+      // micro: hover rows
+      hoverRows:[['Поступления от продаж','+4 120 000'],['Оплата материалов','−1 480 000'],['Оплата труда','−1 300 000'],['Чистый поток','+1 040 000']].map(([k,v])=>({k,v})),
+      // a11y contrast
+      contrastSwatches:[
+        {bg:t.surface,fg:t.text,label:'Текст на поверхности',ratio:'12.6:1',pass:'AAA'},
+        {bg:t.surface,fg:t.muted,label:'Вторичный текст',ratio:'5.9:1',pass:'AA'},
+        {bg:t.primary,fg:t.primaryText,label:'Текст на акценте',ratio:'4.8:1',pass:'AA'}
+      ].map(c=>({label:c.label,ratio:c.ratio,pass:c.pass,
+        swatchStyle:`border-radius:12px;padding:16px;border:1px solid ${t.border};background:${c.bg};`,
+        textStyle:`font:600 14px Inter,sans-serif;color:${c.fg};`,
+        ratioStyle:`font:600 11px 'JetBrains Mono',monospace;margin-top:10px;display:inline-block;padding:2px 8px;border-radius:6px;color:${c.fg};background:rgba(128,128,128,.16);`})),
+      // print
+      printChecklist:['Поля A4 и колонтитулы выровнены на всех 5 страницах','Отрицательные суммы — в скобках, печать-дружественный цвет','Длинные названия статей переносятся без обрезки','Цвета вердиктов и акцентов читаемы в ч/б печати','Разрывы страниц не рвут таблицы посередине строки']
+    };
+  }
+}
+</script>
+</body>
+</html>
