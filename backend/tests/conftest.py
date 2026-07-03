@@ -1,4 +1,11 @@
 """Общие фикстуры тестов API/персистентности: единый тестовый движок БД."""
+import os
+
+# По умолчанию rate-limit выключен в тестах: стор in-memory общий на весь прогон,
+# а TestClient ходит с одного IP — иначе лимит /auth сорвётся на массе тестов.
+# Отдельный тест (test_rate_limit) включает его точечно через monkeypatch.
+os.environ.setdefault("RATE_LIMIT_ENABLED", "false")
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
