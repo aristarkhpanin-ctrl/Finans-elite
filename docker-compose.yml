@@ -1,0 +1,50 @@
+# Полный стек Finans-Elite: PostgreSQL + API (FastAPI) + web (SPA за nginx).
+#
+# Единая точка входа — web на :8080; API наружу не публикуется, доступен только
+# через nginx-прокси (/api, /health), поэтому фронт и бэк живут на одном origin
+# и CORS не требуется. Для разработки только ядра есть backend/docker-compose.yml.
+#
+#   cp backend/.env.example .env   # заполнить JWT_SECRET и прочие секреты
+#   docker compose up --build      # http://localhost:8080
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: finans
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-finans}
+      POSTGRES_DB: finans
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finans"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./backend
+    environment:
+      APP_ENV: production
+      DATABASE_URL: postgresql+psycopg://finans:${POSTGRES_PASSWORD:-finans}@db:5432/finans
+      # В проде секрет обязателен — compose упадёт, если JWT_SECRET не задан.
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET обязателен (см. backend/.env.example)}
+      JWT_TTL_SECONDS: ${JWT_TTL_SECONDS:-86400}
+      # Пусто → один origin (фронт за тем же nginx). Задать список при раздельном деплое.
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+      YOOKASSA_SHOP_ID: ${YOOKASSA_SHOP_ID:-}
+      YOOKASSA_SECRET_KEY: ${YOOKASSA_SECRET_KEY:-}
+      YOOKASSA_VAT_CODE: ${YOOKASSA_VAT_CODE:-1}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

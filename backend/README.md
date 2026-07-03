@@ -207,10 +207,14 @@ alembic downgrade -1                            # откатить на шаг
 ## Docker
 
 `Dockerfile` собирает образ API (применяет миграции и запускает uvicorn);
-`docker-compose.yml` поднимает API + PostgreSQL. Переменные — см. `.env.example`.
+`docker-compose.yml` (в этой папке) поднимает API + PostgreSQL для разработки ядра.
+Переменные — см. `.env.example`.
 
 ```bash
 cd backend
 cp .env.example .env          # заполнить секреты
 docker compose up --build     # API на :8000 (/docs), PostgreSQL на :5432
 ```
+
+**Полный стек** (PostgreSQL + API + web за nginx на одном origin) — корневой
+`../docker-compose.yml`; API наружу не публикуется, точка входа — web на `:8080`.

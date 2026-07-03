@@ -7,9 +7,11 @@
 """
 from __future__ import annotations
 
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from calc_core import ENGINE_VERSION, ProjectModel, run
@@ -33,6 +35,19 @@ app = FastAPI(
     description="Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     lifespan=lifespan,
 )
+
+# CORS: по умолчанию выключен (фронт и API — на одном origin за nginx). При
+# раздельном деплое задать CORS_ORIGINS (список через запятую). Токен передаётся
+# в заголовке Authorization, не в cookie, поэтому credentials не нужны.
+_cors_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
+if _cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_cors_origins,
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 app.include_router(auth.router)
 app.include_router(billing.router)
