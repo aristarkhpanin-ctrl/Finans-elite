@@ -57,6 +57,15 @@ export async function addMember(orgId: string, body: { email: string; full_name:
   return data;
 }
 
+export async function patchMemberRole(orgId: string, userId: string, role: string): Promise<Member> {
+  const { data } = await api.patch<Member>(`/api/v1/organizations/${orgId}/members/${userId}`, { role });
+  return data;
+}
+
+export async function removeMember(orgId: string, userId: string): Promise<void> {
+  await api.delete(`/api/v1/organizations/${orgId}/members/${userId}`);
+}
+
 export async function getPlans(): Promise<Plan[]> {
   const { data } = await api.get<Plan[]>("/api/v1/plans");
   return data;

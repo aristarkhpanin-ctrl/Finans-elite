@@ -4,6 +4,7 @@ import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { Layout } from "./components/Layout";
 import { Splash } from "./components/Splash";
 import { ToastProvider } from "./components/Toast";
+import { HoldingDetailPage } from "./pages/HoldingDetailPage";
 import { HoldingsPage } from "./pages/HoldingsPage";
 import { LoginPage } from "./pages/LoginPage";
 import { OrganizationPage } from "./pages/OrganizationPage";
@@ -45,6 +46,7 @@ function AppRoutes() {
       >
         <Route path="/projects" element={<ProjectsPage />} />
         <Route path="/holdings" element={<HoldingsPage />} />
+        <Route path="/holdings/:id" element={<HoldingDetailPage />} />
         <Route path="/organization" element={<OrganizationPage />} />
         <Route path="/projects/:id" element={<ProjectEditorPage />} />
         <Route

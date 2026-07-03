@@ -2233,3 +2233,133 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .cmp-legend { display: flex; gap: 16px; margin-top: 10px; font: 500 11.5px var(--font-ui); color: var(--muted); }
 .cmp-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .cmp-legend__sw { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+
+/* ============================================================
+   18. ХОЛДИНГИ + ОРГАНИЗАЦИЯ (макеты «Этапы 18–19»)
+   ============================================================ */
+
+/* Участник холдинга / строка проекта */
+.member-row {
+  display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+  border-bottom: 1px solid var(--grid-line); background: var(--surface);
+}
+.member-row:last-child { border-bottom: none; }
+.member-list { border: 1px solid var(--border); border-radius: 13px; overflow: hidden; background: var(--surface); }
+.member-role-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.member-name { flex: 1; min-width: 0; font: 600 14px var(--font-ui); color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.member-npv { width: 120px; flex: none; text-align: right; font: 600 13px var(--font-mono); }
+.member-role-sel { width: 150px; flex: none; }
+
+/* Сводный бюджет: мета-чипы */
+.consol-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.consol-chip {
+  font: 600 11.5px var(--font-ui); color: var(--muted); background: var(--surface-2);
+  border: 1px solid var(--border); padding: 5px 11px; border-radius: 8px;
+}
+.consol-chip b { color: var(--text); font-weight: 700; }
+
+/* Таблица вклада проектов */
+.contrib-wrap { border: 1px solid var(--border); border-radius: 13px; overflow-x: auto; background: var(--surface); margin-top: 8px; }
+.contrib-row { display: flex; border-bottom: 1px solid var(--grid-line); }
+.contrib-row:last-child { border-bottom: none; }
+.contrib-row--head { background: var(--surface-2); }
+.contrib-row--total { background: var(--grand-bg); font-weight: 700; }
+.contrib-label {
+  width: 180px; flex: none; position: sticky; left: 0; z-index: 2; background: inherit;
+  padding: 10px 14px; font: 600 12.5px var(--font-ui); color: var(--text);
+  border-right: 1px solid var(--border); display: flex; align-items: center;
+}
+.contrib-row--head .contrib-label { font: 600 10.5px var(--font-ui); letter-spacing: 0.04em; text-transform: uppercase; color: var(--subtle); }
+.contrib-cell {
+  width: 130px; flex: none; padding: 10px 14px; text-align: right;
+  font: 500 12.5px var(--font-mono); color: var(--text);
+  border-right: 1px solid var(--grid-line);
+}
+.contrib-cell--neg { color: var(--danger); }
+.contrib-row--head .contrib-cell {
+  font: 600 10.5px var(--font-ui); letter-spacing: 0.04em; text-transform: uppercase; color: var(--subtle);
+  display: flex; align-items: center; justify-content: flex-end; gap: 6px;
+}
+
+/* Организация: таблица участников */
+.org-tbl { border: 1px solid var(--border); border-radius: 13px; overflow: hidden; background: var(--surface); }
+.org-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--grid-line); }
+.org-row:last-child { border-bottom: none; }
+.org-row--head { background: var(--surface-2); font: 600 10.5px var(--font-ui); letter-spacing: 0.04em; text-transform: uppercase; color: var(--subtle); }
+.org-avatar-lg {
+  width: 34px; height: 34px; border-radius: 9px; flex: none; color: #fff;
+  font: 700 12px var(--font-mono); display: flex; align-items: center; justify-content: center;
+}
+.org-col-user { flex: 1; min-width: 0; display: flex; align-items: center; gap: 11px; }
+.org-uname { font: 600 13.5px var(--font-ui); color: var(--text); display: flex; align-items: center; gap: 7px; }
+.org-uemail { font: 500 12px var(--font-ui); color: var(--subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.org-col-role { width: 170px; flex: none; }
+.org-col-status { width: 90px; flex: none; }
+.org-col-act { width: 44px; flex: none; display: flex; justify-content: flex-end; }
+.you-tag { font: 600 9.5px var(--font-ui); text-transform: uppercase; color: var(--accent); background: var(--primary-bg); padding: 1px 6px; border-radius: 5px; }
+.role-badge { display: inline-flex; align-items: center; gap: 6px; font: 600 12px var(--font-ui); color: var(--muted); }
+.role-lock { color: var(--subtle); font-size: 11px; }
+
+/* RBAC-карточка о ролях */
+.rbac-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; margin-top: 16px; }
+.rbac-card__head { font: 700 13px var(--font-ui); color: var(--text); margin-bottom: 12px; }
+.rbac-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.rbac-item { display: flex; gap: 10px; }
+.rbac-item__badge { flex: none; font: 600 10.5px var(--font-ui); color: var(--accent); background: var(--primary-bg); padding: 3px 8px; border-radius: 6px; height: fit-content; white-space: nowrap; }
+.rbac-item__desc { font: 400 12px/1.45 var(--font-ui); color: var(--muted); }
+@media (max-width: 640px) { .rbac-grid { grid-template-columns: 1fr; } }
+
+/* Инвайт-модал: роль-карточки */
+.role-cards { display: flex; flex-direction: column; gap: 8px; }
+.role-pick {
+  display: flex; align-items: flex-start; gap: 11px; padding: 11px 13px;
+  border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2);
+  cursor: pointer; transition: 0.14s; text-align: left; width: 100%;
+}
+.role-pick--on { border-color: var(--primary); background: var(--primary-soft); }
+.role-pick__radio {
+  flex: none; width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border-strong);
+  margin-top: 1px; display: flex; align-items: center; justify-content: center;
+}
+.role-pick--on .role-pick__radio { border-color: var(--primary); }
+.role-pick--on .role-pick__radio::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--primary); }
+.role-pick__name { font: 600 13px var(--font-ui); color: var(--text); }
+.role-pick__desc { font: 400 11.5px/1.4 var(--font-ui); color: var(--subtle); margin-top: 2px; }
+
+/* Биллинг: карточка тарифа + квоты */
+.billing-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; margin-bottom: 20px; }
+@media (max-width: 800px) { .billing-grid { grid-template-columns: 1fr; } }
+.plan-current { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+.plan-current__label { font: 600 10px var(--font-ui); letter-spacing: 0.06em; text-transform: uppercase; color: var(--subtle); }
+.plan-current__name { font: 500 22px var(--font-display); color: var(--text); margin-top: 6px; display: flex; align-items: center; gap: 9px; }
+.plan-active-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); }
+.plan-current__price { font: 600 15px var(--font-mono); color: var(--text); margin-top: 8px; }
+.plan-current__note { font: 400 12px var(--font-ui); color: var(--subtle); margin-top: 6px; }
+.quota-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+.quota-item__top { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+.quota-item__label { font: 600 12px var(--font-ui); color: var(--text); }
+.quota-item__val { font: 600 12px var(--font-mono); color: var(--muted); }
+.quota-track { height: 7px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.quota-fill { height: 100%; border-radius: 4px; background: var(--primary); }
+.quota-fill--warn { background: var(--warn); }
+
+/* Тарифные планы */
+.plan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.plan-card { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 4px; }
+.plan-card--current { border-color: var(--primary); }
+.plan-ribbon { position: absolute; top: 12px; right: 12px; font: 600 9.5px var(--font-ui); text-transform: uppercase; letter-spacing: 0.04em; color: var(--accent); background: var(--primary-bg); padding: 3px 8px; border-radius: 6px; }
+.plan-card__name { font: 500 18px var(--font-display); color: var(--text); }
+.plan-card__price { font: 600 20px var(--font-mono); color: var(--text); margin: 4px 0 2px; }
+.plan-card__price small { font: 500 12px var(--font-ui); color: var(--subtle); }
+.plan-card__limits { font: 500 12px var(--font-ui); color: var(--muted); margin: 6px 0; }
+.plan-feats { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 14px; }
+.plan-feat { display: flex; align-items: flex-start; gap: 8px; font: 400 12px/1.4 var(--font-ui); color: var(--muted); }
+.plan-feat__check { color: var(--accent); flex: none; }
+.plan-card .btn { margin-top: auto; }
+
+/* Diff в модале смены тарифа */
+.plan-diff { display: flex; align-items: center; gap: 12px; margin: 4px 0 14px; }
+.plan-diff__box { flex: 1; text-align: center; padding: 12px; border-radius: 10px; background: var(--surface-2); }
+.plan-diff__label { font: 600 9.5px var(--font-ui); text-transform: uppercase; letter-spacing: 0.05em; color: var(--subtle); }
+.plan-diff__val { font: 600 15px var(--font-ui); color: var(--text); margin-top: 4px; }
+.plan-diff__arrow { color: var(--subtle); font-size: 18px; flex: none; }

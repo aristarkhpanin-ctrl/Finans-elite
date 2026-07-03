@@ -1,190 +1,195 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import type { CalcResponse } from "../api/calc";
-import {
-  addHoldingMember,
-  consolidateHolding,
-  createHolding,
-  deleteHolding,
-  type Holding,
-  HOLDING_ROLES,
-  listHoldings,
-} from "../api/holdings";
-import { listProjects } from "../api/projects";
-import type { ProjectSummary } from "../api/types";
-import { RatiosView } from "../components/RatiosView";
-import { StatementTable, SUBTOTALS } from "../components/StatementTable";
-import { Button, Card, ErrorState, Loading } from "../components/ui";
-import { money, percent } from "../format";
+import { useNavigate } from "react-router-dom";
+import { createHolding, deleteHolding, listHoldings } from "../api/holdings";
+import { CubeHero } from "../components/CubeHero";
+import { IconTrash } from "../components/icons";
+import { useToast } from "../components/Toast";
+import { Button, Modal, Skeleton } from "../components/ui";
+import { fmtMillions } from "../format";
 
-const holdingRole = (role: string) => HOLDING_ROLES.find(([k]) => k === role)?.[1] ?? role;
+function plural(n: number, one: string, few: string, many: string): string {
+  const m10 = n % 10;
+  const m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return one;
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
+  return many;
+}
 
 export function HoldingsPage() {
   const qc = useQueryClient();
-  const holdings = useQuery({ queryKey: ["holdings"], queryFn: listHoldings });
-  const projects = useQuery({ queryKey: ["projects"], queryFn: listProjects });
+  const navigate = useNavigate();
+  const toast = useToast();
   const [name, setName] = useState("");
-  const [selected, setSelected] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
+  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ["holdings"], queryFn: listHoldings });
 
   const create = useMutation({
     mutationFn: () => createHolding(name.trim()),
-    onSuccess: () => {
+    onSuccess: (h) => {
       setName("");
       qc.invalidateQueries({ queryKey: ["holdings"] });
+      navigate(`/holdings/${h.id}`);
     },
+    onError: () => toast("Не удалось создать холдинг (нужны права)", { kind: "error" }),
   });
   const remove = useMutation({
     mutationFn: (id: string) => deleteHolding(id),
     onSuccess: () => {
-      setSelected(null);
       qc.invalidateQueries({ queryKey: ["holdings"] });
+      setDeleteTarget(null);
+      toast("Холдинг удалён", { kind: "success" });
     },
+    onError: () => toast("Не удалось удалить холдинг", { kind: "error" }),
   });
 
-  const list = holdings.data ?? [];
-  const current = list.find((h) => h.id === selected) ?? null;
+  const list = data ?? [];
+  const empty = !!data && list.length === 0;
+
+  const createCard = (
+    <div className="create-card">
+      <div className="create-card__row">
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <label className="auth-label" style={{ display: "block", marginBottom: 7 }}>
+            Название холдинга
+          </label>
+          <input
+            className="input"
+            style={{ width: "100%" }}
+            placeholder="Напр. «Группа «Вертикаль»"
+            value={name}
+            disabled={create.isPending}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && name.trim() && !create.isPending && create.mutate()}
+          />
+        </div>
+        <Button className="create-card__btn" loading={create.isPending} disabled={!name.trim()} onClick={() => create.mutate()}>
+          {create.isPending ? "Создаём…" : "Создать холдинг"}
+        </Button>
+      </div>
+    </div>
+  );
 
   return (
     <div>
-      <h1>Холдинги</h1>
-      <p className="muted">Группа проектов и сводный бюджет (консолидация отчётов).</p>
-
-      <Card style={{ marginBottom: 16 }}>
-        <div className="toolbar">
-          <input className="input grow" placeholder="Название холдинга" value={name}
-                 onChange={(e) => setName(e.target.value)} />
-          <Button disabled={!name.trim() || create.isPending} onClick={() => create.mutate()}>+ Создать</Button>
+      <div className="page-head">
+        <div style={{ minWidth: 0 }}>
+          <h1 className="page-title">Холдинги</h1>
+          <div className="page-sub">Группы проектов с консолидированной отчётностью.</div>
         </div>
-        {create.isError && <p className="error">Не удалось создать (нужны права / квота).</p>}
-      </Card>
-
-      {holdings.isLoading && <Loading />}
-      {holdings.isError && <ErrorState text="Не удалось загрузить холдинги." />}
-      {!holdings.isLoading && !holdings.isError && list.length === 0 && (
-        <p className="muted">Холдингов пока нет.</p>
-      )}
-      <div className="list" style={{ marginBottom: 16 }}>
-        {list.map((h) => (
-          <div className="list-item" key={h.id}>
-            <div>
-              <strong>{h.name}</strong> <span className="muted">· проектов: {h.members.length}</span>
-            </div>
-            <div className="actions">
-              <Button variant="ghost" onClick={() => setSelected(h.id === selected ? null : h.id)}>
-                {h.id === selected ? "Скрыть" : "Открыть"}
-              </Button>
-              <Button variant="ghost" onClick={() => remove.mutate(h.id)}>Удалить</Button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {current && <HoldingDetail holding={current} projects={projects.data ?? []} />}
-    </div>
-  );
-}
-
-function HoldingDetail({ holding, projects }: { holding: Holding; projects: ProjectSummary[] }) {
-  const qc = useQueryClient();
-  const [projectId, setProjectId] = useState("");
-  const [role, setRole] = useState("subsidiary");
-  const [result, setResult] = useState<CalcResponse | null>(null);
-
-  const projectName = (id: string) => projects.find((p) => p.id === id)?.name ?? id;
-  const memberIds = new Set(holding.members.map((m) => m.project_id));
-  const available = projects.filter((p) => !memberIds.has(p.id));
-  const pick = projectId || available[0]?.id || "";
-
-  const add = useMutation({
-    mutationFn: () => addHoldingMember(holding.id, pick, role),
-    onSuccess: () => {
-      setProjectId("");
-      setResult(null);
-      qc.invalidateQueries({ queryKey: ["holdings"] });
-    },
-  });
-  const consolidate = useMutation({
-    mutationFn: () => consolidateHolding(holding.id),
-    onSuccess: (data) => setResult(data),
-  });
-
-  return (
-    <Card>
-      <h2>{holding.name}</h2>
-      <h3 style={{ margin: "10px 0 8px" }}>Участники</h3>
-      {holding.members.length === 0 && <p className="muted">Добавьте проекты в холдинг.</p>}
-      <div className="list">
-        {holding.members.map((m) => (
-          <div className="list-item" key={m.project_id}>
-            <span>{projectName(m.project_id)}</span>
-            <span className="muted">{holdingRole(m.role)}</span>
-          </div>
-        ))}
-      </div>
-
-      {available.length > 0 && (
-        <div className="toolbar" style={{ marginTop: 12 }}>
-          <select className="select" value={pick} onChange={(e) => setProjectId(e.target.value)}>
-            {available.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
-          <select className="select" value={role} onChange={(e) => setRole(e.target.value)}>
-            {HOLDING_ROLES.map(([v, l]) => (
-              <option key={v} value={v}>{l}</option>
-            ))}
-          </select>
-          <Button onClick={() => add.mutate()} disabled={add.isPending}>Добавить проект</Button>
-        </div>
-      )}
-
-      <div style={{ marginTop: 16 }}>
-        <Button onClick={() => consolidate.mutate()}
-                disabled={holding.members.length === 0 || consolidate.isPending}>
-          {consolidate.isPending ? "Консолидация…" : "Консолидировать →"}
-        </Button>
-        {consolidate.isError && (
-          <span className="error" style={{ marginLeft: 10 }}>
-            {(consolidate.error as any)?.response?.data?.detail ?? "Ошибка консолидации"}
+        {list.length > 0 && (
+          <span className="count-pill">
+            {list.length} {plural(list.length, "холдинг", "холдинга", "холдингов")}
           </span>
         )}
       </div>
 
-      {result && <ConsolidatedResults result={result} />}
-    </Card>
-  );
-}
+      {isLoading && (
+        <>
+          <Skeleton height={120} style={{ borderRadius: 16, marginBottom: 30 }} />
+          <div className="proj-grid">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} height={150} style={{ borderRadius: 14 }} />
+            ))}
+          </div>
+        </>
+      )}
 
-const RESULT_TABS = [
-  ["income", "ОПУ"],
-  ["cashflow", "Кэш-фло"],
-  ["balance", "Баланс"],
-  ["ratios", "Коэффициенты"],
-] as const;
+      {isError && (
+        <div className="error-state" style={{ padding: "48px 24px" }}>
+          <div className="error-state__ico">!</div>
+          <div className="error-state__title">Не удалось загрузить холдинги</div>
+          <Button onClick={() => refetch()}>↻&nbsp;&nbsp;Повторить</Button>
+        </div>
+      )}
 
-function ConsolidatedResults({ result }: { result: CalcResponse }) {
-  const [tab, setTab] = useState<string>("income");
-  const m = result.metrics;
-  return (
-    <div style={{ marginTop: 18 }}>
-      <h3>Сводный бюджет <span className="muted">· движок {result.engine_version}</span></h3>
-      {result.warnings.length > 0 && <div className="warnings">{result.warnings.join("; ")}</div>}
-      <div className="metrics">
-        <div className="metric"><div className="m-label">NPV</div><div className="m-value">{money(m.npv)}</div></div>
-        <div className="metric"><div className="m-label">IRR</div><div className="m-value">{m.irr_annual ? percent(m.irr_annual) : "—"}</div></div>
-        <div className="metric"><div className="m-label">PI</div><div className="m-value">{m.pi ? Number(m.pi).toFixed(2) : "—"}</div></div>
-      </div>
-      <div className="tabs">
-        {RESULT_TABS.map(([key, label]) => (
-          <button key={key} className={`tab ${tab === key ? "tab--active" : ""}`} onClick={() => setTab(key)}>
-            {label}
-          </button>
-        ))}
-      </div>
-      {tab === "income" && <StatementTable statement={result.income} n={result.n} subtotals={SUBTOTALS.income} />}
-      {tab === "cashflow" && <StatementTable statement={result.cashflow} n={result.n} subtotals={SUBTOTALS.cashflow} />}
-      {tab === "balance" && <StatementTable statement={result.balance} n={result.n} subtotals={SUBTOTALS.balance} />}
-      {tab === "ratios" && <RatiosView ratios={result.ratios} n={result.n} />}
+      {data && (
+        <>
+          {empty && (
+            <div className="onboard">
+              <div className="onboard__ico">
+                <div style={{ width: 46, height: 46 }}>
+                  <CubeHero backdrop="transparent" showEnvironment={false} showOrbit={false} pointerTilt={false} />
+                </div>
+              </div>
+              <div className="onboard__title">Создайте первый холдинг</div>
+              <div className="onboard__sub">
+                Объедините проекты в группу и получите консолидированный бюджет — сводные отчёты и
+                показатели по всем участникам сразу.
+              </div>
+            </div>
+          )}
+
+          {createCard}
+
+          {!empty && (
+            <div className="proj-grid">
+              {list.map((h) => {
+                const consolidated = h.last_consolidation;
+                return (
+                  <div key={h.id} className="proj-card">
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+                      <button type="button" className="proj-card__name" onClick={() => navigate(`/holdings/${h.id}`)}>
+                        {h.name}
+                      </button>
+                      <span className={"status-chip" + (consolidated ? "" : " status-chip--warn")}>
+                        {consolidated ? "● Консолидирован" : "○ Не консолидирован"}
+                      </span>
+                    </div>
+                    <div className="proj-card__metrics">
+                      <div style={{ flex: 1 }}>
+                        <div className="mini-label">Проектов</div>
+                        <div className="proj-card__val">{h.members.length}</div>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div className="mini-label">Сводный NPV</div>
+                        <div className={"proj-card__val" + (consolidated && Number(consolidated.npv) < 0 ? " proj-card__val--neg" : consolidated ? "" : " proj-card__val--none")}>
+                          {consolidated ? fmtMillions(consolidated.npv, { digits: 1 }) : "—"}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="proj-card__foot">
+                      <button type="button" className="proj-card__name" style={{ fontSize: 12, color: "var(--accent)" }} onClick={() => navigate(`/holdings/${h.id}`)}>
+                        Открыть →
+                      </button>
+                      <button
+                        type="button"
+                        className="icon-action icon-action--danger"
+                        title="Удалить холдинг"
+                        onClick={() => setDeleteTarget({ id: h.id, name: h.name })}
+                      >
+                        <IconTrash size={15} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      <Modal open={!!deleteTarget} onClose={() => !remove.isPending && setDeleteTarget(null)} maxWidth={420}>
+        <div style={{ textAlign: "center" }}>
+          <div className="modal-danger-ico">
+            <IconTrash size={22} />
+          </div>
+          <h3 className="modal__title">Удалить холдинг?</h3>
+          <div className="modal__sub">
+            Холдинг «<b style={{ color: "var(--text)" }}>{deleteTarget?.name}</b>» будет удалён.
+            Входящие в него проекты останутся — удалится только группировка.
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <Button variant="ghost" style={{ flex: 1 }} disabled={remove.isPending} onClick={() => setDeleteTarget(null)}>
+              Отмена
+            </Button>
+            <Button variant="danger" style={{ flex: 1 }} loading={remove.isPending} onClick={() => deleteTarget && remove.mutate(deleteTarget.id)}>
+              Удалить холдинг
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
