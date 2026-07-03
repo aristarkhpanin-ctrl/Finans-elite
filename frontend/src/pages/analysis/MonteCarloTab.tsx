@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { httpDetail } from "../../api/client";
 import { useState } from "react";
 import { runMonteCarlo, SENSITIVITY_PARAMS, type UncertainParamIn } from "../../api/analysis";
 import { CAT, HistogramChart } from "../../components/charts";
@@ -207,7 +208,7 @@ export function MonteCarloTab({ projectId }: { projectId: string }) {
           <div style={{ minWidth: 0 }}>
             <div className="an-err__title">Не удалось выполнить симуляцию</div>
             <div className="an-err__sub">
-              {(run.error as any)?.response?.data?.detail ??
+              {httpDetail(run.error) ??
                 "Проверьте распределения параметров и повторите."}
             </div>
             <Button variant="ghost" onClick={() => run.mutate()}>

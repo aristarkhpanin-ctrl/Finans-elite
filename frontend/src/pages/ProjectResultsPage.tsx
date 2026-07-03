@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { httpDetail } from "../api/client";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { calculateProject } from "../api/calc";
@@ -121,7 +122,7 @@ export function ProjectResultsPage() {
   }
 
   if (isError) {
-    const detail: string = (error as any)?.response?.data?.detail ?? "Не удалось рассчитать модель.";
+    const detail: string = httpDetail(error) ?? "Не удалось рассчитать модель.";
     const balanceIssue = /баланс/i.test(detail);
     return (
       <div className="screen-only">

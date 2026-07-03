@@ -36,8 +36,14 @@ jobs:
           git diff --exit-code src/api/schema.d.ts \
             || (echo '::error::schema.d.ts устарел — запустите: npm run gen:api' && exit 1)
 
+      - name: Линтер (ESLint)
+        run: npx eslint . --max-warnings 0
+
       - name: Проверка типов
         run: npm run typecheck
+
+      - name: Тесты (Vitest)
+        run: npm run test
 
       - name: Сборка
         run: npm run build

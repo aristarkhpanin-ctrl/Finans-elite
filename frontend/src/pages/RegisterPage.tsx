@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { httpStatus } from "../api/client";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { IconBuilding, IconLock, IconMail, IconUser } from "../components/icons";
@@ -70,9 +71,9 @@ export function RegisterPage() {
       await register(form);
       setSuccess(true);
       timer.current = window.setTimeout(() => navigate("/projects"), REDIRECT_DELAY_MS);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setServerError(
-        err?.response?.status === 409
+        httpStatus(err) === 409
           ? "Этот email уже зарегистрирован"
           : "Не удалось создать аккаунт. Попробуйте ещё раз.",
       );

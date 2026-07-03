@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { httpDetail } from "../../api/client";
 import { useState } from "react";
 import { runSensitivity, SENSITIVITY_PARAMS, type SensitivityResponse } from "../../api/analysis";
 import { CAT, MultiLineChart, type Series } from "../../components/charts";
@@ -56,7 +57,8 @@ export function SensitivityTab({ projectId }: { projectId: string }) {
   const toggleLegend = (key: string) =>
     setHidden((prev) => {
       const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
 
@@ -132,7 +134,7 @@ export function SensitivityTab({ projectId }: { projectId: string }) {
           <div style={{ minWidth: 0 }}>
             <div className="an-err__title">Не удалось рассчитать</div>
             <div className="an-err__sub">
-              {(run.error as any)?.response?.data?.detail ??
+              {httpDetail(run.error) ??
                 "Проверьте коэффициенты и параметры модели, затем повторите."}
             </div>
             <Button variant="ghost" onClick={() => run.mutate()}>

@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { httpDetail } from "../../api/client";
 import { useState } from "react";
 import { runWhatIf, SENSITIVITY_PARAMS, type ScenarioIn } from "../../api/analysis";
 import { ESelect } from "../../components/EditorField";
@@ -100,7 +101,7 @@ export function WhatIfTab({ projectId }: { projectId: string }) {
           <div style={{ minWidth: 0 }}>
             <div className="an-err__title">Не удалось сравнить сценарии</div>
             <div className="an-err__sub">
-              {(run.error as any)?.response?.data?.detail ?? "Проверьте корректировки и повторите."}
+              {httpDetail(run.error) ?? "Проверьте корректировки и повторите."}
             </div>
             <Button variant="ghost" onClick={() => run.mutate()}>
               Повторить

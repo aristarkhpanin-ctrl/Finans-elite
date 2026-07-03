@@ -35,7 +35,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!getToken()) return;
     loadProfile().catch(() => logout()).finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function login(p: LoginPayload) {
@@ -65,6 +64,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<AuthState>(
     () => ({ user, organizations, currentOrgId, loading, login, register, logout, selectOrg }),
+    // login/register/logout/selectOrg стабильны по поведению; их включение в deps
+    // пересоздавало бы value каждый рендер — осознанно исключаем.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [user, organizations, currentOrgId, loading],
   );
 

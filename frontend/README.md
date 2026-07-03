@@ -81,6 +81,8 @@ npm install
 npm run dev        # http://localhost:5173 (прокси /api → backend :8000)
 npm run build      # production-сборка
 npm run typecheck  # проверка типов
+npm run lint       # ESLint (правила хуков React, TS)
+npm run test       # Vitest (юнит-тесты чистой логики)
 npm run gen:api    # регенерировать типы API из backend/openapi.json
 ```
 Backend должен быть запущен на :8000 (или задайте `VITE_API_URL`).

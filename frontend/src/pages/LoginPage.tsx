@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { httpStatus } from "../api/client";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { IconLock, IconMail } from "../components/icons";
@@ -44,9 +45,9 @@ export function LoginPage() {
       await login({ email, password });
       setSuccess(true);
       timer.current = window.setTimeout(() => navigate("/projects"), REDIRECT_DELAY_MS);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setServerError(
-        err?.response?.status === 401
+        httpStatus(err) === 401
           ? "Неверный email или пароль"
           : "Не удалось выполнить вход. Попробуйте ещё раз.",
       );

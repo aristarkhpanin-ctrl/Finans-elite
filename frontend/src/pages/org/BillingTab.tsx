@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { httpStatus } from "../../api/client";
 import { useState } from "react";
 import { checkout, getPlans, getSubscription, type Plan } from "../../api/org";
 import { useToast } from "../../components/Toast";
@@ -51,8 +52,8 @@ export function BillingTab({ orgId, canManage }: { orgId: string; canManage: boo
         toast("Тариф изменён", { kind: "success" });
       }
     },
-    onError: (e: any) =>
-      toast(e?.response?.status === 403 ? "Нужны права владельца" : "Не удалось сменить тариф", { kind: "error" }),
+    onError: (e: unknown) =>
+      toast(httpStatus(e) === 403 ? "Нужны права владельца" : "Не удалось сменить тариф", { kind: "error" }),
   });
 
   if (sub.isLoading || plans.isLoading) {

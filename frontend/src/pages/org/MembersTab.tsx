@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { httpStatus } from "../../api/client";
 import { useState } from "react";
 import { addMember, getMembers, patchMemberRole, removeMember, roleLabel, ROLES } from "../../api/org";
 import { ESelect } from "../../components/EditorField";
@@ -48,8 +49,8 @@ export function MembersTab({ orgId, myRole, myUserId }: { orgId: string; myRole:
       invalidate();
       toast("Приглашение отправлено", { kind: "success" });
     },
-    onError: (e: any) => {
-      const s = e?.response?.status;
+    onError: (e: unknown) => {
+      const s = httpStatus(e);
       setInviteErr(
         s === 403
           ? "Недостаточно прав (нужен владелец/администратор)"

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ClipboardEvent } from "react";
 import { Button, Modal } from "./ui";
+import { NBSP, applyPaste, fmtAgg, fmtInt, num, norm, plural } from "./monthlyGrid.logic";
 import { useToast } from "./Toast";
 
 /**
@@ -24,33 +25,6 @@ export interface MonthlyRow {
   unit?: string;
 }
 
-const num = (v: string | undefined): number => {
-  if (!v) return 0;
-  const x = Number(String(v).replace(/[\s  ]/g, "").replace(",", "."));
-  return Number.isFinite(x) ? x : 0;
-};
-
-const NBSP = " ";
-const fmtInt = (n: number): string => {
-  const r = Math.round(n);
-  const s = String(Math.abs(r)).replace(/\B(?=(\d{3})+(?!\d))/g, NBSP);
-  return (r < 0 ? "−" : "") + s;
-};
-/** Крупные суммы в чипе — «12,4 млн». */
-const fmtAgg = (n: number): string =>
-  Math.abs(n) >= 1e6 ? (n / 1e6).toFixed(2).replace(".", ",") + NBSP + "млн" : fmtInt(n);
-
-/** Нормализация вставленного значения: пробелы прочь, запятая → точка. */
-const norm = (x: string): string => x.trim().replace(/[\s  ]/g, "").replace(",", ".");
-
-function plural(n: number, one: string, few: string, many: string): string {
-  const m10 = n % 10;
-  const m100 = n % 100;
-  if (m10 === 1 && m100 !== 11) return one;
-  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
-  return many;
-}
-
 export function MonthlyGrid({ n, rows, hint = true }: { n: number; rows: MonthlyRow[]; hint?: boolean }) {
   const toast = useToast();
   const [flash, setFlash] = useState<Set<string>>(new Set());
@@ -67,19 +41,15 @@ export function MonthlyGrid({ n, rows, hint = true }: { n: number; rows: Monthly
   };
 
   const onPaste = (row: MonthlyRow, i: number, e: ClipboardEvent<HTMLInputElement>) => {
-    const parts = e.clipboardData.getData("text").split(/[\t;\n\r]+/).map((p) => p.trim()).filter(Boolean);
-    if (parts.length <= 1) return; // одно значение — обычная вставка
+    const current = Array.from({ length: n }, (_, k) => get(row, k));
+    const res = applyPaste(current, i, e.clipboardData.getData("text"), n);
+    if (!res) return; // одно значение — обычная вставка браузером
     e.preventDefault();
-    row.onChange?.(
-      Array.from({ length: n }, (_, k) =>
-        k >= i && parts[k - i] !== undefined ? norm(parts[k - i]) : get(row, k),
-      ),
-    );
-    const filled = Math.min(parts.length, n - i);
-    setFlash(new Set(Array.from({ length: filled }, (_, k) => `${row.key}-${i + k}`)));
+    row.onChange?.(res.values);
+    setFlash(new Set(Array.from({ length: res.filled }, (_, k) => `${row.key}-${i + k}`)));
     window.clearTimeout(flashTimer.current);
     flashTimer.current = window.setTimeout(() => setFlash(new Set()), 2600);
-    toast(`Вставлено из Excel: ${filled} ${plural(filled, "значение", "значения", "значений")}`, { kind: "success" });
+    toast(`Вставлено из Excel: ${res.filled} ${plural(res.filled, "значение", "значения", "значений")}`, { kind: "success" });
   };
 
   const aggChip = (row: MonthlyRow): string => {
