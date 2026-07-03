@@ -6287,7 +6287,7 @@
     },
     "/health": {
       "get": {
-        "description": "Проверка живости и версия методики расчёта.",
+        "description": "Проверка живости и версия методики расчёта (liveness).",
         "operationId": "health_health_get",
         "responses": {
           "200": {
@@ -6304,6 +6304,30 @@
           }
         },
         "summary": "Health",
+        "tags": [
+          "service"
+        ]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "description": "Готовность к трафику (readiness): доступность БД. 503, если БД недоступна.",
+        "operationId": "ready_health_ready_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Ready Health Ready Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Ready",
         "tags": [
           "service"
         ]

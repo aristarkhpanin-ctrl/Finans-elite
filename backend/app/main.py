@@ -11,15 +11,17 @@ from __future__ import annotations
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 from calc_core import ENGINE_VERSION, ProjectModel, run
 from calc_core.engine import ModelError
 from calc_core.samples import TEMPLATES, build_sample_project
 
-from .database import init_db
+from .database import get_db, init_db
 from .observability import setup_observability
 from .routers import auth, billing, holdings, integrator, organizations, projects
 from .schemas import CalcResponse, to_response
@@ -64,8 +66,18 @@ app.include_router(projects.router)
 
 @app.get("/health", tags=["service"])
 def health() -> dict:
-    """Проверка живости и версия методики расчёта."""
+    """Проверка живости и версия методики расчёта (liveness)."""
     return {"status": "ok", "engine_version": ENGINE_VERSION}
+
+
+@app.get("/health/ready", tags=["service"])
+def ready(db: Session = Depends(get_db)) -> dict:
+    """Готовность к трафику (readiness): доступность БД. 503, если БД недоступна."""
+    try:
+        db.execute(text("SELECT 1"))
+    except Exception as exc:  # любая ошибка соединения с БД = не готовы к трафику
+        raise HTTPException(status_code=503, detail="База данных недоступна") from exc
+    return {"status": "ready"}
 
 
 @app.post("/api/v1/calculate", response_model=CalcResponse, tags=["calc"])

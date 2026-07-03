@@ -16,8 +16,13 @@ from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./backend_dev.db")
 
-_connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
-engine = create_engine(DATABASE_URL, connect_args=_connect_args, future=True)
+_is_sqlite = DATABASE_URL.startswith("sqlite")
+_connect_args = {"check_same_thread": False} if _is_sqlite else {}
+# Для сетевых БД (Postgres) — проверка живости соединения перед выдачей из пула и
+# пересоздание раз в 30 мин: защита от «server closed the connection unexpectedly»
+# (файрволы/таймауты БД рвут простаивающие соединения).
+_pool_kwargs = {} if _is_sqlite else {"pool_pre_ping": True, "pool_recycle": 1800}
+engine = create_engine(DATABASE_URL, connect_args=_connect_args, future=True, **_pool_kwargs)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 #: Имя GUC-переменной арендатора для RLS (см. миграцию d5e8f1a2c3b4).
