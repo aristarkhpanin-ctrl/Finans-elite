@@ -5,6 +5,7 @@ import { calculateProject } from "../api/calc";
 import { getProject } from "../api/projects";
 import { HintBadge } from "../components/EditorField";
 import { IconPrint } from "../components/icons";
+import { PlanFactView } from "../components/PlanFactView";
 import { PrintReport } from "../components/PrintReport";
 import { RatiosView } from "../components/RatiosView";
 import { ResultCharts } from "../components/ResultCharts";
@@ -39,6 +40,7 @@ export function ProjectResultsPage() {
   const navigate = useNavigate();
   const toast = useToast();
   const [tab, setTab] = useState<string>("summary");
+  const [printMode, setPrintMode] = useState(false);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["calc", id],
@@ -84,7 +86,7 @@ export function ProjectResultsPage() {
             >
               XLSX
             </button>
-            <button type="button" onClick={() => window.print()}>
+            <button type="button" onClick={() => setPrintMode(true)}>
               <IconPrint size={15} />
               <span style={{ marginLeft: 6 }}>Печать / PDF</span>
             </button>
@@ -239,7 +241,26 @@ export function ProjectResultsPage() {
   );
 
   return (
-    <div>
+    <div className={printMode ? "print-mode" : ""}>
+      <div className="print-toolbar">
+        <div style={{ minWidth: 0 }}>
+          <div className="print-toolbar__title">Печатная версия · PDF (A4, альбом)</div>
+          <div className="print-toolbar__sub">
+            5 страниц: титул и сводка + 4 финансовых отчёта · печать-дружественные цвета,
+            аккуратные переносы.
+          </div>
+        </div>
+        <div className="print-toolbar__actions">
+          <Button variant="ghost" onClick={() => setPrintMode(false)}>
+            ← К результатам
+          </Button>
+          <Button onClick={() => window.print()}>
+            <IconPrint size={15} />
+            <span style={{ marginLeft: 7 }}>Скачать PDF</span>
+          </Button>
+        </div>
+      </div>
+
       <div className="screen-only">
         {header}
         <div style={{ height: 4 }} />
@@ -330,39 +351,14 @@ export function ProjectResultsPage() {
         {tab === "ratios" && <RatiosView ratios={data.ratios} breakEven={data.break_even} n={data.n} />}
         {tab === "charts" && <ResultCharts result={data} />}
         {tab === "plan_fact" && data.actualized_cashflow && (
-          <div>
-            <div className="report-head">
-              <div style={{ minWidth: 0 }}>
-                <div className="report-head__title">План-факт</div>
-                <div className="report-head__sub">Кэш-фло с фактом за прошедшие периоды</div>
-              </div>
-            </div>
-            <StatementTable
-              statement={data.actualized_cashflow}
-              n={data.n}
-              subtotals={SUBTOTALS.cashflow}
-              grands={GRANDS.cashflow}
-            />
-            {data.cashflow_variance && (
-              <>
-                <div className="report-head" style={{ marginTop: 20 }}>
-                  <div className="report-head__title" style={{ fontSize: 16 }}>
-                    Отклонение (факт − план)
-                  </div>
-                </div>
-                <StatementTable
-                  statement={data.cashflow_variance}
-                  n={data.n}
-                  subtotals={SUBTOTALS.cashflow}
-                  grands={GRANDS.cashflow}
-                />
-              </>
-            )}
-          </div>
+          <PlanFactView
+            result={data}
+            factUntil={projectQuery.data?.model.actualization.actual_until ?? data.n - 1}
+          />
         )}
       </div>
 
-      <PrintReport data={data} title={title || "Результаты"} />
+      <PrintReport data={data} title={title || "Результаты"} model={projectQuery.data?.model} />
     </div>
   );
 }

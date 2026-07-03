@@ -338,19 +338,7 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .validation-item--warn { background: var(--warn-bg); border-color: var(--warn-border); color: var(--warn-text); }
 .validation-icon { font-weight: 700; }
 
-.print-only { display: none; }
-@media print {
-  .appbar, .screen-only, .save-bar { display: none !important; }
-  .print-only { display: block !important; }
-  .content { padding: 0 !important; }
-  body, .app { background: #fff !important; }
-  .print-report h1 { font-size: 20px; margin: 0 0 2px; }
-  .print-report h2 { font-size: 14px; margin: 16px 0 8px; page-break-after: avoid; }
-  .print-report table { font-size: 10px; page-break-inside: auto; }
-  .print-report .summary-card { break-inside: avoid; }
-  .print-report .summary-grid { grid-template-columns: repeat(3, 1fr); }
-  @page { margin: 12mm; }
-}
+/* Печатные стили — в секции 16 (A4 альбомная). */
 .warnings { background: var(--warn-bg); border: 1px solid var(--warn-border); color: var(--warn-text); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 14px; font-size: 13px; }
 
 .list { display: grid; gap: 10px; }
@@ -1915,4 +1903,161 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 @media (max-width: 900px) {
   .chart-grid { grid-template-columns: 1fr; }
   .chart-card2--span2 { grid-column: auto; }
+}
+
+/* ============================================================
+   16. ПЛАН-ФАКТ + ПЕЧАТЬ (макет «Этап 16»)
+   ============================================================ */
+
+/* Шапка план-факта со статами */
+.pf-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.pf-stat {
+  display: flex; align-items: center; gap: 16px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 12px; padding: 11px 16px;
+}
+.pf-stat__item { display: flex; flex-direction: column; gap: 3px; }
+.pf-stat__label { font: 600 9.5px var(--font-ui); letter-spacing: 0.05em; text-transform: uppercase; color: var(--subtle); }
+.pf-stat__val { font: 700 16px var(--font-mono); color: var(--text); }
+.pf-stat__val--good { color: var(--good); }
+.pf-stat__val--bad { color: var(--danger); }
+.pf-stat__div { width: 1px; align-self: stretch; background: var(--border); }
+
+/* Подпись таблицы с номером */
+.tbl-caption { display: flex; align-items: center; gap: 9px; margin: 0 0 10px; }
+.tbl-caption--2 { margin-top: 24px; }
+.tbl-caption__num {
+  width: 20px; height: 20px; border-radius: 6px; flex: none;
+  background: var(--primary-bg); color: var(--accent); font: 700 11px var(--font-mono);
+  display: flex; align-items: center; justify-content: center;
+}
+.tbl-caption__strong { font: 700 13.5px var(--font-ui); color: var(--text); }
+.tbl-caption__hint { font: 500 11.5px var(--font-ui); color: var(--subtle); }
+
+/* Ячейка «план над фактом» */
+.pf-cell { flex-direction: column; align-items: flex-end; justify-content: center; height: 42px; gap: 1px; }
+.pf-cell__plan { font: 500 9.5px var(--font-mono); color: var(--subtle); }
+.pf-cell__fact { font: 600 12px var(--font-mono); color: var(--text); }
+.pf-total {
+  width: 104px; flex: none; display: flex; flex-direction: column; align-items: flex-end;
+  justify-content: center; gap: 1px; border-bottom: 1px solid var(--grid-line);
+  background: var(--surface-2); padding: 0 10px;
+}
+.pf-total__plan { font: 500 9.5px var(--font-mono); color: var(--subtle); }
+.pf-total__fact { font: 700 12px var(--font-mono); color: var(--text); }
+
+/* Ячейка отклонения со стрелкой */
+.dev-cell { gap: 4px; justify-content: flex-end; }
+.dev-cell--good { color: var(--good); }
+.dev-cell--bad { color: var(--danger); }
+.dev-arrow { font-size: 9px; }
+.pf-legend { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin-top: 14px; font: 500 11.5px var(--font-ui); color: var(--muted); }
+.pf-legend__item { display: inline-flex; align-items: center; gap: 6px; }
+.pf-legend__sw { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+.pf-legend__hint { font: 500 11px var(--font-ui); color: var(--subtle); margin-left: auto; }
+
+/* Total-заголовок в fin2 */
+.fin2-total-head {
+  width: 104px; flex: none; display: flex; align-items: center; justify-content: flex-end;
+  border-bottom: 1px solid var(--border); background: var(--surface-2); padding: 0 10px;
+  font: 600 10.5px var(--font-ui); letter-spacing: 0.04em; text-transform: uppercase; color: var(--subtle);
+}
+
+/* ---------- Печать A4 (альбомная, цвета не зависят от темы) ---------- */
+
+.print-toolbar { display: none; }
+.print-report { display: none; }
+
+@media screen {
+  /* Панель управления печатью — видна над отчётом, когда открыт печатный режим */
+  .print-mode .screen-only { display: none; }
+  .print-mode .print-toolbar {
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    flex-wrap: wrap; margin-bottom: 20px;
+  }
+  .print-mode .print-report { display: block; }
+  .print-mode .print-report .pr-paper {
+    box-shadow: var(--shadow); border: 1px solid var(--border);
+  }
+}
+
+.print-toolbar__title { font: 500 18px var(--font-display); letter-spacing: -0.02em; color: var(--text); }
+.print-toolbar__sub { font: 400 12px var(--font-ui); color: var(--muted); margin-top: 3px; max-width: 560px; }
+.print-toolbar__actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* Бумага: фиксированные «чернильные» цвета — одинаковы в обеих темах */
+.pr-paper {
+  --ink: #1C1917; --sub: #6E655E; --faint: #A8A29E; --line: #D9D4CE; --line2: #ECE8E3;
+  --subbg: #F3F0EC; --grandbg: #E7E1DA; --neg: #B23A2E; --accent: #0C7250; --chip: #F4F1ED;
+  position: relative; width: 1140px; max-width: 100%; min-height: 780px; background: #fff;
+  border-radius: 3px; padding: 40px 44px 30px; margin: 0 auto 22px;
+  display: flex; flex-direction: column; color: var(--ink);
+}
+.pr-pagenum { position: absolute; top: 18px; right: 22px; font: 600 10px var(--font-mono); color: var(--faint); }
+.pr-band { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding-bottom: 18px; border-bottom: 2px solid var(--ink); }
+.pr-logo { width: 32px; height: 32px; border-radius: 8px; background: var(--accent); display: flex; align-items: flex-end; justify-content: center; gap: 2.5px; padding: 7px; flex: none; }
+.pr-logo span { width: 3.5px; border-radius: 1px; background: #fff; }
+.pr-logo span:nth-child(1) { height: 7px; opacity: 0.55; }
+.pr-logo span:nth-child(2) { height: 11px; opacity: 0.8; }
+.pr-logo span:nth-child(3) { height: 16px; }
+.pr-brand { font: 700 16px var(--font-ui); letter-spacing: -0.01em; color: var(--ink); }
+.pr-brand-sub { font: 500 10.5px var(--font-ui); color: var(--sub); margin-top: 1px; }
+.pr-dockind { font: 700 11px var(--font-ui); letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
+.pr-docdate { font: 500 11px var(--font-mono); color: var(--sub); margin-top: 4px; }
+.pr-projname { font: 500 30px var(--font-display); letter-spacing: -0.03em; color: var(--ink); margin-top: 22px; }
+.pr-projsub { font: 500 13px var(--font-ui); color: var(--sub); margin-top: 5px; }
+.pr-meta { display: flex; flex-wrap: wrap; margin-top: 20px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.pr-meta-cell { flex: 1; min-width: 140px; padding: 11px 15px; border-right: 1px solid var(--line); }
+.pr-meta-label { font: 600 9px var(--font-ui); letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
+.pr-meta-val { font: 600 13px var(--font-mono); color: var(--ink); margin-top: 4px; }
+.pr-verdict { display: flex; align-items: center; gap: 13px; margin-top: 22px; padding: 15px 18px; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px; background: var(--subbg); }
+.pr-verdict--bad { border-left-color: var(--neg); }
+.pr-verdict-mark { width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff; font: 700 16px var(--font-mono); display: flex; align-items: center; justify-content: center; flex: none; }
+.pr-verdict--bad .pr-verdict-mark { background: var(--neg); }
+.pr-verdict-title { font: 700 17px var(--font-ui); color: var(--ink); letter-spacing: -0.01em; }
+.pr-verdict-sub { font: 400 12px var(--font-ui); color: var(--sub); margin-top: 2px; }
+.pr-seclabel { font: 700 10.5px var(--font-ui); letter-spacing: 0.07em; text-transform: uppercase; color: var(--sub); margin: 26px 0 12px; }
+.pr-mgrid { display: grid; grid-template-columns: repeat(6, 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.pr-vgrid { display: grid; grid-template-columns: repeat(5, 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.pr-mcell { padding: 13px 14px; border-right: 1px solid var(--line); }
+.pr-mlabel { font: 600 10px var(--font-ui); color: var(--sub); }
+.pr-mval { font: 600 21px var(--font-mono); letter-spacing: -0.01em; color: var(--ink); margin-top: 7px; }
+.pr-vval { font: 600 18px var(--font-mono); letter-spacing: -0.01em; color: var(--ink); margin-top: 6px; }
+.pr-mnote { font: 600 10.5px var(--font-ui); margin-top: 5px; color: var(--sub); }
+.pr-mnote--good { color: var(--accent); }
+.pr-mnote--bad { color: var(--neg); }
+.pr-footer { margin-top: auto; padding-top: 16px; display: flex; align-items: center; justify-content: space-between; font: 500 9.5px var(--font-ui); color: var(--faint); border-top: 1px solid var(--line2); }
+.pr-runhead { display: flex; align-items: center; justify-content: space-between; padding-bottom: 11px; border-bottom: 1px solid var(--line); }
+.pr-runproj { font: 700 12px var(--font-ui); color: var(--ink); }
+.pr-runver { font: 500 10px var(--font-mono); color: var(--faint); }
+.pr-ttitle { font: 700 19px var(--font-ui); letter-spacing: -0.02em; color: var(--ink); margin-top: 18px; }
+.pr-tsub { font: 500 11px var(--font-ui); color: var(--sub); margin: 3px 0 14px; }
+.pr-table { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; width: max-content; max-width: 100%; }
+.pr-thead { display: flex; background: var(--chip); border-bottom: 1.5px solid var(--line); }
+.pr-tcorner { flex: none; padding: 7px 10px; font: 700 9px var(--font-ui); letter-spacing: 0.05em; text-transform: uppercase; color: var(--sub); border-right: 1.5px solid var(--line); }
+.pr-tmonth { flex: none; padding: 7px 8px; text-align: right; font: 600 9.5px var(--font-mono); color: var(--sub); border-right: 1px solid var(--line2); }
+.pr-trow { display: flex; }
+.pr-trow--grand { border-top: 1.5px solid var(--line); }
+.pr-tlabel { flex: none; height: 23px; display: flex; align-items: center; gap: 7px; padding: 0 10px; border-right: 1.5px solid var(--line); border-bottom: 1px solid var(--line2); }
+.pr-tcode { font: 600 8px var(--font-mono); color: var(--faint); flex: none; min-width: 22px; }
+.pr-tname { font: 500 9.5px var(--font-ui); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pr-tcell { flex: none; height: 23px; display: flex; align-items: center; justify-content: flex-end; padding: 0 8px; font: 500 10px var(--font-mono); color: var(--ink); border-right: 1px solid var(--line2); border-bottom: 1px solid var(--line2); }
+.pr-tcell--neg { color: var(--neg); }
+.pr-tcell--zero { color: var(--faint); opacity: 0.7; }
+.pr-trow--sub .pr-tlabel, .pr-trow--sub .pr-tcell { background: var(--subbg); }
+.pr-trow--sub .pr-tname, .pr-trow--sub .pr-tcell { font-weight: 700; }
+.pr-trow--grand .pr-tlabel, .pr-trow--grand .pr-tcell { background: var(--grandbg); }
+.pr-trow--grand .pr-tname, .pr-trow--grand .pr-tcell { font-weight: 700; }
+
+/* Реальная печать: убрать всё лишнее, каждая бумага — своя страница */
+@media print {
+  @page { size: A4 landscape; margin: 8mm; }
+  body, .app, .content { background: #fff !important; }
+  .shell-header, .screen-only, .save-bar, .print-toolbar, .rhead { display: none !important; }
+  .print-report { display: block !important; }
+  .pr-paper {
+    width: 100%; max-width: none; min-height: auto; border: none; border-radius: 0;
+    box-shadow: none !important; padding: 0; margin: 0; page-break-after: always;
+  }
+  .pr-paper:last-child { page-break-after: auto; }
+  .pr-trow, .pr-thead { page-break-inside: avoid; }
 }
