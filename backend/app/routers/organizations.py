@@ -12,6 +12,7 @@ from ..rbac import Perm, is_valid_role
 from ..schemas import (
     MemberCreate,
     MemberOut,
+    MemberPatch,
     OrganizationCreate,
     OrganizationMembershipOut,
     OrganizationOut,
@@ -70,3 +71,39 @@ def list_members(org_id: str = Depends(require_org_permission(Perm.MEMBER_READ))
         MemberOut(user_id=u.id, email=u.email, full_name=u.full_name, role=m.role)
         for m, u in crud.list_members(db, org_id)
     ]
+
+
+def _member_or_404(db: Session, org_id: str, user_id: str):
+    membership = crud.get_membership(db, org_id, user_id)
+    if membership is None:
+        raise HTTPException(status_code=404, detail="Участник не найден")
+    return membership
+
+
+@router.patch("/{org_id}/members/{user_id}", response_model=MemberOut)
+def patch_member_role(user_id: str, body: MemberPatch,
+                      org_id: str = Depends(require_org_permission(Perm.MEMBER_MANAGE)),
+                      db: Session = Depends(get_db)) -> MemberOut:
+    """Изменить роль участника (право member.manage; владельца понизить нельзя, B4)."""
+    if not is_valid_role(body.role):
+        raise HTTPException(status_code=422, detail=f"Недопустимая роль: {body.role}")
+    membership = _member_or_404(db, org_id, user_id)
+    if membership.role == "owner" and body.role != "owner":
+        raise HTTPException(status_code=409, detail="Нельзя понизить владельца организации")
+    updated = crud.set_membership_role(db, membership, body.role)
+    user = crud.get_user(db, user_id)
+    return MemberOut(user_id=user.id, email=user.email, full_name=user.full_name, role=updated.role)
+
+
+@router.delete("/{org_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_member(user_id: str,
+                  org_id: str = Depends(require_org_permission(Perm.MEMBER_MANAGE)),
+                  actor: User = Depends(current_user),
+                  db: Session = Depends(get_db)) -> None:
+    """Удалить участника (право member.manage; нельзя удалить владельца и себя, B4)."""
+    membership = _member_or_404(db, org_id, user_id)
+    if membership.role == "owner":
+        raise HTTPException(status_code=409, detail="Нельзя удалить владельца организации")
+    if user_id == actor.id:
+        raise HTTPException(status_code=409, detail="Нельзя удалить себя из организации")
+    crud.remove_membership(db, membership)

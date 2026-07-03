@@ -133,6 +133,10 @@ class MemberCreate(BaseModel):
     role: str = "viewer"
 
 
+class MemberPatch(BaseModel):
+    role: str
+
+
 class MemberOut(BaseModel):
     user_id: str
     email: str
@@ -317,11 +321,42 @@ class HoldingMemberOut(BaseModel):
     role: str
 
 
+class HoldingConsolidationOut(BaseModel):
+    """Сводка последней консолидации холдинга (B3)."""
+
+    npv: Decimal
+    rate: Decimal
+    at: datetime
+
+
 class HoldingOut(BaseModel):
     id: str
     name: str
     created_at: datetime
     members: list[HoldingMemberOut] = []
+    last_consolidation: Optional[HoldingConsolidationOut] = None
+
+
+class HoldingMemberPatch(BaseModel):
+    role: str  # parent | subsidiary
+
+
+class PerProjectOut(BaseModel):
+    """Вклад одного проекта в консолидацию (B3)."""
+
+    project_id: str
+    name: str
+    role: str
+    npv: Decimal
+    irr_annual: Optional[Decimal] = None
+    revenue_total: Decimal
+    net_profit_total: Decimal
+
+
+class ConsolidateResponse(CalcResponse):
+    """Сводный бюджет холдинга + разбивка вклада по проектам (B3)."""
+
+    per_project: list[PerProjectOut] = []
 
 
 def _statement_out(s: Statement) -> StatementOut:

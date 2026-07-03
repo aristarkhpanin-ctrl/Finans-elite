@@ -34,6 +34,19 @@ def _sum_statements(statements: list[Statement], catalog, n: int) -> Statement:
 def consolidate(models: list[ProjectModel],
                 group_discount_rate: Decimal = Decimal("0.15")) -> CalcResult:
     """Консолидировать проекты в группу и вернуть сводный результат."""
+    group, _ = consolidate_detailed(models, group_discount_rate)
+    return group
+
+
+def consolidate_detailed(
+    models: list[ProjectModel],
+    group_discount_rate: Decimal = Decimal("0.15"),
+) -> tuple[CalcResult, list[CalcResult]]:
+    """Как ``consolidate``, но дополнительно возвращает результат каждого проекта (B3).
+
+    Позволяет показать вклад участников (per_project) без повторного расчёта:
+    группа = построчная сумма тех же ``results``.
+    """
     from .engine import run  # локальный импорт (избегаем цикла)
 
     if not models:
@@ -67,7 +80,7 @@ def consolidate(models: list[ProjectModel],
     ratios = compute_ratios(income, cashflow, balance, profit_use, D(0), n, opening)
     break_even = compute_break_even(income, n)
 
-    return CalcResult(
+    group = CalcResult(
         engine_version=ENGINE_VERSION,
         n=n,
         income=income,
@@ -78,3 +91,4 @@ def consolidate(models: list[ProjectModel],
         ratios=ratios,
         break_even=break_even,
     )
+    return group, results

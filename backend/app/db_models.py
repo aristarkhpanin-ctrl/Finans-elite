@@ -124,6 +124,13 @@ class Holding(Base):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    # Сводка последней консолидации (B3): NPV и ставка группы (строками, как model),
+    # момент расчёта. NULL — консолидации ещё не было.
+    last_consolidation_npv: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    last_consolidation_rate: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    last_consolidation_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class HoldingMember(Base):

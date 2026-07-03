@@ -57,3 +57,55 @@ def test_delete_holding(client, auth_headers):
     hid = client.post("/api/v1/holdings", json={"name": "Удалить"}, headers=auth_headers).json()["id"]
     assert client.delete(f"/api/v1/holdings/{hid}", headers=auth_headers).status_code == 204
     assert client.get(f"/api/v1/holdings/{hid}", headers=auth_headers).status_code == 404
+
+
+# --- B3: управление участниками и разбивка консолидации ---
+
+def test_patch_and_remove_member(client, auth_headers):
+    hid = client.post("/api/v1/holdings", json={"name": "Г"}, headers=auth_headers).json()["id"]
+    p1 = _project(client, auth_headers, "A")
+    p2 = _project(client, auth_headers, "B")
+    client.post(f"/api/v1/holdings/{hid}/members", json={"project_id": p1, "role": "subsidiary"}, headers=auth_headers)
+    client.post(f"/api/v1/holdings/{hid}/members", json={"project_id": p2, "role": "subsidiary"}, headers=auth_headers)
+
+    r = client.patch(f"/api/v1/holdings/{hid}/members/{p1}", json={"role": "parent"}, headers=auth_headers)
+    assert r.status_code == 200
+    assert {m["project_id"]: m["role"] for m in r.json()["members"]}[p1] == "parent"
+
+    assert client.delete(f"/api/v1/holdings/{hid}/members/{p2}", headers=auth_headers).status_code == 204
+    members = client.get(f"/api/v1/holdings/{hid}", headers=auth_headers).json()["members"]
+    assert [m["project_id"] for m in members] == [p1]
+
+
+def test_patch_member_not_in_holding_404(client, auth_headers):
+    hid = client.post("/api/v1/holdings", json={"name": "Г"}, headers=auth_headers).json()["id"]
+    assert client.patch(f"/api/v1/holdings/{hid}/members/nope",
+                        json={"role": "parent"}, headers=auth_headers).status_code == 404
+
+
+def test_consolidate_per_project_sums_match(client, auth_headers):
+    hid = client.post("/api/v1/holdings", json={"name": "Г"}, headers=auth_headers).json()["id"]
+    for nm in ("A", "B"):
+        client.post(f"/api/v1/holdings/{hid}/members",
+                    json={"project_id": _project(client, auth_headers, nm)}, headers=auth_headers)
+    data = client.post(f"/api/v1/holdings/{hid}/consolidate", headers=auth_headers).json()
+    per = data["per_project"]
+    assert len(per) == 2
+    # Групповая выручка (сумма I1 по месяцам) = сумме выручек проектов из разбивки.
+    i1 = next(l for l in data["income"]["lines"] if l["code"] == "I1")["values"]
+    group_rev = sum(Decimal(v) for v in i1)
+    per_rev = sum(Decimal(p["revenue_total"]) for p in per)
+    assert abs(group_rev - per_rev) <= Decimal("0.01")
+    assert all("name" in p and "role" in p for p in per)
+
+
+def test_consolidate_saves_summary_to_holding(client, auth_headers):
+    hid = client.post("/api/v1/holdings", json={"name": "Г"}, headers=auth_headers).json()["id"]
+    client.post(f"/api/v1/holdings/{hid}/members",
+                json={"project_id": _project(client, auth_headers, "A")}, headers=auth_headers)
+    # До консолидации сводки нет.
+    assert client.get(f"/api/v1/holdings/{hid}", headers=auth_headers).json()["last_consolidation"] is None
+    calc = client.post(f"/api/v1/holdings/{hid}/consolidate", headers=auth_headers).json()
+    lc = client.get(f"/api/v1/holdings/{hid}", headers=auth_headers).json()["last_consolidation"]
+    assert lc is not None
+    assert Decimal(lc["npv"]) == Decimal(calc["metrics"]["npv"])

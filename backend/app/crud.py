@@ -182,6 +182,18 @@ def get_role(db: Session, org_id: str, user_id: str) -> str | None:
     return membership.role if membership else None
 
 
+def set_membership_role(db: Session, membership: Membership, role: str) -> Membership:
+    membership.role = role
+    db.commit()
+    db.refresh(membership)
+    return membership
+
+
+def remove_membership(db: Session, membership: Membership) -> None:
+    db.delete(membership)
+    db.commit()
+
+
 def list_user_organizations(db: Session, user_id: str) -> list[tuple[Organization, str]]:
     rows = db.execute(
         select(Organization, Membership.role)
@@ -336,3 +348,26 @@ def list_holding_members(db: Session, holding_id: str) -> list[HoldingMember]:
     return list(
         db.scalars(select(HoldingMember).where(HoldingMember.holding_id == holding_id))
     )
+
+
+def get_holding_member(db: Session, holding_id: str, project_id: str) -> HoldingMember | None:
+    return db.scalar(
+        select(HoldingMember).where(
+            HoldingMember.holding_id == holding_id, HoldingMember.project_id == project_id
+        )
+    )
+
+
+def remove_holding_member(db: Session, member: HoldingMember) -> None:
+    db.delete(member)
+    db.commit()
+
+
+def save_holding_consolidation(db: Session, holding: Holding, *, npv: Decimal,
+                               rate: Decimal) -> None:
+    """Сохранить сводку последней консолидации холдинга (B3)."""
+    holding.last_consolidation_npv = str(npv)
+    holding.last_consolidation_rate = str(rate)
+    holding.last_consolidation_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(holding)
