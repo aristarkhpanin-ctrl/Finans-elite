@@ -1,8 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { runWhatIf, SENSITIVITY_PARAMS, type ScenarioIn } from "../../api/analysis";
 import { money, percent } from "../../format";
+import { SimpleBarChart } from "../../components/charts";
 import { Button } from "../../components/ui";
 
 const newScenario = (n: number): ScenarioIn => ({
@@ -21,7 +21,7 @@ export function WhatIfTab({ projectId }: { projectId: string }) {
       adjustments: scenarios[si].adjustments.map((a, k) => (k === ai ? { ...a, ...patch } : a)),
     });
 
-  const chartData = run.data?.scenarios.map((s) => ({ name: s.name, npv: Number(s.npv) }));
+  const chartData = run.data?.scenarios.map((s) => ({ label: s.name, value: Number(s.npv) }));
 
   return (
     <div>
@@ -52,19 +52,14 @@ export function WhatIfTab({ projectId }: { projectId: string }) {
       <Button onClick={() => run.mutate()} disabled={run.isPending}>{run.isPending ? "Расчёт…" : "Сравнить"}</Button>
       {run.isError && <p className="error">Ошибка анализа</p>}
 
-      {run.data && (
+      {run.data && chartData && (
         <>
-          <div className="chart-card" style={{ marginTop: 16 }}>
-            <h3>NPV по сценариям</h3>
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={chartData} margin={{ top: 6, right: 12, left: 8, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                <YAxis tickFormatter={(v) => Number(v).toLocaleString("ru-RU", { notation: "compact" })} tick={{ fontSize: 12 }} width={64} />
-                <Tooltip formatter={(v: number) => money(String(v))} />
-                <Bar dataKey="npv" name="NPV" fill="#2563eb" />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="chart-card2" style={{ marginTop: 16 }}>
+            <div className="chart-card2__title">NPV по сценариям</div>
+            <div className="chart-card2__sub">Сравнение сценариев · NPV в ₽, убыток — красным</div>
+            <div style={{ marginTop: 10 }}>
+              <SimpleBarChart items={chartData} valueLabel="NPV" />
+            </div>
           </div>
           <div className="fin-table-wrap">
             <table className="fin-table">

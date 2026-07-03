@@ -11,7 +11,7 @@ import { ProjectEditorPage } from "./pages/ProjectEditorPage";
 import { ProjectsPage } from "./pages/ProjectsPage";
 import { RegisterPage } from "./pages/RegisterPage";
 
-// Страницы с recharts грузим лениво (code-split).
+// Тяжёлые страницы результатов/анализа грузим лениво (code-split).
 const ProjectResultsPage = lazy(() =>
   import("./pages/ProjectResultsPage").then((m) => ({ default: m.ProjectResultsPage })),
 );

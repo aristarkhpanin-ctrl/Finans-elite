@@ -1,16 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { runSensitivity, SENSITIVITY_PARAMS } from "../../api/analysis";
 import { money } from "../../format";
+import { SimpleLineChart } from "../../components/charts";
 import { Button } from "../../components/ui";
 
 export function SensitivityTab({ projectId }: { projectId: string }) {
@@ -24,7 +16,10 @@ export function SensitivityTab({ projectId }: { projectId: string }) {
     },
   });
 
-  const data = run.data?.points.map((p) => ({ factor: Number(p.factor), npv: Number(p.npv) }));
+  const data = run.data?.points.map((p) => ({
+    label: Number(p.factor).toLocaleString("ru-RU", { maximumFractionDigits: 2 }),
+    value: Number(p.npv),
+  }));
 
   return (
     <div>
@@ -47,20 +42,14 @@ export function SensitivityTab({ projectId }: { projectId: string }) {
       {run.isError && <p className="error">Ошибка анализа</p>}
       {data && (
         <>
-          <div className="chart-card" style={{ marginTop: 14 }}>
-            <h3>NPV в зависимости от параметра</h3>
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={data} margin={{ top: 6, right: 12, left: 8, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="factor" tick={{ fontSize: 12 }} />
-                <YAxis tickFormatter={(v) => Number(v).toLocaleString("ru-RU", { notation: "compact" })}
-                       tick={{ fontSize: 12 }} width={64} />
-                <Tooltip formatter={(v: number) => money(String(v))} />
-                <Line dataKey="npv" name="NPV" stroke="#2563eb" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
+          <div className="chart-card2" style={{ marginTop: 14 }}>
+            <div className="chart-card2__title">NPV в зависимости от параметра</div>
+            <div className="chart-card2__sub">Множитель к базовому значению · NPV в ₽</div>
+            <div style={{ marginTop: 10 }}>
+              <SimpleLineChart points={data} valueLabel="NPV" />
+            </div>
           </div>
-          <div className="fin-table-wrap">
+          <div className="fin-table-wrap" style={{ marginTop: 14 }}>
             <table className="fin-table">
               <thead><tr><th className="label-col">Коэффициент</th><th className="num">NPV</th></tr></thead>
               <tbody>
