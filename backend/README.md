@@ -237,6 +237,24 @@ Security** для таблиц `projects` и `holdings` (миграция `d5e8f
 применяет миграции и под не-суперпользовательской ролью убеждается, что арендатор A не
 видит и не может создать данные арендатора B.
 
+## Фоновый анализ (Celery)
+
+Тяжёлые прогоны выносятся из воркеров API в фоновые задачи Celery (брокер/бэкенд —
+Redis), чтобы не занимать HTTP-воркеры надолго. Монте-Карло доступен и синхронно
+(`POST …/monte-carlo`), и асинхронно:
+
+- `POST /api/v1/projects/{id}/monte-carlo/async` → `202 {job_id}` (ставит задачу);
+- `GET /api/v1/analysis/jobs/{job_id}` → `{status: pending|running|success|failure, result?}`
+  (доступна только своему арендатору — реестр владения в таблице `analysis_jobs`).
+
+```bash
+# Воркер (рядом с API):
+celery -A app.celery_app worker --loglevel=info --concurrency=2
+```
+
+В тестах — eager-режим (`CELERY_TASK_ALWAYS_EAGER=1`): задачи выполняются синхронно в
+процессе, без брокера/воркера; результат остаётся опрашиваемым через тот же API.
+
 ## Docker
 
 `Dockerfile` собирает образ API (применяет миграции и запускает uvicorn);

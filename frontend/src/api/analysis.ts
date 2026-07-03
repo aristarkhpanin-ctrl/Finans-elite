@@ -35,11 +35,25 @@ export interface UncertainParamIn {
 }
 export type HistogramBin = Schema<"HistogramBinOut">;
 export type MonteCarloResponse = Schema<"MonteCarloResponse">;
-export async function runMonteCarlo(
-  id: string,
-  body: { iterations: number; seed: number; uncertain: UncertainParamIn[] },
-): Promise<MonteCarloResponse> {
+export type JobSubmit = Schema<"JobSubmitResponse">;
+export type JobStatus = Schema<"JobStatusResponse">;
+
+type MonteCarloBody = { iterations: number; seed: number; uncertain: UncertainParamIn[] };
+
+export async function runMonteCarlo(id: string, body: MonteCarloBody): Promise<MonteCarloResponse> {
   const { data } = await api.post<MonteCarloResponse>(`/api/v1/projects/${id}/monte-carlo`, body);
+  return data;
+}
+
+/** Поставить Монте-Карло в очередь (фоновый воркер) → id задачи. */
+export async function submitMonteCarloAsync(id: string, body: MonteCarloBody): Promise<JobSubmit> {
+  const { data } = await api.post<JobSubmit>(`/api/v1/projects/${id}/monte-carlo/async`, body);
+  return data;
+}
+
+/** Опросить статус/результат фоновой задачи анализа. */
+export async function getJob(jobId: string): Promise<JobStatus> {
+  const { data } = await api.get<JobStatus>(`/api/v1/analysis/jobs/${jobId}`);
   return data;
 }
 

@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from calc_core import ProjectModel
 
 from .db_models import (
+    AnalysisJob,
     Holding,
     HoldingMember,
     Membership,
@@ -23,6 +24,18 @@ from .db_models import (
     User,
 )
 from .plans import DEFAULT_PLAN
+
+# --- Фоновые задачи анализа (Celery) ---
+
+def create_analysis_job(db: Session, job_id: str, org_id: str, project_id: str, kind: str) -> AnalysisJob:
+    job = AnalysisJob(id=job_id, organization_id=org_id, project_id=project_id, kind=kind)
+    db.add(job)
+    db.commit()
+    return job
+
+
+def get_analysis_job(db: Session, job_id: str) -> AnalysisJob | None:
+    return db.get(AnalysisJob, job_id)
 
 # --- Организации ---
 

@@ -23,7 +23,7 @@ from calc_core.samples import TEMPLATES, build_sample_project
 
 from .database import get_db, init_db
 from .observability import setup_observability
-from .routers import auth, billing, holdings, integrator, organizations, projects
+from .routers import auth, billing, holdings, integrator, jobs, organizations, projects
 from .schemas import CalcResponse, to_response
 
 
@@ -60,6 +60,7 @@ app.include_router(auth.router)
 app.include_router(billing.router)
 app.include_router(holdings.router)
 app.include_router(integrator.router)
+app.include_router(jobs.router)
 app.include_router(organizations.router)
 app.include_router(projects.router)
 

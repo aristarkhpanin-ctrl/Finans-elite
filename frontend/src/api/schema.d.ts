@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+    "/api/v1/analysis/jobs/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Job Status
+         * @description Статус (и результат) фоновой задачи. Доступна только своему арендатору.
+         */
+        get: operations["job_status_api_v1_analysis_jobs__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -477,6 +497,26 @@ export interface paths {
          * @description Анализ Монте-Карло: статистика NPV и вероятность NPV>0 (синхронно, с лимитом N).
          */
         post: operations["monte_carlo_api_v1_projects__project_id__monte_carlo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/monte-carlo/async": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Monte Carlo Async
+         * @description Поставить Монте-Карло в очередь (фоновый воркер). Опрос — GET /analysis/jobs/{id}.
+         */
+        post: operations["monte_carlo_async_api_v1_projects__project_id__monte_carlo_async_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1340,6 +1380,26 @@ export interface components {
         "InvestmentPlan-Output": {
             /** Assets */
             assets?: components["schemas"]["Asset-Output"][];
+        };
+        /** JobStatusResponse */
+        JobStatusResponse: {
+            /** Error */
+            error?: string | null;
+            /** Job Id */
+            job_id: string;
+            result?: components["schemas"]["MonteCarloResponse"] | null;
+            /** Status */
+            status: string;
+        };
+        /** JobSubmitResponse */
+        JobSubmitResponse: {
+            /** Job Id */
+            job_id: string;
+            /**
+             * Status
+             * @default pending
+             */
+            status: string;
         };
         /**
          * LastCalcOut
@@ -2697,6 +2757,39 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    job_status_api_v1_analysis_jobs__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     login_api_v1_auth_login_post: {
         parameters: {
             query?: never;
@@ -3739,6 +3832,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MonteCarloResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    monte_carlo_async_api_v1_projects__project_id__monte_carlo_async_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MonteCarloRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobSubmitResponse"];
                 };
             };
             /** @description Validation Error */

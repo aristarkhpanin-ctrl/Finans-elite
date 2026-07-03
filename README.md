@@ -45,5 +45,6 @@ cd frontend && npm install && npm run dev # http://localhost:5173 (прокси 
 | `CORS_ORIGINS` | Список origin через запятую (для раздельного деплоя) | пусто |
 | `RATE_LIMIT_ENABLED` | Ограничение частоты на `/auth` | `true` |
 | `LOG_LEVEL` | Уровень логов (DEBUG/INFO/WARNING/ERROR) | `INFO` |
+| `CELERY_BROKER_URL` / `CELERY_RESULT_BACKEND` | Redis для фонового анализа | `redis://localhost:6379/0` · `/1` |
 
 Полный список — [`backend/.env.example`](backend/.env.example).

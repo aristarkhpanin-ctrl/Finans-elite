@@ -273,6 +273,32 @@ class MonteCarloResponse(BaseModel):
     histogram: list[HistogramBinOut] = []
 
 
+def monte_carlo_response(res) -> "MonteCarloResponse":
+    """Собрать ответ Монте-Карло из результата ядра (общий код для sync и фоновой задачи)."""
+    return MonteCarloResponse(
+        iterations=res.iterations, npv_mean=res.npv_mean, npv_std=res.npv_std,
+        npv_sem=res.npv_sem, npv_min=res.npv_min, npv_max=res.npv_max,
+        npv_p5=res.npv_p5, npv_p10=res.npv_p10, npv_p50=res.npv_p50,
+        npv_p90=res.npv_p90, npv_p95=res.npv_p95, npv_cvar_5=res.npv_cvar_5,
+        probability_npv_positive=res.probability_npv_positive,
+        histogram=[HistogramBinOut(from_=b.from_, to=b.to, count=b.count) for b in res.histogram],
+    )
+
+
+# --- Фоновые задачи анализа (Celery) ---
+
+class JobSubmitResponse(BaseModel):
+    job_id: str
+    status: str = "pending"
+
+
+class JobStatusResponse(BaseModel):
+    job_id: str
+    status: str                                # pending | running | success | failure
+    result: MonteCarloResponse | None = None   # заполнено при status=success
+    error: str | None = None                   # заполнено при status=failure
+
+
 # --- What-If (9.1) ---
 
 class ScenarioAdjustmentIn(BaseModel):

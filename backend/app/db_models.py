@@ -174,3 +174,21 @@ class Project(Base):
     last_calculated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+
+
+class AnalysisJob(Base):
+    """Фоновая задача анализа (Celery): реестр владения для изоляции арендатора.
+
+    Статус и результат хранит бэкенд Celery; здесь — привязка ``job_id`` к организации
+    (чтобы чужой арендатор не мог опросить задачу) и тип/время для аудита.
+    """
+
+    __tablename__ = "analysis_jobs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)  # = id задачи Celery
+    organization_id: Mapped[str] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    project_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)  # "monte_carlo"
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

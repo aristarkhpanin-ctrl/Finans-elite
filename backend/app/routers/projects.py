@@ -5,28 +5,26 @@
 """
 from __future__ import annotations
 
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from calc_core import run
 from calc_core.engine import ModelError
-from calc_core.montecarlo import (
-    Distribution,
-    MonteCarloConfig,
-    UncertainParam,
-    run_monte_carlo,
-)
+from calc_core.montecarlo import run_monte_carlo
 from calc_core.sensitivity import SENSITIVITY_PARAMS, run_sensitivity
 from calc_core.whatif import Scenario, ScenarioAdjustment, run_what_if
 
 from .. import billing, crud
+from ..analysis_service import build_mc_config
 from ..database import get_db
 from ..db_models import Project
 from ..deps import require_permission
 from ..rbac import Perm
 from ..schemas import (
     CalcResponse,
-    HistogramBinOut,
+    JobSubmitResponse,
     LastCalcOut,
     MonteCarloRequest,
     MonteCarloResponse,
@@ -40,8 +38,10 @@ from ..schemas import (
     SensitivityResponse,
     WhatIfRequest,
     WhatIfResponse,
+    monte_carlo_response,
     to_response,
 )
+from ..tasks import monte_carlo_task
 
 # Лимит итераций для синхронного Монте-Карло (большие N — фоновой задачей, ARCHITECTURE §9).
 _MAX_MC_ITERATIONS = 2000
@@ -175,27 +175,30 @@ def monte_carlo(project_id: str, body: MonteCarloRequest,
     if not 1 <= body.iterations <= _MAX_MC_ITERATIONS:
         raise HTTPException(status_code=422,
                             detail=f"iterations должно быть от 1 до {_MAX_MC_ITERATIONS}")
-    config = MonteCarloConfig(
-        iterations=body.iterations,
-        seed=body.seed,
-        uncertain=[UncertainParam(param=u.param, distribution=Distribution(
-            kind=u.distribution.kind, low=u.distribution.low, high=u.distribution.high,
-            mean=u.distribution.mean, std=u.distribution.std, mode=u.distribution.mode))
-            for u in body.uncertain],
-    )
     project = _require(db, org_id, project_id)
     try:
-        res = run_monte_carlo(crud.load_model(project), config)
+        res = run_monte_carlo(crud.load_model(project), build_mc_config(body))
     except (ModelError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    return MonteCarloResponse(
-        iterations=res.iterations, npv_mean=res.npv_mean, npv_std=res.npv_std,
-        npv_sem=res.npv_sem, npv_min=res.npv_min, npv_max=res.npv_max,
-        npv_p5=res.npv_p5, npv_p10=res.npv_p10, npv_p50=res.npv_p50,
-        npv_p90=res.npv_p90, npv_p95=res.npv_p95, npv_cvar_5=res.npv_cvar_5,
-        probability_npv_positive=res.probability_npv_positive,
-        histogram=[HistogramBinOut(from_=b.from_, to=b.to, count=b.count) for b in res.histogram],
+    return monte_carlo_response(res)
+
+
+@router.post("/{project_id}/monte-carlo/async", response_model=JobSubmitResponse,
+             status_code=status.HTTP_202_ACCEPTED)
+def monte_carlo_async(project_id: str, body: MonteCarloRequest,
+                      org_id: str = Depends(require_permission(Perm.PROJECT_CALCULATE)),
+                      db: Session = Depends(get_db)) -> JobSubmitResponse:
+    """Поставить Монте-Карло в очередь (фоновый воркер). Опрос — GET /analysis/jobs/{id}."""
+    if not 1 <= body.iterations <= _MAX_MC_ITERATIONS:
+        raise HTTPException(status_code=422,
+                            detail=f"iterations должно быть от 1 до {_MAX_MC_ITERATIONS}")
+    project = _require(db, org_id, project_id)
+    job_id = uuid.uuid4().hex
+    crud.create_analysis_job(db, job_id, org_id, project_id, "monte_carlo")
+    monte_carlo_task.apply_async(
+        args=[project.model, body.model_dump(mode="json")], task_id=job_id,
     )
+    return JobSubmitResponse(job_id=job_id)
 
 
 @router.post("/{project_id}/what-if", response_model=WhatIfResponse)

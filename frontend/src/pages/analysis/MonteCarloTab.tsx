@@ -1,7 +1,6 @@
-import { useMutation } from "@tanstack/react-query";
-import { httpDetail } from "../../api/client";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { runMonteCarlo, SENSITIVITY_PARAMS, type UncertainParamIn } from "../../api/analysis";
+import { getJob, submitMonteCarloAsync, SENSITIVITY_PARAMS, type UncertainParamIn } from "../../api/analysis";
 import { CAT, HistogramChart } from "../../components/charts";
 import { CubeHero } from "../../components/CubeHero";
 import { ESelect } from "../../components/EditorField";
@@ -69,9 +68,29 @@ export function MonteCarloTab({ projectId }: { projectId: string }) {
             : { kind: "triangular", low: r.low, mode: r.mode, high: r.high },
     }));
 
-  const run = useMutation({ mutationFn: () => runMonteCarlo(projectId, { iterations, seed, uncertain: toApi() }) });
+  // Асинхронный прогон: submit → фоновая задача → опрос статуса, пока не готово.
+  const [jobId, setJobId] = useState<string | null>(null);
+  const submit = useMutation({
+    mutationFn: () => submitMonteCarloAsync(projectId, { iterations, seed, uncertain: toApi() }),
+    onSuccess: (r) => setJobId(r.job_id),
+  });
+  const job = useQuery({
+    queryKey: ["mc-job", jobId],
+    queryFn: () => getJob(jobId as string),
+    enabled: jobId != null,
+    refetchInterval: (q) => {
+      const s = q.state.data?.status;
+      return s === "success" || s === "failure" ? false : 900;
+    },
+  });
+
   const upd = (i: number, patch: Partial<Row>) => setRows(rows.map((r, k) => (k === i ? { ...r, ...patch } : r)));
-  const d = run.data;
+  const d = job.data?.status === "success" ? job.data.result : undefined;
+  const failed = job.data?.status === "failure";
+  const running = submit.isPending || (jobId != null && !d && !failed);
+  const idle = jobId == null && !submit.isPending;
+  const errored = submit.isError || failed;
+  const start = () => submit.mutate();
 
   const stats = d
     ? [
@@ -123,8 +142,8 @@ export function MonteCarloTab({ projectId }: { projectId: string }) {
           />
         </div>
         <div style={{ flex: 1 }} />
-        <Button className="run-btn" loading={run.isPending} onClick={() => run.mutate()}>
-          {run.isPending ? "Симуляция…" : "Запустить"}
+        <Button className="run-btn" loading={running} onClick={start}>
+          {running ? "Симуляция…" : "Запустить"}
         </Button>
       </div>
 
@@ -174,7 +193,7 @@ export function MonteCarloTab({ projectId }: { projectId: string }) {
         ))}
       </div>
 
-      {run.isIdle && (
+      {idle && (
         <div className="setup-ph">
           <div className="setup-ph__ico">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
@@ -189,7 +208,7 @@ export function MonteCarloTab({ projectId }: { projectId: string }) {
         </div>
       )}
 
-      {run.isPending && (
+      {running && (
         <div className="mc-prog">
           <div className="mc-prog__top">
             <div className="mc-prog__cube">
@@ -197,7 +216,7 @@ export function MonteCarloTab({ projectId }: { projectId: string }) {
             </div>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div className="load-card__title">Симуляция Монте-Карло…</div>
-              <div className="load-card__sub">{iterations} прогонов · оценка распределения NPV</div>
+              <div className="load-card__sub">{iterations} прогонов в фоне · оценка распределения NPV</div>
             </div>
           </div>
           <div className="mc-prog__track">
@@ -206,16 +225,15 @@ export function MonteCarloTab({ projectId }: { projectId: string }) {
         </div>
       )}
 
-      {run.isError && (
+      {errored && (
         <div className="an-err">
           <div className="an-err__ico">!</div>
           <div style={{ minWidth: 0 }}>
             <div className="an-err__title">Не удалось выполнить симуляцию</div>
             <div className="an-err__sub">
-              {httpDetail(run.error) ??
-                "Проверьте распределения параметров и повторите."}
+              {(failed && job.data?.error) || "Проверьте распределения параметров и повторите."}
             </div>
-            <Button variant="ghost" onClick={() => run.mutate()}>
+            <Button variant="ghost" onClick={start}>
               Повторить
             </Button>
           </div>

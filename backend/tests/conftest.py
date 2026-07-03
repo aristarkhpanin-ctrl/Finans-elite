@@ -6,6 +6,12 @@ import os
 # Отдельный тест (test_rate_limit) включает его точечно через monkeypatch.
 os.environ.setdefault("RATE_LIMIT_ENABLED", "false")
 
+# Celery в тестах — eager (задачи выполняются синхронно в процессе, без брокера/воркера);
+# результат хранится в in-memory бэкенде, доступном через AsyncResult.
+os.environ.setdefault("CELERY_TASK_ALWAYS_EAGER", "1")
+os.environ.setdefault("CELERY_BROKER_URL", "memory://")
+os.environ.setdefault("CELERY_RESULT_BACKEND", "cache+memory://")
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
