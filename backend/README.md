@@ -217,6 +217,26 @@ python scripts/dump_openapi.py    # → openapi.json (детерминирова
 
 Фронтенд генерирует из него типы (`npm run gen:api`).
 
+## Изоляция арендаторов (RLS)
+
+Помимо фильтрации по `organization_id` в CRUD, на PostgreSQL включена **Row-Level
+Security** для таблиц `projects` и `holdings` (миграция `d5e8f1a2c3b4`): политики
+сравнивают `organization_id` с GUC `app.current_org_id`, который приложение выставляет
+на каждый запрос (`deps.current_org_id` → `database.set_tenant`), а пул сбрасывает при
+выдаче соединения. Незаданный арендатор → строк не видно (deny-by-default). На SQLite
+(dev/тесты) RLS нет — изоляцию обеспечивают фильтры CRUD.
+
+> ⚠️ **RLS не действует на суперпользователя PostgreSQL и на роли с `BYPASSRLS`.** В
+> продакшене приложение обязано подключаться под **обычной (не-суперпользовательской)
+> ролью** с грантами CRUD на таблицы, иначе изоляция уровня БД будет обойдена. Роль
+> `POSTGRES_USER` из `docker-compose` — суперпользователь; для боевого стенда заведите
+> отдельную роль приложения (`CREATE ROLE app NOSUPERUSER …; GRANT …`) и укажите её в
+> `DATABASE_URL`.
+
+Проверка (CI-job `rls-postgres` и `tests/test_rls_postgres.py`) поднимает Postgres,
+применяет миграции и под не-суперпользовательской ролью убеждается, что арендатор A не
+видит и не может создать данные арендатора B.
+
 ## Docker
 
 `Dockerfile` собирает образ API (применяет миграции и запускает uvicorn);
