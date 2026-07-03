@@ -46,6 +46,15 @@ class MonteCarloConfig:
 
 
 @dataclass
+class HistogramBin:
+    """Столбец гистограммы распределения NPV: [from_, to) и число попаданий."""
+
+    from_: Decimal
+    to: Decimal
+    count: int
+
+
+@dataclass
 class MonteCarloResult:
     iterations: int
     npv_mean: Decimal
@@ -56,6 +65,11 @@ class MonteCarloResult:
     npv_p50: Decimal
     npv_p90: Decimal
     probability_npv_positive: Decimal
+    histogram: list[HistogramBin]
+
+
+# Число столбцов гистограммы распределения NPV (B5).
+HISTOGRAM_BINS = 20
 
 
 def _sample_factor(rng: random.Random, d: Distribution) -> Decimal:
@@ -77,6 +91,31 @@ def _percentile(sorted_vals: list[Decimal], p: int) -> Decimal:
     return sorted_vals[idx]
 
 
+def _histogram(ordered: list[Decimal], bins: int = HISTOGRAM_BINS) -> list[HistogramBin]:
+    """Гистограмма из ``bins`` равных столбцов от min до max (B5).
+
+    Границы — Decimal (точность сохраняется). Каждое значение попадает ровно в один
+    столбец (последний — полузакрытый справа, чтобы max не выпал); сумма count = len.
+    """
+    lo, hi = ordered[0], ordered[-1]
+    if hi == lo:
+        # Все NPV равны — один столбец на все итерации, остальные пустые.
+        result = [HistogramBin(from_=lo, to=hi, count=0) for _ in range(bins)]
+        result[0] = HistogramBin(from_=lo, to=hi, count=len(ordered))
+        return result
+    width = (hi - lo) / bins
+    counts = [0] * bins
+    for x in ordered:
+        idx = int((x - lo) / width)
+        if idx >= bins:
+            idx = bins - 1  # max попадает в последний столбец
+        counts[idx] += 1
+    return [
+        HistogramBin(from_=lo + width * k, to=lo + width * (k + 1), count=counts[k])
+        for k in range(bins)
+    ]
+
+
 def _statistics(npvs: list[Decimal]) -> MonteCarloResult:
     n = len(npvs)
     total = sum(npvs, ZERO)
@@ -95,6 +134,7 @@ def _statistics(npvs: list[Decimal]) -> MonteCarloResult:
         npv_p50=_percentile(ordered, 50),
         npv_p90=_percentile(ordered, 90),
         probability_npv_positive=D(positive) / n,
+        histogram=_histogram(ordered),
     )
 
 

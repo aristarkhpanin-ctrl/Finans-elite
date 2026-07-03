@@ -8,7 +8,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from calc_core import ProjectModel
 from calc_core.reports.result import CalcResult
@@ -242,6 +242,16 @@ class MonteCarloRequest(BaseModel):
     uncertain: list[UncertainParamIn] = []
 
 
+class HistogramBinOut(BaseModel):
+    """Столбец гистограммы NPV (B5); ``from_`` сериализуется как ``from``."""
+
+    from_: Decimal = Field(serialization_alias="from")
+    to: Decimal
+    count: int
+
+    model_config = {"populate_by_name": True}
+
+
 class MonteCarloResponse(BaseModel):
     iterations: int
     npv_mean: Decimal
@@ -252,6 +262,7 @@ class MonteCarloResponse(BaseModel):
     npv_p50: Decimal
     npv_p90: Decimal
     probability_npv_positive: Decimal
+    histogram: list[HistogramBinOut] = []
 
 
 # --- What-If (9.1) ---

@@ -26,6 +26,7 @@ from ..deps import require_permission
 from ..rbac import Perm
 from ..schemas import (
     CalcResponse,
+    HistogramBinOut,
     LastCalcOut,
     MonteCarloRequest,
     MonteCarloResponse,
@@ -192,6 +193,7 @@ def monte_carlo(project_id: str, body: MonteCarloRequest,
         npv_min=res.npv_min, npv_max=res.npv_max, npv_p10=res.npv_p10,
         npv_p50=res.npv_p50, npv_p90=res.npv_p90,
         probability_npv_positive=res.probability_npv_positive,
+        histogram=[HistogramBinOut(from_=b.from_, to=b.to, count=b.count) for b in res.histogram],
     )
 
 

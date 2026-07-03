@@ -4,6 +4,7 @@ from decimal import Decimal
 import pytest
 
 from calc_core.montecarlo import (
+    HISTOGRAM_BINS,
     Distribution,
     MonteCarloConfig,
     UncertainParam,
@@ -54,6 +55,49 @@ def test_unknown_param_raises():
                            uncertain=[UncertainParam("magic", Distribution("uniform", low=Decimal("0.9"), high=Decimal("1.1")))])
     with pytest.raises(ValueError):
         run_monte_carlo(build_sample_project(), cfg)
+
+
+# --- B5: гистограмма распределения NPV ---
+
+def test_histogram_covers_all_iterations():
+    res = run_monte_carlo(build_sample_project(), _config(iterations=200))
+    assert len(res.histogram) == HISTOGRAM_BINS
+    # Сумма попаданий = число итераций (каждое NPV ровно в одном столбце).
+    assert sum(b.count for b in res.histogram) == 200
+    # Границы покрывают весь диапазон и стыкуются встык.
+    assert res.histogram[0].from_ == res.npv_min
+    assert res.histogram[-1].to == res.npv_max
+    for a, b in zip(res.histogram, res.histogram[1:]):
+        assert a.to == b.from_
+
+
+def test_histogram_deterministic_with_seed():
+    a = run_monte_carlo(build_sample_project(), _config(seed=7))
+    b = run_monte_carlo(build_sample_project(), _config(seed=7))
+    assert [(x.from_, x.to, x.count) for x in a.histogram] == [(y.from_, y.to, y.count) for y in b.histogram]
+
+
+def test_histogram_degenerate_no_uncertainty():
+    cfg = MonteCarloConfig(iterations=40, seed=42, uncertain=[])
+    res = run_monte_carlo(build_sample_project(), cfg)
+    # Все NPV равны — все попадания в первом столбце, сумма = итерациям.
+    assert sum(b.count for b in res.histogram) == 40
+    assert res.histogram[0].count == 40
+
+
+def test_monte_carlo_api_returns_histogram(client, auth_headers):
+    sample = client.get("/api/v1/sample").json()
+    pid = client.post("/api/v1/projects", json={"name": "MC", "model": sample},
+                      headers=auth_headers).json()["id"]
+    r = client.post(f"/api/v1/projects/{pid}/monte-carlo", json={
+        "iterations": 100, "seed": 42,
+        "uncertain": [{"param": "sales_price", "distribution": {"kind": "uniform", "low": "0.8", "high": "1.2"}}],
+    }, headers=auth_headers)
+    hist = r.json()["histogram"]
+    assert len(hist) == HISTOGRAM_BINS
+    assert sum(b["count"] for b in hist) == 100
+    # Поле сериализовано как ``from``/``to`` (не ``from_``).
+    assert "from" in hist[0] and "to" in hist[0] and "from_" not in hist[0]
 
 
 def test_monte_carlo_api(client, auth_headers):
