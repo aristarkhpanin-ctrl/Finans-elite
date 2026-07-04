@@ -1,0 +1,12 @@
+"""Реестр правил ревью. Наполняется по фазам (R1+) из модулей категорий."""
+from __future__ import annotations
+
+from collections.abc import Callable
+
+from ..config import ReviewConfig
+from ..types import Finding, ReviewContext
+
+Rule = Callable[[ReviewContext, ReviewConfig], list[Finding]]
+
+# По мере добавления категорий: RULES = [*viability.RULES, *liquidity.RULES, ...].
+RULES: list[Rule] = []
