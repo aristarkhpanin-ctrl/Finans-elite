@@ -5,8 +5,9 @@ from collections.abc import Callable
 
 from ..config import ReviewConfig
 from ..types import Finding, ReviewContext
+from . import viability
 
 Rule = Callable[[ReviewContext, ReviewConfig], list[Finding]]
 
-# По мере добавления категорий: RULES = [*viability.RULES, *liquidity.RULES, ...].
-RULES: list[Rule] = []
+# По мере добавления категорий сюда добавляются *<модуль>.RULES.
+RULES: list[Rule] = [*viability.RULES]
