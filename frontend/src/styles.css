@@ -2354,3 +2354,23 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   border: 1px solid var(--grid-line); border-radius: 6px; padding: 2px 7px;
 }
 .rv-evi-chip b { color: var(--muted); font-weight: 700; }
+
+/* Компактный баннер ревью на странице результатов */
+.rv-banner {
+  display: flex; align-items: center; gap: 13px; width: 100%; text-align: left;
+  margin-top: 16px; padding: 13px 16px; background: var(--surface);
+  border: 1px solid var(--border); border-left: 4px solid var(--border); border-radius: 12px;
+  cursor: pointer; transition: 0.14s;
+}
+.rv-banner:hover { background: var(--surface-2); }
+.rv-banner__dot { width: 11px; height: 11px; border-radius: 50%; flex: none; }
+.rv-banner__text { flex: 1; min-width: 0; }
+.rv-banner__title { font: 600 13.5px var(--font-ui); color: var(--text); }
+.rv-banner__sub { font: 400 12px var(--font-ui); color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rv-banner__counts { display: flex; gap: 6px; flex: none; }
+.rv-bchip { font: 600 11px var(--font-ui); padding: 3px 8px; border-radius: 6px; white-space: nowrap; }
+.rv-bchip--risk { color: var(--danger-text); background: var(--danger-bg); }
+.rv-bchip--warn { color: var(--warn-text); background: var(--warn-bg); }
+.rv-bchip--info { color: var(--info); background: var(--info-bg); }
+.rv-banner__arrow { font: 600 12px var(--font-ui); color: var(--accent); flex: none; white-space: nowrap; }
+@media (max-width: 640px) { .rv-banner__counts { display: none; } }

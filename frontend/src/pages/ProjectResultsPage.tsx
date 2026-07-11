@@ -8,6 +8,7 @@ import { HintBadge } from "../components/EditorField";
 import { IconPrint } from "../components/icons";
 import { PlanFactView } from "../components/PlanFactView";
 import { PrintReport } from "../components/PrintReport";
+import { ReviewBanner } from "../components/ReviewBanner";
 import { RatiosView } from "../components/RatiosView";
 import { ResultCharts } from "../components/ResultCharts";
 import { GRANDS, StatementTable, SUBTOTALS } from "../components/StatementTable";
@@ -327,6 +328,8 @@ export function ProjectResultsPage() {
             </div>
           ))}
         </div>
+
+        {tab === "summary" && <ReviewBanner projectId={id} />}
 
         <div className="etabs-wrap" style={{ margin: "20px 0", borderTop: "1px solid var(--border)", background: "none", padding: 0 }}>
           <div className="etabs fe-scroll">
