@@ -1753,6 +1753,24 @@
             "default": "0",
             "title": "Annual Rate"
           },
+          "buyout_life_months": {
+            "default": 0,
+            "title": "Buyout Life Months",
+            "type": "integer"
+          },
+          "buyout_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Buyout Price"
+          },
           "finance": {
             "default": false,
             "title": "Finance",
@@ -1812,6 +1830,17 @@
             "default": "0",
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Annual Rate",
+            "type": "string"
+          },
+          "buyout_life_months": {
+            "default": 0,
+            "title": "Buyout Life Months",
+            "type": "integer"
+          },
+          "buyout_price": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Buyout Price",
             "type": "string"
           },
           "finance": {
@@ -4595,7 +4624,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.13"
+    "version": "0.9.14"
   },
   "openapi": "3.1.0",
   "paths": {

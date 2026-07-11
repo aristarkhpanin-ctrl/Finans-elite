@@ -105,3 +105,33 @@ def test_finance_lease_with_insurance():
     assert [q(v) for v in r.cashflow["C25"]] == [D("1050.00"), D("1050.00")]  # платёж + страховка
     assert [q(v) for v in r.balance["B19"]] == [D("1000.00"), D("0.00")]      # предмет амортизируется
     assert _balanced(r)
+
+
+def test_finance_lease_buyout_capitalizes_and_depreciates():
+    """Выкуп по окончании лизинга: предмет становится собственным ОС (оборудование B14) в
+    месяц start+term (оплата — приобретение активов C14) и амортизируется за срок службы
+    после выкупа (I17). Баланс сходится.
+    """
+    n = 4
+    lease = Lease(name="ФЛ", monthly_payment=D(1000), start_month=0, term_months=2,
+                  finance=True, annual_rate=D("0"), buyout_price=D(600), buyout_life_months=2)
+    r = run(_model(n, [lease]))
+    # выкуп в мес. 2: приобретение ОС 600 (C14), затем амортизация 300/мес (мес. 2, 3)
+    assert [q(v) for v in r.cashflow["C14"]] == [D("0.00"), D("0.00"), D("600.00"), D("0.00")]
+    assert [q(v) for v in r.balance["B14"]] == [D("0.00"), D("0.00"), D("300.00"), D("0.00")]
+    # I17: амортизация предмета лизинга (мес. 0,1 = 1000) + выкупного ОС (мес. 2,3 = 300)
+    assert [q(v) for v in r.income["I17"]] == [D("1000.00"), D("1000.00"), D("300.00"), D("300.00")]
+    assert _balanced(r)
+
+
+def test_operational_lease_buyout():
+    """Выкуп операционного лизинга: после срока предмет капитализируется (B14) и
+    амортизируется — операционный лизинг сам предмет не капитализировал (B19=0)."""
+    n = 3
+    lease = Lease(name="ОЛ", monthly_payment=D(500), start_month=0, term_months=1,
+                  buyout_price=D(400), buyout_life_months=2)
+    r = run(_model(n, [lease]))
+    assert all(v == 0 for v in r.balance["B19"])                         # операционный: предмет не на балансе
+    assert [q(v) for v in r.cashflow["C14"]] == [D("0.00"), D("400.00"), D("0.00")]
+    assert [q(v) for v in r.balance["B14"]] == [D("0.00"), D("200.00"), D("0.00")]  # 400, аморт. 200/мес
+    assert _balanced(r)

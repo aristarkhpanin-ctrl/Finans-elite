@@ -333,6 +333,20 @@ export function FinancingTab({ n, financing, onChange }: Props) {
                         value={l.insurance_monthly ?? "0"}
                         onChange={(v) => updLease(i, { insurance_monthly: v })}
                       />
+                      <EField
+                        label="Цена выкупа"
+                        prefix="₽"
+                        value={l.buyout_price ?? "0"}
+                        onChange={(v) => updLease(i, { buyout_price: v })}
+                      />
+                      {!!l.buyout_price && l.buyout_price !== "0" && (
+                        <EField
+                          label="Срок службы после выкупа"
+                          suffix="мес."
+                          value={l.buyout_life_months ?? 0}
+                          onChange={(v) => updLease(i, { buyout_life_months: parseInt(v || "0", 10) || 0 })}
+                        />
+                      )}
                     </div>
                     <div style={{ marginTop: 14 }}>
                       <Switch

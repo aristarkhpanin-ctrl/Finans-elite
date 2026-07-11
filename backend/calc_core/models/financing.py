@@ -58,6 +58,11 @@ class Lease(BaseModel):
     # Страхование предмета лизинга: помесячная издержка (I21) + отток (C25) за срок лизинга;
     # применяется к обоим типам (операционному и финансовому). По умолчанию 0.
     insurance_monthly: Decimal = Decimal("0")
+    # Выкуп предмета по окончании лизинга: цена выкупа (→ приобретение ОС, C14) и срок службы
+    # для последующей амортизации. Предмет становится собственным ОС (оборудование, B14) в
+    # месяц start+term и амортизируется линейно за buyout_life_months. По умолчанию нет выкупа.
+    buyout_price: Decimal = Decimal("0")
+    buyout_life_months: int = 0
 
     def monthly_rate(self) -> Decimal:
         return (Decimal(1) + self.annual_rate) ** (Decimal(1) / Decimal(12)) - Decimal(1)

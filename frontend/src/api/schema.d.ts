@@ -1549,6 +1549,16 @@ export interface components {
              */
             annual_rate: number | string;
             /**
+             * Buyout Life Months
+             * @default 0
+             */
+            buyout_life_months: number;
+            /**
+             * Buyout Price
+             * @default 0
+             */
+            buyout_price: number | string;
+            /**
              * Finance
              * @default false
              */
@@ -1589,6 +1599,16 @@ export interface components {
              * @default 0
              */
             annual_rate: string;
+            /**
+             * Buyout Life Months
+             * @default 0
+             */
+            buyout_life_months: number;
+            /**
+             * Buyout Price
+             * @default 0
+             */
+            buyout_price: string;
             /**
              * Finance
              * @default false

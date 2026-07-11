@@ -82,6 +82,8 @@ export interface Lease {
   finance?: boolean;
   annual_rate?: string;
   insurance_monthly?: string;
+  buyout_price?: string;
+  buyout_life_months?: number;
 }
 
 export interface Deposit {

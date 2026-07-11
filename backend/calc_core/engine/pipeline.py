@@ -13,6 +13,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from ..models import (
+    Asset,
     AssetCategory,
     CostFunction,
     DirectCostKind,
@@ -327,7 +328,20 @@ def _assets(model: ProjectModel, n: int):
     b10_disposal = zeros(n)    # выбытие накопленной амортизации
     reval = zeros(n)           # дооценка → B9/остаточная и добавочный капитал B31
     nbv = {cat: zeros(n) for cat in AssetCategory}  # остаточная стоимость по группам ОС
-    for asset in model.investment_plan.assets:
+    # Выкуп лизинга: предмет становится собственным ОС (оборудование) в месяц start+term и
+    # амортизируется как обычный актив — тем же механизмом (capex→C14, амортизация I17/B10,
+    # остаточная → B14). Синтетические активы обрабатываются вместе с плановыми.
+    assets = list(model.investment_plan.assets)
+    for lease in model.financing.leases:
+        if lease.buyout_price and lease.buyout_price > ZERO:
+            assets.append(Asset(
+                name=f"Выкуп: {lease.name}",
+                cost=lease.buyout_price,
+                purchase_month=lease.start_month + lease.term_months,
+                life_months=lease.buyout_life_months,
+                category=AssetCategory.EQUIPMENT,
+            ))
+    for asset in assets:
         cat = asset.category
         rm = asset.revaluation_month
         rm_active = rm if (rm is not None and 0 <= rm < n) else None
