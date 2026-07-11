@@ -28,6 +28,7 @@ const ASSET_FIELDS: Array<[keyof StartingBalance, string, string]> = [
 
 const LIAB_FIELDS: Array<[keyof StartingBalance, string, string]> = [
   ["payables", "Кредиторская задолженность", "var(--warn)"],
+  ["short_term_debt", "Краткосрочные займы", "#C77DFF"],
   ["debt", "Долгосрочные займы", "#5E93FF"],
   ["paid_in_capital", "Акционерный капитал", "var(--primary)"],
   ["retained_earnings", "Нераспределённая прибыль", "var(--info)"],

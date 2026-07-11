@@ -939,7 +939,8 @@ export interface components {
              *       "payables": "0",
              *       "raw_materials": "0",
              *       "receivables": "0",
-             *       "retained_earnings": "0"
+             *       "retained_earnings": "0",
+             *       "short_term_debt": "0"
              *     }
              */
             starting_balance: components["schemas"]["StartingBalance-Input"];
@@ -957,7 +958,8 @@ export interface components {
              *       "payables": "0",
              *       "raw_materials": "0",
              *       "receivables": "0",
-             *       "retained_earnings": "0"
+             *       "retained_earnings": "0",
+             *       "short_term_debt": "0"
              *     }
              */
             starting_balance: components["schemas"]["StartingBalance-Output"];
@@ -2007,7 +2009,8 @@ export interface components {
              *         "payables": "0",
              *         "raw_materials": "0",
              *         "receivables": "0",
-             *         "retained_earnings": "0"
+             *         "retained_earnings": "0",
+             *         "short_term_debt": "0"
              *       }
              *     }
              */
@@ -2115,7 +2118,8 @@ export interface components {
              *         "payables": "0",
              *         "raw_materials": "0",
              *         "receivables": "0",
-             *         "retained_earnings": "0"
+             *         "retained_earnings": "0",
+             *         "short_term_debt": "0"
              *       }
              *     }
              */
@@ -2681,6 +2685,11 @@ export interface components {
              * @default 0
              */
             retained_earnings: number | string;
+            /**
+             * Short Term Debt
+             * @default 0
+             */
+            short_term_debt: number | string;
         };
         /**
          * StartingBalance
@@ -2737,6 +2746,11 @@ export interface components {
              * @default 0
              */
             retained_earnings: string;
+            /**
+             * Short Term Debt
+             * @default 0
+             */
+            short_term_debt: string;
         };
         /** StatementOut */
         StatementOut: {

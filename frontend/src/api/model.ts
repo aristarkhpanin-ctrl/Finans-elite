@@ -174,6 +174,7 @@ export interface StartingBalance {
   payables?: string;
   raw_materials?: string;
   finished_goods?: string;
+  short_term_debt?: string;
   debt: string;
   paid_in_capital: string;
   retained_earnings: string;

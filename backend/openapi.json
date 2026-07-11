@@ -468,7 +468,8 @@
               "payables": "0",
               "raw_materials": "0",
               "receivables": "0",
-              "retained_earnings": "0"
+              "retained_earnings": "0",
+              "short_term_debt": "0"
             }
           }
         },
@@ -489,7 +490,8 @@
               "payables": "0",
               "raw_materials": "0",
               "receivables": "0",
-              "retained_earnings": "0"
+              "retained_earnings": "0",
+              "short_term_debt": "0"
             }
           }
         },
@@ -2685,7 +2687,8 @@
                 "payables": "0",
                 "raw_materials": "0",
                 "receivables": "0",
-                "retained_earnings": "0"
+                "retained_earnings": "0",
+                "short_term_debt": "0"
               }
             }
           },
@@ -2794,7 +2797,8 @@
                 "payables": "0",
                 "raw_materials": "0",
                 "receivables": "0",
-                "retained_earnings": "0"
+                "retained_earnings": "0",
+                "short_term_debt": "0"
               }
             }
           },
@@ -3975,6 +3979,19 @@
             ],
             "default": "0",
             "title": "Retained Earnings"
+          },
+          "short_term_debt": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Short Term Debt"
           }
         },
         "title": "StartingBalance",
@@ -4041,6 +4058,12 @@
             "default": "0",
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Retained Earnings",
+            "type": "string"
+          },
+          "short_term_debt": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Short Term Debt",
             "type": "string"
           }
         },
@@ -4438,7 +4461,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.9"
+    "version": "0.9.10"
   },
   "openapi": "3.1.0",
   "paths": {

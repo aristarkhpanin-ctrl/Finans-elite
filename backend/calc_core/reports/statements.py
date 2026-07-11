@@ -162,7 +162,8 @@ def build_balance(leaves: dict[str, list[Decimal]], n: int) -> Statement:
 def opening_balance(cash, fixed_assets_net, debt, paid_in_capital,
                     retained_earnings, foreign_monetary_base=Decimal(0),
                     receivables=Decimal(0), payables=Decimal(0),
-                    raw_materials=Decimal(0), finished_goods=Decimal(0)) -> dict[str, Decimal]:
+                    raw_materials=Decimal(0), finished_goods=Decimal(0),
+                    short_term_debt=Decimal(0)) -> dict[str, Decimal]:
     """Балансовые величины на начало проекта (t = −1) из стартового баланса.
 
     Нужны для «средних за период» в коэффициентах (SPEC §18): среднее за период t = 0
@@ -177,6 +178,7 @@ def opening_balance(cash, fixed_assets_net, debt, paid_in_capital,
         "B5": [finished_goods],
         "B6": [foreign_monetary_base],
         "B14": [fixed_assets_net],   # остаточная стоимость ОС (v0 → оборудование)
+        "B22": [short_term_debt],
         "B23": [payables],
         "B26": [debt],
         "B27": [paid_in_capital],

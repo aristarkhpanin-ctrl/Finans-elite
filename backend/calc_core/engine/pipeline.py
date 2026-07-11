@@ -704,10 +704,11 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     # --- Баланс ---
     paid_in = [sb.paid_in_capital + e for e in cumulative(equity_in)]
     debt = [sb.debt + loan_debt[t] + fl_liability[t] for t in range(n)]  # займы (валютные по FX) + фин. лизинг
-    # Остаток кредитной линии автофинансирования → краткосрочные займы (B22)
+    # Краткосрочные займы (B22): стартовый долг (несётся, не гасится авто) + остаток
+    # кредитной линии автофинансирования.
     auto_draws_cum = cumulative(auto.cash_draws)
     auto_prin_cum = cumulative(auto.cash_principal)
-    auto_debt = [auto_draws_cum[t] - auto_prin_cum[t] for t in range(n)]
+    auto_debt = [sb.short_term_debt + auto_draws_cum[t] - auto_prin_cum[t] for t in range(n)]
     balance_leaves = {
         "B1": cashflow["C29"],     # денежные средства = сальдо Кэш-фло
         "B2": b2,                  # счета к получению (дебиторка, с НДС)

@@ -21,6 +21,7 @@ class StartingBalance(BaseModel):
     payables: Decimal = Decimal(0)             # кредиторка на старте → B23 (оплачивается в мес. 0)
     raw_materials: Decimal = Decimal(0)        # запас сырья на старте → B3 (поддерживаемый уровень)
     finished_goods: Decimal = Decimal(0)       # запас ГП на старте → B5 (поддерживаемый уровень)
+    short_term_debt: Decimal = Decimal(0)      # → B22 (краткосрочные займы; несётся как долг, не гасится авто)
     debt: Decimal = Decimal(0)                 # → B26 (долгосрочные займы)
     paid_in_capital: Decimal = Decimal(0)      # → B27 (обыкновенные акции)
     retained_earnings: Decimal = Decimal(0)    # → B32 (нераспределённая прибыль)
@@ -30,7 +31,8 @@ class StartingBalance(BaseModel):
                 + self.raw_materials + self.finished_goods)
 
     def liabilities_equity(self) -> Decimal:
-        return self.debt + self.paid_in_capital + self.retained_earnings + self.payables
+        return (self.debt + self.short_term_debt + self.paid_in_capital
+                + self.retained_earnings + self.payables)
 
 
 class Company(BaseModel):
