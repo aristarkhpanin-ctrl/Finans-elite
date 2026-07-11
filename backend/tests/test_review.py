@@ -5,6 +5,7 @@ from calc_core import run
 from calc_core.models.operating import (
     DirectCostLine,
     FixedCostLine,
+    PaymentTerms,
     Product,
     SalesLine,
 )
@@ -23,7 +24,7 @@ from calc_core.review.aggregates import (
     total_net_revenue,
 )
 from calc_core.review.config import DEFAULT_CONFIG
-from calc_core.review.rules import liquidity, structure
+from calc_core.review.rules import assumptions, liquidity, structure
 from calc_core.samples import build_sample_project
 
 
@@ -310,3 +311,57 @@ def test_run_review_includes_structure_risk():
     review = run_review(ctx)
     assert {f.id for f in review.findings} == {"structure.negative_gross_margin"}
     assert review.light == "risk"
+
+
+# --- R4: assumptions ---
+
+def test_zero_tax():
+    ctx = _liq_ctx()
+    ctx.model.settings.profit_tax_rate = Decimal(0)
+    assert "assumptions.zero_tax" in {f.id for f in assumptions.zero_tax(ctx, DEFAULT_CONFIG)}
+    ctx.model.settings.profit_tax_rate = Decimal("0.20")
+    assert assumptions.zero_tax(ctx, DEFAULT_CONFIG) == []
+
+
+def test_discount_below_inflation():
+    ctx = _liq_ctx()
+    ctx.model.settings.discount_rate_annual = Decimal("0.05")
+    ctx.model.settings.inflation_sales = Decimal("0.10")
+    assert assumptions.discount_below_inflation(ctx, DEFAULT_CONFIG)
+    # ставка выше инфляции — тишина
+    ctx.model.settings.discount_rate_annual = Decimal("0.15")
+    assert assumptions.discount_below_inflation(ctx, DEFAULT_CONFIG) == []
+    # инфляция не задана — сравнивать не с чем
+    ctx.model.settings.discount_rate_annual = Decimal("0.05")
+    ctx.model.settings.inflation_sales = Decimal(0)
+    assert assumptions.discount_below_inflation(ctx, DEFAULT_CONFIG) == []
+
+
+def test_instant_settlement():
+    ctx = _liq_ctx()
+    ctx.model.operating_plan.sales = [SalesLine(product_id="A", volume=[Decimal(1)], price=[Decimal(1)])]
+    ctx.model.operating_plan.direct_costs = []
+    ctx.model.operating_plan.fixed_costs = []
+    assert assumptions.instant_settlement(ctx, DEFAULT_CONFIG)          # всё мгновенно
+    # появилась отсрочка оплаты — оборотный капитал моделируется, находки нет
+    ctx.model.operating_plan.sales = [
+        SalesLine(product_id="A", volume=[Decimal(1)], price=[Decimal(1)],
+                  payment=PaymentTerms(payment_delay_months=1)),
+    ]
+    assert assumptions.instant_settlement(ctx, DEFAULT_CONFIG) == []
+    # нет операционной активности — нечего оценивать
+    ctx.model.operating_plan.sales = []
+    assert assumptions.instant_settlement(ctx, DEFAULT_CONFIG) == []
+
+
+def test_run_review_light_info_on_assumption_only():
+    # Единственная info-находка (нулевой налог) даёт «светофор» info.
+    ctx = _liq_ctx()
+    ctx.model.settings.profit_tax_rate = Decimal(0)
+    ctx.model.settings.inflation_sales = Decimal(0)
+    ctx.model.operating_plan.sales = []
+    ctx.model.operating_plan.direct_costs = []
+    ctx.model.operating_plan.fixed_costs = []
+    review = run_review(ctx)
+    assert {f.id for f in review.findings} == {"assumptions.zero_tax"}
+    assert review.light == "info"
