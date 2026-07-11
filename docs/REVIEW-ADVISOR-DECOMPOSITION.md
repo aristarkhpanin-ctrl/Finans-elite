@@ -197,32 +197,36 @@ src/components/FinalizeGate.tsx  # модал-гейт финализации (a
 
 ## 5. Фазы (каждая — отдельный коммит; правила — с golden-тестами)
 
-- [ ] **R0. Каркас** `calc_core/review`: types, config, aggregates, пустой runner+реестр.
-      Тест: `run_review` на sample → `ReviewResult` валиден, светофор считается.
-- [ ] **R1. Viability** (A): 6 правил + тесты (крафт-модели: NPV<0, IRR<hurdle+npv≤0,
-      PI<1, нет окупаемости, нестандартный поток).
-- [ ] **R2. Liquidity** (B): 5 правил + тесты (кассовый разрыв без автоподбора; зависимость
+- [x] **R0. Каркас** `calc_core/review`: types, config, aggregates, runner+реестр.
+      `run_review` на sample → `ReviewResult` валиден, светофор считается.
+- [x] **R1. Viability** (A): 6 правил + тесты (NPV<0, IRR<hurdle+npv≤0, IRR undefined,
+      PI<1, нет окупаемости, нестандартный поток). Golden: демо помечается маргинальным.
+- [x] **R2. Liquidity** (B): 5 правил + тесты (кассовый разрыв без автоподбора; зависимость
       от привлечения; низкая текущая ликвидность; леверидж; покрытие процентов).
-- [ ] **R3. Structure** (C, без per-product): concentration, negative/thin margin,
-      cost_line_outlier + тесты (в т.ч. пограничные пороги).
-- [ ] **R4. Assumptions** (D, info): zero_tax, discount<inflation, instant_settlement + тесты.
-- [ ] **R5. Divergence** (F): дефолт-прогон MC+sensitivity внутри `run_review`; 4 правила +
-      тесты (fragile NPV, VaR<0, sign-flip, дисперсия). Детерминизм по seed.
-- [ ] **R6. API ревью**: `ReviewResponse`/`FindingOut`, `GET /projects/{id}/review`,
-      маппинг Finding→схема; тесты API (sample-проект → находки; RBAC). Регенерация openapi.
-- [ ] **R7. Финализация (шлюз)**: миграция `Project.status/finalized_*`, `POST /finalize`
-      (409 при risk без ack; ack → finalized; warning не блокирует), `PUT` сбрасывает в draft,
-      hash-дрейф; crud; тесты gate. Регенерация openapi.
-- [ ] **R8. Фронт: вкладка «Ревью»**: `ReviewPanel`, светофор, группировка по severity,
-      evidence-ссылки на отчёт/период; `api/review.ts`; регенерация типов (`gen:api`).
-- [ ] **R9. Фронт: шлюз финализации**: `FinalizeGate`, кнопка, ack рисков, бейдж finalized,
-      плашка дрейфа. Компонентный тест (vitest+jsdom) на гейт.
-- [ ] **R10. Документация**: ROADMAP (новая фича «Ф10 — Ревью плана», вне паритета с PE),
-      README (backend/frontend), закрыть этот чеклист; при необходимости — заметка в
-      CALC-ENGINE-SPEC про источники метрик правил.
+- [x] **R3. Structure** (C, без per-product): concentration, negative/thin margin,
+      cost_line_outlier (IQR-выброс + доля выручки) + тесты (пограничные пороги).
+- [x] **R4. Assumptions** (D, info): zero_tax, discount<inflation, instant_settlement + тесты.
+- [x] **R5. Divergence** (F): ленивый прогон MC+sensitivity в `enrich_context`, включается
+      `run_review(..., deep=True)`; 4 правила + тесты (fragile NPV, CVaR<0, sign-flip,
+      дисперсия). Детерминизм по seed.
+- [x] **R6. API ревью**: `ReviewResponse`/`FindingOut`, `GET /projects/{id}/review?deep=`,
+      маппинг Finding→схема; тесты API (демо → находки; 404; изоляция; авторизация).
+      openapi перегенерирован.
+- [x] **R7. Финализация (шлюз)**: миграция `f9d2c7b04a15` (`Project.status/finalized_*`),
+      `POST /finalize` (409 при risk без ack; ack → finalized; warning не блокирует), `PUT`
+      сбрасывает в draft, hash-дрейф; crud; тесты gate. openapi перегенерирован.
+- [x] **R8. Фронт: вкладка «Ревью»**: `ReviewTab`, светофор, находки по severity, evidence-чипы;
+      `api/review.ts`; регенерация типов (`gen:api`).
+- [x] **R9. Фронт: шлюз финализации**: гейт в `ReviewTab` (кнопка, ack рисков, бейдж finalized,
+      плашка дрейфа). Компонентный тест (vitest+jsdom): рендер + блокировка до подтверждения.
+- [x] **R10. Документация**: ROADMAP (раздел «Вне паритета с Project Expert», Ф10), закрыт
+      этот чеклист.
 
 **Порядок:** R0→R5 (чистое ядро, максимум ценности и тестируемости) → R6 (API) →
 R7 (шлюз) → R8–R9 (UI) → R10. R0–R6 дают работающее ревью ещё до UI; шлюз (R7) — отдельно.
+
+**Статус: завершено.** Все фазы R0–R10 закрыты; движок (golden-master) не затронут —
+ревью только читает результат расчёта.
 
 ---
 

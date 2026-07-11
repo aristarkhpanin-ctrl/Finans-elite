@@ -13,6 +13,19 @@
 - Графики — собственный SVG (`components/charts.tsx`), без сторонних библиотек; палитра —
   токены `--chart-1..7` (живут при смене темы). Помесячный ввод — `MonthlyGrid`.
 
+## Ревью бизнес-плана (Ф10 — вне паритета с Project Expert) — завершено (R0–R10)
+
+- Детерминированный «линтер модели»: `calc_core/review/` — чистые функции над `CalcResult`
+  (+ моделью, + опц. стохастикой). Правила по категориям (`rules/`: viability, liquidity,
+  structure, assumptions, divergence), каждая находка — `Finding` с числовым `evidence`.
+  `run_review(ctx, deep=)` → `ReviewResult` («светофор» + счётчики + отсортированные находки).
+- **Ревью только читает результат — движок и golden-master не затрагивает.** Новые правила =
+  golden-тест (срабатывание + тишина) в `tests/test_review.py`; `deep=True` включает
+  стохастику (MC + чувствительность) для divergence через `enrich_context`.
+- Гейт финализации (решение Q4): `POST /projects/{id}/finalize` — risk-находки блокируют до
+  `acknowledge`; правка модели (`PUT`) сбрасывает `status` в draft. Методика/решения —
+  `docs/PLAN-REVIEW-ADVISOR.md`, `docs/REVIEW-ADVISOR-DECOMPOSITION.md`. UI — вкладка «Ревью плана».
+
 ## Точность движка
 
 - Любое изменение методики расчёта — через golden-master (`UPDATE_GOLDEN=1 pytest
