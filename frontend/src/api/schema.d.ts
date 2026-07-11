@@ -931,6 +931,7 @@ export interface components {
             /**
              * @default {
              *       "additional_capital": "0",
+             *       "advances_received": "0",
              *       "cash": "0",
              *       "debt": "0",
              *       "finished_goods": "0",
@@ -939,6 +940,7 @@ export interface components {
              *       "paid_in_capital": "0",
              *       "payables": "0",
              *       "preferred_capital": "0",
+             *       "prepaid_expenses": "0",
              *       "raw_materials": "0",
              *       "receivables": "0",
              *       "reserves": "0",
@@ -953,6 +955,7 @@ export interface components {
             /**
              * @default {
              *       "additional_capital": "0",
+             *       "advances_received": "0",
              *       "cash": "0",
              *       "debt": "0",
              *       "finished_goods": "0",
@@ -961,6 +964,7 @@ export interface components {
              *       "paid_in_capital": "0",
              *       "payables": "0",
              *       "preferred_capital": "0",
+             *       "prepaid_expenses": "0",
              *       "raw_materials": "0",
              *       "receivables": "0",
              *       "reserves": "0",
@@ -2007,6 +2011,7 @@ export interface components {
              * @default {
              *       "starting_balance": {
              *         "additional_capital": "0",
+             *         "advances_received": "0",
              *         "cash": "0",
              *         "debt": "0",
              *         "finished_goods": "0",
@@ -2015,6 +2020,7 @@ export interface components {
              *         "paid_in_capital": "0",
              *         "payables": "0",
              *         "preferred_capital": "0",
+             *         "prepaid_expenses": "0",
              *         "raw_materials": "0",
              *         "receivables": "0",
              *         "reserves": "0",
@@ -2119,6 +2125,7 @@ export interface components {
              * @default {
              *       "starting_balance": {
              *         "additional_capital": "0",
+             *         "advances_received": "0",
              *         "cash": "0",
              *         "debt": "0",
              *         "finished_goods": "0",
@@ -2127,6 +2134,7 @@ export interface components {
              *         "paid_in_capital": "0",
              *         "payables": "0",
              *         "preferred_capital": "0",
+             *         "prepaid_expenses": "0",
              *         "raw_materials": "0",
              *         "receivables": "0",
              *         "reserves": "0",
@@ -2653,6 +2661,11 @@ export interface components {
              */
             additional_capital: number | string;
             /**
+             * Advances Received
+             * @default 0
+             */
+            advances_received: number | string;
+            /**
              * Cash
              * @default 0
              */
@@ -2693,6 +2706,11 @@ export interface components {
              */
             preferred_capital: number | string;
             /**
+             * Prepaid Expenses
+             * @default 0
+             */
+            prepaid_expenses: number | string;
+            /**
              * Raw Materials
              * @default 0
              */
@@ -2728,6 +2746,11 @@ export interface components {
              * @default 0
              */
             additional_capital: string;
+            /**
+             * Advances Received
+             * @default 0
+             */
+            advances_received: string;
             /**
              * Cash
              * @default 0
@@ -2768,6 +2791,11 @@ export interface components {
              * @default 0
              */
             preferred_capital: string;
+            /**
+             * Prepaid Expenses
+             * @default 0
+             */
+            prepaid_expenses: string;
             /**
              * Raw Materials
              * @default 0

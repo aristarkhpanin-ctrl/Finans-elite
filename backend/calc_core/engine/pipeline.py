@@ -717,7 +717,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "B4": b4,                  # незавершённое производство (НЗП)
         "B5": [b5[t] + sb.finished_goods for t in range(n)],    # запасы готовой продукции
         "B6": add(b6_foreign, deposit_bal),  # валютная позиция + депозиты/ЦБ
-        "B7": b7,                  # краткосрочные предоплаченные расходы (НДС-кредит)
+        "B7": [sb.prepaid_expenses + b7[t] for t in range(n)],  # предоплата: старт + НДС-кредит
         "B21": b21,                # отсроченные налоговые платежи (отложенный исходящий НДС)
         "B9": b9,
         "B10": b10,
@@ -727,7 +727,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "B19": fl_b19,             # имущество в финансовом лизинге (нетто)
         "B22": auto_debt,          # краткосрочные займы (кредитная линия)
         "B23": b23,                # счета к оплате (кредиторка)
-        "B24": b24,                # полученные авансы
+        "B24": [sb.advances_received + b24[t] for t in range(n)],  # авансы: старт + план продаж
         "B26": debt,               # долгосрочные займы
         "B27": paid_in,            # обыкновенные акции
         "B28": [sb.preferred_capital] * n,   # привилегированные акции (стартовая позиция)

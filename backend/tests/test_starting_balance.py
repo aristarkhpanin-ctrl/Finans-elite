@@ -119,3 +119,28 @@ def test_opening_equity_participates_in_convergence():
         run(_model(bad))
     good = StartingBalance(cash=D(700), reserves=D(200), paid_in_capital=D(500))
     assert _balanced(run(_model(good)))
+
+
+def test_opening_advances_are_static_standing_level():
+    """Стартовые авансы — поддерживаемый уровень (как запасы): полученный аванс → B24 (пассив),
+    выданный аванс/предоплата → B7 (актив); постоянны, денежного потока не создают.
+
+    Предоплата 300 (актив) уравновешена полученным авансом 300 (пассив), касса 0.
+    """
+    sb = StartingBalance(prepaid_expenses=D(300), advances_received=D(300))
+    r = run(_model(sb))
+    assert [q(v) for v in r.balance["B7"]] == [D("300.00"), D("300.00")]    # предоплата статична
+    assert [q(v) for v in r.balance["B24"]] == [D("300.00"), D("300.00")]   # полученный аванс статичен
+    assert all(v == 0 for v in r.balance["B1"])   # касса не тронута (авансы не создают потока)
+    assert _balanced(r)
+
+
+def test_opening_advances_participate_in_convergence():
+    """Полученный аванс (пассив) без покрытия активом — разрыв стартового баланса."""
+    bad = StartingBalance(cash=D(1000), advances_received=D(300), paid_in_capital=D(1000))
+    with pytest.raises(ModelError):
+        run(_model(bad))
+    # уравновешен встречной предоплатой (актив) — сходится.
+    good = StartingBalance(cash=D(1000), prepaid_expenses=D(300), advances_received=D(300),
+                           paid_in_capital=D(1000))
+    assert _balanced(run(_model(good)))

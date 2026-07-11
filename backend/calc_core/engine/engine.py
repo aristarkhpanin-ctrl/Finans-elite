@@ -64,6 +64,7 @@ def _run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
         raw_materials=sb.raw_materials, finished_goods=sb.finished_goods,
         short_term_debt=sb.short_term_debt, preferred_capital=sb.preferred_capital,
         reserves=sb.reserves, additional_capital=sb.additional_capital,
+        prepaid_expenses=sb.prepaid_expenses, advances_received=sb.advances_received,
     )
     ratios = compute_ratios(
         income, cashflow, balance, profit_use,
