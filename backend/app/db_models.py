@@ -174,6 +174,15 @@ class Project(Base):
     last_calculated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # Финализация плана (Ф10, гейт ревью): "draft" | "finalized". Финализация возможна
+    # только после ревью; risk-находки требуют явного подтверждения (acknowledge).
+    status: Mapped[str] = mapped_column(String(16), default="draft", server_default="draft",
+                                        nullable=False)
+    finalized_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # SHA-256 канонического JSON модели на момент финализации — детект «дрейфа» (модель
+    # изменили после финализации). Снимок ревью — для показа, чем план был подтверждён.
+    finalized_model_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    finalized_review: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
 
 
 class AnalysisJob(Base):

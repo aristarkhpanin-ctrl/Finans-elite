@@ -4,6 +4,8 @@
 """
 from __future__ import annotations
 
+import hashlib
+import json
 from datetime import datetime, timezone
 from decimal import Decimal
 
@@ -254,12 +256,31 @@ def get_project(db: Session, org_id: str, project_id: str) -> Project | None:
     )
 
 
+def model_hash(model: dict) -> str:
+    """SHA-256 канонического JSON модели (сорт. ключи) — стабильный отпечаток для дрейфа."""
+    canonical = json.dumps(model, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 def update_project(db: Session, project: Project, *, name: str | None = None,
                    model: ProjectModel | None = None) -> Project:
     if name is not None:
         project.name = name
     if model is not None:
         project.model = model.model_dump(mode="json")
+        # Изменение модели снимает финализацию: подтверждён был другой план (гейт ревью).
+        project.status = "draft"
+    db.commit()
+    db.refresh(project)
+    return project
+
+
+def finalize_project(db: Session, project: Project, review: dict) -> Project:
+    """Отметить проект финализированным: снимок ревью + отпечаток модели (Ф10)."""
+    project.status = "finalized"
+    project.finalized_at = datetime.now(timezone.utc)
+    project.finalized_model_hash = model_hash(project.model)
+    project.finalized_review = review
     db.commit()
     db.refresh(project)
     return project

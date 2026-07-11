@@ -72,6 +72,43 @@ class CalcResponse(BaseModel):
     warnings: list[str]
 
 
+# --- Ревью бизнес-плана (Ф10, вне паритета с Project Expert) ---
+
+class FindingOut(BaseModel):
+    """Одна находка ревью: severity + человекочитаемый текст + числовое обоснование."""
+
+    id: str
+    category: str          # viability | liquidity | structure | assumptions | divergence
+    severity: str          # info | warning | risk
+    title: str
+    detail: str
+    recommendation: str
+    confidence: str = "high"   # high | medium | low
+    evidence: dict = Field(default_factory=dict)
+
+
+class ReviewResponse(BaseModel):
+    light: str                        # ok | info | warning | risk («светофор»)
+    counts: dict[str, int]            # число находок по severity
+    findings: list[FindingOut] = []
+    # Прогонялась ли стохастика (Монте-Карло + чувствительность) для категории divergence.
+    deep: bool = False
+
+
+def review_response(review, *, deep: bool) -> "ReviewResponse":
+    """Собрать ответ ревью из результата ядра (``calc_core.review.ReviewResult``)."""
+    return ReviewResponse(
+        light=review.light,
+        counts=review.counts,
+        findings=[FindingOut(
+            id=f.id, category=f.category, severity=f.severity, title=f.title,
+            detail=f.detail, recommendation=f.recommendation, confidence=f.confidence,
+            evidence=f.evidence,
+        ) for f in review.findings],
+        deep=deep,
+    )
+
+
 # --- Проекты (персистентность, 6.1) ---
 
 class ProjectCreate(BaseModel):
@@ -102,10 +139,31 @@ class ProjectSummary(BaseModel):
     last_calc: Optional[LastCalcOut] = None
     # Модель менялась после последнего расчёта (или расчёта не было) → «Черновик».
     is_stale: bool = True
+    # Гейт финализации (Ф10): "draft" | "finalized"; момент финализации.
+    status: str = "draft"
+    finalized_at: Optional[datetime] = None
 
 
 class ProjectOut(ProjectSummary):
     model: ProjectModel
+    # Снимок ревью, которым план был подтверждён при финализации (NULL — не финализирован).
+    finalized_review: Optional[ReviewResponse] = None
+    # Модель изменилась после финализации (отпечаток не совпадает) — снимок устарел.
+    finalized_drift: bool = False
+
+
+class FinalizeRequest(BaseModel):
+    """Запрос финализации: acknowledge подтверждает осознание risk-находок (снятие гейта)."""
+
+    acknowledge: bool = False
+
+
+class FinalizeResponse(BaseModel):
+    """Результат финализации: статус проекта + ревью, которым план подтверждён."""
+
+    status: str
+    finalized_at: datetime
+    review: ReviewResponse
 
 
 # --- Организации, пользователи, членство (мультиарендность, 6.2) ---
@@ -326,43 +384,6 @@ class ScenarioResultOut(BaseModel):
 
 class WhatIfResponse(BaseModel):
     scenarios: list[ScenarioResultOut]
-
-
-# --- Ревью бизнес-плана (Ф10, вне паритета с Project Expert) ---
-
-class FindingOut(BaseModel):
-    """Одна находка ревью: severity + человекочитаемый текст + числовое обоснование."""
-
-    id: str
-    category: str          # viability | liquidity | structure | assumptions | divergence
-    severity: str          # info | warning | risk
-    title: str
-    detail: str
-    recommendation: str
-    confidence: str = "high"   # high | medium | low
-    evidence: dict = Field(default_factory=dict)
-
-
-class ReviewResponse(BaseModel):
-    light: str                        # ok | info | warning | risk («светофор»)
-    counts: dict[str, int]            # число находок по severity
-    findings: list[FindingOut] = []
-    # Прогонялась ли стохастика (Монте-Карло + чувствительность) для категории divergence.
-    deep: bool = False
-
-
-def review_response(review, *, deep: bool) -> "ReviewResponse":
-    """Собрать ответ ревью из результата ядра (``calc_core.review.ReviewResult``)."""
-    return ReviewResponse(
-        light=review.light,
-        counts=review.counts,
-        findings=[FindingOut(
-            id=f.id, category=f.category, severity=f.severity, title=f.title,
-            detail=f.detail, recommendation=f.recommendation, confidence=f.confidence,
-            evidence=f.evidence,
-        ) for f in review.findings],
-        deep=deep,
-    )
 
 
 # --- Integrator (9.2) ---

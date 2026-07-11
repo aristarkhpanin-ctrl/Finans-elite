@@ -1061,6 +1061,42 @@
         "title": "EquityInjection",
         "type": "object"
       },
+      "FinalizeRequest": {
+        "description": "Запрос финализации: acknowledge подтверждает осознание risk-находок (снятие гейта).",
+        "properties": {
+          "acknowledge": {
+            "default": false,
+            "title": "Acknowledge",
+            "type": "boolean"
+          }
+        },
+        "title": "FinalizeRequest",
+        "type": "object"
+      },
+      "FinalizeResponse": {
+        "description": "Результат финализации: статус проекта + ревью, которым план подтверждён.",
+        "properties": {
+          "finalized_at": {
+            "format": "date-time",
+            "title": "Finalized At",
+            "type": "string"
+          },
+          "review": {
+            "$ref": "#/components/schemas/ReviewResponse"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "finalized_at",
+          "review"
+        ],
+        "title": "FinalizeResponse",
+        "type": "object"
+      },
       "Financing-Input": {
         "properties": {
           "auto_financing": {
@@ -2851,6 +2887,33 @@
             "title": "Created At",
             "type": "string"
           },
+          "finalized_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finalized At"
+          },
+          "finalized_drift": {
+            "default": false,
+            "title": "Finalized Drift",
+            "type": "boolean"
+          },
+          "finalized_review": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "id": {
             "title": "Id",
             "type": "string"
@@ -2875,6 +2938,11 @@
           },
           "name": {
             "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "default": "draft",
+            "title": "Status",
             "type": "string"
           },
           "updated_at": {
@@ -3230,6 +3298,18 @@
             "title": "Created At",
             "type": "string"
           },
+          "finalized_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finalized At"
+          },
           "id": {
             "title": "Id",
             "type": "string"
@@ -3251,6 +3331,11 @@
           },
           "name": {
             "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "default": "draft",
+            "title": "Status",
             "type": "string"
           },
           "updated_at": {
@@ -6171,6 +6256,80 @@
           }
         ],
         "summary": "Duplicate Project",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/finalize": {
+      "post": {
+        "description": "Финализировать план — гейт ревью (Ф10, решение Q4: ревью перед финализацией).\n\nПрогоняет глубокое ревью. Если есть risk-находки и ``acknowledge=false`` — 409 (гейт\nне пройден), ревью возвращается в ``detail``. При ``acknowledge=true`` (или без risk)\nпроект помечается ``finalized`` со снимком ревью и отпечатком модели. Warning/info\nфинализации не мешают.",
+        "operationId": "finalize_project_api_v1_projects__project_id__finalize_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinalizeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinalizeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Finalize Project",
         "tags": [
           "projects"
         ]

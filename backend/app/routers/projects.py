@@ -25,6 +25,8 @@ from ..deps import require_permission
 from ..rbac import Perm
 from ..schemas import (
     CalcResponse,
+    FinalizeRequest,
+    FinalizeResponse,
     JobSubmitResponse,
     LastCalcOut,
     MonteCarloRequest,
@@ -65,13 +67,27 @@ def _is_stale(p: Project) -> bool:
 
 def _summary(p: Project) -> ProjectSummary:
     return ProjectSummary(id=p.id, name=p.name, created_at=p.created_at, updated_at=p.updated_at,
-                          last_calc=_last_calc(p), is_stale=_is_stale(p))
+                          last_calc=_last_calc(p), is_stale=_is_stale(p),
+                          status=p.status, finalized_at=p.finalized_at)
+
+
+def _finalized_review(p: Project) -> ReviewResponse | None:
+    return ReviewResponse.model_validate(p.finalized_review) if p.finalized_review else None
+
+
+def _finalized_drift(p: Project) -> bool:
+    """Финализирован, но модель с тех пор изменилась (отпечаток не совпадает)."""
+    if p.status != "finalized" or p.finalized_model_hash is None:
+        return False
+    return crud.model_hash(p.model) != p.finalized_model_hash
 
 
 def _out(p: Project) -> ProjectOut:
     return ProjectOut(id=p.id, name=p.name, created_at=p.created_at,
                       updated_at=p.updated_at, model=crud.load_model(p),
-                      last_calc=_last_calc(p), is_stale=_is_stale(p))
+                      last_calc=_last_calc(p), is_stale=_is_stale(p),
+                      status=p.status, finalized_at=p.finalized_at,
+                      finalized_review=_finalized_review(p), finalized_drift=_finalized_drift(p))
 
 
 def _require(db: Session, org_id: str, project_id: str) -> Project:
@@ -167,6 +183,39 @@ def review_project(project_id: str, deep: bool = False,
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     review = run_review(ReviewContext(model=model, result=result), deep=deep)
     return review_response(review, deep=deep)
+
+
+@router.post("/{project_id}/finalize", response_model=FinalizeResponse)
+def finalize_project(project_id: str, body: FinalizeRequest,
+                     org_id: str = Depends(require_permission(Perm.PROJECT_UPDATE)),
+                     db: Session = Depends(get_db)) -> FinalizeResponse:
+    """Финализировать план — гейт ревью (Ф10, решение Q4: ревью перед финализацией).
+
+    Прогоняет глубокое ревью. Если есть risk-находки и ``acknowledge=false`` — 409 (гейт
+    не пройден), ревью возвращается в ``detail``. При ``acknowledge=true`` (или без risk)
+    проект помечается ``finalized`` со снимком ревью и отпечатком модели. Warning/info
+    финализации не мешают.
+    """
+    project = _require(db, org_id, project_id)
+    model = crud.load_model(project)
+    try:
+        result = run(model)
+    except (ModelError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    review = run_review(ReviewContext(model=model, result=result), deep=True)
+    payload = review_response(review, deep=True)
+    if review.counts.get("risk", 0) > 0 and not body.acknowledge:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"error": "review_has_risks",
+                    "message": "План содержит risk-находки; для финализации подтвердите "
+                               "их осознание (acknowledge=true).",
+                    "review": payload.model_dump(mode="json")},
+        )
+    finalized = crud.finalize_project(db, project, payload.model_dump(mode="json"))
+    assert finalized.finalized_at is not None  # только что установлено в finalize_project
+    return FinalizeResponse(status=finalized.status, finalized_at=finalized.finalized_at,
+                            review=payload)
 
 
 @router.post("/{project_id}/sensitivity", response_model=SensitivityResponse)
