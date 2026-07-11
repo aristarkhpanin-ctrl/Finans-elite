@@ -328,6 +328,43 @@ class WhatIfResponse(BaseModel):
     scenarios: list[ScenarioResultOut]
 
 
+# --- Ревью бизнес-плана (Ф10, вне паритета с Project Expert) ---
+
+class FindingOut(BaseModel):
+    """Одна находка ревью: severity + человекочитаемый текст + числовое обоснование."""
+
+    id: str
+    category: str          # viability | liquidity | structure | assumptions | divergence
+    severity: str          # info | warning | risk
+    title: str
+    detail: str
+    recommendation: str
+    confidence: str = "high"   # high | medium | low
+    evidence: dict = Field(default_factory=dict)
+
+
+class ReviewResponse(BaseModel):
+    light: str                        # ok | info | warning | risk («светофор»)
+    counts: dict[str, int]            # число находок по severity
+    findings: list[FindingOut] = []
+    # Прогонялась ли стохастика (Монте-Карло + чувствительность) для категории divergence.
+    deep: bool = False
+
+
+def review_response(review, *, deep: bool) -> "ReviewResponse":
+    """Собрать ответ ревью из результата ядра (``calc_core.review.ReviewResult``)."""
+    return ReviewResponse(
+        light=review.light,
+        counts=review.counts,
+        findings=[FindingOut(
+            id=f.id, category=f.category, severity=f.severity, title=f.title,
+            detail=f.detail, recommendation=f.recommendation, confidence=f.confidence,
+            evidence=f.evidence,
+        ) for f in review.findings],
+        deep=deep,
+    )
+
+
 # --- Integrator (9.2) ---
 
 class ConsolidateRequest(BaseModel):

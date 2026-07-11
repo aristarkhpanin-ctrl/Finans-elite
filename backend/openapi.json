@@ -1187,6 +1187,55 @@
         "title": "Financing",
         "type": "object"
       },
+      "FindingOut": {
+        "description": "Одна находка ревью: severity + человекочитаемый текст + числовое обоснование.",
+        "properties": {
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "confidence": {
+            "default": "high",
+            "title": "Confidence",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "evidence": {
+            "additionalProperties": true,
+            "title": "Evidence",
+            "type": "object"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "recommendation": {
+            "title": "Recommendation",
+            "type": "string"
+          },
+          "severity": {
+            "title": "Severity",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "category",
+          "severity",
+          "title",
+          "detail",
+          "recommendation"
+        ],
+        "title": "FindingOut",
+        "type": "object"
+      },
       "FixedCostLine-Input": {
         "description": "Постоянная (общая) издержка с функциональным разносом, помесячно.",
         "properties": {
@@ -3385,6 +3434,40 @@
         ],
         "title": "RepaymentType",
         "type": "string"
+      },
+      "ReviewResponse": {
+        "properties": {
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Counts",
+            "type": "object"
+          },
+          "deep": {
+            "default": false,
+            "title": "Deep",
+            "type": "boolean"
+          },
+          "findings": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/FindingOut"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "light": {
+            "title": "Light",
+            "type": "string"
+          }
+        },
+        "required": [
+          "light",
+          "counts"
+        ],
+        "title": "ReviewResponse",
+        "type": "object"
       },
       "SalesLine-Input": {
         "description": "Продажи одного продукта: помесячные объём и цена (без НДС).",
@@ -6236,6 +6319,80 @@
           }
         ],
         "summary": "Monte Carlo Async",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/review": {
+      "get": {
+        "description": "Ревью бизнес-плана (Ф10): детерминированные находки и рекомендации по итогам расчёта.\n\n``deep=true`` дополнительно прогоняет стохастику (Монте-Карло + чувствительность) для\nкатегории «дивергенция» (план ↔ вероятное будущее) — дороже, но полнее.",
+        "operationId": "review_project_api_v1_projects__project_id__review_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "deep",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Deep",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Review Project",
         "tags": [
           "projects"
         ]

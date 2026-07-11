@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from calc_core import run
 from calc_core.engine import ModelError
 from calc_core.montecarlo import run_monte_carlo
+from calc_core.review import ReviewContext, run_review
 from calc_core.sensitivity import SENSITIVITY_PARAMS, run_sensitivity
 from calc_core.whatif import Scenario, ScenarioAdjustment, run_what_if
 
@@ -32,6 +33,7 @@ from ..schemas import (
     ProjectOut,
     ProjectSummary,
     ProjectUpdate,
+    ReviewResponse,
     ScenarioResultOut,
     SensitivityPointOut,
     SensitivityRequest,
@@ -39,6 +41,7 @@ from ..schemas import (
     WhatIfRequest,
     WhatIfResponse,
     monte_carlo_response,
+    review_response,
     to_response,
 )
 from ..tasks import monte_carlo_task
@@ -145,6 +148,25 @@ def calculate_project(project_id: str,
                            pb_months=result.metrics.pb_months,
                            engine_version=result.engine_version)
     return to_response(result)
+
+
+@router.get("/{project_id}/review", response_model=ReviewResponse)
+def review_project(project_id: str, deep: bool = False,
+                   org_id: str = Depends(require_permission(Perm.PROJECT_CALCULATE)),
+                   db: Session = Depends(get_db)) -> ReviewResponse:
+    """Ревью бизнес-плана (Ф10): детерминированные находки и рекомендации по итогам расчёта.
+
+    ``deep=true`` дополнительно прогоняет стохастику (Монте-Карло + чувствительность) для
+    категории «дивергенция» (план ↔ вероятное будущее) — дороже, но полнее.
+    """
+    project = _require(db, org_id, project_id)
+    model = crud.load_model(project)
+    try:
+        result = run(model)
+    except (ModelError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    review = run_review(ReviewContext(model=model, result=result), deep=deep)
+    return review_response(review, deep=deep)
 
 
 @router.post("/{project_id}/sensitivity", response_model=SensitivityResponse)
