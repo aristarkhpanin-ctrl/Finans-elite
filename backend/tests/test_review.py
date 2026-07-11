@@ -9,6 +9,7 @@ from calc_core.models.operating import (
     Product,
     SalesLine,
 )
+from calc_core.montecarlo import MonteCarloResult
 from calc_core.reports.lines import (
     BALANCE_LINES,
     CASHFLOW_LINES,
@@ -23,9 +24,11 @@ from calc_core.review.aggregates import (
     per_product_revenue,
     total_net_revenue,
 )
-from calc_core.review.config import DEFAULT_CONFIG
-from calc_core.review.rules import assumptions, liquidity, structure
+from calc_core.review.analysis import enrich_context
+from calc_core.review.config import DEFAULT_CONFIG, ReviewConfig
+from calc_core.review.rules import assumptions, divergence, liquidity, structure
 from calc_core.samples import build_sample_project
+from calc_core.sensitivity import SensitivityPoint
 
 
 def _result(n=12, npv="1", irr="0.30", pi="1.5", pb=1, cashflow=None) -> CalcResult:
@@ -365,3 +368,93 @@ def test_run_review_light_info_on_assumption_only():
     review = run_review(ctx)
     assert {f.id for f in review.findings} == {"assumptions.zero_tax"}
     assert review.light == "info"
+
+
+# --- R5: divergence ---
+
+def _mc(**over) -> MonteCarloResult:
+    base = dict(
+        iterations=300, npv_mean=Decimal(1000), npv_std=Decimal(100), npv_sem=Decimal(6),
+        npv_min=Decimal(700), npv_max=Decimal(1300), npv_p5=Decimal(820), npv_p10=Decimal(850),
+        npv_p50=Decimal(1000), npv_p90=Decimal(1150), npv_p95=Decimal(1180),
+        npv_cvar_5=Decimal(800), probability_npv_positive=Decimal("0.99"), histogram=[],
+    )
+    base.update(over)
+    return MonteCarloResult(**base)
+
+
+def _sens(*points) -> list[SensitivityPoint]:
+    return [SensitivityPoint(factor=Decimal(str(f)), npv=Decimal(str(v)), irr_annual=None)
+            for f, v in points]
+
+
+def test_fragile_positive_npv():
+    ctx = _liq_ctx()                       # базовый NPV = 1 (>0)
+    ctx.mc = _mc(probability_npv_positive=Decimal("0.40"))
+    fired = divergence.fragile_positive_npv(ctx, DEFAULT_CONFIG)
+    assert fired and fired[0].severity == "risk"      # < 0.5 → risk
+    ctx.mc = _mc(probability_npv_positive=Decimal("0.55"))
+    warn = divergence.fragile_positive_npv(ctx, DEFAULT_CONFIG)
+    assert warn and warn[0].severity == "warning"     # [0.5; 0.6) → warning
+    ctx.mc = _mc(probability_npv_positive=Decimal("0.90"))
+    assert divergence.fragile_positive_npv(ctx, DEFAULT_CONFIG) == []
+    # без стохастики правило молчит
+    assert divergence.fragile_positive_npv(_liq_ctx(), DEFAULT_CONFIG) == []
+
+
+def test_heavy_downside():
+    ctx = _liq_ctx()
+    ctx.mc = _mc(npv_mean=Decimal(1000), npv_cvar_5=Decimal(-1500))   # потери > выгоды
+    assert divergence.heavy_downside(ctx, DEFAULT_CONFIG)
+    ctx.mc = _mc(npv_mean=Decimal(1000), npv_cvar_5=Decimal(-500))    # хвост умеренный
+    assert divergence.heavy_downside(ctx, DEFAULT_CONFIG) == []
+
+
+def test_wide_dispersion():
+    ctx = _liq_ctx()
+    ctx.mc = _mc(npv_mean=Decimal(1000), npv_std=Decimal(1500))       # σ/|mean| = 1.5 > 1
+    fired = divergence.wide_dispersion(ctx, DEFAULT_CONFIG)
+    assert fired and fired[0].severity == "info"
+    ctx.mc = _mc(npv_mean=Decimal(1000), npv_std=Decimal(500))        # 0.5 ≤ 1
+    assert divergence.wide_dispersion(ctx, DEFAULT_CONFIG) == []
+
+
+def test_sensitivity_sign_flip():
+    ctx = _liq_ctx()                       # базовый NPV = 1 (>0)
+    ctx.sensitivity = {"sales_price": _sens((0.9, -50), (1, 10), (1.1, 80))}
+    fired = divergence.sensitivity_sign_flip(ctx, DEFAULT_CONFIG)
+    assert fired and fired[0].evidence["flipping_params"] == ["sales_price"]
+    # ни один сдвиг не переводит знак — тишина
+    ctx.sensitivity = {"sales_price": _sens((0.9, 5), (1, 10), (1.1, 80))}
+    assert divergence.sensitivity_sign_flip(ctx, DEFAULT_CONFIG) == []
+    # без чувствительности правило молчит
+    assert divergence.sensitivity_sign_flip(_liq_ctx(), DEFAULT_CONFIG) == []
+
+
+def test_shallow_review_has_no_divergence():
+    # Без deep стохастика не считается — divergence-правила молчат.
+    model = build_sample_project()
+    review = run_review(ReviewContext(model=model, result=run(model)))
+    assert not any(f.id.startswith("divergence.") for f in review.findings)
+
+
+def test_enrich_context_populates_stochastics():
+    model = build_sample_project()
+    enriched = enrich_context(ReviewContext(model=model, result=run(model)),
+                              ReviewConfig(mc_iterations=30))
+    assert enriched.mc is not None and enriched.mc.iterations == 30
+    assert enriched.sensitivity is not None
+    assert set(enriched.sensitivity) == {
+        "sales_price", "sales_volume", "direct_costs", "fixed_costs",
+    }
+
+
+def test_deep_review_is_deterministic():
+    # Глубокое ревью не падает, даёт валидный итог и воспроизводимо (фиксированный seed).
+    model = build_sample_project()
+    cfg = ReviewConfig(mc_iterations=40)
+    r1 = run_review(ReviewContext(model=model, result=run(model)), cfg, deep=True)
+    r2 = run_review(ReviewContext(model=model, result=run(model)), cfg, deep=True)
+    assert r1.light in {"ok", "info", "warning", "risk"}
+    assert sum(r1.counts.values()) == len(r1.findings)
+    assert [f.id for f in r1.findings] == [f.id for f in r2.findings]
