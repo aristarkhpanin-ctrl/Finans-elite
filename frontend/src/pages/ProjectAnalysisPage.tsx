@@ -3,10 +3,12 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getProject } from "../api/projects";
 import { MonteCarloTab } from "./analysis/MonteCarloTab";
+import { ReviewTab } from "./analysis/ReviewTab";
 import { SensitivityTab } from "./analysis/SensitivityTab";
 import { WhatIfTab } from "./analysis/WhatIfTab";
 
 const TABS = [
+  ["review", "Ревью плана", "находки и гейт"],
   ["sensitivity", "Чувствительность", "NPV к параметру"],
   ["montecarlo", "Монте-Карло", "распределение NPV"],
   ["whatif", "What-If", "сравнение сценариев"],
@@ -15,7 +17,7 @@ const TABS = [
 export function ProjectAnalysisPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<string>("sensitivity");
+  const [tab, setTab] = useState<string>("review");
   const projectQuery = useQuery({ queryKey: ["project", id], queryFn: () => getProject(id) });
   const name = projectQuery.data?.name ?? "";
 
@@ -64,6 +66,7 @@ export function ProjectAnalysisPage() {
         </div>
       </div>
 
+      {tab === "review" && <ReviewTab projectId={id} />}
       {tab === "sensitivity" && <SensitivityTab projectId={id} />}
       {tab === "montecarlo" && <MonteCarloTab projectId={id} />}
       {tab === "whatif" && <WhatIfTab projectId={id} />}

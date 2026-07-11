@@ -483,6 +483,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/finalize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Finalize Project
+         * @description Финализировать план — гейт ревью (Ф10, решение Q4: ревью перед финализацией).
+         *
+         *     Прогоняет глубокое ревью. Если есть risk-находки и ``acknowledge=false`` — 409 (гейт
+         *     не пройден), ревью возвращается в ``detail``. При ``acknowledge=true`` (или без risk)
+         *     проект помечается ``finalized`` со снимком ревью и отпечатком модели. Warning/info
+         *     финализации не мешают.
+         */
+        post: operations["finalize_project_api_v1_projects__project_id__finalize_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/monte-carlo": {
         parameters: {
             query?: never;
@@ -517,6 +542,29 @@ export interface paths {
          * @description Поставить Монте-Карло в очередь (фоновый воркер). Опрос — GET /analysis/jobs/{id}.
          */
         post: operations["monte_carlo_async_api_v1_projects__project_id__monte_carlo_async_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Review Project
+         * @description Ревью бизнес-плана (Ф10): детерминированные находки и рекомендации по итогам расчёта.
+         *
+         *     ``deep=true`` дополнительно прогоняет стохастику (Монте-Карло + чувствительность) для
+         *     категории «дивергенция» (план ↔ вероятное будущее) — дороже, но полнее.
+         */
+        get: operations["review_project_api_v1_projects__project_id__review_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1162,6 +1210,31 @@ export interface components {
              */
             month: number;
         };
+        /**
+         * FinalizeRequest
+         * @description Запрос финализации: acknowledge подтверждает осознание risk-находок (снятие гейта).
+         */
+        FinalizeRequest: {
+            /**
+             * Acknowledge
+             * @default false
+             */
+            acknowledge: boolean;
+        };
+        /**
+         * FinalizeResponse
+         * @description Результат финализации: статус проекта + ревью, которым план подтверждён.
+         */
+        FinalizeResponse: {
+            /**
+             * Finalized At
+             * Format: date-time
+             */
+            finalized_at: string;
+            review: components["schemas"]["ReviewResponse"];
+            /** Status */
+            status: string;
+        };
         /** Financing */
         "Financing-Input": {
             /**
@@ -1213,6 +1286,33 @@ export interface components {
             leases?: components["schemas"]["Lease-Output"][];
             /** Loans */
             loans?: components["schemas"]["Loan-Output"][];
+        };
+        /**
+         * FindingOut
+         * @description Одна находка ревью: severity + человекочитаемый текст + числовое обоснование.
+         */
+        FindingOut: {
+            /** Category */
+            category: string;
+            /**
+             * Confidence
+             * @default high
+             */
+            confidence: string;
+            /** Detail */
+            detail: string;
+            /** Evidence */
+            evidence?: {
+                [key: string]: unknown;
+            };
+            /** Id */
+            id: string;
+            /** Recommendation */
+            recommendation: string;
+            /** Severity */
+            severity: string;
+            /** Title */
+            title: string;
         };
         /**
          * FixedCostLine
@@ -2106,6 +2206,14 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Finalized At */
+            finalized_at?: string | null;
+            /**
+             * Finalized Drift
+             * @default false
+             */
+            finalized_drift: boolean;
+            finalized_review?: components["schemas"]["ReviewResponse"] | null;
             /** Id */
             id: string;
             /**
@@ -2117,6 +2225,11 @@ export interface components {
             model: components["schemas"]["ProjectModel-Output"];
             /** Name */
             name: string;
+            /**
+             * Status
+             * @default draft
+             */
+            status: string;
             /**
              * Updated At
              * Format: date-time
@@ -2310,6 +2423,8 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Finalized At */
+            finalized_at?: string | null;
             /** Id */
             id: string;
             /**
@@ -2320,6 +2435,11 @@ export interface components {
             last_calc?: components["schemas"]["LastCalcOut"] | null;
             /** Name */
             name: string;
+            /**
+             * Status
+             * @default draft
+             */
+            status: string;
             /**
              * Updated At
              * Format: date-time
@@ -2375,6 +2495,25 @@ export interface components {
          * @enum {string}
          */
         RepaymentType: "equal_principal" | "bullet";
+        /** ReviewResponse */
+        ReviewResponse: {
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
+            /**
+             * Deep
+             * @default false
+             */
+            deep: boolean;
+            /**
+             * Findings
+             * @default []
+             */
+            findings: components["schemas"]["FindingOut"][];
+            /** Light */
+            light: string;
+        };
         /**
          * SalesLine
          * @description Продажи одного продукта: помесячные объём и цена (без НДС).
@@ -3808,6 +3947,43 @@ export interface operations {
             };
         };
     };
+    finalize_project_api_v1_projects__project_id__finalize_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FinalizeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinalizeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     monte_carlo_api_v1_projects__project_id__monte_carlo_post: {
         parameters: {
             query?: never;
@@ -3869,6 +4045,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobSubmitResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    review_project_api_v1_projects__project_id__review_get: {
+        parameters: {
+            query?: {
+                deep?: boolean;
+            };
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewResponse"];
                 };
             };
             /** @description Validation Error */

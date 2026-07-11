@@ -208,6 +208,11 @@ export interface ProjectDetail {
   created_at: string;
   updated_at: string;
   model: ProjectModel;
+  // Гейт финализации (Ф10): статус, момент и снимок ревью, признак дрейфа модели.
+  status?: "draft" | "finalized";
+  finalized_at?: string | null;
+  finalized_review?: import("./review").ReviewResponse | null;
+  finalized_drift?: boolean;
 }
 
 export const COST_FUNCTION_LABELS: Record<CostFunction, string> = {

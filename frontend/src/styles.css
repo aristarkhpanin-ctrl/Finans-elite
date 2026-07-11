@@ -2295,3 +2295,62 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .plan-diff__label { font: 600 9.5px var(--font-ui); text-transform: uppercase; letter-spacing: 0.05em; color: var(--subtle); }
 .plan-diff__val { font: 600 15px var(--font-ui); color: var(--text); margin-top: 4px; }
 .plan-diff__arrow { color: var(--subtle); font-size: 18px; flex: none; }
+
+/* ============================================================
+   20. РЕВЮ ПЛАНА (Ф10 — «светофор», находки, гейт финализации)
+   ============================================================ */
+
+/* «Светофор» — итоговый статус ревью */
+.rv-light {
+  display: flex; align-items: center; gap: 16px; padding: 16px 18px; margin-bottom: 14px;
+  background: var(--surface); border: 1px solid var(--border); border-left-width: 4px; border-radius: 13px;
+}
+.rv-light__dot { width: 14px; height: 14px; border-radius: 50%; flex: none; box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 12%, transparent); }
+.rv-light__text { flex: 1; min-width: 0; }
+.rv-light__title { font: 600 16px var(--font-display); color: var(--text); }
+.rv-light__sub { font: 400 12.5px/1.45 var(--font-ui); color: var(--muted); margin-top: 2px; }
+.rv-light__counts { display: flex; gap: 16px; flex: none; }
+.rv-count { display: flex; flex-direction: column; align-items: center; }
+.rv-count__n { font: 700 20px var(--font-mono); line-height: 1; }
+.rv-count__l { font: 500 10.5px var(--font-ui); color: var(--subtle); margin-top: 3px; }
+
+/* Гейт финализации */
+.rv-final { background: var(--surface); border: 1px solid var(--border); border-radius: 13px; padding: 16px 18px; margin-bottom: 16px; }
+.rv-final__title { font: 600 14px var(--font-ui); color: var(--text); }
+.rv-final__sub { font: 400 12.5px/1.45 var(--font-ui); color: var(--muted); margin-top: 3px; }
+.rv-final .run-btn { margin-top: 12px; }
+.rv-final__err { font: 500 12px var(--font-ui); color: var(--danger-text); margin-top: 10px; }
+.rv-final--done { border-color: var(--good-border); background: var(--good-bg); }
+.rv-final__badge { display: flex; align-items: center; gap: 12px; }
+.rv-final__check {
+  width: 30px; height: 30px; border-radius: 50%; flex: none; background: var(--good); color: #fff;
+  display: flex; align-items: center; justify-content: center; font: 700 15px var(--font-ui);
+}
+.rv-final__note { font: 400 11.5px var(--font-ui); color: var(--subtle); margin-top: 10px; }
+.rv-drift {
+  font: 500 12px/1.45 var(--font-ui); color: var(--warn-text); background: var(--warn-bg);
+  border: 1px solid var(--warn-border); border-radius: 9px; padding: 9px 12px; margin-top: 12px;
+}
+.rv-ack {
+  display: flex; align-items: flex-start; gap: 9px; margin-top: 12px; cursor: pointer;
+  font: 500 12.5px/1.4 var(--font-ui); color: var(--text);
+}
+.rv-ack input { margin-top: 2px; flex: none; accent-color: var(--danger); }
+
+/* Список находок */
+.rv-list { display: flex; flex-direction: column; gap: 10px; }
+.rv-finding { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.rv-finding__bar { width: 4px; flex: none; }
+.rv-finding__body { padding: 13px 15px; min-width: 0; flex: 1; }
+.rv-finding__head { display: flex; align-items: center; gap: 9px; margin-bottom: 7px; }
+.rv-finding__cat { font: 600 10.5px var(--font-ui); letter-spacing: 0.03em; text-transform: uppercase; color: var(--subtle); }
+.rv-finding__title { font: 600 14px var(--font-ui); color: var(--text); }
+.rv-finding__detail { font: 400 12.5px/1.5 var(--font-ui); color: var(--muted); margin-top: 4px; }
+.rv-finding__rec { display: flex; gap: 7px; font: 500 12.5px/1.45 var(--font-ui); color: var(--text); margin-top: 8px; }
+.rv-finding__arrow { color: var(--primary); font-weight: 700; flex: none; }
+.rv-finding__evi { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.rv-evi-chip {
+  font: 500 10.5px var(--font-mono); color: var(--subtle); background: var(--surface-2);
+  border: 1px solid var(--grid-line); border-radius: 6px; padding: 2px 7px;
+}
+.rv-evi-chip b { color: var(--muted); font-weight: 700; }
