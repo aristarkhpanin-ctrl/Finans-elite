@@ -16,6 +16,8 @@ from calc_core.review.aggregates import (
     per_product_revenue,
     total_net_revenue,
 )
+from calc_core.review.config import DEFAULT_CONFIG
+from calc_core.review.rules import liquidity
 from calc_core.samples import build_sample_project
 
 
@@ -119,3 +121,103 @@ def test_sample_project_is_flagged_as_marginal():
     ids = {f.id for f in review.findings}
     assert {"viability.npv_negative", "viability.pi_below_one",
             "viability.no_payback", "viability.irr_undefined"} <= ids
+
+
+# --- R2: liquidity ---
+
+def _stmt(catalog, n=6, **rows):
+    """Отчёт с явно заданными строками (без пересчёта итогов — для изоляции правил)."""
+    st = Statement(catalog, n)
+    for code, vals in rows.items():
+        st[code] = [Decimal(str(v)) for v in vals]
+    return st
+
+
+def _liq_ctx(*, balance=None, cashflow=None, income=None, peak=None,
+             auto_fin=False, n=6) -> ReviewContext:
+    model = build_sample_project()
+    model.settings.discount_rate_annual = Decimal("0.15")
+    model.financing.auto_financing.enabled = auto_fin
+    result = CalcResult(
+        engine_version="t", n=n,
+        income=income if income is not None else Statement(INCOME_LINES, n),
+        cashflow=cashflow if cashflow is not None else Statement(CASHFLOW_LINES, n),
+        balance=balance if balance is not None else Statement(BALANCE_LINES, n),
+        profit_use=Statement(PROFIT_USE_LINES, n),
+        metrics=InvestmentMetrics(
+            npv=Decimal("1"), irr_annual=Decimal("0.30"),
+            pi=Decimal("1.5"), pb_months=1,
+            peak_financing_need=Decimal(str(peak)) if peak is not None else None,
+        ),
+    )
+    return ReviewContext(model=model, result=result)
+
+
+def test_cash_gap_fires_without_autofinancing():
+    bal = _stmt(BALANCE_LINES, B1=[100, -50, -200, 10, 5, 5])
+    fired = liquidity.cash_gap(_liq_ctx(balance=bal, auto_fin=False), DEFAULT_CONFIG)
+    assert len(fired) == 1 and fired[0].severity == "risk"
+    assert fired[0].evidence["worst_month"] == 3          # худший месяц — самый глубокий минус
+    # автоподбор включён — движок закрывает разрыв, находки нет
+    assert liquidity.cash_gap(_liq_ctx(balance=bal, auto_fin=True), DEFAULT_CONFIG) == []
+    # нет отрицательных остатков — тишина
+    bal_ok = _stmt(BALANCE_LINES, B1=[100, 50, 20, 10, 5, 5])
+    assert liquidity.cash_gap(_liq_ctx(balance=bal_ok), DEFAULT_CONFIG) == []
+
+
+def test_financing_dependency():
+    cf = _stmt(CASHFLOW_LINES, C21=[100, 0, 0, 0, 0, 0])
+    assert liquidity.financing_dependency(_liq_ctx(cashflow=cf, peak=1000), DEFAULT_CONFIG)
+    # в пределах порога 3× — тишина
+    assert liquidity.financing_dependency(_liq_ctx(cashflow=cf, peak=200), DEFAULT_CONFIG) == []
+    # без собственного капитала не делим на ноль
+    cf0 = _stmt(CASHFLOW_LINES, C21=[0, 0, 0, 0, 0, 0])
+    assert liquidity.financing_dependency(_liq_ctx(cashflow=cf0, peak=1000), DEFAULT_CONFIG) == []
+    # потребности в финансировании нет
+    assert liquidity.financing_dependency(_liq_ctx(cashflow=cf, peak=None), DEFAULT_CONFIG) == []
+
+
+def test_current_ratio_low():
+    bal = _stmt(BALANCE_LINES, B8=[200, 150, 80, 300, 300, 300],
+                B25=[100, 100, 100, 100, 100, 100])
+    fired = liquidity.current_ratio_low(_liq_ctx(balance=bal), DEFAULT_CONFIG)
+    assert len(fired) == 1 and fired[0].evidence["month"] == 3
+    # текущие активы всюду покрывают обязательства — тишина
+    bal_ok = _stmt(BALANCE_LINES, B8=[200, 200, 200, 200, 200, 200],
+                   B25=[100, 100, 100, 100, 100, 100])
+    assert liquidity.current_ratio_low(_liq_ctx(balance=bal_ok), DEFAULT_CONFIG) == []
+
+
+def test_overleverage():
+    bal = _stmt(BALANCE_LINES, B22=[0, 0, 0, 0, 0, 300],
+                B26=[0, 0, 0, 0, 0, 300], B33=[100, 100, 100, 100, 100, 100])
+    assert liquidity.overleverage(_liq_ctx(balance=bal), DEFAULT_CONFIG)
+    # рычаг в пределах порога 2× — тишина
+    bal_ok = _stmt(BALANCE_LINES, B22=[0, 0, 0, 0, 0, 50],
+                   B26=[0, 0, 0, 0, 0, 50], B33=[100, 100, 100, 100, 100, 100])
+    assert liquidity.overleverage(_liq_ctx(balance=bal_ok), DEFAULT_CONFIG) == []
+    # отрицательный капитал — коэффициент не считаем (guard)
+    bal_neg = _stmt(BALANCE_LINES, B22=[0, 0, 0, 0, 0, 300],
+                    B26=[0, 0, 0, 0, 0, 0], B33=[0, 0, 0, 0, 0, -10])
+    assert liquidity.overleverage(_liq_ctx(balance=bal_neg), DEFAULT_CONFIG) == []
+
+
+def test_interest_coverage_low_risk_and_warning():
+    inc_risk = _stmt(INCOME_LINES, I18=[100, 0, 0, 0, 0, 0], I23=[-50, 0, 0, 0, 0, 0])
+    fired = liquidity.interest_coverage_low(_liq_ctx(income=inc_risk), DEFAULT_CONFIG)
+    assert fired and fired[0].severity == "risk"          # покрытие 0,5 < 1 → risk
+    inc_warn = _stmt(INCOME_LINES, I18=[100, 0, 0, 0, 0, 0], I23=[20, 0, 0, 0, 0, 0])
+    warn = liquidity.interest_coverage_low(_liq_ctx(income=inc_warn), DEFAULT_CONFIG)
+    assert warn and warn[0].severity == "warning"         # покрытие 1,2 ∈ [1; 1,5) → warning
+    inc_ok = _stmt(INCOME_LINES, I18=[100, 0, 0, 0, 0, 0], I23=[100, 0, 0, 0, 0, 0])
+    assert liquidity.interest_coverage_low(_liq_ctx(income=inc_ok), DEFAULT_CONFIG) == []
+    # процентов нет — правило молчит
+    assert liquidity.interest_coverage_low(_liq_ctx(), DEFAULT_CONFIG) == []
+
+
+def test_run_review_surfaces_liquidity_risk():
+    # Полный прогон реестра: кассовый разрыв поднимает «светофор» до risk.
+    bal = _stmt(BALANCE_LINES, B1=[100, -50, -200, 10, 5, 5])
+    review = run_review(_liq_ctx(balance=bal, auto_fin=False))
+    assert review.light == "risk"
+    assert "liquidity.cash_gap" in {f.id for f in review.findings}

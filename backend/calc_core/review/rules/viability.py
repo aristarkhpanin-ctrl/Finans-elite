@@ -6,16 +6,8 @@ from decimal import Decimal
 from ...money import ZERO
 from ..aggregates import series
 from ..config import ReviewConfig
+from ..text import fmt_num, fmt_pct, fmt_rub
 from ..types import Finding, ReviewContext, Severity
-
-
-def _rub(value: Decimal) -> str:
-    """Целые рубли с группировкой пробелами (для текста находки)."""
-    return f"{value.quantize(Decimal(1)):,}".replace(",", " ")
-
-
-def _pct(value: Decimal) -> str:
-    return f"{value * 100:.1f}%".replace(".", ",")
 
 
 def npv_negative(ctx: ReviewContext, config: ReviewConfig) -> list[Finding]:
@@ -26,7 +18,7 @@ def npv_negative(ctx: ReviewContext, config: ReviewConfig) -> list[Finding]:
     return [Finding(
         id="viability.npv_negative", category="viability", severity="risk",
         title="Отрицательный NPV — проект разрушает стоимость",
-        detail=f"NPV = {_rub(npv)} ₽ при ставке дисконтирования {_pct(disc)}: "
+        detail=f"NPV = {fmt_rub(npv)} ₽ при ставке дисконтирования {fmt_pct(disc)}: "
                "дисконтированные притоки не покрывают вложения.",
         recommendation="Пересмотрите цены/объёмы/издержки или требуемую доходность; "
                        "проверьте реалистичность допущений.",
@@ -43,7 +35,7 @@ def irr_below_hurdle(ctx: ReviewContext, config: ReviewConfig) -> list[Finding]:
     return [Finding(
         id="viability.irr_below_hurdle", category="viability", severity=severity,
         title="IRR ниже требуемой доходности",
-        detail=f"IRR = {_pct(irr)} ниже ставки дисконтирования {_pct(disc)} — "
+        detail=f"IRR = {fmt_pct(irr)} ниже ставки дисконтирования {fmt_pct(disc)} — "
                "проект не покрывает стоимость капитала.",
         recommendation="Повысьте маржинальность/оборачиваемость или пересмотрите барьерную ставку.",
         evidence={"irr_annual": str(irr), "discount_rate_annual": str(disc)},
@@ -70,7 +62,7 @@ def pi_below_one(ctx: ReviewContext, config: ReviewConfig) -> list[Finding]:
     return [Finding(
         id="viability.pi_below_one", category="viability", severity="warning",
         title="Индекс прибыльности (PI) меньше 1",
-        detail=f"PI = {pi:.2f}: приведённая отдача меньше приведённых вложений.".replace(".", ",", 1),
+        detail=f"PI = {fmt_num(pi)}: приведённая отдача меньше приведённых вложений.",
         recommendation="Проект возвращает меньше вложенного — усильте юнит-экономику "
                        "или сократите капитальные затраты.",
         evidence={"pi": str(pi)},
