@@ -96,3 +96,26 @@ def test_opening_short_term_debt_participates_in_convergence():
     # тот же долг, покрытый кассой, — сходится.
     good = StartingBalance(cash=D(1000), short_term_debt=D(400), paid_in_capital=D(600))
     assert _balanced(run(_model(good)))
+
+
+def test_opening_equity_structure_is_carried():
+    """Полная стартовая структура капитала: привилегированные акции (B28), резервы (B30),
+    добавочный капитал (B31) — несутся постоянно и входят в собственный капитал B33."""
+    sb = StartingBalance(cash=D(1000), paid_in_capital=D(400), preferred_capital=D(200),
+                         reserves=D(150), additional_capital=D(250))
+    r = run(_model(sb))
+    assert [q(v) for v in r.balance["B28"]] == [D("200.00"), D("200.00")]
+    assert [q(v) for v in r.balance["B30"]] == [D("150.00"), D("150.00")]
+    assert [q(v) for v in r.balance["B31"]] == [D("250.00"), D("250.00")]
+    # собственный капитал = 400 + 200 + 150 + 250 = 1000
+    assert [q(v) for v in r.balance["B33"]] == [D("1000.00"), D("1000.00")]
+    assert _balanced(r)
+
+
+def test_opening_equity_participates_in_convergence():
+    """Стартовые резервы/капитал участвуют в проверке сходимости."""
+    bad = StartingBalance(cash=D(500), reserves=D(200), paid_in_capital=D(500))
+    with pytest.raises(ModelError):
+        run(_model(bad))
+    good = StartingBalance(cash=D(700), reserves=D(200), paid_in_capital=D(500))
+    assert _balanced(run(_model(good)))

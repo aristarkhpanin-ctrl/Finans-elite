@@ -62,7 +62,8 @@ def _run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
         sb.foreign_monetary * model.environment.fx_open,
         receivables=sb.receivables, payables=sb.payables,
         raw_materials=sb.raw_materials, finished_goods=sb.finished_goods,
-        short_term_debt=sb.short_term_debt,
+        short_term_debt=sb.short_term_debt, preferred_capital=sb.preferred_capital,
+        reserves=sb.reserves, additional_capital=sb.additional_capital,
     )
     ratios = compute_ratios(
         income, cashflow, balance, profit_use,

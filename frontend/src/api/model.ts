@@ -177,6 +177,9 @@ export interface StartingBalance {
   short_term_debt?: string;
   debt: string;
   paid_in_capital: string;
+  preferred_capital?: string;
+  reserves?: string;
+  additional_capital?: string;
   retained_earnings: string;
 }
 

@@ -930,6 +930,7 @@ export interface components {
         "Company-Input": {
             /**
              * @default {
+             *       "additional_capital": "0",
              *       "cash": "0",
              *       "debt": "0",
              *       "finished_goods": "0",
@@ -937,8 +938,10 @@ export interface components {
              *       "foreign_monetary": "0",
              *       "paid_in_capital": "0",
              *       "payables": "0",
+             *       "preferred_capital": "0",
              *       "raw_materials": "0",
              *       "receivables": "0",
+             *       "reserves": "0",
              *       "retained_earnings": "0",
              *       "short_term_debt": "0"
              *     }
@@ -949,6 +952,7 @@ export interface components {
         "Company-Output": {
             /**
              * @default {
+             *       "additional_capital": "0",
              *       "cash": "0",
              *       "debt": "0",
              *       "finished_goods": "0",
@@ -956,8 +960,10 @@ export interface components {
              *       "foreign_monetary": "0",
              *       "paid_in_capital": "0",
              *       "payables": "0",
+             *       "preferred_capital": "0",
              *       "raw_materials": "0",
              *       "receivables": "0",
+             *       "reserves": "0",
              *       "retained_earnings": "0",
              *       "short_term_debt": "0"
              *     }
@@ -2000,6 +2006,7 @@ export interface components {
             /**
              * @default {
              *       "starting_balance": {
+             *         "additional_capital": "0",
              *         "cash": "0",
              *         "debt": "0",
              *         "finished_goods": "0",
@@ -2007,8 +2014,10 @@ export interface components {
              *         "foreign_monetary": "0",
              *         "paid_in_capital": "0",
              *         "payables": "0",
+             *         "preferred_capital": "0",
              *         "raw_materials": "0",
              *         "receivables": "0",
+             *         "reserves": "0",
              *         "retained_earnings": "0",
              *         "short_term_debt": "0"
              *       }
@@ -2109,6 +2118,7 @@ export interface components {
             /**
              * @default {
              *       "starting_balance": {
+             *         "additional_capital": "0",
              *         "cash": "0",
              *         "debt": "0",
              *         "finished_goods": "0",
@@ -2116,8 +2126,10 @@ export interface components {
              *         "foreign_monetary": "0",
              *         "paid_in_capital": "0",
              *         "payables": "0",
+             *         "preferred_capital": "0",
              *         "raw_materials": "0",
              *         "receivables": "0",
+             *         "reserves": "0",
              *         "retained_earnings": "0",
              *         "short_term_debt": "0"
              *       }
@@ -2636,6 +2648,11 @@ export interface components {
          */
         "StartingBalance-Input": {
             /**
+             * Additional Capital
+             * @default 0
+             */
+            additional_capital: number | string;
+            /**
              * Cash
              * @default 0
              */
@@ -2671,6 +2688,11 @@ export interface components {
              */
             payables: number | string;
             /**
+             * Preferred Capital
+             * @default 0
+             */
+            preferred_capital: number | string;
+            /**
              * Raw Materials
              * @default 0
              */
@@ -2680,6 +2702,11 @@ export interface components {
              * @default 0
              */
             receivables: number | string;
+            /**
+             * Reserves
+             * @default 0
+             */
+            reserves: number | string;
             /**
              * Retained Earnings
              * @default 0
@@ -2696,6 +2723,11 @@ export interface components {
          * @description Начальное состояние действующего предприятия (на конец периода t = -1).
          */
         "StartingBalance-Output": {
+            /**
+             * Additional Capital
+             * @default 0
+             */
+            additional_capital: string;
             /**
              * Cash
              * @default 0
@@ -2732,6 +2764,11 @@ export interface components {
              */
             payables: string;
             /**
+             * Preferred Capital
+             * @default 0
+             */
+            preferred_capital: string;
+            /**
              * Raw Materials
              * @default 0
              */
@@ -2741,6 +2778,11 @@ export interface components {
              * @default 0
              */
             receivables: string;
+            /**
+             * Reserves
+             * @default 0
+             */
+            reserves: string;
             /**
              * Retained Earnings
              * @default 0

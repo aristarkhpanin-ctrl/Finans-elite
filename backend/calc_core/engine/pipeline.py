@@ -730,7 +730,9 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "B24": b24,                # полученные авансы
         "B26": debt,               # долгосрочные займы
         "B27": paid_in,            # обыкновенные акции
-        "B31": reval_cum,          # добавочный капитал (переоценка ОС)
+        "B28": [sb.preferred_capital] * n,   # привилегированные акции (стартовая позиция)
+        "B30": [sb.reserves] * n,            # резервные фонды (стартовая позиция)
+        "B31": [sb.additional_capital + reval_cum[t] for t in range(n)],  # добавочный капитал + дооценка ОС
         "B32": retained,           # нераспределённая прибыль
     }
     balance = build_balance(balance_leaves, n)

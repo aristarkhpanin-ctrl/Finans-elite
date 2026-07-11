@@ -31,6 +31,9 @@ const LIAB_FIELDS: Array<[keyof StartingBalance, string, string]> = [
   ["short_term_debt", "Краткосрочные займы", "#C77DFF"],
   ["debt", "Долгосрочные займы", "#5E93FF"],
   ["paid_in_capital", "Акционерный капитал", "var(--primary)"],
+  ["preferred_capital", "Привилегированные акции", "#9D7AEA"],
+  ["reserves", "Резервные фонды", "#4FB0A0"],
+  ["additional_capital", "Добавочный капитал", "#C99A4A"],
   ["retained_earnings", "Нераспределённая прибыль", "var(--info)"],
 ];
 
