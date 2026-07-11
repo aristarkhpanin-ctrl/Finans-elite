@@ -2,6 +2,12 @@
 from decimal import Decimal
 
 from calc_core import run
+from calc_core.models.operating import (
+    DirectCostLine,
+    FixedCostLine,
+    Product,
+    SalesLine,
+)
 from calc_core.reports.lines import (
     BALANCE_LINES,
     CASHFLOW_LINES,
@@ -17,7 +23,7 @@ from calc_core.review.aggregates import (
     total_net_revenue,
 )
 from calc_core.review.config import DEFAULT_CONFIG
-from calc_core.review.rules import liquidity
+from calc_core.review.rules import liquidity, structure
 from calc_core.samples import build_sample_project
 
 
@@ -221,3 +227,86 @@ def test_run_review_surfaces_liquidity_risk():
     review = run_review(_liq_ctx(balance=bal, auto_fin=False))
     assert review.light == "risk"
     assert "liquidity.cash_gap" in {f.id for f in review.findings}
+
+
+# --- R3: structure ---
+
+def _income(**rows) -> Statement:
+    return _stmt(INCOME_LINES, **rows)
+
+
+def test_revenue_concentration():
+    ctx = _liq_ctx()
+    ctx.model.operating_plan.products = [Product(id="A", name="Хлеб"), Product(id="B", name="Соль")]
+    ctx.model.operating_plan.sales = [
+        SalesLine(product_id="A", volume=[Decimal(8)], price=[Decimal(100)]),
+        SalesLine(product_id="B", volume=[Decimal(1)], price=[Decimal(100)]),
+    ]
+    fired = structure.revenue_concentration(ctx, DEFAULT_CONFIG)
+    assert len(fired) == 1 and fired[0].evidence["top_product"] == "A"
+    # сбалансированный портфель — тишина
+    ctx.model.operating_plan.sales = [
+        SalesLine(product_id="A", volume=[Decimal(5)], price=[Decimal(100)]),
+        SalesLine(product_id="B", volume=[Decimal(5)], price=[Decimal(100)]),
+    ]
+    assert structure.revenue_concentration(ctx, DEFAULT_CONFIG) == []
+    # один продукт — концентрация не считается находкой
+    ctx.model.operating_plan.sales = [
+        SalesLine(product_id="A", volume=[Decimal(5)], price=[Decimal(100)]),
+    ]
+    assert structure.revenue_concentration(ctx, DEFAULT_CONFIG) == []
+
+
+def test_gross_margin_rules():
+    neg_ctx = _liq_ctx(income=_income(I4=[100, 0, 0, 0, 0, 0], I8=[-20, 0, 0, 0, 0, 0]))
+    neg = structure.negative_gross_margin(neg_ctx, DEFAULT_CONFIG)
+    assert neg and neg[0].severity == "risk"
+    thin_ctx = _liq_ctx(income=_income(I4=[100, 0, 0, 0, 0, 0], I8=[5, 0, 0, 0, 0, 0]))
+    thin = structure.thin_gross_margin(thin_ctx, DEFAULT_CONFIG)
+    assert thin and thin[0].severity == "warning"
+    # здоровая маржа — оба правила молчат
+    healthy = _liq_ctx(income=_income(I4=[100, 0, 0, 0, 0, 0], I8=[40, 0, 0, 0, 0, 0]))
+    assert structure.negative_gross_margin(healthy, DEFAULT_CONFIG) == []
+    assert structure.thin_gross_margin(healthy, DEFAULT_CONFIG) == []
+    # отрицательная маржа не считается «тонкой» — её ловит risk-правило
+    assert structure.thin_gross_margin(neg_ctx, DEFAULT_CONFIG) == []
+
+
+def test_cost_line_outlier():
+    ctx = _liq_ctx(income=_income(I4=[500, 0, 0, 0, 0, 0]))
+    # Смесь прямых и постоянных статей; «Консалтинг» — выброс: > IQR и > 30% выручки.
+    ctx.model.operating_plan.direct_costs = [DirectCostLine(name="Материалы", amount=[Decimal(10)])]
+    ctx.model.operating_plan.fixed_costs = [
+        FixedCostLine(name="Связь", amount=[Decimal(11)]),
+        FixedCostLine(name="Реклама", amount=[Decimal(12)]),
+        FixedCostLine(name="Консалтинг", amount=[Decimal(200)]),
+    ]
+    fired = structure.cost_line_outlier(ctx, DEFAULT_CONFIG)
+    assert len(fired) == 1 and fired[0].evidence["line"] == "Консалтинг"
+    assert fired[0].severity == "info"
+    # ровный ряд статей — выброса нет
+    ctx.model.operating_plan.direct_costs = []
+    ctx.model.operating_plan.fixed_costs = [
+        FixedCostLine(name="Аренда", amount=[Decimal(10)]),
+        FixedCostLine(name="Связь", amount=[Decimal(11)]),
+        FixedCostLine(name="Реклама", amount=[Decimal(12)]),
+        FixedCostLine(name="Прочее", amount=[Decimal(13)]),
+    ]
+    assert structure.cost_line_outlier(ctx, DEFAULT_CONFIG) == []
+    # мало статей — IQR неустойчив, правило не срабатывает
+    ctx.model.operating_plan.fixed_costs = [
+        FixedCostLine(name="Аренда", amount=[Decimal(10)]),
+        FixedCostLine(name="Консалтинг", amount=[Decimal(500)]),
+    ]
+    assert structure.cost_line_outlier(ctx, DEFAULT_CONFIG) == []
+
+
+def test_run_review_includes_structure_risk():
+    # Полный прогон: отрицательная валовая маржа — единственная сработавшая находка (risk).
+    ctx = _liq_ctx(income=_income(I4=[100, 0, 0, 0, 0, 0], I8=[-20, 0, 0, 0, 0, 0]))
+    ctx.model.operating_plan.sales = []
+    ctx.model.operating_plan.direct_costs = []
+    ctx.model.operating_plan.fixed_costs = []
+    review = run_review(ctx)
+    assert {f.id for f in review.findings} == {"structure.negative_gross_margin"}
+    assert review.light == "risk"

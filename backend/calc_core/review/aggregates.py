@@ -58,3 +58,28 @@ def per_product_revenue(model: ProjectModel) -> dict[str, Decimal]:
             rev += line.volume[t] * line.price[t] * rate
         out[line.product_id] = out.get(line.product_id, ZERO) + rev
     return out
+
+
+def cost_line_totals(model: ProjectModel) -> list[tuple[str, Decimal]]:
+    """Итог по каждой строке издержек модели (прямые + постоянные), в основной валюте.
+
+    Валютные строки переоцениваются по FX[t] (как выручка) — чтобы величины были
+    сопоставимы между собой при поиске выбросов.
+    """
+    fx = model.environment.fx_rate
+    fx_open = model.environment.fx_open
+    op = model.operating_plan
+    out: list[tuple[str, Decimal]] = []
+
+    def _add(name: str, amount: list[Decimal], foreign: bool) -> None:
+        acc = ZERO
+        for t, amt in enumerate(amount):
+            rate = (fx[t] if t < len(fx) else fx_open) if foreign else Decimal(1)
+            acc += amt * rate
+        out.append((name, acc))
+
+    for dline in op.direct_costs:
+        _add(dline.name, dline.amount, dline.foreign)
+    for fline in op.fixed_costs:
+        _add(fline.name, fline.amount, fline.foreign)
+    return out
