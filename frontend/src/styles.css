@@ -820,6 +820,7 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .status-chip { font: 600 11px var(--font-ui); color: var(--accent); background: var(--primary-bg); padding: 4px 9px; border-radius: 6px; white-space: nowrap; flex: none; }
 .status-chip--warn { color: var(--warn-text); background: var(--warn-bg); }
 .status-chip--danger { color: var(--danger-text); background: var(--danger-bg); }
+.status-chip--good { color: var(--good); background: var(--good-bg); }
 .mode-seg { display: flex; gap: 3px; padding: 3px; background: var(--seg-bg); border-radius: 10px; }
 .mode-seg__btn {
   appearance: none; border: none; cursor: pointer; font: 600 13px var(--font-ui);
