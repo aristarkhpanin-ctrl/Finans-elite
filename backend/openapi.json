@@ -1758,6 +1758,19 @@
             "title": "Finance",
             "type": "boolean"
           },
+          "insurance_monthly": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Insurance Monthly"
+          },
           "monthly_payment": {
             "anyOf": [
               {
@@ -1805,6 +1818,12 @@
             "default": false,
             "title": "Finance",
             "type": "boolean"
+          },
+          "insurance_monthly": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Insurance Monthly",
+            "type": "string"
           },
           "monthly_payment": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
@@ -4576,7 +4595,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.12"
+    "version": "0.9.13"
   },
   "openapi": "3.1.0",
   "paths": {

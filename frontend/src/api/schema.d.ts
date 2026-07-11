@@ -1553,6 +1553,11 @@ export interface components {
              * @default false
              */
             finance: boolean;
+            /**
+             * Insurance Monthly
+             * @default 0
+             */
+            insurance_monthly: number | string;
             /** Monthly Payment */
             monthly_payment: number | string;
             /** Name */
@@ -1589,6 +1594,11 @@ export interface components {
              * @default false
              */
             finance: boolean;
+            /**
+             * Insurance Monthly
+             * @default 0
+             */
+            insurance_monthly: string;
             /** Monthly Payment */
             monthly_payment: string;
             /** Name */

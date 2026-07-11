@@ -81,3 +81,27 @@ def test_operational_lease_unchanged():
     assert all(v == 0 for v in r.balance["B19"])
     assert [q(v) for v in r.cashflow["C25"]] == [D("500.00"), D("500.00")]
     assert _balanced(r)
+
+
+def test_operational_lease_with_insurance():
+    """Операционный лизинг + страхование: I21 = платёж + страховка, C25 = то же; баланс сходится."""
+    n = 2
+    lease = Lease(name="ОЛ", monthly_payment=D(500), start_month=0, term_months=2,
+                  insurance_monthly=D(50))
+    r = run(_model(n, [lease]))
+    assert [q(v) for v in r.income["I21"]] == [D("550.00"), D("550.00")]
+    assert [q(v) for v in r.cashflow["C25"]] == [D("550.00"), D("550.00")]
+    assert _balanced(r)
+
+
+def test_finance_lease_with_insurance():
+    """Финансовый лизинг + страхование: страховка — единственная составляющая I21; C25 =
+    платёж + страховка; предмет амортизируется как обычно; баланс сходится."""
+    n = 2
+    lease = Lease(name="ФЛ", monthly_payment=D(1000), start_month=0, term_months=2,
+                  finance=True, annual_rate=D("0"), insurance_monthly=D(50))
+    r = run(_model(n, [lease]))
+    assert [q(v) for v in r.income["I21"]] == [D("50.00"), D("50.00")]        # только страховка
+    assert [q(v) for v in r.cashflow["C25"]] == [D("1050.00"), D("1050.00")]  # платёж + страховка
+    assert [q(v) for v in r.balance["B19"]] == [D("1000.00"), D("0.00")]      # предмет амортизируется
+    assert _balanced(r)

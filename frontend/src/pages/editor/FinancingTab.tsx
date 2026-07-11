@@ -326,6 +326,13 @@ export function FinancingTab({ n, financing, onChange }: Props) {
                           onChange={(v) => updLease(i, { annual_rate: v })}
                         />
                       )}
+                      <EField
+                        label="Страхование"
+                        prefix="₽"
+                        suffix="/ мес"
+                        value={l.insurance_monthly ?? "0"}
+                        onChange={(v) => updLease(i, { insurance_monthly: v })}
+                      />
                     </div>
                     <div style={{ marginTop: 14 }}>
                       <Switch

@@ -485,6 +485,12 @@ def _leases(model: ProjectModel, n: int):
         if term <= 0:
             continue
         end = min(s + term, n)
+        # Страхование предмета: операционная издержка (I21) + отток (C25), оба типа лизинга.
+        ins = D(lease.insurance_monthly)
+        if ins != ZERO:
+            for t in range(max(s, 0), end):
+                op_expense[t] += ins
+                cash[t] += ins
         if not lease.finance:
             for t in range(max(s, 0), end):
                 op_expense[t] += pay

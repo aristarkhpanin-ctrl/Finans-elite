@@ -55,6 +55,9 @@ class Lease(BaseModel):
     term_months: int = 12
     finance: bool = False                   # финансовый лизинг (капитализация предмета)
     annual_rate: Decimal = Decimal("0")     # ставка для финансового лизинга (PV платежей)
+    # Страхование предмета лизинга: помесячная издержка (I21) + отток (C25) за срок лизинга;
+    # применяется к обоим типам (операционному и финансовому). По умолчанию 0.
+    insurance_monthly: Decimal = Decimal("0")
 
     def monthly_rate(self) -> Decimal:
         return (Decimal(1) + self.annual_rate) ** (Decimal(1) / Decimal(12)) - Decimal(1)
