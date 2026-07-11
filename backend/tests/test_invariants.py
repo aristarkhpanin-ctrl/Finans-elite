@@ -132,7 +132,10 @@ def _random_project(rng: random.Random) -> ProjectModel:
     leases = [
         Lease(name=f"ls{i}", monthly_payment=Decimal(rng.randint(0, 20000)),
               start_month=rng.randint(0, n - 1), term_months=rng.randint(1, 24),
-              finance=rng.random() < 0.5, annual_rate=Decimal(rng.randint(0, 30)) / Decimal(100))
+              finance=rng.random() < 0.5, annual_rate=Decimal(rng.randint(0, 30)) / Decimal(100),
+              insurance_monthly=Decimal(rng.randint(0, 2000)),
+              buyout_price=(Decimal(rng.randint(1000, 100000)) if rng.random() < 0.4 else Decimal(0)),
+              buyout_life_months=rng.randint(1, 24))
         for i in range(rng.randint(0, 2))
     ]
     deposits = [
@@ -152,15 +155,33 @@ def _random_project(rng: random.Random) -> ProjectModel:
     fx_open = Decimal(rng.randint(40, 80))
     fx_rate = [Decimal(rng.randint(30, 100)) for _ in range(n)]
     fm = Decimal(rng.randint(0, 1000))
-    # Стартовый оборотный капитал: дебиторка/кредиторка и запасы, уравновешенные капиталом.
+    # Детальный стартовый баланс: все статьи случайны, баланс замыкается конструктивно
+    # (paid_in_capital ≥ 0 покрывает недостачу, остаток идёт в кассу cash ≥ 0). Так проверка
+    # сходимости (assets + foreign == liabilities+equity) выполняется по построению.
+    z = Decimal(0)
     rec = Decimal(rng.randint(0, 5000))
     pay = Decimal(rng.randint(0, 5000))
     raw = Decimal(rng.randint(0, 5000))
     fg = Decimal(rng.randint(0, 5000))
+    prepaid = Decimal(rng.randint(0, 5000))
+    fixed0 = Decimal(rng.randint(0, 50000))
+    st_debt = Decimal(rng.randint(0, 5000))
+    long_debt = Decimal(rng.randint(0, 50000))
+    adv = Decimal(rng.randint(0, 5000))
+    pref = Decimal(rng.randint(0, 20000))
+    reserves = Decimal(rng.randint(0, 10000))
+    additional = Decimal(rng.randint(0, 10000))
+    retained = Decimal(rng.randint(-5000, 20000))
+    non_cash_assets = fixed0 + rec + raw + fg + prepaid + fm * fx_open
+    other_liab_eq = long_debt + st_debt + pay + adv + pref + reserves + additional + retained
+    paid_in = max(z, non_cash_assets - other_liab_eq) + Decimal(rng.randint(0, 20000))
+    cash0 = (other_liab_eq + paid_in) - non_cash_assets   # ≥ 0 по построению
     company = Company(starting_balance=StartingBalance(
-        foreign_monetary=fm, paid_in_capital=fm * fx_open + raw + fg,
+        cash=cash0, fixed_assets_net=fixed0, foreign_monetary=fm,
         receivables=rec, payables=pay, raw_materials=raw, finished_goods=fg,
-        retained_earnings=rec - pay))
+        prepaid_expenses=prepaid, advances_received=adv, short_term_debt=st_debt,
+        debt=long_debt, paid_in_capital=paid_in, preferred_capital=pref, reserves=reserves,
+        additional_capital=additional, retained_earnings=retained))
     return ProjectModel(
         header=ProjectHeader(duration_months=n),
         company=company,
