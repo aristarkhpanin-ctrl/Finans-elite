@@ -907,6 +907,26 @@ export interface components {
             /** Warnings */
             warnings: string[];
         };
+        /**
+         * CalendarPlan
+         * @description Календарный план: этапы + библиотека ресурсов.
+         */
+        "CalendarPlan-Input": {
+            /** Resources */
+            resources?: components["schemas"]["Resource-Input"][];
+            /** Stages */
+            stages?: components["schemas"]["Stage-Input"][];
+        };
+        /**
+         * CalendarPlan
+         * @description Календарный план: этапы + библиотека ресурсов.
+         */
+        "CalendarPlan-Output": {
+            /** Resources */
+            resources?: components["schemas"]["Resource-Output"][];
+            /** Stages */
+            stages?: components["schemas"]["Stage-Output"][];
+        };
         /** CheckoutRequest */
         CheckoutRequest: {
             /** Plan Code */
@@ -1487,11 +1507,13 @@ export interface components {
         "InvestmentPlan-Input": {
             /** Assets */
             assets?: components["schemas"]["Asset-Input"][];
+            calendar?: components["schemas"]["CalendarPlan-Input"];
         };
         /** InvestmentPlan */
         "InvestmentPlan-Output": {
             /** Assets */
             assets?: components["schemas"]["Asset-Output"][];
+            calendar?: components["schemas"]["CalendarPlan-Output"];
         };
         /** JobStatusResponse */
         JobStatusResponse: {
@@ -2101,7 +2123,11 @@ export interface components {
             header: components["schemas"]["ProjectHeader"];
             /**
              * @default {
-             *       "assets": []
+             *       "assets": [],
+             *       "calendar": {
+             *         "resources": [],
+             *         "stages": []
+             *       }
              *     }
              */
             investment_plan: components["schemas"]["InvestmentPlan-Input"];
@@ -2215,7 +2241,11 @@ export interface components {
             header: components["schemas"]["ProjectHeader"];
             /**
              * @default {
-             *       "assets": []
+             *       "assets": [],
+             *       "calendar": {
+             *         "resources": [],
+             *         "stages": []
+             *       }
              *     }
              */
             investment_plan: components["schemas"]["InvestmentPlan-Output"];
@@ -2549,6 +2579,52 @@ export interface components {
          * @enum {string}
          */
         RepaymentType: "equal_principal" | "bullet";
+        /**
+         * Resource
+         * @description Ресурс (материал/оборудование/труд/услуга) с ценой единицы и условиями оплаты.
+         */
+        "Resource-Input": {
+            /** Id */
+            id: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Payment Delay Months
+             * @default 0
+             */
+            payment_delay_months: number;
+            /**
+             * Unit Price
+             * @default 0
+             */
+            unit_price: number | string;
+        };
+        /**
+         * Resource
+         * @description Ресурс (материал/оборудование/труд/услуга) с ценой единицы и условиями оплаты.
+         */
+        "Resource-Output": {
+            /** Id */
+            id: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Payment Delay Months
+             * @default 0
+             */
+            payment_delay_months: number;
+            /**
+             * Unit Price
+             * @default 0
+             */
+            unit_price: string;
+        };
         /** ReviewResponse */
         ReviewResponse: {
             /** Counts */
@@ -2679,6 +2755,160 @@ export interface components {
             param: string;
             /** Points */
             points: components["schemas"]["SensitivityPointOut"][];
+        };
+        /**
+         * Stage
+         * @description Этап календарного плана.
+         *
+         *     Стоимость = Σ(ресурс.quantity × Resource.unit_price), либо прямая ``cost`` при отсутствии
+         *     ресурсов. Занимает месяцы ``[start, start+duration)``; завершение = ``start+duration``.
+         *     ``predecessor_id`` (финиш→старт) и ``parent_id`` (иерархия) разрешаются в движке.
+         */
+        "Stage-Input": {
+            /**
+             * Amortize Months
+             * @default 0
+             */
+            amortize_months: number;
+            /** @default equipment */
+            asset_category: components["schemas"]["AssetCategory"];
+            /**
+             * Asset Life Months
+             * @default 12
+             */
+            asset_life_months: number;
+            /**
+             * Cost
+             * @default 0
+             */
+            cost: number | string;
+            /**
+             * Cost Timing
+             * @default uniform
+             * @enum {string}
+             */
+            cost_timing: "uniform" | "on_finish";
+            /**
+             * Duration Months
+             * @default 1
+             */
+            duration_months: number;
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @default expense
+             * @enum {string}
+             */
+            kind: "expense" | "asset" | "production";
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /** Parent Id */
+            parent_id?: string | null;
+            /** Predecessor Id */
+            predecessor_id?: string | null;
+            /** Product Id */
+            product_id?: string | null;
+            /** Resources */
+            resources?: components["schemas"]["StageResource-Input"][];
+            /**
+             * Start Month
+             * @default 0
+             */
+            start_month: number;
+        };
+        /**
+         * Stage
+         * @description Этап календарного плана.
+         *
+         *     Стоимость = Σ(ресурс.quantity × Resource.unit_price), либо прямая ``cost`` при отсутствии
+         *     ресурсов. Занимает месяцы ``[start, start+duration)``; завершение = ``start+duration``.
+         *     ``predecessor_id`` (финиш→старт) и ``parent_id`` (иерархия) разрешаются в движке.
+         */
+        "Stage-Output": {
+            /**
+             * Amortize Months
+             * @default 0
+             */
+            amortize_months: number;
+            /** @default equipment */
+            asset_category: components["schemas"]["AssetCategory"];
+            /**
+             * Asset Life Months
+             * @default 12
+             */
+            asset_life_months: number;
+            /**
+             * Cost
+             * @default 0
+             */
+            cost: string;
+            /**
+             * Cost Timing
+             * @default uniform
+             * @enum {string}
+             */
+            cost_timing: "uniform" | "on_finish";
+            /**
+             * Duration Months
+             * @default 1
+             */
+            duration_months: number;
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @default expense
+             * @enum {string}
+             */
+            kind: "expense" | "asset" | "production";
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /** Parent Id */
+            parent_id?: string | null;
+            /** Predecessor Id */
+            predecessor_id?: string | null;
+            /** Product Id */
+            product_id?: string | null;
+            /** Resources */
+            resources?: components["schemas"]["StageResource-Output"][];
+            /**
+             * Start Month
+             * @default 0
+             */
+            start_month: number;
+        };
+        /**
+         * StageResource
+         * @description Потребление ресурса этапом: ссылка на ресурс и количество.
+         */
+        "StageResource-Input": {
+            /**
+             * Quantity
+             * @default 0
+             */
+            quantity: number | string;
+            /** Resource Id */
+            resource_id: string;
+        };
+        /**
+         * StageResource
+         * @description Потребление ресурса этапом: ссылка на ресурс и количество.
+         */
+        "StageResource-Output": {
+            /**
+             * Quantity
+             * @default 0
+             */
+            quantity: string;
+            /** Resource Id */
+            resource_id: string;
         };
         /**
          * StartingBalance

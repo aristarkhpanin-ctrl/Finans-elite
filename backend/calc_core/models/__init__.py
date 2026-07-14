@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from .actualization import Actualization
+from .calendar import CalendarPlan, Resource, Stage, StageResource
 from .common import (
     AssetCategory,
     CostFunction,
@@ -37,6 +38,10 @@ __all__ = [
     "Tax",
     "InvestmentPlan",
     "Asset",
+    "CalendarPlan",
+    "Stage",
+    "StageResource",
+    "Resource",
     "OperatingPlan",
     "Product",
     "SalesLine",

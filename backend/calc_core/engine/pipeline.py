@@ -29,6 +29,7 @@ from ..reports.statements import (
     build_profit_use,
 )
 from ..series import add, cumulative, zeros
+from .calendar import stage_assets, stage_expenses
 from .errors import ModelError
 from .financing_auto import AutoInjection
 from .inventory import finished_goods, purchase_schedule, work_in_progress
@@ -341,6 +342,7 @@ def _assets(model: ProjectModel, n: int):
                 life_months=lease.buyout_life_months,
                 category=AssetCategory.EQUIPMENT,
             ))
+    assets.extend(stage_assets(model))   # этапы-активы календарного плана
     for asset in assets:
         cat = asset.category
         rm = asset.revaluation_month
@@ -627,6 +629,9 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     equity_in = _equity(model, n)
     dividends = _pad(model.financing.dividends, n)
 
+    # --- Календарный план: обычные этапы → C15 (отток), I21 (издержки), B15 (РБП) ---
+    stage_c15, stage_i21, stage_b15 = stage_expenses(model, n)
+
     # --- Отчёт о прибылях и убытках (начисление) ---
     i3 = [i1[t] * settings.sales_tax_rate for t in range(n)]  # налог с продаж (база — I1)
     income_leaves = {
@@ -643,7 +648,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "I15": fixed[CostFunction.STAFF_MARKETING],
         "I17": add(dep, fl_dep),                    # амортизация ОС + предмета фин. лизинга
         "I20": add(asset_income, c9),               # прочие доходы + доход по ЦБ
-        "I21": add(asset_expense, lease_op_expense),  # прочие издержки + операционный лизинг
+        "I21": add(asset_expense, lease_op_expense, stage_i21),  # прочие + опер. лизинг + этапы
         "I18": add(loan_interest_cost, auto.pl_interest, fl_interest),  # проценты: займы + фин. лизинг
         "I24": add(i24_fixed, loan_interest_profit),
         "I25": add(i25_fx, loan_reval, i25_sales, i25_fixed, i25_materials),
@@ -710,6 +715,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "C9": c9,
         "C12": taxes_cash,
         "C14": capex_gross,
+        "C15": stage_c15,          # издержки подготовительного периода (обычные этапы)
         "C16": asset_proceeds,
         "C21": equity_in,
         "C22": add(loan_proceeds, auto.cash_draws),
@@ -744,6 +750,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "B12": b12,                # земля (не амортизируется)
         "B13": b13,                # здания и сооружения
         "B14": b14,                # оборудование (+ стартовая остаточная стоимость)
+        "B15": stage_b15,          # расходы будущих периодов (капитализ. издержки этапов)
         "B19": fl_b19,             # имущество в финансовом лизинге (нетто)
         "B22": auto_debt,          # краткосрочные займы (кредитная линия)
         "B23": b23,                # счета к оплате (кредиторка)

@@ -10,6 +10,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from .calendar import CalendarPlan
 from .common import AssetCategory
 
 
@@ -38,3 +39,5 @@ class Asset(BaseModel):
 
 class InvestmentPlan(BaseModel):
     assets: list[Asset] = Field(default_factory=list)
+    # Календарный план (этапы подготовительной фазы + ресурсы). См. models/calendar.py.
+    calendar: CalendarPlan = Field(default_factory=CalendarPlan)
