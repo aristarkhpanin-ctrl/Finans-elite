@@ -91,3 +91,54 @@ def test_empty_calendar_is_inert():
     assert all(v == 0 for v in r.cashflow["C15"])
     assert all(v == 0 for v in r.balance["B15"])
     assert _balanced(r)
+
+
+# --- K1: связи-предшественники + иерархия ---
+
+def test_predecessor_shifts_start():
+    """Этап B начинается по завершении этапа A (финиш→старт, лаг 0)."""
+    n = 5
+    a = Stage(id="a", name="A", kind="expense", start_month=0, duration_months=2, cost=D(200))
+    b = Stage(id="b", name="B", kind="expense", predecessor_id="a", start_month=0,
+              duration_months=2, cost=D(400))
+    r = run(_model(n, [a, b]))
+    # A: 100/мес (мес. 0,1); B стартует в мес. 2 (финиш A): 200/мес (мес. 2,3)
+    assert [q(v) for v in r.income["I21"]] == [D("100.00"), D("100.00"), D("200.00"),
+                                               D("200.00"), D("0.00")]
+    assert _balanced(r)
+
+
+def test_predecessor_with_lag():
+    """start_month у этапа со связью — это лаг после завершения предшественника."""
+    n = 6
+    a = Stage(id="a", name="A", kind="expense", start_month=0, duration_months=2, cost=D(200))
+    b = Stage(id="b", name="B", kind="expense", predecessor_id="a", start_month=1,
+              duration_months=1, cost=D(300))
+    r = run(_model(n, [a, b]))
+    # B стартует в мес. 3 (финиш A = 2, лаг 1): 300 в мес. 3
+    assert [q(v) for v in r.income["I21"]] == [D("100.00"), D("100.00"), D("0.00"),
+                                               D("300.00"), D("0.00"), D("0.00")]
+    assert _balanced(r)
+
+
+def test_group_stage_bears_no_cost():
+    """Этап-группа (на который ссылаются как на parent) стоимости не несёт — только листья."""
+    n = 3
+    grp = Stage(id="g", name="Стройка", kind="expense", start_month=0, duration_months=3, cost=D(999))
+    child = Stage(id="c", name="Фундамент", kind="expense", parent_id="g", start_month=0,
+                  duration_months=1, cost=D(300))
+    r = run(_model(n, [grp, child]))
+    assert [q(v) for v in r.income["I21"]] == [D("300.00"), D("0.00"), D("0.00")]  # только ребёнок
+    assert _balanced(r)
+
+
+def test_dependency_cycle_does_not_hang():
+    """Цикл связей (A→B→A) не зацикливает расчёт; баланс сходится."""
+    n = 3
+    a = Stage(id="a", name="A", kind="expense", predecessor_id="b", start_month=0,
+              duration_months=1, cost=D(100))
+    b = Stage(id="b", name="B", kind="expense", predecessor_id="a", start_month=1,
+              duration_months=1, cost=D(100))
+    r = run(_model(n, [a, b]))
+    assert q(sum(r.income["I21"])) == D("200.00")  # обе издержки признаны
+    assert _balanced(r)
