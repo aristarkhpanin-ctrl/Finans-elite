@@ -56,6 +56,23 @@ class ValuationOut(BaseModel):
     liquidation_value: Optional[Decimal] = None
 
 
+class StageBudgetOut(BaseModel):
+    id: str
+    name: str
+    kind: str
+    start_month: int
+    finish_month: int
+    cost: Decimal
+
+
+class BudgetOut(BaseModel):
+    """Смета по этапам календарного плана + помесячный график и итог."""
+
+    stages: list[StageBudgetOut] = []
+    monthly: list[Decimal] = []
+    total: Decimal = Decimal(0)
+
+
 class CalcResponse(BaseModel):
     engine_version: str
     n: int
@@ -67,6 +84,7 @@ class CalcResponse(BaseModel):
     ratios: RatiosOut
     break_even: BreakEvenOut
     valuation: ValuationOut
+    budget: BudgetOut = BudgetOut()
     actualized_cashflow: Optional[StatementOut] = None
     cashflow_variance: Optional[StatementOut] = None
     warnings: list[str]
@@ -488,6 +506,13 @@ def to_response(r: CalcResult) -> CalcResponse:
             dividend_value=r.valuation.dividend_value,
             earnings_multiple_value=r.valuation.earnings_multiple_value,
             liquidation_value=r.valuation.liquidation_value,
+        ),
+        budget=BudgetOut(
+            stages=[StageBudgetOut(id=s.id, name=s.name, kind=s.kind, start_month=s.start_month,
+                                   finish_month=s.finish_month, cost=s.cost)
+                    for s in r.budget.stages],
+            monthly=list(r.budget.monthly),
+            total=r.budget.total,
         ),
         actualized_cashflow=_statement_out(r.actualized_cashflow) if r.actualized_cashflow else None,
         cashflow_variance=_statement_out(r.cashflow_variance) if r.cashflow_variance else None,

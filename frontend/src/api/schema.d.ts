@@ -888,11 +888,40 @@ export interface components {
             /** Margin Of Safety */
             margin_of_safety: (string | null)[];
         };
+        /**
+         * BudgetOut
+         * @description Смета по этапам календарного плана + помесячный график и итог.
+         */
+        BudgetOut: {
+            /**
+             * Monthly
+             * @default []
+             */
+            monthly: string[];
+            /**
+             * Stages
+             * @default []
+             */
+            stages: components["schemas"]["StageBudgetOut"][];
+            /**
+             * Total
+             * @default 0
+             */
+            total: string;
+        };
         /** CalcResponse */
         CalcResponse: {
             actualized_cashflow?: components["schemas"]["StatementOut"] | null;
             balance: components["schemas"]["StatementOut"];
             break_even: components["schemas"]["BreakEvenOut"];
+            /**
+             * @default {
+             *       "monthly": [],
+             *       "stages": [],
+             *       "total": "0"
+             *     }
+             */
+            budget: components["schemas"]["BudgetOut"];
             cashflow: components["schemas"]["StatementOut"];
             cashflow_variance?: components["schemas"]["StatementOut"] | null;
             /** Engine Version */
@@ -1012,6 +1041,14 @@ export interface components {
             actualized_cashflow?: components["schemas"]["StatementOut"] | null;
             balance: components["schemas"]["StatementOut"];
             break_even: components["schemas"]["BreakEvenOut"];
+            /**
+             * @default {
+             *       "monthly": [],
+             *       "stages": [],
+             *       "total": "0"
+             *     }
+             */
+            budget: components["schemas"]["BudgetOut"];
             cashflow: components["schemas"]["StatementOut"];
             cashflow_variance?: components["schemas"]["StatementOut"] | null;
             /** Engine Version */
@@ -2890,6 +2927,21 @@ export interface components {
              * Start Month
              * @default 0
              */
+            start_month: number;
+        };
+        /** StageBudgetOut */
+        StageBudgetOut: {
+            /** Cost */
+            cost: string;
+            /** Finish Month */
+            finish_month: number;
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Name */
+            name: string;
+            /** Start Month */
             start_month: number;
         };
         /**

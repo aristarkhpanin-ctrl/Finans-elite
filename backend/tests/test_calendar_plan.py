@@ -224,3 +224,40 @@ def test_production_stage_overrides_manual_start():
     assert [q(v) for v in r.income["I1"]] == [D("0.00"), D("0.00"), D("0.00"),
                                               D("1000.00"), D("1000.00")]
     assert _balanced(r)
+
+
+# --- K4: on_finish-тайминг и бюджетный выход ---
+
+def test_on_finish_timing_lumps_cost():
+    """cost_timing=on_finish: вся стоимость этапа — в последний месяц (start+dur−1)."""
+    n = 4
+    st = Stage(id="s1", name="Приёмка", kind="expense", start_month=0, duration_months=3,
+               cost=D(600), cost_timing="on_finish")
+    r = run(_model(n, [st]))
+    assert [q(v) for v in r.income["I21"]] == [D("0.00"), D("0.00"), D("600.00"), D("0.00")]
+    assert [q(v) for v in r.cashflow["C15"]] == [D("0.00"), D("0.00"), D("600.00"), D("0.00")]
+    assert _balanced(r)
+
+
+def test_budget_with_group_rollup():
+    """Смета: листья со стоимостью, группа со свёрткой; помесячный график и итог."""
+    n = 5
+    grp = Stage(id="g", name="СМР", kind="expense", start_month=0, duration_months=1)  # группа
+    a = Stage(id="a", name="Фундамент", kind="expense", parent_id="g", start_month=0,
+              duration_months=2, cost=D(200))
+    b = Stage(id="b", name="Оборудование", kind="asset", parent_id="g", start_month=2,
+              duration_months=1, cost=D(900), asset_life_months=3)
+    budget = run(_model(n, [grp, a, b])).budget
+    assert budget.total == D(1100)
+    # график начисления: a 100/мес (мес. 0,1), b (актив) 900 разово в мес. 3
+    assert [q(v) for v in budget.monthly] == [D("100.00"), D("100.00"), D("0.00"),
+                                              D("900.00"), D("0.00")]
+    rows = {s.id: s for s in budget.stages}
+    assert rows["g"].cost == D(1100) and rows["g"].start_month == 0 and rows["g"].finish_month == 3
+    assert rows["a"].cost == D(200) and rows["b"].kind == "asset" and rows["b"].cost == D(900)
+
+
+def test_empty_calendar_budget_is_empty():
+    """Без этапов бюджет пуст (в снимок результата не попадает)."""
+    budget = run(_model(3, [])).budget
+    assert budget.stages == [] and budget.total == 0

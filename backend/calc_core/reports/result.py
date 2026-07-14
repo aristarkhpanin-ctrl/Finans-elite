@@ -12,6 +12,27 @@ from .valuation import BusinessValuation
 
 
 @dataclass
+class StageBudget:
+    """Строка сметы по этапу календарного плана (группы — со свёрнутой стоимостью)."""
+
+    id: str
+    name: str
+    kind: str            # expense | asset | production
+    start_month: int
+    finish_month: int
+    cost: Decimal
+
+
+@dataclass
+class Budget:
+    """Бюджет проекта по этапам: смета (строки) + помесячный график + итог."""
+
+    stages: list[StageBudget] = field(default_factory=list)
+    monthly: list[Decimal] = field(default_factory=list)  # Σ стоимости этапов по месяцам (начисление)
+    total: Decimal = Decimal(0)
+
+
+@dataclass
 class InvestmentMetrics:
     """Показатели эффективности инвестиций (SPEC §17)."""
 
@@ -68,6 +89,8 @@ class CalcResult:
     ratios: FinancialRatios = field(default_factory=FinancialRatios)
     break_even: BreakEven = field(default_factory=BreakEven)
     valuation: BusinessValuation = field(default_factory=BusinessValuation)
+    # Бюджет по этапам (календарный план); пустой, если этапов нет.
+    budget: Budget = field(default_factory=Budget)
     # Актуализация (план-факт): заполняются при наличии фактических данных.
     actualized_cashflow: Optional[Statement] = None
     cashflow_variance: Optional[Statement] = None

@@ -19,6 +19,7 @@ from ..reports.statements import opening_balance
 from ..reports.valuation import compute_valuation
 from ..series import add, zeros
 from ..version import ENGINE_VERSION
+from .calendar import compute_budget
 from .errors import InvariantError
 from .financing_auto import AutoInjection, solve_credit_line
 from .pipeline import run_pipeline
@@ -96,6 +97,7 @@ def _run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
         ratios=ratios,
         break_even=break_even,
         valuation=valuation,
+        budget=compute_budget(model, n),
         actualized_cashflow=actualized_cashflow,
         cashflow_variance=cashflow_variance,
         warnings=warnings,

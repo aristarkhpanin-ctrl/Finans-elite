@@ -89,6 +89,18 @@ def valuation_to_dict(v: BusinessValuation) -> dict[str, Optional[str]]:
     }
 
 
+def budget_to_dict(budget) -> dict[str, object]:
+    return {
+        "stages": [
+            {"id": s.id, "name": s.name, "kind": s.kind, "start_month": s.start_month,
+             "finish_month": s.finish_month, "cost": _money(s.cost)}
+            for s in budget.stages
+        ],
+        "monthly": [_money(v) for v in budget.monthly],
+        "total": _money(budget.total),
+    }
+
+
 def result_to_dict(result: CalcResult) -> dict[str, object]:
     """Полный канонический снимок результата расчёта (для golden-master и сравнения)."""
     snapshot: dict[str, object] = {
@@ -104,6 +116,8 @@ def result_to_dict(result: CalcResult) -> dict[str, object]:
         "valuation": valuation_to_dict(result.valuation),
         "warnings": list(result.warnings),
     }
+    if result.budget.stages:
+        snapshot["budget"] = budget_to_dict(result.budget)
     if result.actualized_cashflow is not None:
         snapshot["actualized_cashflow"] = statement_to_dict(result.actualized_cashflow)
     if result.cashflow_variance is not None:

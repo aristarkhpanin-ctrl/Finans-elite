@@ -323,6 +323,36 @@
         "title": "BreakEvenOut",
         "type": "object"
       },
+      "BudgetOut": {
+        "description": "Смета по этапам календарного плана + помесячный график и итог.",
+        "properties": {
+          "monthly": {
+            "default": [],
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Monthly",
+            "type": "array"
+          },
+          "stages": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/StageBudgetOut"
+            },
+            "title": "Stages",
+            "type": "array"
+          },
+          "total": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total",
+            "type": "string"
+          }
+        },
+        "title": "BudgetOut",
+        "type": "object"
+      },
       "CalcResponse": {
         "properties": {
           "actualized_cashflow": {
@@ -340,6 +370,14 @@
           },
           "break_even": {
             "$ref": "#/components/schemas/BreakEvenOut"
+          },
+          "budget": {
+            "$ref": "#/components/schemas/BudgetOut",
+            "default": {
+              "monthly": [],
+              "stages": [],
+              "total": "0"
+            }
           },
           "cashflow": {
             "$ref": "#/components/schemas/StatementOut"
@@ -597,6 +635,14 @@
           },
           "break_even": {
             "$ref": "#/components/schemas/BreakEvenOut"
+          },
+          "budget": {
+            "$ref": "#/components/schemas/BudgetOut",
+            "default": {
+              "monthly": [],
+              "stages": [],
+              "total": "0"
+            }
           },
           "cashflow": {
             "$ref": "#/components/schemas/StatementOut"
@@ -4315,6 +4361,45 @@
         "title": "Stage",
         "type": "object"
       },
+      "StageBudgetOut": {
+        "properties": {
+          "cost": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Cost",
+            "type": "string"
+          },
+          "finish_month": {
+            "title": "Finish Month",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "start_month": {
+            "title": "Start Month",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "start_month",
+          "finish_month",
+          "cost"
+        ],
+        "title": "StageBudgetOut",
+        "type": "object"
+      },
       "StageResource-Input": {
         "description": "Потребление ресурса этапом: ссылка на ресурс и количество.",
         "properties": {
@@ -5071,7 +5156,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.18"
+    "version": "0.9.19"
   },
   "openapi": "3.1.0",
   "paths": {
