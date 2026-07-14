@@ -14,6 +14,7 @@ from calc_core import run
 from calc_core.models import (
     Asset,
     AutoFinancing,
+    BomLine,
     Company,
     Deposit,
     DirectCostLine,
@@ -24,6 +25,7 @@ from calc_core.models import (
     InvestmentPlan,
     Lease,
     Loan,
+    Material,
     OperatingPlan,
     PaymentTerms,
     Product,
@@ -203,11 +205,27 @@ def _random_project(rng: random.Random) -> ProjectModel:
             production_cycle_months=rng.randint(0, 3),
         ),
         operating_plan=OperatingPlan(
-            products=[Product(id=s.product_id, name=s.product_id) for s in sales],
+            products=[
+                Product(id=s.product_id, name=s.product_id,
+                        # Рецептура (BOM): случайные нормы расхода + сдельная ЗП на единицу.
+                        bom=[BomLine(material_id=f"mat{k}",
+                                     qty_per_unit=Decimal(rng.randint(0, 5)))
+                             for k in range(rng.randint(0, 2))],
+                        piece_wage_per_unit=Decimal(rng.randint(0, 50)))
+                for s in sales
+            ],
             sales=sales,
             production=production,
             direct_costs=direct,
             fixed_costs=fixed,
+            materials=[
+                Material(id=f"mat{k}", name=f"mat{k}",
+                         unit_price=Decimal(rng.randint(0, 100)),
+                         payment_delay_months=rng.randint(0, 3),
+                         stock_lead_months=rng.randint(0, 2),
+                         foreign=rng.random() < 0.3)
+                for k in range(2)
+            ],
         ),
         investment_plan=InvestmentPlan(assets=assets),
         financing=Financing(loans=loans, leases=leases, deposits=deposits, equity=equity,

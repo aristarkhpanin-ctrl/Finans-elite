@@ -16,8 +16,10 @@ from .environment import Currency, Environment, InflationGroup, Tax
 from .financing import AutoFinancing, Deposit, EquityInjection, Financing, Lease, Loan
 from .investment import Asset, InvestmentPlan
 from .operating import (
+    BomLine,
     DirectCostLine,
     FixedCostLine,
+    Material,
     OperatingPlan,
     PaymentTerms,
     Product,
@@ -44,6 +46,8 @@ __all__ = [
     "Resource",
     "OperatingPlan",
     "Product",
+    "Material",
+    "BomLine",
     "SalesLine",
     "ProductionLine",
     "PaymentTerms",

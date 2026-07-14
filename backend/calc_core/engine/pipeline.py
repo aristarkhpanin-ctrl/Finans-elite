@@ -17,6 +17,7 @@ from ..models import (
     AssetCategory,
     CostFunction,
     DirectCostKind,
+    DirectCostLine,
     ProjectModel,
     RepaymentType,
     VatBasis,
@@ -123,27 +124,72 @@ def _sales(model: ProjectModel, n: int, vat_rate: Decimal,
     return i1, c1, b2, b24, vat_out, vat_out_paid, i25_sales
 
 
-def _volumes(model: ProjectModel, n: int):
-    """Агрегированные объёмы → (производство TP, сбыт TQ).
-
-    Производство по продукту = его план производства, либо (по умолчанию) объём сбыта.
-    """
+def _production_by_product(model: ProjectModel, n: int) -> dict[str, list[Decimal]]:
+    """Производство по продукту = его план производства, либо (по умолчанию) объём сбыта."""
     sales_by_prod: dict[str, list[Decimal]] = {}
     for s in model.operating_plan.sales:
         cur = sales_by_prod.get(s.product_id, zeros(n))
         sales_by_prod[s.product_id] = add(cur, _pad(s.volume, n))
-
     prod_by_prod = dict(sales_by_prod)  # по умолчанию — производство под продажи
     for pl in model.operating_plan.production:
         prod_by_prod[pl.product_id] = _pad(pl.volume, n)
+    return prod_by_prod
 
+
+def _volumes(model: ProjectModel, n: int):
+    """Агрегированные объёмы → (производство TP, сбыт TQ)."""
     tq = zeros(n)
-    for v in sales_by_prod.values():
-        tq = add(tq, v)
+    for s in model.operating_plan.sales:
+        tq = add(tq, _pad(s.volume, n))
     tp = zeros(n)
-    for v in prod_by_prod.values():
+    for v in _production_by_product(model, n).values():
         tp = add(tp, v)
     return tp, tq
+
+
+def _bom_direct_lines(model: ProjectModel, n: int) -> list[DirectCostLine]:
+    """Развернуть рецептуры продуктов (BOM) в синтетические прямые издержки.
+
+    Материал: ``amount[t] = Σ_продуктов qty_per_unit × TP_p[t] × unit_price`` со свойствами
+    материала (отсрочка → B23, опережающая закупка → B3, ``foreign`` — импорт). Сдельная
+    зарплата: ``piece_wage_per_unit × TP_p[t]``. Синтетические строки проходят ту же
+    машинерию, что суммовые ``DirectCostLine`` (индексация инфляцией, деньги, НДС, курс) —
+    инвариант сходится ею же. Пустые рецептуры не создают строк (модель без BOM инертна).
+    """
+    op = model.operating_plan
+    if not any(p.bom or p.piece_wage_per_unit for p in op.products):
+        return []
+    prod_vol = _production_by_product(model, n)
+    mat_by_id = {m.id: m for m in op.materials}
+    mat_amount: dict[str, list[Decimal]] = {}   # material_id → потребление в деньгах
+    wages = zeros(n)
+    for p in op.products:
+        vol = prod_vol.get(p.id)
+        if vol is None:
+            continue
+        for line in p.bom:
+            m = mat_by_id.get(line.material_id)
+            if m is None or line.qty_per_unit == 0 or m.unit_price == 0:
+                continue
+            acc = mat_amount.setdefault(m.id, zeros(n))
+            for t in range(n):
+                acc[t] += line.qty_per_unit * vol[t] * m.unit_price
+        if p.piece_wage_per_unit:
+            for t in range(n):
+                wages[t] += p.piece_wage_per_unit * vol[t]
+    out: list[DirectCostLine] = []
+    for mid, amount in mat_amount.items():
+        m = mat_by_id[mid]
+        out.append(DirectCostLine(
+            name=f"BOM: {m.name or mid}", kind=DirectCostKind.MATERIALS, amount=amount,
+            payment_delay_months=m.payment_delay_months,
+            stock_lead_months=m.stock_lead_months, foreign=m.foreign,
+        ))
+    if any(w != ZERO for w in wages):
+        out.append(DirectCostLine(
+            name="BOM: сдельная зарплата", kind=DirectCostKind.PIECE_WAGES, amount=wages,
+        ))
+    return out
 
 
 def _foreign_material_schedule(amt_f: list[Decimal], stock_lead: int,
@@ -193,7 +239,8 @@ def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal,
     vat_in_paid = zeros(n)   # входной НДС в оплаченных закупках (по оплате)
     payable_f = zeros(n)     # валютная кредиторка по материалам (в валюте) — для переоценки
     one_plus = Decimal(1) + vat_rate
-    for line in model.operating_plan.direct_costs:
+    # Суммовые статьи + синтетические строки из рецептур продуктов (BOM) — один путь.
+    for line in [*model.operating_plan.direct_costs, *_bom_direct_lines(model, n)]:
         base = _pad(line.amount, n)
         if line.kind == DirectCostKind.MATERIALS and line.foreign:
             # Валютный материал (импорт): цена в валюте (без рублёвой инфляции). Импортный

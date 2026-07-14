@@ -27,9 +27,37 @@ class PaymentTerms(BaseModel):
     payment_delay_months: int = Field(default=0, ge=0)
 
 
+class Material(BaseModel):
+    """Материал/комплектующая (справочник): цена единицы и условия закупки.
+
+    Потребление задаёт рецептура продукта (``Product.bom``); движок разворачивает её в
+    прямые издержки с этими условиями (отсрочка → B23, опережающая закупка → B3,
+    ``foreign`` — импорт по курсу закупки с импортным НДС).
+    """
+
+    id: str
+    name: str = ""
+    unit: str = ""                                       # информационно («кг», «шт»)
+    unit_price: Decimal = Decimal(0)                     # цена за единицу (при foreign — в валюте)
+    payment_delay_months: int = Field(default=0, ge=0)
+    stock_lead_months: int = Field(default=0, ge=0)
+    foreign: bool = False
+
+
+class BomLine(BaseModel):
+    """Строка рецептуры: норма расхода материала на единицу продукта."""
+
+    material_id: str
+    qty_per_unit: Decimal = Decimal(0)
+
+
 class Product(BaseModel):
     id: str
     name: str
+    # Рецептура (BOM): нормы расхода материалов на единицу + сдельная зарплата на единицу.
+    # Пустая рецептура — продукт без пер-продуктной себестоимости (как раньше).
+    bom: list[BomLine] = Field(default_factory=list)
+    piece_wage_per_unit: Decimal = Decimal(0)
 
 
 class SalesLine(BaseModel):
@@ -98,3 +126,5 @@ class OperatingPlan(BaseModel):
     production: list[ProductionLine] = Field(default_factory=list)
     direct_costs: list[DirectCostLine] = Field(default_factory=list)
     fixed_costs: list[FixedCostLine] = Field(default_factory=list)
+    # Справочник материалов для рецептур продуктов (Product.bom).
+    materials: list[Material] = Field(default_factory=list)

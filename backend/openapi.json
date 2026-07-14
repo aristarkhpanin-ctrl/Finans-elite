@@ -283,6 +283,53 @@
         "title": "AutoFinancing",
         "type": "object"
       },
+      "BomLine-Input": {
+        "description": "Строка рецептуры: норма расхода материала на единицу продукта.",
+        "properties": {
+          "material_id": {
+            "title": "Material Id",
+            "type": "string"
+          },
+          "qty_per_unit": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Qty Per Unit"
+          }
+        },
+        "required": [
+          "material_id"
+        ],
+        "title": "BomLine",
+        "type": "object"
+      },
+      "BomLine-Output": {
+        "description": "Строка рецептуры: норма расхода материала на единицу продукта.",
+        "properties": {
+          "material_id": {
+            "title": "Material Id",
+            "type": "string"
+          },
+          "qty_per_unit": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Qty Per Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "material_id"
+        ],
+        "title": "BomLine",
+        "type": "object"
+      },
       "BreakEvenOut": {
         "properties": {
           "break_even_revenue": {
@@ -2134,6 +2181,107 @@
         "title": "LoginRequest",
         "type": "object"
       },
+      "Material-Input": {
+        "description": "Материал/комплектующая (справочник): цена единицы и условия закупки.\n\nПотребление задаёт рецептура продукта (``Product.bom``); движок разворачивает её в\nпрямые издержки с этими условиями (отсрочка → B23, опережающая закупка → B3,\n``foreign`` — импорт по курсу закупки с импортным НДС).",
+        "properties": {
+          "foreign": {
+            "default": false,
+            "title": "Foreign",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "default": "",
+            "title": "Name",
+            "type": "string"
+          },
+          "payment_delay_months": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Payment Delay Months",
+            "type": "integer"
+          },
+          "stock_lead_months": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Stock Lead Months",
+            "type": "integer"
+          },
+          "unit": {
+            "default": "",
+            "title": "Unit",
+            "type": "string"
+          },
+          "unit_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Unit Price"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "Material",
+        "type": "object"
+      },
+      "Material-Output": {
+        "description": "Материал/комплектующая (справочник): цена единицы и условия закупки.\n\nПотребление задаёт рецептура продукта (``Product.bom``); движок разворачивает её в\nпрямые издержки с этими условиями (отсрочка → B23, опережающая закупка → B3,\n``foreign`` — импорт по курсу закупки с импортным НДС).",
+        "properties": {
+          "foreign": {
+            "default": false,
+            "title": "Foreign",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "default": "",
+            "title": "Name",
+            "type": "string"
+          },
+          "payment_delay_months": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Payment Delay Months",
+            "type": "integer"
+          },
+          "stock_lead_months": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Stock Lead Months",
+            "type": "integer"
+          },
+          "unit": {
+            "default": "",
+            "title": "Unit",
+            "type": "string"
+          },
+          "unit_price": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Unit Price",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "Material",
+        "type": "object"
+      },
       "MemberCreate": {
         "properties": {
           "email": {
@@ -2415,6 +2563,13 @@
             "title": "Fixed Costs",
             "type": "array"
           },
+          "materials": {
+            "items": {
+              "$ref": "#/components/schemas/Material-Input"
+            },
+            "title": "Materials",
+            "type": "array"
+          },
           "production": {
             "items": {
               "$ref": "#/components/schemas/ProductionLine-Input"
@@ -2424,7 +2579,7 @@
           },
           "products": {
             "items": {
-              "$ref": "#/components/schemas/Product"
+              "$ref": "#/components/schemas/Product-Input"
             },
             "title": "Products",
             "type": "array"
@@ -2456,6 +2611,13 @@
             "title": "Fixed Costs",
             "type": "array"
           },
+          "materials": {
+            "items": {
+              "$ref": "#/components/schemas/Material-Output"
+            },
+            "title": "Materials",
+            "type": "array"
+          },
           "production": {
             "items": {
               "$ref": "#/components/schemas/ProductionLine-Output"
@@ -2465,7 +2627,7 @@
           },
           "products": {
             "items": {
-              "$ref": "#/components/schemas/Product"
+              "$ref": "#/components/schemas/Product-Output"
             },
             "title": "Products",
             "type": "array"
@@ -2705,14 +2867,65 @@
         "title": "PlanOut",
         "type": "object"
       },
-      "Product": {
+      "Product-Input": {
         "properties": {
+          "bom": {
+            "items": {
+              "$ref": "#/components/schemas/BomLine-Input"
+            },
+            "title": "Bom",
+            "type": "array"
+          },
           "id": {
             "title": "Id",
             "type": "string"
           },
           "name": {
             "title": "Name",
+            "type": "string"
+          },
+          "piece_wage_per_unit": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Piece Wage Per Unit"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "Product",
+        "type": "object"
+      },
+      "Product-Output": {
+        "properties": {
+          "bom": {
+            "items": {
+              "$ref": "#/components/schemas/BomLine-Output"
+            },
+            "title": "Bom",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "piece_wage_per_unit": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Piece Wage Per Unit",
             "type": "string"
           }
         },
@@ -2925,6 +3138,7 @@
             "default": {
               "direct_costs": [],
               "fixed_costs": [],
+              "materials": [],
               "production": [],
               "products": [],
               "sales": []
@@ -3044,6 +3258,7 @@
             "default": {
               "direct_costs": [],
               "fixed_costs": [],
+              "materials": [],
               "production": [],
               "products": [],
               "sales": []
@@ -5156,7 +5371,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.19"
+    "version": "0.9.20"
   },
   "openapi": "3.1.0",
   "paths": {

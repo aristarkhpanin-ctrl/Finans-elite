@@ -904,6 +904,32 @@ export interface components {
              */
             min_balance: string;
         };
+        /**
+         * BomLine
+         * @description Строка рецептуры: норма расхода материала на единицу продукта.
+         */
+        "BomLine-Input": {
+            /** Material Id */
+            material_id: string;
+            /**
+             * Qty Per Unit
+             * @default 0
+             */
+            qty_per_unit: number | string;
+        };
+        /**
+         * BomLine
+         * @description Строка рецептуры: норма расхода материала на единицу продукта.
+         */
+        "BomLine-Output": {
+            /** Material Id */
+            material_id: string;
+            /**
+             * Qty Per Unit
+             * @default 0
+             */
+            qty_per_unit: string;
+        };
         /** BreakEvenOut */
         BreakEvenOut: {
             /** Break Even Revenue */
@@ -1806,6 +1832,90 @@ export interface components {
             /** Password */
             password: string;
         };
+        /**
+         * Material
+         * @description Материал/комплектующая (справочник): цена единицы и условия закупки.
+         *
+         *     Потребление задаёт рецептура продукта (``Product.bom``); движок разворачивает её в
+         *     прямые издержки с этими условиями (отсрочка → B23, опережающая закупка → B3,
+         *     ``foreign`` — импорт по курсу закупки с импортным НДС).
+         */
+        "Material-Input": {
+            /**
+             * Foreign
+             * @default false
+             */
+            foreign: boolean;
+            /** Id */
+            id: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Payment Delay Months
+             * @default 0
+             */
+            payment_delay_months: number;
+            /**
+             * Stock Lead Months
+             * @default 0
+             */
+            stock_lead_months: number;
+            /**
+             * Unit
+             * @default
+             */
+            unit: string;
+            /**
+             * Unit Price
+             * @default 0
+             */
+            unit_price: number | string;
+        };
+        /**
+         * Material
+         * @description Материал/комплектующая (справочник): цена единицы и условия закупки.
+         *
+         *     Потребление задаёт рецептура продукта (``Product.bom``); движок разворачивает её в
+         *     прямые издержки с этими условиями (отсрочка → B23, опережающая закупка → B3,
+         *     ``foreign`` — импорт по курсу закупки с импортным НДС).
+         */
+        "Material-Output": {
+            /**
+             * Foreign
+             * @default false
+             */
+            foreign: boolean;
+            /** Id */
+            id: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Payment Delay Months
+             * @default 0
+             */
+            payment_delay_months: number;
+            /**
+             * Stock Lead Months
+             * @default 0
+             */
+            stock_lead_months: number;
+            /**
+             * Unit
+             * @default
+             */
+            unit: string;
+            /**
+             * Unit Price
+             * @default 0
+             */
+            unit_price: string;
+        };
         /** MemberCreate */
         MemberCreate: {
             /** Email */
@@ -1912,10 +2022,12 @@ export interface components {
             direct_costs?: components["schemas"]["DirectCostLine-Input"][];
             /** Fixed Costs */
             fixed_costs?: components["schemas"]["FixedCostLine-Input"][];
+            /** Materials */
+            materials?: components["schemas"]["Material-Input"][];
             /** Production */
             production?: components["schemas"]["ProductionLine-Input"][];
             /** Products */
-            products?: components["schemas"]["Product"][];
+            products?: components["schemas"]["Product-Input"][];
             /** Sales */
             sales?: components["schemas"]["SalesLine-Input"][];
         };
@@ -1925,10 +2037,12 @@ export interface components {
             direct_costs?: components["schemas"]["DirectCostLine-Output"][];
             /** Fixed Costs */
             fixed_costs?: components["schemas"]["FixedCostLine-Output"][];
+            /** Materials */
+            materials?: components["schemas"]["Material-Output"][];
             /** Production */
             production?: components["schemas"]["ProductionLine-Output"][];
             /** Products */
-            products?: components["schemas"]["Product"][];
+            products?: components["schemas"]["Product-Output"][];
             /** Sales */
             sales?: components["schemas"]["SalesLine-Output"][];
         };
@@ -2047,11 +2161,32 @@ export interface components {
             price_rub: number;
         };
         /** Product */
-        Product: {
+        "Product-Input": {
+            /** Bom */
+            bom?: components["schemas"]["BomLine-Input"][];
             /** Id */
             id: string;
             /** Name */
             name: string;
+            /**
+             * Piece Wage Per Unit
+             * @default 0
+             */
+            piece_wage_per_unit: number | string;
+        };
+        /** Product */
+        "Product-Output": {
+            /** Bom */
+            bom?: components["schemas"]["BomLine-Output"][];
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Piece Wage Per Unit
+             * @default 0
+             */
+            piece_wage_per_unit: string;
         };
         /**
          * ProductionLine
@@ -2199,6 +2334,7 @@ export interface components {
              * @default {
              *       "direct_costs": [],
              *       "fixed_costs": [],
+             *       "materials": [],
              *       "production": [],
              *       "products": [],
              *       "sales": []
@@ -2317,6 +2453,7 @@ export interface components {
              * @default {
              *       "direct_costs": [],
              *       "fixed_costs": [],
+             *       "materials": [],
              *       "production": [],
              *       "products": [],
              *       "sales": []
