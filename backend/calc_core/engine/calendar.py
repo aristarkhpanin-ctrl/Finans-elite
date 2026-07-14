@@ -63,6 +63,20 @@ def _group_ids(stages: list[Stage]) -> set[str]:
     return {s.parent_id for s in stages if s.parent_id is not None}
 
 
+def product_start_months(model: ProjectModel) -> dict[str, int]:
+    """Продукт → месяц старта из этапов «производство» (финиш этапа; при нескольких — самый ранний)."""
+    cal = model.investment_plan.calendar
+    groups = _group_ids(cal.stages)
+    sched = _resolve_schedule(cal.stages)
+    out: dict[str, int] = {}
+    for st in cal.stages:
+        if st.kind != "production" or st.id in groups or not st.product_id:
+            continue
+        _, finish = sched[st.id]
+        out[st.product_id] = min(out[st.product_id], finish) if st.product_id in out else finish
+    return out
+
+
 def stage_assets(model: ProjectModel) -> list[Asset]:
     """Синтетические ОС из этапов-активов — обрабатываются машинерией активов наравне с плановыми."""
     cal = model.investment_plan.calendar

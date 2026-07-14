@@ -15,10 +15,12 @@ from calc_core.models import (
     Company,
     InvestmentPlan,
     OperatingPlan,
+    Product,
     ProjectHeader,
     ProjectModel,
     ProjectSettings,
     Resource,
+    SalesLine,
     Stage,
     StageResource,
     StartingBalance,
@@ -175,4 +177,50 @@ def test_asset_stage_cost_from_resources():
     # актив 900 встаёт в мес. 2 (C14), амортизация 450/мес (мес. 2,3)
     assert [q(v) for v in r.cashflow["C14"]] == [D("0.00"), D("0.00"), D("900.00"), D("0.00")]
     assert [q(v) for v in r.income["I17"]] == [D("0.00"), D("0.00"), D("450.00"), D("450.00")]
+    assert _balanced(r)
+
+
+# --- K3: старт производства ---
+
+def _op_model(n, sales, stages=None):
+    pids = {s.product_id for s in sales}
+    return ProjectModel(
+        header=ProjectHeader(name="ps", start_date=date(2026, 1, 1), duration_months=n),
+        settings=ProjectSettings(discount_rate_annual=D("0"), profit_tax_rate=D("0"),
+                                 property_tax_rate=D("0"), vat_rate=D("0")),
+        company=Company(starting_balance=StartingBalance()),
+        operating_plan=OperatingPlan(products=[Product(id=p, name=p) for p in pids], sales=sales),
+        investment_plan=InvestmentPlan(calendar=CalendarPlan(stages=stages or [])),
+    )
+
+
+def test_production_stage_gates_sales_start():
+    """Этап «производство» (финиш в мес. 2) начинает продажи продукта с месяца 2."""
+    n = 4
+    sales = SalesLine(product_id="p1", volume=[D(10)] * 4, price=[D(100)] * 4)
+    stage = Stage(id="s1", name="Запуск", kind="production", product_id="p1",
+                  start_month=0, duration_months=2)   # финиш = 2
+    r = run(_op_model(n, [sales], [stage]))
+    assert [q(v) for v in r.income["I1"]] == [D("0.00"), D("0.00"), D("1000.00"), D("1000.00")]
+    assert _balanced(r)
+
+
+def test_sales_line_manual_start_month_gates():
+    """Явный SalesLine.start_month обнуляет объём до старта (без этапа производства)."""
+    n = 4
+    sales = SalesLine(product_id="p1", volume=[D(10)] * 4, price=[D(100)] * 4, start_month=1)
+    r = run(_op_model(n, [sales]))
+    assert [q(v) for v in r.income["I1"]] == [D("0.00"), D("1000.00"), D("1000.00"), D("1000.00")]
+    assert _balanced(r)
+
+
+def test_production_stage_overrides_manual_start():
+    """Этап «производство» перекрывает ручной start_month строки сбыта."""
+    n = 5
+    sales = SalesLine(product_id="p1", volume=[D(10)] * 5, price=[D(100)] * 5, start_month=1)
+    stage = Stage(id="s1", name="Запуск", kind="production", product_id="p1",
+                  start_month=0, duration_months=3)   # финиш = 3 (перекрывает старт 1)
+    r = run(_op_model(n, [sales], [stage]))
+    assert [q(v) for v in r.income["I1"]] == [D("0.00"), D("0.00"), D("0.00"),
+                                              D("1000.00"), D("1000.00")]
     assert _balanced(r)

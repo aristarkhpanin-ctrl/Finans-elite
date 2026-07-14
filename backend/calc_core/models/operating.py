@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -41,6 +42,9 @@ class SalesLine(BaseModel):
     # Экспорт во 2-й валюте: цена в валюте, пересчёт выручки/денег/дебиторки по FX[t]
     # (без НДС); валютная дебиторка переоценивается → I25 (SPEC §22.3). По умолчанию — рубли.
     foreign: bool = False
+    # Старт продаж: объём до этого месяца обнуляется. Задаётся вручную либо этапом
+    # «производство» календарного плана (тот перекрывает ручной старт). None — без гейта.
+    start_month: Optional[int] = None
 
 
 class ProductionLine(BaseModel):
@@ -52,6 +56,8 @@ class ProductionLine(BaseModel):
 
     product_id: str
     volume: list[Decimal] = Field(default_factory=list)
+    # Старт производства (гейт объёма), аналогично сбыту; задаётся этапом «производство».
+    start_month: Optional[int] = None
 
 
 class DirectCostLine(BaseModel):

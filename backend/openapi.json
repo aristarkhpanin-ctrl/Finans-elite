@@ -2684,6 +2684,17 @@
             "title": "Product Id",
             "type": "string"
           },
+          "start_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Month"
+          },
           "volume": {
             "items": {
               "anyOf": [
@@ -2712,6 +2723,17 @@
           "product_id": {
             "title": "Product Id",
             "type": "string"
+          },
+          "start_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Month"
           },
           "volume": {
             "items": {
@@ -3786,6 +3808,17 @@
             "title": "Product Id",
             "type": "string"
           },
+          "start_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Month"
+          },
           "volume": {
             "items": {
               "anyOf": [
@@ -3835,6 +3868,17 @@
           "product_id": {
             "title": "Product Id",
             "type": "string"
+          },
+          "start_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Month"
           },
           "volume": {
             "items": {
@@ -5027,7 +5071,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.15"
+    "version": "0.9.18"
   },
   "openapi": "3.1.0",
   "paths": {

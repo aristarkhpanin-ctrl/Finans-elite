@@ -2003,6 +2003,8 @@ export interface components {
         "ProductionLine-Input": {
             /** Product Id */
             product_id: string;
+            /** Start Month */
+            start_month?: number | null;
             /** Volume */
             volume?: (number | string)[];
         };
@@ -2016,6 +2018,8 @@ export interface components {
         "ProductionLine-Output": {
             /** Product Id */
             product_id: string;
+            /** Start Month */
+            start_month?: number | null;
             /** Volume */
             volume?: string[];
         };
@@ -2666,6 +2670,8 @@ export interface components {
             price?: (number | string)[];
             /** Product Id */
             product_id: string;
+            /** Start Month */
+            start_month?: number | null;
             /** Volume */
             volume?: (number | string)[];
         };
@@ -2691,6 +2697,8 @@ export interface components {
             price?: string[];
             /** Product Id */
             product_id: string;
+            /** Start Month */
+            start_month?: number | null;
             /** Volume */
             volume?: string[];
         };

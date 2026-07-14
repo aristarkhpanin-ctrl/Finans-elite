@@ -18,11 +18,13 @@ export interface SalesLine {
   price: string[];
   payment: PaymentTerms;
   foreign?: boolean;
+  start_month?: number | null;
 }
 
 export interface ProductionLine {
   product_id: string;
   volume: string[];
+  start_month?: number | null;
 }
 
 export type DirectCostKind = "materials" | "piece_wages";

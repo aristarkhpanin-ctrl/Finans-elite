@@ -29,7 +29,7 @@ from ..reports.statements import (
     build_profit_use,
 )
 from ..series import add, cumulative, zeros
-from .calendar import stage_assets, stage_expenses
+from .calendar import product_start_months, stage_assets, stage_expenses
 from .errors import ModelError
 from .financing_auto import AutoInjection
 from .inventory import finished_goods, purchase_schedule, work_in_progress
@@ -528,6 +528,33 @@ def _leases(model: ProjectModel, n: int):
     return op_expense, cash, b19, liability, interest, dep
 
 
+def _apply_production_starts(model: ProjectModel) -> ProjectModel:
+    """Гейт объёмов по старту продукта: обнуляет объём до месяца старта.
+
+    Старт задаёт этап «производство» календарного плана (перекрывает ручной ``start_month``
+    строки) либо явный ``start_month`` строки сбыта/производства. Если гейтить нечего —
+    модель возвращается как есть (без копии), чтобы не трогать общий путь расчёта.
+    """
+    starts = product_start_months(model)
+    op = model.operating_plan
+    manual = any(s.start_month is not None for s in op.sales) or \
+        any(p.start_month is not None for p in op.production)
+    if not starts and not manual:
+        return model
+    model = model.model_copy(deep=True)
+    for line in model.operating_plan.sales:
+        es = starts.get(line.product_id, line.start_month)
+        if es:
+            for t in range(min(es, len(line.volume))):
+                line.volume[t] = ZERO
+    for pl in model.operating_plan.production:
+        es = starts.get(pl.product_id, pl.start_month)
+        if es:
+            for t in range(min(es, len(pl.volume))):
+                pl.volume[t] = ZERO
+    return model
+
+
 def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     """Выполнить расчёт и вернуть (income, cashflow, balance, profit_use, warnings).
 
@@ -535,6 +562,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     линии); по умолчанию отсутствует.
     """
     n = model.n
+    model = _apply_production_starts(model)   # гейт объёмов по старту продукта (этапы «производство»)
     sb = model.company.starting_balance
     auto = auto or AutoInjection.zero(n)
 
