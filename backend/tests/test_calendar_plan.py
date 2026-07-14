@@ -18,7 +18,9 @@ from calc_core.models import (
     ProjectHeader,
     ProjectModel,
     ProjectSettings,
+    Resource,
     Stage,
+    StageResource,
     StartingBalance,
 )
 from calc_core.money import quantize as q
@@ -30,14 +32,15 @@ def _balanced(r) -> bool:
     return [q(v) for v in r.balance["B20"]] == [q(v) for v in r.balance["B34"]]
 
 
-def _model(n, stages):
+def _model(n, stages, resources=None):
     return ProjectModel(
         header=ProjectHeader(name="cp", start_date=date(2026, 1, 1), duration_months=n),
         settings=ProjectSettings(discount_rate_annual=D("0"), profit_tax_rate=D("0"),
                                  property_tax_rate=D("0"), vat_rate=D("0")),
         company=Company(starting_balance=StartingBalance()),
         operating_plan=OperatingPlan(),
-        investment_plan=InvestmentPlan(calendar=CalendarPlan(stages=stages)),
+        investment_plan=InvestmentPlan(
+            calendar=CalendarPlan(stages=stages, resources=resources or [])),
     )
 
 
@@ -141,4 +144,35 @@ def test_dependency_cycle_does_not_hang():
               duration_months=1, cost=D(100))
     r = run(_model(n, [a, b]))
     assert q(sum(r.income["I21"])) == D("200.00")  # обе издержки признаны
+    assert _balanced(r)
+
+
+# --- K2: ресурсы (стоимость = Σ×цена, задержка оплаты → B23) ---
+
+def test_stage_cost_from_resources_with_payment_delay():
+    """Стоимость этапа = кол-во×цена ресурса; задержка оплаты сдвигает C15 и создаёт B23."""
+    n = 4
+    res = Resource(id="r1", name="Бетон", unit_price=D(100), payment_delay_months=1)
+    st = Stage(id="s1", name="Фундамент", kind="expense", start_month=0, duration_months=2,
+               resources=[StageResource(resource_id="r1", quantity=D(6))])  # 6×100 = 600
+    r = run(_model(n, [st], resources=[res]))
+    # издержка начисляется 300/мес (мес. 0,1); оплата сдвинута на 1 мес → C15 в мес. 1,2
+    assert [q(v) for v in r.income["I21"]] == [D("300.00"), D("300.00"), D("0.00"), D("0.00")]
+    assert [q(v) for v in r.cashflow["C15"]] == [D("0.00"), D("300.00"), D("300.00"), D("0.00")]
+    # кредиторка B23 = начислено − оплачено
+    assert [q(v) for v in r.balance["B23"]] == [D("300.00"), D("300.00"), D("0.00"), D("0.00")]
+    assert _balanced(r)
+
+
+def test_asset_stage_cost_from_resources():
+    """Стоимость этапа-актива тоже берётся из ресурсов; актив капитализируется по завершении."""
+    n = 4
+    res = Resource(id="r1", name="Станок", unit_price=D(300))
+    st = Stage(id="s1", name="Оборудование", kind="asset", start_month=0, duration_months=2,
+               resources=[StageResource(resource_id="r1", quantity=D(3))],  # 3×300 = 900
+               asset_life_months=2)
+    r = run(_model(n, [st], resources=[res]))
+    # актив 900 встаёт в мес. 2 (C14), амортизация 450/мес (мес. 2,3)
+    assert [q(v) for v in r.cashflow["C14"]] == [D("0.00"), D("0.00"), D("900.00"), D("0.00")]
+    assert [q(v) for v in r.income["I17"]] == [D("0.00"), D("0.00"), D("450.00"), D("450.00")]
     assert _balanced(r)

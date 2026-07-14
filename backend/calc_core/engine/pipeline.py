@@ -579,7 +579,9 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         tp_out, tq, mc_out, wc_out, n, settings.inventory_method)
     fixed, c5, c6, pay_fixed, vat_in_fixed, i24_fixed, vat_in_paid_fixed, i25_fixed = _fixed(
         model, n, vat_rate, fx, fx_prev, idx_wages, idx_general)
-    b23 = add(pay_direct, pay_fixed)
+    # Календарный план: обычные этапы → C15 (оплата), I21 (издержки), B15 (РБП), B23 (кредиторка).
+    stage_c15, stage_i21, stage_b15, stage_b23 = stage_expenses(model, n)
+    b23 = add(pay_direct, pay_fixed, stage_b23)
 
     # --- инвестиции и амортизация (capex в баланс — по нетто; деньги — с НДС) ---
     (capex, dep, asset_proceeds, asset_income, asset_expense,
@@ -628,9 +630,6 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
 
     equity_in = _equity(model, n)
     dividends = _pad(model.financing.dividends, n)
-
-    # --- Календарный план: обычные этапы → C15 (отток), I21 (издержки), B15 (РБП) ---
-    stage_c15, stage_i21, stage_b15 = stage_expenses(model, n)
 
     # --- Отчёт о прибылях и убытках (начисление) ---
     i3 = [i1[t] * settings.sales_tax_rate for t in range(n)]  # налог с продаж (база — I1)
