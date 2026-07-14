@@ -17,14 +17,27 @@ Project Expert 7.21), REST-API и веб-клиент.
 
 ## Запуск полного стека (Docker)
 
-Единая точка входа — web на `:8080`; API наружу не публикуется, а проксируется
-nginx (`/api`, `/health`), поэтому фронт и бэк работают на одном origin.
+**Всё одной командой** (без предварительной настройки):
 
 ```bash
-cp backend/.env.example .env      # заполнить JWT_SECRET (в проде обязателен)
 docker compose up --build         # http://localhost:8080
 ```
 
+Поднимается весь стек — PostgreSQL, Redis, API (FastAPI), фоновый воркер (Celery)
+и web (nginx). Отдельно запускать бэкенд и фронт не нужно: единая точка входа —
+web на `:8080`, API наружу не публикуется, а проксируется nginx (`/api`,
+`/health`), фронт и бэк на одном origin (CORS не нужен). Миграции БД применяются
+автоматически при старте API.
+
+По умолчанию — режим разработки с безопасными для локального запуска заглушками.
+**Для продакшена** задайте секреты (например, в `.env` рядом с `docker-compose.yml`):
+
+```bash
+cp backend/.env.example .env      # APP_ENV=production, JWT_SECRET=<случайный>, POSTGRES_PASSWORD=<...>
+docker compose up --build -d
+```
+
+В `production` бэкенд fail-fast требует настоящий `JWT_SECRET` (см. `app/security.py`).
 Для разработки только ядра/API — `backend/docker-compose.yml` (API + PostgreSQL,
 API на `:8000`, `/docs`).
 
