@@ -132,6 +132,7 @@ FastAPI-приложение вокруг ядра (`app/`). Эндпоинты:
 | `POST` `GET` | `/api/v1/projects` | создать / список проектов (в организации) |
 | `GET` `PUT` `DELETE` | `/api/v1/projects/{id}` | получить / обновить / удалить проект |
 | `POST` | `/api/v1/projects/{id}/calculate` | рассчитать сохранённый проект |
+| `GET` | `/api/v1/projects/{id}/budget` | смета по этапам календарного плана (строки/график/итог) |
 | `GET` | `/api/v1/projects/{id}/review` | ревью плана (Ф10): находки/светофор; `?deep=` — со стохастикой |
 | `POST` | `/api/v1/projects/{id}/finalize` | финализировать план (гейт ревью; `409` при risk без `acknowledge`) |
 | `GET` | `/docs`, `/openapi.json` | авто-документация OpenAPI |

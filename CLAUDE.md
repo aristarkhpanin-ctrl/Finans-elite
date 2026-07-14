@@ -26,6 +26,20 @@
   `acknowledge`; правка модели (`PUT`) сбрасывает `status` в draft. Методика/решения —
   `docs/PLAN-REVIEW-ADVISOR.md`, `docs/REVIEW-ADVISOR-DECOMPOSITION.md`. UI — вкладка «Ревью плана».
 
+## Календарный план и бюджетирование по этапам (паритет с PE) — завершено (K0–K7)
+
+- Аналог «Инвестиционного плана» PE: `calc_core/models/calendar.py` (`Stage`/`Resource`/
+  `CalendarPlan` → `InvestmentPlan.calendar`), `calc_core/engine/calendar.py`. Этапы: тип
+  (`expense`/`asset`/`production`), сроки, связи-предшественники (финиш→старт), иерархия групп,
+  стоимость (прямая или Σ ресурсов с задержкой оплаты → `B23`), тайминг `uniform`/`on_finish`.
+- Трактовка: обычный → `C15` (сразу `I21` либо РБП `B15` со списанием); актив → синтетический
+  `Asset` (реюз машинерии, как выкуп лизинга); производство → старт продукта
+  (`SalesLine.start_month`). **Пустой календарь инертен → golden без дрейфа чисел.**
+- Выход — смета `CalcResult.budget` (свёртка групп + помесячный график). API
+  `GET /projects/{id}/budget`; UI — вкладка «Календарный план» (Гантт, ресурсы, живая смета;
+  чистая логика `frontend/.../calendar.logic.ts` — зеркало движка). Методика/решения —
+  `docs/CALENDAR-PLAN-DECOMPOSITION.md`, `docs/RESEARCH-CALENDAR-PLAN.md`.
+
 ## Точность движка
 
 - Любое изменение методики расчёта — через golden-master (`UPDATE_GOLDEN=1 pytest
