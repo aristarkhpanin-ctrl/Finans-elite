@@ -6851,6 +6851,70 @@
         ]
       }
     },
+    "/api/v1/projects/{project_id}/budget": {
+      "get": {
+        "description": "Смета по этапам календарного плана: строки, помесячный график, итог.\n\nСчитается прямо из модели (без полного расчёта отчётов) — для быстрого предпросмотра\nсметы в редакторе календарного плана.",
+        "operationId": "project_budget_api_v1_projects__project_id__budget_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BudgetOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Project Budget",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
     "/api/v1/projects/{project_id}/calculate": {
       "post": {
         "description": "Рассчитать сохранённый проект (право project.calculate); сводка — на проект (B1).",

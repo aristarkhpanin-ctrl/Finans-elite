@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from calc_core import run
 from calc_core.engine import ModelError
+from calc_core.engine.calendar import compute_budget
 from calc_core.montecarlo import run_monte_carlo
 from calc_core.review import ReviewContext, run_review
 from calc_core.sensitivity import SENSITIVITY_PARAMS, run_sensitivity
@@ -24,6 +25,7 @@ from ..db_models import Project
 from ..deps import require_permission
 from ..rbac import Perm
 from ..schemas import (
+    BudgetOut,
     CalcResponse,
     FinalizeRequest,
     FinalizeResponse,
@@ -42,6 +44,7 @@ from ..schemas import (
     SensitivityResponse,
     WhatIfRequest,
     WhatIfResponse,
+    budget_response,
     monte_carlo_response,
     review_response,
     to_response,
@@ -164,6 +167,20 @@ def calculate_project(project_id: str,
                            pb_months=result.metrics.pb_months,
                            engine_version=result.engine_version)
     return to_response(result)
+
+
+@router.get("/{project_id}/budget", response_model=BudgetOut)
+def project_budget(project_id: str,
+                   org_id: str = Depends(require_permission(Perm.PROJECT_READ)),
+                   db: Session = Depends(get_db)) -> BudgetOut:
+    """Смета по этапам календарного плана: строки, помесячный график, итог.
+
+    Считается прямо из модели (без полного расчёта отчётов) — для быстрого предпросмотра
+    сметы в редакторе календарного плана.
+    """
+    project = _require(db, org_id, project_id)
+    model = crud.load_model(project)
+    return budget_response(compute_budget(model, model.n))
 
 
 @router.get("/{project_id}/review", response_model=ReviewResponse)

@@ -73,6 +73,17 @@ class BudgetOut(BaseModel):
     total: Decimal = Decimal(0)
 
 
+def budget_response(budget) -> "BudgetOut":
+    """Собрать смету-ответ из ``calc_core.reports.result.Budget``."""
+    return BudgetOut(
+        stages=[StageBudgetOut(id=s.id, name=s.name, kind=s.kind, start_month=s.start_month,
+                               finish_month=s.finish_month, cost=s.cost)
+                for s in budget.stages],
+        monthly=list(budget.monthly),
+        total=budget.total,
+    )
+
+
 class CalcResponse(BaseModel):
     engine_version: str
     n: int
@@ -507,13 +518,7 @@ def to_response(r: CalcResult) -> CalcResponse:
             earnings_multiple_value=r.valuation.earnings_multiple_value,
             liquidation_value=r.valuation.liquidation_value,
         ),
-        budget=BudgetOut(
-            stages=[StageBudgetOut(id=s.id, name=s.name, kind=s.kind, start_month=s.start_month,
-                                   finish_month=s.finish_month, cost=s.cost)
-                    for s in r.budget.stages],
-            monthly=list(r.budget.monthly),
-            total=r.budget.total,
-        ),
+        budget=budget_response(r.budget),
         actualized_cashflow=_statement_out(r.actualized_cashflow) if r.actualized_cashflow else None,
         cashflow_variance=_statement_out(r.cashflow_variance) if r.cashflow_variance else None,
         warnings=r.warnings,

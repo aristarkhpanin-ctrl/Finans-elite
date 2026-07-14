@@ -443,6 +443,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/budget": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Project Budget
+         * @description Смета по этапам календарного плана: строки, помесячный график, итог.
+         *
+         *     Считается прямо из модели (без полного расчёта отчётов) — для быстрого предпросмотра
+         *     сметы в редакторе календарного плана.
+         */
+        get: operations["project_budget_api_v1_projects__project_id__budget_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/calculate": {
         parameters: {
             query?: never;
@@ -4273,6 +4296,39 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    project_budget_api_v1_projects__project_id__budget_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BudgetOut"];
+                };
             };
             /** @description Validation Error */
             422: {
