@@ -2375,3 +2375,49 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .rv-bchip--info { color: var(--info); background: var(--info-bg); }
 .rv-banner__arrow { font: 600 12px var(--font-ui); color: var(--accent); flex: none; white-space: nowrap; }
 @media (max-width: 640px) { .rv-banner__counts { display: none; } }
+
+/* ============================================================
+   21. КАЛЕНДАРНЫЙ ПЛАН (этапы, диаграмма Гантта, ресурсы, смета)
+   ============================================================ */
+
+.gantt-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 13px;
+  padding: 15px 16px; margin-bottom: 14px;
+}
+.gantt-card__title { font: 600 12.5px var(--font-ui); color: var(--text); margin-bottom: 12px; }
+.gantt { display: flex; flex-direction: column; gap: 7px; }
+.gantt-row { display: flex; align-items: center; gap: 12px; }
+.gantt-label {
+  width: 150px; flex: none; font: 500 12px var(--font-ui); color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gantt-track { flex: 1; height: 18px; background: var(--surface-2); border-radius: 5px; position: relative; overflow: hidden; }
+.gantt-bar { position: absolute; top: 3px; height: 12px; border-radius: 4px; min-width: 3px; opacity: 0.9; }
+.gantt-bar--group { top: 7px; height: 4px; border-radius: 2px; opacity: 0.6; }
+.gantt-axis { display: flex; justify-content: space-between; margin-top: 8px; margin-left: 162px; font: 500 10.5px var(--font-mono); color: var(--subtle); }
+
+.inv-bars { display: flex; align-items: flex-end; gap: 3px; height: 72px; padding-top: 6px; }
+.inv-bar-col { flex: 1; height: 100%; display: flex; align-items: flex-end; min-width: 4px; }
+.inv-bar { width: 100%; background: var(--primary); border-radius: 3px 3px 0 0; min-height: 1px; opacity: 0.85; }
+
+.stage-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.efield__ro {
+  height: 42px; display: flex; align-items: center; padding: 0 12px;
+  font: 600 13px var(--font-mono); color: var(--muted);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px;
+}
+.add-row--sm { padding: 8px; font-size: 12px; margin-top: 4px; }
+
+/* Библиотека ресурсов */
+.res-lib { margin-top: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 13px; padding: 15px 16px; }
+.res-lib__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.res-lib__title { font: 600 13px var(--font-ui); color: var(--text); }
+.res-row { display: flex; align-items: flex-end; gap: 10px; }
+.res-row__name {
+  flex: 1; min-width: 0; height: 42px; padding: 0 12px; align-self: stretch; margin-top: auto;
+  font: 500 13px var(--font-ui); color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px;
+}
+.res-row .efield { width: 130px; flex: none; }
+.res-assign { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 8px; }
+.res-assign .efield { flex: 1; }

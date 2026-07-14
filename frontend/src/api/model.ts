@@ -132,8 +132,46 @@ export interface Asset {
   revaluation_amount?: string;
 }
 
+export type StageKind = "expense" | "asset" | "production";
+export type CostTiming = "uniform" | "on_finish";
+
+export interface Resource {
+  id: string;
+  name?: string;
+  unit_price?: string;
+  payment_delay_months?: number;
+}
+
+export interface StageResource {
+  resource_id: string;
+  quantity?: string;
+}
+
+export interface Stage {
+  id: string;
+  name?: string;
+  kind?: StageKind;
+  start_month?: number;
+  duration_months?: number;
+  predecessor_id?: string | null;
+  parent_id?: string | null;
+  cost?: string;
+  resources?: StageResource[];
+  cost_timing?: CostTiming;
+  amortize_months?: number;
+  asset_life_months?: number;
+  asset_category?: AssetCategory;
+  product_id?: string | null;
+}
+
+export interface CalendarPlan {
+  stages: Stage[];
+  resources: Resource[];
+}
+
 export interface InvestmentPlan {
   assets: Asset[];
+  calendar?: CalendarPlan;
 }
 
 export interface ProjectHeader {

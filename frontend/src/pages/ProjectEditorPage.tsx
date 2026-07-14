@@ -8,6 +8,7 @@ import { Button, ErrorState, Loading, Modal } from "../components/ui";
 import { ValidationPanel } from "../components/ValidationPanel";
 import { ActualizationTab } from "./editor/ActualizationTab";
 import { AssetsTab } from "./editor/AssetsTab";
+import { CalendarTab } from "./editor/CalendarTab";
 import { CostsTab } from "./editor/CostsTab";
 import { CurrencyTab } from "./editor/CurrencyTab";
 import { FinancingTab } from "./editor/FinancingTab";
@@ -19,6 +20,7 @@ const TABS = [
   ["sales", "Сбыт"],
   ["costs", "Издержки"],
   ["assets", "Инвестиции"],
+  ["calendar", "Календарный план"],
   ["financing", "Финансирование"],
   ["currency", "Валюта и старт"],
   ["actual", "Факт"],
@@ -35,6 +37,8 @@ function tabBadge(model: ProjectModel, tab: TabKey): number {
       return model.operating_plan.direct_costs.length + model.operating_plan.fixed_costs.length;
     case "assets":
       return model.investment_plan.assets.length;
+    case "calendar":
+      return model.investment_plan.calendar?.stages.length ?? 0;
     case "financing":
       return (
         model.financing.loans.length +
@@ -208,6 +212,11 @@ export function ProjectEditorPage() {
       {tab === "assets" && (
         <AssetsTab investment={model.investment_plan}
                    onChange={(investment_plan) => setModel({ ...model, investment_plan })} />
+      )}
+      {tab === "calendar" && (
+        <CalendarTab n={n} investment={model.investment_plan}
+                     products={model.operating_plan.products}
+                     onChange={(investment_plan) => setModel({ ...model, investment_plan })} />
       )}
       {tab === "financing" && (
         <FinancingTab n={n} financing={model.financing}
