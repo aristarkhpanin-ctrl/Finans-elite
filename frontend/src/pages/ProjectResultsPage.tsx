@@ -198,6 +198,26 @@ export function ProjectResultsPage() {
       hint: "Внутренняя норма доходности — ставка, при которой NPV = 0. Сравнивается со ставкой дисконтирования.",
     },
     {
+      label: "MIRR",
+      value: m.mirr_annual != null ? percent(m.mirr_annual, 1) : "—",
+      sub: m.mirr_annual == null
+        ? "Не определена"
+        : rate !== null
+          ? Number(m.mirr_annual) >= rate
+            ? `Выше ставки ${percent(discountRate, 0)}`
+            : `Ниже ставки ${percent(discountRate, 0)}`
+          : "Модифицированная IRR",
+      tone: m.mirr_annual == null ? "" : rate === null || Number(m.mirr_annual) >= rate ? "good" : "bad",
+      hint: "Модифицированная IRR: притоки реинвестируются по ставке дисконтирования — всегда один корень.",
+    },
+    {
+      label: "ARR",
+      value: m.arr_annual != null ? percent(m.arr_annual, 1) : "—",
+      sub: m.arr_annual != null ? "Среднегодовая отдача" : "Нет инвестиций",
+      tone: "",
+      hint: "Средняя норма рентабельности: среднегодовые поступления к потребности в капитале.",
+    },
+    {
       label: "PI",
       value: m.pi ? fmtRatio(m.pi, 2) : "—",
       sub: m.pi == null ? "—" : Number(m.pi) >= 1 ? "> 1 — эффективно" : "< 1 — неэффективно",

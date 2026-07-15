@@ -2362,6 +2362,18 @@
       },
       "MetricsOut": {
         "properties": {
+          "arr_annual": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Arr Annual"
+          },
           "dpb_months": {
             "anyOf": [
               {
@@ -2384,6 +2396,18 @@
               }
             ],
             "title": "Irr Annual"
+          },
+          "mirr_annual": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mirr Annual"
           },
           "npv": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
@@ -5553,7 +5577,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.22"
+    "version": "0.9.23"
   },
   "openapi": "3.1.0",
   "paths": {

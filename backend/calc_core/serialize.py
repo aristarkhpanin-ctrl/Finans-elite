@@ -53,6 +53,8 @@ def metrics_to_dict(m: InvestmentMetrics) -> dict[str, object]:
     return {
         "npv": _money(m.npv),
         "irr_annual": _ratio(m.irr_annual),
+        "mirr_annual": _ratio(m.mirr_annual),
+        "arr_annual": _ratio(m.arr_annual),
         "pi": _ratio(m.pi),
         "pb_months": m.pb_months,
         "dpb_months": m.dpb_months,

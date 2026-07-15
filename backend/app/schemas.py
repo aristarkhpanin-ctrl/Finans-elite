@@ -28,6 +28,8 @@ class StatementOut(BaseModel):
 class MetricsOut(BaseModel):
     npv: Decimal
     irr_annual: Optional[Decimal] = None
+    mirr_annual: Optional[Decimal] = None
+    arr_annual: Optional[Decimal] = None
     pi: Optional[Decimal] = None
     pb_months: Optional[int] = None
     dpb_months: Optional[int] = None
@@ -513,6 +515,8 @@ def to_response(r: CalcResult) -> CalcResponse:
         metrics=MetricsOut(
             npv=r.metrics.npv,
             irr_annual=r.metrics.irr_annual,
+            mirr_annual=r.metrics.mirr_annual,
+            arr_annual=r.metrics.arr_annual,
             pi=r.metrics.pi,
             pb_months=r.metrics.pb_months,
             dpb_months=r.metrics.dpb_months,

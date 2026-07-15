@@ -63,6 +63,8 @@ class InvestmentMetrics:
 
     npv: Decimal = Decimal(0)
     irr_annual: Decimal | None = None
+    mirr_annual: Decimal | None = None  # модифицированная IRR (реинвестиции по ставке диск.)
+    arr_annual: Decimal | None = None   # средняя норма рентабельности
     pi: Decimal | None = None
     pb_months: int | None = None       # срок окупаемости
     dpb_months: int | None = None      # дисконтированный срок окупаемости
@@ -77,9 +79,11 @@ def build_investment_metrics(net_flow, monthly_rate: Decimal) -> InvestmentMetri
     чистом потоке; PI и потребность в капитале — на графике инвестиций.
     """
     from ..metrics import (
+        arr_annual,
         discounted_payback_months,
         investment_graph,
         irr_annual,
+        mirr_annual,
         npv,
         payback_months,
         profitability_index,
@@ -92,6 +96,9 @@ def build_investment_metrics(net_flow, monthly_rate: Decimal) -> InvestmentMetri
     return InvestmentMetrics(
         npv=npv_value,
         irr_annual=irr_annual(net_flow),
+        # Ставка финансирования и реинвестиций = ставке дисконтирования (дефолт PE-практики).
+        mirr_annual=mirr_annual(net_flow, monthly_rate, monthly_rate),
+        arr_annual=arr_annual(net_flow),
         pi=profitability_index(npv_value, pv_invest),
         pb_months=payback_months(net_flow),
         dpb_months=discounted_payback_months(net_flow, monthly_rate),

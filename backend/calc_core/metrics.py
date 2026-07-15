@@ -103,3 +103,46 @@ def discounted_payback_months(flow: Sequence[Decimal], monthly_rate: Decimal) ->
     """Дисконтированный срок окупаемости (мес.)."""
     discounted = [cf / (ONE + monthly_rate) ** t for t, cf in enumerate(flow)]
     return payback_months(discounted)
+
+
+def mirr_annual(flow: Sequence[Decimal], finance_rate_m: Decimal,
+                reinvest_rate_m: Decimal) -> Decimal | None:
+    """Модифицированная IRR (годовая): один корень всегда (в отличие от IRR).
+
+    Притоки наращиваются к концу горизонта по ставке реинвестиций, оттоки приводятся к
+    началу по ставке финансирования: ``MIRR_м = (FV/|PV|)^(1/(n−1)) − 1``. None, если нет
+    притоков или оттоков (показатель не определён).
+    """
+    n = len(flow)
+    if n < 2:
+        return None
+    fv = ZERO   # будущая стоимость притоков на конец горизонта
+    pv = ZERO   # приведённая стоимость оттоков на начало (отрицательная)
+    for t, cf in enumerate(flow):
+        if cf > 0:
+            fv += cf * (ONE + reinvest_rate_m) ** (n - 1 - t)
+        elif cf < 0:
+            pv += cf / (ONE + finance_rate_m) ** t
+    if fv <= 0 or pv >= 0:
+        return None
+    mirr_m = (fv / -pv) ** (ONE / D(n - 1)) - ONE
+    return (ONE + mirr_m) ** 12 - ONE
+
+
+def arr_annual(flow: Sequence[Decimal]) -> Decimal | None:
+    """Средняя норма рентабельности (ARR, годовая).
+
+    Среднегодовые поступления (Σ положительных элементов чистого потока / число лет) к
+    потребности в капитале (Σ графика инвестиций §22.4). None без инвестиций.
+    """
+    inv_total = ZERO
+    for v in investment_graph(flow):
+        inv_total += v
+    if inv_total <= 0 or not flow:
+        return None
+    inflows = ZERO
+    for cf in flow:
+        if cf > 0:
+            inflows += cf
+    years = D(len(flow)) / D(12)
+    return (inflows / years) / inv_total

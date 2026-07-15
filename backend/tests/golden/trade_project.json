@@ -915,7 +915,7 @@
       "0.00"
     ]
   },
-  "engine_version": "0.9.22",
+  "engine_version": "0.9.23",
   "income": {
     "I1": [
       "100000.00",
@@ -1311,8 +1311,10 @@
     ]
   },
   "metrics": {
+    "arr_annual": "2.239928",
     "dpb_months": 7,
     "irr_annual": "5.381453",
+    "mirr_annual": "1.571137",
     "npv": "43631.22",
     "pb_months": 6,
     "peak_financing_need": "40000.00",

@@ -1963,10 +1963,14 @@ export interface components {
         };
         /** MetricsOut */
         MetricsOut: {
+            /** Arr Annual */
+            arr_annual?: string | null;
             /** Dpb Months */
             dpb_months?: number | null;
             /** Irr Annual */
             irr_annual?: string | null;
+            /** Mirr Annual */
+            mirr_annual?: string | null;
             /** Npv */
             npv: string;
             /** Pb Months */
