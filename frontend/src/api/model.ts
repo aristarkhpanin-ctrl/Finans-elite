@@ -1,10 +1,18 @@
 // Типы модели проекта (зеркало backend ProjectModel).
 // Decimal сериализуется как строка; целые (месяцы/сроки) — number.
 
+export interface PaymentPart {
+  /** < 0 — предоплата за |offset| мес. до отгрузки; > 0 — рассрочка после отгрузки. */
+  offset_months: number;
+  share: string;
+}
+
 export interface PaymentTerms {
   prepayment_share: string;
   advance_lead_months: number;
   payment_delay_months: number;
+  /** Непустой график долей заменяет простые поля; остаток до 1 — в месяце отгрузки. */
+  schedule?: PaymentPart[];
 }
 
 export interface Material {

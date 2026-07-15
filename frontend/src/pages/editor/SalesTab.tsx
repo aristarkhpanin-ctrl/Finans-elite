@@ -196,6 +196,27 @@ export function SalesTab({ n, operating, onChange }: Props) {
                 </div>
 
                 <div className="terms-head">Условия оплаты</div>
+                <div style={{ margin: "6px 0 10px" }}>
+                  <Switch
+                    label="Сложная схема (график долей со сдвигами)"
+                    checked={(line.payment.schedule?.length ?? 0) > 0}
+                    onChange={(on) =>
+                      updateLine(i, {
+                        payment: {
+                          ...line.payment,
+                          schedule: on ? [{ offset_months: -1, share: "0.3" },
+                                          { offset_months: 0, share: "0.7" }] : [],
+                        },
+                      })
+                    }
+                  />
+                </div>
+                {(line.payment.schedule?.length ?? 0) > 0 ? (
+                  <ScheduleEditor
+                    parts={line.payment.schedule!}
+                    onChange={(schedule) => updateLine(i, { payment: { ...line.payment, schedule } })}
+                  />
+                ) : (
                 <div className="terms-grid">
                   <EField
                     label="Предоплата"
@@ -232,6 +253,7 @@ export function SalesTab({ n, operating, onChange }: Props) {
                     }
                   />
                 </div>
+                )}
 
                 {(() => {
                   const p = products.find((x) => x.id === line.product_id);
@@ -288,6 +310,43 @@ export function SalesTab({ n, operating, onChange }: Props) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** График оплаты: доли выручки со сдвигами (аванс < 0, отгрузка 0, рассрочка > 0). */
+function ScheduleEditor({ parts, onChange }: {
+  parts: NonNullable<import("../../api/model").PaymentTerms["schedule"]>;
+  onChange: (parts: import("../../api/model").PaymentPart[]) => void;
+}) {
+  const upd = (i: number, patch: Partial<import("../../api/model").PaymentPart>) =>
+    onChange(parts.map((p, k) => (k === i ? { ...p, ...patch } : p)));
+  const total = parts.reduce((s, p) => s + num(p.share), 0);
+  return (
+    <div className="expand-block" style={{ marginTop: 0 }}>
+      {parts.map((p, i) => (
+        <div className="res-assign" key={i}>
+          <EField label="Сдвиг от отгрузки" suffix="мес."
+                  hint="Отрицательный — предоплата (авансы B24), положительный — рассрочка (дебиторка B2)"
+                  value={p.offset_months}
+                  onChange={(v) => upd(i, { offset_months: parseInt(v || "0", 10) || 0 })} />
+          <EField label="Доля" suffix="0–1" value={p.share}
+                  onChange={(v) => upd(i, { share: v })} />
+          <button type="button" className="line-card__del"
+                  onClick={() => onChange(parts.filter((_, k) => k !== i))}>
+            <IconTrash size={15} />
+          </button>
+        </div>
+      ))}
+      <button type="button" className="add-row add-row--sm"
+              onClick={() => onChange([...parts, { offset_months: 1, share: "0" }])}>
+        ＋&nbsp;&nbsp;Доля оплаты
+      </button>
+      <div className={"field-note" + (Math.abs(total - 1) > 0.001 ? " field-note--warn" : "")}
+           style={{ marginTop: 8 }}>
+        Σ долей = {total.toLocaleString("ru-RU", { maximumFractionDigits: 2 })}
+        {Math.abs(total - 1) > 0.001 && " — остаток будет получен в месяце отгрузки"}
+      </div>
     </div>
   );
 }

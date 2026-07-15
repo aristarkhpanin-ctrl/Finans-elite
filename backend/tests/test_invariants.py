@@ -28,6 +28,7 @@ from calc_core.models import (
     Material,
     OperatingPlan,
     OtherFlow,
+    PaymentPart,
     PaymentTerms,
     Product,
     ProductionLine,
@@ -68,6 +69,11 @@ def _random_project(rng: random.Random) -> ProjectModel:
         return [Decimal(rng.randint(lo, hi)) for _ in range(n)]
 
     def terms() -> PaymentTerms:
+        if rng.random() < 0.3:   # сложная схема: график долей со сдвигами
+            parts = [PaymentPart(offset_months=rng.randint(-2, 3),
+                                 share=Decimal(rng.randint(0, 50)) / Decimal(100))
+                     for _ in range(rng.randint(1, 2))]
+            return PaymentTerms(schedule=parts)
         return PaymentTerms(
             prepayment_share=Decimal(rng.randint(0, 100)) / Decimal(100),
             advance_lead_months=rng.randint(0, 3),

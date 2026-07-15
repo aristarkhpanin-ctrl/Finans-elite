@@ -2142,12 +2142,54 @@ export interface components {
             name: string;
         };
         /**
+         * PaymentPart
+         * @description Часть графика оплаты: доля выручки со сдвигом относительно месяца отгрузки.
+         *
+         *     ``offset_months`` < 0 — предоплата (за |offset| мес. до отгрузки → авансы B24);
+         *     > 0 — рассрочка (через offset мес. после отгрузки → дебиторка B2); 0 — при отгрузке.
+         */
+        "PaymentPart-Input": {
+            /**
+             * Offset Months
+             * @default 0
+             */
+            offset_months: number;
+            /**
+             * Share
+             * @default 0
+             */
+            share: number | string;
+        };
+        /**
+         * PaymentPart
+         * @description Часть графика оплаты: доля выручки со сдвигом относительно месяца отгрузки.
+         *
+         *     ``offset_months`` < 0 — предоплата (за |offset| мес. до отгрузки → авансы B24);
+         *     > 0 — рассрочка (через offset мес. после отгрузки → дебиторка B2); 0 — при отгрузке.
+         */
+        "PaymentPart-Output": {
+            /**
+             * Offset Months
+             * @default 0
+             */
+            offset_months: number;
+            /**
+             * Share
+             * @default 0
+             */
+            share: string;
+        };
+        /**
          * PaymentTerms
          * @description Условия оплаты продаж (SPEC §5).
          *
-         *     Доля ``prepayment_share`` поступает предоплатой за ``advance_lead_months`` до поставки
-         *     (формирует авансы, B24). Остаток поступает через ``payment_delay_months`` после
-         *     поставки (формирует дебиторку, B2).
+         *     Простая схема: доля ``prepayment_share`` поступает предоплатой за
+         *     ``advance_lead_months`` до поставки (формирует авансы, B24); остаток — через
+         *     ``payment_delay_months`` после поставки (формирует дебиторку, B2).
+         *
+         *     Сложная схема: непустой ``schedule`` (список долей со сдвигами) **заменяет** простые
+         *     поля. Σ долей должна быть 1; остаток (1 − Σ) балансируется в месяце отгрузки — так
+         *     сумма оплат всегда равна выручке (иначе дебиторка/авансы не разворачиваются).
          */
         "PaymentTerms-Input": {
             /**
@@ -2165,14 +2207,20 @@ export interface components {
              * @default 0
              */
             prepayment_share: number | string;
+            /** Schedule */
+            schedule?: components["schemas"]["PaymentPart-Input"][];
         };
         /**
          * PaymentTerms
          * @description Условия оплаты продаж (SPEC §5).
          *
-         *     Доля ``prepayment_share`` поступает предоплатой за ``advance_lead_months`` до поставки
-         *     (формирует авансы, B24). Остаток поступает через ``payment_delay_months`` после
-         *     поставки (формирует дебиторку, B2).
+         *     Простая схема: доля ``prepayment_share`` поступает предоплатой за
+         *     ``advance_lead_months`` до поставки (формирует авансы, B24); остаток — через
+         *     ``payment_delay_months`` после поставки (формирует дебиторку, B2).
+         *
+         *     Сложная схема: непустой ``schedule`` (список долей со сдвигами) **заменяет** простые
+         *     поля. Σ долей должна быть 1; остаток (1 − Σ) балансируется в месяце отгрузки — так
+         *     сумма оплат всегда равна выручке (иначе дебиторка/авансы не разворачиваются).
          */
         "PaymentTerms-Output": {
             /**
@@ -2190,6 +2238,8 @@ export interface components {
              * @default 0
              */
             prepayment_share: string;
+            /** Schedule */
+            schedule?: components["schemas"]["PaymentPart-Output"][];
         };
         /**
          * PerProjectOut
@@ -2960,7 +3010,8 @@ export interface components {
              * @default {
              *       "advance_lead_months": 0,
              *       "payment_delay_months": 0,
-             *       "prepayment_share": "0"
+             *       "prepayment_share": "0",
+             *       "schedule": []
              *     }
              */
             payment: components["schemas"]["PaymentTerms-Input"];
@@ -2987,7 +3038,8 @@ export interface components {
              * @default {
              *       "advance_lead_months": 0,
              *       "payment_delay_months": 0,
-             *       "prepayment_share": "0"
+             *       "prepayment_share": "0",
+             *       "schedule": []
              *     }
              */
             payment: components["schemas"]["PaymentTerms-Output"];

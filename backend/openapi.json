@@ -2836,8 +2836,53 @@
         "title": "OtherFlow",
         "type": "object"
       },
+      "PaymentPart-Input": {
+        "description": "Часть графика оплаты: доля выручки со сдвигом относительно месяца отгрузки.\n\n``offset_months`` < 0 — предоплата (за |offset| мес. до отгрузки → авансы B24);\n> 0 — рассрочка (через offset мес. после отгрузки → дебиторка B2); 0 — при отгрузке.",
+        "properties": {
+          "offset_months": {
+            "default": 0,
+            "title": "Offset Months",
+            "type": "integer"
+          },
+          "share": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Share"
+          }
+        },
+        "title": "PaymentPart",
+        "type": "object"
+      },
+      "PaymentPart-Output": {
+        "description": "Часть графика оплаты: доля выручки со сдвигом относительно месяца отгрузки.\n\n``offset_months`` < 0 — предоплата (за |offset| мес. до отгрузки → авансы B24);\n> 0 — рассрочка (через offset мес. после отгрузки → дебиторка B2); 0 — при отгрузке.",
+        "properties": {
+          "offset_months": {
+            "default": 0,
+            "title": "Offset Months",
+            "type": "integer"
+          },
+          "share": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Share",
+            "type": "string"
+          }
+        },
+        "title": "PaymentPart",
+        "type": "object"
+      },
       "PaymentTerms-Input": {
-        "description": "Условия оплаты продаж (SPEC §5).\n\nДоля ``prepayment_share`` поступает предоплатой за ``advance_lead_months`` до поставки\n(формирует авансы, B24). Остаток поступает через ``payment_delay_months`` после\nпоставки (формирует дебиторку, B2).",
+        "description": "Условия оплаты продаж (SPEC §5).\n\nПростая схема: доля ``prepayment_share`` поступает предоплатой за\n``advance_lead_months`` до поставки (формирует авансы, B24); остаток — через\n``payment_delay_months`` после поставки (формирует дебиторку, B2).\n\nСложная схема: непустой ``schedule`` (список долей со сдвигами) **заменяет** простые\nполя. Σ долей должна быть 1; остаток (1 − Σ) балансируется в месяце отгрузки — так\nсумма оплат всегда равна выручке (иначе дебиторка/авансы не разворачиваются).",
         "properties": {
           "advance_lead_months": {
             "default": 0,
@@ -2865,13 +2910,20 @@
             ],
             "default": "0",
             "title": "Prepayment Share"
+          },
+          "schedule": {
+            "items": {
+              "$ref": "#/components/schemas/PaymentPart-Input"
+            },
+            "title": "Schedule",
+            "type": "array"
           }
         },
         "title": "PaymentTerms",
         "type": "object"
       },
       "PaymentTerms-Output": {
-        "description": "Условия оплаты продаж (SPEC §5).\n\nДоля ``prepayment_share`` поступает предоплатой за ``advance_lead_months`` до поставки\n(формирует авансы, B24). Остаток поступает через ``payment_delay_months`` после\nпоставки (формирует дебиторку, B2).",
+        "description": "Условия оплаты продаж (SPEC §5).\n\nПростая схема: доля ``prepayment_share`` поступает предоплатой за\n``advance_lead_months`` до поставки (формирует авансы, B24); остаток — через\n``payment_delay_months`` после поставки (формирует дебиторку, B2).\n\nСложная схема: непустой ``schedule`` (список долей со сдвигами) **заменяет** простые\nполя. Σ долей должна быть 1; остаток (1 − Σ) балансируется в месяце отгрузки — так\nсумма оплат всегда равна выручке (иначе дебиторка/авансы не разворачиваются).",
         "properties": {
           "advance_lead_months": {
             "default": 0,
@@ -2890,6 +2942,13 @@
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Prepayment Share",
             "type": "string"
+          },
+          "schedule": {
+            "items": {
+              "$ref": "#/components/schemas/PaymentPart-Output"
+            },
+            "title": "Schedule",
+            "type": "array"
           }
         },
         "title": "PaymentTerms",
@@ -4253,7 +4312,8 @@
             "default": {
               "advance_lead_months": 0,
               "payment_delay_months": 0,
-              "prepayment_share": "0"
+              "prepayment_share": "0",
+              "schedule": []
             }
           },
           "price": {
@@ -4321,7 +4381,8 @@
             "default": {
               "advance_lead_months": 0,
               "payment_delay_months": 0,
-              "prepayment_share": "0"
+              "prepayment_share": "0",
+              "schedule": []
             }
           },
           "price": {
@@ -5577,7 +5638,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.23"
+    "version": "0.9.24"
   },
   "openapi": "3.1.0",
   "paths": {
