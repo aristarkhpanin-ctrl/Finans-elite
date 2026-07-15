@@ -2584,6 +2584,20 @@
             "title": "Materials",
             "type": "array"
           },
+          "other_expenses": {
+            "items": {
+              "$ref": "#/components/schemas/OtherFlow-Input"
+            },
+            "title": "Other Expenses",
+            "type": "array"
+          },
+          "other_income": {
+            "items": {
+              "$ref": "#/components/schemas/OtherFlow-Input"
+            },
+            "title": "Other Income",
+            "type": "array"
+          },
           "production": {
             "items": {
               "$ref": "#/components/schemas/ProductionLine-Input"
@@ -2630,6 +2644,20 @@
               "$ref": "#/components/schemas/Material-Output"
             },
             "title": "Materials",
+            "type": "array"
+          },
+          "other_expenses": {
+            "items": {
+              "$ref": "#/components/schemas/OtherFlow-Output"
+            },
+            "title": "Other Expenses",
+            "type": "array"
+          },
+          "other_income": {
+            "items": {
+              "$ref": "#/components/schemas/OtherFlow-Output"
+            },
+            "title": "Other Income",
             "type": "array"
           },
           "production": {
@@ -2721,6 +2749,67 @@
           "created_at"
         ],
         "title": "OrganizationOut",
+        "type": "object"
+      },
+      "OtherFlow-Input": {
+        "description": "Прочее поступление/выплата (вне основной деятельности), помесячно.\n\nНачисление = оплата (в месяце ряда): доход → I20 + C10; выплата → I21 + C11 (вычитаемая)\nлибо, при ``from_profit=True``, → I24 + C11 (за счёт прибыли, не уменьшает налоговую базу).\nИнфляцией не индексируется (суммы произвольные).",
+        "properties": {
+          "amount": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ]
+            },
+            "title": "Amount",
+            "type": "array"
+          },
+          "from_profit": {
+            "default": false,
+            "title": "From Profit",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "OtherFlow",
+        "type": "object"
+      },
+      "OtherFlow-Output": {
+        "description": "Прочее поступление/выплата (вне основной деятельности), помесячно.\n\nНачисление = оплата (в месяце ряда): доход → I20 + C10; выплата → I21 + C11 (вычитаемая)\nлибо, при ``from_profit=True``, → I24 + C11 (за счёт прибыли, не уменьшает налоговую базу).\nИнфляцией не индексируется (суммы произвольные).",
+        "properties": {
+          "amount": {
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Amount",
+            "type": "array"
+          },
+          "from_profit": {
+            "default": false,
+            "title": "From Profit",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "OtherFlow",
         "type": "object"
       },
       "PaymentTerms-Input": {
@@ -3228,6 +3317,8 @@
               "direct_costs": [],
               "fixed_costs": [],
               "materials": [],
+              "other_expenses": [],
+              "other_income": [],
               "production": [],
               "products": [],
               "sales": []
@@ -3348,6 +3439,8 @@
               "direct_costs": [],
               "fixed_costs": [],
               "materials": [],
+              "other_expenses": [],
+              "other_income": [],
               "production": [],
               "products": [],
               "sales": []
@@ -5460,7 +5553,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.21"
+    "version": "0.9.22"
   },
   "openapi": "3.1.0",
   "paths": {

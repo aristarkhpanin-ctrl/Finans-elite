@@ -27,6 +27,7 @@ from calc_core.models import (
     Loan,
     Material,
     OperatingPlan,
+    OtherFlow,
     PaymentTerms,
     Product,
     ProductionLine,
@@ -218,6 +219,11 @@ def _random_project(rng: random.Random) -> ProjectModel:
             production=production,
             direct_costs=direct,
             fixed_costs=fixed,
+            other_income=[OtherFlow(name="oi", amount=series(0, 3000))
+                          for _ in range(rng.randint(0, 1))],
+            other_expenses=[OtherFlow(name="oe", amount=series(0, 3000),
+                                      from_profit=rng.random() < 0.3)
+                            for _ in range(rng.randint(0, 2))],
             materials=[
                 Material(id=f"mat{k}", name=f"mat{k}",
                          unit_price=Decimal(rng.randint(0, 100)),

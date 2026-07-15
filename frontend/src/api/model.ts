@@ -81,6 +81,16 @@ export interface OperatingPlan {
   fixed_costs: FixedCostLine[];
   /** Справочник материалов для рецептур продуктов. */
   materials?: Material[];
+  /** Прочие поступления/выплаты (вне основной деятельности) → I20/C10 и I21|I24/C11. */
+  other_income?: OtherFlow[];
+  other_expenses?: OtherFlow[];
+}
+
+export interface OtherFlow {
+  name: string;
+  amount: string[];
+  /** Только для выплат: невычитаемая («из прибыли») — идёт в I24. */
+  from_profit?: boolean;
 }
 
 export type RepaymentType = "equal_principal" | "bullet";

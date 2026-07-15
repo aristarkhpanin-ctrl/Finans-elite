@@ -5,6 +5,7 @@ import {
   type DirectCostLine,
   type FixedCostLine,
   type OperatingPlan,
+  type OtherFlow,
 } from "../../api/model";
 import { EField, ESelect } from "../../components/EditorField";
 import { IconBox, IconTrash } from "../../components/icons";
@@ -46,6 +47,23 @@ export function CostsTab({ n, operating, onChange }: Props) {
     onChange({ ...operating, fixed_costs: fixed.filter((_, k) => k !== i) });
 
   const delayErr = (v: number) => (v < 0 ? "Не может быть отрицательным" : "");
+
+  // --- Прочие поступления/выплаты (вне основной деятельности) ---
+  const otherInc = operating.other_income ?? [];
+  const otherExp = operating.other_expenses ?? [];
+  const setOther = (key: "other_income" | "other_expenses", rows: OtherFlow[]) =>
+    onChange({ ...operating, [key]: rows });
+  const addOther = (key: "other_income" | "other_expenses") =>
+    setOther(key, [...(key === "other_income" ? otherInc : otherExp),
+                   { name: key === "other_income" ? "Поступление" : "Выплата", amount: [] }]);
+  const updOther = (key: "other_income" | "other_expenses", i: number, patch: Partial<OtherFlow>) => {
+    const rows = key === "other_income" ? otherInc : otherExp;
+    setOther(key, rows.map((r, k) => (k === i ? { ...r, ...patch } : r)));
+  };
+  const rmOther = (key: "other_income" | "other_expenses", i: number) => {
+    const rows = key === "other_income" ? otherInc : otherExp;
+    setOther(key, rows.filter((_, k) => k !== i));
+  };
 
   return (
     <div>
@@ -274,6 +292,67 @@ export function CostsTab({ n, operating, onChange }: Props) {
             <button type="button" className="add-row" onClick={addFixed}>
               ＋&nbsp;&nbsp;Добавить ещё статью
             </button>
+          </div>
+        )}
+      </div>
+
+      {/* Прочие поступления и выплаты (вне основной деятельности) */}
+      <div className="res-lib" style={{ marginTop: 24 }}>
+        <div className="res-lib__head">
+          <div className="res-lib__title">Прочие поступления и выплаты</div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Button variant="ghost" onClick={() => addOther("other_income")}>＋&nbsp;&nbsp;Поступление</Button>
+            <Button variant="ghost" onClick={() => addOther("other_expenses")}>＋&nbsp;&nbsp;Выплата</Button>
+          </div>
+        </div>
+        {otherInc.length === 0 && otherExp.length === 0 ? (
+          <p className="muted" style={{ fontSize: 12.5, margin: 0 }}>
+            Разовые/нерегулярные суммы вне основной деятельности: субсидии, штрафы, компенсации.
+            Поступление → прочие доходы (I20); выплата → прочие издержки (I21) либо «из прибыли» (I24).
+          </p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {otherInc.map((r, i) => (
+              <div className="line-card" key={`inc-${i}`}>
+                <div className="line-card__head">
+                  <span className="prop-chip prop-chip--profit">поступление</span>
+                  <div className="line-card__name">
+                    <input value={r.name} placeholder="Название"
+                           onChange={(e) => updOther("other_income", i, { name: e.target.value })} />
+                  </div>
+                  <button type="button" className="line-card__del" title="Удалить"
+                          onClick={() => rmOther("other_income", i)}>
+                    <IconTrash size={15} />
+                  </button>
+                </div>
+                <MonthlyGrid n={n} rows={[{ key: `oi-${i}`, title: "Сумма, ₽", values: r.amount,
+                                            onChange: (amount) => updOther("other_income", i, { amount }) }]} />
+              </div>
+            ))}
+            {otherExp.map((r, i) => (
+              <div className="line-card" key={`exp-${i}`}>
+                <div className="line-card__head">
+                  <span className="prop-chip prop-chip--cur">выплата</span>
+                  <div className="line-card__name">
+                    <input value={r.name} placeholder="Название"
+                           onChange={(e) => updOther("other_expenses", i, { name: e.target.value })} />
+                  </div>
+                  <button type="button" className="line-card__del" title="Удалить"
+                          onClick={() => rmOther("other_expenses", i)}>
+                    <IconTrash size={15} />
+                  </button>
+                </div>
+                <MonthlyGrid n={n} rows={[{ key: `oe-${i}`, title: "Сумма, ₽", values: r.amount,
+                                            onChange: (amount) => updOther("other_expenses", i, { amount }) }]} />
+                <div style={{ marginTop: 10 }}>
+                  <Switch
+                    label="Из прибыли (невычитаемая, не уменьшает налоговую базу)"
+                    checked={r.from_profit ?? false}
+                    onChange={(from_profit) => updOther("other_expenses", i, { from_profit })}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

@@ -120,6 +120,20 @@ class FixedCostLine(BaseModel):
     foreign: bool = False
 
 
+class OtherFlow(BaseModel):
+    """Прочее поступление/выплата (вне основной деятельности), помесячно.
+
+    Начисление = оплата (в месяце ряда): доход → I20 + C10; выплата → I21 + C11 (вычитаемая)
+    либо, при ``from_profit=True``, → I24 + C11 (за счёт прибыли, не уменьшает налоговую базу).
+    Инфляцией не индексируется (суммы произвольные).
+    """
+
+    name: str
+    amount: list[Decimal] = Field(default_factory=list)
+    # Только для выплат: невычитаемая (из прибыли) — идёт в I24 вместо I21.
+    from_profit: bool = False
+
+
 class OperatingPlan(BaseModel):
     products: list[Product] = Field(default_factory=list)
     sales: list[SalesLine] = Field(default_factory=list)
@@ -128,3 +142,6 @@ class OperatingPlan(BaseModel):
     fixed_costs: list[FixedCostLine] = Field(default_factory=list)
     # Справочник материалов для рецептур продуктов (Product.bom).
     materials: list[Material] = Field(default_factory=list)
+    # Прочие поступления и выплаты (вне основной деятельности) → I20/C10 и I21|I24/C11.
+    other_income: list[OtherFlow] = Field(default_factory=list)
+    other_expenses: list[OtherFlow] = Field(default_factory=list)

@@ -706,6 +706,18 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     equity_in = _equity(model, n)
     dividends = _pad(model.financing.dividends, n)
 
+    # --- Прочие поступления/выплаты: начисление = оплата (I20/C10, I21|I24/C11) ---
+    other_inc = zeros(n)
+    for flow in model.operating_plan.other_income:
+        other_inc = add(other_inc, _pad(flow.amount, n))
+    other_exp = zeros(n)          # вычитаемые → I21
+    other_exp_profit = zeros(n)   # за счёт прибыли → I24 (не уменьшают налоговую базу)
+    for flow in model.operating_plan.other_expenses:
+        if flow.from_profit:
+            other_exp_profit = add(other_exp_profit, _pad(flow.amount, n))
+        else:
+            other_exp = add(other_exp, _pad(flow.amount, n))
+
     # --- Отчёт о прибылях и убытках (начисление) ---
     i3 = [i1[t] * settings.sales_tax_rate for t in range(n)]  # налог с продаж (база — I1)
     income_leaves = {
@@ -721,10 +733,10 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "I14": fixed[CostFunction.STAFF_PRODUCTION],
         "I15": fixed[CostFunction.STAFF_MARKETING],
         "I17": add(dep, fl_dep),                    # амортизация ОС + предмета фин. лизинга
-        "I20": add(asset_income, c9),               # прочие доходы + доход по ЦБ
-        "I21": add(asset_expense, lease_op_expense, stage_i21),  # прочие + опер. лизинг + этапы
+        "I20": add(asset_income, c9, other_inc),    # прочие доходы + доход по ЦБ + прочие поступления
+        "I21": add(asset_expense, lease_op_expense, stage_i21, other_exp),  # прочие + лизинг + этапы
         "I18": add(loan_interest_cost, auto.pl_interest, fl_interest),  # проценты: займы + фин. лизинг
-        "I24": add(i24_fixed, loan_interest_profit),
+        "I24": add(i24_fixed, loan_interest_profit, other_exp_profit),
         "I25": add(i25_fx, loan_reval, i25_sales, i25_fixed, i25_materials),
     }
     income = build_income(
@@ -787,6 +799,8 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "C6": c6,
         "C8": c8,
         "C9": c9,
+        "C10": other_inc,          # прочие поступления
+        "C11": add(other_exp, other_exp_profit),   # прочие выплаты (включая «из прибыли»)
         "C12": taxes_cash,
         "C14": capex_gross,
         "C15": stage_c15,          # издержки подготовительного периода (обычные этапы)

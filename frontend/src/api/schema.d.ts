@@ -2038,6 +2038,10 @@ export interface components {
             fixed_costs?: components["schemas"]["FixedCostLine-Input"][];
             /** Materials */
             materials?: components["schemas"]["Material-Input"][];
+            /** Other Expenses */
+            other_expenses?: components["schemas"]["OtherFlow-Input"][];
+            /** Other Income */
+            other_income?: components["schemas"]["OtherFlow-Input"][];
             /** Production */
             production?: components["schemas"]["ProductionLine-Input"][];
             /** Products */
@@ -2053,6 +2057,10 @@ export interface components {
             fixed_costs?: components["schemas"]["FixedCostLine-Output"][];
             /** Materials */
             materials?: components["schemas"]["Material-Output"][];
+            /** Other Expenses */
+            other_expenses?: components["schemas"]["OtherFlow-Output"][];
+            /** Other Income */
+            other_income?: components["schemas"]["OtherFlow-Output"][];
             /** Production */
             production?: components["schemas"]["ProductionLine-Output"][];
             /** Products */
@@ -2088,6 +2096,44 @@ export interface components {
             created_at: string;
             /** Id */
             id: string;
+            /** Name */
+            name: string;
+        };
+        /**
+         * OtherFlow
+         * @description Прочее поступление/выплата (вне основной деятельности), помесячно.
+         *
+         *     Начисление = оплата (в месяце ряда): доход → I20 + C10; выплата → I21 + C11 (вычитаемая)
+         *     либо, при ``from_profit=True``, → I24 + C11 (за счёт прибыли, не уменьшает налоговую базу).
+         *     Инфляцией не индексируется (суммы произвольные).
+         */
+        "OtherFlow-Input": {
+            /** Amount */
+            amount?: (number | string)[];
+            /**
+             * From Profit
+             * @default false
+             */
+            from_profit: boolean;
+            /** Name */
+            name: string;
+        };
+        /**
+         * OtherFlow
+         * @description Прочее поступление/выплата (вне основной деятельности), помесячно.
+         *
+         *     Начисление = оплата (в месяце ряда): доход → I20 + C10; выплата → I21 + C11 (вычитаемая)
+         *     либо, при ``from_profit=True``, → I24 + C11 (за счёт прибыли, не уменьшает налоговую базу).
+         *     Инфляцией не индексируется (суммы произвольные).
+         */
+        "OtherFlow-Output": {
+            /** Amount */
+            amount?: string[];
+            /**
+             * From Profit
+             * @default false
+             */
+            from_profit: boolean;
             /** Name */
             name: string;
         };
@@ -2382,6 +2428,8 @@ export interface components {
              *       "direct_costs": [],
              *       "fixed_costs": [],
              *       "materials": [],
+             *       "other_expenses": [],
+             *       "other_income": [],
              *       "production": [],
              *       "products": [],
              *       "sales": []
@@ -2501,6 +2549,8 @@ export interface components {
              *       "direct_costs": [],
              *       "fixed_costs": [],
              *       "materials": [],
+             *       "other_expenses": [],
+             *       "other_income": [],
              *       "production": [],
              *       "products": [],
              *       "sales": []
