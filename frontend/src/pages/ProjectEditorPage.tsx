@@ -34,7 +34,11 @@ function tabBadge(model: ProjectModel, tab: TabKey): number {
     case "sales":
       return model.operating_plan.sales.length;
     case "costs":
-      return model.operating_plan.direct_costs.length + model.operating_plan.fixed_costs.length;
+      return (
+        model.operating_plan.direct_costs.length +
+        model.operating_plan.fixed_costs.length +
+        (model.operating_plan.staff?.length ?? 0)
+      );
     case "assets":
       return model.investment_plan.assets.length;
     case "calendar":

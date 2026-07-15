@@ -94,6 +94,19 @@ export interface OperatingPlan {
   /** Прочие поступления/выплаты (вне основной деятельности) → I20/C10 и I21|I24/C11. */
   other_income?: OtherFlow[];
   other_expenses?: OtherFlow[];
+  /** План персонала: штатные позиции → затраты на персонал (I13–I15) + взносы. */
+  staff?: StaffPosition[];
+}
+
+export interface StaffPosition {
+  name: string;
+  monthly_salary: string;
+  headcount?: string;
+  start_month?: number;
+  /** Исключительно; null/пусто — до конца горизонта. */
+  end_month?: number | null;
+  function?: CostFunction;
+  payment_delay_months?: number;
 }
 
 export interface OtherFlow {

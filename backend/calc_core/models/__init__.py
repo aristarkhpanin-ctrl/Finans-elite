@@ -27,6 +27,7 @@ from .operating import (
     Product,
     ProductionLine,
     SalesLine,
+    StaffPosition,
 )
 from .project import ProjectHeader, ProjectModel, ProjectSettings
 
@@ -52,6 +53,7 @@ __all__ = [
     "BomLine",
     "OtherFlow",
     "SalesLine",
+    "StaffPosition",
     "ProductionLine",
     "PaymentTerms",
     "PaymentPart",

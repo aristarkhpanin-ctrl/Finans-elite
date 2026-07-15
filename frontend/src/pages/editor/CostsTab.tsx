@@ -6,6 +6,7 @@ import {
   type FixedCostLine,
   type OperatingPlan,
   type OtherFlow,
+  type StaffPosition,
 } from "../../api/model";
 import { EField, ESelect } from "../../components/EditorField";
 import { IconBox, IconTrash } from "../../components/icons";
@@ -64,6 +65,21 @@ export function CostsTab({ n, operating, onChange }: Props) {
     const rows = key === "other_income" ? otherInc : otherExp;
     setOther(key, rows.filter((_, k) => k !== i));
   };
+
+  // --- План персонала (штат) ---
+  const staff = operating.staff ?? [];
+  const setStaff = (rows: StaffPosition[]) => onChange({ ...operating, staff: rows });
+  const addStaff = () =>
+    setStaff([...staff, { name: "Должность", monthly_salary: "0", headcount: "1",
+                          start_month: 0, function: "staff_admin" }]);
+  const updStaff = (i: number, patch: Partial<StaffPosition>) =>
+    setStaff(staff.map((s, k) => (k === i ? { ...s, ...patch } : s)));
+  const rmStaff = (i: number) => setStaff(staff.filter((_, k) => k !== i));
+  const num = (v: string | undefined) => {
+    const x = Number(String(v ?? "").replace(",", "."));
+    return Number.isFinite(x) ? x : 0;
+  };
+  const fot = staff.reduce((s, p) => s + num(p.monthly_salary) * num(p.headcount ?? "1"), 0);
 
   return (
     <div>
@@ -291,6 +307,67 @@ export function CostsTab({ n, operating, onChange }: Props) {
             ))}
             <button type="button" className="add-row" onClick={addFixed}>
               ＋&nbsp;&nbsp;Добавить ещё статью
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* План персонала (штат) */}
+      <div className="res-lib" style={{ marginTop: 24 }}>
+        <div className="res-lib__head">
+          <div className="res-lib__title">
+            План персонала{staff.length > 0 && ` · ФОТ ≈ ${fot.toLocaleString("ru-RU")} ₽/мес`}
+          </div>
+          <Button variant="ghost" onClick={addStaff}>＋&nbsp;&nbsp;Должность</Button>
+        </div>
+        {staff.length === 0 ? (
+          <p className="muted" style={{ fontSize: 12.5, margin: 0 }}>
+            Штат: должности с окладом, численностью и периодом занятости. Разворачивается в
+            затраты на персонал (адм./произв./маркетинг) с взносами с ФОТ и инфляцией зарплаты.
+          </p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {staff.map((p, i) => (
+              <div className="line-card" key={i}>
+                <div className="line-card__head">
+                  <div className="line-card__idx">{i + 1}</div>
+                  <div className="line-card__name">
+                    <input value={p.name} placeholder="Должность"
+                           onChange={(e) => updStaff(i, { name: e.target.value })} />
+                  </div>
+                  <button type="button" className="line-card__del" title="Удалить должность"
+                          onClick={() => rmStaff(i)}>
+                    <IconTrash size={15} />
+                  </button>
+                </div>
+                <div className="afields-grid">
+                  <EField label="Оклад" prefix="₽" suffix="/ мес"
+                          value={p.monthly_salary}
+                          onChange={(v) => updStaff(i, { monthly_salary: v })} />
+                  <EField label="Численность" suffix="чел."
+                          value={p.headcount ?? "1"}
+                          onChange={(v) => updStaff(i, { headcount: v })} />
+                  <EField label="Месяц начала" prefix="М"
+                          value={p.start_month ?? 0}
+                          onChange={(v) => updStaff(i, { start_month: parseInt(v || "0", 10) || 0 })} />
+                  <EField label="Месяц окончания" prefix="М"
+                          note="Пусто — до конца горизонта"
+                          value={p.end_month ?? ""}
+                          onChange={(v) => updStaff(i, { end_month: v === "" ? null : parseInt(v, 10) || 0 })} />
+                  <ESelect label="Функция" value={p.function ?? "staff_admin"}
+                           onChange={(v) => updStaff(i, { function: v as CostFunction })}
+                           options={[["staff_admin", "Административный"],
+                                     ["staff_production", "Производственный"],
+                                     ["staff_marketing", "Маркетинговый"]]} />
+                  <EField label="Задержка выплаты" suffix="мес."
+                          note="→ Кредиторская задолженность"
+                          value={p.payment_delay_months ?? 0}
+                          onChange={(v) => updStaff(i, { payment_delay_months: parseInt(v || "0", 10) || 0 })} />
+                </div>
+              </div>
+            ))}
+            <button type="button" className="add-row" onClick={addStaff}>
+              ＋&nbsp;&nbsp;Добавить должность
             </button>
           </div>
         )}

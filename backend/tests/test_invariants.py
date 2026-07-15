@@ -36,6 +36,7 @@ from calc_core.models import (
     ProjectModel,
     ProjectSettings,
     SalesLine,
+    StaffPosition,
     StartingBalance,
 )
 from calc_core.models.common import (
@@ -225,6 +226,17 @@ def _random_project(rng: random.Random) -> ProjectModel:
             production=production,
             direct_costs=direct,
             fixed_costs=fixed,
+            staff=[
+                StaffPosition(name=f"st{k}", monthly_salary=Decimal(rng.randint(0, 5000)),
+                              headcount=Decimal(rng.randint(1, 9)),
+                              start_month=rng.randint(0, n - 1),
+                              end_month=(rng.randint(1, n) if rng.random() < 0.5 else None),
+                              function=rng.choice([CostFunction.STAFF_ADMIN,
+                                                   CostFunction.STAFF_PRODUCTION,
+                                                   CostFunction.STAFF_MARKETING]),
+                              payment_delay_months=rng.randint(0, 2))
+                for k in range(rng.randint(0, 2))
+            ],
             other_income=[OtherFlow(name="oi", amount=series(0, 3000))
                           for _ in range(rng.randint(0, 1))],
             other_expenses=[OtherFlow(name="oe", amount=series(0, 3000),

@@ -2642,6 +2642,13 @@
             },
             "title": "Sales",
             "type": "array"
+          },
+          "staff": {
+            "items": {
+              "$ref": "#/components/schemas/StaffPosition-Input"
+            },
+            "title": "Staff",
+            "type": "array"
           }
         },
         "title": "OperatingPlan",
@@ -2703,6 +2710,13 @@
               "$ref": "#/components/schemas/SalesLine-Output"
             },
             "title": "Sales",
+            "type": "array"
+          },
+          "staff": {
+            "items": {
+              "$ref": "#/components/schemas/StaffPosition-Output"
+            },
+            "title": "Staff",
             "type": "array"
           }
         },
@@ -3404,7 +3418,8 @@
               "other_income": [],
               "production": [],
               "products": [],
-              "sales": []
+              "sales": [],
+              "staff": []
             }
           },
           "settings": {
@@ -3526,7 +3541,8 @@
               "other_income": [],
               "production": [],
               "products": [],
-              "sales": []
+              "sales": [],
+              "staff": []
             }
           },
           "settings": {
@@ -4639,6 +4655,126 @@
         "title": "SensitivityResponse",
         "type": "object"
       },
+      "StaffPosition-Input": {
+        "description": "Штатная позиция: должность с окладом и численностью на период (SPEC §8).\n\nРазворачивается движком в постоянную издержку персонала (I13–I15 по ``function``):\nначисление = оклад × численность в месяцах ``[start_month, end_month)``\n(``end_month=None`` → до конца горизонта). Взносы с ФОТ и индексация инфляцией\nзарплаты применяются той же машинерией, что и к суммовым статьям персонала.",
+        "properties": {
+          "end_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Month"
+          },
+          "function": {
+            "$ref": "#/components/schemas/CostFunction",
+            "default": "staff_admin"
+          },
+          "headcount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "1",
+            "title": "Headcount"
+          },
+          "monthly_salary": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Monthly Salary"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "payment_delay_months": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Payment Delay Months",
+            "type": "integer"
+          },
+          "start_month": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Start Month",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "StaffPosition",
+        "type": "object"
+      },
+      "StaffPosition-Output": {
+        "description": "Штатная позиция: должность с окладом и численностью на период (SPEC §8).\n\nРазворачивается движком в постоянную издержку персонала (I13–I15 по ``function``):\nначисление = оклад × численность в месяцах ``[start_month, end_month)``\n(``end_month=None`` → до конца горизонта). Взносы с ФОТ и индексация инфляцией\nзарплаты применяются той же машинерией, что и к суммовым статьям персонала.",
+        "properties": {
+          "end_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Month"
+          },
+          "function": {
+            "$ref": "#/components/schemas/CostFunction",
+            "default": "staff_admin"
+          },
+          "headcount": {
+            "default": "1",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Headcount",
+            "type": "string"
+          },
+          "monthly_salary": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Monthly Salary",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "payment_delay_months": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Payment Delay Months",
+            "type": "integer"
+          },
+          "start_month": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Start Month",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "StaffPosition",
+        "type": "object"
+      },
       "Stage-Input": {
         "description": "Этап календарного плана.\n\nСтоимость = Σ(ресурс.quantity × Resource.unit_price), либо прямая ``cost`` при отсутствии\nресурсов. Занимает месяцы ``[start, start+duration)``; завершение = ``start+duration``.\n``predecessor_id`` (финиш→старт) и ``parent_id`` (иерархия) разрешаются в движке.",
         "properties": {
@@ -5665,7 +5801,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.25"
+    "version": "0.9.26"
   },
   "openapi": "3.1.0",
   "paths": {

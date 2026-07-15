@@ -138,6 +138,24 @@ class FixedCostLine(BaseModel):
     foreign: bool = False
 
 
+class StaffPosition(BaseModel):
+    """Штатная позиция: должность с окладом и численностью на период (SPEC §8).
+
+    Разворачивается движком в постоянную издержку персонала (I13–I15 по ``function``):
+    начисление = оклад × численность в месяцах ``[start_month, end_month)``
+    (``end_month=None`` → до конца горизонта). Взносы с ФОТ и индексация инфляцией
+    зарплаты применяются той же машинерией, что и к суммовым статьям персонала.
+    """
+
+    name: str
+    monthly_salary: Decimal = Decimal(0)    # оклад одного сотрудника в месяц
+    headcount: Decimal = Decimal(1)          # численность (дробная = доля ставки)
+    start_month: int = Field(default=0, ge=0)
+    end_month: Optional[int] = None          # исключительно; None → до конца горизонта
+    function: CostFunction = CostFunction.STAFF_ADMIN   # staff_admin|staff_production|staff_marketing
+    payment_delay_months: int = Field(default=0, ge=0)  # задержка выплаты → кредиторка B23
+
+
 class OtherFlow(BaseModel):
     """Прочее поступление/выплата (вне основной деятельности), помесячно.
 
@@ -163,3 +181,5 @@ class OperatingPlan(BaseModel):
     # Прочие поступления и выплаты (вне основной деятельности) → I20/C10 и I21|I24/C11.
     other_income: list[OtherFlow] = Field(default_factory=list)
     other_expenses: list[OtherFlow] = Field(default_factory=list)
+    # План персонала: штатные позиции → постоянные издержки персонала (I13–I15) + взносы.
+    staff: list[StaffPosition] = Field(default_factory=list)

@@ -2052,6 +2052,8 @@ export interface components {
             products?: components["schemas"]["Product-Input"][];
             /** Sales */
             sales?: components["schemas"]["SalesLine-Input"][];
+            /** Staff */
+            staff?: components["schemas"]["StaffPosition-Input"][];
         };
         /** OperatingPlan */
         "OperatingPlan-Output": {
@@ -2071,6 +2073,8 @@ export interface components {
             products?: components["schemas"]["Product-Output"][];
             /** Sales */
             sales?: components["schemas"]["SalesLine-Output"][];
+            /** Staff */
+            staff?: components["schemas"]["StaffPosition-Output"][];
         };
         /** OrganizationCreate */
         OrganizationCreate: {
@@ -2486,7 +2490,8 @@ export interface components {
              *       "other_income": [],
              *       "production": [],
              *       "products": [],
-             *       "sales": []
+             *       "sales": [],
+             *       "staff": []
              *     }
              */
             operating_plan: components["schemas"]["OperatingPlan-Input"];
@@ -2607,7 +2612,8 @@ export interface components {
              *       "other_income": [],
              *       "production": [],
              *       "products": [],
-             *       "sales": []
+             *       "sales": [],
+             *       "staff": []
              *     }
              */
             operating_plan: components["schemas"]["OperatingPlan-Output"];
@@ -3117,6 +3123,80 @@ export interface components {
             param: string;
             /** Points */
             points: components["schemas"]["SensitivityPointOut"][];
+        };
+        /**
+         * StaffPosition
+         * @description Штатная позиция: должность с окладом и численностью на период (SPEC §8).
+         *
+         *     Разворачивается движком в постоянную издержку персонала (I13–I15 по ``function``):
+         *     начисление = оклад × численность в месяцах ``[start_month, end_month)``
+         *     (``end_month=None`` → до конца горизонта). Взносы с ФОТ и индексация инфляцией
+         *     зарплаты применяются той же машинерией, что и к суммовым статьям персонала.
+         */
+        "StaffPosition-Input": {
+            /** End Month */
+            end_month?: number | null;
+            /** @default staff_admin */
+            function: components["schemas"]["CostFunction"];
+            /**
+             * Headcount
+             * @default 1
+             */
+            headcount: number | string;
+            /**
+             * Monthly Salary
+             * @default 0
+             */
+            monthly_salary: number | string;
+            /** Name */
+            name: string;
+            /**
+             * Payment Delay Months
+             * @default 0
+             */
+            payment_delay_months: number;
+            /**
+             * Start Month
+             * @default 0
+             */
+            start_month: number;
+        };
+        /**
+         * StaffPosition
+         * @description Штатная позиция: должность с окладом и численностью на период (SPEC §8).
+         *
+         *     Разворачивается движком в постоянную издержку персонала (I13–I15 по ``function``):
+         *     начисление = оклад × численность в месяцах ``[start_month, end_month)``
+         *     (``end_month=None`` → до конца горизонта). Взносы с ФОТ и индексация инфляцией
+         *     зарплаты применяются той же машинерией, что и к суммовым статьям персонала.
+         */
+        "StaffPosition-Output": {
+            /** End Month */
+            end_month?: number | null;
+            /** @default staff_admin */
+            function: components["schemas"]["CostFunction"];
+            /**
+             * Headcount
+             * @default 1
+             */
+            headcount: string;
+            /**
+             * Monthly Salary
+             * @default 0
+             */
+            monthly_salary: string;
+            /** Name */
+            name: string;
+            /**
+             * Payment Delay Months
+             * @default 0
+             */
+            payment_delay_months: number;
+            /**
+             * Start Month
+             * @default 0
+             */
+            start_month: number;
         };
         /**
          * Stage

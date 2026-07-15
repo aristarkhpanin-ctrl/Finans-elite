@@ -18,6 +18,7 @@ from ..models import (
     CostFunction,
     DirectCostKind,
     DirectCostLine,
+    FixedCostLine,
     ProjectModel,
     RepaymentType,
     VatBasis,
@@ -288,6 +289,30 @@ def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal,
     return mc, wc, c2, c3, b3, payables, vat_in, vat_in_paid, i25_materials
 
 
+def _staff_fixed_lines(model: ProjectModel, n: int) -> list[FixedCostLine]:
+    """Развернуть план персонала в синтетические статьи затрат на персонал.
+
+    Начисление позиции = оклад × численность в месяцах ``[start, end)``. Синтетические
+    строки проходят ту же машинерию, что суммовые статьи персонала (взносы с ФОТ,
+    индексация инфляцией зарплаты, деньги C6, кредиторка при задержке выплаты).
+    Пустой план персонала не создаёт строк (модель без штата инертна).
+    """
+    out: list[FixedCostLine] = []
+    for pos in model.operating_plan.staff:
+        per = pos.monthly_salary * pos.headcount
+        if per == 0:
+            continue
+        end = n if pos.end_month is None else min(pos.end_month, n)
+        amount = [per if pos.start_month <= t < end else ZERO for t in range(n)]
+        if all(v == ZERO for v in amount):
+            continue
+        out.append(FixedCostLine(
+            name=f"Штат: {pos.name}", function=pos.function, amount=amount,
+            payment_delay_months=pos.payment_delay_months,
+        ))
+    return out
+
+
 def _fixed(model: ProjectModel, n: int, vat_rate: Decimal,
            fx: list[Decimal], fx_prev: list[Decimal],
            idx_wages: list[Decimal], idx_general: list[Decimal]):
@@ -310,7 +335,8 @@ def _fixed(model: ProjectModel, n: int, vat_rate: Decimal,
     payable_f = zeros(n)  # валютная кредиторка (в валюте) — для переоценки
     one_plus = Decimal(1) + vat_rate
     contrib = ONE + model.settings.payroll_contribution_rate  # загрузка ФОТ страховыми взносами
-    for line in model.operating_plan.fixed_costs:
+    # Суммовые статьи + синтетические строки плана персонала — один путь.
+    for line in [*model.operating_plan.fixed_costs, *_staff_fixed_lines(model, n)]:
         amt = _pad(line.amount, n)
         if line.foreign:
             # Валютная издержка (услуга, без НДС): пересчёт по FX; кредиторка переоценивается.
