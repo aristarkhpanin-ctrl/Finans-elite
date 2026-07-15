@@ -84,6 +84,24 @@ def budget_response(budget) -> "BudgetOut":
     )
 
 
+class ProductMarginOut(BaseModel):
+    """Маржа продукта по рецептуре (BOM): выручка − материалы − сдельная ЗП проданного."""
+
+    product_id: str
+    name: str
+    revenue: Decimal
+    bom_cost: Decimal
+    piece_wages: Decimal
+    margin: Decimal
+    margin_share: Optional[Decimal] = None
+
+
+class ProductMarginsOut(BaseModel):
+    products: list[ProductMarginOut] = []
+    # Суммовые (глобальные) прямые издержки — не распределяются по продуктам.
+    unallocated_direct: Decimal = Decimal(0)
+
+
 class CalcResponse(BaseModel):
     engine_version: str
     n: int
@@ -96,6 +114,7 @@ class CalcResponse(BaseModel):
     break_even: BreakEvenOut
     valuation: ValuationOut
     budget: BudgetOut = BudgetOut()
+    product_margins: ProductMarginsOut = ProductMarginsOut()
     actualized_cashflow: Optional[StatementOut] = None
     cashflow_variance: Optional[StatementOut] = None
     warnings: list[str]
@@ -519,6 +538,13 @@ def to_response(r: CalcResult) -> CalcResponse:
             liquidation_value=r.valuation.liquidation_value,
         ),
         budget=budget_response(r.budget),
+        product_margins=ProductMarginsOut(
+            products=[ProductMarginOut(
+                product_id=p.product_id, name=p.name, revenue=p.revenue, bom_cost=p.bom_cost,
+                piece_wages=p.piece_wages, margin=p.margin, margin_share=p.margin_share,
+            ) for p in r.product_margins.products],
+            unallocated_direct=r.product_margins.unallocated_direct,
+        ),
         actualized_cashflow=_statement_out(r.actualized_cashflow) if r.actualized_cashflow else None,
         cashflow_variance=_statement_out(r.cashflow_variance) if r.cashflow_variance else None,
         warnings=r.warnings,

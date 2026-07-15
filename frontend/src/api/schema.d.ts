@@ -979,6 +979,13 @@ export interface components {
             metrics: components["schemas"]["MetricsOut"];
             /** N */
             n: number;
+            /**
+             * @default {
+             *       "products": [],
+             *       "unallocated_direct": "0"
+             *     }
+             */
+            product_margins: components["schemas"]["ProductMarginsOut"];
             profit_use: components["schemas"]["StatementOut"];
             ratios: components["schemas"]["RatiosOut"];
             valuation: components["schemas"]["ValuationOut"];
@@ -1111,6 +1118,13 @@ export interface components {
              * @default []
              */
             per_project: components["schemas"]["PerProjectOut"][];
+            /**
+             * @default {
+             *       "products": [],
+             *       "unallocated_direct": "0"
+             *     }
+             */
+            product_margins: components["schemas"]["ProductMarginsOut"];
             profit_use: components["schemas"]["StatementOut"];
             ratios: components["schemas"]["RatiosOut"];
             valuation: components["schemas"]["ValuationOut"];
@@ -2187,6 +2201,39 @@ export interface components {
              * @default 0
              */
             piece_wage_per_unit: string;
+        };
+        /**
+         * ProductMarginOut
+         * @description Маржа продукта по рецептуре (BOM): выручка − материалы − сдельная ЗП проданного.
+         */
+        ProductMarginOut: {
+            /** Bom Cost */
+            bom_cost: string;
+            /** Margin */
+            margin: string;
+            /** Margin Share */
+            margin_share?: string | null;
+            /** Name */
+            name: string;
+            /** Piece Wages */
+            piece_wages: string;
+            /** Product Id */
+            product_id: string;
+            /** Revenue */
+            revenue: string;
+        };
+        /** ProductMarginsOut */
+        ProductMarginsOut: {
+            /**
+             * Products
+             * @default []
+             */
+            products: components["schemas"]["ProductMarginOut"][];
+            /**
+             * Unallocated Direct
+             * @default 0
+             */
+            unallocated_direct: string;
         };
         /**
          * ProductionLine

@@ -305,6 +305,36 @@ def test_cost_line_outlier():
     assert structure.cost_line_outlier(ctx, DEFAULT_CONFIG) == []
 
 
+def _margin(pid, revenue, bom_cost, wages):
+    from calc_core.reports.result import ProductMargin
+    rev, cost, w = Decimal(str(revenue)), Decimal(str(bom_cost)), Decimal(str(wages))
+    margin = rev - cost - w
+    return ProductMargin(product_id=pid, name=pid, revenue=rev, bom_cost=cost,
+                         piece_wages=w, margin=margin,
+                         margin_share=(margin / rev) if rev else None)
+
+
+def test_product_negative_margin_rule():
+    ctx = _liq_ctx()
+    ctx.result.product_margins.products = [_margin("a", 1000, 1200, 0),   # в убыток
+                                           _margin("b", 1000, 400, 100)]  # здоровый
+    fired = structure.product_negative_margin(ctx, DEFAULT_CONFIG)
+    assert len(fired) == 1 and fired[0].severity == "risk"
+    assert fired[0].evidence["product_id"] == "a"
+    # без рецептур (пустой отчёт) — тишина
+    assert structure.product_negative_margin(_liq_ctx(), DEFAULT_CONFIG) == []
+
+
+def test_product_thin_margin_rule():
+    ctx = _liq_ctx()
+    ctx.result.product_margins.products = [_margin("a", 1000, 920, 30),   # маржа 5% < 10%
+                                           _margin("b", 1000, 500, 0),    # 50% — здоровый
+                                           _margin("c", 1000, 1100, 0)]   # убыточный — не «тонкий»
+    fired = structure.product_thin_margin(ctx, DEFAULT_CONFIG)
+    assert len(fired) == 1 and fired[0].evidence["product_id"] == "a"
+    assert fired[0].severity == "warning"
+
+
 def test_run_review_includes_structure_risk():
     # Полный прогон: отрицательная валовая маржа — единственная сработавшая находка (risk).
     ctx = _liq_ctx(income=_income(I4=[100, 0, 0, 0, 0, 0], I8=[-20, 0, 0, 0, 0, 0]))

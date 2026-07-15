@@ -33,6 +33,31 @@ class Budget:
 
 
 @dataclass
+class ProductMargin:
+    """Маржа продукта по рецептуре (аналитика; отчётные формы не затрагивает).
+
+    ``bom_cost`` — BOM-себестоимость проданного объёма в ценах месяца продажи;
+    ``margin_share`` — доля маржи в выручке (None при нулевой выручке).
+    """
+
+    product_id: str
+    name: str
+    revenue: Decimal
+    bom_cost: Decimal
+    piece_wages: Decimal
+    margin: Decimal
+    margin_share: Optional[Decimal]
+
+
+@dataclass
+class ProductMargins:
+    """Маржа по продуктам с рецептурой + нераспределённые (суммовые) прямые издержки."""
+
+    products: list[ProductMargin] = field(default_factory=list)
+    unallocated_direct: Decimal = Decimal(0)
+
+
+@dataclass
 class InvestmentMetrics:
     """Показатели эффективности инвестиций (SPEC §17)."""
 
@@ -91,6 +116,8 @@ class CalcResult:
     valuation: BusinessValuation = field(default_factory=BusinessValuation)
     # Бюджет по этапам (календарный план); пустой, если этапов нет.
     budget: Budget = field(default_factory=Budget)
+    # Маржа по продуктам (рецептуры/BOM); пустая, если рецептур нет.
+    product_margins: ProductMargins = field(default_factory=ProductMargins)
     # Актуализация (план-факт): заполняются при наличии фактических данных.
     actualized_cashflow: Optional[Statement] = None
     cashflow_variance: Optional[Statement] = None

@@ -453,6 +453,13 @@
             "title": "N",
             "type": "integer"
           },
+          "product_margins": {
+            "$ref": "#/components/schemas/ProductMarginsOut",
+            "default": {
+              "products": [],
+              "unallocated_direct": "0"
+            }
+          },
           "profit_use": {
             "$ref": "#/components/schemas/StatementOut"
           },
@@ -725,6 +732,13 @@
             },
             "title": "Per Project",
             "type": "array"
+          },
+          "product_margins": {
+            "$ref": "#/components/schemas/ProductMarginsOut",
+            "default": {
+              "products": [],
+              "unallocated_direct": "0"
+            }
           },
           "profit_use": {
             "$ref": "#/components/schemas/StatementOut"
@@ -2934,6 +2948,81 @@
           "name"
         ],
         "title": "Product",
+        "type": "object"
+      },
+      "ProductMarginOut": {
+        "description": "Маржа продукта по рецептуре (BOM): выручка − материалы − сдельная ЗП проданного.",
+        "properties": {
+          "bom_cost": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Bom Cost",
+            "type": "string"
+          },
+          "margin": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Margin",
+            "type": "string"
+          },
+          "margin_share": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Margin Share"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "piece_wages": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Piece Wages",
+            "type": "string"
+          },
+          "product_id": {
+            "title": "Product Id",
+            "type": "string"
+          },
+          "revenue": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Revenue",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_id",
+          "name",
+          "revenue",
+          "bom_cost",
+          "piece_wages",
+          "margin"
+        ],
+        "title": "ProductMarginOut",
+        "type": "object"
+      },
+      "ProductMarginsOut": {
+        "properties": {
+          "products": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ProductMarginOut"
+            },
+            "title": "Products",
+            "type": "array"
+          },
+          "unallocated_direct": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Unallocated Direct",
+            "type": "string"
+          }
+        },
+        "title": "ProductMarginsOut",
         "type": "object"
       },
       "ProductionLine-Input": {
@@ -5371,7 +5460,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.20"
+    "version": "0.9.21"
   },
   "openapi": "3.1.0",
   "paths": {

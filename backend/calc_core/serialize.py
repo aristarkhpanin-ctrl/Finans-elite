@@ -101,6 +101,18 @@ def budget_to_dict(budget) -> dict[str, object]:
     }
 
 
+def product_margins_to_dict(pm) -> dict[str, object]:
+    return {
+        "products": [
+            {"product_id": p.product_id, "name": p.name, "revenue": _money(p.revenue),
+             "bom_cost": _money(p.bom_cost), "piece_wages": _money(p.piece_wages),
+             "margin": _money(p.margin), "margin_share": _ratio(p.margin_share)}
+            for p in pm.products
+        ],
+        "unallocated_direct": _money(pm.unallocated_direct),
+    }
+
+
 def result_to_dict(result: CalcResult) -> dict[str, object]:
     """Полный канонический снимок результата расчёта (для golden-master и сравнения)."""
     snapshot: dict[str, object] = {
@@ -118,6 +130,8 @@ def result_to_dict(result: CalcResult) -> dict[str, object]:
     }
     if result.budget.stages:
         snapshot["budget"] = budget_to_dict(result.budget)
+    if result.product_margins.products:
+        snapshot["product_margins"] = product_margins_to_dict(result.product_margins)
     if result.actualized_cashflow is not None:
         snapshot["actualized_cashflow"] = statement_to_dict(result.actualized_cashflow)
     if result.cashflow_variance is not None:

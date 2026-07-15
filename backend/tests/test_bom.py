@@ -117,3 +117,41 @@ def test_products_without_bom_are_inert():
     assert all(v == 0 for v in r.income["I5"])
     assert all(v == 0 for v in r.income["I6"])
     assert _balanced(r)
+
+
+# --- M1: маржа по продуктам ---
+
+def test_product_margins_report():
+    """Маржа по продуктам: A с рецептурой (в отчёте), B без (не в отчёте);
+    суммовые прямые издержки — отдельной строкой «нераспределённые»."""
+    from calc_core.models import DirectCostLine
+
+    n = 2
+    mat = Material(id="m1", name="Сталь", unit_price=D(5))
+    a = Product(id="a", name="A", bom=[BomLine(material_id="m1", qty_per_unit=D(3))],
+                piece_wage_per_unit=D(7))
+    b = Product(id="b", name="B")                      # без рецептуры — маржа не определена
+    sales = [
+        SalesLine(product_id="a", volume=[D(10)] * n, price=[D(100)] * n),
+        SalesLine(product_id="b", volume=[D(4)] * n, price=[D(50)] * n),
+    ]
+    model = _model(n, [a, b], sales, materials=[mat])
+    model.operating_plan.direct_costs = [DirectCostLine(name="прочее", amount=[D(30)] * n)]
+    pm = run(model).product_margins
+    assert [p.product_id for p in pm.products] == ["a"]     # только продукт со спецификацией
+    p = pm.products[0]
+    assert q(p.revenue) == D("2000.00")                     # 10×100×2 мес
+    assert q(p.bom_cost) == D("300.00")                     # 10×3×5×2
+    assert q(p.piece_wages) == D("140.00")                  # 10×7×2
+    assert q(p.margin) == D("1560.00")
+    assert p.margin_share is not None and q(p.margin_share * 100) == D("78.00")
+    assert q(pm.unallocated_direct) == D("60.00")           # суммовая статья 30×2
+
+
+def test_product_margins_absent_without_bom():
+    """Без рецептур отчёт пуст (и не попадает в снимок результата)."""
+    n = 2
+    prod = Product(id="p1", name="Изделие")
+    sales = SalesLine(product_id="p1", volume=[D(10)] * n, price=[D(100)] * n)
+    pm = run(_model(n, [prod], [sales])).product_margins
+    assert pm.products == [] and pm.unallocated_direct == 0

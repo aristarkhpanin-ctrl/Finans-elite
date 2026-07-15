@@ -73,6 +73,53 @@ def thin_gross_margin(ctx: ReviewContext, config: ReviewConfig) -> list[Finding]
     )]
 
 
+def product_negative_margin(ctx: ReviewContext, config: ReviewConfig) -> list[Finding]:
+    """Продукт с рецептурой продаётся ниже прямой себестоимости — каждая продажа в убыток.
+
+    Работает только при заданной рецептуре (BOM): себестоимость доказана данными модели,
+    а не аллокацией. Реализация исходного примера «издержка необоснованно высока для
+    продукта» — теперь честно по продукту.
+    """
+    findings: list[Finding] = []
+    for p in ctx.result.product_margins.products:
+        if p.revenue <= 0 or p.margin >= 0:
+            continue
+        findings.append(Finding(
+            id="structure.product_negative_margin", category="structure", severity="risk",
+            title=f"Продукт «{p.name}» продаётся в убыток",
+            detail=f"BOM-маржа продукта {fmt_pct(p.margin_share or Decimal(0))}: выручка "
+                   f"{fmt_rub(p.revenue)} ₽ не покрывает материалы {fmt_rub(p.bom_cost)} ₽ и "
+                   f"сдельную зарплату {fmt_rub(p.piece_wages)} ₽ — каждая продажа увеличивает "
+                   "убыток.",
+            recommendation="Поднимите цену, пересмотрите рецептуру (нормы/цены материалов) "
+                           "или откажитесь от продукта.",
+            evidence={"product_id": p.product_id, "revenue": str(p.revenue),
+                      "bom_cost": str(p.bom_cost), "piece_wages": str(p.piece_wages),
+                      "margin": str(p.margin)},
+        ))
+    return findings
+
+
+def product_thin_margin(ctx: ReviewContext, config: ReviewConfig) -> list[Finding]:
+    """Продукт с рецептурой имеет положительную, но очень тонкую маржу."""
+    findings: list[Finding] = []
+    for p in ctx.result.product_margins.products:
+        share = p.margin_share
+        if share is None or share < 0 or share >= config.thin_gross_margin:
+            continue
+        findings.append(Finding(
+            id="structure.product_thin_margin", category="structure", severity="warning",
+            title=f"Очень тонкая маржа продукта «{p.name}»",
+            detail=f"BOM-маржа продукта {fmt_pct(share)} ниже "
+                   f"{fmt_pct(config.thin_gross_margin)}: небольшое подорожание материалов "
+                   "или скидка уводят продукт в минус.",
+            recommendation="Заложите запас по цене или удешевите рецептуру; проверьте "
+                           "чувствительность к ценам материалов.",
+            evidence={"product_id": p.product_id, "margin_share": str(share)},
+        ))
+    return findings
+
+
 def _quantile(sorted_vals: list[Decimal], q: Decimal) -> Decimal:
     """Квантиль по отсортированному ряду (линейная интерполяция, как numpy type 7)."""
     if len(sorted_vals) == 1:
@@ -118,4 +165,5 @@ def cost_line_outlier(ctx: ReviewContext, config: ReviewConfig) -> list[Finding]
     return findings
 
 
-RULES = [revenue_concentration, negative_gross_margin, thin_gross_margin, cost_line_outlier]
+RULES = [revenue_concentration, negative_gross_margin, thin_gross_margin, cost_line_outlier,
+         product_negative_margin, product_thin_margin]

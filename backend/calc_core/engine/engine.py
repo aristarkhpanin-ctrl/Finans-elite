@@ -22,6 +22,7 @@ from ..version import ENGINE_VERSION
 from .calendar import compute_budget
 from .errors import InvariantError
 from .financing_auto import AutoInjection, solve_credit_line
+from .margins import compute_product_margins
 from .pipeline import run_pipeline
 
 # Параметры сходимости автоподбора финансирования.
@@ -98,6 +99,7 @@ def _run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
         break_even=break_even,
         valuation=valuation,
         budget=compute_budget(model, n),
+        product_margins=compute_product_margins(model, n),
         actualized_cashflow=actualized_cashflow,
         cashflow_variance=cashflow_variance,
         warnings=warnings,
