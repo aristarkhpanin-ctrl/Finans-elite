@@ -89,6 +89,8 @@ class SalesLine(BaseModel):
     # Старт продаж: объём до этого месяца обнуляется. Задаётся вручную либо этапом
     # «производство» календарного плана (тот перекрывает ручной старт). None — без гейта.
     start_month: Optional[int] = None
+    # Ставка НДС строки (льготная категория, напр. 0.10); None → глобальная vat_rate.
+    vat_rate: Optional[Decimal] = None
 
 
 class ProductionLine(BaseModel):

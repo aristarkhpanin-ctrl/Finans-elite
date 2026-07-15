@@ -45,6 +45,8 @@ export interface SalesLine {
   payment: PaymentTerms;
   foreign?: boolean;
   start_month?: number | null;
+  /** Ставка НДС строки (напр. "0.10"); null/пусто — глобальная. */
+  vat_rate?: string | null;
 }
 
 export interface ProductionLine {

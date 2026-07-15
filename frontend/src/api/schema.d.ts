@@ -3021,6 +3021,8 @@ export interface components {
             product_id: string;
             /** Start Month */
             start_month?: number | null;
+            /** Vat Rate */
+            vat_rate?: number | string | null;
             /** Volume */
             volume?: (number | string)[];
         };
@@ -3049,6 +3051,8 @@ export interface components {
             product_id: string;
             /** Start Month */
             start_month?: number | null;
+            /** Vat Rate */
+            vat_rate?: string | null;
             /** Volume */
             volume?: string[];
         };

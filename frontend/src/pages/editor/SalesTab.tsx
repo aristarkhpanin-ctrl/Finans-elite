@@ -195,6 +195,18 @@ export function SalesTab({ n, operating, onChange }: Props) {
                   />
                 </div>
 
+                {!line.foreign && (
+                  <div style={{ marginTop: 12, maxWidth: 250 }}>
+                    <ESelect
+                      label="Ставка НДС строки"
+                      hint="Льготная категория (напр. продукты питания 10%); «Глобальная» — из настроек проекта"
+                      value={line.vat_rate ?? ""}
+                      onChange={(v) => updateLine(i, { vat_rate: v || null })}
+                      options={[["", "Глобальная"], ["0.20", "20%"], ["0.10", "10%"], ["0", "0% (без НДС)"]]}
+                    />
+                  </div>
+                )}
+
                 <div className="terms-head">Условия оплаты</div>
                 <div style={{ margin: "6px 0 10px" }}>
                   <Switch

@@ -4346,6 +4346,21 @@
             ],
             "title": "Start Month"
           },
+          "vat_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vat Rate"
+          },
           "volume": {
             "items": {
               "anyOf": [
@@ -4407,6 +4422,18 @@
               }
             ],
             "title": "Start Month"
+          },
+          "vat_rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vat Rate"
           },
           "volume": {
             "items": {
@@ -5638,7 +5665,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.24"
+    "version": "0.9.25"
   },
   "openapi": "3.1.0",
   "paths": {

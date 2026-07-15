@@ -88,8 +88,10 @@ def _sales(model: ProjectModel, n: int, vat_rate: Decimal,
     vat_out_paid = zeros(n)   # исходящий НДС в полученных деньгах (по оплате)
     recv_f = zeros(n)         # валютная дебиторка (в валюте) — для переоценки
     adv_f = zeros(n)          # валютные авансы (в валюте) — для переоценки
-    one_plus = Decimal(1) + vat_rate
     for line in model.operating_plan.sales:
+        # Пер-строчная ставка НДС (льготные категории, напр. 10%); None → глобальная.
+        line_vat = vat_rate if line.vat_rate is None else line.vat_rate
+        one_plus = Decimal(1) + line_vat
         vol = _pad(line.volume, n)
         price = _pad(line.price, n)
         if line.foreign:
@@ -108,7 +110,7 @@ def _sales(model: ProjectModel, n: int, vat_rate: Decimal,
         else:
             gross = [revenue[t] * one_plus for t in range(n)]        # с НДС (→ деньги/WC)
             cash, recv, adv = sales_timing(gross, line.payment, n)
-            vat_amt = [revenue[t] * vat_rate for t in range(n)]
+            vat_amt = [revenue[t] * line_vat for t in range(n)]
             vat_cash, _, _ = sales_timing(vat_amt, line.payment, n)  # НДС в деньгах (та же схема)
             i1 = add(i1, revenue)
             c1 = add(c1, cash)
