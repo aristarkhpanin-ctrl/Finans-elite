@@ -1,9 +1,10 @@
-import type { OperatingPlan, Product, SalesLine } from "../../api/model";
-import { EField } from "../../components/EditorField";
+import type { BomLine, Material, OperatingPlan, Product, SalesLine } from "../../api/model";
+import { EField, ESelect } from "../../components/EditorField";
 import { IconCart, IconTrash } from "../../components/icons";
 import { MonthlyGrid } from "../../components/MonthlyGrid";
 import type { MonthlyRow } from "../../components/MonthlyGrid";
 import { Button, Switch } from "../../components/ui";
+import { fmtMoney } from "../../format";
 
 interface Props {
   n: number;
@@ -70,6 +71,17 @@ export function SalesTab({ n, operating, onChange }: Props) {
       ...operating,
       production: production.map((l) => (l.product_id === id ? { ...l, volume } : l)),
     });
+
+  // --- Материалы и рецептуры (пер-продуктная себестоимость) ---
+  const materials = operating.materials ?? [];
+  const setMaterials = (m: Material[]) => onChange({ ...operating, materials: m });
+  const addMaterial = () =>
+    setMaterials([...materials, { id: crypto.randomUUID(), name: "Материал", unit_price: "0" }]);
+  const updMaterial = (i: number, patch: Partial<Material>) =>
+    setMaterials(materials.map((m, k) => (k === i ? { ...m, ...patch } : m)));
+  const rmMaterial = (i: number) => setMaterials(materials.filter((_, k) => k !== i));
+  const updProduct = (id: string, patch: Partial<Product>) =>
+    onChange({ ...operating, products: products.map((p) => (p.id === id ? { ...p, ...patch } : p)) });
 
   return (
     <div>
@@ -220,6 +232,15 @@ export function SalesTab({ n, operating, onChange }: Props) {
                     }
                   />
                 </div>
+
+                {(() => {
+                  const p = products.find((x) => x.id === line.product_id);
+                  return p ? (
+                    <BomBlock product={p} materials={materials}
+                              avgPrice={line.price.length ? num(line.price[0]) : 0}
+                              onChange={(patch) => updProduct(p.id, patch)} />
+                  ) : null;
+                })()}
               </div>
             );
           })}
@@ -227,6 +248,105 @@ export function SalesTab({ n, operating, onChange }: Props) {
           <button type="button" className="add-row" onClick={addProduct}>
             ＋&nbsp;&nbsp;Добавить ещё продукт
           </button>
+
+          {/* Справочник материалов для рецептур */}
+          <div className="res-lib">
+            <div className="res-lib__head">
+              <div className="res-lib__title">Материалы (для рецептур)</div>
+              <Button variant="ghost" onClick={addMaterial}>＋&nbsp;&nbsp;Материал</Button>
+            </div>
+            {materials.length === 0 ? (
+              <p className="muted" style={{ fontSize: 12.5, margin: 0 }}>
+                Справочник материалов с ценой за единицу и условиями закупки. Рецептура продукта
+                (нормы расхода) превратит их в прямые издержки и себестоимость по продукту.
+              </p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {materials.map((m, i) => (
+                  <div className="res-row" key={m.id}>
+                    <input className="res-row__name" value={m.name ?? ""} placeholder="Материал"
+                           onChange={(e) => updMaterial(i, { name: e.target.value })} />
+                    <EField label={m.foreign ? "Цена ед., $" : "Цена ед., ₽"} value={m.unit_price ?? "0"}
+                            onChange={(v) => updMaterial(i, { unit_price: v })} />
+                    <EField label="Отсрочка" suffix="мес." value={m.payment_delay_months ?? 0}
+                            onChange={(v) => updMaterial(i, { payment_delay_months: parseInt(v || "0", 10) || 0 })} />
+                    <EField label="Закупка заранее" suffix="мес." value={m.stock_lead_months ?? 0}
+                            onChange={(v) => updMaterial(i, { stock_lead_months: parseInt(v || "0", 10) || 0 })} />
+                    <label className="mat-imp" title="Импортный материал: цена в валюте, по курсу FX">
+                      <input type="checkbox" checked={m.foreign ?? false}
+                             onChange={(e) => updMaterial(i, { foreign: e.target.checked })} />
+                      импорт
+                    </label>
+                    <button type="button" className="line-card__del" title="Удалить материал"
+                            onClick={() => rmMaterial(i)}>
+                      <IconTrash size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Рецептура продукта (BOM): нормы расхода материалов + сдельная ЗП → себестоимость единицы. */
+function BomBlock({ product, materials, avgPrice, onChange }: {
+  product: Product;
+  materials: Material[];
+  avgPrice: number;
+  onChange: (patch: Partial<Product>) => void;
+}) {
+  const bom = product.bom ?? [];
+  const byId = new Map(materials.map((m) => [m.id, m]));
+  const opts: [string, string][] = [["", "—"], ...materials.map((m) => [m.id, m.name || m.id] as [string, string])];
+  const upd = (i: number, patch: Partial<BomLine>) =>
+    onChange({ bom: bom.map((b, k) => (k === i ? { ...b, ...patch } : b)) });
+  const add = () => onChange({ bom: [...bom, { material_id: materials[0]?.id ?? "", qty_per_unit: "0" }] });
+  const rm = (i: number) => onChange({ bom: bom.filter((_, k) => k !== i) });
+
+  const unitCost = bom.reduce((s, b) => {
+    const m = byId.get(b.material_id);
+    return s + (m ? num(b.qty_per_unit) * num(m.unit_price) : 0);
+  }, 0) + num(product.piece_wage_per_unit);
+  const hasSpec = bom.length > 0 || num(product.piece_wage_per_unit) > 0;
+
+  return (
+    <div className="expand-block">
+      <div className="expand-block__head"><span>⚙</span>Рецептура (себестоимость единицы)</div>
+      {materials.length === 0 && bom.length === 0 && (
+        <p className="muted" style={{ fontSize: 12, margin: "0 0 10px" }}>
+          Добавьте материалы в справочник ниже, затем задайте нормы расхода на единицу продукта.
+        </p>
+      )}
+      {bom.map((b, i) => (
+        <div className="res-assign" key={i}>
+          <ESelect label="Материал" value={b.material_id}
+                   onChange={(v) => upd(i, { material_id: v })} options={opts} />
+          <EField label="Расход на ед." value={b.qty_per_unit ?? "0"}
+                  onChange={(v) => upd(i, { qty_per_unit: v })} />
+          <button type="button" className="line-card__del" onClick={() => rm(i)}>
+            <IconTrash size={15} />
+          </button>
+        </div>
+      ))}
+      <div className="res-assign">
+        <EField label="Сдельная зарплата на ед." prefix="₽" value={product.piece_wage_per_unit ?? "0"}
+                onChange={(v) => onChange({ piece_wage_per_unit: v })} />
+        {materials.length > 0 && (
+          <button type="button" className="add-row add-row--sm" style={{ alignSelf: "flex-end" }}
+                  onClick={add}>
+            ＋&nbsp;&nbsp;Материал рецептуры
+          </button>
+        )}
+      </div>
+      {hasSpec && (
+        <div className={"gain-note " + (avgPrice > 0 && unitCost > avgPrice ? "gain-note--bad" : "gain-note--good")}
+             style={{ marginTop: 8 }}>
+          Себестоимость ≈ {fmtMoney(unitCost)}/ед. (в базовых ценах)
+          {avgPrice > 0 && ` · цена ${fmtMoney(avgPrice)} → маржа ≈ ${fmtMoney(avgPrice - unitCost)}/ед.`}
         </div>
       )}
     </div>

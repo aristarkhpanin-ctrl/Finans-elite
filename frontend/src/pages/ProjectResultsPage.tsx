@@ -331,6 +331,45 @@ export function ProjectResultsPage() {
 
         {tab === "summary" && <ReviewBanner projectId={id} />}
 
+        {tab === "summary" && data.product_margins.products.length > 0 && (
+          <>
+            <div className="rsection-label">Маржа по продуктам (рецептура)</div>
+            <div className="contrib-wrap">
+              <div className="contrib-row contrib-row--head">
+                <div className="contrib-label">Продукт</div>
+                <div className="contrib-cell">Выручка</div>
+                <div className="contrib-cell">Материалы</div>
+                <div className="contrib-cell">Сдельная ЗП</div>
+                <div className="contrib-cell">Маржа</div>
+                <div className="contrib-cell">Маржа, %</div>
+              </div>
+              {data.product_margins.products.map((p) => {
+                const neg = Number(p.margin) < 0;
+                return (
+                  <div className="contrib-row" key={p.product_id}>
+                    <div className="contrib-label">{p.name || p.product_id}</div>
+                    <div className="contrib-cell">{fmtMillions(p.revenue, { digits: 2 })}</div>
+                    <div className="contrib-cell">{fmtMillions(p.bom_cost, { digits: 2 })}</div>
+                    <div className="contrib-cell">{fmtMillions(p.piece_wages, { digits: 2 })}</div>
+                    <div className={"contrib-cell" + (neg ? " contrib-cell--neg" : "")}>
+                      {fmtMillions(p.margin, { sign: true, digits: 2 })}
+                    </div>
+                    <div className={"contrib-cell" + (neg ? " contrib-cell--neg" : "")}>
+                      {p.margin_share != null ? percent(p.margin_share, 1) : "—"}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {Number(data.product_margins.unallocated_direct) > 0 && (
+              <div className="field-note" style={{ marginTop: 8 }}>
+                Суммовые прямые издержки {fmtMillions(data.product_margins.unallocated_direct, { digits: 2 })} не
+                распределяются по продуктам (заданы без рецептуры).
+              </div>
+            )}
+          </>
+        )}
+
         <div className="etabs-wrap" style={{ margin: "20px 0", borderTop: "1px solid var(--border)", background: "none", padding: 0 }}>
           <div className="etabs fe-scroll">
             {tabs.map((key) => (

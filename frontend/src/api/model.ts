@@ -7,9 +7,27 @@ export interface PaymentTerms {
   payment_delay_months: number;
 }
 
+export interface Material {
+  id: string;
+  name?: string;
+  unit?: string;
+  unit_price?: string;
+  payment_delay_months?: number;
+  stock_lead_months?: number;
+  foreign?: boolean;
+}
+
+export interface BomLine {
+  material_id: string;
+  qty_per_unit?: string;
+}
+
 export interface Product {
   id: string;
   name: string;
+  /** Рецептура (BOM): нормы расхода материалов + сдельная ЗП на единицу. */
+  bom?: BomLine[];
+  piece_wage_per_unit?: string;
 }
 
 export interface SalesLine {
@@ -61,6 +79,8 @@ export interface OperatingPlan {
   production: ProductionLine[];
   direct_costs: DirectCostLine[];
   fixed_costs: FixedCostLine[];
+  /** Справочник материалов для рецептур продуктов. */
+  materials?: Material[];
 }
 
 export type RepaymentType = "equal_principal" | "bullet";
