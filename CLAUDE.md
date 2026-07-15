@@ -40,6 +40,18 @@
   чистая логика `frontend/.../calendar.logic.ts` — зеркало движка). Методика/решения —
   `docs/CALENDAR-PLAN-DECOMPOSITION.md`, `docs/RESEARCH-CALENDAR-PLAN.md`.
 
+## Пер-продуктная экономика (BOM, пакет №1 gap-анализа) — завершено (M0–M6)
+
+- Рецептура: `Product.bom` (нормы расхода) + `piece_wage_per_unit`; справочник
+  `OperatingPlan.materials` (цена, отсрочка → B23, опережающая закупка → B3, импорт).
+  Движок разворачивает BOM в **синтетические `DirectCostLine`** (реюз машинерии; модель
+  без рецептур инертна → golden без дрейфа). Суммовые статьи сосуществуют.
+- Маржа по продуктам — `CalcResult.product_margins` (аналитика в ценах месяца продажи;
+  продукты без рецептуры не входят — **без фейковой аллокации**, суммовые издержки —
+  «нераспределённые»). Пер-продуктные правила ревью: `structure.product_negative_margin`
+  (risk), `product_thin_margin` (warning). План — `docs/PRODUCT-ECONOMICS-DECOMPOSITION.md`;
+  дальнейшие пакеты — `docs/GAP-ANALYSIS-PE.md`.
+
 ## Точность движка
 
 - Любое изменение методики расчёта — через golden-master (`UPDATE_GOLDEN=1 pytest
