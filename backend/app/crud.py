@@ -22,6 +22,7 @@ from .db_models import (
     Organization,
     Payment,
     Project,
+    ProjectVersion,
     Subscription,
     User,
 )
@@ -303,6 +304,60 @@ def duplicate_project(db: Session, project: Project, name: str) -> Project:
     db.commit()
     db.refresh(copy)
     return copy
+
+
+# --- Версии проекта (пакет №8, gap 4.4) ---
+
+#: Максимум версий на проект (защита хранилища; сверх — ошибка на уровне роутера).
+MAX_VERSIONS_PER_PROJECT = 50
+
+
+def count_versions(db: Session, project_id: str) -> int:
+    return db.scalar(
+        select(func.count()).select_from(ProjectVersion)
+        .where(ProjectVersion.project_id == project_id)
+    ) or 0
+
+
+def create_version(db: Session, project: Project, label: str, *,
+                   npv: str | None = None, irr_annual: str | None = None,
+                   engine_version: str | None = None) -> ProjectVersion:
+    """Снимок текущей модели проекта как именованная версия (+ сводка расчёта)."""
+    version = ProjectVersion(
+        organization_id=project.organization_id, project_id=project.id, label=label,
+        model=project.model, npv=npv, irr_annual=irr_annual, engine_version=engine_version,
+    )
+    db.add(version)
+    db.commit()
+    db.refresh(version)
+    return version
+
+
+def list_versions(db: Session, org_id: str, project_id: str) -> list[ProjectVersion]:
+    return list(
+        db.scalars(
+            select(ProjectVersion)
+            .where(ProjectVersion.project_id == project_id,
+                   ProjectVersion.organization_id == org_id)
+            .order_by(ProjectVersion.created_at.desc())
+        )
+    )
+
+
+def get_version(db: Session, org_id: str, project_id: str,
+                version_id: str) -> ProjectVersion | None:
+    return db.scalar(
+        select(ProjectVersion).where(
+            ProjectVersion.id == version_id,
+            ProjectVersion.project_id == project_id,
+            ProjectVersion.organization_id == org_id,
+        )
+    )
+
+
+def delete_version(db: Session, version: ProjectVersion) -> None:
+    db.delete(version)
+    db.commit()
 
 
 def save_calc_summary(db: Session, project: Project, *, npv: Decimal,

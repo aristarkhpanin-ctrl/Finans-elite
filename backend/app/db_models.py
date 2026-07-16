@@ -185,6 +185,32 @@ class Project(Base):
     finalized_review: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
 
 
+class ProjectVersion(Base):
+    """Именованный снимок модели проекта (пакет №8, gap 4.4): версии + анализ изменений.
+
+    Хранит полную модель на момент снимка + сводку расчёта (NPV/IRR/движок). Диф двух
+    версий (или версии с текущей моделью) считается на лету. Изоляция — по
+    ``organization_id`` (RLS + фильтр CRUD), каскадное удаление с проектом.
+    """
+
+    __tablename__ = "project_versions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    label: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    model: Mapped[dict] = mapped_column(JSONType, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    # Сводка расчёта на момент снимка (строки — точность без плавающей запятой); NULL — не считалось.
+    npv: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    irr_annual: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    engine_version: Mapped[str | None] = mapped_column(String(32), nullable=True)
+
+
 class AnalysisJob(Base):
     """Фоновая задача анализа (Celery): реестр владения для изоляции арендатора.
 
