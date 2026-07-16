@@ -3821,12 +3821,14 @@
               "payroll_contribution_rate": "0",
               "production_cycle_months": 0,
               "profit_tax_benefit_share": "0",
+              "profit_tax_periodicity": "month",
               "profit_tax_rate": "0.20",
               "property_tax_rate": "0",
               "sales_tax_rate": "0",
               "terminal_growth_rate": "0",
               "valuation_earnings_multiple": "0",
               "vat_basis": "shipment",
+              "vat_periodicity": "month",
               "vat_rate": "0"
             }
           },
@@ -3967,12 +3969,14 @@
               "payroll_contribution_rate": "0",
               "production_cycle_months": 0,
               "profit_tax_benefit_share": "0",
+              "profit_tax_periodicity": "month",
               "profit_tax_rate": "0.20",
               "property_tax_rate": "0",
               "sales_tax_rate": "0",
               "terminal_growth_rate": "0",
               "valuation_earnings_multiple": "0",
               "vat_basis": "shipment",
+              "vat_periodicity": "month",
               "vat_rate": "0"
             }
           },
@@ -4289,6 +4293,16 @@
             "default": "0",
             "title": "Profit Tax Benefit Share"
           },
+          "profit_tax_periodicity": {
+            "default": "month",
+            "enum": [
+              "month",
+              "quarter",
+              "year"
+            ],
+            "title": "Profit Tax Periodicity",
+            "type": "string"
+          },
           "profit_tax_rate": {
             "anyOf": [
               {
@@ -4357,6 +4371,16 @@
           "vat_basis": {
             "$ref": "#/components/schemas/VatBasis",
             "default": "shipment"
+          },
+          "vat_periodicity": {
+            "default": "month",
+            "enum": [
+              "month",
+              "quarter",
+              "year"
+            ],
+            "title": "Vat Periodicity",
+            "type": "string"
           },
           "vat_rate": {
             "anyOf": [
@@ -4486,6 +4510,16 @@
             "title": "Profit Tax Benefit Share",
             "type": "string"
           },
+          "profit_tax_periodicity": {
+            "default": "month",
+            "enum": [
+              "month",
+              "quarter",
+              "year"
+            ],
+            "title": "Profit Tax Periodicity",
+            "type": "string"
+          },
           "profit_tax_rate": {
             "default": "0.20",
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
@@ -4519,6 +4553,16 @@
           "vat_basis": {
             "$ref": "#/components/schemas/VatBasis",
             "default": "shipment"
+          },
+          "vat_periodicity": {
+            "default": "month",
+            "enum": [
+              "month",
+              "quarter",
+              "year"
+            ],
+            "title": "Vat Periodicity",
+            "type": "string"
           },
           "vat_rate": {
             "default": "0",
@@ -6694,7 +6738,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.33"
+    "version": "0.9.34"
   },
   "openapi": "3.1.0",
   "paths": {

@@ -137,6 +137,12 @@ function Section({
   );
 }
 
+const PERIODICITY_OPTIONS: [string, string][] = [
+  ["month", "Ежемесячно"],
+  ["quarter", "Ежеквартально"],
+  ["year", "Ежегодно"],
+];
+
 const inRange01 = (v: string | undefined | null): boolean => {
   const x = Number(v ?? 0);
   return Number.isFinite(x) && x >= 0 && x <= 1;
@@ -352,6 +358,12 @@ export function GeneralTab({ header, settings, environment, onHeader, onSettings
           value={settings.sales_tax_rate ?? "0"}
           onChange={(v) => set({ sales_tax_rate: v })}
         />
+        <ESelect
+          label="Уплата налога на прибыль"
+          value={settings.profit_tax_periodicity ?? "month"}
+          onChange={(v) => set({ profit_tax_periodicity: v as ProjectSettings["profit_tax_periodicity"] })}
+          options={PERIODICITY_OPTIONS}
+        />
       </Section>
 
       <Section num="4" title="НДС и запасы" desc="Учётная политика по НДС и складу">
@@ -369,6 +381,12 @@ export function GeneralTab({ header, settings, environment, onHeader, onSettings
             ["shipment", "По отгрузке"],
             ["payment", "По оплате"],
           ]}
+        />
+        <ESelect
+          label="Уплата НДС"
+          value={settings.vat_periodicity ?? "month"}
+          onChange={(v) => set({ vat_periodicity: v as ProjectSettings["vat_periodicity"] })}
+          options={PERIODICITY_OPTIONS}
         />
         <ESelect
           label="Оценка запасов ГП"

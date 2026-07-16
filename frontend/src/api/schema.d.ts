@@ -2845,12 +2845,14 @@ export interface components {
              *       "payroll_contribution_rate": "0",
              *       "production_cycle_months": 0,
              *       "profit_tax_benefit_share": "0",
+             *       "profit_tax_periodicity": "month",
              *       "profit_tax_rate": "0.20",
              *       "property_tax_rate": "0",
              *       "sales_tax_rate": "0",
              *       "terminal_growth_rate": "0",
              *       "valuation_earnings_multiple": "0",
              *       "vat_basis": "shipment",
+             *       "vat_periodicity": "month",
              *       "vat_rate": "0"
              *     }
              */
@@ -2979,12 +2981,14 @@ export interface components {
              *       "payroll_contribution_rate": "0",
              *       "production_cycle_months": 0,
              *       "profit_tax_benefit_share": "0",
+             *       "profit_tax_periodicity": "month",
              *       "profit_tax_rate": "0.20",
              *       "property_tax_rate": "0",
              *       "sales_tax_rate": "0",
              *       "terminal_growth_rate": "0",
              *       "valuation_earnings_multiple": "0",
              *       "vat_basis": "shipment",
+             *       "vat_periodicity": "month",
              *       "vat_rate": "0"
              *     }
              */
@@ -3105,6 +3109,12 @@ export interface components {
              */
             profit_tax_benefit_share: number | string;
             /**
+             * Profit Tax Periodicity
+             * @default month
+             * @enum {string}
+             */
+            profit_tax_periodicity: "month" | "quarter" | "year";
+            /**
              * Profit Tax Rate
              * @default 0.20
              */
@@ -3131,6 +3141,12 @@ export interface components {
             valuation_earnings_multiple: number | string;
             /** @default shipment */
             vat_basis: components["schemas"]["VatBasis"];
+            /**
+             * Vat Periodicity
+             * @default month
+             * @enum {string}
+             */
+            vat_periodicity: "month" | "quarter" | "year";
             /**
              * Vat Rate
              * @default 0
@@ -3213,6 +3229,12 @@ export interface components {
              */
             profit_tax_benefit_share: string;
             /**
+             * Profit Tax Periodicity
+             * @default month
+             * @enum {string}
+             */
+            profit_tax_periodicity: "month" | "quarter" | "year";
+            /**
              * Profit Tax Rate
              * @default 0.20
              */
@@ -3239,6 +3261,12 @@ export interface components {
             valuation_earnings_multiple: string;
             /** @default shipment */
             vat_basis: components["schemas"]["VatBasis"];
+            /**
+             * Vat Periodicity
+             * @default month
+             * @enum {string}
+             */
+            vat_periodicity: "month" | "quarter" | "year";
             /**
              * Vat Rate
              * @default 0

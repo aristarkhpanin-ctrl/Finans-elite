@@ -261,6 +261,9 @@ export interface ProjectSettings {
   /** Ставка рефинансирования ЦБ (0 = норматив процентов выключен) и коэффициент нормы. */
   cb_refinancing_rate?: string;
   interest_norm_multiple?: string;
+  /** Периодичность уплаты налога на прибыль и НДС (месяц/квартал/год). */
+  profit_tax_periodicity?: "month" | "quarter" | "year";
+  vat_periodicity?: "month" | "quarter" | "year";
   payroll_contribution_rate: string;
   property_tax_rate: string;
   sales_tax_rate?: string;
