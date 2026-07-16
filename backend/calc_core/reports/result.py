@@ -58,6 +58,26 @@ class ProductMargins:
 
 
 @dataclass
+class LineDetailItem:
+    """Слагаемое строки отчёта (drill-down): источник и его помесячный ряд."""
+
+    name: str
+    values: list[Decimal]
+
+
+@dataclass
+class LineDetail:
+    """Детализация строки отчёта по источникам (пакет №6, Q4).
+
+    Слагаемые сохранены конвейером в момент расчёта (не перерасчёт):
+    Σ ``items`` = строка отчёта точно (Decimal). В golden-снимок не входит (Q5).
+    """
+
+    code: str
+    items: list[LineDetailItem] = field(default_factory=list)
+
+
+@dataclass
 class UserRowResult:
     """Вычисленная строка таблицы пользователя: ряд значений либо ошибка формулы."""
 
@@ -145,6 +165,8 @@ class CalcResult:
     product_margins: ProductMargins = field(default_factory=ProductMargins)
     # Таблицы пользователя (строки-формулы); пустые, если таблиц нет.
     user_tables: list[UserTableResult] = field(default_factory=list)
+    # Детализация ключевых строк отчётов (drill-down); не входит в golden-снимок.
+    details: list[LineDetail] = field(default_factory=list)
     # Актуализация (план-факт): заполняются при наличии фактических данных.
     actualized_cashflow: Optional[Statement] = None
     cashflow_variance: Optional[Statement] = None

@@ -996,6 +996,11 @@ export interface components {
             budget: components["schemas"]["BudgetOut"];
             cashflow: components["schemas"]["StatementOut"];
             cashflow_variance?: components["schemas"]["StatementOut"] | null;
+            /**
+             * Details
+             * @default []
+             */
+            details: components["schemas"]["LineDetailOut"][];
             /** Engine Version */
             engine_version: string;
             income: components["schemas"]["StatementOut"];
@@ -1135,6 +1140,11 @@ export interface components {
             budget: components["schemas"]["BudgetOut"];
             cashflow: components["schemas"]["StatementOut"];
             cashflow_variance?: components["schemas"]["StatementOut"] | null;
+            /**
+             * Details
+             * @default []
+             */
+            details: components["schemas"]["LineDetailOut"][];
             /** Engine Version */
             engine_version: string;
             income: components["schemas"]["StatementOut"];
@@ -1788,6 +1798,32 @@ export interface components {
              * @default 12
              */
             term_months: number;
+        };
+        /**
+         * LineDetailItemOut
+         * @description Слагаемое строки отчёта (drill-down): источник и его помесячный ряд.
+         */
+        LineDetailItemOut: {
+            /** Name */
+            name: string;
+            /**
+             * Values
+             * @default []
+             */
+            values: string[];
+        };
+        /**
+         * LineDetailOut
+         * @description Детализация строки отчёта по источникам (Σ слагаемых = строка отчёта).
+         */
+        LineDetailOut: {
+            /** Code */
+            code: string;
+            /**
+             * Items
+             * @default []
+             */
+            items: components["schemas"]["LineDetailItemOut"][];
         };
         /** LineOut */
         LineOut: {

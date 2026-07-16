@@ -24,6 +24,7 @@ from ..models import (
     VatBasis,
 )
 from ..money import ONE, ZERO, D
+from ..reports.result import LineDetail, LineDetailItem
 from ..reports.statements import (
     build_balance,
     build_cashflow,
@@ -44,6 +45,43 @@ _STAFF_FUNCTIONS = {
     CostFunction.STAFF_PRODUCTION,
     CostFunction.STAFF_MARKETING,
 }
+
+# Порядок кодов детализации в результате (drill-down, пакет №6 Q4).
+_DETAIL_ORDER = ("I1", "I16", "C1", "C2", "C3", "C14")
+
+
+class DetailCollector:
+    """Слагаемые ключевых строк отчётов (drill-down, пакет №6, Q4).
+
+    Сохраняет уже вычисленные конвейером ряды по источникам — методику не меняет;
+    Σ слагаемых = строка отчёта точно. Слагаемые с одинаковым именем сливаются;
+    полностью нулевые отбрасываются при сборке (модель без данных инертна).
+    """
+
+    def __init__(self) -> None:
+        self._acc: dict[str, dict[str, list[Decimal]]] = {}
+
+    def put(self, code: str, name: str, series: list[Decimal]) -> None:
+        by_name = self._acc.setdefault(code, {})
+        if name in by_name:
+            by_name[name] = add(by_name[name], series)
+        else:
+            by_name[name] = list(series)
+
+    def scale(self, code: str, factor: Decimal) -> None:
+        """Домножить все слагаемые кода (например, C14: нетто-capex → с НДС)."""
+        for name, series in self._acc.get(code, {}).items():
+            self._acc[code][name] = [v * factor for v in series]
+
+    def build(self) -> list[LineDetail]:
+        out: list[LineDetail] = []
+        for code in _DETAIL_ORDER:
+            items = [LineDetailItem(name=name, values=series)
+                     for name, series in self._acc.get(code, {}).items()
+                     if any(v != ZERO for v in series)]
+            if items:
+                out.append(LineDetail(code=code, items=items))
+        return out
 
 
 def _pad(values: list[Decimal], n: int) -> list[Decimal]:
@@ -74,7 +112,8 @@ def _inflation_index(annual_rate, n: int) -> list[Decimal]:
 
 
 def _sales(model: ProjectModel, n: int, vat_rate: Decimal,
-           fx: list[Decimal], fx_prev: list[Decimal], idx_sales: list[Decimal]):
+           fx: list[Decimal], fx_prev: list[Decimal], idx_sales: list[Decimal],
+           details: DetailCollector | None = None):
     """Сбыт → (I1 нетто, C1 деньги с НДС, B2 дебиторка, B24 авансы, исходящий НДС, I25).
 
     ОПУ — без НДС (I1 = нетто-выручка); деньги и оборотный капитал — с НДС. Экспортные
@@ -89,7 +128,9 @@ def _sales(model: ProjectModel, n: int, vat_rate: Decimal,
     vat_out_paid = zeros(n)   # исходящий НДС в полученных деньгах (по оплате)
     recv_f = zeros(n)         # валютная дебиторка (в валюте) — для переоценки
     adv_f = zeros(n)          # валютные авансы (в валюте) — для переоценки
+    product_names = {p.id: p.name for p in model.operating_plan.products}
     for line in model.operating_plan.sales:
+        pname = product_names.get(line.product_id, line.product_id)
         # Пер-строчная ставка НДС (льготные категории, напр. 10%); None → глобальная.
         line_vat = vat_rate if line.vat_rate is None else line.vat_rate
         one_plus = Decimal(1) + line_vat
@@ -102,8 +143,10 @@ def _sales(model: ProjectModel, n: int, vat_rate: Decimal,
         if line.foreign:
             # Экспорт: без НДС; выручка/деньги/дебиторка в валюте → пересчёт по FX.
             cash, recv, adv = sales_timing(revenue, line.payment, n)
-            i1 = add(i1, [revenue[t] * fx[t] for t in range(n)])      # начислено по курсу отгрузки
-            c1 = add(c1, [cash[t] * fx[t] for t in range(n)])        # деньги по курсу получения
+            revenue_rub = [revenue[t] * fx[t] for t in range(n)]     # начислено по курсу отгрузки
+            cash_rub = [cash[t] * fx[t] for t in range(n)]           # деньги по курсу получения
+            i1 = add(i1, revenue_rub)
+            c1 = add(c1, cash_rub)
             b2 = add(b2, [recv[t] * fx[t] for t in range(n)])
             b24 = add(b24, [adv[t] * fx[t] for t in range(n)])
             recv_f = add(recv_f, recv)
@@ -113,12 +156,16 @@ def _sales(model: ProjectModel, n: int, vat_rate: Decimal,
             cash, recv, adv = sales_timing(gross, line.payment, n)
             vat_amt = [revenue[t] * line_vat for t in range(n)]
             vat_cash, _, _ = sales_timing(vat_amt, line.payment, n)  # НДС в деньгах (та же схема)
+            revenue_rub, cash_rub = revenue, cash
             i1 = add(i1, revenue)
             c1 = add(c1, cash)
             b2 = add(b2, recv)
             b24 = add(b24, adv)
             vat_out = add(vat_out, vat_amt)
             vat_out_paid = add(vat_out_paid, vat_cash)
+        if details is not None:
+            details.put("I1", pname, revenue_rub)
+            details.put("C1", pname, cash_rub)
     # Курсовая разница по валютным дебиторке/авансам (на остаток начала периода).
     i25_sales = zeros(n)
     for t in range(n):
@@ -221,7 +268,8 @@ def _foreign_material_schedule(amt_f: list[Decimal], stock_lead: int,
 
 def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal,
                          fx: list[Decimal], fx_prev: list[Decimal],
-                         idx_direct: list[Decimal], idx_wages: list[Decimal]):
+                         idx_direct: list[Decimal], idx_wages: list[Decimal],
+                         details: DetailCollector | None = None):
     """Прямые издержки → (потребление MC, сдельная ЗП WC; деньги C2, C3 с НДС; сырьё B3;
     кредиторка с НДС; входной НДС по материалам; курсовая разница I25 по валютному сырью).
 
@@ -256,7 +304,10 @@ def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal,
             mc = add(mc, mc_hist)
             b3 = add(b3, b3_hist)
             # Оплата поставщику (нетто, по курсу периода) + импортный НДС на таможне (при ввозе).
-            c2 = add(c2, [cash_f[t] * fx[t] + import_vat[t] for t in range(n)])
+            line_c2 = [cash_f[t] * fx[t] + import_vat[t] for t in range(n)]
+            c2 = add(c2, line_c2)
+            if details is not None:
+                details.put("C2", line.name, line_c2)
             payables = add(payables, [pay_f[t] * fx[t] for t in range(n)])
             payable_f = add(payable_f, pay_f)
             vat_in = add(vat_in, import_vat)            # импортный НДС к вычету (начислен при ввозе)
@@ -276,11 +327,15 @@ def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal,
             payables = add(payables, pay)
             vat_in = add(vat_in, vat_amt)
             vat_in_paid = add(vat_in_paid, vat_cash)
+            if details is not None:
+                details.put("C2", line.name, cash)
         else:  # сдельная зарплата — без НДС
             cash, pay = cost_timing(amt, line.payment_delay_months, n)
             wc = add(wc, amt)
             c3 = add(c3, cash)
             payables = add(payables, pay)
+            if details is not None:
+                details.put("C3", line.name, cash)
     # Курсовая разница по валютной кредиторке материалов (на остаток начала периода).
     i25_materials = zeros(n)
     for t in range(n):
@@ -315,7 +370,8 @@ def _staff_fixed_lines(model: ProjectModel, n: int) -> list[FixedCostLine]:
 
 def _fixed(model: ProjectModel, n: int, vat_rate: Decimal,
            fx: list[Decimal], fx_prev: list[Decimal],
-           idx_wages: list[Decimal], idx_general: list[Decimal]):
+           idx_wages: list[Decimal], idx_general: list[Decimal],
+           details: DetailCollector | None = None):
     """Постоянные издержки → (группы начисления I10–I15; C5, C6 деньги; кредиторка;
     входной НДС по общим издержкам; издержки за счёт прибыли I24; курсовая разница I25).
 
@@ -341,7 +397,10 @@ def _fixed(model: ProjectModel, n: int, vat_rate: Decimal,
         if line.foreign:
             # Валютная издержка (услуга, без НДС): пересчёт по FX; кредиторка переоценивается.
             cash_f, pay_f = cost_timing(amt, line.payment_delay_months, n)
-            groups[line.function] = add(groups[line.function], [amt[t] * fx[t] for t in range(n)])
+            accrual_fx = [amt[t] * fx[t] for t in range(n)]
+            groups[line.function] = add(groups[line.function], accrual_fx)
+            if details is not None:
+                details.put("I16", line.name, accrual_fx)
             cash_b = [cash_f[t] * fx[t] for t in range(n)]
             if line.function in _STAFF_FUNCTIONS:
                 c6 = add(c6, cash_b)
@@ -364,11 +423,15 @@ def _fixed(model: ProjectModel, n: int, vat_rate: Decimal,
             # Загруженная стоимость персонала = ЗП + страховые взносы (база — ФОТ).
             loaded = [amt[t] * contrib for t in range(n)]
             groups[line.function] = add(groups[line.function], loaded)
+            if details is not None:
+                details.put("I16", line.name, loaded)
             cash, pay = cost_timing(loaded, line.payment_delay_months, n)
             c6 = add(c6, cash)
             payables = add(payables, pay)
         else:
             groups[line.function] = add(groups[line.function], amt)
+            if details is not None:
+                details.put("I16", line.name, amt)
             gross = [amt[t] * one_plus for t in range(n)]
             cash, pay = cost_timing(gross, line.payment_delay_months, n)
             vat_amt = [amt[t] * vat_rate for t in range(n)]
@@ -385,7 +448,7 @@ def _fixed(model: ProjectModel, n: int, vat_rate: Decimal,
     return groups, c5, c6, payables, vat_in, i24, vat_in_paid, i25_fixed
 
 
-def _assets(model: ProjectModel, n: int):
+def _assets(model: ProjectModel, n: int, details: DetailCollector | None = None):
     """Активы → (capex, амортизация, поступления от продажи C16, прочие доходы/издержки
     I20/I21, выбытие первонач. стоимости и накопл. амортизации, остаточная стоимость по
     группам ОС).
@@ -427,6 +490,10 @@ def _assets(model: ProjectModel, n: int):
         p = asset.purchase_month
         if 0 <= p < n:
             capex[p] += asset.cost
+            if details is not None:
+                # Нетто-стоимость; в C14 (с НДС) масштабируется в run_pipeline.
+                details.put("C14", asset.name,
+                            [asset.cost if t == p else ZERO for t in range(n)])
         # Земля не амортизируется; прочие группы — линейно от стоимости.
         d = ZERO if cat == AssetCategory.LAND else asset.monthly_depreciation()
         end = min(p + asset.life_months, n)
@@ -630,11 +697,13 @@ def _apply_production_starts(model: ProjectModel) -> ProjectModel:
     return model
 
 
-def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
+def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
+                 details: DetailCollector | None = None):
     """Выполнить расчёт и вернуть (income, cashflow, balance, profit_use, warnings).
 
     ``auto`` — инъекция автофинансирования (проценты в ОПУ и денежные потоки кредитной
-    линии); по умолчанию отсутствует.
+    линии); по умолчанию отсутствует. ``details`` — коллектор детализации строк
+    (drill-down, пакет №6): наполняется по ходу расчёта, методику не меняет.
     """
     n = model.n
     model = _apply_production_starts(model)   # гейт объёмов по старту продукта (этапы «производство»)
@@ -670,10 +739,10 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
 
     # --- операционный контур (accrual + cash + оборотный капитал + запасы + НДС) ---
     i1, c1, b2, b24, vat_out, vat_out_paid, i25_sales = _sales(
-        model, n, vat_rate, fx, fx_prev, idx_sales)
+        model, n, vat_rate, fx, fx_prev, idx_sales, details)
     tp, tq = _volumes(model, n)
     mc, wc, c2, c3, b3, pay_direct, vat_in_mat, vat_in_paid_mat, i25_materials = \
-        _materials_and_wages(model, n, vat_rate, fx, fx_prev, idx_direct, idx_wages)
+        _materials_and_wages(model, n, vat_rate, fx, fx_prev, idx_direct, idx_wages, details)
     # НЗП (B4): производственный цикл сдвигает выпуск и его стоимость на cycle мес. (SPEC §6)
     mc_out, wc_out, tp_out, b4 = work_in_progress(
         mc, wc, tp, settings.production_cycle_months, n)
@@ -681,15 +750,17 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     i5, i6, b5, inv_warnings = finished_goods(
         tp_out, tq, mc_out, wc_out, n, settings.inventory_method)
     fixed, c5, c6, pay_fixed, vat_in_fixed, i24_fixed, vat_in_paid_fixed, i25_fixed = _fixed(
-        model, n, vat_rate, fx, fx_prev, idx_wages, idx_general)
+        model, n, vat_rate, fx, fx_prev, idx_wages, idx_general, details)
     # Календарный план: обычные этапы → C15 (оплата), I21 (издержки), B15 (РБП), B23 (кредиторка).
     stage_c15, stage_i21, stage_b15, stage_b23 = stage_expenses(model, n)
     b23 = add(pay_direct, pay_fixed, stage_b23)
 
     # --- инвестиции и амортизация (capex в баланс — по нетто; деньги — с НДС) ---
     (capex, dep, asset_proceeds, asset_income, asset_expense,
-     b9_disp, b10_disp, asset_reval, nbv) = _assets(model, n)
+     b9_disp, b10_disp, asset_reval, nbv) = _assets(model, n, details)
     capex_gross = [capex[t] * (Decimal(1) + vat_rate) for t in range(n)]
+    if details is not None:
+        details.scale("C14", Decimal(1) + vat_rate)   # C14 в кэш-фло — с НДС
     vat_in_capex = [capex[t] * vat_rate for t in range(n)]
     reval_cum = cumulative(asset_reval)  # накопленная дооценка → B9/остаточная и B31
     b9 = [sb.fixed_assets_net + cumulative(capex)[t] - cumulative(b9_disp)[t] + reval_cum[t]

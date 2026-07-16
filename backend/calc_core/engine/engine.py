@@ -23,7 +23,7 @@ from .calendar import compute_budget
 from .errors import InvariantError
 from .financing_auto import AutoInjection, solve_credit_line
 from .margins import compute_product_margins
-from .pipeline import run_pipeline
+from .pipeline import DetailCollector, run_pipeline
 from .tables import compute_user_tables
 
 # Параметры сходимости автоподбора финансирования.
@@ -53,7 +53,7 @@ def _run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
     options = options or CalcOptions()
     n = model.n
 
-    income, cashflow, balance, profit_use, warnings = _solve(model)
+    income, cashflow, balance, profit_use, warnings, details = _solve(model)
 
     if options.check_invariants:
         _check_invariants(income, cashflow, balance, profit_use, n)
@@ -102,6 +102,7 @@ def _run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
         budget=compute_budget(model, n),
         product_margins=compute_product_margins(model, n),
         user_tables=compute_user_tables(model, income, cashflow, balance, profit_use, n),
+        details=details,
         actualized_cashflow=actualized_cashflow,
         cashflow_variance=cashflow_variance,
         warnings=warnings,
@@ -118,8 +119,10 @@ def _solve(model: ProjectModel):
     Демпфирование не меняет неподвижную точку — только путь к ней.
     """
     af = model.financing.auto_financing
+    collector = DetailCollector()   # детализация строк (drill-down) — с финального прогона
     if not af.enabled:
-        return run_pipeline(model)
+        income, cashflow, balance, profit_use, warnings = run_pipeline(model, details=collector)
+        return income, cashflow, balance, profit_use, warnings, collector.build()
 
     n = model.n
     opening_cash = model.company.starting_balance.cash
@@ -151,10 +154,11 @@ def _solve(model: ProjectModel):
 
     # Финальный прогон: проценты в ОПУ и денежные потоки кредитной линии.
     final = AutoInjection(interest, draws, principal, interest)
-    income, cashflow, balance, profit_use, warnings = run_pipeline(model, auto=final)
+    income, cashflow, balance, profit_use, warnings = run_pipeline(
+        model, auto=final, details=collector)
     if not converged:
         warnings = warnings + ["Автоподбор финансирования не сошёлся за отведённое число итераций"]
-    return income, cashflow, balance, profit_use, warnings
+    return income, cashflow, balance, profit_use, warnings, collector.build()
 
 
 def _check_invariants(income, cashflow, balance, profit_use, n: int) -> None:

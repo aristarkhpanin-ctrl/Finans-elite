@@ -439,6 +439,14 @@
               }
             ]
           },
+          "details": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/LineDetailOut"
+            },
+            "title": "Details",
+            "type": "array"
+          },
           "engine_version": {
             "title": "Engine Version",
             "type": "string"
@@ -718,6 +726,14 @@
                 "type": "null"
               }
             ]
+          },
+          "details": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/LineDetailOut"
+            },
+            "title": "Details",
+            "type": "array"
           },
           "engine_version": {
             "title": "Engine Version",
@@ -2050,6 +2066,51 @@
           "monthly_payment"
         ],
         "title": "Lease",
+        "type": "object"
+      },
+      "LineDetailItemOut": {
+        "description": "Слагаемое строки отчёта (drill-down): источник и его помесячный ряд.",
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "values": {
+            "default": [],
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Values",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "LineDetailItemOut",
+        "type": "object"
+      },
+      "LineDetailOut": {
+        "description": "Детализация строки отчёта по источникам (Σ слагаемых = строка отчёта).",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "items": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/LineDetailItemOut"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "LineDetailOut",
         "type": "object"
       },
       "LineOut": {

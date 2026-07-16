@@ -118,6 +118,20 @@ class UserTableOut(BaseModel):
     rows: list[UserRowOut] = []
 
 
+class LineDetailItemOut(BaseModel):
+    """Слагаемое строки отчёта (drill-down): источник и его помесячный ряд."""
+
+    name: str
+    values: list[Decimal] = []
+
+
+class LineDetailOut(BaseModel):
+    """Детализация строки отчёта по источникам (Σ слагаемых = строка отчёта)."""
+
+    code: str
+    items: list[LineDetailItemOut] = []
+
+
 class CalcResponse(BaseModel):
     engine_version: str
     n: int
@@ -132,6 +146,8 @@ class CalcResponse(BaseModel):
     budget: BudgetOut = BudgetOut()
     product_margins: ProductMarginsOut = ProductMarginsOut()
     user_tables: list[UserTableOut] = []
+    # Детализация ключевых строк отчётов (drill-down, пакет №6); пустая без данных.
+    details: list[LineDetailOut] = []
     actualized_cashflow: Optional[StatementOut] = None
     cashflow_variance: Optional[StatementOut] = None
     warnings: list[str]
@@ -572,6 +588,10 @@ def to_response(r: CalcResult) -> CalcResponse:
             ) for p in r.product_margins.products],
             unallocated_direct=r.product_margins.unallocated_direct,
         ),
+        details=[LineDetailOut(
+            code=d.code,
+            items=[LineDetailItemOut(name=i.name, values=list(i.values)) for i in d.items],
+        ) for d in r.details],
         actualized_cashflow=_statement_out(r.actualized_cashflow) if r.actualized_cashflow else None,
         cashflow_variance=_statement_out(r.cashflow_variance) if r.cashflow_variance else None,
         warnings=r.warnings,
