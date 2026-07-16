@@ -115,6 +115,19 @@ def product_margins_to_dict(pm) -> dict[str, object]:
     }
 
 
+def participants_to_dict(items) -> list[dict[str, object]]:
+    return [
+        {"id": p.id, "name": p.name, "kind": p.kind,
+         "invested": _money(p.invested), "withdrawn": _money(p.withdrawn),
+         "npv": _money(p.npv), "irr_annual": _ratio(p.irr_annual),
+         "terminal_value": _money(p.terminal_value),
+         "npv_with_terminal": _money(p.npv_with_terminal),
+         "irr_with_terminal_annual": _ratio(p.irr_with_terminal_annual),
+         "flow": [_money(v) for v in p.flow]}
+        for p in items
+    ]
+
+
 def result_to_dict(result: CalcResult) -> dict[str, object]:
     """Полный канонический снимок результата расчёта (для golden-master и сравнения)."""
     snapshot: dict[str, object] = {
@@ -134,6 +147,8 @@ def result_to_dict(result: CalcResult) -> dict[str, object]:
         snapshot["budget"] = budget_to_dict(result.budget)
     if result.product_margins.products:
         snapshot["product_margins"] = product_margins_to_dict(result.product_margins)
+    if result.participants:
+        snapshot["participants"] = participants_to_dict(result.participants)
     if result.user_tables:
         snapshot["user_tables"] = [
             {"id": t.id, "name": t.name,

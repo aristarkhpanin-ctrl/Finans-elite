@@ -23,6 +23,7 @@ from .calendar import compute_budget
 from .errors import InvariantError
 from .financing_auto import AutoInjection, solve_credit_line
 from .margins import compute_product_margins
+from .participants import compute_participants
 from .pipeline import DetailCollector, run_pipeline
 from .tables import compute_user_tables
 from .taxes import TaxInjection, compute_custom_taxes
@@ -104,6 +105,7 @@ def _run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
         product_margins=compute_product_margins(model, n),
         user_tables=compute_user_tables(model, income, cashflow, balance, profit_use, n),
         details=details,
+        participants=compute_participants(model, cashflow, balance, n),
         actualized_cashflow=actualized_cashflow,
         cashflow_variance=cashflow_variance,
         warnings=warnings,

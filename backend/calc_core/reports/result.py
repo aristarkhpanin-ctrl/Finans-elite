@@ -58,6 +58,27 @@ class ProductMargins:
 
 
 @dataclass
+class ParticipantFlow:
+    """Доходы участника финансирования (SPEC §17): поток, вложено/получено, NPV/IRR.
+
+    Акционеры дополнительно получают вариант «с терминальной стоимостью» — условным
+    изъятием собственного капитала (B33) в последнем месяце (классический equity-IRR).
+    """
+
+    id: str
+    name: str
+    kind: str                                   # "equity" | "lender"
+    flow: list[Decimal]                         # чистый поток: − вложения, + изъятия
+    invested: Decimal
+    withdrawn: Decimal
+    npv: Decimal
+    irr_annual: Optional[Decimal]
+    terminal_value: Optional[Decimal] = None            # только акционеры: B33 на конец
+    npv_with_terminal: Optional[Decimal] = None
+    irr_with_terminal_annual: Optional[Decimal] = None
+
+
+@dataclass
 class LineDetailItem:
     """Слагаемое строки отчёта (drill-down): источник и его помесячный ряд."""
 
@@ -167,6 +188,8 @@ class CalcResult:
     user_tables: list[UserTableResult] = field(default_factory=list)
     # Детализация ключевых строк отчётов (drill-down); не входит в golden-снимок.
     details: list[LineDetail] = field(default_factory=list)
+    # Доходы участников финансирования (акционеры, кредиторы); пусто без финансирования.
+    participants: list[ParticipantFlow] = field(default_factory=list)
     # Актуализация (план-факт): заполняются при наличии фактических данных.
     actualized_cashflow: Optional[Statement] = None
     cashflow_variance: Optional[Statement] = None
