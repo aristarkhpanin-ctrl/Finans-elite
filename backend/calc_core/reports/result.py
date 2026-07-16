@@ -13,7 +13,12 @@ from .valuation import BusinessValuation
 
 @dataclass
 class StageBudget:
-    """Строка сметы по этапу календарного плана (группы — со свёрнутой стоимостью)."""
+    """Строка сметы по этапу календарного плана (группы — со свёрнутой стоимостью).
+
+    Факт-поля (план-факт, gap 4.6) — ``None``, если этап не актуализирован; отклонения
+    считаются от плана (``cost_variance`` = факт − план стоимости; ``schedule_variance_months``
+    = факт-финиш − план-финиш).
+    """
 
     id: str
     name: str
@@ -21,6 +26,11 @@ class StageBudget:
     start_month: int
     finish_month: int
     cost: Decimal
+    actual_start_month: Optional[int] = None
+    actual_finish_month: Optional[int] = None
+    actual_cost: Optional[Decimal] = None
+    cost_variance: Optional[Decimal] = None
+    schedule_variance_months: Optional[int] = None
 
 
 @dataclass
@@ -30,6 +40,8 @@ class Budget:
     stages: list[StageBudget] = field(default_factory=list)
     monthly: list[Decimal] = field(default_factory=list)  # Σ стоимости этапов по месяцам (начисление)
     total: Decimal = Decimal(0)
+    # Σ фактических стоимостей листьев (None, если факта нет) — план-факт итог.
+    actual_total: Optional[Decimal] = None
 
 
 @dataclass

@@ -58,6 +58,11 @@ class Stage(BaseModel):
     asset_category: AssetCategory = AssetCategory.EQUIPMENT
     # kind=production: какому продукту этап задаёт старт.
     product_id: Optional[str] = None
+    # Актуализация этапа (план-факт, gap 4.6): фактические сроки/стоимость (None = не
+    # актуализирован). Только контроль реализации — расчёт отчётов идёт на плане.
+    actual_start_month: Optional[int] = None
+    actual_finish_month: Optional[int] = None
+    actual_cost: Optional[Decimal] = None
 
 
 class CalendarPlan(BaseModel):

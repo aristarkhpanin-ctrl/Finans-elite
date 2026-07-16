@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from typing import Optional
 
 from ..models import Asset
 from ..models.calendar import Resource, Stage
@@ -179,6 +180,8 @@ def compute_budget(model: ProjectModel, n: int) -> Budget:
 
     monthly = zeros(n)
     leaf: dict[str, tuple[Decimal, int, int]] = {}   # id → (cost, start, finish)
+    # Факт по листьям (план-факт, gap 4.6): id → (actual_cost, actual_start, actual_finish).
+    fact_leaf: dict[str, tuple[Optional[Decimal], Optional[int], Optional[int]]] = {}
     for st in cal.stages:
         if st.id in groups:
             continue
@@ -195,6 +198,7 @@ def compute_budget(model: ProjectModel, n: int) -> Budget:
         else:                                     # production — стоимости не несёт
             cost = ZERO
         leaf[st.id] = (cost, start, finish)
+        fact_leaf[st.id] = (st.actual_cost, st.actual_start_month, st.actual_finish_month)
 
     memo: dict[str, tuple[Decimal, int, int]] = {}
 
@@ -214,10 +218,42 @@ def compute_budget(model: ProjectModel, n: int) -> Budget:
         memo[sid] = (cost, min(starts) if starts else 0, max(finishes) if finishes else 0)
         return memo[sid]
 
+    fact_memo: dict[str, tuple[Optional[Decimal], Optional[int], Optional[int]]] = {}
+
+    def rollup_fact(sid: str, visiting: frozenset[str]):
+        """Свёртка факта: Σ ненулевых стоимостей потомков, min/max факт-дат (None — нет факта)."""
+        if sid in fact_leaf:
+            return fact_leaf[sid]
+        if sid in fact_memo:
+            return fact_memo[sid]
+        costs, starts, finishes = [], [], []
+        for kid in children.get(sid, []):
+            if kid in visiting:
+                continue
+            c, s, f = rollup_fact(kid, visiting | {sid})
+            if c is not None:
+                costs.append(c)
+            if s is not None:
+                starts.append(s)
+            if f is not None:
+                finishes.append(f)
+        out = (sum(costs, ZERO) if costs else None,
+               min(starts) if starts else None,
+               max(finishes) if finishes else None)
+        fact_memo[sid] = out
+        return out
+
     rows = []
     for st in cal.stages:
         cost, start, finish = rollup(st.id, frozenset())
-        rows.append(StageBudget(id=st.id, name=st.name, kind=st.kind,
-                                start_month=start, finish_month=finish, cost=cost))
+        a_cost, a_start, a_finish = rollup_fact(st.id, frozenset())
+        cost_var = (a_cost - cost) if a_cost is not None else None
+        sched_var = (a_finish - finish) if a_finish is not None else None
+        rows.append(StageBudget(
+            id=st.id, name=st.name, kind=st.kind, start_month=start, finish_month=finish,
+            cost=cost, actual_start_month=a_start, actual_finish_month=a_finish,
+            actual_cost=a_cost, cost_variance=cost_var, schedule_variance_months=sched_var))
     total = sum((c for c, _, _ in leaf.values()), ZERO)
-    return Budget(stages=rows, monthly=monthly, total=total)
+    fact_costs = [c for c, _, _ in fact_leaf.values() if c is not None]
+    actual_total = sum(fact_costs, ZERO) if fact_costs else None
+    return Budget(stages=rows, monthly=monthly, total=total, actual_total=actual_total)

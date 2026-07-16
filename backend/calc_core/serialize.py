@@ -95,11 +95,17 @@ def budget_to_dict(budget) -> dict[str, object]:
     return {
         "stages": [
             {"id": s.id, "name": s.name, "kind": s.kind, "start_month": s.start_month,
-             "finish_month": s.finish_month, "cost": _money(s.cost)}
+             "finish_month": s.finish_month, "cost": _money(s.cost),
+             "actual_start_month": s.actual_start_month,
+             "actual_finish_month": s.actual_finish_month,
+             "actual_cost": _money(s.actual_cost),
+             "cost_variance": _money(s.cost_variance),
+             "schedule_variance_months": s.schedule_variance_months}
             for s in budget.stages
         ],
         "monthly": [_money(v) for v in budget.monthly],
         "total": _money(budget.total),
+        "actual_total": _money(budget.actual_total),
     }
 
 
