@@ -286,9 +286,21 @@ export interface Company {
   [key: string]: unknown;
 }
 
+/** Настраиваемый налог (SPEC §22.9): база × ставка, периодичность уплаты, отнесение. */
+export interface CustomTax {
+  name: string;
+  rate: string;
+  base: "revenue" | "payroll" | "property" | "profit" | "formula";
+  formula?: string;
+  periodicity: "month" | "quarter" | "year";
+  allocation: "expense" | "profit";
+}
+
 export interface Environment {
   fx_open: string;
   fx_rate: string[];
+  /** Настраиваемые налоги (базы — до настраиваемых налогов; пусто — выключено). */
+  taxes?: CustomTax[];
   [key: string]: unknown;
 }
 

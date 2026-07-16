@@ -209,8 +209,10 @@ export function ProjectEditorPage() {
         <GeneralTab
           header={model.header}
           settings={model.settings}
+          environment={model.environment}
           onHeader={(header) => setModel({ ...model, header })}
           onSettings={(settings) => setModel({ ...model, settings })}
+          onEnvironment={(environment) => setModel({ ...model, environment })}
         />
       )}
       {tab === "sales" && (

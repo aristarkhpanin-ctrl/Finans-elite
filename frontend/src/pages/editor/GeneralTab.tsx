@@ -1,11 +1,14 @@
-import type { ProjectHeader, ProjectSettings } from "../../api/model";
+import type { CustomTax, Environment, ProjectHeader, ProjectSettings } from "../../api/model";
 import { EField, EPercentField, ESelect } from "../../components/EditorField";
+import { IconTrash } from "../../components/icons";
 
 interface Props {
   header: ProjectHeader;
   settings: ProjectSettings;
+  environment: Environment;
   onHeader: (h: ProjectHeader) => void;
   onSettings: (s: ProjectSettings) => void;
+  onEnvironment: (e: Environment) => void;
 }
 
 function Section({
@@ -38,8 +41,106 @@ const inRange01 = (v: string | undefined | null): boolean => {
   return Number.isFinite(x) && x >= 0 && x <= 1;
 };
 
-/** Вкладка «Проект» (макет «Этап 5»): 5 секций-карточек 01–05. */
-export function GeneralTab({ header, settings, onHeader, onSettings }: Props) {
+/** Настраиваемые налоги (SPEC §22.9): список «база × ставка» поверх профильных ставок. */
+function CustomTaxes({ environment, onChange }: { environment: Environment; onChange: (e: Environment) => void }) {
+  const taxes = environment.taxes ?? [];
+  const setTaxes = (next: CustomTax[]) => onChange({ ...environment, taxes: next });
+  const upd = (i: number, patch: Partial<CustomTax>) =>
+    setTaxes(taxes.map((t, k) => (k === i ? { ...t, ...patch } : t)));
+  const add = () =>
+    setTaxes([...taxes, { name: `Налог ${taxes.length + 1}`, rate: "0", base: "revenue",
+                          formula: "", periodicity: "month", allocation: "expense" }]);
+  const rm = (i: number) => setTaxes(taxes.filter((_, k) => k !== i));
+
+  return (
+    <div className="esec">
+      <div className="esec__head">
+        <div className="esec__num">6</div>
+        <div style={{ minWidth: 0 }}>
+          <div className="esec__title">Настраиваемые налоги</div>
+          <div className="esec__desc">
+            Произвольные налоги поверх профильных ставок: база × ставка. Базы считаются по
+            показателям до настраиваемых налогов; квартал/год копят задолженность в B21.
+          </div>
+        </div>
+      </div>
+      {taxes.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 12 }}>
+          {taxes.map((t, i) => (
+            <div className="line-card" key={i}>
+              <div className="line-card__head">
+                <div className="line-card__idx">{i + 1}</div>
+                <div className="line-card__name">
+                  <input value={t.name} placeholder="Название налога, напр. «Экологический сбор»"
+                         onChange={(e) => upd(i, { name: e.target.value })} />
+                </div>
+                <button type="button" className="line-card__del" title="Удалить налог"
+                        onClick={() => rm(i)}>
+                  <IconTrash size={16} />
+                </button>
+              </div>
+              <div className="esec__grid">
+                <ESelect
+                  label="База"
+                  value={t.base}
+                  onChange={(v) => upd(i, { base: v as CustomTax["base"] })}
+                  options={[
+                    ["revenue", "Выручка (I1)"],
+                    ["payroll", "ФОТ (I6+I13..I15)"],
+                    ["property", "Имущество (B13+B14)"],
+                    ["profit", "Прибыль (I26, если > 0)"],
+                    ["formula", "Формула…"],
+                  ]}
+                />
+                <EPercentField
+                  label="Ставка"
+                  suffix="%"
+                  value={t.rate}
+                  onChange={(v) => upd(i, { rate: v })}
+                />
+                <ESelect
+                  label="Периодичность уплаты"
+                  value={t.periodicity}
+                  onChange={(v) => upd(i, { periodicity: v as CustomTax["periodicity"] })}
+                  options={[
+                    ["month", "Ежемесячно"],
+                    ["quarter", "Ежеквартально"],
+                    ["year", "Ежегодно"],
+                  ]}
+                />
+                <ESelect
+                  label="Отнесение"
+                  value={t.allocation}
+                  onChange={(v) => upd(i, { allocation: v as CustomTax["allocation"] })}
+                  options={[
+                    ["expense", "Вычитаемый (I21)"],
+                    ["profit", "За счёт прибыли (I24)"],
+                  ]}
+                />
+                {t.base === "formula" && (
+                  <EField
+                    label="Формула базы"
+                    text
+                    full
+                    placeholder="Напр. МАКС(C13, 0) — коды строк отчётов, функции языка формул"
+                    value={t.formula ?? ""}
+                    onChange={(v) => upd(i, { formula: v })}
+                  />
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <button type="button" className="add-row" onClick={add}>
+        ＋&nbsp;&nbsp;Добавить налог
+      </button>
+    </div>
+  );
+}
+
+/** Вкладка «Проект» (макет «Этап 5»): секции-карточки 01–05 + настраиваемые налоги. */
+export function GeneralTab({ header, settings, environment, onHeader, onSettings, onEnvironment }: Props) {
   const set = (patch: Partial<ProjectSettings>) => onSettings({ ...settings, ...patch });
 
   const durationErr = header.duration_months < 1 ? "Минимум 1 месяц" : "";
@@ -198,6 +299,8 @@ export function GeneralTab({ header, settings, onHeader, onSettings }: Props) {
           onChange={(v) => set({ inflation_general: v })}
         />
       </Section>
+
+      <CustomTaxes environment={environment} onChange={onEnvironment} />
     </div>
   );
 }
