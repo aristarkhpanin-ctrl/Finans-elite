@@ -459,6 +459,18 @@
       "BudgetOut": {
         "description": "Смета по этапам календарного плана + помесячный график и итог.",
         "properties": {
+          "actual_total": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Total"
+          },
           "monthly": {
             "default": [],
             "items": {
@@ -5374,6 +5386,43 @@
       "Stage-Input": {
         "description": "Этап календарного плана.\n\nСтоимость = Σ(ресурс.quantity × Resource.unit_price), либо прямая ``cost`` при отсутствии\nресурсов. Занимает месяцы ``[start, start+duration)``; завершение = ``start+duration``.\n``predecessor_id`` (финиш→старт) и ``parent_id`` (иерархия) разрешаются в движке.",
         "properties": {
+          "actual_cost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Cost"
+          },
+          "actual_finish_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Finish Month"
+          },
+          "actual_start_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Start Month"
+          },
           "amortize_months": {
             "default": 0,
             "minimum": 0.0,
@@ -5493,6 +5542,40 @@
       "Stage-Output": {
         "description": "Этап календарного плана.\n\nСтоимость = Σ(ресурс.quantity × Resource.unit_price), либо прямая ``cost`` при отсутствии\nресурсов. Занимает месяцы ``[start, start+duration)``; завершение = ``start+duration``.\n``predecessor_id`` (финиш→старт) и ``parent_id`` (иерархия) разрешаются в движке.",
         "properties": {
+          "actual_cost": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Cost"
+          },
+          "actual_finish_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Finish Month"
+          },
+          "actual_start_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Start Month"
+          },
           "amortize_months": {
             "default": 0,
             "minimum": 0.0,
@@ -5604,10 +5687,56 @@
       },
       "StageBudgetOut": {
         "properties": {
+          "actual_cost": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Cost"
+          },
+          "actual_finish_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Finish Month"
+          },
+          "actual_start_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Start Month"
+          },
           "cost": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Cost",
             "type": "string"
+          },
+          "cost_variance": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Variance"
           },
           "finish_month": {
             "title": "Finish Month",
@@ -5624,6 +5753,17 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "schedule_variance_months": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schedule Variance Months"
           },
           "start_month": {
             "title": "Start Month",
@@ -6738,7 +6878,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.34"
+    "version": "0.9.35"
   },
   "openapi": "3.1.0",
   "paths": {

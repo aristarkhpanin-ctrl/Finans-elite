@@ -2539,3 +2539,16 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px;
 }
 .infl-grid input:focus { border-color: var(--primary); outline: none; }
+
+/* Смета план-факт (актуализация этапов, gap 4.6) */
+.budget-pf { overflow-x: auto; margin-top: 4px; }
+.budget-pf table { border-collapse: collapse; width: 100%; min-width: 480px; }
+.budget-pf th {
+  font: 600 11px var(--font-ui); color: var(--subtle); text-align: right; padding: 6px 10px;
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+.budget-pf th:first-child, .budget-pf__name { text-align: left; }
+.budget-pf td { padding: 5px 10px; text-align: right; font: 500 12.5px var(--font-mono); color: var(--text); white-space: nowrap; }
+.budget-pf__name { font: 500 12.5px var(--font-ui); color: var(--text); }
+.budget-pf--over { color: var(--danger); }
+.budget-pf--under { color: var(--good); }

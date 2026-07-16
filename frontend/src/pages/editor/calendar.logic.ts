@@ -63,12 +63,19 @@ export interface BudgetRow {
   start: number;
   finish: number;
   cost: number;
+  // Актуализация (план-факт, gap 4.6): null — этап не актуализирован.
+  actualCost: number | null;
+  actualStart: number | null;
+  actualFinish: number | null;
+  costVariance: number | null;
+  scheduleVariance: number | null;
 }
 
 export interface Budget {
   rows: BudgetRow[];
   monthly: number[];
   total: number;
+  actualTotal: number | null;
 }
 
 /** Смета: строки (листья + свёрнутые группы), помесячный график начисления, итог. */
@@ -128,11 +135,51 @@ export function computeBudget(stages: Stage[], resources: Resource[], n: number)
     return { cost, start: starts.length ? Math.min(...starts) : 0, finish: finishes.length ? Math.max(...finishes) : 0 };
   };
 
+  // Факт по листьям (план-факт): null — не актуализирован.
+  const optNum = (v: string | number | undefined | null): number | null =>
+    v === null || v === undefined || v === "" ? null : num(v);
+  const factLeaf = new Map<string, { cost: number | null; start: number | null; finish: number | null }>();
+  for (const st of stages) {
+    if (groups.has(st.id)) continue;
+    factLeaf.set(st.id, {
+      cost: optNum(st.actual_cost),
+      start: optNum(st.actual_start_month),
+      finish: optNum(st.actual_finish_month),
+    });
+  }
+  const rollupFact = (id: string, visiting: Set<string>): { cost: number | null; start: number | null; finish: number | null } => {
+    const l = factLeaf.get(id);
+    if (l) return l;
+    const costs: number[] = [];
+    const starts: number[] = [];
+    const finishes: number[] = [];
+    for (const kid of children.get(id) ?? []) {
+      if (visiting.has(kid)) continue;
+      const c = rollupFact(kid, new Set(visiting).add(id));
+      if (c.cost !== null) costs.push(c.cost);
+      if (c.start !== null) starts.push(c.start);
+      if (c.finish !== null) finishes.push(c.finish);
+    }
+    return {
+      cost: costs.length ? costs.reduce((a, b) => a + b, 0) : null,
+      start: starts.length ? Math.min(...starts) : null,
+      finish: finishes.length ? Math.max(...finishes) : null,
+    };
+  };
+
   const rows: BudgetRow[] = stages.map((st) => {
     const r = rollup(st.id, new Set());
-    return { id: st.id, name: st.name ?? "", kind: (st.kind ?? "expense") as StageKind, ...r };
+    const f = rollupFact(st.id, new Set());
+    return {
+      id: st.id, name: st.name ?? "", kind: (st.kind ?? "expense") as StageKind, ...r,
+      actualCost: f.cost, actualStart: f.start, actualFinish: f.finish,
+      costVariance: f.cost !== null ? f.cost - r.cost : null,
+      scheduleVariance: f.finish !== null ? f.finish - r.finish : null,
+    };
   });
   let total = 0;
   for (const v of leaf.values()) total += v.cost;
-  return { rows, monthly, total };
+  const factCosts = [...factLeaf.values()].map((f) => f.cost).filter((c): c is number => c !== null);
+  const actualTotal = factCosts.length ? factCosts.reduce((a, b) => a + b, 0) : null;
+  return { rows, monthly, total, actualTotal };
 }

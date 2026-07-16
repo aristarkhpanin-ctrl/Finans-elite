@@ -225,6 +225,10 @@ export interface Stage {
   asset_life_months?: number;
   asset_category?: AssetCategory;
   product_id?: string | null;
+  /** Актуализация этапа (план-факт, gap 4.6): фактические сроки/стоимость. */
+  actual_start_month?: number | null;
+  actual_finish_month?: number | null;
+  actual_cost?: string | null;
 }
 
 export interface CalendarPlan {

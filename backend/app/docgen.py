@@ -208,9 +208,12 @@ def _add_budget(doc: Document, result: CalcResult) -> None:
         return
     doc.add_heading("Смета по этапам календарного плана", level=1)
     kinds = {"expense": "затраты", "asset": "актив", "production": "производство"}
-    table = doc.add_table(rows=1 + len(budget.stages), cols=4)
+    has_fact = budget.actual_total is not None            # план-факт (gap 4.6)
+    headers = (["Этап", "Тип", "Сроки (мес.)", "Стоимость (план)", "Факт", "Отклонение"]
+               if has_fact else ["Этап", "Тип", "Сроки (мес.)", "Стоимость"])
+    table = doc.add_table(rows=1 + len(budget.stages), cols=len(headers))
     table.style = "Table Grid"
-    for j, h in enumerate(["Этап", "Тип", "Сроки (мес.)", "Стоимость"]):
+    for j, h in enumerate(headers):
         table.rows[0].cells[j].text = h
     for i, st in enumerate(budget.stages):
         row = table.rows[i + 1].cells
@@ -218,8 +221,17 @@ def _add_budget(doc: Document, result: CalcResult) -> None:
         row[1].text = kinds.get(st.kind, st.kind)
         row[2].text = f"{st.start_month + 1}–{st.finish_month + 1}"
         row[3].text = _fmt_money(st.cost)
+        if has_fact:
+            row[4].text = _fmt_money(st.actual_cost) if st.actual_cost is not None else "—"
+            row[5].text = _fmt_money(st.cost_variance) if st.cost_variance is not None else "—"
     _shrink_table(table, 8.5)
-    doc.add_paragraph(f"Итого по смете: {_fmt_money(budget.total)} ₽.")
+    if has_fact:
+        doc.add_paragraph(
+            f"Итого по смете: план {_fmt_money(budget.total)} ₽, "
+            f"факт {_fmt_money(budget.actual_total)} ₽."
+        )
+    else:
+        doc.add_paragraph(f"Итого по смете: {_fmt_money(budget.total)} ₽.")
 
 
 def _add_statements(doc: Document, model: ProjectModel, result: CalcResult) -> None:

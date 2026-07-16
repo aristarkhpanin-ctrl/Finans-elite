@@ -1122,6 +1122,8 @@ export interface components {
          * @description Смета по этапам календарного плана + помесячный график и итог.
          */
         BudgetOut: {
+            /** Actual Total */
+            actual_total?: string | null;
             /**
              * Monthly
              * @default []
@@ -3627,6 +3629,12 @@ export interface components {
          *     ``predecessor_id`` (финиш→старт) и ``parent_id`` (иерархия) разрешаются в движке.
          */
         "Stage-Input": {
+            /** Actual Cost */
+            actual_cost?: number | string | null;
+            /** Actual Finish Month */
+            actual_finish_month?: number | null;
+            /** Actual Start Month */
+            actual_start_month?: number | null;
             /**
              * Amortize Months
              * @default 0
@@ -3691,6 +3699,12 @@ export interface components {
          *     ``predecessor_id`` (финиш→старт) и ``parent_id`` (иерархия) разрешаются в движке.
          */
         "Stage-Output": {
+            /** Actual Cost */
+            actual_cost?: string | null;
+            /** Actual Finish Month */
+            actual_finish_month?: number | null;
+            /** Actual Start Month */
+            actual_start_month?: number | null;
             /**
              * Amortize Months
              * @default 0
@@ -3748,8 +3762,16 @@ export interface components {
         };
         /** StageBudgetOut */
         StageBudgetOut: {
+            /** Actual Cost */
+            actual_cost?: string | null;
+            /** Actual Finish Month */
+            actual_finish_month?: number | null;
+            /** Actual Start Month */
+            actual_start_month?: number | null;
             /** Cost */
             cost: string;
+            /** Cost Variance */
+            cost_variance?: string | null;
             /** Finish Month */
             finish_month: number;
             /** Id */
@@ -3758,6 +3780,8 @@ export interface components {
             kind: string;
             /** Name */
             name: string;
+            /** Schedule Variance Months */
+            schedule_variance_months?: number | null;
             /** Start Month */
             start_month: number;
         };

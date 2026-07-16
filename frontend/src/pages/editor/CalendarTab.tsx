@@ -100,7 +100,45 @@ export function CalendarTab({ n, investment, products, onChange }: Props) {
               <div className="sum-card__label">Ресурсов</div>
               <div className="sum-card__value">{resources.length}</div>
             </div>
+            {budget.actualTotal !== null && (
+              <div className="sum-card">
+                <div className="sum-card__label">Факт (смета)</div>
+                <div className="sum-card__value">{fmtMoney(budget.actualTotal)}</div>
+              </div>
+            )}
           </div>
+
+          {budget.actualTotal !== null && (
+            <div className="gantt-card">
+              <div className="gantt-card__title">Смета: план-факт (контроль реализации)</div>
+              <div className="budget-pf fe-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Этап</th><th>План</th><th>Факт</th><th>Отклонение</th><th>Сроки, финиш (план→факт)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {budget.rows.map((r) => (
+                      <tr key={r.id}>
+                        <td className="budget-pf__name">{r.name}</td>
+                        <td>{fmtMoney(r.cost)}</td>
+                        <td>{r.actualCost !== null ? fmtMoney(r.actualCost) : "—"}</td>
+                        <td className={r.costVariance && r.costVariance > 0 ? "budget-pf--over" : "budget-pf--under"}>
+                          {r.costVariance !== null ? (r.costVariance > 0 ? "+" : "") + fmtMoney(r.costVariance) : "—"}
+                        </td>
+                        <td>
+                          {r.actualFinish !== null
+                            ? `М${r.finish} → М${r.actualFinish}${r.scheduleVariance ? ` (${r.scheduleVariance > 0 ? "+" : ""}${r.scheduleVariance} мес.)` : ""}`
+                            : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {/* Диаграмма Гантта */}
           <div className="gantt-card">
@@ -224,6 +262,23 @@ export function CalendarTab({ n, investment, products, onChange }: Props) {
                   {resources.length > 0 && kind !== "production" && (
                     <StageResources stage={s} resources={resources}
                                     onChange={(rs) => updStage(i, { resources: rs })} />
+                  )}
+
+                  {!stages.some((x) => x.parent_id === s.id) && (
+                    <div className="expand-block">
+                      <div className="expand-block__head"><span>✓</span>Факт (актуализация)</div>
+                      <div className="afields-grid">
+                        <EField label="Факт: месяц начала" prefix="М"
+                                value={s.actual_start_month ?? ""}
+                                onChange={(v) => updStage(i, { actual_start_month: v === "" ? null : parseInt(v, 10) || 0 })} />
+                        <EField label="Факт: месяц финиша" prefix="М"
+                                value={s.actual_finish_month ?? ""}
+                                onChange={(v) => updStage(i, { actual_finish_month: v === "" ? null : parseInt(v, 10) || 0 })} />
+                        <EField label="Факт: стоимость" prefix="₽"
+                                value={s.actual_cost ?? ""}
+                                onChange={(v) => updStage(i, { actual_cost: v === "" ? null : v })} />
+                      </div>
+                    </div>
                   )}
                 </div>
               );

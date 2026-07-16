@@ -65,6 +65,12 @@ class StageBudgetOut(BaseModel):
     start_month: int
     finish_month: int
     cost: Decimal
+    # Актуализация (план-факт, gap 4.6); None — этап не актуализирован.
+    actual_start_month: Optional[int] = None
+    actual_finish_month: Optional[int] = None
+    actual_cost: Optional[Decimal] = None
+    cost_variance: Optional[Decimal] = None
+    schedule_variance_months: Optional[int] = None
 
 
 class BudgetOut(BaseModel):
@@ -73,16 +79,22 @@ class BudgetOut(BaseModel):
     stages: list[StageBudgetOut] = []
     monthly: list[Decimal] = []
     total: Decimal = Decimal(0)
+    actual_total: Optional[Decimal] = None
 
 
 def budget_response(budget) -> "BudgetOut":
     """Собрать смету-ответ из ``calc_core.reports.result.Budget``."""
     return BudgetOut(
-        stages=[StageBudgetOut(id=s.id, name=s.name, kind=s.kind, start_month=s.start_month,
-                               finish_month=s.finish_month, cost=s.cost)
-                for s in budget.stages],
+        stages=[StageBudgetOut(
+            id=s.id, name=s.name, kind=s.kind, start_month=s.start_month,
+            finish_month=s.finish_month, cost=s.cost,
+            actual_start_month=s.actual_start_month, actual_finish_month=s.actual_finish_month,
+            actual_cost=s.actual_cost, cost_variance=s.cost_variance,
+            schedule_variance_months=s.schedule_variance_months)
+            for s in budget.stages],
         monthly=list(budget.monthly),
         total=budget.total,
+        actual_total=budget.actual_total,
     )
 
 
