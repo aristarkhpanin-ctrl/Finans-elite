@@ -25,6 +25,7 @@ from .financing_auto import AutoInjection, solve_credit_line
 from .margins import compute_product_margins
 from .pipeline import DetailCollector, run_pipeline
 from .tables import compute_user_tables
+from .taxes import TaxInjection, compute_custom_taxes
 
 # Параметры сходимости автоподбора финансирования.
 _MAX_AUTOFIN_ITER = 100
@@ -120,8 +121,10 @@ def _solve(model: ProjectModel):
     """
     af = model.financing.auto_financing
     collector = DetailCollector()   # детализация строк (drill-down) — с финального прогона
+    taxes = _custom_taxes(model)    # настраиваемые налоги (SPEC §22.9); None — если их нет
     if not af.enabled:
-        income, cashflow, balance, profit_use, warnings = run_pipeline(model, details=collector)
+        income, cashflow, balance, profit_use, warnings = run_pipeline(
+            model, details=collector, taxes=taxes)
         return income, cashflow, balance, profit_use, warnings, collector.build()
 
     n = model.n
@@ -137,7 +140,7 @@ def _solve(model: ProjectModel):
     for _ in range(_MAX_AUTOFIN_ITER):
         # Прогон только с процентами в ОПУ (для налога), без денежных потоков автокредита.
         probe = AutoInjection(interest, zeros(n), zeros(n), zeros(n))
-        _, cf, _, _, _ = run_pipeline(model, auto=probe)
+        _, cf, _, _, _ = run_pipeline(model, auto=probe, taxes=taxes)
         base_flow = [cf["C13"][t] + cf["C20"][t] + cf["C27"][t] for t in range(n)]
         draws, principal, target = solve_credit_line(base_flow, opening_cash, af.min_balance, r)
 
@@ -155,10 +158,24 @@ def _solve(model: ProjectModel):
     # Финальный прогон: проценты в ОПУ и денежные потоки кредитной линии.
     final = AutoInjection(interest, draws, principal, interest)
     income, cashflow, balance, profit_use, warnings = run_pipeline(
-        model, auto=final, details=collector)
+        model, auto=final, details=collector, taxes=taxes)
     if not converged:
         warnings = warnings + ["Автоподбор финансирования не сошёлся за отведённое число итераций"]
     return income, cashflow, balance, profit_use, warnings, collector.build()
+
+
+def _custom_taxes(model: ProjectModel) -> TaxInjection | None:
+    """Инъекция настраиваемых налогов (SPEC §22.9); ``None`` при пустом списке.
+
+    Базы — по предварительному прогону без настраиваемых налогов и без автоподбора
+    финансирования (решение Q2 в CUSTOM-TAXES-DECOMPOSITION.md): один детерминированный
+    проход, циклов «налог ← база ← налог» нет. Пустой список — без предварительного
+    прогона (нулевые накладные расходы, модель инертна).
+    """
+    if not model.environment.taxes:
+        return None
+    income, cashflow, balance, profit_use, _ = run_pipeline(model)
+    return compute_custom_taxes(model, income, cashflow, balance, profit_use, model.n)
 
 
 def _check_invariants(income, cashflow, balance, profit_use, n: int) -> None:

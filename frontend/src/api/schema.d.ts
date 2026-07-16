@@ -3671,16 +3671,38 @@ export interface components {
         };
         /**
          * Tax
-         * @description Настраиваемый налог. В v0 ключевые ставки берутся из ProjectSettings.
+         * @description Настраиваемый налог (SPEC §22.9): ставка × база, периодичность уплаты, отнесение.
+         *
+         *     База считается по показателям **до настраиваемых налогов** (предварительный прогон):
+         *     пресеты — выручка (I1), загруженный ФОТ (I6+I13+I14+I15), имущество (B13+B14),
+         *     прибыль (МАКС(I26, 0)) — либо произвольная формула языка формул (base='formula').
          */
         "Tax-Input": {
             /**
+             * Allocation
+             * @default expense
+             * @enum {string}
+             */
+            allocation: "expense" | "profit";
+            /**
              * Base
+             * @default revenue
+             * @enum {string}
+             */
+            base: "revenue" | "payroll" | "property" | "profit" | "formula";
+            /**
+             * Formula
              * @default
              */
-            base: string;
+            formula: string;
             /** Name */
             name: string;
+            /**
+             * Periodicity
+             * @default month
+             * @enum {string}
+             */
+            periodicity: "month" | "quarter" | "year";
             /**
              * Rate
              * @default 0
@@ -3689,16 +3711,38 @@ export interface components {
         };
         /**
          * Tax
-         * @description Настраиваемый налог. В v0 ключевые ставки берутся из ProjectSettings.
+         * @description Настраиваемый налог (SPEC §22.9): ставка × база, периодичность уплаты, отнесение.
+         *
+         *     База считается по показателям **до настраиваемых налогов** (предварительный прогон):
+         *     пресеты — выручка (I1), загруженный ФОТ (I6+I13+I14+I15), имущество (B13+B14),
+         *     прибыль (МАКС(I26, 0)) — либо произвольная формула языка формул (base='formula').
          */
         "Tax-Output": {
             /**
+             * Allocation
+             * @default expense
+             * @enum {string}
+             */
+            allocation: "expense" | "profit";
+            /**
              * Base
+             * @default revenue
+             * @enum {string}
+             */
+            base: "revenue" | "payroll" | "property" | "profit" | "formula";
+            /**
+             * Formula
              * @default
              */
-            base: string;
+            formula: string;
             /** Name */
             name: string;
+            /**
+             * Periodicity
+             * @default month
+             * @enum {string}
+             */
+            periodicity: "month" | "quarter" | "year";
             /**
              * Rate
              * @default 0

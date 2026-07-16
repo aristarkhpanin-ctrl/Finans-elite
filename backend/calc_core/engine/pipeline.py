@@ -36,6 +36,7 @@ from .calendar import product_start_months, stage_assets, stage_expenses
 from .errors import ModelError
 from .financing_auto import AutoInjection
 from .inventory import finished_goods, purchase_schedule, work_in_progress
+from .taxes import TaxInjection
 from .timing import cost_timing, sales_timing
 from .vat import settle_vat
 
@@ -46,8 +47,8 @@ _STAFF_FUNCTIONS = {
     CostFunction.STAFF_MARKETING,
 }
 
-# Порядок кодов детализации в результате (drill-down, пакет №6 Q4).
-_DETAIL_ORDER = ("I1", "I16", "C1", "C2", "C3", "C14")
+# Порядок кодов детализации в результате (drill-down, пакет №6 Q4; C12 — пакет налогов Q7).
+_DETAIL_ORDER = ("I1", "I16", "C1", "C2", "C3", "C12", "C14")
 
 
 class DetailCollector:
@@ -698,17 +699,21 @@ def _apply_production_starts(model: ProjectModel) -> ProjectModel:
 
 
 def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
-                 details: DetailCollector | None = None):
+                 details: DetailCollector | None = None,
+                 taxes: TaxInjection | None = None):
     """Выполнить расчёт и вернуть (income, cashflow, balance, profit_use, warnings).
 
     ``auto`` — инъекция автофинансирования (проценты в ОПУ и денежные потоки кредитной
     линии); по умолчанию отсутствует. ``details`` — коллектор детализации строк
     (drill-down, пакет №6): наполняется по ходу расчёта, методику не меняет.
+    ``taxes`` — инъекция настраиваемых налогов (SPEC §22.9): начисления в I21/I24,
+    уплата в C12, задолженность в B21; по умолчанию отсутствует (нулевая инертна).
     """
     n = model.n
     model = _apply_production_starts(model)   # гейт объёмов по старту продукта (этапы «производство»)
     sb = model.company.starting_balance
     auto = auto or AutoInjection.zero(n)
+    taxes = taxes or TaxInjection.zero(n)
 
     # Валютный контур: курс второй валюты по периодам и опорная валютная позиция (SPEC §3).
     env = model.environment
@@ -833,9 +838,10 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
         "I15": fixed[CostFunction.STAFF_MARKETING],
         "I17": add(dep, fl_dep),                    # амортизация ОС + предмета фин. лизинга
         "I20": add(asset_income, c9, other_inc),    # прочие доходы + доход по ЦБ + прочие поступления
-        "I21": add(asset_expense, lease_op_expense, stage_i21, other_exp),  # прочие + лизинг + этапы
+        # прочие + лизинг + этапы + настраиваемые налоги (вычитаемые, SPEC §22.9)
+        "I21": add(asset_expense, lease_op_expense, stage_i21, other_exp, taxes.expense),
         "I18": add(loan_interest_cost, auto.pl_interest, fl_interest),  # проценты: займы + фин. лизинг
-        "I24": add(i24_fixed, loan_interest_profit, other_exp_profit),
+        "I24": add(i24_fixed, loan_interest_profit, other_exp_profit, taxes.profit),
         "I25": add(i25_fx, loan_reval, i25_sales, i25_fixed, i25_materials),
     }
     income = build_income(
@@ -889,7 +895,16 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
         c2 = list(c2)
         c2[0] += sb.payables
     # Налоги: прибыль + имущество + налог с продаж + НДС к уплате (v0: в периоде начисления)
-    taxes_cash = add(income["I27"], i9, i3, vat_to_budget)
+    # + настраиваемые налоги по их периодичности (SPEC §22.9).
+    taxes_cash = add(income["I27"], i9, i3, vat_to_budget, taxes.cash)
+    if details is not None:
+        # Детализация C12 (Q7 пакета налогов): профильные налоги + каждый настраиваемый.
+        details.put("C12", "Налог на прибыль", income["I27"])
+        details.put("C12", "Налог на имущество", i9)
+        details.put("C12", "Налог с продаж", i3)
+        details.put("C12", "НДС к уплате", vat_to_budget)
+        for tax_name, tax_paid in taxes.cash_items:
+            details.put("C12", tax_name, tax_paid)
     cashflow_leaves = {
         "C1": c1,
         "C2": c2,
@@ -931,7 +946,9 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
         "B5": [b5[t] + sb.finished_goods for t in range(n)],    # запасы готовой продукции
         "B6": add(b6_foreign, deposit_bal),  # валютная позиция + депозиты/ЦБ
         "B7": [sb.prepaid_expenses + b7[t] for t in range(n)],  # предоплата: старт + НДС-кредит
-        "B21": b21,                # отсроченные налоговые платежи (отложенный исходящий НДС)
+        # Отсроченные налоговые платежи: отложенный исходящий НДС + задолженность
+        # по настраиваемым налогам (начислено − уплачено, SPEC §22.9).
+        "B21": [b21[t] + taxes.deferred[t] for t in range(n)],
         "B9": b9,
         "B10": b10,
         "B12": b12,                # земля (не амортизируется)

@@ -121,8 +121,16 @@ def test_details_empty_model_inert():
 def test_details_order_canonical():
     result = run(build_sample_project())
     codes = [d.code for d in result.details]
-    order = ["I1", "I16", "C1", "C2", "C3", "C14"]
+    order = ["I1", "I16", "C1", "C2", "C3", "C12", "C14"]
     assert codes == [c for c in order if c in codes]   # канонический порядок
+
+
+def test_details_c12_sums_to_line():
+    """Детализация C12 (профильные налоги): Σ слагаемых = строка C12."""
+    result = run(build_sample_project())
+    d = _detail(result, "C12")
+    assert d is not None
+    assert _sum_items(d, result.n) == result.cashflow["C12"]
 
 
 def test_details_in_calc_response(client, auth_headers):

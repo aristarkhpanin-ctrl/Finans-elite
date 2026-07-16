@@ -5638,15 +5638,46 @@
         "type": "object"
       },
       "Tax-Input": {
-        "description": "Настраиваемый налог. В v0 ключевые ставки берутся из ProjectSettings.",
+        "description": "Настраиваемый налог (SPEC §22.9): ставка × база, периодичность уплаты, отнесение.\n\nБаза считается по показателям **до настраиваемых налогов** (предварительный прогон):\nпресеты — выручка (I1), загруженный ФОТ (I6+I13+I14+I15), имущество (B13+B14),\nприбыль (МАКС(I26, 0)) — либо произвольная формула языка формул (base='formula').",
         "properties": {
+          "allocation": {
+            "default": "expense",
+            "enum": [
+              "expense",
+              "profit"
+            ],
+            "title": "Allocation",
+            "type": "string"
+          },
           "base": {
-            "default": "",
+            "default": "revenue",
+            "enum": [
+              "revenue",
+              "payroll",
+              "property",
+              "profit",
+              "formula"
+            ],
             "title": "Base",
+            "type": "string"
+          },
+          "formula": {
+            "default": "",
+            "title": "Formula",
             "type": "string"
           },
           "name": {
             "title": "Name",
+            "type": "string"
+          },
+          "periodicity": {
+            "default": "month",
+            "enum": [
+              "month",
+              "quarter",
+              "year"
+            ],
+            "title": "Periodicity",
             "type": "string"
           },
           "rate": {
@@ -5670,15 +5701,46 @@
         "type": "object"
       },
       "Tax-Output": {
-        "description": "Настраиваемый налог. В v0 ключевые ставки берутся из ProjectSettings.",
+        "description": "Настраиваемый налог (SPEC §22.9): ставка × база, периодичность уплаты, отнесение.\n\nБаза считается по показателям **до настраиваемых налогов** (предварительный прогон):\nпресеты — выручка (I1), загруженный ФОТ (I6+I13+I14+I15), имущество (B13+B14),\nприбыль (МАКС(I26, 0)) — либо произвольная формула языка формул (base='formula').",
         "properties": {
+          "allocation": {
+            "default": "expense",
+            "enum": [
+              "expense",
+              "profit"
+            ],
+            "title": "Allocation",
+            "type": "string"
+          },
           "base": {
-            "default": "",
+            "default": "revenue",
+            "enum": [
+              "revenue",
+              "payroll",
+              "property",
+              "profit",
+              "formula"
+            ],
             "title": "Base",
+            "type": "string"
+          },
+          "formula": {
+            "default": "",
+            "title": "Formula",
             "type": "string"
           },
           "name": {
             "title": "Name",
+            "type": "string"
+          },
+          "periodicity": {
+            "default": "month",
+            "enum": [
+              "month",
+              "quarter",
+              "year"
+            ],
+            "title": "Periodicity",
             "type": "string"
           },
           "rate": {
@@ -6035,7 +6097,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.27"
+    "version": "0.9.28"
   },
   "openapi": "3.1.0",
   "paths": {
