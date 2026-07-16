@@ -130,3 +130,13 @@ def test_loan_outside_horizon_skipped():
     model.financing.loans = [Loan(name="Поздний", amount=Decimal(100), start_month=24)]
     result = run(model)
     assert all(p.kind != "lender" for p in result.participants)
+
+
+def test_participants_in_calc_response(client):
+    """/calculate отдаёт participants для демо (акционеры + займы)."""
+    sample = client.get("/api/v1/sample").json()
+    body = client.post("/api/v1/calculate", json=sample).json()
+    kinds = {p["kind"] for p in body["participants"]}
+    assert kinds == {"equity", "lender"}
+    eq = next(p for p in body["participants"] if p["kind"] == "equity")
+    assert eq["name"] == "Акционеры" and len(eq["flow"]) == body["n"]

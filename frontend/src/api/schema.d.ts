@@ -1008,6 +1008,11 @@ export interface components {
             /** N */
             n: number;
             /**
+             * Participants
+             * @default []
+             */
+            participants: components["schemas"]["ParticipantOut"][];
+            /**
              * @default {
              *       "products": [],
              *       "unallocated_direct": "0"
@@ -1151,6 +1156,11 @@ export interface components {
             metrics: components["schemas"]["MetricsOut"];
             /** N */
             n: number;
+            /**
+             * Participants
+             * @default []
+             */
+            participants: components["schemas"]["ParticipantOut"][];
             /**
              * Per Project
              * @default []
@@ -2213,6 +2223,46 @@ export interface components {
             from_profit: boolean;
             /** Name */
             name: string;
+        };
+        /**
+         * ParticipantOut
+         * @description Доходы участника финансирования: поток, вложено/получено, NPV/IRR (± терминальная).
+         */
+        ParticipantOut: {
+            /**
+             * Flow
+             * @default []
+             */
+            flow: string[];
+            /** Id */
+            id: string;
+            /**
+             * Invested
+             * @default 0
+             */
+            invested: string;
+            /** Irr Annual */
+            irr_annual?: string | null;
+            /** Irr With Terminal Annual */
+            irr_with_terminal_annual?: string | null;
+            /** Kind */
+            kind: string;
+            /** Name */
+            name: string;
+            /**
+             * Npv
+             * @default 0
+             */
+            npv: string;
+            /** Npv With Terminal */
+            npv_with_terminal?: string | null;
+            /** Terminal Value */
+            terminal_value?: string | null;
+            /**
+             * Withdrawn
+             * @default 0
+             */
+            withdrawn: string;
         };
         /**
          * PaymentPart

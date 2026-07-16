@@ -461,6 +461,14 @@
             "title": "N",
             "type": "integer"
           },
+          "participants": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ParticipantOut"
+            },
+            "title": "Participants",
+            "type": "array"
+          },
           "product_margins": {
             "$ref": "#/components/schemas/ProductMarginsOut",
             "default": {
@@ -748,6 +756,14 @@
           "n": {
             "title": "N",
             "type": "integer"
+          },
+          "participants": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ParticipantOut"
+            },
+            "title": "Participants",
+            "type": "array"
           },
           "per_project": {
             "default": [],
@@ -2925,6 +2941,105 @@
           "name"
         ],
         "title": "OtherFlow",
+        "type": "object"
+      },
+      "ParticipantOut": {
+        "description": "Доходы участника финансирования: поток, вложено/получено, NPV/IRR (± терминальная).",
+        "properties": {
+          "flow": {
+            "default": [],
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Flow",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "invested": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Invested",
+            "type": "string"
+          },
+          "irr_annual": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Irr Annual"
+          },
+          "irr_with_terminal_annual": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Irr With Terminal Annual"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "npv": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Npv",
+            "type": "string"
+          },
+          "npv_with_terminal": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Npv With Terminal"
+          },
+          "terminal_value": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terminal Value"
+          },
+          "withdrawn": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Withdrawn",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind"
+        ],
+        "title": "ParticipantOut",
         "type": "object"
       },
       "PaymentPart-Input": {
@@ -6097,7 +6212,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.28"
+    "version": "0.9.29"
   },
   "openapi": "3.1.0",
   "paths": {

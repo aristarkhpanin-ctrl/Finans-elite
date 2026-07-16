@@ -118,6 +118,22 @@ class UserTableOut(BaseModel):
     rows: list[UserRowOut] = []
 
 
+class ParticipantOut(BaseModel):
+    """Доходы участника финансирования: поток, вложено/получено, NPV/IRR (± терминальная)."""
+
+    id: str
+    name: str
+    kind: str                                   # equity | lender
+    flow: list[Decimal] = []
+    invested: Decimal = Decimal(0)
+    withdrawn: Decimal = Decimal(0)
+    npv: Decimal = Decimal(0)
+    irr_annual: Optional[Decimal] = None
+    terminal_value: Optional[Decimal] = None
+    npv_with_terminal: Optional[Decimal] = None
+    irr_with_terminal_annual: Optional[Decimal] = None
+
+
 class LineDetailItemOut(BaseModel):
     """Слагаемое строки отчёта (drill-down): источник и его помесячный ряд."""
 
@@ -148,6 +164,8 @@ class CalcResponse(BaseModel):
     user_tables: list[UserTableOut] = []
     # Детализация ключевых строк отчётов (drill-down, пакет №6); пустая без данных.
     details: list[LineDetailOut] = []
+    # Доходы участников финансирования (пакет №7); пусто без финансирования.
+    participants: list[ParticipantOut] = []
     actualized_cashflow: Optional[StatementOut] = None
     cashflow_variance: Optional[StatementOut] = None
     warnings: list[str]
@@ -592,6 +610,13 @@ def to_response(r: CalcResult) -> CalcResponse:
             code=d.code,
             items=[LineDetailItemOut(name=i.name, values=list(i.values)) for i in d.items],
         ) for d in r.details],
+        participants=[ParticipantOut(
+            id=p.id, name=p.name, kind=p.kind, flow=list(p.flow),
+            invested=p.invested, withdrawn=p.withdrawn, npv=p.npv,
+            irr_annual=p.irr_annual, terminal_value=p.terminal_value,
+            npv_with_terminal=p.npv_with_terminal,
+            irr_with_terminal_annual=p.irr_with_terminal_annual,
+        ) for p in r.participants],
         actualized_cashflow=_statement_out(r.actualized_cashflow) if r.actualized_cashflow else None,
         cashflow_variance=_statement_out(r.cashflow_variance) if r.cashflow_variance else None,
         warnings=r.warnings,

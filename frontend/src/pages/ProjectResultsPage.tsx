@@ -441,6 +441,48 @@ export function ProjectResultsPage() {
           </>
         )}
 
+        {tab === "summary" && (data.participants ?? []).length > 0 && (
+          <>
+            <div className="rsection-label">Доходы участников финансирования</div>
+            <div className="contrib-wrap">
+              <div className="contrib-row contrib-row--head">
+                <div className="contrib-label">Участник</div>
+                <div className="contrib-cell">Вложено</div>
+                <div className="contrib-cell">Получено</div>
+                <div className="contrib-cell">NPV</div>
+                <div className="contrib-cell">IRR</div>
+                <div className="contrib-cell">IRR с уч. остатка</div>
+              </div>
+              {data.participants.map((p) => {
+                const neg = Number(p.npv_with_terminal ?? p.npv) < 0;
+                return (
+                  <div className="contrib-row" key={p.id}>
+                    <div className="contrib-label">
+                      {p.name}
+                      {p.kind === "lender" && <span className="fin2-code" style={{ marginLeft: 6 }}>заём</span>}
+                    </div>
+                    <div className="contrib-cell">{fmtMillions(p.invested, { digits: 2 })}</div>
+                    <div className="contrib-cell">{fmtMillions(p.withdrawn, { digits: 2 })}</div>
+                    <div className={"contrib-cell" + (neg ? " contrib-cell--neg" : "")}>
+                      {fmtMillions(p.npv_with_terminal ?? p.npv, { sign: true, digits: 2 })}
+                    </div>
+                    <div className="contrib-cell">
+                      {p.irr_annual != null ? percent(p.irr_annual, 1) : "—"}
+                    </div>
+                    <div className="contrib-cell">
+                      {p.irr_with_terminal_annual != null ? percent(p.irr_with_terminal_annual, 1) : "—"}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="field-note" style={{ marginTop: 8 }}>
+              NPV и «IRR с уч. остатка» — с условным возвратом на конец горизонта: акционерам —
+              собственного капитала (B33), кредиторам — непогашенного тела займа.
+            </div>
+          </>
+        )}
+
         <div className="etabs-wrap" style={{ margin: "20px 0", borderTop: "1px solid var(--border)", background: "none", padding: 0 }}>
           <div className="etabs fe-scroll">
             {tabs.map((key) => (

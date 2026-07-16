@@ -143,6 +143,31 @@ def _add_metrics(doc: Document, result: CalcResult) -> None:
     _shrink_table(table, 9)
 
 
+def _add_participants(doc: Document, result: CalcResult) -> None:
+    if not result.participants:
+        return
+    doc.add_heading("Доходы участников финансирования", level=1)
+    pct = lambda v: fmt_pct(v) + " годовых" if v is not None else "—"  # noqa: E731
+    table = doc.add_table(rows=1 + len(result.participants), cols=6)
+    table.style = "Table Grid"
+    for j, h in enumerate(["Участник", "Вложено", "Получено", "NPV",
+                           "IRR", "IRR с уч. стоимости на конец"]):
+        table.rows[0].cells[j].text = h
+    for i, p in enumerate(result.participants):
+        row = table.rows[i + 1].cells
+        row[0].text = p.name
+        row[1].text = _fmt_money(p.invested)
+        row[2].text = _fmt_money(p.withdrawn)
+        row[3].text = _fmt_money(p.npv)
+        row[4].text = pct(p.irr_annual)
+        row[5].text = pct(p.irr_with_terminal_annual)
+    _shrink_table(table, 8.5)
+    doc.add_paragraph(
+        "IRR с учётом стоимости на конец горизонта: акционерам условно возвращается "
+        "собственный капитал (B33), кредиторам — непогашенный остаток тела займа."
+    )
+
+
 def _add_user_sections(doc: Document, model: ProjectModel) -> None:
     for section in model.business_plan:
         if not (section.title or section.text.strip()):
@@ -241,6 +266,7 @@ def build_business_plan_docx(model: ProjectModel, result: CalcResult, opinion: s
 
     _add_opinion(doc, opinion)
     _add_metrics(doc, result)
+    _add_participants(doc, result)
     _add_user_sections(doc, model)
     _add_product_margins(doc, result)
     _add_budget(doc, result)

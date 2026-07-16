@@ -54,7 +54,7 @@ frontend: SummaryView / ProjectResultsPage  # карточка на сводке
   акционерный поток/TV, IRR кредитора ≈ ставке займа (рублёвый заём, равное тело),
   валютный заём (курсовой доход), Σ потоков сходится со строками C21/C26/C22–C24,
   инертность пустого финансирования.
-- [ ] **U1.** API + UI + DOCX: `participants` в `CalcResponse`, openapi/`gen:api`,
+- [x] **U1.** API + UI + DOCX: `participants` в `CalcResponse`, openapi/`gen:api`,
   карточка на сводке результатов, таблица в docgen; vitest.
 - [ ] **U2.** Документация: SPEC (§17, подраздел «Доходы участников»), ROADMAP,
   GAP-ANALYSIS (4.3), CLAUDE.md, этот чеклист.
