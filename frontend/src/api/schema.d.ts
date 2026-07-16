@@ -466,6 +466,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/business-plan.docx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Business Plan Docx
+         * @description DOCX-бизнес-план (пакет №5, Q5): титул, заключение, показатели, разделы, отчёты.
+         *
+         *     Считает проект на лету (как /calculate, но без записи сводки); заключение — быстрое
+         *     ревью без стохастики. Право ``project.read`` — документ лишь отражает модель.
+         */
+        get: operations["business_plan_docx_api_v1_projects__project_id__business_plan_docx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/calculate": {
         parameters: {
             query?: never;
@@ -2288,6 +2311,25 @@ export interface components {
             /** Price Rub */
             price_rub: number;
         };
+        /**
+         * PlanSection
+         * @description Текстовый раздел бизнес-плана (резюме, рынок, команда…) для DOCX-документа.
+         *
+         *     Текст пользователя: к расчёту отношения не имеет (модель без разделов инертна).
+         *     Границы длины — защита хранилища/генератора документа от абсурдных входов.
+         */
+        PlanSection: {
+            /**
+             * Text
+             * @default
+             */
+            text: string;
+            /**
+             * Title
+             * @default
+             */
+            title: string;
+        };
         /** Product */
         "Product-Input": {
             /** Bom */
@@ -2419,6 +2461,8 @@ export interface components {
              *     }
              */
             actualization: components["schemas"]["Actualization-Input"];
+            /** Business Plan */
+            business_plan?: components["schemas"]["PlanSection"][];
             /**
              * @default {
              *       "starting_balance": {
@@ -2543,6 +2587,8 @@ export interface components {
              *     }
              */
             actualization: components["schemas"]["Actualization-Output"];
+            /** Business Plan */
+            business_plan?: components["schemas"]["PlanSection"][];
             /**
              * @default {
              *       "starting_balance": {
@@ -4779,6 +4825,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BudgetOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    business_plan_docx_api_v1_projects__project_id__business_plan_docx_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

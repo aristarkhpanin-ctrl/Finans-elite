@@ -3083,6 +3083,25 @@
         "title": "PlanOut",
         "type": "object"
       },
+      "PlanSection": {
+        "description": "Текстовый раздел бизнес-плана (резюме, рынок, команда…) для DOCX-документа.\n\nТекст пользователя: к расчёту отношения не имеет (модель без разделов инертна).\nГраницы длины — защита хранилища/генератора документа от абсурдных входов.",
+        "properties": {
+          "text": {
+            "default": "",
+            "maxLength": 50000,
+            "title": "Text",
+            "type": "string"
+          },
+          "title": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "title": "PlanSection",
+        "type": "object"
+      },
       "Product-Input": {
         "properties": {
           "bom": {
@@ -3352,6 +3371,14 @@
               "actuals": {}
             }
           },
+          "business_plan": {
+            "items": {
+              "$ref": "#/components/schemas/PlanSection"
+            },
+            "maxItems": 100,
+            "title": "Business Plan",
+            "type": "array"
+          },
           "company": {
             "$ref": "#/components/schemas/Company-Input",
             "default": {
@@ -3481,6 +3508,14 @@
               "actual_until": -1,
               "actuals": {}
             }
+          },
+          "business_plan": {
+            "items": {
+              "$ref": "#/components/schemas/PlanSection"
+            },
+            "maxItems": 100,
+            "title": "Business Plan",
+            "type": "array"
           },
           "company": {
             "$ref": "#/components/schemas/Company-Output",
@@ -7693,6 +7728,68 @@
           }
         ],
         "summary": "Project Budget",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/business-plan.docx": {
+      "get": {
+        "description": "DOCX-бизнес-план (пакет №5, Q5): титул, заключение, показатели, разделы, отчёты.\n\nСчитает проект на лету (как /calculate, но без записи сводки); заключение — быстрое\nревью без стохастики. Право ``project.read`` — документ лишь отражает модель.",
+        "operationId": "business_plan_docx_api_v1_projects__project_id__business_plan_docx_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Business Plan Docx",
         "tags": [
           "projects"
         ]

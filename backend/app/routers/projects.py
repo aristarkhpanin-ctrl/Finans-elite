@@ -6,8 +6,10 @@
 from __future__ import annotations
 
 import uuid
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from calc_core import run
@@ -24,6 +26,7 @@ from ..analysis_service import build_mc_config
 from ..database import get_db
 from ..db_models import Project
 from ..deps import require_permission
+from ..docgen import DOCX_MIME, build_business_plan_docx
 from ..rbac import Perm
 from ..schemas import (
     BudgetOut,
@@ -201,6 +204,33 @@ def review_project(project_id: str, deep: bool = False,
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     review = run_review(ReviewContext(model=model, result=result), deep=deep)
     return review_response(review, deep=deep, opinion=build_opinion(review, result))
+
+
+@router.get("/{project_id}/business-plan.docx")
+def business_plan_docx(project_id: str,
+                       org_id: str = Depends(require_permission(Perm.PROJECT_READ)),
+                       db: Session = Depends(get_db)) -> Response:
+    """DOCX-бизнес-план (пакет №5, Q5): титул, заключение, показатели, разделы, отчёты.
+
+    Считает проект на лету (как /calculate, но без записи сводки); заключение — быстрое
+    ревью без стохастики. Право ``project.read`` — документ лишь отражает модель.
+    """
+    project = _require(db, org_id, project_id)
+    model = crud.load_model(project)
+    try:
+        result = run(model)
+    except (ModelError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    review = run_review(ReviewContext(model=model, result=result))
+    content = build_business_plan_docx(model, result, build_opinion(review, result),
+                                       project_name=project.name)
+    filename = quote(f"{project.name}.docx")
+    return Response(
+        content=content,
+        media_type=DOCX_MIME,
+        headers={"Content-Disposition":
+                 f"attachment; filename=\"business-plan.docx\"; filename*=UTF-8''{filename}"},
+    )
 
 
 @router.post("/{project_id}/finalize", response_model=FinalizeResponse)

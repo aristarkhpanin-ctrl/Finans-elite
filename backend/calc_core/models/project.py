@@ -29,6 +29,17 @@ class ProjectHeader(BaseModel):
     duration_months: int = Field(default=12, ge=1, le=600)
 
 
+class PlanSection(BaseModel):
+    """Текстовый раздел бизнес-плана (резюме, рынок, команда…) для DOCX-документа.
+
+    Текст пользователя: к расчёту отношения не имеет (модель без разделов инертна).
+    Границы длины — защита хранилища/генератора документа от абсурдных входов.
+    """
+
+    title: str = Field(default="", max_length=300)
+    text: str = Field(default="", max_length=50_000)
+
+
 class ProjectSettings(BaseModel):
     """Настройка расчёта (см. SPEC §11, §17)."""
 
@@ -72,6 +83,8 @@ class ProjectModel(BaseModel):
     actualization: Actualization = Actualization()
     # Таблицы пользователя (строки-формулы над результатом; методику не меняют).
     user_tables: list[UserTable] = Field(default_factory=list)
+    # Текстовые разделы бизнес-плана для DOCX-документа (пакет №5; к расчёту не относятся).
+    business_plan: list[PlanSection] = Field(default_factory=list, max_length=100)
 
     @property
     def n(self) -> int:
