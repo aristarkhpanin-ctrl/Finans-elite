@@ -52,6 +52,19 @@
   (risk), `product_thin_margin` (warning). План — `docs/PRODUCT-ECONOMICS-DECOMPOSITION.md`;
   дальнейшие пакеты — `docs/GAP-ANALYSIS-PE.md`.
 
+## DOCX-бизнес-план + экспертное заключение (пакет №5 gap-анализа) — завершено (D0–D3)
+
+- Заключение: `calc_core/review/opinion.py → build_opinion(review, result)` — детерминированный
+  автотекст (интро по «светофору», показатели, топ-5 находок, вердикт; NPV<0 → отрицательный
+  вердикт при любом светофоре). Поле `opinion` в `ReviewResponse` (+ снимок финализации),
+  карточка в UI ревью. **Без ИИ — шаблонные фразы над фактами.**
+- Документ: `ProjectModel.business_plan` (плоские `PlanSection(title, text)`, инертны) +
+  `app/docgen.py` (python-docx; структура: титул → заключение → показатели → разделы →
+  4 отчёта → маржа/смета). При `n > 24` отчёты сворачиваются **по годам на слое генерации**
+  (потоки — суммы; баланс, C29/P7 — конец года; C28/P2 — начало; P3 = P2 + ΣP1) — ядро не
+  меняется. `GET /projects/{id}/business-plan.docx`; UI — вкладка «Документ», кнопка
+  «Бизнес-план» на результатах. План/решения — `docs/BUSINESS-PLAN-DOC-DECOMPOSITION.md`.
+
 ## Точность движка
 
 - Любое изменение методики расчёта — через golden-master (`UPDATE_GOLDEN=1 pytest
