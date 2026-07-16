@@ -175,6 +175,11 @@ export interface Financing {
 
 export type AssetCategory = "equipment" | "buildings" | "land";
 
+export interface AdditionalInvestment {
+  month: number;
+  amount: string;
+}
+
 export interface Asset {
   name: string;
   cost: string;
@@ -186,6 +191,8 @@ export interface Asset {
   /** Переоценка: месяц и сумма дооценки (±) → остаточная B9 и добавочный капитал B31. */
   revaluation_month?: number | null;
   revaluation_amount?: string;
+  /** Доинвестирование (модернизация): вложения, амортизируемые от остаточного срока. */
+  additional_investments?: AdditionalInvestment[];
 }
 
 export type StageKind = "expense" | "asset" | "production";

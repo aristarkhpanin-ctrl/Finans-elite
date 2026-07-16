@@ -54,9 +54,59 @@
         "title": "Actualization",
         "type": "object"
       },
+      "AdditionalInvestment-Input": {
+        "description": "Доинвестирование в актив (модернизация, SPEC §9): вложение в месяц ``month``.\n\nКапитализируется (→ capex/C14) и амортизируется линейно за **остаточный срок** актива\n(``purchase_month + life_months − month``), заканчиваясь вместе с базовой стоимостью.",
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Amount"
+          },
+          "month": {
+            "default": 0,
+            "title": "Month",
+            "type": "integer"
+          }
+        },
+        "title": "AdditionalInvestment",
+        "type": "object"
+      },
+      "AdditionalInvestment-Output": {
+        "description": "Доинвестирование в актив (модернизация, SPEC §9): вложение в месяц ``month``.\n\nКапитализируется (→ capex/C14) и амортизируется линейно за **остаточный срок** актива\n(``purchase_month + life_months − month``), заканчиваясь вместе с базовой стоимостью.",
+        "properties": {
+          "amount": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "month": {
+            "default": 0,
+            "title": "Month",
+            "type": "integer"
+          }
+        },
+        "title": "AdditionalInvestment",
+        "type": "object"
+      },
       "Asset-Input": {
         "description": "Основное средство.",
         "properties": {
+          "additional_investments": {
+            "items": {
+              "$ref": "#/components/schemas/AdditionalInvestment-Input"
+            },
+            "title": "Additional Investments",
+            "type": "array"
+          },
           "category": {
             "$ref": "#/components/schemas/AssetCategory",
             "default": "equipment"
@@ -146,6 +196,13 @@
       "Asset-Output": {
         "description": "Основное средство.",
         "properties": {
+          "additional_investments": {
+            "items": {
+              "$ref": "#/components/schemas/AdditionalInvestment-Output"
+            },
+            "title": "Additional Investments",
+            "type": "array"
+          },
           "category": {
             "$ref": "#/components/schemas/AssetCategory",
             "default": "equipment"
@@ -6537,7 +6594,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.31"
+    "version": "0.9.32"
   },
   "openapi": "3.1.0",
   "paths": {

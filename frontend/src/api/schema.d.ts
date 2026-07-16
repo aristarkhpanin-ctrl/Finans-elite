@@ -891,10 +891,50 @@ export interface components {
             };
         };
         /**
+         * AdditionalInvestment
+         * @description Доинвестирование в актив (модернизация, SPEC §9): вложение в месяц ``month``.
+         *
+         *     Капитализируется (→ capex/C14) и амортизируется линейно за **остаточный срок** актива
+         *     (``purchase_month + life_months − month``), заканчиваясь вместе с базовой стоимостью.
+         */
+        "AdditionalInvestment-Input": {
+            /**
+             * Amount
+             * @default 0
+             */
+            amount: number | string;
+            /**
+             * Month
+             * @default 0
+             */
+            month: number;
+        };
+        /**
+         * AdditionalInvestment
+         * @description Доинвестирование в актив (модернизация, SPEC §9): вложение в месяц ``month``.
+         *
+         *     Капитализируется (→ capex/C14) и амортизируется линейно за **остаточный срок** актива
+         *     (``purchase_month + life_months − month``), заканчиваясь вместе с базовой стоимостью.
+         */
+        "AdditionalInvestment-Output": {
+            /**
+             * Amount
+             * @default 0
+             */
+            amount: string;
+            /**
+             * Month
+             * @default 0
+             */
+            month: number;
+        };
+        /**
          * Asset
          * @description Основное средство.
          */
         "Asset-Input": {
+            /** Additional Investments */
+            additional_investments?: components["schemas"]["AdditionalInvestment-Input"][];
             /** @default equipment */
             category: components["schemas"]["AssetCategory"];
             /** Cost */
@@ -931,6 +971,8 @@ export interface components {
          * @description Основное средство.
          */
         "Asset-Output": {
+            /** Additional Investments */
+            additional_investments?: components["schemas"]["AdditionalInvestment-Output"][];
             /** @default equipment */
             category: components["schemas"]["AssetCategory"];
             /** Cost */
