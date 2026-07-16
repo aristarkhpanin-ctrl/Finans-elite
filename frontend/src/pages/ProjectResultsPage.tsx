@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { httpDetail } from "../api/client";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { aggregateStatement, defaultPeriod, periodLabels, type Period } from "../aggregate";
 import { calculateProject } from "../api/calc";
 import { getProject } from "../api/projects";
 import { HintBadge } from "../components/EditorField";
@@ -44,6 +45,8 @@ export function ProjectResultsPage() {
   const toast = useToast();
   const [tab, setTab] = useState<string>("summary");
   const [printMode, setPrintMode] = useState(false);
+  // Период отображения отчётов (пакет №6): null → авто по горизонту (defaultPeriod).
+  const [period, setPeriod] = useState<Period | null>(null);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["calc", id],
@@ -274,24 +277,45 @@ export function ProjectResultsPage() {
     { label: "Ликвидационная", value: val.liquidation_value ? fmtMillions(val.liquidation_value, { digits: 1 }) : "—", hint: "Возвратная стоимость активов при ликвидации минус обязательства." },
   ];
 
-  const statementView = (key: StatementKey) => (
-    <>
-      <div className="report-head">
-        <div style={{ minWidth: 0 }}>
-          <div className="report-head__title">{TAB_LABELS[key] ?? STATEMENTS.find(([k]) => k === key)?.[1]}</div>
-          <div className="report-head__sub">Помесячный отчёт · {data.n} мес · суммы в ₽</div>
+  const statementView = (key: StatementKey) => {
+    const eff = period ?? defaultPeriod(data.n);
+    const labels = periodLabels(data.n, eff);
+    const agg = aggregateStatement(data[key], key === "balance" ? "balance" : "flow", data.n, eff);
+    const sub =
+      eff === "month"
+        ? `Помесячно · ${data.n} мес · суммы в ₽`
+        : eff === "quarter"
+          ? `По кварталам · ${labels.length} кв (${data.n} мес) · суммы в ₽`
+          : `По годам проекта · ${labels.length} г. (${data.n} мес) · суммы в ₽`;
+    return (
+      <>
+        <div className="report-head">
+          <div style={{ minWidth: 0 }}>
+            <div className="report-head__title">{TAB_LABELS[key] ?? STATEMENTS.find(([k]) => k === key)?.[1]}</div>
+            <div className="report-head__sub">{sub}</div>
+          </div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <div className="report-switch" aria-label="Период отображения">
+              {(["month", "quarter", "year"] as const).map((p) => (
+                <button key={p} type="button" className={eff === p ? "on" : ""} onClick={() => setPeriod(p)}>
+                  {p === "month" ? "Месяц" : p === "quarter" ? "Квартал" : "Год"}
+                </button>
+              ))}
+            </div>
+            <div className="report-switch">
+              {STATEMENTS.map(([k, label]) => (
+                <button key={k} type="button" className={tab === k ? "on" : ""} onClick={() => setTab(k)}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-        <div className="report-switch">
-          {STATEMENTS.map(([k, label]) => (
-            <button key={k} type="button" className={tab === k ? "on" : ""} onClick={() => setTab(k)}>
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-      <StatementTable statement={data[key]} n={data.n} subtotals={SUBTOTALS[key]} grands={GRANDS[key]} />
-    </>
-  );
+        <StatementTable statement={agg} n={labels.length} subtotals={SUBTOTALS[key]}
+                        grands={GRANDS[key]} labels={labels} />
+      </>
+    );
+  };
 
   return (
     <div className={printMode ? "print-mode" : ""}>

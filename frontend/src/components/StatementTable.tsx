@@ -8,6 +8,8 @@ interface Props {
   subtotals: Set<string>;
   /** Итоговые строки (grand): I28 / C29 / B20+B34 / P7. */
   grands?: Set<string>;
+  /** Метки колонок (агрегация по периодам, пакет №6); по умолчанию — М1…Мn. */
+  labels?: string[];
 }
 
 /**
@@ -15,9 +17,10 @@ interface Props {
  * субтотальные и итоговые строки, скобки для отрицательных, «—» для нуля,
  * ховер строки и колонки (по mouseenter заголовка месяца), легенда.
  */
-export function StatementTable({ statement, n, subtotals, grands }: Props) {
+export function StatementTable({ statement, n, subtotals, grands, labels }: Props) {
   const [hoverCol, setHoverCol] = useState<number | null>(null);
-  const months = Array.from({ length: n }, (_, i) => i);
+  const cols = labels ?? Array.from({ length: n }, (_, i) => `М${i + 1}`);
+  const months = cols.map((_, i) => i);
 
   return (
     <div>
@@ -34,7 +37,7 @@ export function StatementTable({ statement, n, subtotals, grands }: Props) {
                 onMouseEnter={() => setHoverCol(i)}
                 onMouseLeave={() => setHoverCol(null)}
               >
-                М{i + 1}
+                {cols[i]}
               </div>
             ))}
           </div>
