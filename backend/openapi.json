@@ -222,7 +222,7 @@
         "type": "string"
       },
       "AutoFinancing-Input": {
-        "description": "Автоподбор финансирования: покрытие дефицита наличности кредитной линией.\n\nКаждый период, если денег меньше ``min_balance``, привлекается заём до этого уровня;\nпри профиците задолженность гасится. Проценты влияют на прибыль и налог, поэтому\nрасчёт итеративный (см. SPEC §19).",
+        "description": "Автоподбор финансирования: покрытие дефицита кредитом + размещение излишков (SPEC §19).\n\nКаждый период, если денег меньше ``min_balance``, привлекается заём до этого уровня;\nпри профиците задолженность гасится. При включённом ``invest_surplus`` касса выше\n``min_balance`` размещается в депозит (симметрично автокредиту): доход по депозиту\nрастит прибыль и налог, при дефиците депозит изымается раньше привлечения кредита.\nПроценты/доход влияют на прибыль и налог, поэтому расчёт итеративный.",
         "properties": {
           "annual_rate": {
             "anyOf": [
@@ -240,6 +240,24 @@
           "enabled": {
             "default": false,
             "title": "Enabled",
+            "type": "boolean"
+          },
+          "invest_annual_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0.05",
+            "title": "Invest Annual Rate"
+          },
+          "invest_surplus": {
+            "default": false,
+            "title": "Invest Surplus",
             "type": "boolean"
           },
           "min_balance": {
@@ -260,7 +278,7 @@
         "type": "object"
       },
       "AutoFinancing-Output": {
-        "description": "Автоподбор финансирования: покрытие дефицита наличности кредитной линией.\n\nКаждый период, если денег меньше ``min_balance``, привлекается заём до этого уровня;\nпри профиците задолженность гасится. Проценты влияют на прибыль и налог, поэтому\nрасчёт итеративный (см. SPEC §19).",
+        "description": "Автоподбор финансирования: покрытие дефицита кредитом + размещение излишков (SPEC §19).\n\nКаждый период, если денег меньше ``min_balance``, привлекается заём до этого уровня;\nпри профиците задолженность гасится. При включённом ``invest_surplus`` касса выше\n``min_balance`` размещается в депозит (симметрично автокредиту): доход по депозиту\nрастит прибыль и налог, при дефиците депозит изымается раньше привлечения кредита.\nПроценты/доход влияют на прибыль и налог, поэтому расчёт итеративный.",
         "properties": {
           "annual_rate": {
             "default": "0.18",
@@ -271,6 +289,17 @@
           "enabled": {
             "default": false,
             "title": "Enabled",
+            "type": "boolean"
+          },
+          "invest_annual_rate": {
+            "default": "0.05",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Invest Annual Rate",
+            "type": "string"
+          },
+          "invest_surplus": {
+            "default": false,
+            "title": "Invest Surplus",
             "type": "boolean"
           },
           "min_balance": {
@@ -1313,6 +1342,8 @@
             "default": {
               "annual_rate": "0.18",
               "enabled": false,
+              "invest_annual_rate": "0.05",
+              "invest_surplus": false,
               "min_balance": "0"
             }
           },
@@ -1383,6 +1414,8 @@
             "default": {
               "annual_rate": "0.18",
               "enabled": false,
+              "invest_annual_rate": "0.05",
+              "invest_surplus": false,
               "min_balance": "0"
             }
           },
@@ -3667,6 +3700,8 @@
               "auto_financing": {
                 "annual_rate": "0.18",
                 "enabled": false,
+                "invest_annual_rate": "0.05",
+                "invest_surplus": false,
                 "min_balance": "0"
               },
               "common_shares": "0",
@@ -3805,6 +3840,8 @@
               "auto_financing": {
                 "annual_rate": "0.18",
                 "enabled": false,
+                "invest_annual_rate": "0.05",
+                "invest_surplus": false,
                 "min_balance": "0"
               },
               "common_shares": "0",
@@ -6456,7 +6493,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.29"
+    "version": "0.9.30"
   },
   "openapi": "3.1.0",
   "paths": {

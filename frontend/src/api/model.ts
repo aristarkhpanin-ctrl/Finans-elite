@@ -158,6 +158,9 @@ export interface AutoFinancing {
   enabled: boolean;
   annual_rate: string;
   min_balance: string;
+  /** Авторазмещение излишков кассы в депозит (симметрично автокредиту). */
+  invest_surplus?: boolean;
+  invest_annual_rate?: string;
 }
 
 export interface Financing {

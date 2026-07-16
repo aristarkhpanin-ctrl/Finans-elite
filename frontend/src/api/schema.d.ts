@@ -970,11 +970,13 @@ export interface components {
         AssetCategory: "equipment" | "buildings" | "land";
         /**
          * AutoFinancing
-         * @description Автоподбор финансирования: покрытие дефицита наличности кредитной линией.
+         * @description Автоподбор финансирования: покрытие дефицита кредитом + размещение излишков (SPEC §19).
          *
          *     Каждый период, если денег меньше ``min_balance``, привлекается заём до этого уровня;
-         *     при профиците задолженность гасится. Проценты влияют на прибыль и налог, поэтому
-         *     расчёт итеративный (см. SPEC §19).
+         *     при профиците задолженность гасится. При включённом ``invest_surplus`` касса выше
+         *     ``min_balance`` размещается в депозит (симметрично автокредиту): доход по депозиту
+         *     растит прибыль и налог, при дефиците депозит изымается раньше привлечения кредита.
+         *     Проценты/доход влияют на прибыль и налог, поэтому расчёт итеративный.
          */
         "AutoFinancing-Input": {
             /**
@@ -988,6 +990,16 @@ export interface components {
              */
             enabled: boolean;
             /**
+             * Invest Annual Rate
+             * @default 0.05
+             */
+            invest_annual_rate: number | string;
+            /**
+             * Invest Surplus
+             * @default false
+             */
+            invest_surplus: boolean;
+            /**
              * Min Balance
              * @default 0
              */
@@ -995,11 +1007,13 @@ export interface components {
         };
         /**
          * AutoFinancing
-         * @description Автоподбор финансирования: покрытие дефицита наличности кредитной линией.
+         * @description Автоподбор финансирования: покрытие дефицита кредитом + размещение излишков (SPEC §19).
          *
          *     Каждый период, если денег меньше ``min_balance``, привлекается заём до этого уровня;
-         *     при профиците задолженность гасится. Проценты влияют на прибыль и налог, поэтому
-         *     расчёт итеративный (см. SPEC §19).
+         *     при профиците задолженность гасится. При включённом ``invest_surplus`` касса выше
+         *     ``min_balance`` размещается в депозит (симметрично автокредиту): доход по депозиту
+         *     растит прибыль и налог, при дефиците депозит изымается раньше привлечения кредита.
+         *     Проценты/доход влияют на прибыль и налог, поэтому расчёт итеративный.
          */
         "AutoFinancing-Output": {
             /**
@@ -1012,6 +1026,16 @@ export interface components {
              * @default false
              */
             enabled: boolean;
+            /**
+             * Invest Annual Rate
+             * @default 0.05
+             */
+            invest_annual_rate: string;
+            /**
+             * Invest Surplus
+             * @default false
+             */
+            invest_surplus: boolean;
             /**
              * Min Balance
              * @default 0
@@ -1517,6 +1541,8 @@ export interface components {
              * @default {
              *       "annual_rate": "0.18",
              *       "enabled": false,
+             *       "invest_annual_rate": "0.05",
+             *       "invest_surplus": false,
              *       "min_balance": "0"
              *     }
              */
@@ -1543,6 +1569,8 @@ export interface components {
              * @default {
              *       "annual_rate": "0.18",
              *       "enabled": false,
+             *       "invest_annual_rate": "0.05",
+             *       "invest_surplus": false,
              *       "min_balance": "0"
              *     }
              */
@@ -2711,6 +2739,8 @@ export interface components {
              *       "auto_financing": {
              *         "annual_rate": "0.18",
              *         "enabled": false,
+             *         "invest_annual_rate": "0.05",
+             *         "invest_surplus": false,
              *         "min_balance": "0"
              *       },
              *       "common_shares": "0",
@@ -2837,6 +2867,8 @@ export interface components {
              *       "auto_financing": {
              *         "annual_rate": "0.18",
              *         "enabled": false,
+             *         "invest_annual_rate": "0.05",
+             *         "invest_surplus": false,
              *         "min_balance": "0"
              *       },
              *       "common_shares": "0",
