@@ -52,6 +52,11 @@ class ProjectSettings(BaseModel):
     profit_tax_rate: Decimal = Decimal("0.20")        # налог на прибыль
     # Доля налогооблагаемой прибыли, освобождаемая от налога (льгота, 0..1; SPEC §22.7).
     profit_tax_benefit_share: Decimal = Field(default=Decimal("0"), ge=0, le=1)
+    # Нормирование процентов (SPEC §11, §22.6): годовая ставка рефинансирования ЦБ
+    # (0 = норматив выключен) и законный коэффициент. Вычитаемы проценты в пределах
+    # ставка_ЦБ × коэффициент; сверхнорматив относится на прибыль (I24).
+    cb_refinancing_rate: Decimal = Field(default=Decimal("0"), ge=0)
+    interest_norm_multiple: Decimal = Field(default=Decimal("1"), ge=0)
     # Страховые взносы с ФОТ (доля): загружают затраты на персонал (SPEC §8, §11).
     payroll_contribution_rate: Decimal = Field(default=Decimal("0"), ge=0)
     # Годовая инфляция по группам (SPEC §3): индексирует введённые (базовые) суммы.

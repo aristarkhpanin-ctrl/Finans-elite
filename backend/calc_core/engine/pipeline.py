@@ -555,13 +555,18 @@ def _loan_schedule(loan, n: int):
     return proceeds, principal, interest
 
 
-def _loans(model: ProjectModel, n: int, fx: list[Decimal], fx_prev: list[Decimal]):
+def _loans(model: ProjectModel, n: int, fx: list[Decimal], fx_prev: list[Decimal],
+           norm_monthly: Decimal | None = None):
     """Займы (основные и валютные) → потоки в основной валюте + переоценка долга.
 
     Для валютного займа график (поступление, тело, проценты) считается в валюте займа и
     пересчитывается в основную по ``fx[t]``; остаток долга = ``остаток_валюте · fx[t]``,
     а его курсовая переоценка (на остаток начала периода) идёт в ``I25`` (рост курса →
     убыток). Возвращает кортеж рядов в основной валюте.
+
+    ``norm_monthly`` — месячная норма вычитаемости процентов (ставка ЦБ × коэффициент,
+    SPEC §22.6): вычитаемы проценты в её пределах, сверхнорматив идёт в I24. ``None`` —
+    норматив выключен (весь процент вычитаем, если заём не «на прибыль»).
     """
     proceeds = zeros(n)
     principal = zeros(n)
@@ -587,9 +592,15 @@ def _loans(model: ProjectModel, n: int, fx: list[Decimal], fx_prev: list[Decimal
         principal = add(principal, pp_b)
         interest_all = add(interest_all, ii_b)
         if loan.interest_on_profit:
-            interest_profit = add(interest_profit, ii_b)
+            interest_profit = add(interest_profit, ii_b)   # весь процент — на прибыль (флаг)
+        elif norm_monthly is not None:
+            # Нормирование: вычитаемая доля = min(1, норма/ставка_займа) (SPEC §22.6).
+            loan_m = loan.monthly_rate()
+            ratio = min(ONE, norm_monthly / loan_m) if loan_m > ZERO else ONE
+            interest_cost = add(interest_cost, [ii_b[t] * ratio for t in range(n)])
+            interest_profit = add(interest_profit, [ii_b[t] * (ONE - ratio) for t in range(n)])
         else:
-            interest_cost = add(interest_cost, ii_b)
+            interest_cost = add(interest_cost, ii_b)       # норматив выключен — весь вычитаем
         debt = add(debt, debt_b)
         reval = add(reval, rev)
     return proceeds, principal, interest_all, interest_cost, interest_profit, debt, reval
@@ -784,8 +795,12 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
     i9 = [prop_monthly * (b13[t] + b14[t]) for t in range(n)]
 
     # --- займы (основные и валютные; валютные переоцениваются → I25) ---
+    # Норма вычитаемости процентов (SPEC §22.6): ставка ЦБ × коэффициент → месячная; None = выкл.
+    cb = settings.cb_refinancing_rate
+    norm_monthly = ((ONE + cb * settings.interest_norm_multiple) ** (ONE / D(12)) - ONE
+                    if cb > ZERO else None)
     (loan_proceeds, loan_principal, loan_interest, loan_interest_cost,
-     loan_interest_profit, loan_debt, loan_reval) = _loans(model, n, fx, fx_prev)
+     loan_interest_profit, loan_debt, loan_reval) = _loans(model, n, fx, fx_prev, norm_monthly)
 
     # --- лизинг: операционный (I21+C25) и финансовый (B19/B26, I17/I18, C25) ---
     (lease_op_expense, lease_cash, fl_b19, fl_liability,
