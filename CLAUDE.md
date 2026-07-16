@@ -170,6 +170,17 @@
   Методика — SPEC §11; план — `docs/TAX-PERIODICITY-DECOMPOSITION.md`. UI — селекты в
   секциях «Налоги»/«НДС» (GeneralTab).
 
+## Актуализация этапов календарного плана (пакет №8, gap 4.6) — завершено (SA0–SA2, 0.9.35)
+
+- `Stage.actual_start_month/actual_finish_month/actual_cost` (None = не актуализирован):
+  смета (`compute_budget`) несёт факт + отклонения (`cost_variance` = факт − план,
+  `schedule_variance_months`; группы сворачивают факт из потомков через `rollup_fact`;
+  `Budget.actual_total`). **Только контроль реализации — расчёт отчётов идёт на плане**
+  (C15/I21/B15/активы фактом не меняются) → методика и golden-числа не затрагиваются.
+  Ни один семпл не использует календарь → смета вне снимка; бамп 0.9.35 (дифф = версия).
+  Фронт — `calendar.logic.ts` зеркалит свёртку факта; смета план-факт на вкладке
+  «Календарный план» + факт в DOCX-смете. План — `docs/STAGE-ACTUALIZATION-DECOMPOSITION.md`.
+
 ## Точность движка
 
 - Любое изменение методики расчёта — через golden-master (`UPDATE_GOLDEN=1 pytest
