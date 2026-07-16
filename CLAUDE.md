@@ -100,6 +100,20 @@
   UI — таблица на сводке результатов; DOCX — таблица после показателей. Методика —
   SPEC §17; план — `docs/PARTICIPANTS-DECOMPOSITION.md`.
 
+## Версии проекта и анализ изменений (пакет №8, gap 4.4) — завершено (V0–V3)
+
+- Таблица `project_versions` (`db_models`, миграция `a1b2c3d4e5f6` + RLS как projects) —
+  именованные снимки модели (label + JSON + сводка NPV/IRR/движок). crud: `create/list/
+  get/delete/count_versions` (`MAX_VERSIONS_PER_PROJECT=50`, фильтр по org_id).
+- Диф — чистые функции `app/versioning.py`: `flatten_leaves` (JSON → листовые пути),
+  `diff_models` (added/removed/changed, длинные ряды без шума, усечение до 300),
+  `diff_metrics` (заголовочные показатели). **Только слой хранения/API/UI — ядро и
+  golden не затрагиваются** (диф лишь читает `run()`).
+- API: `POST/GET/DELETE /projects/{id}/versions[/{vid}]`, `…/{vid}/diff?against=<vid|
+  current>`, `…/{vid}/restore` (модель версии → рабочая, статус draft). UI — вкладка
+  «Версии» на странице анализа (снимок, список, диф с текущей, восстановление).
+  План — `docs/PROJECT-VERSIONS-DECOMPOSITION.md`.
+
 ## Точность движка
 
 - Любое изменение методики расчёта — через golden-master (`UPDATE_GOLDEN=1 pytest
