@@ -15,6 +15,7 @@ from calc_core.engine import ModelError
 from calc_core.engine.calendar import compute_budget
 from calc_core.montecarlo import run_monte_carlo
 from calc_core.review import ReviewContext, run_review
+from calc_core.review.opinion import build_opinion
 from calc_core.sensitivity import SENSITIVITY_PARAMS, run_sensitivity
 from calc_core.whatif import Scenario, ScenarioAdjustment, run_what_if
 
@@ -199,7 +200,7 @@ def review_project(project_id: str, deep: bool = False,
     except (ModelError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     review = run_review(ReviewContext(model=model, result=result), deep=deep)
-    return review_response(review, deep=deep)
+    return review_response(review, deep=deep, opinion=build_opinion(review, result))
 
 
 @router.post("/{project_id}/finalize", response_model=FinalizeResponse)
@@ -220,7 +221,7 @@ def finalize_project(project_id: str, body: FinalizeRequest,
     except (ModelError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     review = run_review(ReviewContext(model=model, result=result), deep=True)
-    payload = review_response(review, deep=True)
+    payload = review_response(review, deep=True, opinion=build_opinion(review, result))
     if review.counts.get("risk", 0) > 0 and not body.acknowledge:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

@@ -3015,6 +3015,11 @@ export interface components {
             findings: components["schemas"]["FindingOut"][];
             /** Light */
             light: string;
+            /**
+             * Opinion
+             * @default
+             */
+            opinion: string;
         };
         /**
          * SalesLine

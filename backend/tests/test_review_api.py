@@ -22,6 +22,9 @@ def test_review_endpoint_returns_findings(client, auth_headers):
     # находка содержит человекочитаемый текст и обоснование
     f0 = body["findings"][0]
     assert f0["title"] and f0["recommendation"] and f0["severity"] in {"info", "warning", "risk"}
+    # экспертное заключение (D0): связный текст с вердиктом по маргинальному демо
+    assert "не рекомендуется" in body["opinion"]
+    assert "NPV" in body["opinion"]
 
 
 def test_review_deep_runs_divergence(client, auth_headers):

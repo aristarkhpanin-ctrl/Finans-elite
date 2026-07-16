@@ -2315,6 +2315,12 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .rv-count__n { font: 700 20px var(--font-mono); line-height: 1; }
 .rv-count__l { font: 500 10.5px var(--font-ui); color: var(--subtle); margin-top: 3px; }
 
+/* Экспертное заключение (пакет №5, D0) — автотекст по итогам ревью */
+.rv-opinion { background: var(--surface); border: 1px solid var(--border); border-radius: 13px; padding: 16px 18px; margin-bottom: 14px; }
+.rv-opinion__head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.rv-opinion__title { font: 600 14px var(--font-ui); color: var(--text); }
+.rv-opinion__text { font: 400 13px/1.6 var(--font-ui); color: var(--muted); margin-top: 9px; white-space: pre-line; }
+
 /* Гейт финализации */
 .rv-final { background: var(--surface); border: 1px solid var(--border); border-radius: 13px; padding: 16px 18px; margin-bottom: 16px; }
 .rv-final__title { font: 600 14px var(--font-ui); color: var(--text); }

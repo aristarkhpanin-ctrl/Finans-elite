@@ -158,9 +158,11 @@ class ReviewResponse(BaseModel):
     findings: list[FindingOut] = []
     # Прогонялась ли стохастика (Монте-Карло + чувствительность) для категории divergence.
     deep: bool = False
+    # Экспертное заключение — связный автотекст из находок и показателей (пакет №5).
+    opinion: str = ""
 
 
-def review_response(review, *, deep: bool) -> "ReviewResponse":
+def review_response(review, *, deep: bool, opinion: str = "") -> "ReviewResponse":
     """Собрать ответ ревью из результата ядра (``calc_core.review.ReviewResult``)."""
     return ReviewResponse(
         light=review.light,
@@ -171,6 +173,7 @@ def review_response(review, *, deep: bool) -> "ReviewResponse":
             evidence=f.evidence,
         ) for f in review.findings],
         deep=deep,
+        opinion=opinion,
     )
 
 

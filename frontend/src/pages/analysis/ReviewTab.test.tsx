@@ -9,6 +9,7 @@ const review: ReviewResponse = {
   light: "risk",
   counts: { risk: 1, warning: 1, info: 0 },
   deep: true,
+  opinion: "Ревью выявило существенные риски.\n\nИтог: план не рекомендуется без доработки.",
   findings: [
     {
       id: "viability.npv_negative", category: "viability", severity: "risk",
@@ -52,6 +53,12 @@ describe("ReviewTab", () => {
     expect(await screen.findByText("Найдены риски")).toBeTruthy();
     expect(screen.getByText("Отрицательный NPV")).toBeTruthy();
     expect(screen.getByText("Высокий рычаг")).toBeTruthy();
+  });
+
+  it("показывает экспертное заключение (автотекст)", async () => {
+    renderTab();
+    expect(await screen.findByText("Экспертное заключение")).toBeTruthy();
+    expect(screen.getByText(/план не рекомендуется без доработки/)).toBeTruthy();
   });
 
   it("гейт: риск блокирует финализацию до подтверждения", async () => {

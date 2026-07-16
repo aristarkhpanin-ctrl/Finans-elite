@@ -85,6 +85,20 @@ function FindingCard({ f }: { f: Finding }) {
   );
 }
 
+/** Экспертное заключение (пакет №5): связный автотекст по итогам ревью; войдёт в DOCX. */
+function OpinionCard({ text }: { text: string }) {
+  if (!text) return null;
+  return (
+    <div className="rv-opinion">
+      <div className="rv-opinion__head">
+        <span className="rv-opinion__title">Экспертное заключение</span>
+        <span className="status-chip status-chip--info">автотекст по итогам ревью</span>
+      </div>
+      <div className="rv-opinion__text">{text}</div>
+    </div>
+  );
+}
+
 /** Гейт финализации (Ф10): risk требует подтверждения; правка модели вернёт в черновик. */
 function FinalizeGate({ projectId, review }: { projectId: string; review: ReviewResponse }) {
   const qc = useQueryClient();
@@ -214,6 +228,8 @@ export function ReviewTab({ projectId }: { projectId: string }) {
               <CountPill n={review.data.counts.info ?? 0} label="заметок" color="var(--info)" />
             </div>
           </div>
+
+          <OpinionCard text={review.data.opinion ?? ""} />
 
           <FinalizeGate projectId={projectId} review={review.data} />
 
