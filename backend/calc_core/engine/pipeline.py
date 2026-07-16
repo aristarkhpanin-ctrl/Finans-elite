@@ -36,7 +36,7 @@ from .calendar import product_start_months, stage_assets, stage_expenses
 from .errors import ModelError
 from .financing_auto import AutoInjection
 from .inventory import finished_goods, purchase_schedule, work_in_progress
-from .taxes import TaxInjection
+from .taxes import TaxInjection, _payment_schedule
 from .timing import cost_timing, sales_timing
 from .vat import settle_vat
 
@@ -946,15 +946,20 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
         c1[0] += sb.receivables
         c2 = list(c2)
         c2[0] += sb.payables
-    # Налоги: прибыль + имущество + налог с продаж + НДС к уплате (v0: в периоде начисления)
-    # + настраиваемые налоги по их периодичности (SPEC §22.9).
-    taxes_cash = add(income["I27"], i9, i3, vat_to_budget, taxes.cash)
+    # Периодичность уплаты профильных налогов (SPEC §11): прибыль и НДС платятся в
+    # последнем месяце периода; начисление (I27, vat_to_budget) не меняется, отсрочка → B21.
+    profit_paid = _payment_schedule(income["I27"], settings.profit_tax_periodicity, n)
+    vat_paid = _payment_schedule(vat_to_budget, settings.vat_periodicity, n)
+    profit_defer = cumulative([income["I27"][t] - profit_paid[t] for t in range(n)])
+    vat_pay_defer = cumulative([vat_to_budget[t] - vat_paid[t] for t in range(n)])
+    # Налоги в кассе: прибыль + имущество + налог с продаж + НДС + настраиваемые (SPEC §22.9).
+    taxes_cash = add(profit_paid, i9, i3, vat_paid, taxes.cash)
     if details is not None:
         # Детализация C12 (Q7 пакета налогов): профильные налоги + каждый настраиваемый.
-        details.put("C12", "Налог на прибыль", income["I27"])
+        details.put("C12", "Налог на прибыль", profit_paid)
         details.put("C12", "Налог на имущество", i9)
         details.put("C12", "Налог с продаж", i3)
-        details.put("C12", "НДС к уплате", vat_to_budget)
+        details.put("C12", "НДС к уплате", vat_paid)
         for tax_name, tax_paid in taxes.cash_items:
             details.put("C12", tax_name, tax_paid)
     cashflow_leaves = {
@@ -1000,7 +1005,10 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
         "B7": [sb.prepaid_expenses + b7[t] for t in range(n)],  # предоплата: старт + НДС-кредит
         # Отсроченные налоговые платежи: отложенный исходящий НДС + задолженность
         # по настраиваемым налогам (начислено − уплачено, SPEC §22.9).
-        "B21": [b21[t] + taxes.deferred[t] for t in range(n)],
+        # Отсроченные налоговые платежи: отложенный НДС (признание) + настраиваемые налоги
+        # + отсрочка уплаты профильных прибыли/НДС по их периодичности (SPEC §11).
+        "B21": [b21[t] + taxes.deferred[t] + profit_defer[t] + vat_pay_defer[t]
+                for t in range(n)],
         "B9": b9,
         "B10": b10,
         "B12": b12,                # земля (не амортизируется)
