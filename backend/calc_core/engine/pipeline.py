@@ -837,7 +837,8 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
         "I14": fixed[CostFunction.STAFF_PRODUCTION],
         "I15": fixed[CostFunction.STAFF_MARKETING],
         "I17": add(dep, fl_dep),                    # амортизация ОС + предмета фин. лизинга
-        "I20": add(asset_income, c9, other_inc),    # прочие доходы + доход по ЦБ + прочие поступления
+        # прочие доходы + доход по ЦБ + прочие поступления + доход авто-депозита (I20 для налога)
+        "I20": add(asset_income, c9, other_inc, auto.pl_deposit_income),
         # прочие + лизинг + этапы + настраиваемые налоги (вычитаемые, SPEC §22.9)
         "I21": add(asset_expense, lease_op_expense, stage_i21, other_exp, taxes.expense),
         "I18": add(loan_interest_cost, auto.pl_interest, fl_interest),  # проценты: займы + фин. лизинг
@@ -911,8 +912,8 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
         "C3": c3,
         "C5": c5,
         "C6": c6,
-        "C8": c8,
-        "C9": c9,
+        "C8": add(c8, auto.cash_deposit_placement),   # + авторазмещение / − изъятие
+        "C9": add(c9, auto.cash_deposit_income),       # + доход авто-депозита (касса)
         "C10": other_inc,          # прочие поступления
         "C11": add(other_exp, other_exp_profit),   # прочие выплаты (включая «из прибыли»)
         "C12": taxes_cash,
@@ -944,7 +945,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
         "B3": [b3[t] + sb.raw_materials for t in range(n)],     # сырьё, материалы и комплектующие
         "B4": b4,                  # незавершённое производство (НЗП)
         "B5": [b5[t] + sb.finished_goods for t in range(n)],    # запасы готовой продукции
-        "B6": add(b6_foreign, deposit_bal),  # валютная позиция + депозиты/ЦБ
+        "B6": add(b6_foreign, deposit_bal, auto.deposit_balance),  # валюта + депозиты + авто-депозит
         "B7": [sb.prepaid_expenses + b7[t] for t in range(n)],  # предоплата: старт + НДС-кредит
         # Отсроченные налоговые платежи: отложенный исходящий НДС + задолженность
         # по настраиваемым налогам (начислено − уплачено, SPEC §22.9).

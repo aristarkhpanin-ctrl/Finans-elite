@@ -21,7 +21,7 @@ from ..series import add, zeros
 from ..version import ENGINE_VERSION
 from .calendar import compute_budget
 from .errors import InvariantError
-from .financing_auto import AutoInjection, solve_credit_line
+from .financing_auto import AutoInjection, solve_cash_management
 from .margins import compute_product_margins
 from .participants import compute_participants
 from .pipeline import DetailCollector, run_pipeline
@@ -124,41 +124,59 @@ def _solve(model: ProjectModel):
     af = model.financing.auto_financing
     collector = DetailCollector()   # детализация строк (drill-down) — с финального прогона
     taxes = _custom_taxes(model)    # настраиваемые налоги (SPEC §22.9); None — если их нет
-    if not af.enabled:
+    if not (af.enabled or af.invest_surplus):
         income, cashflow, balance, profit_use, warnings = run_pipeline(
             model, details=collector, taxes=taxes)
         return income, cashflow, balance, profit_use, warnings, collector.build()
 
     n = model.n
     opening_cash = model.company.starting_balance.cash
-    r = annual_to_monthly(af.annual_rate)
+    credit_rate = annual_to_monthly(af.annual_rate)
+    deposit_rate = annual_to_monthly(af.invest_annual_rate)
 
+    # Замкнутый контур теперь по двум рядам: проценты кредита (I18) и доход депозита (I20).
+    # Оба влияют на налог → базовый поток → графики; итерация с адаптивным демпфированием.
     interest = zeros(n)
-    draws = zeros(n)
-    principal = zeros(n)
-    damping = ONE              # шаг релаксации
+    income_yield = zeros(n)
+    plan = None
+    damping = ONE
     prev_residual = None
     converged = False
     for _ in range(_MAX_AUTOFIN_ITER):
-        # Прогон только с процентами в ОПУ (для налога), без денежных потоков автокредита.
-        probe = AutoInjection(interest, zeros(n), zeros(n), zeros(n))
+        # Пробный прогон: доходы/расходы в ОПУ (для налога), без денежных потоков авто.
+        probe = AutoInjection(pl_interest=interest, cash_draws=zeros(n),
+                              cash_principal=zeros(n), cash_interest=zeros(n),
+                              pl_deposit_income=income_yield)
         _, cf, _, _, _ = run_pipeline(model, auto=probe, taxes=taxes)
         base_flow = [cf["C13"][t] + cf["C20"][t] + cf["C27"][t] for t in range(n)]
-        draws, principal, target = solve_credit_line(base_flow, opening_cash, af.min_balance, r)
+        plan = solve_cash_management(base_flow, opening_cash, af.min_balance,
+                                     credit_rate, deposit_rate,
+                                     credit_on=af.enabled, invest_on=af.invest_surplus)
 
-        residual = max((abs(target[t] - interest[t]) for t in range(n)), default=ZERO)
+        residual = max(
+            (abs(plan.interest[t] - interest[t]) for t in range(n)), default=ZERO)
+        residual = max(residual, max(
+            (abs(plan.deposit_income[t] - income_yield[t]) for t in range(n)), default=ZERO))
         if residual <= _AUTOFIN_EPS:
-            interest = target
+            interest = plan.interest
+            income_yield = plan.deposit_income
             converged = True
             break
         # Если невязка не убывает — демпфируем шаг (защита от расходимости).
         if prev_residual is not None and residual >= prev_residual:
             damping = damping / Decimal(2)
         prev_residual = residual
-        interest = [interest[t] + damping * (target[t] - interest[t]) for t in range(n)]
+        interest = [interest[t] + damping * (plan.interest[t] - interest[t]) for t in range(n)]
+        income_yield = [income_yield[t] + damping * (plan.deposit_income[t] - income_yield[t])
+                        for t in range(n)]
 
-    # Финальный прогон: проценты в ОПУ и денежные потоки кредитной линии.
-    final = AutoInjection(interest, draws, principal, interest)
+    assert plan is not None
+    # Финальный прогон: проценты/доход в ОПУ и денежные потоки кредита и депозита.
+    final = AutoInjection(
+        pl_interest=interest, cash_draws=plan.draws, cash_principal=plan.principal,
+        cash_interest=interest, pl_deposit_income=income_yield,
+        cash_deposit_income=income_yield, cash_deposit_placement=plan.deposit_placement,
+        deposit_balance=plan.deposit_balance)
     income, cashflow, balance, profit_use, warnings = run_pipeline(
         model, auto=final, details=collector, taxes=taxes)
     if not converged:
