@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { httpDetail } from "../api/client";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { aggregateStatement, defaultPeriod, periodLabels, type Period } from "../aggregate";
+import { aggregateFlowSeries, aggregateStatement, defaultPeriod, periodLabels, type Period } from "../aggregate";
 import { calculateProject } from "../api/calc";
 import { getProject } from "../api/projects";
 import { HintBadge } from "../components/EditorField";
@@ -281,6 +281,16 @@ export function ProjectResultsPage() {
     const eff = period ?? defaultPeriod(data.n);
     const labels = periodLabels(data.n, eff);
     const agg = aggregateStatement(data[key], key === "balance" ? "balance" : "flow", data.n, eff);
+    // Детализация строк (drill-down): слагаемые — потоки, сворачиваются суммами.
+    const prefix = key === "income" ? "I" : key === "cashflow" ? "C" : null;
+    const details = new Map(
+      (data.details ?? [])
+        .filter((d) => prefix !== null && d.code.startsWith(prefix))
+        .map((d) => [
+          d.code,
+          d.items.map((i) => ({ name: i.name, values: aggregateFlowSeries(i.values, data.n, eff) })),
+        ]),
+    );
     const sub =
       eff === "month"
         ? `Помесячно · ${data.n} мес · суммы в ₽`
@@ -312,7 +322,7 @@ export function ProjectResultsPage() {
           </div>
         </div>
         <StatementTable statement={agg} n={labels.length} subtotals={SUBTOTALS[key]}
-                        grands={GRANDS[key]} labels={labels} />
+                        grands={GRANDS[key]} labels={labels} details={details} />
       </>
     );
   };
