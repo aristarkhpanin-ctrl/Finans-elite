@@ -64,6 +64,12 @@ class ProjectSettings(BaseModel):
     inflation_direct: Decimal = Decimal("0")     # прямые материальные издержки
     inflation_wages: Decimal = Decimal("0")      # зарплата (сдельная + персонал)
     inflation_general: Decimal = Decimal("0")    # общие (постоянные) издержки
+    # Погодовые ряды инфляции (SPEC §3): непустой ряд переопределяет скаляр; год k → series[k],
+    # за пределом ряда — последнее значение. Пустой ряд → скаляр (обратная совместимость).
+    inflation_sales_series: list[Decimal] = Field(default_factory=list)
+    inflation_direct_series: list[Decimal] = Field(default_factory=list)
+    inflation_wages_series: list[Decimal] = Field(default_factory=list)
+    inflation_general_series: list[Decimal] = Field(default_factory=list)
     property_tax_rate: Decimal = Decimal("0")         # налог на имущество (база — B11)
     sales_tax_rate: Decimal = Decimal("0")            # налог с продаж/акциз (база — I1, не НДС)
     vat_rate: Decimal = Decimal("0")                  # ставка НДС (0 = НДС выключен)

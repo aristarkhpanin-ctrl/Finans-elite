@@ -94,20 +94,30 @@ def _pad(values: list[Decimal], n: int) -> list[Decimal]:
     return out
 
 
-def _inflation_index(annual_rate, n: int) -> list[Decimal]:
-    """Накопленный индекс инфляции по месяцам (SPEC §3).
+def _inflation_year_rates(scalar, series) -> list[Decimal]:
+    """Резолвер источника инфляции: непустой ряд по годам переопределяет скаляр (SPEC §3)."""
+    if series:
+        return [D(r) for r in series]
+    return [D(scalar)]
 
-    Период 0 — база (индекс 1); далее умножается на месячную ставку
-    ``(1+годовая)^(1/12)``. Нулевая ставка → ряд из единиц (без индексации).
+
+def _inflation_index(year_rates: list[Decimal], n: int) -> list[Decimal]:
+    """Накопленный индекс инфляции по месяцам из ставок по годам (SPEC §3).
+
+    Период 0 — база (индекс 1); рост из месяца ``t`` в ``t+1`` — по месячной ставке
+    ``(1+годовая)^(1/12)`` года ``t // 12``; за пределом ряда держится последнее значение.
+    Постоянная ставка (ряд ``[r]`` или скаляр) даёт тот же индекс, что и прежний скалярный
+    путь. Нулевые/пустые ставки → ряд из единиц (без индексации).
     """
-    r = D(annual_rate)
-    if r == ZERO:
+    if not year_rates or all(D(r) == ZERO for r in year_rates):
         return [ONE for _ in range(n)]
-    m = (ONE + r) ** (ONE / D(12)) - ONE
     out = zeros(n)
     idx = ONE
     for t in range(n):
         out[t] = idx
+        year = t // 12
+        r = year_rates[year] if year < len(year_rates) else year_rates[-1]
+        m = (ONE + r) ** (ONE / D(12)) - ONE if r != ZERO else ZERO
         idx = idx * (ONE + m)
     return out
 
@@ -770,10 +780,14 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
     i25_fx = [fm * (fx[t] - fx_prev[t]) for t in range(n)]
 
     # --- индексы инфляции по группам (SPEC §3) ---
-    idx_sales = _inflation_index(settings.inflation_sales, n)
-    idx_direct = _inflation_index(settings.inflation_direct, n)
-    idx_wages = _inflation_index(settings.inflation_wages, n)
-    idx_general = _inflation_index(settings.inflation_general, n)
+    idx_sales = _inflation_index(
+        _inflation_year_rates(settings.inflation_sales, settings.inflation_sales_series), n)
+    idx_direct = _inflation_index(
+        _inflation_year_rates(settings.inflation_direct, settings.inflation_direct_series), n)
+    idx_wages = _inflation_index(
+        _inflation_year_rates(settings.inflation_wages, settings.inflation_wages_series), n)
+    idx_general = _inflation_index(
+        _inflation_year_rates(settings.inflation_general, settings.inflation_general_series), n)
 
     # --- операционный контур (accrual + cash + оборотный капитал + запасы + НДС) ---
     i1, c1, b2, b24, vat_out, vat_out_paid, i25_sales = _sales(

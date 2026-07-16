@@ -18,7 +18,13 @@ from ..models.project import ProjectModel
 from ..money import ZERO
 from ..reports.result import ProductMargin, ProductMargins
 from ..series import zeros
-from .pipeline import _apply_production_starts, _fx_series, _inflation_index, _pad
+from .pipeline import (
+    _apply_production_starts,
+    _fx_series,
+    _inflation_index,
+    _inflation_year_rates,
+    _pad,
+)
 
 
 def compute_product_margins(model: ProjectModel, n: int) -> ProductMargins:
@@ -31,9 +37,12 @@ def compute_product_margins(model: ProjectModel, n: int) -> ProductMargins:
     model = _apply_production_starts(model)   # гейт старта: до старта объёмы нулевые
     op = model.operating_plan
     settings = model.settings
-    idx_sales = _inflation_index(settings.inflation_sales, n)
-    idx_direct = _inflation_index(settings.inflation_direct, n)
-    idx_wages = _inflation_index(settings.inflation_wages, n)
+    idx_sales = _inflation_index(
+        _inflation_year_rates(settings.inflation_sales, settings.inflation_sales_series), n)
+    idx_direct = _inflation_index(
+        _inflation_year_rates(settings.inflation_direct, settings.inflation_direct_series), n)
+    idx_wages = _inflation_index(
+        _inflation_year_rates(settings.inflation_wages, settings.inflation_wages_series), n)
     fx = _fx_series(model.environment, n)
     mat_by_id = {m.id: m for m in op.materials}
 
