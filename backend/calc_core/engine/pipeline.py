@@ -565,7 +565,7 @@ def _loans(model: ProjectModel, n: int, fx: list[Decimal], fx_prev: list[Decimal
     убыток). Возвращает кортеж рядов в основной валюте.
 
     ``norm_monthly`` — месячная норма вычитаемости процентов (ставка ЦБ × коэффициент,
-    SPEC §22.6): вычитаемы проценты в её пределах, сверхнорматив идёт в I24. ``None`` —
+    SPEC §11): вычитаемы проценты в её пределах, сверхнорматив идёт в I24. ``None`` —
     норматив выключен (весь процент вычитаем, если заём не «на прибыль»).
     """
     proceeds = zeros(n)
@@ -594,7 +594,7 @@ def _loans(model: ProjectModel, n: int, fx: list[Decimal], fx_prev: list[Decimal
         if loan.interest_on_profit:
             interest_profit = add(interest_profit, ii_b)   # весь процент — на прибыль (флаг)
         elif norm_monthly is not None:
-            # Нормирование: вычитаемая доля = min(1, норма/ставка_займа) (SPEC §22.6).
+            # Нормирование: вычитаемая доля = min(1, норма/ставка_займа) (SPEC §11).
             loan_m = loan.monthly_rate()
             ratio = min(ONE, norm_monthly / loan_m) if loan_m > ZERO else ONE
             interest_cost = add(interest_cost, [ii_b[t] * ratio for t in range(n)])
@@ -795,7 +795,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
     i9 = [prop_monthly * (b13[t] + b14[t]) for t in range(n)]
 
     # --- займы (основные и валютные; валютные переоцениваются → I25) ---
-    # Норма вычитаемости процентов (SPEC §22.6): ставка ЦБ × коэффициент → месячная; None = выкл.
+    # Норма вычитаемости процентов (SPEC §11): ставка ЦБ × коэффициент → месячная; None = выкл.
     cb = settings.cb_refinancing_rate
     norm_monthly = ((ONE + cb * settings.interest_norm_multiple) ** (ONE / D(12)) - ONE
                     if cb > ZERO else None)
