@@ -2427,3 +2427,28 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 }
 .mat-imp input { accent-color: var(--primary); }
 .field-note--warn { color: var(--warn-text); }
+
+/* Таблицы пользователя (редактор формул) */
+.ft-help {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  padding: 12px 15px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 6px;
+}
+.ft-help__row { font: 400 12px/1.55 var(--font-ui); color: var(--muted); }
+.ft-help__row b { color: var(--text); font-weight: 600; }
+.ft-help__row code {
+  font: 500 11.5px var(--font-mono); color: var(--accent);
+  background: var(--surface-2); padding: 1px 5px; border-radius: 5px;
+}
+.ft-row { display: flex; align-items: center; gap: 10px; }
+.ft-row__name {
+  width: 220px; flex: none; height: 40px; padding: 0 12px;
+  font: 500 13px var(--font-ui); color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px;
+}
+.ft-row__formula {
+  flex: 1; min-width: 0; height: 40px; padding: 0 12px;
+  font: 500 12.5px var(--font-mono); color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px;
+}
+.ft-row__formula:focus, .ft-row__name:focus { border-color: var(--primary); outline: none; }
+@media (max-width: 640px) { .ft-row { flex-wrap: wrap; } .ft-row__name { width: 100%; } }

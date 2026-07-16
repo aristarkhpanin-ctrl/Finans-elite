@@ -34,6 +34,7 @@ const TAB_LABELS: Record<string, string> = {
   balance: "Баланс",
   ratios: "Коэффициенты",
   charts: "Графики",
+  tables: "Таблицы",
   plan_fact: "План-факт",
 };
 
@@ -173,6 +174,7 @@ export function ProjectResultsPage() {
   const npv = Number(m.npv);
 
   const tabs = ["summary", "income", "cashflow", "balance", "ratios", "charts"];
+  if (data.user_tables.length > 0) tabs.push("tables");
   if (data.actualized_cashflow) tabs.push("plan_fact");
 
   const effCards: Array<{ label: string; value: string; sub: string; tone: string; hint: string }> = [
@@ -427,6 +429,35 @@ export function ProjectResultsPage() {
         {isStatement && statementView(tab as StatementKey)}
         {tab === "ratios" && <RatiosView ratios={data.ratios} breakEven={data.break_even} n={data.n} />}
         {tab === "charts" && <ResultCharts result={data} />}
+        {tab === "tables" && data.user_tables.map((t) => (
+          <div key={t.id} style={{ marginBottom: 22 }}>
+            <div className="report-head">
+              <div style={{ minWidth: 0 }}>
+                <div className="report-head__title">{t.name || "Таблица"}</div>
+                <div className="report-head__sub">Таблица пользователя · формулы над результатом</div>
+              </div>
+            </div>
+            {t.rows.some((r) => r.error) && (
+              <div className="warn-banner" style={{ marginBottom: 12 }}>
+                <span className="warn-banner__ico">⚠</span>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div className="warn-banner__title">Ошибки формул</div>
+                  {t.rows.filter((r) => r.error).map((r, i) => (
+                    <div key={i} className="warn-banner__item">
+                      <span className="warn-banner__dot" />
+                      {r.name}: {r.error}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <StatementTable
+              statement={{ lines: t.rows.map((r, i) => ({ code: String(i + 1), label: r.name, values: r.values })) }}
+              n={data.n}
+              subtotals={new Set()}
+            />
+          </div>
+        ))}
         {tab === "plan_fact" && data.actualized_cashflow && (
           <PlanFactView
             result={data}
