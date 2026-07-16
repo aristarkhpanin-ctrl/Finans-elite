@@ -3747,11 +3747,13 @@
           "settings": {
             "$ref": "#/components/schemas/ProjectSettings-Input",
             "default": {
+              "cb_refinancing_rate": "0",
               "discount_rate_annual": "0.15",
               "inflation_direct": "0",
               "inflation_general": "0",
               "inflation_sales": "0",
               "inflation_wages": "0",
+              "interest_norm_multiple": "1",
               "inventory_method": "average",
               "liquidation_recovery_rate": "0",
               "min_cash_balance": "0",
@@ -3887,11 +3889,13 @@
           "settings": {
             "$ref": "#/components/schemas/ProjectSettings-Output",
             "default": {
+              "cb_refinancing_rate": "0",
               "discount_rate_annual": "0.15",
               "inflation_direct": "0",
               "inflation_general": "0",
               "inflation_sales": "0",
               "inflation_wages": "0",
+              "interest_norm_multiple": "1",
               "inventory_method": "average",
               "liquidation_recovery_rate": "0",
               "min_cash_balance": "0",
@@ -4002,6 +4006,20 @@
       "ProjectSettings-Input": {
         "description": "Настройка расчёта (см. SPEC §11, §17).",
         "properties": {
+          "cb_refinancing_rate": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Cb Refinancing Rate"
+          },
           "discount_rate_annual": {
             "anyOf": [
               {
@@ -4066,6 +4084,20 @@
             ],
             "default": "0",
             "title": "Inflation Wages"
+          },
+          "interest_norm_multiple": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "1",
+            "title": "Interest Norm Multiple"
           },
           "inventory_method": {
             "$ref": "#/components/schemas/InventoryMethod",
@@ -4221,6 +4253,12 @@
       "ProjectSettings-Output": {
         "description": "Настройка расчёта (см. SPEC §11, §17).",
         "properties": {
+          "cb_refinancing_rate": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Cb Refinancing Rate",
+            "type": "string"
+          },
           "discount_rate_annual": {
             "default": "0.15",
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
@@ -4249,6 +4287,12 @@
             "default": "0",
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Inflation Wages",
+            "type": "string"
+          },
+          "interest_norm_multiple": {
+            "default": "1",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Interest Norm Multiple",
             "type": "string"
           },
           "inventory_method": {
@@ -6493,7 +6537,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.30"
+    "version": "0.9.31"
   },
   "openapi": "3.1.0",
   "paths": {

@@ -251,6 +251,9 @@ export interface ProjectSettings {
   liquidation_recovery_rate?: string;
   profit_tax_rate: string;
   profit_tax_benefit_share: string;
+  /** Ставка рефинансирования ЦБ (0 = норматив процентов выключен) и коэффициент нормы. */
+  cb_refinancing_rate?: string;
+  interest_norm_multiple?: string;
   payroll_contribution_rate: string;
   property_tax_rate: string;
   sales_tax_rate?: string;

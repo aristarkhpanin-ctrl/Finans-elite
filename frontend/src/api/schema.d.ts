@@ -2786,11 +2786,13 @@ export interface components {
             operating_plan: components["schemas"]["OperatingPlan-Input"];
             /**
              * @default {
+             *       "cb_refinancing_rate": "0",
              *       "discount_rate_annual": "0.15",
              *       "inflation_direct": "0",
              *       "inflation_general": "0",
              *       "inflation_sales": "0",
              *       "inflation_wages": "0",
+             *       "interest_norm_multiple": "1",
              *       "inventory_method": "average",
              *       "liquidation_recovery_rate": "0",
              *       "min_cash_balance": "0",
@@ -2914,11 +2916,13 @@ export interface components {
             operating_plan: components["schemas"]["OperatingPlan-Output"];
             /**
              * @default {
+             *       "cb_refinancing_rate": "0",
              *       "discount_rate_annual": "0.15",
              *       "inflation_direct": "0",
              *       "inflation_general": "0",
              *       "inflation_sales": "0",
              *       "inflation_wages": "0",
+             *       "interest_norm_multiple": "1",
              *       "inventory_method": "average",
              *       "liquidation_recovery_rate": "0",
              *       "min_cash_balance": "0",
@@ -2981,6 +2985,11 @@ export interface components {
          */
         "ProjectSettings-Input": {
             /**
+             * Cb Refinancing Rate
+             * @default 0
+             */
+            cb_refinancing_rate: number | string;
+            /**
              * Discount Rate Annual
              * @default 0.15
              */
@@ -3005,6 +3014,11 @@ export interface components {
              * @default 0
              */
             inflation_wages: number | string;
+            /**
+             * Interest Norm Multiple
+             * @default 1
+             */
+            interest_norm_multiple: number | string;
             /** @default average */
             inventory_method: components["schemas"]["InventoryMethod"];
             /**
@@ -3071,6 +3085,11 @@ export interface components {
          */
         "ProjectSettings-Output": {
             /**
+             * Cb Refinancing Rate
+             * @default 0
+             */
+            cb_refinancing_rate: string;
+            /**
              * Discount Rate Annual
              * @default 0.15
              */
@@ -3095,6 +3114,11 @@ export interface components {
              * @default 0
              */
             inflation_wages: string;
+            /**
+             * Interest Norm Multiple
+             * @default 1
+             */
+            interest_norm_multiple: string;
             /** @default average */
             inventory_method: components["schemas"]["InventoryMethod"];
             /**

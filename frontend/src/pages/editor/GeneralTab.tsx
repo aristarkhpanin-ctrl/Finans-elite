@@ -220,6 +220,20 @@ export function GeneralTab({ header, settings, environment, onHeader, onSettings
           onChange={(v) => set({ profit_tax_benefit_share: v })}
         />
         <EPercentField
+          label="Ставка рефинансирования ЦБ"
+          suffix="% / год"
+          hint="0 — нормирование процентов выключено. Проценты вычитаемы в пределах ставки ЦБ × коэффициент, сверх — из прибыли"
+          value={settings.cb_refinancing_rate ?? "0"}
+          onChange={(v) => set({ cb_refinancing_rate: v })}
+        />
+        <EField
+          label="Коэффициент норматива процентов"
+          suffix="×"
+          hint="Множитель к ставке ЦБ (напр. 1,25 или 1,5) для предела вычитаемых процентов"
+          value={settings.interest_norm_multiple ?? "1"}
+          onChange={(v) => set({ interest_norm_multiple: v })}
+        />
+        <EPercentField
           label="Страховые взносы с ФОТ"
           suffix="%"
           value={settings.payroll_contribution_rate ?? "0"}
