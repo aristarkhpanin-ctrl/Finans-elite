@@ -30,6 +30,7 @@ from .operating import (
     StaffPosition,
 )
 from .project import ProjectHeader, ProjectModel, ProjectSettings
+from .tables import UserRow, UserTable
 
 __all__ = [
     "ProjectModel",
@@ -54,6 +55,8 @@ __all__ = [
     "OtherFlow",
     "SalesLine",
     "StaffPosition",
+    "UserTable",
+    "UserRow",
     "ProductionLine",
     "PaymentTerms",
     "PaymentPart",

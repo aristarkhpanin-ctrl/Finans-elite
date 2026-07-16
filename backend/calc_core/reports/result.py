@@ -58,6 +58,24 @@ class ProductMargins:
 
 
 @dataclass
+class UserRowResult:
+    """Вычисленная строка таблицы пользователя: ряд значений либо ошибка формулы."""
+
+    name: str
+    values: list[Decimal]
+    error: Optional[str] = None
+
+
+@dataclass
+class UserTableResult:
+    """Вычисленная таблица пользователя."""
+
+    id: str
+    name: str
+    rows: list[UserRowResult] = field(default_factory=list)
+
+
+@dataclass
 class InvestmentMetrics:
     """Показатели эффективности инвестиций (SPEC §17)."""
 
@@ -125,6 +143,8 @@ class CalcResult:
     budget: Budget = field(default_factory=Budget)
     # Маржа по продуктам (рецептуры/BOM); пустая, если рецептур нет.
     product_margins: ProductMargins = field(default_factory=ProductMargins)
+    # Таблицы пользователя (строки-формулы); пустые, если таблиц нет.
+    user_tables: list[UserTableResult] = field(default_factory=list)
     # Актуализация (план-факт): заполняются при наличии фактических данных.
     actualized_cashflow: Optional[Statement] = None
     cashflow_variance: Optional[Statement] = None

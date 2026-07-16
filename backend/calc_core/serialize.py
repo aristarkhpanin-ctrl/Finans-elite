@@ -134,6 +134,13 @@ def result_to_dict(result: CalcResult) -> dict[str, object]:
         snapshot["budget"] = budget_to_dict(result.budget)
     if result.product_margins.products:
         snapshot["product_margins"] = product_margins_to_dict(result.product_margins)
+    if result.user_tables:
+        snapshot["user_tables"] = [
+            {"id": t.id, "name": t.name,
+             "rows": [{"name": r.name, "values": [_money(v) for v in r.values],
+                       "error": r.error} for r in t.rows]}
+            for t in result.user_tables
+        ]
     if result.actualized_cashflow is not None:
         snapshot["actualized_cashflow"] = statement_to_dict(result.actualized_cashflow)
     if result.cashflow_variance is not None:

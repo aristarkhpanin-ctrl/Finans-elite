@@ -292,6 +292,17 @@ export interface Environment {
   [key: string]: unknown;
 }
 
+export interface UserRow {
+  name: string;
+  formula: string;
+}
+
+export interface UserTable {
+  id: string;
+  name?: string;
+  rows: UserRow[];
+}
+
 export interface ProjectModel {
   header: ProjectHeader;
   settings: ProjectSettings;
@@ -301,6 +312,8 @@ export interface ProjectModel {
   investment_plan: InvestmentPlan;
   financing: Financing;
   actualization: Actualization;
+  /** Таблицы пользователя (строки-формулы над результатом). */
+  user_tables?: UserTable[];
   [key: string]: unknown;
 }
 

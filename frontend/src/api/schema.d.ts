@@ -988,6 +988,11 @@ export interface components {
             product_margins: components["schemas"]["ProductMarginsOut"];
             profit_use: components["schemas"]["StatementOut"];
             ratios: components["schemas"]["RatiosOut"];
+            /**
+             * User Tables
+             * @default []
+             */
+            user_tables: components["schemas"]["UserTableOut"][];
             valuation: components["schemas"]["ValuationOut"];
             /** Warnings */
             warnings: string[];
@@ -1127,6 +1132,11 @@ export interface components {
             product_margins: components["schemas"]["ProductMarginsOut"];
             profit_use: components["schemas"]["StatementOut"];
             ratios: components["schemas"]["RatiosOut"];
+            /**
+             * User Tables
+             * @default []
+             */
+            user_tables: components["schemas"]["UserTableOut"][];
             valuation: components["schemas"]["ValuationOut"];
             /** Warnings */
             warnings: string[];
@@ -2518,6 +2528,8 @@ export interface components {
              *     }
              */
             settings: components["schemas"]["ProjectSettings-Input"];
+            /** User Tables */
+            user_tables?: components["schemas"]["UserTable"][];
         };
         /**
          * ProjectModel
@@ -2640,6 +2652,8 @@ export interface components {
              *     }
              */
             settings: components["schemas"]["ProjectSettings-Output"];
+            /** User Tables */
+            user_tables?: components["schemas"]["UserTable"][];
         };
         /** ProjectOut */
         ProjectOut: {
@@ -3637,6 +3651,64 @@ export interface components {
             full_name: string;
             /** Id */
             id: string;
+        };
+        /**
+         * UserRow
+         * @description Строка таблицы: имя + формула над кодами строк отчётов (I1…, C1…, B1…, P1…, N).
+         */
+        UserRow: {
+            /**
+             * Formula
+             * @default
+             */
+            formula: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+        };
+        /**
+         * UserRowOut
+         * @description Вычисленная строка таблицы пользователя (при ошибке формулы — error + нули).
+         */
+        UserRowOut: {
+            /** Error */
+            error?: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Values
+             * @default []
+             */
+            values: string[];
+        };
+        /**
+         * UserTable
+         * @description Пользовательская таблица: набор строк-формул.
+         */
+        UserTable: {
+            /** Id */
+            id: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /** Rows */
+            rows?: components["schemas"]["UserRow"][];
+        };
+        /** UserTableOut */
+        UserTableOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Rows
+             * @default []
+             */
+            rows: components["schemas"]["UserRowOut"][];
         };
         /** ValidationError */
         ValidationError: {

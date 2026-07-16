@@ -16,6 +16,7 @@ from .environment import Environment
 from .financing import Financing
 from .investment import InvestmentPlan
 from .operating import OperatingPlan
+from .tables import UserTable
 
 
 class ProjectHeader(BaseModel):
@@ -69,6 +70,8 @@ class ProjectModel(BaseModel):
     operating_plan: OperatingPlan = OperatingPlan()
     financing: Financing = Financing()
     actualization: Actualization = Actualization()
+    # Таблицы пользователя (строки-формулы над результатом; методику не меняют).
+    user_tables: list[UserTable] = Field(default_factory=list)
 
     @property
     def n(self) -> int:

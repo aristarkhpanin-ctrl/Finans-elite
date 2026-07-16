@@ -104,6 +104,20 @@ class ProductMarginsOut(BaseModel):
     unallocated_direct: Decimal = Decimal(0)
 
 
+class UserRowOut(BaseModel):
+    """Вычисленная строка таблицы пользователя (при ошибке формулы — error + нули)."""
+
+    name: str
+    values: list[Decimal] = []
+    error: Optional[str] = None
+
+
+class UserTableOut(BaseModel):
+    id: str
+    name: str
+    rows: list[UserRowOut] = []
+
+
 class CalcResponse(BaseModel):
     engine_version: str
     n: int
@@ -117,6 +131,7 @@ class CalcResponse(BaseModel):
     valuation: ValuationOut
     budget: BudgetOut = BudgetOut()
     product_margins: ProductMarginsOut = ProductMarginsOut()
+    user_tables: list[UserTableOut] = []
     actualized_cashflow: Optional[StatementOut] = None
     cashflow_variance: Optional[StatementOut] = None
     warnings: list[str]
@@ -542,6 +557,11 @@ def to_response(r: CalcResult) -> CalcResponse:
             liquidation_value=r.valuation.liquidation_value,
         ),
         budget=budget_response(r.budget),
+        user_tables=[UserTableOut(
+            id=t.id, name=t.name,
+            rows=[UserRowOut(name=row.name, values=list(row.values), error=row.error)
+                  for row in t.rows],
+        ) for t in r.user_tables],
         product_margins=ProductMarginsOut(
             products=[ProductMarginOut(
                 product_id=p.product_id, name=p.name, revenue=p.revenue, bom_cost=p.bom_cost,

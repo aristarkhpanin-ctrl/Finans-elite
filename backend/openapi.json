@@ -466,6 +466,14 @@
           "ratios": {
             "$ref": "#/components/schemas/RatiosOut"
           },
+          "user_tables": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/UserTableOut"
+            },
+            "title": "User Tables",
+            "type": "array"
+          },
           "valuation": {
             "$ref": "#/components/schemas/ValuationOut"
           },
@@ -745,6 +753,14 @@
           },
           "ratios": {
             "$ref": "#/components/schemas/RatiosOut"
+          },
+          "user_tables": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/UserTableOut"
+            },
+            "title": "User Tables",
+            "type": "array"
           },
           "valuation": {
             "$ref": "#/components/schemas/ValuationOut"
@@ -3444,6 +3460,13 @@
               "vat_basis": "shipment",
               "vat_rate": "0"
             }
+          },
+          "user_tables": {
+            "items": {
+              "$ref": "#/components/schemas/UserTable"
+            },
+            "title": "User Tables",
+            "type": "array"
           }
         },
         "title": "ProjectModel",
@@ -3567,6 +3590,13 @@
               "vat_basis": "shipment",
               "vat_rate": "0"
             }
+          },
+          "user_tables": {
+            "items": {
+              "$ref": "#/components/schemas/UserTable"
+            },
+            "title": "User Tables",
+            "type": "array"
           }
         },
         "title": "ProjectModel",
@@ -5644,6 +5674,109 @@
         "title": "UserOut",
         "type": "object"
       },
+      "UserRow": {
+        "description": "Строка таблицы: имя + формула над кодами строк отчётов (I1…, C1…, B1…, P1…, N).",
+        "properties": {
+          "formula": {
+            "default": "",
+            "title": "Formula",
+            "type": "string"
+          },
+          "name": {
+            "default": "",
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "title": "UserRow",
+        "type": "object"
+      },
+      "UserRowOut": {
+        "description": "Вычисленная строка таблицы пользователя (при ошибке формулы — error + нули).",
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "values": {
+            "default": [],
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Values",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "UserRowOut",
+        "type": "object"
+      },
+      "UserTable": {
+        "description": "Пользовательская таблица: набор строк-формул.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "default": "",
+            "title": "Name",
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/UserRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "UserTable",
+        "type": "object"
+      },
+      "UserTableOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "rows": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/UserRowOut"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "UserTableOut",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -5801,7 +5934,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.26"
+    "version": "0.9.27"
   },
   "openapi": "3.1.0",
   "paths": {

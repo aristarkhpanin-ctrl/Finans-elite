@@ -24,6 +24,7 @@ from .errors import InvariantError
 from .financing_auto import AutoInjection, solve_credit_line
 from .margins import compute_product_margins
 from .pipeline import run_pipeline
+from .tables import compute_user_tables
 
 # Параметры сходимости автоподбора финансирования.
 _MAX_AUTOFIN_ITER = 100
@@ -100,6 +101,7 @@ def _run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
         valuation=valuation,
         budget=compute_budget(model, n),
         product_margins=compute_product_margins(model, n),
+        user_tables=compute_user_tables(model, income, cashflow, balance, profit_use, n),
         actualized_cashflow=actualized_cashflow,
         cashflow_variance=cashflow_variance,
         warnings=warnings,
