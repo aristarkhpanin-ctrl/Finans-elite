@@ -2831,9 +2831,13 @@ export interface components {
              *       "cb_refinancing_rate": "0",
              *       "discount_rate_annual": "0.15",
              *       "inflation_direct": "0",
+             *       "inflation_direct_series": [],
              *       "inflation_general": "0",
+             *       "inflation_general_series": [],
              *       "inflation_sales": "0",
+             *       "inflation_sales_series": [],
              *       "inflation_wages": "0",
+             *       "inflation_wages_series": [],
              *       "interest_norm_multiple": "1",
              *       "inventory_method": "average",
              *       "liquidation_recovery_rate": "0",
@@ -2961,9 +2965,13 @@ export interface components {
              *       "cb_refinancing_rate": "0",
              *       "discount_rate_annual": "0.15",
              *       "inflation_direct": "0",
+             *       "inflation_direct_series": [],
              *       "inflation_general": "0",
+             *       "inflation_general_series": [],
              *       "inflation_sales": "0",
+             *       "inflation_sales_series": [],
              *       "inflation_wages": "0",
+             *       "inflation_wages_series": [],
              *       "interest_norm_multiple": "1",
              *       "inventory_method": "average",
              *       "liquidation_recovery_rate": "0",
@@ -3041,21 +3049,29 @@ export interface components {
              * @default 0
              */
             inflation_direct: number | string;
+            /** Inflation Direct Series */
+            inflation_direct_series?: (number | string)[];
             /**
              * Inflation General
              * @default 0
              */
             inflation_general: number | string;
+            /** Inflation General Series */
+            inflation_general_series?: (number | string)[];
             /**
              * Inflation Sales
              * @default 0
              */
             inflation_sales: number | string;
+            /** Inflation Sales Series */
+            inflation_sales_series?: (number | string)[];
             /**
              * Inflation Wages
              * @default 0
              */
             inflation_wages: number | string;
+            /** Inflation Wages Series */
+            inflation_wages_series?: (number | string)[];
             /**
              * Interest Norm Multiple
              * @default 1
@@ -3141,21 +3157,29 @@ export interface components {
              * @default 0
              */
             inflation_direct: string;
+            /** Inflation Direct Series */
+            inflation_direct_series?: string[];
             /**
              * Inflation General
              * @default 0
              */
             inflation_general: string;
+            /** Inflation General Series */
+            inflation_general_series?: string[];
             /**
              * Inflation Sales
              * @default 0
              */
             inflation_sales: string;
+            /** Inflation Sales Series */
+            inflation_sales_series?: string[];
             /**
              * Inflation Wages
              * @default 0
              */
             inflation_wages: string;
+            /** Inflation Wages Series */
+            inflation_wages_series?: string[];
             /**
              * Interest Norm Multiple
              * @default 1

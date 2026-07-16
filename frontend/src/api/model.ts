@@ -272,6 +272,11 @@ export interface ProjectSettings {
   inflation_direct: string;
   inflation_wages: string;
   inflation_general: string;
+  /** Погодовые ряды инфляции (по годам); непустой ряд переопределяет константу. */
+  inflation_sales_series?: string[];
+  inflation_direct_series?: string[];
+  inflation_wages_series?: string[];
+  inflation_general_series?: string[];
   min_cash_balance: string;
 }
 

@@ -2519,3 +2519,23 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .vch-old { color: var(--danger); text-decoration: line-through; opacity: 0.75; }
 .vch-arrow { color: var(--subtle); }
 .vch-new { color: var(--good); }
+
+/* Инфляция по годам (gap 1.9) — таблица год × группа */
+.infl-year__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.infl-year__title { font: 600 14px var(--font-ui); color: var(--text); }
+.infl-year__sub { font: 400 12px/1.45 var(--font-ui); color: var(--muted); margin-top: 3px; max-width: 460px; }
+.infl-grid { overflow-x: auto; margin-top: 14px; }
+.infl-grid table { border-collapse: collapse; width: 100%; min-width: 380px; }
+.infl-grid th {
+  font: 600 11px var(--font-ui); color: var(--subtle); text-align: right; padding: 6px 8px;
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+.infl-grid th:first-child, .infl-grid__year { text-align: left; }
+.infl-grid td { padding: 4px 6px; }
+.infl-grid__year { font: 600 12px var(--font-mono); color: var(--muted); white-space: nowrap; }
+.infl-grid input {
+  width: 72px; height: 32px; padding: 0 8px; text-align: right;
+  font: 500 12.5px var(--font-mono); color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px;
+}
+.infl-grid input:focus { border-color: var(--primary); outline: none; }

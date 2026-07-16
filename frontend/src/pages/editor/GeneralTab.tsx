@@ -1,6 +1,107 @@
 import type { CustomTax, Environment, ProjectHeader, ProjectSettings } from "../../api/model";
 import { EField, EPercentField, ESelect } from "../../components/EditorField";
 import { IconTrash } from "../../components/icons";
+import { fracToPct, pctToFrac } from "../../format";
+
+type SeriesKey =
+  | "inflation_sales_series"
+  | "inflation_direct_series"
+  | "inflation_wages_series"
+  | "inflation_general_series";
+
+const INFL_GROUPS: [SeriesKey, keyof ProjectSettings, string][] = [
+  ["inflation_sales_series", "inflation_sales", "Сбыт"],
+  ["inflation_direct_series", "inflation_direct", "Прямые"],
+  ["inflation_wages_series", "inflation_wages", "Зарплата"],
+  ["inflation_general_series", "inflation_general", "Общие"],
+];
+
+/** Инфляция по годам (gap 1.9): таблица год × группа переопределяет константы. */
+function InflationByYear({
+  header,
+  settings,
+  set,
+}: {
+  header: ProjectHeader;
+  settings: ProjectSettings;
+  set: (patch: Partial<ProjectSettings>) => void;
+}) {
+  const years = Math.max(1, Math.ceil((header.duration_months || 12) / 12));
+  const active = INFL_GROUPS.some(([key]) => (settings[key] as string[] | undefined)?.length);
+
+  const enable = () => {
+    const patch: Partial<ProjectSettings> = {};
+    for (const [key, scalar] of INFL_GROUPS) {
+      patch[key] = Array.from({ length: years }, () => (settings[scalar] as string) ?? "0");
+    }
+    set(patch);
+  };
+  const disable = () =>
+    set({
+      inflation_sales_series: [],
+      inflation_direct_series: [],
+      inflation_wages_series: [],
+      inflation_general_series: [],
+    });
+
+  const cell = (key: SeriesKey, y: number): string => {
+    const arr = (settings[key] as string[] | undefined) ?? [];
+    return arr[y] ?? arr[arr.length - 1] ?? "0";
+  };
+  const updCell = (key: SeriesKey, y: number, frac: string) => {
+    const arr = Array.from({ length: years }, (_, i) => cell(key, i));
+    arr[y] = frac;
+    set({ [key]: arr } as Partial<ProjectSettings>);
+  };
+
+  return (
+    <div className="infl-year">
+      <div className="infl-year__head">
+        <div>
+          <div className="infl-year__title">Инфляция по годам</div>
+          <div className="infl-year__sub">
+            Ряд ставок по годам переопределяет константы выше (за пределом ряда держится
+            последнее значение).
+          </div>
+        </div>
+        <button type="button" className="opt-toggle" onClick={active ? disable : enable}>
+          <span className="opt-toggle__dot" />
+          {active ? "Сбросить к константам" : "Задать по годам"}
+        </button>
+      </div>
+      {active && (
+        <div className="infl-grid fe-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Год</th>
+                {INFL_GROUPS.map(([key, , label]) => (
+                  <th key={key}>{label}, %</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: years }, (_, y) => (
+                <tr key={y}>
+                  <td className="infl-grid__year">{y + 1}</td>
+                  {INFL_GROUPS.map(([key]) => (
+                    <td key={key}>
+                      <input
+                        inputMode="decimal"
+                        value={fracToPct(cell(key, y))}
+                        onChange={(e) => updCell(key, y, pctToFrac(e.target.value))}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface Props {
   header: ProjectHeader;
@@ -313,6 +414,10 @@ export function GeneralTab({ header, settings, environment, onHeader, onSettings
           onChange={(v) => set({ inflation_general: v })}
         />
       </Section>
+
+      <div className="esec">
+        <InflationByYear header={header} settings={settings} set={set} />
+      </div>
 
       <CustomTaxes environment={environment} onChange={onEnvironment} />
     </div>

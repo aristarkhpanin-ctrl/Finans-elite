@@ -3807,9 +3807,13 @@
               "cb_refinancing_rate": "0",
               "discount_rate_annual": "0.15",
               "inflation_direct": "0",
+              "inflation_direct_series": [],
               "inflation_general": "0",
+              "inflation_general_series": [],
               "inflation_sales": "0",
+              "inflation_sales_series": [],
               "inflation_wages": "0",
+              "inflation_wages_series": [],
               "interest_norm_multiple": "1",
               "inventory_method": "average",
               "liquidation_recovery_rate": "0",
@@ -3949,9 +3953,13 @@
               "cb_refinancing_rate": "0",
               "discount_rate_annual": "0.15",
               "inflation_direct": "0",
+              "inflation_direct_series": [],
               "inflation_general": "0",
+              "inflation_general_series": [],
               "inflation_sales": "0",
+              "inflation_sales_series": [],
               "inflation_wages": "0",
+              "inflation_wages_series": [],
               "interest_norm_multiple": "1",
               "inventory_method": "average",
               "liquidation_recovery_rate": "0",
@@ -4103,6 +4111,21 @@
             "default": "0",
             "title": "Inflation Direct"
           },
+          "inflation_direct_series": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ]
+            },
+            "title": "Inflation Direct Series",
+            "type": "array"
+          },
           "inflation_general": {
             "anyOf": [
               {
@@ -4115,6 +4138,21 @@
             ],
             "default": "0",
             "title": "Inflation General"
+          },
+          "inflation_general_series": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ]
+            },
+            "title": "Inflation General Series",
+            "type": "array"
           },
           "inflation_sales": {
             "anyOf": [
@@ -4129,6 +4167,21 @@
             "default": "0",
             "title": "Inflation Sales"
           },
+          "inflation_sales_series": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ]
+            },
+            "title": "Inflation Sales Series",
+            "type": "array"
+          },
           "inflation_wages": {
             "anyOf": [
               {
@@ -4141,6 +4194,21 @@
             ],
             "default": "0",
             "title": "Inflation Wages"
+          },
+          "inflation_wages_series": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ]
+            },
+            "title": "Inflation Wages Series",
+            "type": "array"
           },
           "interest_norm_multiple": {
             "anyOf": [
@@ -4328,11 +4396,27 @@
             "title": "Inflation Direct",
             "type": "string"
           },
+          "inflation_direct_series": {
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Inflation Direct Series",
+            "type": "array"
+          },
           "inflation_general": {
             "default": "0",
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Inflation General",
             "type": "string"
+          },
+          "inflation_general_series": {
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Inflation General Series",
+            "type": "array"
           },
           "inflation_sales": {
             "default": "0",
@@ -4340,11 +4424,27 @@
             "title": "Inflation Sales",
             "type": "string"
           },
+          "inflation_sales_series": {
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Inflation Sales Series",
+            "type": "array"
+          },
           "inflation_wages": {
             "default": "0",
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Inflation Wages",
             "type": "string"
+          },
+          "inflation_wages_series": {
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Inflation Wages Series",
+            "type": "array"
           },
           "interest_norm_multiple": {
             "default": "1",
@@ -6594,7 +6694,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.32"
+    "version": "0.9.33"
   },
   "openapi": "3.1.0",
   "paths": {
