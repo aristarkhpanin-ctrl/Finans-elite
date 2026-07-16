@@ -5,6 +5,7 @@ import { getProject } from "../api/projects";
 import { MonteCarloTab } from "./analysis/MonteCarloTab";
 import { ReviewTab } from "./analysis/ReviewTab";
 import { SensitivityTab } from "./analysis/SensitivityTab";
+import { VersionsTab } from "./analysis/VersionsTab";
 import { WhatIfTab } from "./analysis/WhatIfTab";
 
 const TABS = [
@@ -12,6 +13,7 @@ const TABS = [
   ["sensitivity", "Чувствительность", "NPV к параметру"],
   ["montecarlo", "Монте-Карло", "распределение NPV"],
   ["whatif", "What-If", "сравнение сценариев"],
+  ["versions", "Версии", "снимки и изменения"],
 ] as const;
 
 export function ProjectAnalysisPage() {
@@ -70,6 +72,7 @@ export function ProjectAnalysisPage() {
       {tab === "sensitivity" && <SensitivityTab projectId={id} />}
       {tab === "montecarlo" && <MonteCarloTab projectId={id} />}
       {tab === "whatif" && <WhatIfTab projectId={id} />}
+      {tab === "versions" && <VersionsTab projectId={id} />}
     </div>
   );
 }

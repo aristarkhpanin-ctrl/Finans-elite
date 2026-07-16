@@ -2482,3 +2482,40 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 }
 .doc-sec__move:hover:not(:disabled) { color: var(--text); border-color: var(--primary); }
 .doc-sec__move:disabled { opacity: 0.4; cursor: default; }
+
+/* ============================================================
+   22. ВЕРСИИ ПРОЕКТА (снимки модели, анализ изменений; пакет №8)
+   ============================================================ */
+
+.vsave { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.vsave__input {
+  flex: 1; min-width: 220px; height: 40px; padding: 0 13px;
+  font: 500 13px var(--font-ui); color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px;
+}
+.vsave__input:focus { border-color: var(--primary); outline: none; }
+
+.vlist { display: flex; flex-direction: column; gap: 12px; }
+.vrow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.vrow__label { font: 600 14px var(--font-ui); color: var(--text); }
+.vrow__meta { font: 400 12px var(--font-ui); color: var(--muted); margin-top: 3px; }
+.vrow__actions { display: flex; gap: 6px; flex: none; margin-left: auto; flex-wrap: wrap; }
+
+.vdiff { border-top: 1px solid var(--border); padding-top: 12px; }
+.vch-list { display: flex; flex-direction: column; gap: 6px; }
+.vch-row {
+  display: flex; align-items: center; gap: 10px; padding: 6px 10px;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; flex-wrap: wrap;
+}
+.vch-badge {
+  font: 600 10px var(--font-ui); text-transform: uppercase; letter-spacing: 0.03em;
+  padding: 2px 7px; border-radius: 5px; flex: none;
+}
+.vch--add { color: var(--good); background: var(--good-bg); }
+.vch--rem { color: var(--danger-text); background: var(--danger-bg); }
+.vch--chg { color: var(--info); background: var(--info-bg); }
+.vch-path { font: 500 12px var(--font-mono); color: var(--text); min-width: 0; word-break: break-all; }
+.vch-vals { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; font: 500 12px var(--font-mono); }
+.vch-old { color: var(--danger); text-decoration: line-through; opacity: 0.75; }
+.vch-arrow { color: var(--subtle); }
+.vch-new { color: var(--good); }
