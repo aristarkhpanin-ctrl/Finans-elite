@@ -489,40 +489,62 @@ def _assets(model: ProjectModel, n: int, details: DetailCollector | None = None)
         if rm_active is not None:
             reval[rm_active] += asset.revaluation_amount
         p = asset.purchase_month
-        if 0 <= p < n:
-            capex[p] += asset.cost
-            if details is not None:
-                # Нетто-стоимость; в C14 (с НДС) масштабируется в run_pipeline.
-                details.put("C14", asset.name,
-                            [asset.cost if t == p else ZERO for t in range(n)])
-        # Земля не амортизируется; прочие группы — линейно от стоимости.
-        d = ZERO if cat == AssetCategory.LAND else asset.monthly_depreciation()
-        end = min(p + asset.life_months, n)
+        natural_end = p + asset.life_months          # конец амортизации базовой стоимости
+        end = min(natural_end, n)
         sale_m = asset.sale_month
         if sale_m is not None:
-            end = min(end, sale_m)              # амортизация прекращается в месяц продажи
-        acc_dep = ZERO
-        for t in range(max(p, 0), n):
-            if t < end:
-                dep[t] += d
-                acc_dep += d
-            # Остаточная стоимость группы на конец периода t (после выбытия — только дооценка,
-            # как и в агрегате B9: дооценка не реверсируется при продаже).
+            end = min(end, sale_m)                   # амортизация прекращается в месяц продажи
+        is_land = cat == AssetCategory.LAND          # земля не амортизируется
+
+        # Слои амортизации: базовая стоимость + доинвестиции (от остаточного срока актива).
+        # Слой = (начало, сумма, ставка_в_месяц). Актив без доинвестиций = один базовый слой
+        # → числа в точности как прежде (golden без дрейфа).
+        layers: list[tuple[int, Decimal, Decimal]] = [
+            (p, asset.cost, ZERO if is_land else asset.monthly_depreciation())]
+        cap_series = zeros(n)
+        if 0 <= p < n:
+            capex[p] += asset.cost
+            cap_series[p] += asset.cost
+        for inv in asset.additional_investments:
+            m = inv.month
+            remaining = natural_end - m               # остаточный срок для доп. вложения
+            pm = ZERO if (is_land or remaining <= 0) else inv.amount / Decimal(remaining)
+            layers.append((m, inv.amount, pm))
+            if 0 <= m < n:
+                capex[m] += inv.amount
+                cap_series[m] += inv.amount
+        if details is not None and any(v != ZERO for v in cap_series):
+            # Нетто-стоимость; в C14 (с НДС) масштабируется в run_pipeline.
+            details.put("C14", asset.name, cap_series)
+
+        t0 = max(0, min(start for start, _, _ in layers))
+        for t in range(t0, n):
             disposed = sale_m is not None and 0 <= sale_m <= t
-            book = ZERO if disposed else (asset.cost - acc_dep)
+            book = ZERO
+            for start, amount, pm in layers:
+                if t < start:
+                    continue                          # слой ещё не капитализирован
+                if start <= t < end:
+                    dep[t] += pm
+                acc = pm * Decimal(min(t + 1, end) - start)  # накопленная аморт. слоя к концу t
+                if not disposed:
+                    book += amount - acc
+            # Дооценка не реверсируется при продаже (как в агрегате B9).
             if rm_active is not None and t >= rm_active:
                 book += asset.revaluation_amount
             nbv[cat][t] += book
         if sale_m is not None and 0 <= sale_m < n:
-            residual = asset.cost - acc_dep
+            total_amount = sum((amount for _, amount, _ in layers), ZERO)
+            total_acc = sum((pm * Decimal(max(0, end - start)) for start, _, pm in layers), ZERO)
+            residual = total_amount - total_acc
             proceeds[sale_m] += asset.sale_price
             gain = asset.sale_price - residual
             if gain >= 0:
                 other_income[sale_m] += gain
             else:
                 other_expense[sale_m] += -gain
-            b9_disposal[sale_m] += asset.cost
-            b10_disposal[sale_m] += acc_dep
+            b9_disposal[sale_m] += total_amount
+            b10_disposal[sale_m] += total_acc
     return (capex, dep, proceeds, other_income, other_expense,
             b9_disposal, b10_disposal, reval, nbv)
 

@@ -14,7 +14,7 @@ from .common import (
 from .company import Company, StartingBalance
 from .environment import Currency, Environment, InflationGroup, Tax
 from .financing import AutoFinancing, Deposit, EquityInjection, Financing, Lease, Loan
-from .investment import Asset, InvestmentPlan
+from .investment import AdditionalInvestment, Asset, InvestmentPlan
 from .operating import (
     BomLine,
     DirectCostLine,
@@ -45,6 +45,7 @@ __all__ = [
     "Tax",
     "InvestmentPlan",
     "Asset",
+    "AdditionalInvestment",
     "CalendarPlan",
     "Stage",
     "StageResource",
