@@ -11,6 +11,7 @@ import { AssetsTab } from "./editor/AssetsTab";
 import { CalendarTab } from "./editor/CalendarTab";
 import { CostsTab } from "./editor/CostsTab";
 import { CurrencyTab } from "./editor/CurrencyTab";
+import { DocumentTab } from "./editor/DocumentTab";
 import { FinancingTab } from "./editor/FinancingTab";
 import { GeneralTab } from "./editor/GeneralTab";
 import { SalesTab } from "./editor/SalesTab";
@@ -25,6 +26,7 @@ const TABS = [
   ["financing", "Финансирование"],
   ["currency", "Валюта и старт"],
   ["tables", "Таблицы"],
+  ["document", "Документ"],
   ["actual", "Факт"],
 ] as const;
 
@@ -47,6 +49,8 @@ function tabBadge(model: ProjectModel, tab: TabKey): number {
       return model.investment_plan.calendar?.stages.length ?? 0;
     case "tables":
       return model.user_tables?.length ?? 0;
+    case "document":
+      return model.business_plan?.length ?? 0;
     case "financing":
       return (
         model.financing.loans.length +
@@ -238,6 +242,10 @@ export function ProjectEditorPage() {
       {tab === "tables" && (
         <TablesTab tables={model.user_tables ?? []}
                    onChange={(user_tables) => setModel({ ...model, user_tables })} />
+      )}
+      {tab === "document" && (
+        <DocumentTab sections={model.business_plan ?? []}
+                     onChange={(business_plan) => setModel({ ...model, business_plan })} />
       )}
       {tab === "actual" && (
         <ActualizationTab n={n} actualization={model.actualization}

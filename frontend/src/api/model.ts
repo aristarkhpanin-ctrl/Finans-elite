@@ -303,6 +303,12 @@ export interface UserTable {
   rows: UserRow[];
 }
 
+/** Текстовый раздел бизнес-плана для DOCX-документа (к расчёту отношения не имеет). */
+export interface PlanSection {
+  title: string;
+  text: string;
+}
+
 export interface ProjectModel {
   header: ProjectHeader;
   settings: ProjectSettings;
@@ -314,6 +320,8 @@ export interface ProjectModel {
   actualization: Actualization;
   /** Таблицы пользователя (строки-формулы над результатом). */
   user_tables?: UserTable[];
+  /** Текстовые разделы бизнес-плана (DOCX, пакет №5). */
+  business_plan?: PlanSection[];
   [key: string]: unknown;
 }
 

@@ -2458,3 +2458,18 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 }
 .ft-row__formula:focus, .ft-row__name:focus { border-color: var(--primary); outline: none; }
 @media (max-width: 640px) { .ft-row { flex-wrap: wrap; } .ft-row__name { width: 100%; } }
+
+/* Вкладка «Документ» (пакет №5, D2) — разделы бизнес-плана */
+.doc-sec__text {
+  width: 100%; padding: 10px 12px; resize: vertical; min-height: 90px;
+  font: 400 13px/1.55 var(--font-ui); color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px;
+}
+.doc-sec__text:focus { border-color: var(--primary); outline: none; }
+.doc-sec__move {
+  width: 28px; height: 28px; flex: none; display: flex; align-items: center; justify-content: center;
+  font: 600 13px var(--font-ui); color: var(--muted); cursor: pointer;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px;
+}
+.doc-sec__move:hover:not(:disabled) { color: var(--text); border-color: var(--primary); }
+.doc-sec__move:disabled { opacity: 0.4; cursor: default; }

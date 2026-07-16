@@ -15,7 +15,7 @@ import { GRANDS, StatementTable, SUBTOTALS } from "../components/StatementTable"
 import { SummaryView } from "../components/SummaryView";
 import { useToast } from "../components/Toast";
 import { Button, Skeleton } from "../components/ui";
-import { downloadCsv, downloadPdf, downloadXlsx, statementsToCsv } from "../export";
+import { downloadBusinessPlanDocx, downloadCsv, downloadPdf, downloadXlsx, statementsToCsv } from "../export";
 import { fmtMillions, fmtRatio, percent } from "../format";
 
 const STATEMENTS = [
@@ -102,6 +102,21 @@ export function ProjectResultsPage() {
               }}
             >
               PDF
+            </button>
+            <button
+              type="button"
+              title="Документ бизнес-плана: заключение, показатели, разделы и отчёты"
+              onClick={async () => {
+                toast("Готовим бизнес-план…", { kind: "info" });
+                try {
+                  await downloadBusinessPlanDocx(id, `${title || "business-plan"}.docx`);
+                  toast("Бизнес-план (DOCX) скачан", { kind: "success" });
+                } catch {
+                  toast("Не удалось сформировать бизнес-план", { kind: "error" });
+                }
+              }}
+            >
+              Бизнес-план
             </button>
             <button type="button" onClick={() => setPrintMode(true)}>
               <IconPrint size={15} />
