@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
-from calc_core import run
+from calc_core import ProjectModel, run
 from calc_core.engine import ModelError
 from calc_core.engine.calendar import compute_budget
 from calc_core.montecarlo import run_monte_carlo
@@ -35,6 +35,8 @@ from ..schemas import (
     FinalizeResponse,
     JobSubmitResponse,
     LastCalcOut,
+    MetricChangeOut,
+    ModelChangeOut,
     MonteCarloRequest,
     MonteCarloResponse,
     ProjectCreate,
@@ -46,6 +48,10 @@ from ..schemas import (
     SensitivityPointOut,
     SensitivityRequest,
     SensitivityResponse,
+    VersionCreate,
+    VersionDiffOut,
+    VersionOut,
+    VersionSummary,
     WhatIfRequest,
     WhatIfResponse,
     budget_response,
@@ -54,6 +60,7 @@ from ..schemas import (
     to_response,
 )
 from ..tasks import monte_carlo_task
+from ..versioning import diff_metrics, diff_models
 
 # Лимит итераций для синхронного Монте-Карло (большие N — фоновой задачей, ARCHITECTURE §9).
 _MAX_MC_ITERATIONS = 2000
@@ -264,6 +271,130 @@ def finalize_project(project_id: str, body: FinalizeRequest,
     assert finalized.finalized_at is not None  # только что установлено в finalize_project
     return FinalizeResponse(status=finalized.status, finalized_at=finalized.finalized_at,
                             review=payload)
+
+
+# --- Версии проекта (пакет №8, gap 4.4) ---
+
+def _version_summary(v) -> VersionSummary:
+    return VersionSummary(id=v.id, label=v.label, created_at=v.created_at,
+                          npv=v.npv, irr_annual=v.irr_annual, engine_version=v.engine_version)
+
+
+def _version_out(v) -> VersionOut:
+    return VersionOut(id=v.id, label=v.label, created_at=v.created_at,
+                      npv=v.npv, irr_annual=v.irr_annual, engine_version=v.engine_version,
+                      model=ProjectModel.model_validate(v.model))
+
+
+def _calc_summary(model: ProjectModel) -> tuple[str | None, str | None, str | None]:
+    """Сводка расчёта для снимка (NPV/IRR/движок); при ошибке модели — нули (снимок всё равно валиден)."""
+    try:
+        result = run(model)
+    except (ModelError, ValueError):
+        return None, None, None
+    irr = result.metrics.irr_annual
+    return str(result.metrics.npv), (str(irr) if irr is not None else None), result.engine_version
+
+
+def _require_version(db: Session, org_id: str, project_id: str, version_id: str):
+    version = crud.get_version(db, org_id, project_id, version_id)
+    if version is None:
+        raise HTTPException(status_code=404, detail="Версия не найдена")
+    return version
+
+
+@router.post("/{project_id}/versions", response_model=VersionSummary,
+             status_code=status.HTTP_201_CREATED)
+def create_version(project_id: str, body: VersionCreate,
+                   org_id: str = Depends(require_permission(Perm.PROJECT_UPDATE)),
+                   db: Session = Depends(get_db)) -> VersionSummary:
+    """Снимок текущей модели как именованная версия (со сводкой расчёта)."""
+    project = _require(db, org_id, project_id)
+    if crud.count_versions(db, project_id) >= crud.MAX_VERSIONS_PER_PROJECT:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Достигнут лимит версий на проект ({crud.MAX_VERSIONS_PER_PROJECT}). "
+                   "Удалите ненужные версии.")
+    npv, irr, engine_version = _calc_summary(crud.load_model(project))
+    label = body.label.strip() or f"Версия от {project.updated_at:%d.%m.%Y %H:%M}"
+    version = crud.create_version(db, project, label, npv=npv, irr_annual=irr,
+                                  engine_version=engine_version)
+    return _version_summary(version)
+
+
+@router.get("/{project_id}/versions", response_model=list[VersionSummary])
+def list_versions(project_id: str,
+                  org_id: str = Depends(require_permission(Perm.PROJECT_READ)),
+                  db: Session = Depends(get_db)) -> list[VersionSummary]:
+    """Список версий проекта (метаданные, новейшие сверху)."""
+    _require(db, org_id, project_id)
+    return [_version_summary(v) for v in crud.list_versions(db, org_id, project_id)]
+
+
+@router.get("/{project_id}/versions/{version_id}", response_model=VersionOut)
+def get_version(project_id: str, version_id: str,
+                org_id: str = Depends(require_permission(Perm.PROJECT_READ)),
+                db: Session = Depends(get_db)) -> VersionOut:
+    """Версия с полной моделью снимка."""
+    _require(db, org_id, project_id)
+    return _version_out(_require_version(db, org_id, project_id, version_id))
+
+
+@router.delete("/{project_id}/versions/{version_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_version(project_id: str, version_id: str,
+                   org_id: str = Depends(require_permission(Perm.PROJECT_UPDATE)),
+                   db: Session = Depends(get_db)) -> None:
+    """Удалить версию."""
+    _require(db, org_id, project_id)
+    crud.delete_version(db, _require_version(db, org_id, project_id, version_id))
+
+
+@router.get("/{project_id}/versions/{version_id}/diff", response_model=VersionDiffOut)
+def diff_version(project_id: str, version_id: str, against: str = "current",
+                 org_id: str = Depends(require_permission(Perm.PROJECT_READ)),
+                 db: Session = Depends(get_db)) -> VersionDiffOut:
+    """Анализ изменений версии относительно другой версии или текущей модели.
+
+    ``against`` — id другой версии либо ``current`` (рабочая модель проекта). old = эта
+    версия, new = ``against``: «что изменилось от снимка к сравниваемому состоянию».
+    """
+    project = _require(db, org_id, project_id)
+    base = _require_version(db, org_id, project_id, version_id)
+    if against == "current":
+        against_model = project.model
+    else:
+        against_model = _require_version(db, org_id, project_id, against).model
+
+    changes, truncated = diff_models(base.model, against_model)
+    metric_changes: list[MetricChangeOut] = []
+    try:
+        base_result = run(ProjectModel.model_validate(base.model))
+        against_result = run(ProjectModel.model_validate(against_model))
+        metric_changes = [
+            MetricChangeOut(key=c.key, label=c.label, old=c.old, new=c.new)
+            for c in diff_metrics(base_result, against_result)
+        ]
+    except (ModelError, ValueError):
+        metric_changes = []       # одна из моделей не считается → только диф модели
+
+    return VersionDiffOut(
+        base_id=version_id, against=against,
+        model_changes=[ModelChangeOut(path=c.path, kind=c.kind, old=c.old, new=c.new)
+                       for c in changes],
+        model_changes_truncated=truncated,
+        metric_changes=metric_changes,
+    )
+
+
+@router.post("/{project_id}/versions/{version_id}/restore", response_model=ProjectOut)
+def restore_version(project_id: str, version_id: str,
+                    org_id: str = Depends(require_permission(Perm.PROJECT_UPDATE)),
+                    db: Session = Depends(get_db)) -> ProjectOut:
+    """Восстановить модель версии в рабочий проект (статус → draft, гейт сбрасывается)."""
+    project = _require(db, org_id, project_id)
+    version = _require_version(db, org_id, project_id, version_id)
+    updated = crud.update_project(db, project, model=ProjectModel.model_validate(version.model))
+    return _out(updated)
 
 
 @router.post("/{project_id}/sensitivity", response_model=SensitivityResponse)

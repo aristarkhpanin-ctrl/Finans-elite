@@ -637,6 +637,97 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Versions
+         * @description Список версий проекта (метаданные, новейшие сверху).
+         */
+        get: operations["list_versions_api_v1_projects__project_id__versions_get"];
+        put?: never;
+        /**
+         * Create Version
+         * @description Снимок текущей модели как именованная версия (со сводкой расчёта).
+         */
+        post: operations["create_version_api_v1_projects__project_id__versions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/versions/{version_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Version
+         * @description Версия с полной моделью снимка.
+         */
+        get: operations["get_version_api_v1_projects__project_id__versions__version_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Version
+         * @description Удалить версию.
+         */
+        delete: operations["delete_version_api_v1_projects__project_id__versions__version_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/versions/{version_id}/diff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Diff Version
+         * @description Анализ изменений версии относительно другой версии или текущей модели.
+         *
+         *     ``against`` — id другой версии либо ``current`` (рабочая модель проекта). old = эта
+         *     версия, new = ``against``: «что изменилось от снимка к сравниваемому состоянию».
+         */
+        get: operations["diff_version_api_v1_projects__project_id__versions__version_id__diff_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/versions/{version_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore Version
+         * @description Восстановить модель версии в рабочий проект (статус → draft, гейт сбрасывается).
+         */
+        post: operations["restore_version_api_v1_projects__project_id__versions__version_id__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/what-if": {
         parameters: {
             query?: never;
@@ -2040,6 +2131,20 @@ export interface components {
             /** Role */
             role: string;
         };
+        /**
+         * MetricChangeOut
+         * @description Изменение показателя эффективности между версиями.
+         */
+        MetricChangeOut: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** New */
+            new?: string | null;
+            /** Old */
+            old?: string | null;
+        };
         /** MetricsOut */
         MetricsOut: {
             /** Arr Annual */
@@ -2060,6 +2165,20 @@ export interface components {
             pi?: string | null;
             /** Pv Investments */
             pv_investments?: string | null;
+        };
+        /**
+         * ModelChangeOut
+         * @description Изменение листового значения модели между версиями.
+         */
+        ModelChangeOut: {
+            /** Kind */
+            kind: string;
+            /** New */
+            new?: unknown;
+            /** Old */
+            old?: unknown;
+            /** Path */
+            path: string;
         };
         /** MonteCarloRequest */
         MonteCarloRequest: {
@@ -3923,6 +4042,85 @@ export interface components {
          * @enum {string}
          */
         VatBasis: "shipment" | "payment";
+        /**
+         * VersionCreate
+         * @description Запрос снимка текущей модели как именованной версии.
+         */
+        VersionCreate: {
+            /**
+             * Label
+             * @default
+             */
+            label: string;
+        };
+        /**
+         * VersionDiffOut
+         * @description Анализ изменений: диф модели (листовые пути) + диф заголовочных показателей.
+         */
+        VersionDiffOut: {
+            /** Against */
+            against: string;
+            /** Base Id */
+            base_id: string;
+            /**
+             * Metric Changes
+             * @default []
+             */
+            metric_changes: components["schemas"]["MetricChangeOut"][];
+            /**
+             * Model Changes
+             * @default []
+             */
+            model_changes: components["schemas"]["ModelChangeOut"][];
+            /**
+             * Model Changes Truncated
+             * @default false
+             */
+            model_changes_truncated: boolean;
+        };
+        /**
+         * VersionOut
+         * @description Версия с полной моделью снимка.
+         */
+        VersionOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Engine Version */
+            engine_version?: string | null;
+            /** Id */
+            id: string;
+            /** Irr Annual */
+            irr_annual?: string | null;
+            /** Label */
+            label: string;
+            model: components["schemas"]["ProjectModel-Output"];
+            /** Npv */
+            npv?: string | null;
+        };
+        /**
+         * VersionSummary
+         * @description Метаданные версии (без модели): для списка версий проекта.
+         */
+        VersionSummary: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Engine Version */
+            engine_version?: string | null;
+            /** Id */
+            id: string;
+            /** Irr Annual */
+            irr_annual?: string | null;
+            /** Label */
+            label: string;
+            /** Npv */
+            npv?: string | null;
+        };
         /** WhatIfRequest */
         WhatIfRequest: {
             /**
@@ -5237,6 +5435,212 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SensitivityResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_versions_api_v1_projects__project_id__versions_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_version_api_v1_projects__project_id__versions_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VersionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_version_api_v1_projects__project_id__versions__version_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_version_api_v1_projects__project_id__versions__version_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    diff_version_api_v1_projects__project_id__versions__version_id__diff_get: {
+        parameters: {
+            query?: {
+                against?: string;
+            };
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionDiffOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_version_api_v1_projects__project_id__versions__version_id__restore_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectOut"];
                 };
             };
             /** @description Validation Error */

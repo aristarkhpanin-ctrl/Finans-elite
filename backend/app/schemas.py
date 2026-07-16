@@ -268,6 +268,59 @@ class FinalizeResponse(BaseModel):
     review: ReviewResponse
 
 
+# --- Версии проекта (пакет №8, gap 4.4) ---
+
+class VersionCreate(BaseModel):
+    """Запрос снимка текущей модели как именованной версии."""
+
+    label: str = ""
+
+
+class VersionSummary(BaseModel):
+    """Метаданные версии (без модели): для списка версий проекта."""
+
+    id: str
+    label: str
+    created_at: datetime
+    npv: Optional[Decimal] = None
+    irr_annual: Optional[Decimal] = None
+    engine_version: Optional[str] = None
+
+
+class VersionOut(VersionSummary):
+    """Версия с полной моделью снимка."""
+
+    model: ProjectModel
+
+
+class ModelChangeOut(BaseModel):
+    """Изменение листового значения модели между версиями."""
+
+    path: str
+    kind: str                     # added | removed | changed
+    old: object = None
+    new: object = None
+
+
+class MetricChangeOut(BaseModel):
+    """Изменение показателя эффективности между версиями."""
+
+    key: str
+    label: str
+    old: Optional[Decimal] = None
+    new: Optional[Decimal] = None
+
+
+class VersionDiffOut(BaseModel):
+    """Анализ изменений: диф модели (листовые пути) + диф заголовочных показателей."""
+
+    base_id: str                  # с чего сравниваем (id версии)
+    against: str                  # с чем: id версии или "current"
+    model_changes: list[ModelChangeOut] = []
+    model_changes_truncated: bool = False
+    metric_changes: list[MetricChangeOut] = []
+
+
 # --- Организации, пользователи, членство (мультиарендность, 6.2) ---
 
 class OrganizationCreate(BaseModel):

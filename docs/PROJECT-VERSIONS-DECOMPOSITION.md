@@ -45,7 +45,7 @@ frontend               # вкладка/панель «Версии» + прос
 - [x] **V0.** БД: `ProjectVersion` + миграция (с RLS) + crud; чистые диф-функции
   (`app/versioning.py`) + тесты (flatten, added/removed/changed, усечение,
   metric-diff, лимит версий).
-- [ ] **V1.** API: `POST /projects/{id}/versions` (снимок), `GET …/versions` (список),
+- [x] **V1.** API: `POST /projects/{id}/versions` (снимок), `GET …/versions` (список),
   `GET …/versions/{vid}` (модель), `GET …/versions/{vid}/diff?against=<vid|current>`
   (диф модели+результатов), `POST …/versions/{vid}/restore`, `DELETE …/versions/{vid}`;
   openapi + `gen:api`. Тесты API (снимок/список/диф/восстановление/изоляция/лимит).
