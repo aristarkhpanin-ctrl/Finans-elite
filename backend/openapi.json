@@ -269,11 +269,12 @@
         "type": "object"
       },
       "AssetCategory": {
-        "description": "Группа основных средств (разнос остаточной стоимости по балансу B12–B14, SPEC §9).",
+        "description": "Группа активов (разнос остаточной стоимости по балансу B12–B14, B16, SPEC §9).",
         "enum": [
           "equipment",
           "buildings",
-          "land"
+          "land",
+          "intangible"
         ],
         "title": "AssetCategory",
         "type": "string"
@@ -6878,7 +6879,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.35"
+    "version": "0.9.36"
   },
   "openapi": "3.1.0",
   "paths": {

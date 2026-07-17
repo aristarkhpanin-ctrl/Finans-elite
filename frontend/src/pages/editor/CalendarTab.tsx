@@ -248,8 +248,8 @@ export function CalendarTab({ n, investment, products, onChange }: Props) {
                         <EField label="Срок службы" suffix="мес." value={s.asset_life_months ?? 12}
                                 onChange={(v) => updStage(i, { asset_life_months: Math.max(1, parseInt(v || "1", 10) || 1) })} />
                         <ESelect label="Группа ОС" value={s.asset_category ?? "equipment"}
-                                 onChange={(v) => updStage(i, { asset_category: v as "equipment" | "buildings" | "land" })}
-                                 options={[["equipment", "Оборудование"], ["buildings", "Здания"], ["land", "Земля"]]} />
+                                 onChange={(v) => updStage(i, { asset_category: v as "equipment" | "buildings" | "land" | "intangible" })}
+                                 options={[["equipment", "Оборудование"], ["buildings", "Здания"], ["land", "Земля"], ["intangible", "НМА"]]} />
                       </>
                     )}
                     {kind === "production" && (

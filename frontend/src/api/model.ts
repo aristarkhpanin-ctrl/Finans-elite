@@ -173,7 +173,7 @@ export interface Financing {
   auto_financing: AutoFinancing;
 }
 
-export type AssetCategory = "equipment" | "buildings" | "land";
+export type AssetCategory = "equipment" | "buildings" | "land" | "intangible";
 
 export interface AdditionalInvestment {
   month: number;

@@ -18,6 +18,7 @@ const CATEGORY_META: Record<AssetCategory, { label: string; icon: JSX.Element }>
   equipment: { label: "Оборудование", icon: <IconSettings size={17} /> },
   buildings: { label: "Здания", icon: <IconBuilding size={17} /> },
   land: { label: "Земля", icon: <IconLand size={17} /> },
+  intangible: { label: "НМА", icon: <IconBriefcase size={17} /> },
 };
 
 /** Остаточная стоимость на месяц продажи (линейная амортизация; земля не амортизируется). */
@@ -165,6 +166,7 @@ export function AssetsTab({ investment, onChange }: Props) {
                         ["equipment", "Оборудование"],
                         ["buildings", "Здания"],
                         ["land", "Земля"],
+                        ["intangible", "НМА"],
                       ]}
                     />
                   </div>

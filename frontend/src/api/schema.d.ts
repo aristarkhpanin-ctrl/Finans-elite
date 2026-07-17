@@ -1006,10 +1006,10 @@ export interface components {
         };
         /**
          * AssetCategory
-         * @description Группа основных средств (разнос остаточной стоимости по балансу B12–B14, SPEC §9).
+         * @description Группа активов (разнос остаточной стоимости по балансу B12–B14, B16, SPEC §9).
          * @enum {string}
          */
-        AssetCategory: "equipment" | "buildings" | "land";
+        AssetCategory: "equipment" | "buildings" | "land" | "intangible";
         /**
          * AutoFinancing
          * @description Автоподбор финансирования: покрытие дефицита кредитом + размещение излишков (SPEC §19).
