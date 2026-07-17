@@ -459,6 +459,28 @@ def _fixed(model: ProjectModel, n: int, vat_rate: Decimal,
     return groups, c5, c6, payables, vat_in, i24, vat_in_paid, i25_fixed
 
 
+def _preexisting_net_open(model: ProjectModel) -> Decimal:
+    """Остаточная стоимость пред-существующих ОС (``purchase_month < 0``) на t=−1 (SPEC §9/§14).
+
+    Актив, купленный до старта проекта, к моменту t=−1 уже частично самортизирован
+    (``min(−purchase_month, life)`` месяцев); земля не амортизируется. Эта величина
+    сворачивается в стартовый актив (проверка баланса + opening_balance), а убыль с t=0
+    идёт через обычную машинерию амортизации. Пред-существующие доинвестиции (v1) не входят.
+    """
+    total = ZERO
+    for asset in model.investment_plan.assets:
+        if asset.purchase_month >= 0:
+            continue
+        if asset.category == AssetCategory.LAND:
+            total += asset.cost                        # земля — по стоимости (не амортизируется)
+            continue
+        months = min(-asset.purchase_month, asset.life_months)
+        acc = asset.monthly_depreciation() * Decimal(months)
+        book = asset.cost - acc
+        total += book if book > ZERO else ZERO
+    return total
+
+
 def _assets(model: ProjectModel, n: int, details: DetailCollector | None = None):
     """Активы → (capex, амортизация, поступления от продажи C16, прочие доходы/издержки
     I20/I21, выбытие первонач. стоимости и накопл. амортизации, остаточная стоимость по
@@ -764,11 +786,15 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
     fx_prev = [D(env.fx_open)] + fx[:-1]          # курс предыдущего периода (t=0 — стартовый)
     fm = sb.foreign_monetary                       # монетарный актив во 2-й валюте (ед. валюты)
     opening_foreign = fm * D(env.fx_open)          # его стоимость в основной валюте на старте
+    # Остаточная стоимость пред-существующих ОС (purchase_month<0) на старте (SPEC §9/§14).
+    preexisting = _preexisting_net_open(model)
 
-    # Проверка сходимости стартового баланса (SPEC §16), включая валютную позицию.
-    if abs(sb.assets() + opening_foreign - sb.liabilities_equity()) > Decimal("0.01"):
+    # Проверка сходимости стартового баланса (SPEC §16), включая валютную позицию и
+    # остаточную стоимость пред-существующих ОС.
+    opening_assets = sb.assets() + opening_foreign + preexisting
+    if abs(opening_assets - sb.liabilities_equity()) > Decimal("0.01"):
         raise ModelError(
-            f"Стартовый баланс не сходится: актив {sb.assets() + opening_foreign} != пассив "
+            f"Стартовый баланс не сходится: актив {opening_assets} != пассив "
             f"{sb.liabilities_equity()}"
         )
 

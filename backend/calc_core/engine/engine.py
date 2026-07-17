@@ -24,7 +24,7 @@ from .errors import InvariantError
 from .financing_auto import AutoInjection, solve_cash_management
 from .margins import compute_product_margins
 from .participants import compute_participants
-from .pipeline import DetailCollector, run_pipeline
+from .pipeline import DetailCollector, _preexisting_net_open, run_pipeline
 from .tables import compute_user_tables
 from .taxes import TaxInjection, compute_custom_taxes
 
@@ -62,8 +62,10 @@ def _run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
 
     metrics = _metrics(model, cashflow)
     sb = model.company.starting_balance
+    # Остаточная стоимость пред-существующих ОС (purchase_month<0) входит в стартовые ОС (t=−1).
+    opening_fixed = sb.fixed_assets_net + _preexisting_net_open(model)
     opening = opening_balance(
-        sb.cash, sb.fixed_assets_net, sb.debt, sb.paid_in_capital, sb.retained_earnings,
+        sb.cash, opening_fixed, sb.debt, sb.paid_in_capital, sb.retained_earnings,
         sb.foreign_monetary * model.environment.fx_open,
         receivables=sb.receivables, payables=sb.payables,
         raw_materials=sb.raw_materials, finished_goods=sb.finished_goods,
