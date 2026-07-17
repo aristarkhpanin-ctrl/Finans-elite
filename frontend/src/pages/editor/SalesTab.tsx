@@ -1,9 +1,10 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import type { BomLine, Company, Division, Material, OperatingPlan, Product, SalesLine } from "../../api/model";
 import { EField, ESelect } from "../../components/EditorField";
-import { IconCart, IconTrash } from "../../components/icons";
+import { IconCart, IconDownload, IconTrash, IconUpload } from "../../components/icons";
 import { MonthlyGrid } from "../../components/MonthlyGrid";
 import type { MonthlyRow } from "../../components/MonthlyGrid";
+import { useToast } from "../../components/Toast";
 import { Button, Switch } from "../../components/ui";
 import { fmtMoney } from "../../format";
 import { downloadSalesTemplate, parseSalesXlsx } from "../../salesXlsx";
@@ -49,19 +50,23 @@ export function SalesTab({ n, operating, company, onChange, onCompany }: Props) 
 
   // Импорт/шаблон рядов продаж из Excel (gap 5.3): round-trip через XLSX-грид продукт × месяц.
   const fileRef = useRef<HTMLInputElement>(null);
-  const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const toast = useToast();
 
   const onImportFile = async (file: File) => {
-    setImportMsg(null);
     try {
       const res = await parseSalesXlsx(file, operating, n);
       if (res.matched > 0) onChange(res.operating);
-      const parts = [`обновлено рядов: ${res.matched}`];
-      if (res.skipped.length) parts.push(`не найдены: ${res.skipped.join(", ")}`);
-      if (res.ignored) parts.push(`пропущено строк: ${res.ignored}`);
-      setImportMsg({ ok: res.matched > 0, text: parts.join(" · ") });
+      const extra: string[] = [];
+      if (res.skipped.length) extra.push(`не найдены: ${res.skipped.join(", ")}`);
+      if (res.ignored) extra.push(`пропущено строк: ${res.ignored}`);
+      const sub = extra.length ? extra.join(" · ") : undefined;
+      if (res.matched > 0) {
+        toast(`Импорт из Excel: обновлено рядов — ${res.matched}`, { kind: "success", sub });
+      } else {
+        toast("Импорт из Excel: подходящих строк не найдено", { kind: "warn", sub });
+      }
     } catch {
-      setImportMsg({ ok: false, text: "Не удалось прочитать файл — нужен XLSX по шаблону." });
+      toast("Не удалось прочитать файл — нужен XLSX по шаблону", { kind: "error" });
     }
   };
 
@@ -132,11 +137,23 @@ export function SalesTab({ n, operating, company, onChange, onCompany }: Props) 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {sales.length > 0 && (
             <>
-              <Button variant="ghost" onClick={() => downloadSalesTemplate("Продажи-шаблон.xlsx", operating, n)}>
-                ⭳&nbsp;&nbsp;Шаблон XLSX
+              <Button
+                variant="ghost"
+                onClick={async () => {
+                  try {
+                    await downloadSalesTemplate("Продажи-шаблон.xlsx", operating, n);
+                    toast("Шаблон XLSX скачан", { kind: "success" });
+                  } catch {
+                    toast("Не удалось сформировать шаблон", { kind: "error" });
+                  }
+                }}
+              >
+                <IconDownload size={15} />
+                <span style={{ marginLeft: 6 }}>Шаблон XLSX</span>
               </Button>
               <Button variant="ghost" onClick={() => fileRef.current?.click()}>
-                ⭱&nbsp;&nbsp;Импорт XLSX
+                <IconUpload size={15} />
+                <span style={{ marginLeft: 6 }}>Импорт XLSX</span>
               </Button>
             </>
           )}
@@ -154,13 +171,6 @@ export function SalesTab({ n, operating, company, onChange, onCompany }: Props) 
           }}
         />
       </div>
-
-      {importMsg && (
-        <div className={"field-note" + (importMsg.ok ? "" : " field-note--warn")}
-             style={{ margin: "0 0 12px" }}>
-          Импорт из Excel: {importMsg.text}
-        </div>
-      )}
 
       {sales.length === 0 ? (
         <div className="tab-empty">
