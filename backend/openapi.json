@@ -556,6 +556,16 @@
           "metrics": {
             "$ref": "#/components/schemas/MetricsOut"
           },
+          "metrics_foreign": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MetricsOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "n": {
             "title": "N",
             "type": "integer"
@@ -851,6 +861,16 @@
           },
           "metrics": {
             "$ref": "#/components/schemas/MetricsOut"
+          },
+          "metrics_foreign": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MetricsOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "n": {
             "title": "N",
@@ -3819,6 +3839,7 @@
             "default": {
               "cb_refinancing_rate": "0",
               "discount_rate_annual": "0.15",
+              "discount_rate_annual_foreign": "0",
               "inflation_direct": "0",
               "inflation_direct_series": [],
               "inflation_general": "0",
@@ -3967,6 +3988,7 @@
             "default": {
               "cb_refinancing_rate": "0",
               "discount_rate_annual": "0.15",
+              "discount_rate_annual_foreign": "0",
               "inflation_direct": "0",
               "inflation_direct_series": [],
               "inflation_general": "0",
@@ -4114,6 +4136,20 @@
             ],
             "default": "0.15",
             "title": "Discount Rate Annual"
+          },
+          "discount_rate_annual_foreign": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Discount Rate Annual Foreign"
           },
           "inflation_direct": {
             "anyOf": [
@@ -4425,6 +4461,12 @@
             "default": "0.15",
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Discount Rate Annual",
+            "type": "string"
+          },
+          "discount_rate_annual_foreign": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Discount Rate Annual Foreign",
             "type": "string"
           },
           "inflation_direct": {
@@ -6879,7 +6921,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.36"
+    "version": "0.9.38"
   },
   "openapi": "3.1.0",
   "paths": {

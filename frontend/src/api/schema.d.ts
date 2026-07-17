@@ -1164,6 +1164,7 @@ export interface components {
             engine_version: string;
             income: components["schemas"]["StatementOut"];
             metrics: components["schemas"]["MetricsOut"];
+            metrics_foreign?: components["schemas"]["MetricsOut"] | null;
             /** N */
             n: number;
             /**
@@ -1313,6 +1314,7 @@ export interface components {
             engine_version: string;
             income: components["schemas"]["StatementOut"];
             metrics: components["schemas"]["MetricsOut"];
+            metrics_foreign?: components["schemas"]["MetricsOut"] | null;
             /** N */
             n: number;
             /**
@@ -2832,6 +2834,7 @@ export interface components {
              * @default {
              *       "cb_refinancing_rate": "0",
              *       "discount_rate_annual": "0.15",
+             *       "discount_rate_annual_foreign": "0",
              *       "inflation_direct": "0",
              *       "inflation_direct_series": [],
              *       "inflation_general": "0",
@@ -2968,6 +2971,7 @@ export interface components {
              * @default {
              *       "cb_refinancing_rate": "0",
              *       "discount_rate_annual": "0.15",
+             *       "discount_rate_annual_foreign": "0",
              *       "inflation_direct": "0",
              *       "inflation_direct_series": [],
              *       "inflation_general": "0",
@@ -3050,6 +3054,11 @@ export interface components {
              * @default 0.15
              */
             discount_rate_annual: number | string;
+            /**
+             * Discount Rate Annual Foreign
+             * @default 0
+             */
+            discount_rate_annual_foreign: number | string;
             /**
              * Inflation Direct
              * @default 0
@@ -3170,6 +3179,11 @@ export interface components {
              * @default 0.15
              */
             discount_rate_annual: string;
+            /**
+             * Discount Rate Annual Foreign
+             * @default 0
+             */
+            discount_rate_annual_foreign: string;
             /**
              * Inflation Direct
              * @default 0

@@ -168,6 +168,8 @@ class CalcResponse(BaseModel):
     balance: StatementOut
     profit_use: StatementOut
     metrics: MetricsOut
+    # Показатели во второй валюте (SPEC §17); None, если ставка по валюте не задана.
+    metrics_foreign: Optional[MetricsOut] = None
     ratios: RatiosOut
     break_even: BreakEvenOut
     valuation: ValuationOut
@@ -640,6 +642,17 @@ def to_response(r: CalcResult) -> CalcResponse:
             pv_investments=r.metrics.pv_investments,
             peak_financing_need=r.metrics.peak_financing_need,
         ),
+        metrics_foreign=MetricsOut(
+            npv=r.metrics_foreign.npv,
+            irr_annual=r.metrics_foreign.irr_annual,
+            mirr_annual=r.metrics_foreign.mirr_annual,
+            arr_annual=r.metrics_foreign.arr_annual,
+            pi=r.metrics_foreign.pi,
+            pb_months=r.metrics_foreign.pb_months,
+            dpb_months=r.metrics_foreign.dpb_months,
+            pv_investments=r.metrics_foreign.pv_investments,
+            peak_financing_need=r.metrics_foreign.peak_financing_need,
+        ) if r.metrics_foreign is not None else None,
         ratios=RatiosOut(
             liquidity=r.ratios.liquidity,
             activity=r.ratios.activity,

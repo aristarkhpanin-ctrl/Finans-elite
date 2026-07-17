@@ -257,6 +257,8 @@ export type InventoryMethod = "average" | "fifo";
 
 export interface ProjectSettings {
   discount_rate_annual: string;
+  /** Ставка дисконтирования во второй валюте (0 = выключено; показатели дублируются). */
+  discount_rate_annual_foreign?: string;
   terminal_growth_rate?: string;
   valuation_earnings_multiple?: string;
   liquidation_recovery_rate?: string;
@@ -321,9 +323,16 @@ export interface CustomTax {
   allocation: "expense" | "profit";
 }
 
+export interface Currency {
+  code: string;
+  name?: string;
+}
+
 export interface Environment {
   fx_open: string;
   fx_rate: string[];
+  /** Валюты проекта; вторая (currencies[1]) — при мультивалютной модели. */
+  currencies?: Currency[];
   /** Настраиваемые налоги (базы — до настраиваемых налогов; пусто — выключено). */
   taxes?: CustomTax[];
   [key: string]: unknown;

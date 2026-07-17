@@ -92,14 +92,14 @@ export function fmtAxis(v: number): string {
  */
 export function fmtMillions(
   v: number | string | null | undefined,
-  opts: { sign?: boolean; digits?: number } = {},
+  opts: { sign?: boolean; digits?: number; unit?: string } = {},
 ): string {
   const x = toNum(v);
   if (x === null) return "—";
   const digits = opts.digits ?? 1;
   const abs = (Math.abs(x) / 1e6).toFixed(digits).replace(".", ",");
   const sign = x < 0 ? MINUS : opts.sign && x > 0 ? "+" : "";
-  return sign + abs + NBSP + "млн" + NBSP + "₽";
+  return sign + abs + NBSP + "млн" + NBSP + (opts.unit ?? "₽");
 }
 
 /**

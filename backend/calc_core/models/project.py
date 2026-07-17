@@ -45,6 +45,9 @@ class ProjectSettings(BaseModel):
     """Настройка расчёта (см. SPEC §11, §17)."""
 
     discount_rate_annual: Decimal = Decimal("0.15")   # ставка дисконтирования (для NPV)
+    # Ставка дисконтирования во второй валюте (SPEC §17): 0 = выключено. При ставке > 0
+    # показатели дублируются во второй валюте — поток пересчитан по курсу (Environment.fx_rate).
+    discount_rate_annual_foreign: Decimal = Field(default=Decimal("0"), ge=0)
     terminal_growth_rate: Decimal = Decimal("0")      # темп роста g для модели Гордона (§20)
     # Множитель к годовой чистой прибыли для оценки по мультипликатору (0 = выключено; §20).
     valuation_earnings_multiple: Decimal = Decimal("0")

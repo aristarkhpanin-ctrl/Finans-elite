@@ -24,7 +24,7 @@ from .errors import InvariantError
 from .financing_auto import AutoInjection, solve_cash_management
 from .margins import compute_product_margins
 from .participants import compute_participants
-from .pipeline import DetailCollector, _preexisting_net_open, run_pipeline
+from .pipeline import DetailCollector, _fx_series, _preexisting_net_open, run_pipeline
 from .tables import compute_user_tables
 from .taxes import TaxInjection, compute_custom_taxes
 
@@ -61,6 +61,7 @@ def _run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
         _check_invariants(income, cashflow, balance, profit_use, n)
 
     metrics = _metrics(model, cashflow)
+    metrics_foreign = _metrics_foreign(model, cashflow)
     sb = model.company.starting_balance
     # Остаточная стоимость пред-существующих ОС (purchase_month<0) входит в стартовые ОС (t=−1).
     opening_fixed = sb.fixed_assets_net + _preexisting_net_open(model)
@@ -100,6 +101,7 @@ def _run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
         balance=balance,
         profit_use=profit_use,
         metrics=metrics,
+        metrics_foreign=metrics_foreign,
         ratios=ratios,
         break_even=break_even,
         valuation=valuation,
@@ -225,3 +227,20 @@ def _metrics(model: ProjectModel, cashflow) -> InvestmentMetrics:
     net_flow = add(cashflow["C13"], cashflow["C20"])
     r_m = annual_to_monthly(model.settings.discount_rate_annual)
     return build_investment_metrics(net_flow, r_m)
+
+
+def _metrics_foreign(model: ProjectModel, cashflow) -> InvestmentMetrics | None:
+    """Показатели во второй валюте (SPEC §17): поток пересчитан по курсу, дисконт — своей
+    ставкой валюты. None, если ставка дисконтирования по валюте не задана (инертно).
+
+    Курс ``fx[t]`` — единиц основной валюты за единицу второй; поток в основной валюте
+    делится на курс → поток во второй валюте. Показатели считаются той же машинерией.
+    """
+    rate = model.settings.discount_rate_annual_foreign
+    if rate <= ZERO:
+        return None
+    net_flow = add(cashflow["C13"], cashflow["C20"])
+    fx = _fx_series(model.environment, model.n)
+    foreign_flow = [net_flow[t] / fx[t] for t in range(model.n)]
+    r_m = annual_to_monthly(rate)
+    return build_investment_metrics(foreign_flow, r_m)

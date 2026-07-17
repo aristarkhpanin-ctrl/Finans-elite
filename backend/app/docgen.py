@@ -143,6 +143,32 @@ def _add_metrics(doc: Document, result: CalcResult) -> None:
     _shrink_table(table, 9)
 
 
+def _add_metrics_foreign(doc: Document, model: ProjectModel, result: CalcResult) -> None:
+    """Показатели во второй валюте (gap 1.4); пропуск, если ставка по валюте не задана."""
+    m = result.metrics_foreign
+    if m is None:
+        return
+    currencies = model.environment.currencies
+    code = currencies[1].code if len(currencies) > 1 else "вал."
+    doc.add_heading(f"Показатели во второй валюте ({code})", level=1)
+    months = lambda v: f"{v} мес." if v is not None else "не достигается"  # noqa: E731
+    pct = lambda v: fmt_pct(v) + " годовых" if v is not None else "не определена"  # noqa: E731
+    rows = [
+        ("Чистая приведённая стоимость (NPV)", f"{fmt_rub(m.npv)} {code}"),
+        ("Внутренняя норма доходности (IRR)", pct(m.irr_annual)),
+        ("Модифицированная IRR (MIRR)", pct(m.mirr_annual)),
+        ("Индекс прибыльности (PI)", f"{m.pi:.2f}" if m.pi is not None else "не определён"),
+        ("Срок окупаемости (PB)", months(m.pb_months)),
+        ("Дисконтированный срок окупаемости (DPB)", months(m.dpb_months)),
+    ]
+    table = doc.add_table(rows=len(rows), cols=2)
+    table.style = "Table Grid"
+    for i, (name, value) in enumerate(rows):
+        table.rows[i].cells[0].text = name
+        table.rows[i].cells[1].text = value
+    _shrink_table(table, 9)
+
+
 def _add_participants(doc: Document, result: CalcResult) -> None:
     if not result.participants:
         return
@@ -278,6 +304,7 @@ def build_business_plan_docx(model: ProjectModel, result: CalcResult, opinion: s
 
     _add_opinion(doc, opinion)
     _add_metrics(doc, result)
+    _add_metrics_foreign(doc, model, result)
     _add_participants(doc, result)
     _add_user_sections(doc, model)
     _add_product_margins(doc, result)

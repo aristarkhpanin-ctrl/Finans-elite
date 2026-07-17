@@ -277,6 +277,27 @@ export function ProjectResultsPage() {
     { label: "Ликвидационная", value: val.liquidation_value ? fmtMillions(val.liquidation_value, { digits: 1 }) : "—", hint: "Возвратная стоимость активов при ликвидации минус обязательства." },
   ];
 
+  // Показатели во второй валюте (gap 1.4): поток пересчитан по курсу, дисконт — своей ставкой.
+  const mf = data.metrics_foreign;
+  const foreignCode = projectQuery.data?.model.environment.currencies?.[1]?.code ?? "вал.";
+  const foreignRate = projectQuery.data?.model.settings.discount_rate_annual_foreign;
+  const foreignCards: Array<{ label: string; value: string; hint: string }> = mf
+    ? [
+        { label: "NPV", value: fmtMillions(mf.npv, { sign: true, digits: 1, unit: foreignCode }),
+          hint: `Чистая приведённая стоимость во второй валюте (${foreignCode}) по ставке ${percent(foreignRate, 0)}.` },
+        { label: "IRR", value: mf.irr_annual != null ? percent(mf.irr_annual, 1) : "—",
+          hint: "Внутренняя норма доходности потока во второй валюте (годовая)." },
+        { label: "MIRR", value: mf.mirr_annual != null ? percent(mf.mirr_annual, 1) : "—",
+          hint: "Модифицированная IRR потока во второй валюте." },
+        { label: "PI", value: mf.pi ? fmtRatio(mf.pi, 2) : "—",
+          hint: "Индекс прибыльности во второй валюте." },
+        { label: "Срок окупаемости", value: mf.pb_months != null ? `${mf.pb_months} мес` : "> горизонта",
+          hint: "Месяц выхода накопленного потока (во второй валюте) в плюс." },
+        { label: "Дисконт. окупаемость", value: mf.dpb_months != null ? `${mf.dpb_months} мес` : "—",
+          hint: "То же по дисконтированному потоку во второй валюте." },
+      ]
+    : [];
+
   const statementView = (key: StatementKey) => {
     const eff = period ?? defaultPeriod(data.n);
     const labels = periodLabels(data.n, eff);
@@ -382,6 +403,27 @@ export function ProjectResultsPage() {
             </div>
           ))}
         </div>
+
+        {foreignCards.length > 0 && (
+          <>
+            <div className="rsection-label">Показатели во второй валюте ({foreignCode})</div>
+            <div className="metric-grid metric-grid--val">
+              {foreignCards.map((c) => (
+                <div key={c.label} className="metric-card2">
+                  <div className="metric-card2__top">
+                    <span className="metric-card2__label" style={{ fontSize: 11.5 }}>
+                      {c.label}
+                    </span>
+                    <HintBadge text={c.hint} />
+                  </div>
+                  <div className="metric-card2__value" style={{ fontSize: 17 }}>
+                    {c.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
 
         <div className="rsection-label">Оценка бизнеса</div>
         <div className="metric-grid metric-grid--val">

@@ -189,6 +189,9 @@ class CalcResult:
     balance: Statement
     profit_use: Statement
     metrics: InvestmentMetrics = field(default_factory=InvestmentMetrics)
+    # Показатели во второй валюте (SPEC §17); None, если ставка дисконтирования по валюте
+    # не задана (поток пересчитан по курсу fx_rate, дисконт — своей ставкой валюты).
+    metrics_foreign: Optional[InvestmentMetrics] = None
     ratios: FinancialRatios = field(default_factory=FinancialRatios)
     break_even: BreakEven = field(default_factory=BreakEven)
     valuation: BusinessValuation = field(default_factory=BusinessValuation)

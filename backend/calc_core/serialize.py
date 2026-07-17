@@ -162,6 +162,8 @@ def result_to_dict(result: CalcResult) -> dict[str, object]:
                        "error": r.error} for r in t.rows]}
             for t in result.user_tables
         ]
+    if result.metrics_foreign is not None:
+        snapshot["metrics_foreign"] = metrics_to_dict(result.metrics_foreign)
     if result.actualized_cashflow is not None:
         snapshot["actualized_cashflow"] = statement_to_dict(result.actualized_cashflow)
     if result.cashflow_variance is not None:

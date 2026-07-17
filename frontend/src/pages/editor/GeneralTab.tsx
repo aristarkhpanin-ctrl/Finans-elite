@@ -253,6 +253,11 @@ export function GeneralTab({ header, settings, environment, onHeader, onSettings
   const durationErr = header.duration_months < 1 ? "Минимум 1 месяц" : "";
   const liqErr = !inRange01(settings.liquidation_recovery_rate) ? "Значение должно быть от 0 до 1" : "";
   const benefitErr = !inRange01(settings.profit_tax_benefit_share) ? "Значение должно быть от 0 до 1" : "";
+  // Вторая валюта настроена → показываем ставку дисконтирования во второй валюте (gap 1.4).
+  const fxNum = (v: string | number | undefined | null) => Number(String(v ?? "").replace(",", "."));
+  const hasSecondCurrency =
+    (environment.fx_rate ?? []).some((v) => fxNum(v) > 0) ||
+    (fxNum(environment.fx_open) > 0 && fxNum(environment.fx_open) !== 1);
 
   return (
     <div className="editor-col">
@@ -287,6 +292,15 @@ export function GeneralTab({ header, settings, environment, onHeader, onSettings
           value={settings.discount_rate_annual}
           onChange={(v) => set({ discount_rate_annual: v })}
         />
+        {hasSecondCurrency && (
+          <EPercentField
+            label="Ставка дисконтирования (2-я валюта)"
+            suffix="% / год"
+            hint="0 — выключено. При ставке > 0 показатели дублируются во второй валюте: поток пересчитывается по курсу второй валюты."
+            value={settings.discount_rate_annual_foreign ?? "0"}
+            onChange={(v) => set({ discount_rate_annual_foreign: v })}
+          />
+        )}
         <EPercentField
           label="Темп роста для оценки, g"
           suffix="%"

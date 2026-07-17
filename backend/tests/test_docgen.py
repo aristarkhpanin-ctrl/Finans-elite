@@ -123,6 +123,22 @@ def _project(client, headers, name="Документ"):
                        headers=headers).json()["id"]
 
 
+def test_foreign_metrics_block_in_document():
+    """Ставка дисконтирования по валюте → раздел «Показатели во второй валюте» (gap 1.4)."""
+    from calc_core.samples import (
+        build_showcase_project,  # витрина содержит вторую валюту (fx)
+    )
+
+    model = build_showcase_project()
+    assert model.environment.fx_rate                       # предпосылка: вторая валюта есть
+    model.settings.discount_rate_annual_foreign = Decimal("0.10")
+    text = _texts(_build(model))
+    assert "Показатели во второй валюте" in text
+    # без ставки по валюте раздела нет
+    model.settings.discount_rate_annual_foreign = Decimal("0")
+    assert "Показатели во второй валюте" not in _texts(_build(model))
+
+
 def test_business_plan_endpoint(client, auth_headers):
     pid = _project(client, auth_headers)
     r = client.get(f"/api/v1/projects/{pid}/business-plan.docx", headers=auth_headers)
