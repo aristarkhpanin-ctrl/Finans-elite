@@ -823,6 +823,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
     b12 = nbv[AssetCategory.LAND]
     b13 = nbv[AssetCategory.BUILDINGS]
     b14 = [sb.fixed_assets_net + nbv[AssetCategory.EQUIPMENT][t] for t in range(n)]
+    b16 = nbv[AssetCategory.INTANGIBLE]   # НМА — остаточная стоимость → B16 (Другие активы)
     # Σ(B12,B13,B14) = b9 − b10 (B11), поэтому баланс сходится как прежде.
 
     # Налог на имущество: база — амортизируемое имущество (здания+оборудование), без земли
@@ -1015,6 +1016,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
         "B13": b13,                # здания и сооружения
         "B14": b14,                # оборудование (+ стартовая остаточная стоимость)
         "B15": stage_b15,          # расходы будущих периодов (капитализ. издержки этапов)
+        "B16": b16,                # другие активы: НМА (остаточная стоимость)
         "B19": fl_b19,             # имущество в финансовом лизинге (нетто)
         "B22": auto_debt,          # краткосрочные займы (кредитная линия)
         "B23": b23,                # счета к оплате (кредиторка)
