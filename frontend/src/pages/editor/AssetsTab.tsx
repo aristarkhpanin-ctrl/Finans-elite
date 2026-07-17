@@ -140,6 +140,8 @@ export function AssetsTab({ investment, onChange }: Props) {
                     <EField
                       label="Месяц приобретения"
                       prefix="М"
+                      hint="Отрицательный месяц — актив куплен до старта проекта (пред-существующее ОС): доамортизируется с t=0, остаточную стоимость сбалансируйте капиталом/прибылью в стартовом балансе."
+                      note={a.purchase_month < 0 ? "Куплен до старта проекта" : undefined}
                       value={a.purchase_month}
                       onChange={(v) => upd(i, { purchase_month: parseInt(v || "0", 10) || 0 })}
                     />
