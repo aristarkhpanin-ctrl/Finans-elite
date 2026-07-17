@@ -228,6 +228,30 @@ def _add_product_margins(doc: Document, result: CalcResult) -> None:
         )
 
 
+def _add_division_margins(doc: Document, result: CalcResult) -> None:
+    """Доходы подразделений (gap 4.5); пропуск, если подразделений нет."""
+    dms = result.division_margins
+    if not dms:
+        return
+    doc.add_heading("Доходы подразделений", level=1)
+    table = doc.add_table(rows=1 + len(dms), cols=5)
+    table.style = "Table Grid"
+    for j, h in enumerate(["Подразделение", "Продуктов", "Выручка", "Маржа", "Доля маржи"]):
+        table.rows[0].cells[j].text = h
+    for i, d in enumerate(dms):
+        row = table.rows[i + 1].cells
+        row[0].text = d.name
+        row[1].text = str(d.product_count)
+        row[2].text = _fmt_money(d.revenue)
+        row[3].text = _fmt_money(d.margin)
+        row[4].text = fmt_pct(d.margin_share) if d.margin_share is not None else "—"
+    _shrink_table(table, 8.5)
+    doc.add_paragraph(
+        "Свёртка маржи продуктов по бизнес-единицам; продукты без рецептуры/подразделения "
+        "в свёртку не входят."
+    )
+
+
 def _add_budget(doc: Document, result: CalcResult) -> None:
     budget = result.budget
     if not budget.stages:
@@ -308,6 +332,7 @@ def build_business_plan_docx(model: ProjectModel, result: CalcResult, opinion: s
     _add_participants(doc, result)
     _add_user_sections(doc, model)
     _add_product_margins(doc, result)
+    _add_division_margins(doc, result)
     _add_budget(doc, result)
     _add_statements(doc, model, result)
 

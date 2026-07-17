@@ -139,6 +139,27 @@ def test_foreign_metrics_block_in_document():
     assert "Показатели во второй валюте" not in _texts(_build(model))
 
 
+def test_division_margins_block_in_document():
+    """Подразделения с продуктами-рецептурами → раздел «Доходы подразделений» (gap 4.5)."""
+    from calc_core.models import BomLine, Division, Material, Product, SalesLine
+
+    model = build_sample_project()
+    model.company.divisions = [Division(id="d1", name="Основное")]
+    mat = Material(id="mm", name="Сырьё", unit_price=Decimal(5))
+    model.operating_plan.materials = [*model.operating_plan.materials, mat]
+    prod = Product(id="dx", name="Изделие X", division_id="d1",
+                   bom=[BomLine(material_id="mm", qty_per_unit=Decimal(2))])
+    model.operating_plan.products = [*model.operating_plan.products, prod]
+    model.operating_plan.sales = [
+        *model.operating_plan.sales,
+        SalesLine(product_id="dx", volume=[Decimal(10)] * model.n, price=[Decimal(100)] * model.n),
+    ]
+    assert "Доходы подразделений" in _texts(_build(model))
+    # без подразделений раздела нет
+    model.company.divisions = []
+    assert "Доходы подразделений" not in _texts(_build(model))
+
+
 def test_business_plan_endpoint(client, auth_headers):
     pid = _project(client, auth_headers)
     r = client.get(f"/api/v1/projects/{pid}/business-plan.docx", headers=auth_headers)

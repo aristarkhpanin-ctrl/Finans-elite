@@ -8,7 +8,18 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+
+class Division(BaseModel):
+    """Подразделение (бизнес-единица) — справочник имён для аналитики (gap 4.5).
+
+    Отнесение продукта — через ``Product.division_id``; к расчёту отчётов отношения не
+    имеет (пустой список инертен). Маржа по подразделениям — свёртка маржи продуктов.
+    """
+
+    id: str
+    name: str = ""
 
 
 class StartingBalance(BaseModel):
@@ -43,3 +54,5 @@ class StartingBalance(BaseModel):
 
 class Company(BaseModel):
     starting_balance: StartingBalance = StartingBalance()
+    # Подразделения (бизнес-единицы) для аналитики доходов (gap 4.5); пусто = без структуры.
+    divisions: list[Division] = Field(default_factory=list)

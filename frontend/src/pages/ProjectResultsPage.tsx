@@ -483,6 +483,45 @@ export function ProjectResultsPage() {
           </>
         )}
 
+        {tab === "summary" && (data.division_margins ?? []).length > 0 && (
+          <>
+            <div className="rsection-label">Доходы подразделений</div>
+            <div className="contrib-wrap">
+              <div className="contrib-row contrib-row--head">
+                <div className="contrib-label">Подразделение</div>
+                <div className="contrib-cell">Выручка</div>
+                <div className="contrib-cell">Материалы</div>
+                <div className="contrib-cell">Сдельная ЗП</div>
+                <div className="contrib-cell">Маржа</div>
+                <div className="contrib-cell">Маржа, %</div>
+              </div>
+              {data.division_margins.map((d) => {
+                const neg = Number(d.margin) < 0;
+                return (
+                  <div className="contrib-row" key={d.division_id}>
+                    <div className="contrib-label">
+                      {d.name || d.division_id}
+                      <span className="muted" style={{ fontSize: 11, marginLeft: 6 }}>· {d.product_count} прод.</span>
+                    </div>
+                    <div className="contrib-cell">{fmtMillions(d.revenue, { digits: 2 })}</div>
+                    <div className="contrib-cell">{fmtMillions(d.bom_cost, { digits: 2 })}</div>
+                    <div className="contrib-cell">{fmtMillions(d.piece_wages, { digits: 2 })}</div>
+                    <div className={"contrib-cell" + (neg ? " contrib-cell--neg" : "")}>
+                      {fmtMillions(d.margin, { sign: true, digits: 2 })}
+                    </div>
+                    <div className={"contrib-cell" + (neg ? " contrib-cell--neg" : "")}>
+                      {d.margin_share != null ? percent(d.margin_share, 1) : "—"}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="field-note" style={{ marginTop: 8 }}>
+              Свёртка маржи продуктов по бизнес-единицам; продукты без рецептуры/подразделения в свёртку не входят.
+            </div>
+          </>
+        )}
+
         {tab === "summary" && (data.participants ?? []).length > 0 && (
           <>
             <div className="rsection-label">Доходы участников финансирования</div>

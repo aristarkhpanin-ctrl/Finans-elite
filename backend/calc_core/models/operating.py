@@ -74,6 +74,9 @@ class Product(BaseModel):
     # Пустая рецептура — продукт без пер-продуктной себестоимости (как раньше).
     bom: list[BomLine] = Field(default_factory=list)
     piece_wage_per_unit: Decimal = Decimal(0)
+    # Подразделение (бизнес-единица), к которому отнесён продукт (SPEC §6, gap 4.5).
+    # None — продукт вне структуры; аналитика по подразделениям сворачивает маржу продуктов.
+    division_id: Optional[str] = None
 
 
 class SalesLine(BaseModel):

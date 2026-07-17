@@ -121,6 +121,16 @@ def product_margins_to_dict(pm) -> dict[str, object]:
     }
 
 
+def division_margins_to_dict(items) -> list[dict[str, object]]:
+    return [
+        {"division_id": d.division_id, "name": d.name, "revenue": _money(d.revenue),
+         "bom_cost": _money(d.bom_cost), "piece_wages": _money(d.piece_wages),
+         "margin": _money(d.margin), "margin_share": _ratio(d.margin_share),
+         "product_count": d.product_count}
+        for d in items
+    ]
+
+
 def participants_to_dict(items) -> list[dict[str, object]]:
     return [
         {"id": p.id, "name": p.name, "kind": p.kind,
@@ -153,6 +163,8 @@ def result_to_dict(result: CalcResult) -> dict[str, object]:
         snapshot["budget"] = budget_to_dict(result.budget)
     if result.product_margins.products:
         snapshot["product_margins"] = product_margins_to_dict(result.product_margins)
+    if result.division_margins:
+        snapshot["division_margins"] = division_margins_to_dict(result.division_margins)
     if result.participants:
         snapshot["participants"] = participants_to_dict(result.participants)
     if result.user_tables:

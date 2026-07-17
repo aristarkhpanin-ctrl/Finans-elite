@@ -546,6 +546,14 @@
             "title": "Details",
             "type": "array"
           },
+          "division_margins": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DivisionMarginOut"
+            },
+            "title": "Division Margins",
+            "type": "array"
+          },
           "engine_version": {
             "title": "Engine Version",
             "type": "string"
@@ -723,6 +731,13 @@
       },
       "Company-Input": {
         "properties": {
+          "divisions": {
+            "items": {
+              "$ref": "#/components/schemas/Division"
+            },
+            "title": "Divisions",
+            "type": "array"
+          },
           "starting_balance": {
             "$ref": "#/components/schemas/StartingBalance-Input",
             "default": {
@@ -750,6 +765,13 @@
       },
       "Company-Output": {
         "properties": {
+          "divisions": {
+            "items": {
+              "$ref": "#/components/schemas/Division"
+            },
+            "title": "Divisions",
+            "type": "array"
+          },
           "starting_balance": {
             "$ref": "#/components/schemas/StartingBalance-Output",
             "default": {
@@ -850,6 +872,14 @@
               "$ref": "#/components/schemas/LineDetailOut"
             },
             "title": "Details",
+            "type": "array"
+          },
+          "division_margins": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DivisionMarginOut"
+            },
+            "title": "Division Margins",
             "type": "array"
           },
           "engine_version": {
@@ -1244,6 +1274,85 @@
           "kind"
         ],
         "title": "DistributionIn",
+        "type": "object"
+      },
+      "Division": {
+        "description": "Подразделение (бизнес-единица) — справочник имён для аналитики (gap 4.5).\n\nОтнесение продукта — через ``Product.division_id``; к расчёту отчётов отношения не\nимеет (пустой список инертен). Маржа по подразделениям — свёртка маржи продуктов.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "default": "",
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "Division",
+        "type": "object"
+      },
+      "DivisionMarginOut": {
+        "description": "Маржа подразделения (gap 4.5): свёртка маржи продуктов бизнес-единицы.",
+        "properties": {
+          "bom_cost": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Bom Cost",
+            "type": "string"
+          },
+          "division_id": {
+            "title": "Division Id",
+            "type": "string"
+          },
+          "margin": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Margin",
+            "type": "string"
+          },
+          "margin_share": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Margin Share"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "piece_wages": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Piece Wages",
+            "type": "string"
+          },
+          "product_count": {
+            "title": "Product Count",
+            "type": "integer"
+          },
+          "revenue": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Revenue",
+            "type": "string"
+          }
+        },
+        "required": [
+          "division_id",
+          "name",
+          "revenue",
+          "bom_cost",
+          "piece_wages",
+          "margin",
+          "product_count"
+        ],
+        "title": "DivisionMarginOut",
         "type": "object"
       },
       "Environment-Input": {
@@ -3478,6 +3587,17 @@
             "title": "Bom",
             "type": "array"
           },
+          "division_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Division Id"
+          },
           "id": {
             "title": "Id",
             "type": "string"
@@ -3515,6 +3635,17 @@
             },
             "title": "Bom",
             "type": "array"
+          },
+          "division_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Division Id"
           },
           "id": {
             "title": "Id",
@@ -3749,6 +3880,7 @@
           "company": {
             "$ref": "#/components/schemas/Company-Input",
             "default": {
+              "divisions": [],
               "starting_balance": {
                 "additional_capital": "0",
                 "advances_received": "0",
@@ -3898,6 +4030,7 @@
           "company": {
             "$ref": "#/components/schemas/Company-Output",
             "default": {
+              "divisions": [],
               "starting_balance": {
                 "additional_capital": "0",
                 "advances_received": "0",
@@ -6921,7 +7054,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.38"
+    "version": "0.9.39"
   },
   "openapi": "3.1.0",
   "paths": {

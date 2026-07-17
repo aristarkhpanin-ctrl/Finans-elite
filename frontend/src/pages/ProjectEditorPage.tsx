@@ -216,8 +216,9 @@ export function ProjectEditorPage() {
         />
       )}
       {tab === "sales" && (
-        <SalesTab n={n} operating={model.operating_plan}
-                  onChange={(operating_plan) => setModel({ ...model, operating_plan })} />
+        <SalesTab n={n} operating={model.operating_plan} company={model.company}
+                  onChange={(operating_plan) => setModel({ ...model, operating_plan })}
+                  onCompany={(company) => setModel({ ...model, company })} />
       )}
       {tab === "costs" && (
         <CostsTab n={n} operating={model.operating_plan}

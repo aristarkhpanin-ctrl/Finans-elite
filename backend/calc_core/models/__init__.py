@@ -11,7 +11,7 @@ from .common import (
     RepaymentType,
     VatBasis,
 )
-from .company import Company, StartingBalance
+from .company import Company, Division, StartingBalance
 from .environment import Currency, Environment, InflationGroup, Tax
 from .financing import AutoFinancing, Deposit, EquityInjection, Financing, Lease, Loan
 from .investment import AdditionalInvestment, Asset, InvestmentPlan
@@ -38,6 +38,7 @@ __all__ = [
     "ProjectSettings",
     "PlanSection",
     "Company",
+    "Division",
     "StartingBalance",
     "Environment",
     "Currency",

@@ -70,6 +70,25 @@ class ProductMargins:
 
 
 @dataclass
+class DivisionMargin:
+    """Маржа подразделения (gap 4.5): свёртка маржи продуктов бизнес-единицы.
+
+    Аналитика поверх ``product_margins`` — суммирует продукты с рецептурой, отнесённые к
+    подразделению. Продукты без рецептуры/без подразделения сюда не входят (как и в маржу
+    продуктов — без фейковой аллокации). ``product_count`` — число сведённых продуктов.
+    """
+
+    division_id: str
+    name: str
+    revenue: Decimal
+    bom_cost: Decimal
+    piece_wages: Decimal
+    margin: Decimal
+    margin_share: Optional[Decimal]
+    product_count: int
+
+
+@dataclass
 class ParticipantFlow:
     """Доходы участника финансирования (SPEC §17): поток, вложено/получено, NPV/IRR.
 
@@ -199,6 +218,8 @@ class CalcResult:
     budget: Budget = field(default_factory=Budget)
     # Маржа по продуктам (рецептуры/BOM); пустая, если рецептур нет.
     product_margins: ProductMargins = field(default_factory=ProductMargins)
+    # Маржа по подразделениям (свёртка маржи продуктов); пусто без подразделений.
+    division_margins: list[DivisionMargin] = field(default_factory=list)
     # Таблицы пользователя (строки-формулы); пустые, если таблиц нет.
     user_tables: list[UserTableResult] = field(default_factory=list)
     # Детализация ключевых строк отчётов (drill-down); не входит в golden-снимок.

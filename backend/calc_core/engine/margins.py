@@ -16,7 +16,7 @@ from decimal import Decimal
 from ..models import DirectCostKind
 from ..models.project import ProjectModel
 from ..money import ZERO
-from ..reports.result import ProductMargin, ProductMargins
+from ..reports.result import DivisionMargin, ProductMargin, ProductMargins
 from ..series import zeros
 from .pipeline import (
     _apply_production_starts,
@@ -96,3 +96,47 @@ def compute_product_margins(model: ProjectModel, n: int) -> ProductMargins:
                 idx = idx_direct if dc.kind == DirectCostKind.MATERIALS else idx_wages
                 unallocated += base[t] * idx[t]
     return ProductMargins(products=products, unallocated_direct=unallocated)
+
+
+def compute_division_margins(model: ProjectModel, margins: ProductMargins) -> list[DivisionMargin]:
+    """Маржа по подразделениям (gap 4.5): свёртка маржи продуктов бизнес-единицы.
+
+    Чисто аналитика поверх ``product_margins`` — суммирует показатели продуктов с
+    рецептурой, отнесённых к подразделению (`Product.division_id`). Продукты без
+    подразделения не сворачиваются (видны на уровне продуктов); без фейковой аллокации —
+    суммовые издержки остаются «нераспределёнными». Пустой список подразделений инертен.
+    """
+    if not model.company.divisions:
+        return []
+    div_of = {p.id: p.division_id for p in model.operating_plan.products}
+    name_of = {d.id: (d.name or d.id) for d in model.company.divisions}
+
+    order: list[str] = []                       # порядок первого появления (стабильность)
+    agg: dict[str, dict[str, Decimal]] = {}
+    count: dict[str, int] = {}
+    for pm in margins.products:
+        did = div_of.get(pm.product_id)
+        if did is None or did not in name_of:
+            continue
+        if did not in agg:
+            order.append(did)
+            agg[did] = {"revenue": ZERO, "bom_cost": ZERO, "piece_wages": ZERO, "margin": ZERO}
+            count[did] = 0
+        a = agg[did]
+        a["revenue"] += pm.revenue
+        a["bom_cost"] += pm.bom_cost
+        a["piece_wages"] += pm.piece_wages
+        a["margin"] += pm.margin
+        count[did] += 1
+
+    out: list[DivisionMargin] = []
+    for did in order:
+        a = agg[did]
+        rev = a["revenue"]
+        out.append(DivisionMargin(
+            division_id=did, name=name_of[did], revenue=rev, bom_cost=a["bom_cost"],
+            piece_wages=a["piece_wages"], margin=a["margin"],
+            margin_share=(a["margin"] / rev) if rev != 0 else None,
+            product_count=count[did],
+        ))
+    return out

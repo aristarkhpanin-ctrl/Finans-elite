@@ -1160,6 +1160,11 @@ export interface components {
              * @default []
              */
             details: components["schemas"]["LineDetailOut"][];
+            /**
+             * Division Margins
+             * @default []
+             */
+            division_margins: components["schemas"]["DivisionMarginOut"][];
             /** Engine Version */
             engine_version: string;
             income: components["schemas"]["StatementOut"];
@@ -1231,6 +1236,8 @@ export interface components {
         };
         /** Company */
         "Company-Input": {
+            /** Divisions */
+            divisions?: components["schemas"]["Division"][];
             /**
              * @default {
              *       "additional_capital": "0",
@@ -1255,6 +1262,8 @@ export interface components {
         };
         /** Company */
         "Company-Output": {
+            /** Divisions */
+            divisions?: components["schemas"]["Division"][];
             /**
              * @default {
              *       "additional_capital": "0",
@@ -1310,6 +1319,11 @@ export interface components {
              * @default []
              */
             details: components["schemas"]["LineDetailOut"][];
+            /**
+             * Division Margins
+             * @default []
+             */
+            division_margins: components["schemas"]["DivisionMarginOut"][];
             /** Engine Version */
             engine_version: string;
             income: components["schemas"]["StatementOut"];
@@ -1497,6 +1511,44 @@ export interface components {
             mode?: number | string | null;
             /** Std */
             std?: number | string | null;
+        };
+        /**
+         * Division
+         * @description Подразделение (бизнес-единица) — справочник имён для аналитики (gap 4.5).
+         *
+         *     Отнесение продукта — через ``Product.division_id``; к расчёту отчётов отношения не
+         *     имеет (пустой список инертен). Маржа по подразделениям — свёртка маржи продуктов.
+         */
+        Division: {
+            /** Id */
+            id: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+        };
+        /**
+         * DivisionMarginOut
+         * @description Маржа подразделения (gap 4.5): свёртка маржи продуктов бизнес-единицы.
+         */
+        DivisionMarginOut: {
+            /** Bom Cost */
+            bom_cost: string;
+            /** Division Id */
+            division_id: string;
+            /** Margin */
+            margin: string;
+            /** Margin Share */
+            margin_share?: string | null;
+            /** Name */
+            name: string;
+            /** Piece Wages */
+            piece_wages: string;
+            /** Product Count */
+            product_count: number;
+            /** Revenue */
+            revenue: string;
         };
         /** Environment */
         "Environment-Input": {
@@ -2613,6 +2665,8 @@ export interface components {
         "Product-Input": {
             /** Bom */
             bom?: components["schemas"]["BomLine-Input"][];
+            /** Division Id */
+            division_id?: string | null;
             /** Id */
             id: string;
             /** Name */
@@ -2627,6 +2681,8 @@ export interface components {
         "Product-Output": {
             /** Bom */
             bom?: components["schemas"]["BomLine-Output"][];
+            /** Division Id */
+            division_id?: string | null;
             /** Id */
             id: string;
             /** Name */
@@ -2744,6 +2800,7 @@ export interface components {
             business_plan?: components["schemas"]["PlanSection"][];
             /**
              * @default {
+             *       "divisions": [],
              *       "starting_balance": {
              *         "additional_capital": "0",
              *         "advances_received": "0",
@@ -2881,6 +2938,7 @@ export interface components {
             business_plan?: components["schemas"]["PlanSection"][];
             /**
              * @default {
+             *       "divisions": [],
              *       "starting_balance": {
              *         "additional_capital": "0",
              *         "advances_received": "0",

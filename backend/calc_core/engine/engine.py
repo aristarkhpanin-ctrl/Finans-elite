@@ -22,7 +22,7 @@ from ..version import ENGINE_VERSION
 from .calendar import compute_budget
 from .errors import InvariantError
 from .financing_auto import AutoInjection, solve_cash_management
-from .margins import compute_product_margins
+from .margins import compute_division_margins, compute_product_margins
 from .participants import compute_participants
 from .pipeline import DetailCollector, _fx_series, _preexisting_net_open, run_pipeline
 from .tables import compute_user_tables
@@ -62,6 +62,7 @@ def _run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
 
     metrics = _metrics(model, cashflow)
     metrics_foreign = _metrics_foreign(model, cashflow)
+    product_margins = compute_product_margins(model, n)   # свёртка по подразделениям — из него
     sb = model.company.starting_balance
     # Остаточная стоимость пред-существующих ОС (purchase_month<0) входит в стартовые ОС (t=−1).
     opening_fixed = sb.fixed_assets_net + _preexisting_net_open(model)
@@ -106,7 +107,8 @@ def _run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
         break_even=break_even,
         valuation=valuation,
         budget=compute_budget(model, n),
-        product_margins=compute_product_margins(model, n),
+        product_margins=product_margins,
+        division_margins=compute_division_margins(model, product_margins),
         user_tables=compute_user_tables(model, income, cashflow, balance, profit_use, n),
         details=details,
         participants=compute_participants(model, cashflow, balance, n),

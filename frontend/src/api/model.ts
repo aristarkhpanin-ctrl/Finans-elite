@@ -36,6 +36,8 @@ export interface Product {
   /** Рецептура (BOM): нормы расхода материалов + сдельная ЗП на единицу. */
   bom?: BomLine[];
   piece_wage_per_unit?: string;
+  /** Подразделение (бизнес-единица), к которому отнесён продукт; null — вне структуры. */
+  division_id?: string | null;
 }
 
 export interface SalesLine {
@@ -308,8 +310,16 @@ export interface StartingBalance {
   retained_earnings: string;
 }
 
+/** Подразделение (бизнес-единица) — справочник имён для аналитики (gap 4.5). */
+export interface Division {
+  id: string;
+  name?: string;
+}
+
 export interface Company {
   starting_balance: StartingBalance;
+  /** Подразделения (бизнес-единицы); пусто — без структуры компании. */
+  divisions?: Division[];
   [key: string]: unknown;
 }
 

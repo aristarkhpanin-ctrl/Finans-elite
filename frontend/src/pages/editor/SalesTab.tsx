@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import type { BomLine, Material, OperatingPlan, Product, SalesLine } from "../../api/model";
+import type { BomLine, Company, Division, Material, OperatingPlan, Product, SalesLine } from "../../api/model";
 import { EField, ESelect } from "../../components/EditorField";
 import { IconCart, IconTrash } from "../../components/icons";
 import { MonthlyGrid } from "../../components/MonthlyGrid";
@@ -11,7 +11,9 @@ import { downloadSalesTemplate, parseSalesXlsx } from "../../salesXlsx";
 interface Props {
   n: number;
   operating: OperatingPlan;
+  company: Company;
   onChange: (op: OperatingPlan) => void;
+  onCompany: (c: Company) => void;
 }
 
 const emptyPayment = () => ({ prepayment_share: "0", advance_lead_months: 0, payment_delay_months: 0 });
@@ -27,8 +29,23 @@ const inRange01 = (v: string): boolean => {
 };
 
 /** Вкладка «Сбыт» (макет «Этап 6»): карточки продуктов с помесячной сеткой. */
-export function SalesTab({ n, operating, onChange }: Props) {
+export function SalesTab({ n, operating, company, onChange, onCompany }: Props) {
   const { products, sales, production } = operating;
+
+  // Подразделения (бизнес-единицы, gap 4.5): справочник имён + отнесение продукта.
+  const divisions = company.divisions ?? [];
+  const setDivisions = (next: Division[]) => onCompany({ ...company, divisions: next });
+  const addDivision = () =>
+    setDivisions([...divisions, { id: crypto.randomUUID(), name: `Подразделение ${divisions.length + 1}` }]);
+  const updDivision = (id: string, name: string) =>
+    setDivisions(divisions.map((d) => (d.id === id ? { ...d, name } : d)));
+  const rmDivision = (id: string) => {
+    setDivisions(divisions.filter((d) => d.id !== id));
+    // снять отнесение у продуктов удалённого подразделения
+    onChange({ ...operating, products: products.map((p) => (p.division_id === id ? { ...p, division_id: null } : p)) });
+  };
+  const setProductDivision = (productId: string, division_id: string | null) =>
+    onChange({ ...operating, products: products.map((p) => (p.id === productId ? { ...p, division_id } : p)) });
 
   // Импорт/шаблон рядов продаж из Excel (gap 5.3): round-trip через XLSX-грид продукт × месяц.
   const fileRef = useRef<HTMLInputElement>(null);
@@ -221,6 +238,18 @@ export function SalesTab({ n, operating, onChange }: Props) {
 
                 <MonthlyGrid n={n} rows={rows} />
 
+                {divisions.length > 0 && (
+                  <div style={{ marginTop: 12, maxWidth: 280 }}>
+                    <ESelect
+                      label="Подразделение"
+                      hint="Бизнес-единица для аналитики доходов; «—» — вне структуры компании"
+                      value={products.find((x) => x.id === line.product_id)?.division_id ?? ""}
+                      onChange={(v) => setProductDivision(line.product_id, v || null)}
+                      options={[["", "—"], ...divisions.map((d) => [d.id, d.name || d.id] as [string, string])]}
+                    />
+                  </div>
+                )}
+
                 <label className={"opt-row" + (line.foreign ? " opt-row--on" : "")}>
                   <input
                     type="checkbox"
@@ -332,6 +361,37 @@ export function SalesTab({ n, operating, onChange }: Props) {
           <button type="button" className="add-row" onClick={addProduct}>
             ＋&nbsp;&nbsp;Добавить ещё продукт
           </button>
+
+          {/* Справочник подразделений (бизнес-единиц) для аналитики доходов */}
+          <div className="res-lib">
+            <div className="res-lib__head">
+              <div className="res-lib__title">Подразделения (бизнес-единицы)</div>
+              <Button variant="ghost" onClick={addDivision}>＋&nbsp;&nbsp;Подразделение</Button>
+            </div>
+            {divisions.length === 0 ? (
+              <p className="muted" style={{ fontSize: 12.5, margin: 0 }}>
+                Группируйте продукты в подразделения — на сводке появится маржа по бизнес-единицам
+                (свёртка маржи продуктов с рецептурой). Продукты без рецептуры/подразделения в свёртку
+                не входят.
+              </p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {divisions.map((d) => (
+                  <div className="res-row" key={d.id}>
+                    <input className="res-row__name" value={d.name ?? ""} placeholder="Подразделение"
+                           onChange={(e) => updDivision(d.id, e.target.value)} />
+                    <span className="muted" style={{ fontSize: 12 }}>
+                      продуктов: {products.filter((p) => p.division_id === d.id).length}
+                    </span>
+                    <button type="button" className="line-card__del" title="Удалить подразделение"
+                            onClick={() => rmDivision(d.id)}>
+                      <IconTrash size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Справочник материалов для рецептур */}
           <div className="res-lib">

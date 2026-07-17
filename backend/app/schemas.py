@@ -116,6 +116,19 @@ class ProductMarginsOut(BaseModel):
     unallocated_direct: Decimal = Decimal(0)
 
 
+class DivisionMarginOut(BaseModel):
+    """Маржа подразделения (gap 4.5): свёртка маржи продуктов бизнес-единицы."""
+
+    division_id: str
+    name: str
+    revenue: Decimal
+    bom_cost: Decimal
+    piece_wages: Decimal
+    margin: Decimal
+    margin_share: Optional[Decimal] = None
+    product_count: int
+
+
 class UserRowOut(BaseModel):
     """Вычисленная строка таблицы пользователя (при ошибке формулы — error + нули)."""
 
@@ -175,6 +188,8 @@ class CalcResponse(BaseModel):
     valuation: ValuationOut
     budget: BudgetOut = BudgetOut()
     product_margins: ProductMarginsOut = ProductMarginsOut()
+    # Маржа по подразделениям (gap 4.5); пусто без подразделений.
+    division_margins: list[DivisionMarginOut] = []
     user_tables: list[UserTableOut] = []
     # Детализация ключевых строк отчётов (drill-down, пакет №6); пустая без данных.
     details: list[LineDetailOut] = []
@@ -684,6 +699,11 @@ def to_response(r: CalcResult) -> CalcResponse:
             ) for p in r.product_margins.products],
             unallocated_direct=r.product_margins.unallocated_direct,
         ),
+        division_margins=[DivisionMarginOut(
+            division_id=d.division_id, name=d.name, revenue=d.revenue, bom_cost=d.bom_cost,
+            piece_wages=d.piece_wages, margin=d.margin, margin_share=d.margin_share,
+            product_count=d.product_count,
+        ) for d in r.division_margins],
         details=[LineDetailOut(
             code=d.code,
             items=[LineDetailItemOut(name=i.name, values=list(i.values)) for i in d.items],
