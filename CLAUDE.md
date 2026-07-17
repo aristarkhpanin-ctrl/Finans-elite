@@ -214,6 +214,18 @@
   Методика — SPEC §17; план — `docs/DISCOUNT-CURRENCY-DECOMPOSITION.md`. UI — поле в секции
   «Дисконтирование» (при заданной второй валюте) + блок показателей на сводке; DOCX-раздел.
 
+## Импорт рядов продаж из Excel (пакет №8, gap 5.3) — завершено (EX0–EX2)
+
+- Round-trip XLSX: `frontend/src/salesXlsx.ts` — `buildSalesTemplate` (грид продукт × месяц,
+  ряды «Объём»/«Цена») и `applySalesRows` (иммутабельное наложение разобранных строк на
+  `operating.sales` по имени продукта; обновляются только `volume`/`price`; отчёт
+  `matched/skipped/ignored`). Обёртки `downloadSalesTemplate`/`parseSalesXlsx` — ленивый I/O
+  (`write-excel-file`/`read-excel-file`, клиентский парсинг). **Ядро/бэкенд не задействованы —
+  `ENGINE_VERSION`/golden не меняются** (чистая правка входной модели, как ручной ввод в
+  сетке). Ряд приводится к горизонту `n`, запятая-десятичная/пусто нормализуются; неизвестный
+  продукт → не создаётся (v1). UI — кнопки «Шаблон XLSX»/«Импорт XLSX» на вкладке «Сбыт» +
+  строка-итог. План — `docs/EXCEL-IMPORT-DECOMPOSITION.md`; 9 unit-тестов (`salesXlsx.test.ts`).
+
 ## Точность движка
 
 - Любое изменение методики расчёта — через golden-master (`UPDATE_GOLDEN=1 pytest

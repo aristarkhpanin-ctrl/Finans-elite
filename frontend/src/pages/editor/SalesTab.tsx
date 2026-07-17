@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import type { BomLine, Material, OperatingPlan, Product, SalesLine } from "../../api/model";
 import { EField, ESelect } from "../../components/EditorField";
 import { IconCart, IconTrash } from "../../components/icons";
@@ -5,6 +6,7 @@ import { MonthlyGrid } from "../../components/MonthlyGrid";
 import type { MonthlyRow } from "../../components/MonthlyGrid";
 import { Button, Switch } from "../../components/ui";
 import { fmtMoney } from "../../format";
+import { downloadSalesTemplate, parseSalesXlsx } from "../../salesXlsx";
 
 interface Props {
   n: number;
@@ -27,6 +29,24 @@ const inRange01 = (v: string): boolean => {
 /** Вкладка «Сбыт» (макет «Этап 6»): карточки продуктов с помесячной сеткой. */
 export function SalesTab({ n, operating, onChange }: Props) {
   const { products, sales, production } = operating;
+
+  // Импорт/шаблон рядов продаж из Excel (gap 5.3): round-trip через XLSX-грид продукт × месяц.
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const onImportFile = async (file: File) => {
+    setImportMsg(null);
+    try {
+      const res = await parseSalesXlsx(file, operating, n);
+      if (res.matched > 0) onChange(res.operating);
+      const parts = [`обновлено рядов: ${res.matched}`];
+      if (res.skipped.length) parts.push(`не найдены: ${res.skipped.join(", ")}`);
+      if (res.ignored) parts.push(`пропущено строк: ${res.ignored}`);
+      setImportMsg({ ok: res.matched > 0, text: parts.join(" · ") });
+    } catch {
+      setImportMsg({ ok: false, text: "Не удалось прочитать файл — нужен XLSX по шаблону." });
+    }
+  };
 
   const productName = (id: string) => products.find((p) => p.id === id)?.name ?? "";
   const productionLine = (id: string) => production.find((l) => l.product_id === id);
@@ -92,8 +112,38 @@ export function SalesTab({ n, operating, onChange }: Props) {
             Объём и цена по месяцам формируют выручку проекта. Горизонт: {n} мес.
           </div>
         </div>
-        <Button onClick={addProduct}>＋&nbsp;&nbsp;Продукт</Button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {sales.length > 0 && (
+            <>
+              <Button variant="ghost" onClick={() => downloadSalesTemplate("Продажи-шаблон.xlsx", operating, n)}>
+                ⭳&nbsp;&nbsp;Шаблон XLSX
+              </Button>
+              <Button variant="ghost" onClick={() => fileRef.current?.click()}>
+                ⭱&nbsp;&nbsp;Импорт XLSX
+              </Button>
+            </>
+          )}
+          <Button onClick={addProduct}>＋&nbsp;&nbsp;Продукт</Button>
+        </div>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".xlsx"
+          style={{ display: "none" }}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void onImportFile(f);
+            e.target.value = ""; // разрешить повторный выбор того же файла
+          }}
+        />
       </div>
+
+      {importMsg && (
+        <div className={"field-note" + (importMsg.ok ? "" : " field-note--warn")}
+             style={{ margin: "0 0 12px" }}>
+          Импорт из Excel: {importMsg.text}
+        </div>
+      )}
 
       {sales.length === 0 ? (
         <div className="tab-empty">
