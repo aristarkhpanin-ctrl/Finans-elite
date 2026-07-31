@@ -171,6 +171,9 @@ export function Layout() {
               <NavLink
                 key={to}
                 to={to}
+                // Пункт, под которым вложен другой пункт меню, подсвечивается только на
+                // самом себе — иначе «Субъекты» и «Группа» горели бы одновременно.
+                end={product.nav.some(([other]) => other !== to && other.startsWith(to + "/"))}
                 className={({ isActive }) =>
                   "shell-nav__item" + (isActive ? " shell-nav__item--active" : "")
                 }

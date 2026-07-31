@@ -176,3 +176,21 @@ export async function downloadAuditReport(id: string, filename: string): Promise
   a.click();
   URL.revokeObjectURL(url);
 }
+
+// --- Консолидация группы (фаза H) ---
+
+export interface AuditConsolidation {
+  analysis: AuditAnalysis;
+  members: string[];
+  periods_used: string[];
+  warnings: string[];
+}
+
+/** Свести отчётность выбранных субъектов и проанализировать группу как одно предприятие. */
+export async function consolidateAudit(subjectIds: string[], name: string): Promise<AuditConsolidation> {
+  const { data } = await api.post<AuditConsolidation>("/api/v1/audit/consolidate", {
+    subject_ids: subjectIds,
+    name,
+  });
+  return data;
+}

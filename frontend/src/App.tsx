@@ -5,6 +5,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Layout } from "./components/Layout";
 import { Splash } from "./components/Splash";
 import { ToastProvider } from "./components/Toast";
+import { AuditGroupPage } from "./pages/AuditGroupPage";
 import { AuditHomePage } from "./pages/AuditHomePage";
 import { AuditSubjectPage } from "./pages/AuditSubjectPage";
 import { HoldingDetailPage } from "./pages/HoldingDetailPage";
@@ -51,6 +52,7 @@ function AppRoutes() {
       >
         <Route path="/projects" element={<ProjectsPage />} />
         <Route path="/audit" element={<AuditHomePage />} />
+        <Route path="/audit/group" element={<AuditGroupPage />} />
         <Route path="/audit/:id" element={<AuditSubjectPage />} />
         <Route path="/holdings" element={<HoldingsPage />} />
         <Route path="/holdings/:id" element={<HoldingDetailPage />} />

@@ -434,6 +434,64 @@
         "title": "AuditAssessmentOut",
         "type": "object"
       },
+      "AuditConsolidateRequest": {
+        "description": "Запрос консолидации: список субъектов группы + имя свода.",
+        "properties": {
+          "name": {
+            "default": "Группа предприятий",
+            "title": "Name",
+            "type": "string"
+          },
+          "subject_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Subject Ids",
+            "type": "array"
+          }
+        },
+        "title": "AuditConsolidateRequest",
+        "type": "object"
+      },
+      "AuditConsolidateResponse": {
+        "description": "Свод группы: анализ консолидированной отчётности + состав и оговорки.",
+        "properties": {
+          "analysis": {
+            "$ref": "#/components/schemas/AuditAnalysisOut"
+          },
+          "members": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Members",
+            "type": "array"
+          },
+          "periods_used": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Periods Used",
+            "type": "array"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "analysis"
+        ],
+        "title": "AuditConsolidateResponse",
+        "type": "object"
+      },
       "AuditDiagnosticsOut": {
         "description": "Диагностика: скоринги, оценка нормативов и сводный «светофор».",
         "properties": {
@@ -7834,6 +7892,71 @@
         "summary": "Job Status",
         "tags": [
           "analysis"
+        ]
+      }
+    },
+    "/api/v1/audit/consolidate": {
+      "post": {
+        "description": "Свод отчётности группы субъектов и анализ группы как единого предприятия.\n\nВнутригрупповые обороты не исключаются — это отражено в предупреждениях ответа.",
+        "operationId": "consolidate_api_v1_audit_consolidate_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuditConsolidateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditConsolidateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Consolidate",
+        "tags": [
+          "audit"
         ]
       }
     },

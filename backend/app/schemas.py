@@ -833,6 +833,22 @@ class AuditAnalysisOut(BaseModel):
     warnings: list[str] = []
 
 
+class AuditConsolidateRequest(BaseModel):
+    """Запрос консолидации: список субъектов группы + имя свода."""
+
+    subject_ids: list[str] = Field(default_factory=list, min_length=1, max_length=50)
+    name: str = "Группа предприятий"
+
+
+class AuditConsolidateResponse(BaseModel):
+    """Свод группы: анализ консолидированной отчётности + состав и оговорки."""
+
+    analysis: AuditAnalysisOut
+    members: list[str] = []            # имена вошедших субъектов
+    periods_used: list[str] = []
+    warnings: list[str] = []
+
+
 def audit_analysis_response(result, opinion: str = "") -> "AuditAnalysisOut":
     """Собрать ответ анализа из ``audit_core.AuditResult`` (+ текст заключения)."""
     return AuditAnalysisOut(

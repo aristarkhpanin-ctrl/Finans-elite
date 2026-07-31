@@ -24,6 +24,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/audit/consolidate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Consolidate
+         * @description Свод отчётности группы субъектов и анализ группы как единого предприятия.
+         *
+         *     Внутригрупповые обороты не исключаются — это отражено в предупреждениях ответа.
+         */
+        post: operations["consolidate_api_v1_audit_consolidate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit/subjects": {
         parameters: {
             query?: never;
@@ -1184,6 +1206,41 @@ export interface components {
              * @default []
              */
             status: (string | null)[];
+        };
+        /**
+         * AuditConsolidateRequest
+         * @description Запрос консолидации: список субъектов группы + имя свода.
+         */
+        AuditConsolidateRequest: {
+            /**
+             * Name
+             * @default Группа предприятий
+             */
+            name: string;
+            /** Subject Ids */
+            subject_ids?: string[];
+        };
+        /**
+         * AuditConsolidateResponse
+         * @description Свод группы: анализ консолидированной отчётности + состав и оговорки.
+         */
+        AuditConsolidateResponse: {
+            analysis: components["schemas"]["AuditAnalysisOut"];
+            /**
+             * Members
+             * @default []
+             */
+            members: string[];
+            /**
+             * Periods Used
+             * @default []
+             */
+            periods_used: string[];
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
         };
         /**
          * AuditDiagnosticsOut
@@ -4894,6 +4951,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    consolidate_api_v1_audit_consolidate_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuditConsolidateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditConsolidateResponse"];
                 };
             };
             /** @description Validation Error */

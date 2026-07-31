@@ -30,6 +30,7 @@ export const PRODUCTS: Record<Product, ProductMeta> = {
     home: "/audit",
     nav: [
       ["/audit", "Субъекты"],
+      ["/audit/group", "Группа"],
       ["/organization", "Организация"],
     ],
     cubeAccent: ["#BC13FE", "#851FAE"],   // фиолетовый (#BC13FE)

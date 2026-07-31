@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
-from audit_core import analyze
+from audit_core import analyze, consolidate_subjects
 from audit_core.opinion import build_opinion
 
 from .. import crud
@@ -23,6 +23,8 @@ from ..deps import require_permission
 from ..rbac import Perm
 from ..schemas import (
     AuditAnalysisOut,
+    AuditConsolidateRequest,
+    AuditConsolidateResponse,
     AuditSubjectCreate,
     AuditSubjectOut,
     AuditSubjectSummary,
@@ -93,6 +95,32 @@ def analyze_subject(subject_id: str,
     subject = _require(db, org_id, subject_id)
     result = analyze(crud.load_audit_model(subject))
     return audit_analysis_response(result, build_opinion(result))
+
+
+@router.post("/consolidate", response_model=AuditConsolidateResponse)
+def consolidate(body: AuditConsolidateRequest,
+                org_id: str = Depends(require_permission(Perm.PROJECT_CALCULATE)),
+                db: Session = Depends(get_db)) -> AuditConsolidateResponse:
+    """Свод отчётности группы субъектов и анализ группы как единого предприятия.
+
+    Внутригрупповые обороты не исключаются — это отражено в предупреждениях ответа.
+    """
+    members = []
+    for sid in body.subject_ids:
+        subject = _require(db, org_id, sid)
+        members.append((subject.name, crud.load_audit_model(subject)))
+
+    consolidation = consolidate_subjects(members, name=body.name)
+    result = analyze(consolidation.model)
+    analysis = audit_analysis_response(result, build_opinion(result))
+    # Оговорки свода идут вперёд предупреждений самого анализа.
+    analysis.warnings = consolidation.warnings + list(analysis.warnings)
+    return AuditConsolidateResponse(
+        analysis=analysis,
+        members=[name for name, _ in members],
+        periods_used=consolidation.periods_used,
+        warnings=consolidation.warnings,
+    )
 
 
 @router.get("/subjects/{subject_id}/report.docx")
