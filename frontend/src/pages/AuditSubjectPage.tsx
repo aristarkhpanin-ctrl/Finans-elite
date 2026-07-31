@@ -7,13 +7,14 @@ import {
   INCOME_LINES,
   RATIO_GROUPS,
   analyzeAuditSubject,
+  downloadAuditReport,
   getAuditSubject,
   updateAuditSubject,
   type AuditLineOut,
   type AuditModel,
   type AuditPeriod,
 } from "../api/audit";
-import { IconTrash } from "../components/icons";
+import { IconDownload, IconTrash } from "../components/icons";
 import { useToast } from "../components/Toast";
 import { Button } from "../components/ui";
 import { fmtMoney } from "../format";
@@ -28,7 +29,7 @@ function groupSum(table: Record<string, string[]>, codes: string[], t: number): 
   return codes.reduce((s, c) => s + num(table[c]?.[t]), 0);
 }
 
-type Tab = "subject" | "input" | "reports" | "ratios" | "trends" | "diagnostics";
+type Tab = "subject" | "input" | "reports" | "ratios" | "trends" | "diagnostics" | "opinion";
 
 const TABS: [Tab, string][] = [
   ["subject", "Субъект"],
@@ -37,6 +38,7 @@ const TABS: [Tab, string][] = [
   ["ratios", "Коэффициенты"],
   ["trends", "Тренды"],
   ["diagnostics", "Диагностика"],
+  ["opinion", "Заключение"],
 ];
 
 /** Подписи и тон зон скоринга / статусов нормативов. */
@@ -109,7 +111,7 @@ export function AuditSubjectPage() {
 
   // Анализ считается по сохранённым данным — только для аналитических вкладок.
   const isAnalysisTab = tab === "reports" || tab === "ratios" || tab === "trends"
-    || tab === "diagnostics";
+    || tab === "diagnostics" || tab === "opinion";
   const analysis = useQuery({
     queryKey: ["audit-analysis", id],
     queryFn: () => analyzeAuditSubject(id),
@@ -333,6 +335,37 @@ export function AuditSubjectPage() {
             );
           })}
         </>
+      ) : tab === "opinion" ? (
+        <div className="audit-block">
+          <div className="tab-head" style={{ marginBottom: 12 }}>
+            <div className="audit-block__title" style={{ marginBottom: 0 }}>Экспертное заключение</div>
+            <Button
+              variant="ghost"
+              onClick={async () => {
+                try {
+                  await downloadAuditReport(id, `${name || "Заключение"}.docx`);
+                  toast("Документ скачан", { kind: "success" });
+                } catch {
+                  toast("Не удалось сформировать документ", { kind: "error" });
+                }
+              }}
+            >
+              <IconDownload size={15} />
+              <span style={{ marginLeft: 6 }}>Скачать DOCX</span>
+            </Button>
+          </div>
+          {analysis.data.opinion.split("\n\n").map((block, i) => (
+            <p key={i} className="opinion-block">
+              {block.split("\n").map((line, j) => (
+                <React.Fragment key={j}>{j > 0 && <br />}{line}</React.Fragment>
+              ))}
+            </p>
+          ))}
+          <div className="field-note" style={{ marginTop: 10 }}>
+            Текст формируется автоматически по результатам анализа (без ИИ) и приводится
+            целиком в документе DOCX.
+          </div>
+        </div>
       ) : tab === "diagnostics" ? (
         !analysis.data.diagnostics ? (
           <div className="tab-empty"><div className="tab-empty__title">Нет данных для диагностики</div></div>

@@ -818,12 +818,15 @@ class AuditAnalysisOut(BaseModel):
     balanced: bool = True
     # Диагностика (фаза D); None при пустой модели.
     diagnostics: Optional[AuditDiagnosticsOut] = None
+    # Экспертное заключение — связный автотекст по результату анализа (фаза E).
+    opinion: str = ""
     warnings: list[str] = []
 
 
-def audit_analysis_response(result) -> "AuditAnalysisOut":
-    """Собрать ответ анализа из ``audit_core.AuditResult``."""
+def audit_analysis_response(result, opinion: str = "") -> "AuditAnalysisOut":
+    """Собрать ответ анализа из ``audit_core.AuditResult`` (+ текст заключения)."""
     return AuditAnalysisOut(
+        opinion=opinion,
         n=result.n,
         periods=list(result.periods),
         balance=[AuditLineOut(code=ln.code, label=ln.label, values=list(ln.values),

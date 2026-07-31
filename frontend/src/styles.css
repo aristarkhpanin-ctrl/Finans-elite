@@ -2728,3 +2728,4 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .zone-chip.tone--ok { background: var(--good-bg); color: var(--good); }
 .zone-chip.tone--warn { background: var(--warn-bg); color: var(--warn-text); }
 .zone-chip.tone--risk { background: var(--danger-bg); color: var(--danger-text); }
+.opinion-block { font: 400 13.5px/1.62 var(--font-ui); color: var(--text); margin-bottom: 12px; white-space: pre-line; }

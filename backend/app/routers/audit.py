@@ -6,12 +6,17 @@
 """
 from __future__ import annotations
 
+from urllib.parse import quote
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from audit_core import analyze
+from audit_core.opinion import build_opinion
 
 from .. import crud
+from ..audit_docgen import DOCX_MIME, build_audit_docx
 from ..database import get_db
 from ..db_models import AuditSubject
 from ..deps import require_permission
@@ -86,7 +91,24 @@ def analyze_subject(subject_id: str,
                     db: Session = Depends(get_db)) -> AuditAnalysisOut:
     """Проанализировать отчётность субъекта: аналитическая форма, тренды, коэффициенты."""
     subject = _require(db, org_id, subject_id)
-    return audit_analysis_response(analyze(crud.load_audit_model(subject)))
+    result = analyze(crud.load_audit_model(subject))
+    return audit_analysis_response(result, build_opinion(result))
+
+
+@router.get("/subjects/{subject_id}/report.docx")
+def download_report(subject_id: str,
+                    org_id: str = Depends(require_permission(Perm.PROJECT_READ)),
+                    db: Session = Depends(get_db)) -> Response:
+    """Документ заключения по анализу (DOCX): заключение, отчёты, коэффициенты, диагностика."""
+    subject = _require(db, org_id, subject_id)
+    model = crud.load_audit_model(subject)
+    result = analyze(model)
+    content = build_audit_docx(result, build_opinion(result), subject_name=subject.name,
+                               industry=model.industry, currency=model.currency)
+    filename = quote(f"{subject.name or 'audit'}.docx")
+    return Response(content=content, media_type=DOCX_MIME, headers={
+        "Content-Disposition": f"attachment; filename*=UTF-8''{filename}",
+    })
 
 
 @router.delete("/subjects/{subject_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -96,6 +96,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/audit/subjects/{subject_id}/report.docx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Report
+         * @description Документ заключения по анализу (DOCX): заключение, отчёты, коэффициенты, диагностика.
+         */
+        get: operations["download_report_api_v1_audit_subjects__subject_id__report_docx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -1115,6 +1135,11 @@ export interface components {
             income: components["schemas"]["AuditLineOut"][];
             /** N */
             n: number;
+            /**
+             * Opinion
+             * @default
+             */
+            opinion: string;
             /**
              * Periods
              * @default []
@@ -5025,6 +5050,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuditAnalysisOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_report_api_v1_audit_subjects__subject_id__report_docx_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

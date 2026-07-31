@@ -129,6 +129,7 @@ export interface AuditAnalysis {
   balance_gap: string[];
   balanced: boolean;
   diagnostics: AuditDiagnostics | null;
+  opinion: string;
   warnings: string[];
 }
 
@@ -143,4 +144,17 @@ export const RATIO_GROUPS: [string, string][] = [
 export async function analyzeAuditSubject(id: string): Promise<AuditAnalysis> {
   const { data } = await api.post<AuditAnalysis>(`/api/v1/audit/subjects/${id}/analyze`);
   return data;
+}
+
+/** Скачать документ заключения (DOCX) авторизованным запросом. */
+export async function downloadAuditReport(id: string, filename: string): Promise<void> {
+  const { data } = await api.get(`/api/v1/audit/subjects/${id}/report.docx`, {
+    responseType: "blob",
+  });
+  const url = URL.createObjectURL(data as Blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
