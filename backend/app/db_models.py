@@ -211,6 +211,29 @@ class ProjectVersion(Base):
     engine_version: Mapped[str | None] = mapped_column(String(32), nullable=True)
 
 
+class AuditSubject(Base):
+    """Субъект анализа финансового состояния (Финанс-Аудит, продукт №2).
+
+    Принадлежит организации; хранит модель субъекта (реквизиты, периоды, фактическая
+    отчётность) как JSON — по образцу ``Project.model``. Изоляция арендатора — RLS +
+    фильтр CRUD по ``organization_id`` (как projects/holdings).
+    """
+
+    __tablename__ = "audit_subjects"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    # Сериализованная AuditSubjectModel (mode="json": Decimal → строка).
+    model: Mapped[dict] = mapped_column(JSONType, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_now, onupdate=_now
+    )
+
+
 class AnalysisJob(Base):
     """Фоновая задача анализа (Celery): реестр владения для изоляции арендатора.
 

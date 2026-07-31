@@ -279,6 +279,290 @@
         "title": "AssetCategory",
         "type": "string"
       },
+      "AuditPeriod": {
+        "description": "Отчётный период: подпись (например «2024» или «2024 Q1») и тип (год/квартал).",
+        "properties": {
+          "kind": {
+            "default": "year",
+            "enum": [
+              "year",
+              "quarter"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "default": "",
+            "maxLength": 40,
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "title": "AuditPeriod",
+        "type": "object"
+      },
+      "AuditSubjectCreate": {
+        "properties": {
+          "model": {
+            "$ref": "#/components/schemas/AuditSubjectModel-Input"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "model"
+        ],
+        "title": "AuditSubjectCreate",
+        "type": "object"
+      },
+      "AuditSubjectModel-Input": {
+        "description": "Субъект анализа с фактической отчётностью по периодам.\n\n``balance``/``income`` — ``{код строки: [значения по периодам]}`` (длина ряда = числу\nпериодов; недостающие/лишние приводятся к ``n`` при чтении). Пустая модель инертна.",
+        "properties": {
+          "balance": {
+            "additionalProperties": {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                    "type": "string"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            "title": "Balance",
+            "type": "object"
+          },
+          "currency": {
+            "default": "RUB",
+            "maxLength": 8,
+            "title": "Currency",
+            "type": "string"
+          },
+          "income": {
+            "additionalProperties": {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                    "type": "string"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            "title": "Income",
+            "type": "object"
+          },
+          "industry": {
+            "default": "",
+            "maxLength": 120,
+            "title": "Industry",
+            "type": "string"
+          },
+          "name": {
+            "default": "",
+            "maxLength": 255,
+            "title": "Name",
+            "type": "string"
+          },
+          "periods": {
+            "items": {
+              "$ref": "#/components/schemas/AuditPeriod"
+            },
+            "maxItems": 48,
+            "title": "Periods",
+            "type": "array"
+          }
+        },
+        "title": "AuditSubjectModel",
+        "type": "object"
+      },
+      "AuditSubjectModel-Output": {
+        "description": "Субъект анализа с фактической отчётностью по периодам.\n\n``balance``/``income`` — ``{код строки: [значения по периодам]}`` (длина ряда = числу\nпериодов; недостающие/лишние приводятся к ``n`` при чтении). Пустая модель инертна.",
+        "properties": {
+          "balance": {
+            "additionalProperties": {
+              "items": {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Balance",
+            "type": "object"
+          },
+          "currency": {
+            "default": "RUB",
+            "maxLength": 8,
+            "title": "Currency",
+            "type": "string"
+          },
+          "income": {
+            "additionalProperties": {
+              "items": {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Income",
+            "type": "object"
+          },
+          "industry": {
+            "default": "",
+            "maxLength": 120,
+            "title": "Industry",
+            "type": "string"
+          },
+          "name": {
+            "default": "",
+            "maxLength": 255,
+            "title": "Name",
+            "type": "string"
+          },
+          "periods": {
+            "items": {
+              "$ref": "#/components/schemas/AuditPeriod"
+            },
+            "maxItems": 48,
+            "title": "Periods",
+            "type": "array"
+          }
+        },
+        "title": "AuditSubjectModel",
+        "type": "object"
+      },
+      "AuditSubjectOut": {
+        "properties": {
+          "balance_gap": {
+            "default": [],
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Balance Gap",
+            "type": "array"
+          },
+          "balanced": {
+            "default": true,
+            "title": "Balanced",
+            "type": "boolean"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "model": {
+            "$ref": "#/components/schemas/AuditSubjectModel-Output"
+          },
+          "n_periods": {
+            "default": 0,
+            "title": "N Periods",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "created_at",
+          "updated_at",
+          "model"
+        ],
+        "title": "AuditSubjectOut",
+        "type": "object"
+      },
+      "AuditSubjectSummary": {
+        "description": "Метаданные субъекта: число периодов и сходимость баланса (актив = пассив).",
+        "properties": {
+          "balanced": {
+            "default": true,
+            "title": "Balanced",
+            "type": "boolean"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "n_periods": {
+            "default": 0,
+            "title": "N Periods",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AuditSubjectSummary",
+        "type": "object"
+      },
+      "AuditSubjectUpdate": {
+        "properties": {
+          "model": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AuditSubjectModel-Input"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "title": "AuditSubjectUpdate",
+        "type": "object"
+      },
       "AutoFinancing-Input": {
         "description": "Автоподбор финансирования: покрытие дефицита кредитом + размещение излишков (SPEC §19).\n\nКаждый период, если денег меньше ``min_balance``, привлекается заём до этого уровня;\nпри профиците задолженность гасится. При включённом ``invest_surplus`` касса выше\n``min_balance`` размещается в депозит (симметрично автокредиту): доход по депозиту\nрастит прибыль и налог, при дефиците депозит изымается раньше привлечения кредита.\nПроценты/доход влияют на прибыль и налог, поэтому расчёт итеративный.",
         "properties": {
@@ -7119,6 +7403,319 @@
         "summary": "Job Status",
         "tags": [
           "analysis"
+        ]
+      }
+    },
+    "/api/v1/audit/subjects": {
+      "get": {
+        "description": "Список субъектов анализа организации (метаданные).",
+        "operationId": "list_subjects_api_v1_audit_subjects_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AuditSubjectSummary"
+                  },
+                  "title": "Response List Subjects Api V1 Audit Subjects Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Subjects",
+        "tags": [
+          "audit"
+        ]
+      },
+      "post": {
+        "description": "Создать субъект анализа в текущей организации.",
+        "operationId": "create_subject_api_v1_audit_subjects_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuditSubjectCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditSubjectOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Subject",
+        "tags": [
+          "audit"
+        ]
+      }
+    },
+    "/api/v1/audit/subjects/{subject_id}": {
+      "delete": {
+        "description": "Удалить субъект анализа.",
+        "operationId": "delete_subject_api_v1_audit_subjects__subject_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "title": "Subject Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Subject",
+        "tags": [
+          "audit"
+        ]
+      },
+      "get": {
+        "description": "Получить субъект с моделью и сходимостью баланса по периодам.",
+        "operationId": "get_subject_api_v1_audit_subjects__subject_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "title": "Subject Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditSubjectOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Subject",
+        "tags": [
+          "audit"
+        ]
+      },
+      "put": {
+        "description": "Обновить имя и/или модель субъекта.",
+        "operationId": "update_subject_api_v1_audit_subjects__subject_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "title": "Subject Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuditSubjectUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditSubjectOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Subject",
+        "tags": [
+          "audit"
         ]
       }
     },

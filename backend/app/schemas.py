@@ -10,6 +10,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from audit_core import AuditSubjectModel
 from calc_core import ProjectModel
 from calc_core.reports.result import CalcResult
 from calc_core.reports.statements import Statement
@@ -719,3 +720,32 @@ def to_response(r: CalcResult) -> CalcResponse:
         cashflow_variance=_statement_out(r.cashflow_variance) if r.cashflow_variance else None,
         warnings=r.warnings,
     )
+
+
+# --- Субъекты анализа (Финанс-Аудит, продукт №2) ---
+
+class AuditSubjectCreate(BaseModel):
+    name: str
+    model: AuditSubjectModel
+
+
+class AuditSubjectUpdate(BaseModel):
+    name: Optional[str] = None
+    model: Optional[AuditSubjectModel] = None
+
+
+class AuditSubjectSummary(BaseModel):
+    """Метаданные субъекта: число периодов и сходимость баланса (актив = пассив)."""
+
+    id: str
+    name: str
+    created_at: datetime
+    updated_at: datetime
+    n_periods: int = 0
+    balanced: bool = True
+
+
+class AuditSubjectOut(AuditSubjectSummary):
+    model: AuditSubjectModel
+    # Актив − пассив по периодам (0 — сходится); строки-Decimal (точность без float).
+    balance_gap: list[Decimal] = []

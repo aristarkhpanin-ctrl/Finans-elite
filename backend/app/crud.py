@@ -12,10 +12,12 @@ from decimal import Decimal
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
+from audit_core import AuditSubjectModel
 from calc_core import ProjectModel
 
 from .db_models import (
     AnalysisJob,
+    AuditSubject,
     Holding,
     HoldingMember,
     Membership,
@@ -304,6 +306,56 @@ def duplicate_project(db: Session, project: Project, name: str) -> Project:
     db.commit()
     db.refresh(copy)
     return copy
+
+
+# --- Субъекты анализа (Финанс-Аудит, продукт №2) ---
+
+def create_audit_subject(db: Session, org_id: str, name: str,
+                         model: AuditSubjectModel) -> AuditSubject:
+    subject = AuditSubject(organization_id=org_id, name=name,
+                           model=model.model_dump(mode="json"))
+    db.add(subject)
+    db.commit()
+    db.refresh(subject)
+    return subject
+
+
+def list_audit_subjects(db: Session, org_id: str) -> list[AuditSubject]:
+    return list(
+        db.scalars(
+            select(AuditSubject)
+            .where(AuditSubject.organization_id == org_id)
+            .order_by(AuditSubject.created_at.desc())
+        )
+    )
+
+
+def get_audit_subject(db: Session, org_id: str, subject_id: str) -> AuditSubject | None:
+    return db.scalar(
+        select(AuditSubject).where(
+            AuditSubject.id == subject_id, AuditSubject.organization_id == org_id
+        )
+    )
+
+
+def update_audit_subject(db: Session, subject: AuditSubject, *, name: str | None = None,
+                         model: AuditSubjectModel | None = None) -> AuditSubject:
+    if name is not None:
+        subject.name = name
+    if model is not None:
+        subject.model = model.model_dump(mode="json")
+    db.commit()
+    db.refresh(subject)
+    return subject
+
+
+def delete_audit_subject(db: Session, subject: AuditSubject) -> None:
+    db.delete(subject)
+    db.commit()
+
+
+def load_audit_model(subject: AuditSubject) -> AuditSubjectModel:
+    return AuditSubjectModel.model_validate(subject.model)
 
 
 # --- Версии проекта (пакет №8, gap 4.4) ---
