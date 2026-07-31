@@ -2712,3 +2712,19 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .audit-row--subtotal { background: var(--subtotal-bg); }
 .audit-row--subtotal .audit-grid__rowhead,
 .audit-row--subtotal .audit-val { font-weight: 700; }
+
+/* Диагностика (фаза D): светофор состояния, зоны скоринга, статусы нормативов */
+.diag-light { border-radius: 14px; padding: 15px 18px; margin-bottom: 14px; border: 1px solid; }
+.diag-light__title { font: 800 17px var(--font-display); margin-bottom: 3px; }
+.diag-light__sub { font: 500 13px var(--font-ui); }
+.diag-light__note { font: 500 11.5px var(--font-ui); opacity: 0.75; margin-top: 6px; }
+.diag-light--ok { background: var(--good-bg); border-color: var(--good-border); color: var(--good); }
+.diag-light--warning { background: var(--warn-bg); border-color: var(--warn-border); color: var(--warn-text); }
+.diag-light--risk { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger-text); }
+.zone-chip {
+  display: inline-block; margin-left: 7px; padding: 2px 7px; border-radius: 999px;
+  font: 600 10.5px var(--font-ui); white-space: nowrap; vertical-align: middle;
+}
+.zone-chip.tone--ok { background: var(--good-bg); color: var(--good); }
+.zone-chip.tone--warn { background: var(--warn-bg); color: var(--warn-text); }
+.zone-chip.tone--risk { background: var(--danger-bg); color: var(--danger-text); }

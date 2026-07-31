@@ -99,6 +99,25 @@ export interface AuditShareOut {
   label: string;
   share: (string | null)[];
 }
+export interface AuditScoreOut {
+  id: string;
+  name: string;
+  values: (string | null)[];
+  zones: (string | null)[];      // safe | grey | distress
+  note: string;
+}
+export interface AuditAssessmentOut {
+  group: string;
+  name: string;
+  status: (string | null)[];     // good | warn | risk
+}
+export interface AuditDiagnostics {
+  light: string;                 // ok | warning | risk
+  summary: string;
+  scores: AuditScoreOut[];
+  assessments: AuditAssessmentOut[];
+}
+
 export interface AuditAnalysis {
   n: number;
   periods: string[];
@@ -109,6 +128,7 @@ export interface AuditAnalysis {
   ratios: Record<string, Record<string, (string | null)[]>>;
   balance_gap: string[];
   balanced: boolean;
+  diagnostics: AuditDiagnostics | null;
   warnings: string[];
 }
 

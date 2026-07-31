@@ -28,7 +28,7 @@ function groupSum(table: Record<string, string[]>, codes: string[], t: number): 
   return codes.reduce((s, c) => s + num(table[c]?.[t]), 0);
 }
 
-type Tab = "subject" | "input" | "reports" | "ratios" | "trends";
+type Tab = "subject" | "input" | "reports" | "ratios" | "trends" | "diagnostics";
 
 const TABS: [Tab, string][] = [
   ["subject", "Субъект"],
@@ -36,7 +36,23 @@ const TABS: [Tab, string][] = [
   ["reports", "Отчёты"],
   ["ratios", "Коэффициенты"],
   ["trends", "Тренды"],
+  ["diagnostics", "Диагностика"],
 ];
+
+/** Подписи и тон зон скоринга / статусов нормативов. */
+const ZONE_LABEL: Record<string, string> = {
+  safe: "устойчивость", grey: "неопределённость", distress: "высокий риск",
+};
+const STATUS_LABEL: Record<string, string> = {
+  good: "норма", warn: "внимание", risk: "вне норматива",
+};
+const toneOf = (v: string | null): string =>
+  v === "safe" || v === "good" ? "tone--ok"
+    : v === "grey" || v === "warn" ? "tone--warn"
+      : v === "distress" || v === "risk" ? "tone--risk" : "";
+const LIGHT_LABEL: Record<string, string> = {
+  ok: "Устойчивое состояние", warning: "Есть зоны внимания", risk: "Признаки неустойчивости",
+};
 
 /** Число из строки-Decimal (для форматирования; пусто/невалидно → null). */
 const dec = (v: string | null | undefined): number | null => {
@@ -92,7 +108,8 @@ export function AuditSubjectPage() {
   });
 
   // Анализ считается по сохранённым данным — только для аналитических вкладок.
-  const isAnalysisTab = tab === "reports" || tab === "ratios" || tab === "trends";
+  const isAnalysisTab = tab === "reports" || tab === "ratios" || tab === "trends"
+    || tab === "diagnostics";
   const analysis = useQuery({
     queryKey: ["audit-analysis", id],
     queryFn: () => analyzeAuditSubject(id),
@@ -316,6 +333,84 @@ export function AuditSubjectPage() {
             );
           })}
         </>
+      ) : tab === "diagnostics" ? (
+        !analysis.data.diagnostics ? (
+          <div className="tab-empty"><div className="tab-empty__title">Нет данных для диагностики</div></div>
+        ) : (
+          <>
+            <div className={"diag-light diag-light--" + analysis.data.diagnostics.light}>
+              <div className="diag-light__title">
+                {LIGHT_LABEL[analysis.data.diagnostics.light] ?? analysis.data.diagnostics.light}
+              </div>
+              <div className="diag-light__sub">{analysis.data.diagnostics.summary}</div>
+              <div className="diag-light__note">
+                Оценка — по последнему периоду ({analysis.data.periods[analysis.data.periods.length - 1]}).
+              </div>
+            </div>
+
+            <div className="audit-block">
+              <div className="audit-block__title">Модели диагностики банкротства</div>
+              <div style={{ overflowX: "auto" }}>
+                <table className="audit-grid">
+                  <thead>
+                    <tr>
+                      <th className="audit-grid__rowhead">Модель</th>
+                      {analysis.data.periods.map((p) => <th key={p}>{p}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {analysis.data.diagnostics.scores.map((s) => (
+                      <tr key={s.id}>
+                        <td className="audit-grid__rowhead" title={s.note}>{s.name}</td>
+                        {s.values.map((v, t) => (
+                          <td key={t} className="audit-val">
+                            {v === null ? "—" : fmtNum(v)}
+                            {s.zones[t] && (
+                              <span className={"zone-chip " + toneOf(s.zones[t])}>
+                                {ZONE_LABEL[s.zones[t]!] ?? s.zones[t]}
+                              </span>
+                            )}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {analysis.data.diagnostics.scores.map((s) => (
+                <div className="field-note" key={s.id} style={{ marginTop: 8 }}>{s.name}: {s.note}</div>
+              ))}
+            </div>
+
+            <div className="audit-block">
+              <div className="audit-block__title">Оценка показателей по нормативам</div>
+              <div style={{ overflowX: "auto" }}>
+                <table className="audit-grid">
+                  <thead>
+                    <tr>
+                      <th className="audit-grid__rowhead">Показатель</th>
+                      {analysis.data.periods.map((p) => <th key={p}>{p}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {analysis.data.diagnostics.assessments.map((a) => (
+                      <tr key={a.group + a.name}>
+                        <td className="audit-grid__rowhead">{a.name}</td>
+                        {a.status.map((st, t) => (
+                          <td key={t} className="audit-val">
+                            {st ? (
+                              <span className={"zone-chip " + toneOf(st)}>{STATUS_LABEL[st] ?? st}</span>
+                            ) : "—"}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )
       ) : (
         <>
           <div className="audit-block">
