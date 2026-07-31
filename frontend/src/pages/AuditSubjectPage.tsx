@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ASSET_LINES,
   EQLIAB_LINES,
   INCOME_LINES,
+  MEMO_LINES,
   RATIO_GROUPS,
   analyzeAuditSubject,
   downloadAuditReport,
@@ -14,9 +15,10 @@ import {
   type AuditModel,
   type AuditPeriod,
 } from "../api/audit";
-import { IconDownload, IconTrash } from "../components/icons";
+import { IconDownload, IconTrash, IconUpload } from "../components/icons";
 import { useToast } from "../components/Toast";
 import { Button } from "../components/ui";
+import { downloadAuditTemplate, parseAuditXlsx } from "../auditXlsx";
 import { fmtMoney } from "../format";
 
 const num = (v: string | undefined): number => {
@@ -92,6 +94,7 @@ export function AuditSubjectPage() {
   const [model, setModel] = useState<AuditModel | null>(null);
   const [tab, setTab] = useState<Tab>("subject");
   const [dirty, setDirty] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (data) { setName(data.name); setModel(data.model); setDirty(false); }
@@ -140,6 +143,26 @@ export function AuditSubjectPage() {
     row[t] = v;
     table[code] = row;
     patch({ [which]: table } as Partial<AuditModel>);
+  };
+
+  // Импорт отчётности из XLSX (фаза F): round-trip через шаблон приложения.
+  const onImportFile = async (file: File) => {
+    try {
+      const res = await parseAuditXlsx(file, m);
+      if (res.matched > 0) { setModel(res.model); setDirty(true); }
+      const extra: string[] = [];
+      if (res.skipped.length) extra.push(`не распознаны: ${res.skipped.join(", ")}`);
+      if (res.ignored) extra.push(`служебных строк: ${res.ignored}`);
+      const sub = extra.length ? extra.join(" · ") : undefined;
+      if (res.matched > 0) {
+        toast(`Импорт: обновлено строк — ${res.matched}. Проверьте и сохраните.`,
+              { kind: "success", sub });
+      } else {
+        toast("Импорт: подходящих строк не найдено", { kind: "warn", sub });
+      }
+    } catch {
+      toast("Не удалось прочитать файл — нужен XLSX по шаблону", { kind: "error" });
+    }
   };
 
   const assets = (t: number) => groupSum(m.balance, ASSET_LINES.map(([c]) => c), t);
@@ -272,8 +295,43 @@ export function AuditSubjectPage() {
         </div>
       ) : tab === "input" ? (
         <>
+          <div className="audit-block" style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <Button
+              variant="ghost"
+              onClick={async () => {
+                try {
+                  await downloadAuditTemplate(`${name || "Отчётность"}-шаблон.xlsx`, m);
+                  toast("Шаблон XLSX скачан", { kind: "success" });
+                } catch {
+                  toast("Не удалось сформировать шаблон", { kind: "error" });
+                }
+              }}
+            >
+              <IconDownload size={15} />
+              <span style={{ marginLeft: 6 }}>Шаблон XLSX</span>
+            </Button>
+            <Button variant="ghost" onClick={() => fileRef.current?.click()}>
+              <IconUpload size={15} />
+              <span style={{ marginLeft: 6 }}>Импорт XLSX</span>
+            </Button>
+            <span className="page-sub" style={{ fontSize: 12 }}>
+              Скачайте шаблон, заполните в Excel и загрузите обратно — периоды задаются здесь.
+            </span>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".xlsx"
+              style={{ display: "none" }}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void onImportFile(f);
+                e.target.value = "";
+              }}
+            />
+          </div>
           {grid("balance", ASSET_LINES, "Баланс — актив")}
           {grid("balance", EQLIAB_LINES, "Баланс — пассив (капитал и обязательства)")}
+          {grid("balance", MEMO_LINES, "Расшифровка (в итог пассива не входит)")}
           {grid("income", INCOME_LINES, "Отчёт о финансовых результатах")}
         </>
       ) : analysis.isLoading ? (

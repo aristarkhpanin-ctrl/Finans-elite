@@ -42,6 +42,10 @@ export const EQLIAB_LINES: [string, string][] = [
   ["P_LONG", "Долгосрочные обязательства"],
   ["P_SHORT", "Краткосрочные обязательства"],
 ];
+/** Справочные строки: НЕ входят в итоги баланса, нужны диагностике (модели Альтмана). */
+export const MEMO_LINES: [string, string][] = [
+  ["M_RETAINED", "в т.ч. нераспределённая прибыль (для диагностики)"],
+];
 export const INCOME_LINES: [string, string][] = [
   ["I_REVENUE", "Выручка"],
   ["I_COGS", "Себестоимость продаж"],
