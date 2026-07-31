@@ -24,6 +24,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/audit/subjects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Subjects
+         * @description Список субъектов анализа организации (метаданные).
+         */
+        get: operations["list_subjects_api_v1_audit_subjects_get"];
+        put?: never;
+        /**
+         * Create Subject
+         * @description Создать субъект анализа в текущей организации.
+         */
+        post: operations["create_subject_api_v1_audit_subjects_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/subjects/{subject_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Subject
+         * @description Получить субъект с моделью и сходимостью баланса по периодам.
+         */
+        get: operations["get_subject_api_v1_audit_subjects__subject_id__get"];
+        /**
+         * Update Subject
+         * @description Обновить имя и/или модель субъекта.
+         */
+        put: operations["update_subject_api_v1_audit_subjects__subject_id__put"];
+        post?: never;
+        /**
+         * Delete Subject
+         * @description Удалить субъект анализа.
+         */
+        delete: operations["delete_subject_api_v1_audit_subjects__subject_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -1010,6 +1062,166 @@ export interface components {
          * @enum {string}
          */
         AssetCategory: "equipment" | "buildings" | "land" | "intangible";
+        /**
+         * AuditPeriod
+         * @description Отчётный период: подпись (например «2024» или «2024 Q1») и тип (год/квартал).
+         */
+        AuditPeriod: {
+            /**
+             * Kind
+             * @default year
+             * @enum {string}
+             */
+            kind: "year" | "quarter";
+            /**
+             * Label
+             * @default
+             */
+            label: string;
+        };
+        /** AuditSubjectCreate */
+        AuditSubjectCreate: {
+            model: components["schemas"]["AuditSubjectModel-Input"];
+            /** Name */
+            name: string;
+        };
+        /**
+         * AuditSubjectModel
+         * @description Субъект анализа с фактической отчётностью по периодам.
+         *
+         *     ``balance``/``income`` — ``{код строки: [значения по периодам]}`` (длина ряда = числу
+         *     периодов; недостающие/лишние приводятся к ``n`` при чтении). Пустая модель инертна.
+         */
+        "AuditSubjectModel-Input": {
+            /** Balance */
+            balance?: {
+                [key: string]: (number | string)[];
+            };
+            /**
+             * Currency
+             * @default RUB
+             */
+            currency: string;
+            /** Income */
+            income?: {
+                [key: string]: (number | string)[];
+            };
+            /**
+             * Industry
+             * @default
+             */
+            industry: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /** Periods */
+            periods?: components["schemas"]["AuditPeriod"][];
+        };
+        /**
+         * AuditSubjectModel
+         * @description Субъект анализа с фактической отчётностью по периодам.
+         *
+         *     ``balance``/``income`` — ``{код строки: [значения по периодам]}`` (длина ряда = числу
+         *     периодов; недостающие/лишние приводятся к ``n`` при чтении). Пустая модель инертна.
+         */
+        "AuditSubjectModel-Output": {
+            /** Balance */
+            balance?: {
+                [key: string]: string[];
+            };
+            /**
+             * Currency
+             * @default RUB
+             */
+            currency: string;
+            /** Income */
+            income?: {
+                [key: string]: string[];
+            };
+            /**
+             * Industry
+             * @default
+             */
+            industry: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /** Periods */
+            periods?: components["schemas"]["AuditPeriod"][];
+        };
+        /** AuditSubjectOut */
+        AuditSubjectOut: {
+            /**
+             * Balance Gap
+             * @default []
+             */
+            balance_gap: string[];
+            /**
+             * Balanced
+             * @default true
+             */
+            balanced: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            model: components["schemas"]["AuditSubjectModel-Output"];
+            /**
+             * N Periods
+             * @default 0
+             */
+            n_periods: number;
+            /** Name */
+            name: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * AuditSubjectSummary
+         * @description Метаданные субъекта: число периодов и сходимость баланса (актив = пассив).
+         */
+        AuditSubjectSummary: {
+            /**
+             * Balanced
+             * @default true
+             */
+            balanced: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            /**
+             * N Periods
+             * @default 0
+             */
+            n_periods: number;
+            /** Name */
+            name: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** AuditSubjectUpdate */
+        AuditSubjectUpdate: {
+            model?: components["schemas"]["AuditSubjectModel-Input"] | null;
+            /** Name */
+            name?: string | null;
+        };
         /**
          * AutoFinancing
          * @description Автоподбор финансирования: покрытие дефицита кредитом + размещение излишков (SPEC §19).
@@ -4415,6 +4627,173 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["JobStatusResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_subjects_api_v1_audit_subjects_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditSubjectSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_subject_api_v1_audit_subjects_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuditSubjectCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditSubjectOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_subject_api_v1_audit_subjects__subject_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditSubjectOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_subject_api_v1_audit_subjects__subject_id__put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuditSubjectUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditSubjectOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_subject_api_v1_audit_subjects__subject_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

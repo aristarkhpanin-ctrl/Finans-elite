@@ -1,0 +1,81 @@
+// Финанс-Аудит (продукт №2): API субъектов анализа + типы модели + каталог строк ввода.
+import { api } from "./client";
+
+export interface AuditPeriod {
+  label: string;
+  kind: "year" | "quarter";
+}
+
+/** Модель субъекта: реквизиты, периоды, фактическая отчётность (код строки → ряд по периодам). */
+export interface AuditModel {
+  name?: string;
+  currency?: string;
+  industry?: string;
+  periods: AuditPeriod[];
+  balance: Record<string, string[]>;   // значения-строки (Decimal, точность без float)
+  income: Record<string, string[]>;
+}
+
+export interface AuditSubjectSummary {
+  id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+  n_periods: number;
+  balanced: boolean;
+}
+
+export interface AuditSubjectOut extends AuditSubjectSummary {
+  model: AuditModel;
+  balance_gap: string[];   // актив − пассив по периодам (0 — сходится)
+}
+
+// Каталог строк ввода (зеркало audit_core/lines.py).
+export const ASSET_LINES: [string, string][] = [
+  ["A_FIXED", "Внеоборотные активы"],
+  ["A_INVENTORY", "Запасы"],
+  ["A_RECEIVABLE", "Дебиторская задолженность"],
+  ["A_CASH", "Денежные средства и эквиваленты"],
+];
+export const EQLIAB_LINES: [string, string][] = [
+  ["P_EQUITY", "Капитал и резервы"],
+  ["P_LONG", "Долгосрочные обязательства"],
+  ["P_SHORT", "Краткосрочные обязательства"],
+];
+export const INCOME_LINES: [string, string][] = [
+  ["I_REVENUE", "Выручка"],
+  ["I_COGS", "Себестоимость продаж"],
+  ["I_OPEX", "Коммерческие и управленческие расходы"],
+  ["I_INTEREST", "Проценты к уплате"],
+  ["I_OTHER", "Прочие доходы/расходы (сальдо)"],
+  ["I_TAX", "Налог на прибыль"],
+];
+
+export function emptyAuditModel(): AuditModel {
+  return { name: "", currency: "RUB", industry: "", periods: [{ label: "", kind: "year" }],
+           balance: {}, income: {} };
+}
+
+export async function listAuditSubjects(): Promise<AuditSubjectSummary[]> {
+  const { data } = await api.get<AuditSubjectSummary[]>("/api/v1/audit/subjects");
+  return data;
+}
+
+export async function getAuditSubject(id: string): Promise<AuditSubjectOut> {
+  const { data } = await api.get<AuditSubjectOut>(`/api/v1/audit/subjects/${id}`);
+  return data;
+}
+
+export async function createAuditSubject(name: string, model: AuditModel): Promise<AuditSubjectOut> {
+  const { data } = await api.post<AuditSubjectOut>("/api/v1/audit/subjects", { name, model });
+  return data;
+}
+
+export async function updateAuditSubject(id: string, name: string, model: AuditModel): Promise<AuditSubjectOut> {
+  const { data } = await api.put<AuditSubjectOut>(`/api/v1/audit/subjects/${id}`, { name, model });
+  return data;
+}
+
+export async function deleteAuditSubject(id: string): Promise<void> {
+  await api.delete(`/api/v1/audit/subjects/${id}`);
+}
