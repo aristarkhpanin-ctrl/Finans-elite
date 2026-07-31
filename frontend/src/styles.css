@@ -2706,3 +2706,9 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .balance-banner--ok { background: var(--good-bg); color: var(--good); border: 1px solid var(--good-border); }
 .balance-banner--bad { background: var(--danger-bg); color: var(--danger-text); border: 1px solid var(--danger-border); }
 .balance-banner__gaps { display: flex; flex-wrap: wrap; gap: 4px 14px; font-weight: 500; }
+.audit-val { padding: 7px 10px; text-align: right; font: 500 12.5px var(--font-mono); color: var(--text); white-space: nowrap; }
+.audit-val--up { color: var(--good); }
+.audit-val--down { color: var(--danger); }
+.audit-row--subtotal { background: var(--subtotal-bg); }
+.audit-row--subtotal .audit-grid__rowhead,
+.audit-row--subtotal .audit-val { font-weight: 700; }

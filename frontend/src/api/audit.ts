@@ -79,3 +79,48 @@ export async function updateAuditSubject(id: string, name: string, model: AuditM
 export async function deleteAuditSubject(id: string): Promise<void> {
   await api.delete(`/api/v1/audit/subjects/${id}`);
 }
+
+// --- Анализ (фаза C): аналитическая форма, тренды, коэффициенты ---
+
+export interface AuditLineOut {
+  code: string;
+  label: string;
+  values: string[];
+  subtotal: boolean;
+}
+export interface AuditTrendOut {
+  code: string;
+  label: string;
+  delta: (string | null)[];
+  rate: (string | null)[];
+}
+export interface AuditShareOut {
+  code: string;
+  label: string;
+  share: (string | null)[];
+}
+export interface AuditAnalysis {
+  n: number;
+  periods: string[];
+  balance: AuditLineOut[];
+  income: AuditLineOut[];
+  horizontal: AuditTrendOut[];
+  vertical: AuditShareOut[];
+  ratios: Record<string, Record<string, (string | null)[]>>;
+  balance_gap: string[];
+  balanced: boolean;
+  warnings: string[];
+}
+
+/** Человекочитаемые названия групп коэффициентов (порядок вывода). */
+export const RATIO_GROUPS: [string, string][] = [
+  ["liquidity", "Ликвидность"],
+  ["gearing", "Финансовая устойчивость"],
+  ["profitability", "Рентабельность"],
+  ["activity", "Деловая активность"],
+];
+
+export async function analyzeAuditSubject(id: string): Promise<AuditAnalysis> {
+  const { data } = await api.post<AuditAnalysis>(`/api/v1/audit/subjects/${id}/analyze`);
+  return data;
+}
