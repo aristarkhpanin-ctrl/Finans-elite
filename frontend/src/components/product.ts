@@ -9,6 +9,7 @@ export interface ProductMeta {
   brand: string;        // слово в шапке после «Финанс»
   home: string;         // корневой маршрут продукта
   nav: readonly (readonly [string, string])[];
+  cubeAccent: [string, string];   // акценты куб-марки [яркий, глубокий] под тему продукта
 }
 
 export const PRODUCTS: Record<Product, ProductMeta> = {
@@ -21,6 +22,7 @@ export const PRODUCTS: Record<Product, ProductMeta> = {
       ["/holdings", "Холдинги"],
       ["/organization", "Организация"],
     ],
+    cubeAccent: ["#7FEE64", "#1FAE68"],   // зелёный
   },
   audit: {
     id: "audit",
@@ -30,6 +32,7 @@ export const PRODUCTS: Record<Product, ProductMeta> = {
       ["/audit", "Субъекты"],
       ["/organization", "Организация"],
     ],
+    cubeAccent: ["#BC13FE", "#851FAE"],   // фиолетовый (#BC13FE)
   },
 };
 
