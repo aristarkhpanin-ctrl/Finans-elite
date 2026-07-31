@@ -60,6 +60,10 @@ def result_to_dict(result: AuditResult) -> dict[str, object]:
         "balance_gap": [_money(v) for v in result.balance_gap],
         "balanced": result.balanced,
         "diagnostics": _diagnostics_to_dict(result.diagnostics),
+        "user_metrics": [
+            {"name": u.name, "values": [_money(v) for v in u.values], "error": u.error}
+            for u in result.user_metrics
+        ],
         "warnings": list(result.warnings),
     }
 

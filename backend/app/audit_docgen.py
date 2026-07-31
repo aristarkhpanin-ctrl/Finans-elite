@@ -133,6 +133,12 @@ def build_audit_docx(result: AuditResult, opinion: str, *, subject_name: str,
                     for name, values in series.items()]
             _add_table(doc, f"Коэффициенты — {title.lower()}", result.periods, rows)
 
+        if result.user_metrics:
+            rows = [(u.name + (f" (ошибка: {u.error})" if u.error else ""),
+                     [_fmt_money(v) for v in u.values], False)
+                    for u in result.user_metrics]
+            _add_table(doc, "Пользовательские показатели", result.periods, rows)
+
         if result.diagnostics is not None:
             _add_diagnostics(doc, result.diagnostics, result.periods)
 

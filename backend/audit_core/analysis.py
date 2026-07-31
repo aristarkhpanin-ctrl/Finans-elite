@@ -19,12 +19,21 @@ from __future__ import annotations
 from decimal import Decimal, localcontext
 from typing import Optional
 
+from calc_core.formula import FormulaError, evaluate
+from calc_core.formula.functions import as_series
 from calc_core.money import CALC_CONTEXT, ZERO
 
 from .diagnostics import compute_diagnostics
 from .lines import ASSET_CODES, EQLIAB_CODES, INCOME_LINES, LABELS
 from .models import AuditSubjectModel
-from .result import AuditLine, AuditResult, RatioSeries, ShareLine, TrendLine
+from .result import (
+    AuditLine,
+    AuditResult,
+    RatioSeries,
+    ShareLine,
+    TrendLine,
+    UserMetricResult,
+)
 
 #: Длина периода в днях по типу (для показателей «в днях» и приведения к году).
 _DAYS = {"year": Decimal(365), "quarter": Decimal("91.25")}
@@ -231,4 +240,27 @@ def _analyze(model: AuditSubjectModel) -> AuditResult:
         },
         has_retained=model.has_balance_row("M_RETAINED"),
     )
+
+    # ── Пользовательские методики (фаза G): формулы над аналитической формой ──
+    result.user_metrics = _user_metrics(model, balance_lines + income_lines, n)
     return result
+
+
+def _user_metrics(model: AuditSubjectModel, lines: list[AuditLine],
+                  n: int) -> list[UserMetricResult]:
+    """Вычислить пользовательские показатели; ошибка формулы не роняет анализ."""
+    if not model.user_metrics:
+        return []
+    # Окружение — коды строк аналитической формы + число периодов N.
+    env: dict[str, list[Decimal] | Decimal] = {ln.code: ln.values for ln in lines}
+    env["M_RETAINED"] = model.balance_row("M_RETAINED")
+    env["N"] = Decimal(n)
+
+    out: list[UserMetricResult] = []
+    for metric in model.user_metrics:
+        try:
+            value = evaluate(metric.formula, env, n)
+            out.append(UserMetricResult(name=metric.name, values=as_series(value, n)))
+        except FormulaError as exc:
+            out.append(UserMetricResult(name=metric.name, values=[ZERO] * n, error=str(exc)))
+    return out

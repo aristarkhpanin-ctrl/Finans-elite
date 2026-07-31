@@ -6,6 +6,12 @@ export interface AuditPeriod {
   kind: "year" | "quarter";
 }
 
+/** Пользовательский показатель: имя + формула над строками аналитической формы. */
+export interface UserMetric {
+  name: string;
+  formula: string;
+}
+
 /** Модель субъекта: реквизиты, периоды, фактическая отчётность (код строки → ряд по периодам). */
 export interface AuditModel {
   name?: string;
@@ -14,6 +20,7 @@ export interface AuditModel {
   periods: AuditPeriod[];
   balance: Record<string, string[]>;   // значения-строки (Decimal, точность без float)
   income: Record<string, string[]>;
+  user_metrics?: UserMetric[];
 }
 
 export interface AuditSubjectSummary {
@@ -122,6 +129,12 @@ export interface AuditDiagnostics {
   assessments: AuditAssessmentOut[];
 }
 
+export interface AuditUserMetricOut {
+  name: string;
+  values: string[];
+  error: string | null;
+}
+
 export interface AuditAnalysis {
   n: number;
   periods: string[];
@@ -133,6 +146,7 @@ export interface AuditAnalysis {
   balance_gap: string[];
   balanced: boolean;
   diagnostics: AuditDiagnostics | null;
+  user_metrics: AuditUserMetricOut[];
   opinion: string;
   warnings: string[];
 }

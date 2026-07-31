@@ -48,6 +48,15 @@ class ShareLine:
 
 
 @dataclass
+class UserMetricResult:
+    """Вычисленный пользовательский показатель (при ошибке формулы — error + нули)."""
+
+    name: str
+    values: list[Decimal] = field(default_factory=list)
+    error: Optional[str] = None
+
+
+@dataclass
 class AuditResult:
     """Полный результат анализа фактической отчётности."""
 
@@ -64,6 +73,8 @@ class AuditResult:
     balanced: bool = True
     #: Диагностика (скоринги банкротства + нормативы + «светофор»); None при пустой модели.
     diagnostics: Optional["Diagnostics"] = None
+    #: Пользовательские показатели (фаза G); пусто, если методик не задано.
+    user_metrics: list[UserMetricResult] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
 

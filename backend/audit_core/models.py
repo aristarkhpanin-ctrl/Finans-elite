@@ -21,6 +21,18 @@ class AuditPeriod(BaseModel):
     kind: Literal["year", "quarter"] = "year"
 
 
+class UserMetric(BaseModel):
+    """Пользовательский показатель: имя + формула над строками аналитической формы.
+
+    Формула — язык формул платформы (тот же, что в таблицах первого продукта). Доступны
+    коды строк аналитической формы (``A_*``/``P_*``/``I_*``/``M_*``) и ``N`` — число
+    периодов. Ошибка формулы не роняет анализ: показатель получает сообщение и нули.
+    """
+
+    name: str = Field(default="", max_length=200)
+    formula: str = Field(default="", max_length=2000)
+
+
 class AuditSubjectModel(BaseModel):
     """Субъект анализа с фактической отчётностью по периодам.
 
@@ -34,6 +46,8 @@ class AuditSubjectModel(BaseModel):
     periods: list[AuditPeriod] = Field(default_factory=list, max_length=48)
     balance: dict[str, list[Decimal]] = Field(default_factory=dict)
     income: dict[str, list[Decimal]] = Field(default_factory=dict)
+    # Пользовательские методики (фаза G): свои показатели поверх аналитической формы.
+    user_metrics: list[UserMetric] = Field(default_factory=list, max_length=100)
 
     @property
     def n(self) -> int:

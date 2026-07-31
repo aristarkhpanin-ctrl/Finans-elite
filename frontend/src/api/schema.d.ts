@@ -1155,6 +1155,11 @@ export interface components {
                 };
             };
             /**
+             * User Metrics
+             * @default []
+             */
+            user_metrics: components["schemas"]["AuditUserMetricOut"][];
+            /**
              * Vertical
              * @default []
              */
@@ -1322,6 +1327,8 @@ export interface components {
             name: string;
             /** Periods */
             periods?: components["schemas"]["AuditPeriod"][];
+            /** User Metrics */
+            user_metrics?: components["schemas"]["UserMetric"][];
         };
         /**
          * AuditSubjectModel
@@ -1356,6 +1363,8 @@ export interface components {
             name: string;
             /** Periods */
             periods?: components["schemas"]["AuditPeriod"][];
+            /** User Metrics */
+            user_metrics?: components["schemas"]["UserMetric"][];
         };
         /** AuditSubjectOut */
         AuditSubjectOut: {
@@ -1445,6 +1454,21 @@ export interface components {
              * @default []
              */
             rate: (string | null)[];
+        };
+        /**
+         * AuditUserMetricOut
+         * @description Пользовательский показатель: ряд по периодам (при ошибке формулы — error + нули).
+         */
+        AuditUserMetricOut: {
+            /** Error */
+            error?: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Values
+             * @default []
+             */
+            values: string[];
         };
         /**
          * AutoFinancing
@@ -4624,6 +4648,26 @@ export interface components {
             distribution: components["schemas"]["DistributionIn"];
             /** Param */
             param: string;
+        };
+        /**
+         * UserMetric
+         * @description Пользовательский показатель: имя + формула над строками аналитической формы.
+         *
+         *     Формула — язык формул платформы (тот же, что в таблицах первого продукта). Доступны
+         *     коды строк аналитической формы (``A_*``/``P_*``/``I_*``/``M_*``) и ``N`` — число
+         *     периодов. Ошибка формулы не роняет анализ: показатель получает сообщение и нули.
+         */
+        UserMetric: {
+            /**
+             * Formula
+             * @default
+             */
+            formula: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
         };
         /** UserOut */
         UserOut: {

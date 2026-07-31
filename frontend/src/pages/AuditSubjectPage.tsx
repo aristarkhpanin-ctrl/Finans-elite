@@ -14,6 +14,7 @@ import {
   type AuditLineOut,
   type AuditModel,
   type AuditPeriod,
+  type UserMetric,
 } from "../api/audit";
 import { IconDownload, IconTrash, IconUpload } from "../components/icons";
 import { useToast } from "../components/Toast";
@@ -31,7 +32,8 @@ function groupSum(table: Record<string, string[]>, codes: string[], t: number): 
   return codes.reduce((s, c) => s + num(table[c]?.[t]), 0);
 }
 
-type Tab = "subject" | "input" | "reports" | "ratios" | "trends" | "diagnostics" | "opinion";
+type Tab = "subject" | "input" | "reports" | "ratios" | "trends" | "diagnostics"
+  | "methods" | "opinion";
 
 const TABS: [Tab, string][] = [
   ["subject", "Субъект"],
@@ -40,6 +42,7 @@ const TABS: [Tab, string][] = [
   ["ratios", "Коэффициенты"],
   ["trends", "Тренды"],
   ["diagnostics", "Диагностика"],
+  ["methods", "Методики"],
   ["opinion", "Заключение"],
 ];
 
@@ -114,7 +117,7 @@ export function AuditSubjectPage() {
 
   // Анализ считается по сохранённым данным — только для аналитических вкладок.
   const isAnalysisTab = tab === "reports" || tab === "ratios" || tab === "trends"
-    || tab === "diagnostics" || tab === "opinion";
+    || tab === "diagnostics" || tab === "opinion" || tab === "methods";
   const analysis = useQuery({
     queryKey: ["audit-analysis", id],
     queryFn: () => analyzeAuditSubject(id),
@@ -144,6 +147,14 @@ export function AuditSubjectPage() {
     table[code] = row;
     patch({ [which]: table } as Partial<AuditModel>);
   };
+
+  // Пользовательские методики (фаза G): свои показатели-формулы.
+  const metrics: UserMetric[] = m.user_metrics ?? [];
+  const setMetrics = (next: UserMetric[]) => patch({ user_metrics: next });
+  const addMetric = () => setMetrics([...metrics, { name: "Новый показатель", formula: "" }]);
+  const updMetric = (i: number, up: Partial<UserMetric>) =>
+    setMetrics(metrics.map((x, k) => (k === i ? { ...x, ...up } : x)));
+  const rmMetric = (i: number) => setMetrics(metrics.filter((_, k) => k !== i));
 
   // Импорт отчётности из XLSX (фаза F): round-trip через шаблон приложения.
   const onImportFile = async (file: File) => {
@@ -392,6 +403,77 @@ export function AuditSubjectPage() {
               </div>
             );
           })}
+        </>
+      ) : tab === "methods" ? (
+        <>
+          <div className="audit-block">
+            <div className="tab-head" style={{ marginBottom: 10 }}>
+              <div className="audit-block__title" style={{ marginBottom: 0 }}>Свои показатели</div>
+              <Button variant="ghost" onClick={addMetric}>＋&nbsp;&nbsp;Показатель</Button>
+            </div>
+            <div className="field-note" style={{ marginBottom: 12 }}>
+              Формула считается по периодам над строками аналитической формы. Доступны коды:
+              A_FIXED, A_INVENTORY, A_RECEIVABLE, A_CASH, A_CURRENT, A_TOTAL, P_EQUITY, P_LONG,
+              P_SHORT, P_TOTAL, M_RETAINED, I_REVENUE, I_COGS, I_GROSS, I_OPEX, I_EBIT,
+              I_INTEREST, I_OTHER, I_EBT, I_TAX, I_NET, а также N — число периодов.
+              Например: <code>I_NET / I_REVENUE</code>.
+            </div>
+            {metrics.length === 0 ? (
+              <p className="page-sub" style={{ margin: 0, fontSize: 12.5 }}>
+                Методик пока нет. Добавьте свой показатель — он появится в анализе и в документе.
+              </p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {metrics.map((mt, i) => (
+                  <div className="ft-row" key={i}>
+                    <input className="efield__input" value={mt.name} placeholder="Название показателя"
+                           onChange={(e) => updMetric(i, { name: e.target.value })} />
+                    <input className="efield__input" style={{ fontFamily: "var(--font-mono)" }}
+                           value={mt.formula} placeholder="напр. I_NET / I_REVENUE"
+                           onChange={(e) => updMetric(i, { formula: e.target.value })} />
+                    <button type="button" className="line-card__del" title="Удалить показатель"
+                            onClick={() => rmMetric(i)}>
+                      <IconTrash size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {analysis.data.user_metrics.length > 0 && (
+            <div className="audit-block">
+              <div className="audit-block__title">Результат (по сохранённым данным)</div>
+              <div style={{ overflowX: "auto" }}>
+                <table className="audit-grid">
+                  <thead>
+                    <tr>
+                      <th className="audit-grid__rowhead">Показатель</th>
+                      {analysis.data.periods.map((p) => <th key={p}>{p}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {analysis.data.user_metrics.map((u, i) => (
+                      <tr key={i}>
+                        <td className="audit-grid__rowhead">
+                          {u.name}
+                          {u.error && <span className="zone-chip tone--risk">ошибка</span>}
+                        </td>
+                        {u.values.map((v, k) => (
+                          <td key={k} className="audit-val">{u.error ? "—" : fmtNum(v)}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {analysis.data.user_metrics.filter((u) => u.error).map((u, i) => (
+                <div className="field-note field-note--warn" key={i} style={{ marginTop: 8 }}>
+                  {u.name}: {u.error}
+                </div>
+              ))}
+            </div>
+          )}
         </>
       ) : tab === "opinion" ? (
         <div className="audit-block">

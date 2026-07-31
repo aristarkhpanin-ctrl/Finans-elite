@@ -804,6 +804,14 @@ class AuditDiagnosticsOut(BaseModel):
     assessments: list[AuditAssessmentOut] = []
 
 
+class AuditUserMetricOut(BaseModel):
+    """Пользовательский показатель: ряд по периодам (при ошибке формулы — error + нули)."""
+
+    name: str
+    values: list[Decimal] = []
+    error: Optional[str] = None
+
+
 class AuditAnalysisOut(BaseModel):
     """Результат анализа фактической отчётности (Финанс-Аудит)."""
 
@@ -818,6 +826,8 @@ class AuditAnalysisOut(BaseModel):
     balanced: bool = True
     # Диагностика (фаза D); None при пустой модели.
     diagnostics: Optional[AuditDiagnosticsOut] = None
+    # Пользовательские показатели (фаза G); пусто без методик.
+    user_metrics: list[AuditUserMetricOut] = []
     # Экспертное заключение — связный автотекст по результату анализа (фаза E).
     opinion: str = ""
     warnings: list[str] = []
@@ -841,6 +851,8 @@ def audit_analysis_response(result, opinion: str = "") -> "AuditAnalysisOut":
                 for g, series in result.ratios.items()},
         balance_gap=list(result.balance_gap),
         balanced=result.balanced,
+        user_metrics=[AuditUserMetricOut(name=u.name, values=list(u.values), error=u.error)
+                      for u in result.user_metrics],
         diagnostics=(AuditDiagnosticsOut(
             light=result.diagnostics.light,
             summary=result.diagnostics.summary,
