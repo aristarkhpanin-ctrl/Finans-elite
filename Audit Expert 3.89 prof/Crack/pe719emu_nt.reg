@@ -1,0 +1,7 @@
+REGEDIT4
+
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\pe719emu]
+"Type"=dword:00000001
+"Start"=dword:00000002
+"ErrorControl"=dword:00000001
+"DependOnService"=hex(7):68,61,72,64,6C,6F,63,6B,00,00
