@@ -4,12 +4,16 @@
 после чего к своду применяется обычный анализ (`analyze`) — коэффициенты, тренды,
 диагностика и заключение считаются для группы как для одного предприятия.
 
-**Важное ограничение (заявляется явно).** Это **арифметический свод**, а не полная
-консолидация по правилам учёта: **внутригрупповые обороты не исключаются** (взаимная
-дебиторская/кредиторская задолженность, взаимная выручка, доли участия). Для исключения
-нужны данные о внутригрупповых операциях, которых во вводе фактической отчётности нет.
-Поэтому свод предупреждает об этом, а не создаёт видимость аудиторской консолидации.
-Исключение внутригрупповых оборотов — v2 (требует ввода взаимных расчётов).
+**Исключение внутригрупповых оборотов (v2).** По умолчанию свод — арифметическая сумма,
+и он честно предупреждает, что внутренние операции не вычтены. Если пользователь вводит
+величины внутригрупповых оборотов (``Elimination``), они **вычитаются из свода**: взаимная
+дебиторская/кредиторская задолженность, взаимная выручка и соответствующая ей себестоимость.
+Вычитается **одна и та же сумма из актива и пассива** (и из выручки, и из себестоимости),
+поэтому равенство «актив = пассив» сохраняется — это проверяется тестом.
+
+Что **по-прежнему не делается**: исключение долей участия (инвестиции материнской компании
+в капитал дочерней) и нереализованной прибыли в запасах — для них нужна структура владения,
+которой в модели нет. Оговорка об этом остаётся в предупреждениях.
 
 Сопоставление периодов — **по подписи** (например «2024»). Период попадает в свод, только
 если он есть у **всех** участников: иначе сумма занижала бы группу по этому периоду.
@@ -22,6 +26,20 @@ from typing import Literal
 
 from .lines import ASSET_CODES, EQLIAB_CODES, INCOME_CODES, MEMO_CODES
 from .models import AuditPeriod, AuditSubjectModel
+
+
+@dataclass
+class Elimination:
+    """Внутригрупповые обороты к исключению (по периодам, в порядке периодов свода).
+
+    Все величины неотрицательны и вычитаются из свода: ``receivables`` — взаимная
+    задолженность (одновременно из дебиторки и из кредиторки), ``revenue`` — взаимная
+    выручка (одновременно из выручки и из себестоимости покупателя). Такое парное
+    вычитание сохраняет равенство «актив = пассив».
+    """
+
+    receivables: list[Decimal] = field(default_factory=list)
+    revenue: list[Decimal] = field(default_factory=list)
 
 
 @dataclass
@@ -49,11 +67,13 @@ def _common_periods(models: list[AuditSubjectModel]) -> list[str]:
 
 
 def consolidate_subjects(members: list[tuple[str, AuditSubjectModel]], *,
-                         name: str = "Группа предприятий") -> Consolidation:
+                         name: str = "Группа предприятий",
+                         elimination: Elimination | None = None) -> Consolidation:
     """Свести отчётность участников группы в одну модель.
 
     ``members`` — пары (имя субъекта, модель). Складываются все строки баланса (включая
     справочные) и ОПУ по совпадающим периодам; тип периода берётся у первого участника.
+    ``elimination`` — внутригрупповые обороты, вычитаемые из свода (v2).
     """
     if not members:
         raise ValueError("Для консолидации нужен хотя бы один субъект")
@@ -67,10 +87,20 @@ def consolidate_subjects(members: list[tuple[str, AuditSubjectModel]], *,
         if extra:
             skipped[subject_name] = extra
 
-    warnings: list[str] = [
-        "Свод не исключает внутригрупповые обороты (взаимные расчёты, взаимную выручку, "
-        "доли участия) — показатели группы завышены на величину внутренних операций.",
-    ]
+    has_elim = elimination is not None and (
+        any(v for v in elimination.receivables) or any(v for v in elimination.revenue))
+    if has_elim:
+        warnings: list[str] = [
+            "Из свода исключены заданные внутригрупповые обороты (взаимная задолженность и "
+            "взаимная выручка). Доли участия и нереализованная прибыль в запасах не "
+            "исключаются — для них нужна структура владения.",
+        ]
+    else:
+        warnings = [
+            "Свод не исключает внутригрупповые обороты (взаимные расчёты, взаимную выручку, "
+            "доли участия) — показатели группы завышены на величину внутренних операций. "
+            "Внутренние обороты можно задать явно, тогда они будут вычтены.",
+        ]
     if not labels:
         warnings.append("У участников нет ни одного общего отчётного периода — свод пуст.")
     if skipped:
@@ -90,6 +120,9 @@ def consolidate_subjects(members: list[tuple[str, AuditSubjectModel]], *,
         balance[code] = _sum_line(models, labels, code, "balance")
     for code in INCOME_CODES:
         income[code] = _sum_line(models, labels, code, "income")
+
+    if elimination is not None:
+        _eliminate(balance, income, elimination, len(labels), warnings)
 
     model = AuditSubjectModel(
         name=name,
@@ -118,3 +151,50 @@ def _sum_line(models: list[AuditSubjectModel], labels: list[str], code: str,
             total += row[index]
         out.append(total)
     return out
+
+
+def _fit(values: list[Decimal], n: int) -> list[Decimal]:
+    """Ряд исключений к числу периодов свода (недостающие — нули)."""
+    out = list(values)[:n]
+    while len(out) < n:
+        out.append(Decimal(0))
+    return out
+
+
+def _eliminate(balance: dict[str, list[Decimal]], income: dict[str, list[Decimal]],
+               elim: Elimination, n: int, warnings: list[str]) -> None:
+    """Вычесть внутригрупповые обороты из свода (на месте).
+
+    Задолженность вычитается **парно** (дебиторка и кредиторка), выручка — парно с
+    себестоимостью: иначе свод перестал бы сходиться (актив ≠ пассив).
+    Сумма, превышающая свод по строке, обрезается до него с предупреждением — вычитать
+    больше, чем есть, значит получить отрицательную статью и бессмысленные коэффициенты.
+    """
+    receivables = _fit(elim.receivables, n)
+    revenue = _fit(elim.revenue, n)
+
+    def cap(values: list[Decimal], *rows: str, table: dict[str, list[Decimal]],
+            what: str) -> list[Decimal]:
+        """Обрезать вычитаемое по минимальному остатку затрагиваемых строк."""
+        out: list[Decimal] = []
+        for t in range(n):
+            limit = min(table[row][t] for row in rows)
+            wanted = values[t]
+            if wanted > limit:
+                warnings.append(
+                    f"Исключение {what} за период {t + 1} ({wanted}) превышает свод по строке "
+                    f"({limit}) — вычтено {limit}.")
+                out.append(limit if limit > 0 else Decimal(0))
+            else:
+                out.append(wanted if wanted > 0 else Decimal(0))
+        return out
+
+    rec = cap(receivables, "A_RECEIVABLE", "P_SHORT", table=balance,
+              what="взаимной задолженности")
+    rev = cap(revenue, "I_REVENUE", "I_COGS", table=income, what="взаимной выручки")
+
+    for t in range(n):
+        balance["A_RECEIVABLE"][t] -= rec[t]
+        balance["P_SHORT"][t] -= rec[t]
+        income["I_REVENUE"][t] -= rev[t]
+        income["I_COGS"][t] -= rev[t]

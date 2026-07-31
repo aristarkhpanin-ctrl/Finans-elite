@@ -435,8 +435,18 @@
         "type": "object"
       },
       "AuditConsolidateRequest": {
-        "description": "Запрос консолидации: список субъектов группы + имя свода.",
+        "description": "Запрос консолидации: список субъектов группы + имя свода + исключения (v2).",
         "properties": {
+          "elimination": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AuditEliminationIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "name": {
             "default": "Группа предприятий",
             "title": "Name",
@@ -523,6 +533,45 @@
           }
         },
         "title": "AuditDiagnosticsOut",
+        "type": "object"
+      },
+      "AuditEliminationIn": {
+        "description": "Внутригрупповые обороты к исключению из свода (по периодам).",
+        "properties": {
+          "receivables": {
+            "default": [],
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ]
+            },
+            "title": "Receivables",
+            "type": "array"
+          },
+          "revenue": {
+            "default": [],
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ]
+            },
+            "title": "Revenue",
+            "type": "array"
+          }
+        },
+        "title": "AuditEliminationIn",
         "type": "object"
       },
       "AuditLineOut": {
@@ -752,6 +801,14 @@
             "title": "Periods",
             "type": "array"
           },
+          "thresholds": {
+            "items": {
+              "$ref": "#/components/schemas/RatioThreshold-Input"
+            },
+            "maxItems": 100,
+            "title": "Thresholds",
+            "type": "array"
+          },
           "user_metrics": {
             "items": {
               "$ref": "#/components/schemas/UserMetric"
@@ -813,6 +870,14 @@
             },
             "maxItems": 48,
             "title": "Periods",
+            "type": "array"
+          },
+          "thresholds": {
+            "items": {
+              "$ref": "#/components/schemas/RatioThreshold-Output"
+            },
+            "maxItems": 100,
+            "title": "Thresholds",
             "type": "array"
           },
           "user_metrics": {
@@ -5605,6 +5670,88 @@
         "title": "ProjectUpdate",
         "type": "object"
       },
+      "RatioThreshold-Input": {
+        "description": "Свой норматив для показателя (v2): переопределяет универсальный порог.\n\n``direction`` — «чем больше, тем лучше» (``higher``) или наоборот (``lower``).\n``risk_edge`` — граница зоны риска, ``good_edge`` — граница нормы; между ними «внимание».\nДля ``higher`` ожидается ``risk_edge <= good_edge``, для ``lower`` — наоборот;\nнесогласованный порог игнорируется с предупреждением (молча подменять оценку нельзя).",
+        "properties": {
+          "direction": {
+            "default": "higher",
+            "enum": [
+              "higher",
+              "lower"
+            ],
+            "title": "Direction",
+            "type": "string"
+          },
+          "good_edge": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Good Edge"
+          },
+          "ratio": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Ratio",
+            "type": "string"
+          },
+          "risk_edge": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Risk Edge"
+          }
+        },
+        "title": "RatioThreshold",
+        "type": "object"
+      },
+      "RatioThreshold-Output": {
+        "description": "Свой норматив для показателя (v2): переопределяет универсальный порог.\n\n``direction`` — «чем больше, тем лучше» (``higher``) или наоборот (``lower``).\n``risk_edge`` — граница зоны риска, ``good_edge`` — граница нормы; между ними «внимание».\nДля ``higher`` ожидается ``risk_edge <= good_edge``, для ``lower`` — наоборот;\nнесогласованный порог игнорируется с предупреждением (молча подменять оценку нельзя).",
+        "properties": {
+          "direction": {
+            "default": "higher",
+            "enum": [
+              "higher",
+              "lower"
+            ],
+            "title": "Direction",
+            "type": "string"
+          },
+          "good_edge": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Good Edge",
+            "type": "string"
+          },
+          "ratio": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Ratio",
+            "type": "string"
+          },
+          "risk_edge": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Risk Edge",
+            "type": "string"
+          }
+        },
+        "title": "RatioThreshold",
+        "type": "object"
+      },
       "RatiosOut": {
         "properties": {
           "activity": {
@@ -7897,7 +8044,7 @@
     },
     "/api/v1/audit/consolidate": {
       "post": {
-        "description": "Свод отчётности группы субъектов и анализ группы как единого предприятия.\n\nВнутригрупповые обороты не исключаются — это отражено в предупреждениях ответа.",
+        "description": "Свод отчётности группы субъектов и анализ группы как единого предприятия.\n\nВнутригрупповые обороты исключаются, только если переданы явно (``elimination``);\nиначе свод их не вычитает — это отражено в предупреждениях ответа.",
         "operationId": "consolidate_api_v1_audit_consolidate_post",
         "parameters": [
           {

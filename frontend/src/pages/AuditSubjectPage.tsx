@@ -14,6 +14,7 @@ import {
   type AuditLineOut,
   type AuditModel,
   type AuditPeriod,
+  type RatioThreshold,
   type UserMetric,
 } from "../api/audit";
 import { IconDownload, IconTrash, IconUpload } from "../components/icons";
@@ -155,6 +156,20 @@ export function AuditSubjectPage() {
   const updMetric = (i: number, up: Partial<UserMetric>) =>
     setMetrics(metrics.map((x, k) => (k === i ? { ...x, ...up } : x)));
   const rmMetric = (i: number) => setMetrics(metrics.filter((_, k) => k !== i));
+
+  // Свои нормативы (v2): переопределяют универсальные пороги диагностики.
+  const thresholds: RatioThreshold[] = m.thresholds ?? [];
+  const setThresholds = (next: RatioThreshold[]) => patch({ thresholds: next });
+  const addThreshold = () => setThresholds([...thresholds,
+    { ratio: "", direction: "higher", risk_edge: "0", good_edge: "0" }]);
+  const updThreshold = (i: number, up: Partial<RatioThreshold>) =>
+    setThresholds(thresholds.map((x, k) => (k === i ? { ...x, ...up } : x)));
+  const rmThreshold = (i: number) => setThresholds(thresholds.filter((_, k) => k !== i));
+
+  // Названия показателей, которым можно задать норматив (из посчитанного анализа).
+  const ratioNames: string[] = analysis.data
+    ? RATIO_GROUPS.flatMap(([key]) => Object.keys(analysis.data!.ratios[key] ?? {}))
+    : [];
 
   // Импорт отчётности из XLSX (фаза F): round-trip через шаблон приложения.
   const onImportFile = async (file: File) => {
@@ -440,6 +455,59 @@ export function AuditSubjectPage() {
               </div>
             )}
           </div>
+
+          <div className="audit-block">
+            <div className="tab-head" style={{ marginBottom: 10 }}>
+              <div className="audit-block__title" style={{ marginBottom: 0 }}>Свои нормативы</div>
+              <Button variant="ghost" onClick={addThreshold}>＋&nbsp;&nbsp;Норматив</Button>
+            </div>
+            <div className="field-note" style={{ marginBottom: 12 }}>
+              Переопределяют универсальные пороги диагностики. «Больше — лучше»: ниже границы
+              риска — «вне норматива», выше границы нормы — «норма», между ними — «внимание»
+              (для «меньше — лучше» наоборот). Несогласованный порог не применяется —
+              останется универсальный, и об этом будет предупреждение.
+            </div>
+            {thresholds.length === 0 ? (
+              <p className="page-sub" style={{ margin: 0, fontSize: 12.5 }}>
+                Нормативов нет — применяются универсальные пороги.
+              </p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {thresholds.map((th, i) => (
+                  <div className="ft-row" key={i}>
+                    <select className="efield__input" value={th.ratio}
+                            onChange={(e) => updThreshold(i, { ratio: e.target.value })}>
+                      <option value="">— выберите показатель —</option>
+                      {ratioNames.map((nm) => <option key={nm} value={nm}>{nm}</option>)}
+                    </select>
+                    <select className="efield__input" value={th.direction}
+                            onChange={(e) => updThreshold(i, { direction: e.target.value as RatioThreshold["direction"] })}>
+                      <option value="higher">Больше — лучше</option>
+                      <option value="lower">Меньше — лучше</option>
+                    </select>
+                    <input className="efield__input" inputMode="decimal" value={th.risk_edge}
+                           placeholder="граница риска"
+                           onChange={(e) => updThreshold(i, { risk_edge: e.target.value })} />
+                    <input className="efield__input" inputMode="decimal" value={th.good_edge}
+                           placeholder="граница нормы"
+                           onChange={(e) => updThreshold(i, { good_edge: e.target.value })} />
+                    <button type="button" className="line-card__del" title="Удалить норматив"
+                            onClick={() => rmThreshold(i)}>
+                      <IconTrash size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {analysis.data.warnings.length > 0 && (
+            <div className="audit-block">
+              {analysis.data.warnings.map((w, i) => (
+                <div className="field-note field-note--warn" key={i}>{w}</div>
+              ))}
+            </div>
+          )}
 
           {analysis.data.user_metrics.length > 0 && (
             <div className="audit-block">

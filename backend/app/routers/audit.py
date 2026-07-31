@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
-from audit_core import analyze, consolidate_subjects
+from audit_core import Elimination, analyze, consolidate_subjects
 from audit_core.opinion import build_opinion
 
 from .. import crud
@@ -103,14 +103,18 @@ def consolidate(body: AuditConsolidateRequest,
                 db: Session = Depends(get_db)) -> AuditConsolidateResponse:
     """Свод отчётности группы субъектов и анализ группы как единого предприятия.
 
-    Внутригрупповые обороты не исключаются — это отражено в предупреждениях ответа.
+    Внутригрупповые обороты исключаются, только если переданы явно (``elimination``);
+    иначе свод их не вычитает — это отражено в предупреждениях ответа.
     """
     members = []
     for sid in body.subject_ids:
         subject = _require(db, org_id, sid)
         members.append((subject.name, crud.load_audit_model(subject)))
 
-    consolidation = consolidate_subjects(members, name=body.name)
+    elimination = (Elimination(receivables=list(body.elimination.receivables),
+                               revenue=list(body.elimination.revenue))
+                   if body.elimination is not None else None)
+    consolidation = consolidate_subjects(members, name=body.name, elimination=elimination)
     result = analyze(consolidation.model)
     analysis = audit_analysis_response(result, build_opinion(result))
     # Оговорки свода идут вперёд предупреждений самого анализа.

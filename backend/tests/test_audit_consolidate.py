@@ -128,3 +128,76 @@ def test_consolidate_isolated_by_org(client, register):
                       headers=a).json()["id"]
     r = client.post("/api/v1/audit/consolidate", json={"subject_ids": [sid]}, headers=b)
     assert r.status_code == 404
+
+
+# --- v2: исключение внутригрупповых оборотов ---
+
+def _traded(rec: int, rev: int) -> AuditSubjectModel:
+    """Субъект с взаимной задолженностью и выручкой (баланс сходится)."""
+    return AuditSubjectModel(
+        periods=[AuditPeriod(label="2024", kind="year")],
+        balance={"A_RECEIVABLE": [D(rec)], "A_CASH": [D(100)],
+                 "P_EQUITY": [D(100)], "P_SHORT": [D(rec)]},
+        income={"I_REVENUE": [D(rev)], "I_COGS": [D(rev)]},
+    )
+
+
+def test_elimination_removes_intragroup_turnover():
+    """Взаимные обороты вычитаются из свода."""
+    from audit_core.consolidate import Elimination
+
+    members = [("A", _traded(50, 300)), ("B", _traded(30, 200))]
+    plain = analyze(consolidate_subjects(members).model)
+    cut = analyze(consolidate_subjects(
+        members, elimination=Elimination(receivables=[D(20)], revenue=[D(100)])).model)
+
+    assert _line(plain, "A_RECEIVABLE") == [D(80)] and _line(cut, "A_RECEIVABLE") == [D(60)]
+    assert _line(plain, "I_REVENUE") == [D(500)] and _line(cut, "I_REVENUE") == [D(400)]
+    assert _line(cut, "I_COGS") == [D(400)]          # себестоимость вычтена парно
+    assert _line(cut, "P_SHORT") == [D(60)]          # кредиторка вычтена парно
+
+
+def test_elimination_keeps_balance_invariant():
+    """Парное вычитание сохраняет «актив = пассив» — иначе свод стал бы некорректным."""
+    from audit_core.consolidate import Elimination
+
+    members = [("A", _traded(50, 300)), ("B", _traded(30, 200))]
+    r = analyze(consolidate_subjects(
+        members, elimination=Elimination(receivables=[D(35)], revenue=[D(250)])).model)
+    assert r.balanced is True
+    assert _line(r, "A_TOTAL") == _line(r, "P_TOTAL")
+
+
+def test_elimination_capped_to_available():
+    """Вычесть больше, чем есть в своде, нельзя: обрезается с предупреждением."""
+    from audit_core.consolidate import Elimination
+
+    c = consolidate_subjects([("A", _traded(50, 300))],
+                             elimination=Elimination(receivables=[D(9999)]))
+    assert any("превышает свод" in w for w in c.warnings)
+    assert c.model.balance["A_RECEIVABLE"] == [D(0)]
+    assert analyze(c.model).balanced is True
+
+
+def test_elimination_changes_warning_text():
+    """Без исключений — оговорка о завышении; с исключениями — что именно вычтено."""
+    from audit_core.consolidate import Elimination
+
+    plain = consolidate_subjects([("A", _traded(50, 300))])
+    assert any("не исключает внутригрупповые обороты" in w for w in plain.warnings)
+
+    cut = consolidate_subjects([("A", _traded(50, 300))],
+                               elimination=Elimination(receivables=[D(10)]))
+    assert any("исключены заданные внутригрупповые обороты" in w for w in cut.warnings)
+    # оговорка про доли участия остаётся — их мы по-прежнему не исключаем
+    assert any("Доли участия" in w for w in cut.warnings)
+
+
+def test_empty_elimination_is_inert():
+    """Пустые исключения не меняют свод."""
+    from audit_core.consolidate import Elimination
+
+    members = [("A", _traded(50, 300))]
+    a = consolidate_subjects(members).model
+    b = consolidate_subjects(members, elimination=Elimination()).model
+    assert a.balance == b.balance and a.income == b.income

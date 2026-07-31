@@ -23,7 +23,7 @@ from calc_core.formula import FormulaError, evaluate
 from calc_core.formula.functions import as_series
 from calc_core.money import CALC_CONTEXT, ZERO
 
-from .diagnostics import compute_diagnostics
+from .diagnostics import build_overrides, compute_diagnostics
 from .lines import ASSET_CODES, EQLIAB_CODES, INCOME_LINES, LABELS
 from .models import AuditSubjectModel
 from .result import (
@@ -227,6 +227,8 @@ def _analyze(model: AuditSubjectModel) -> AuditResult:
     )
 
     # ── Диагностика (фаза D): скоринги банкротства + нормативы + «светофор» ───
+    # Свои нормативы субъекта (v2) имеют приоритет над универсальными.
+    overrides = build_overrides(model.thresholds, warnings)
     result.diagnostics = compute_diagnostics(
         result,
         {
@@ -239,6 +241,7 @@ def _analyze(model: AuditSubjectModel) -> AuditResult:
             "revenue_annual": [revenue[t] * yr[t] for t in range(n)],
         },
         has_retained=model.has_balance_row("M_RETAINED"),
+        overrides=overrides,
     )
 
     # ── Пользовательские методики (фаза G): формулы над аналитической формой ──

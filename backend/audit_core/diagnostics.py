@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Optional
 
+from .models import RatioThreshold
 from .result import AuditResult, RatioSeries
 
 # Зоны скоринга и статусы показателей.
@@ -74,9 +75,13 @@ _THRESHOLDS: dict[str, tuple[str, Decimal, Decimal]] = {
 }
 
 
-def _status(name: str, value: Optional[Decimal]) -> Optional[str]:
-    """Статус показателя по нормативу (None — норматива нет или значение не определено)."""
-    rule = _THRESHOLDS.get(name)
+def _status(name: str, value: Optional[Decimal],
+            overrides: dict[str, tuple[str, Decimal, Decimal]] | None = None) -> Optional[str]:
+    """Статус показателя по нормативу (None — норматива нет или значение не определено).
+
+    Свой норматив субъекта (``overrides``) имеет приоритет над универсальным.
+    """
+    rule = (overrides or {}).get(name) or _THRESHOLDS.get(name)
     if rule is None or value is None:
         return None
     direction, risk_edge, good_edge = rule
@@ -101,8 +106,26 @@ def _div(a: Decimal, b: Decimal) -> Optional[Decimal]:
     return None if b == 0 else a / b
 
 
+def build_overrides(thresholds: list[RatioThreshold],
+                    warnings: list[str]) -> dict[str, tuple[str, Decimal, Decimal]]:
+    """Свои нормативы субъекта → таблица порогов; несогласованные отбрасываются с оговоркой."""
+    out: dict[str, tuple[str, Decimal, Decimal]] = {}
+    for th in thresholds:
+        if not th.ratio:
+            continue
+        if not th.is_consistent():
+            warnings.append(
+                f"Свой норматив «{th.ratio}» задан несогласованно (граница риска и границы "
+                "нормы противоречат направлению показателя) — применён универсальный порог.")
+            continue
+        out[th.ratio] = (th.direction, th.risk_edge, th.good_edge)
+    return out
+
+
 def compute_diagnostics(result: AuditResult, factors: dict[str, list[Decimal]],
-                        *, has_retained: bool) -> Diagnostics:
+                        *, has_retained: bool,
+                        overrides: dict[str, tuple[str, Decimal, Decimal]] | None = None
+                        ) -> Diagnostics:
     """Собрать диагностику по результату анализа и подготовленным факторам.
 
     ``factors`` — ряды по периодам: ``assets``, ``working_capital``, ``retained``, ``ebit``,
@@ -167,7 +190,7 @@ def compute_diagnostics(result: AuditResult, factors: dict[str, list[Decimal]],
     assessments: list[RatioAssessment] = []
     for group, series in result.ratios.items():
         for name, values in series.items():
-            statuses = [_status(name, v) for v in values]
+            statuses = [_status(name, v, overrides) for v in values]
             if any(s is not None for s in statuses):
                 assessments.append(RatioAssessment(group=group, name=name, status=statuses))
 

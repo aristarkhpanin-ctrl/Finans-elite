@@ -37,7 +37,8 @@ export interface paths {
          * Consolidate
          * @description Свод отчётности группы субъектов и анализ группы как единого предприятия.
          *
-         *     Внутригрупповые обороты не исключаются — это отражено в предупреждениях ответа.
+         *     Внутригрупповые обороты исключаются, только если переданы явно (``elimination``);
+         *     иначе свод их не вычитает — это отражено в предупреждениях ответа.
          */
         post: operations["consolidate_api_v1_audit_consolidate_post"];
         delete?: never;
@@ -1209,9 +1210,10 @@ export interface components {
         };
         /**
          * AuditConsolidateRequest
-         * @description Запрос консолидации: список субъектов группы + имя свода.
+         * @description Запрос консолидации: список субъектов группы + имя свода + исключения (v2).
          */
         AuditConsolidateRequest: {
+            elimination?: components["schemas"]["AuditEliminationIn"] | null;
             /**
              * Name
              * @default Группа предприятий
@@ -1267,6 +1269,22 @@ export interface components {
              * @default
              */
             summary: string;
+        };
+        /**
+         * AuditEliminationIn
+         * @description Внутригрупповые обороты к исключению из свода (по периодам).
+         */
+        AuditEliminationIn: {
+            /**
+             * Receivables
+             * @default []
+             */
+            receivables: (number | string)[];
+            /**
+             * Revenue
+             * @default []
+             */
+            revenue: (number | string)[];
         };
         /**
          * AuditLineOut
@@ -1384,6 +1402,8 @@ export interface components {
             name: string;
             /** Periods */
             periods?: components["schemas"]["AuditPeriod"][];
+            /** Thresholds */
+            thresholds?: components["schemas"]["RatioThreshold-Input"][];
             /** User Metrics */
             user_metrics?: components["schemas"]["UserMetric"][];
         };
@@ -1420,6 +1440,8 @@ export interface components {
             name: string;
             /** Periods */
             periods?: components["schemas"]["AuditPeriod"][];
+            /** Thresholds */
+            thresholds?: components["schemas"]["RatioThreshold-Output"][];
             /** User Metrics */
             user_metrics?: components["schemas"]["UserMetric"][];
         };
@@ -3899,6 +3921,70 @@ export interface components {
             model?: components["schemas"]["ProjectModel-Input"] | null;
             /** Name */
             name?: string | null;
+        };
+        /**
+         * RatioThreshold
+         * @description Свой норматив для показателя (v2): переопределяет универсальный порог.
+         *
+         *     ``direction`` — «чем больше, тем лучше» (``higher``) или наоборот (``lower``).
+         *     ``risk_edge`` — граница зоны риска, ``good_edge`` — граница нормы; между ними «внимание».
+         *     Для ``higher`` ожидается ``risk_edge <= good_edge``, для ``lower`` — наоборот;
+         *     несогласованный порог игнорируется с предупреждением (молча подменять оценку нельзя).
+         */
+        "RatioThreshold-Input": {
+            /**
+             * Direction
+             * @default higher
+             * @enum {string}
+             */
+            direction: "higher" | "lower";
+            /**
+             * Good Edge
+             * @default 0
+             */
+            good_edge: number | string;
+            /**
+             * Ratio
+             * @default
+             */
+            ratio: string;
+            /**
+             * Risk Edge
+             * @default 0
+             */
+            risk_edge: number | string;
+        };
+        /**
+         * RatioThreshold
+         * @description Свой норматив для показателя (v2): переопределяет универсальный порог.
+         *
+         *     ``direction`` — «чем больше, тем лучше» (``higher``) или наоборот (``lower``).
+         *     ``risk_edge`` — граница зоны риска, ``good_edge`` — граница нормы; между ними «внимание».
+         *     Для ``higher`` ожидается ``risk_edge <= good_edge``, для ``lower`` — наоборот;
+         *     несогласованный порог игнорируется с предупреждением (молча подменять оценку нельзя).
+         */
+        "RatioThreshold-Output": {
+            /**
+             * Direction
+             * @default higher
+             * @enum {string}
+             */
+            direction: "higher" | "lower";
+            /**
+             * Good Edge
+             * @default 0
+             */
+            good_edge: string;
+            /**
+             * Ratio
+             * @default
+             */
+            ratio: string;
+            /**
+             * Risk Edge
+             * @default 0
+             */
+            risk_edge: string;
         };
         /** RatiosOut */
         RatiosOut: {

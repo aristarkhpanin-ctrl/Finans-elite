@@ -6,6 +6,7 @@ import {
   consolidateAudit,
   listAuditSubjects,
   type AuditConsolidation,
+  type AuditElimination,
 } from "../api/audit";
 import { IconBriefcase } from "../components/icons";
 import { useToast } from "../components/Toast";
@@ -32,8 +33,8 @@ const fmtRatio = (name: string, v: string | null): string => {
 
 /**
  * Консолидация группы предприятий (Финанс-Аудит, фаза H): выбор субъектов → свод →
- * анализ группы как единого предприятия. Внутригрупповые обороты не исключаются —
- * оговорка выводится явно.
+ * анализ группы как единого предприятия. Внутригрупповые обороты вычитаются, только если
+ * заданы явно; иначе выводится оговорка о завышении показателей группы.
  */
 export function AuditGroupPage() {
   const navigate = useNavigate();
@@ -46,12 +47,29 @@ export function AuditGroupPage() {
   const [selected, setSelected] = useState<string[]>([]);
   const [name, setName] = useState("Группа предприятий");
   const [result, setResult] = useState<AuditConsolidation | null>(null);
+  // Внутригрупповые обороты к исключению (v2): по одному значению на период свода.
+  const [elimOn, setElimOn] = useState(false);
+  const [elimRec, setElimRec] = useState("");
+  const [elimRev, setElimRev] = useState("");
 
   const toggle = (id: string) =>
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
+  /**
+   * Одна сумма распространяется на все периоды свода (частый случай — одинаковый годовой
+   * оборот). Ряд отправляется с запасом: сервер обрезает его до числа периодов свода.
+   */
+  const elimination = (): AuditElimination | undefined => {
+    if (!elimOn) return undefined;
+    const MAX_PERIODS = 48;   // верхняя граница числа периодов субъекта
+    return {
+      receivables: Array.from({ length: MAX_PERIODS }, () => elimRec || "0"),
+      revenue: Array.from({ length: MAX_PERIODS }, () => elimRev || "0"),
+    };
+  };
+
   const run = useMutation({
-    mutationFn: () => consolidateAudit(selected, name),
+    mutationFn: () => consolidateAudit(selected, name, elimination()),
     onSuccess: (r) => { setResult(r); toast("Свод построен", { kind: "success" }); },
     onError: () => toast("Не удалось построить свод", { kind: "error" }),
   });
@@ -100,6 +118,28 @@ export function AuditGroupPage() {
                 </label>
               ))}
             </div>
+            <label className={"opt-row" + (elimOn ? " opt-row--on" : "")} style={{ cursor: "pointer", marginBottom: 10 }}>
+              <input type="checkbox" style={{ position: "absolute", opacity: 0, width: 0, height: 0 }}
+                     checked={elimOn} onChange={(e) => setElimOn(e.target.checked)} />
+              <span className="opt-row__box">{elimOn ? "✓" : ""}</span>
+              <span style={{ minWidth: 0 }}>
+                <span className="opt-row__label">Исключить внутригрупповые обороты</span>
+                <span className="opt-row__help">
+                  Взаимная задолженность вычитается из дебиторки и кредиторки, взаимная выручка —
+                  из выручки и себестоимости. Доли участия не исключаются.
+                </span>
+              </span>
+            </label>
+            {elimOn && (
+              <div className="ft-row" style={{ marginBottom: 10 }}>
+                <input className="efield__input" inputMode="decimal" value={elimRec}
+                       placeholder="Взаимная задолженность за период"
+                       onChange={(e) => setElimRec(e.target.value)} />
+                <input className="efield__input" inputMode="decimal" value={elimRev}
+                       placeholder="Взаимная выручка за период"
+                       onChange={(e) => setElimRev(e.target.value)} />
+              </div>
+            )}
             <div className="ft-row">
               <input className="efield__input" value={name} placeholder="Название группы"
                      onChange={(e) => setName(e.target.value)} />

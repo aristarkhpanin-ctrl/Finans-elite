@@ -833,11 +833,19 @@ class AuditAnalysisOut(BaseModel):
     warnings: list[str] = []
 
 
+class AuditEliminationIn(BaseModel):
+    """Внутригрупповые обороты к исключению из свода (по периодам)."""
+
+    receivables: list[Decimal] = []
+    revenue: list[Decimal] = []
+
+
 class AuditConsolidateRequest(BaseModel):
-    """Запрос консолидации: список субъектов группы + имя свода."""
+    """Запрос консолидации: список субъектов группы + имя свода + исключения (v2)."""
 
     subject_ids: list[str] = Field(default_factory=list, min_length=1, max_length=50)
     name: str = "Группа предприятий"
+    elimination: Optional[AuditEliminationIn] = None
 
 
 class AuditConsolidateResponse(BaseModel):

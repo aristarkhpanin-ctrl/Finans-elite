@@ -7,13 +7,14 @@
 from __future__ import annotations
 
 from .analysis import analyze
-from .consolidate import Consolidation, consolidate_subjects
+from .consolidate import Consolidation, Elimination, consolidate_subjects
 from .models import AuditPeriod, AuditSubjectModel
 from .result import AuditLine, AuditResult, ShareLine, TrendLine
 
 __all__ = [
     "AuditLine",
     "Consolidation",
+    "Elimination",
     "AuditPeriod",
     "AuditResult",
     "AuditSubjectModel",

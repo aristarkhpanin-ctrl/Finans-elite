@@ -171,3 +171,58 @@ def test_grey_zone_maps_to_warning():
 def test_empty_model_has_no_diagnostics():
     r = analyze(AuditSubjectModel())
     assert r.diagnostics is None or r.diagnostics.scores == []
+
+
+# --- v2: свои нормативы субъекта ---
+
+def _th(ratio: str, direction: str, risk: str, good: str):
+    from audit_core.models import RatioThreshold
+    return RatioThreshold(ratio=ratio, direction=direction, risk_edge=D(risk), good_edge=D(good))
+
+
+def test_custom_threshold_overrides_universal():
+    """Свой норматив строже универсального → показатель уходит в risk."""
+    m = _healthy()          # Ктл = 600/200 = 3.0 → по универсальному good
+    assert _assess(analyze(m), "Коэффициент текущей ликвидности").status == [GOOD]
+
+    m.thresholds = [_th("Коэффициент текущей ликвидности", "higher", "3.5", "4")]
+    r = analyze(m)
+    assert _assess(r, "Коэффициент текущей ликвидности").status == [RISK]
+    assert r.diagnostics.light == RISK
+
+
+def test_custom_threshold_can_relax():
+    """Свой норматив мягче универсального → показатель перестаёт быть нарушением."""
+    m = _distressed()       # Ктл = 300/750 = 0.4 → по универсальному risk
+    assert _assess(analyze(m), "Коэффициент текущей ликвидности").status == [RISK]
+
+    m.thresholds = [_th("Коэффициент текущей ликвидности", "higher", "0.2", "0.35")]
+    assert _assess(analyze(m), "Коэффициент текущей ликвидности").status == [GOOD]
+
+
+def test_threshold_for_metric_without_universal_norm():
+    """Норматив можно задать показателю, у которого универсального порога нет."""
+    m = _healthy()
+    assert _assess_opt(analyze(m), "Оборачиваемость активов") is None
+    m.thresholds = [_th("Оборачиваемость активов", "higher", "2", "3")]
+    # оборачиваемость = 1500/1000 = 1.5 → ниже границы риска
+    assert _assess(analyze(m), "Оборачиваемость активов").status == [RISK]
+
+
+def test_inconsistent_threshold_ignored_with_warning():
+    """Несогласованный порог не применяется молча — универсальный + предупреждение."""
+    m = _healthy()
+    m.thresholds = [_th("Коэффициент текущей ликвидности", "higher", "3", "1")]  # риск > нормы
+    r = analyze(m)
+    assert _assess(r, "Коэффициент текущей ликвидности").status == [GOOD]   # универсальный
+    assert any("несогласованно" in w for w in r.warnings)
+
+
+def test_no_thresholds_is_inert():
+    """Без своих нормативов поведение прежнее."""
+    m = _healthy()
+    assert analyze(m).diagnostics.light == analyze(_healthy()).diagnostics.light
+
+
+def _assess_opt(r, name):
+    return next((a for a in r.diagnostics.assessments if a.name == name), None)

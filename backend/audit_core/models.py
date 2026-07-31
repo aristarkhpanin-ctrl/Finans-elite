@@ -33,6 +33,25 @@ class UserMetric(BaseModel):
     formula: str = Field(default="", max_length=2000)
 
 
+class RatioThreshold(BaseModel):
+    """Свой норматив для показателя (v2): переопределяет универсальный порог.
+
+    ``direction`` — «чем больше, тем лучше» (``higher``) или наоборот (``lower``).
+    ``risk_edge`` — граница зоны риска, ``good_edge`` — граница нормы; между ними «внимание».
+    Для ``higher`` ожидается ``risk_edge <= good_edge``, для ``lower`` — наоборот;
+    несогласованный порог игнорируется с предупреждением (молча подменять оценку нельзя).
+    """
+
+    ratio: str = Field(default="", max_length=200)
+    direction: Literal["higher", "lower"] = "higher"
+    risk_edge: Decimal = Decimal(0)
+    good_edge: Decimal = Decimal(0)
+
+    def is_consistent(self) -> bool:
+        return (self.risk_edge <= self.good_edge if self.direction == "higher"
+                else self.risk_edge >= self.good_edge)
+
+
 class AuditSubjectModel(BaseModel):
     """Субъект анализа с фактической отчётностью по периодам.
 
@@ -48,6 +67,8 @@ class AuditSubjectModel(BaseModel):
     income: dict[str, list[Decimal]] = Field(default_factory=dict)
     # Пользовательские методики (фаза G): свои показатели поверх аналитической формы.
     user_metrics: list[UserMetric] = Field(default_factory=list, max_length=100)
+    # Свои нормативы (v2): переопределяют универсальные пороги; пусто — универсальные.
+    thresholds: list[RatioThreshold] = Field(default_factory=list, max_length=100)
 
     @property
     def n(self) -> int:

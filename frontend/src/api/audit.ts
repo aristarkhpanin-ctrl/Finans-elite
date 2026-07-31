@@ -12,6 +12,14 @@ export interface UserMetric {
   formula: string;
 }
 
+/** Свой норматив показателя (v2): переопределяет универсальный порог. */
+export interface RatioThreshold {
+  ratio: string;
+  direction: "higher" | "lower";
+  risk_edge: string;
+  good_edge: string;
+}
+
 /** Модель субъекта: реквизиты, периоды, фактическая отчётность (код строки → ряд по периодам). */
 export interface AuditModel {
   name?: string;
@@ -21,6 +29,7 @@ export interface AuditModel {
   balance: Record<string, string[]>;   // значения-строки (Decimal, точность без float)
   income: Record<string, string[]>;
   user_metrics?: UserMetric[];
+  thresholds?: RatioThreshold[];
 }
 
 export interface AuditSubjectSummary {
@@ -186,11 +195,22 @@ export interface AuditConsolidation {
   warnings: string[];
 }
 
+/** Внутригрупповые обороты к исключению из свода (по периодам). */
+export interface AuditElimination {
+  receivables: string[];
+  revenue: string[];
+}
+
 /** Свести отчётность выбранных субъектов и проанализировать группу как одно предприятие. */
-export async function consolidateAudit(subjectIds: string[], name: string): Promise<AuditConsolidation> {
+export async function consolidateAudit(
+  subjectIds: string[],
+  name: string,
+  elimination?: AuditElimination,
+): Promise<AuditConsolidation> {
   const { data } = await api.post<AuditConsolidation>("/api/v1/audit/consolidate", {
     subject_ids: subjectIds,
     name,
+    elimination: elimination ?? null,
   });
   return data;
 }
