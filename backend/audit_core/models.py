@@ -71,5 +71,10 @@ class AuditSubjectModel(BaseModel):
     def balance_row(self, code: str) -> list[Decimal]:
         return self._row(self.balance, code)
 
+    def has_balance_row(self, code: str) -> bool:
+        """Строка введена (а не отсутствует). «Не введено» и «введён ноль» — разные факты:
+        диагностика по непредоставленным данным не считается, а не подставляет нули."""
+        return bool(self.balance.get(code))
+
     def income_row(self, code: str) -> list[Decimal]:
         return self._row(self.income, code) if code in INCOME_CODES else [Decimal(0)] * self.n

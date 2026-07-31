@@ -21,6 +21,7 @@ from typing import Optional
 
 from calc_core.money import CALC_CONTEXT, ZERO
 
+from .diagnostics import compute_diagnostics
 from .lines import ASSET_CODES, EQLIAB_CODES, INCOME_LINES, LABELS
 from .models import AuditSubjectModel
 from .result import AuditLine, AuditResult, RatioSeries, ShareLine, TrendLine
@@ -198,7 +199,7 @@ def _analyze(model: AuditSubjectModel) -> AuditResult:
         warnings.append("Баланс не сходится: актив ≠ пассив в одном или нескольких периодах — "
                         "показатели считаются по введённым данным как есть.")
 
-    return AuditResult(
+    result = AuditResult(
         n=n,
         periods=[p.label or f"Период {i + 1}" for i, p in enumerate(model.periods)],
         balance=balance_lines,
@@ -215,3 +216,19 @@ def _analyze(model: AuditSubjectModel) -> AuditResult:
         balanced=all(g == 0 for g in gap),
         warnings=warnings,
     )
+
+    # ── Диагностика (фаза D): скоринги банкротства + нормативы + «светофор» ───
+    result.diagnostics = compute_diagnostics(
+        result,
+        {
+            "assets": total_assets,
+            "working_capital": [current[t] - short[t] for t in range(n)],
+            "retained": model.balance_row("M_RETAINED"),
+            "equity": equity,
+            "liabilities": debt,
+            "ebit_annual": [ebit[t] * yr[t] for t in range(n)],
+            "revenue_annual": [revenue[t] * yr[t] for t in range(n)],
+        },
+        has_retained=model.has_balance_row("M_RETAINED"),
+    )
+    return result

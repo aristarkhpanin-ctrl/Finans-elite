@@ -304,6 +304,16 @@
             "title": "Balanced",
             "type": "boolean"
           },
+          "diagnostics": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AuditDiagnosticsOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "horizontal": {
             "default": [],
             "items": {
@@ -377,6 +387,73 @@
         "title": "AuditAnalysisOut",
         "type": "object"
       },
+      "AuditAssessmentOut": {
+        "description": "Оценка показателя по нормативам: статус по периодам (good | warn | risk).",
+        "properties": {
+          "group": {
+            "title": "Group",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "default": [],
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Status",
+            "type": "array"
+          }
+        },
+        "required": [
+          "group",
+          "name"
+        ],
+        "title": "AuditAssessmentOut",
+        "type": "object"
+      },
+      "AuditDiagnosticsOut": {
+        "description": "Диагностика: скоринги, оценка нормативов и сводный «светофор».",
+        "properties": {
+          "assessments": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AuditAssessmentOut"
+            },
+            "title": "Assessments",
+            "type": "array"
+          },
+          "light": {
+            "default": "ok",
+            "title": "Light",
+            "type": "string"
+          },
+          "scores": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AuditScoreOut"
+            },
+            "title": "Scores",
+            "type": "array"
+          },
+          "summary": {
+            "default": "",
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "title": "AuditDiagnosticsOut",
+        "type": "object"
+      },
       "AuditLineOut": {
         "description": "Строка аналитической формы (подытоги помечены ``subtotal``).",
         "properties": {
@@ -430,6 +507,61 @@
           }
         },
         "title": "AuditPeriod",
+        "type": "object"
+      },
+      "AuditScoreOut": {
+        "description": "Скоринговая модель банкротства: балл и зона по периодам (None — нет данных).",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          },
+          "values": {
+            "default": [],
+            "items": {
+              "anyOf": [
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Values",
+            "type": "array"
+          },
+          "zones": {
+            "default": [],
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Zones",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "AuditScoreOut",
         "type": "object"
       },
       "AuditShareOut": {

@@ -59,5 +59,24 @@ def result_to_dict(result: AuditResult) -> dict[str, object]:
         },
         "balance_gap": [_money(v) for v in result.balance_gap],
         "balanced": result.balanced,
+        "diagnostics": _diagnostics_to_dict(result.diagnostics),
         "warnings": list(result.warnings),
+    }
+
+
+def _diagnostics_to_dict(d) -> Optional[dict[str, object]]:
+    if d is None:
+        return None
+    return {
+        "light": d.light,
+        "summary": d.summary,
+        "scores": [
+            {"id": s.id, "name": s.name, "values": [_ratio(v) for v in s.values],
+             "zones": list(s.zones), "note": s.note}
+            for s in d.scores
+        ],
+        "assessments": [
+            {"group": a.group, "name": a.name, "status": list(a.status)}
+            for a in d.assessments
+        ],
     }

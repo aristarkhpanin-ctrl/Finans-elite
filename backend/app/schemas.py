@@ -777,6 +777,33 @@ class AuditShareOut(BaseModel):
     share: list[Optional[Decimal]] = []
 
 
+class AuditScoreOut(BaseModel):
+    """Скоринговая модель банкротства: балл и зона по периодам (None — нет данных)."""
+
+    id: str
+    name: str
+    values: list[Optional[Decimal]] = []
+    zones: list[Optional[str]] = []       # safe | grey | distress
+    note: str = ""
+
+
+class AuditAssessmentOut(BaseModel):
+    """Оценка показателя по нормативам: статус по периодам (good | warn | risk)."""
+
+    group: str
+    name: str
+    status: list[Optional[str]] = []
+
+
+class AuditDiagnosticsOut(BaseModel):
+    """Диагностика: скоринги, оценка нормативов и сводный «светофор»."""
+
+    light: str = "ok"                      # ok | warning | risk
+    summary: str = ""
+    scores: list[AuditScoreOut] = []
+    assessments: list[AuditAssessmentOut] = []
+
+
 class AuditAnalysisOut(BaseModel):
     """Результат анализа фактической отчётности (Финанс-Аудит)."""
 
@@ -789,6 +816,8 @@ class AuditAnalysisOut(BaseModel):
     ratios: dict[str, dict[str, list[Optional[Decimal]]]] = {}
     balance_gap: list[Decimal] = []
     balanced: bool = True
+    # Диагностика (фаза D); None при пустой модели.
+    diagnostics: Optional[AuditDiagnosticsOut] = None
     warnings: list[str] = []
 
 
@@ -809,5 +838,14 @@ def audit_analysis_response(result) -> "AuditAnalysisOut":
                 for g, series in result.ratios.items()},
         balance_gap=list(result.balance_gap),
         balanced=result.balanced,
+        diagnostics=(AuditDiagnosticsOut(
+            light=result.diagnostics.light,
+            summary=result.diagnostics.summary,
+            scores=[AuditScoreOut(id=s.id, name=s.name, values=list(s.values),
+                                  zones=list(s.zones), note=s.note)
+                    for s in result.diagnostics.scores],
+            assessments=[AuditAssessmentOut(group=a.group, name=a.name, status=list(a.status))
+                         for a in result.diagnostics.assessments],
+        ) if result.diagnostics is not None else None),
         warnings=list(result.warnings),
     )

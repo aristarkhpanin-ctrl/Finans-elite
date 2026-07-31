@@ -30,6 +30,8 @@ def build_trading_subject() -> AuditSubjectModel:
             "P_EQUITY": [D(5000), D(6000), D(7400)],
             "P_LONG": [D(2000), D(2200), D(2600)],
             "P_SHORT": [D(3000), D(3300), D(3700)],
+            # memo (в итог пассива не входит) — фактор моделей Альтмана
+            "M_RETAINED": [D(1800), D(2500), D(3600)],
         },
         income={
             "I_REVENUE": [D(18000), D(21000), D(25000)],
@@ -58,6 +60,7 @@ def build_quarterly_subject() -> AuditSubjectModel:
             "P_EQUITY": [D(8000), D(8300), D(8700), D(9200)],
             "P_LONG": [D(3500), D(3600), D(3600), D(3500)],
             "P_SHORT": [D(2500), D(2600), D(2800), D(2800)],
+            "M_RETAINED": [D(2200), D(2500), D(2900), D(3400)],
         },
         income={
             "I_REVENUE": [D(5000), D(5400), D(5800), D(6200)],

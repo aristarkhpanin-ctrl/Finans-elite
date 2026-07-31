@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from decimal import Decimal
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 #: Ряд коэффициента по периодам (None — показатель не определён, напр. деление на ноль).
 RatioSeries = list[Optional[Decimal]]
@@ -62,4 +62,10 @@ class AuditResult:
     #: Инвариант ввода: актив − пассив по периодам и флаг сходимости.
     balance_gap: list[Decimal] = field(default_factory=list)
     balanced: bool = True
+    #: Диагностика (скоринги банкротства + нормативы + «светофор»); None при пустой модели.
+    diagnostics: Optional["Diagnostics"] = None
     warnings: list[str] = field(default_factory=list)
+
+
+if TYPE_CHECKING:  # только для аннотации — избегаем циклического импорта
+    from .diagnostics import Diagnostics

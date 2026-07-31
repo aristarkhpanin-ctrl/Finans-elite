@@ -118,6 +118,148 @@
     "0.00"
   ],
   "balanced": true,
+  "diagnostics": {
+    "assessments": [
+      {
+        "group": "liquidity",
+        "name": "Коэффициент текущей ликвидности",
+        "status": [
+          "good",
+          "good",
+          "good",
+          "good"
+        ]
+      },
+      {
+        "group": "liquidity",
+        "name": "Коэффициент срочной ликвидности",
+        "status": [
+          "good",
+          "good",
+          "good",
+          "good"
+        ]
+      },
+      {
+        "group": "liquidity",
+        "name": "Коэффициент абсолютной ликвидности",
+        "status": [
+          "good",
+          "good",
+          "good",
+          "good"
+        ]
+      },
+      {
+        "group": "gearing",
+        "name": "Коэффициент автономии",
+        "status": [
+          "good",
+          "good",
+          "good",
+          "good"
+        ]
+      },
+      {
+        "group": "gearing",
+        "name": "Суммарные обязательства к активам",
+        "status": [
+          "good",
+          "good",
+          "good",
+          "good"
+        ]
+      },
+      {
+        "group": "gearing",
+        "name": "Суммарные обязательства к собств. капиталу",
+        "status": [
+          "warn",
+          "warn",
+          "warn",
+          "good"
+        ]
+      },
+      {
+        "group": "gearing",
+        "name": "Коэффициент покрытия процентов",
+        "status": [
+          "good",
+          "good",
+          "good",
+          "good"
+        ]
+      },
+      {
+        "group": "profitability",
+        "name": "Рентабельность чистой прибыли",
+        "status": [
+          "good",
+          "good",
+          "good",
+          "good"
+        ]
+      },
+      {
+        "group": "profitability",
+        "name": "Рентабельность активов (ROA)",
+        "status": [
+          "good",
+          "good",
+          "good",
+          "good"
+        ]
+      },
+      {
+        "group": "profitability",
+        "name": "Рентабельность собств. капитала (ROE)",
+        "status": [
+          "good",
+          "good",
+          "good",
+          "good"
+        ]
+      }
+    ],
+    "light": "ok",
+    "scores": [
+      {
+        "id": "altman_z_private",
+        "name": "Z′ Альтмана (непубличные компании)",
+        "note": "Пятифакторная модификация по учётным величинам. Зоны: < 1,23 — высокий риск; 1,23–2,9 — неопределённость; > 2,9 — устойчивость.",
+        "values": [
+          "2.868250",
+          "3.014162",
+          "3.143185",
+          "3.345759"
+        ],
+        "zones": [
+          "grey",
+          "safe",
+          "safe",
+          "safe"
+        ]
+      },
+      {
+        "id": "altman_z_nonmfg",
+        "name": "Z″ Альтмана (непроизводственные компании)",
+        "note": "Четырёхфакторная модификация (без фактора оборачиваемости активов). Зоны: < 1,1 — высокий риск; 1,1–2,6 — неопределённость; > 2,6 — устойчивость.",
+        "values": [
+          "4.427714",
+          "4.672266",
+          "5.010152",
+          "5.336946"
+        ],
+        "zones": [
+          "safe",
+          "safe",
+          "safe",
+          "safe"
+        ]
+      }
+    ],
+    "summary": "Показатели в пределах нормативов, признаков неустойчивости не выявлено."
+  },
   "horizontal": [
     {
       "code": "A_FIXED",

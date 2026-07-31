@@ -31,9 +31,19 @@ INCOME_LINES: list[tuple[str, str]] = [
     ("I_TAX", "Налог на прибыль"),
 ]
 
+# Справочные (memo) строки: **не входят в итоги баланса** — расшифровка для диагностики.
+# Нераспределённая прибыль нужна моделям Альтмана (фактор «накопленная прибыль / активы»);
+# в агрегате «Капитал и резервы» она уже учтена, поэтому в сумму пассива не добавляется.
+MEMO_LINES: list[tuple[str, str]] = [
+    ("M_RETAINED", "в т.ч. нераспределённая прибыль (для диагностики)"),
+]
+
 ASSET_CODES = [c for c, _ in BALANCE_ASSET_LINES]
 EQLIAB_CODES = [c for c, _ in BALANCE_EQLIAB_LINES]
 INCOME_CODES = [c for c, _ in INCOME_LINES]
+MEMO_CODES = [c for c, _ in MEMO_LINES]
 BALANCE_CODES = ASSET_CODES + EQLIAB_CODES
 
-LABELS: dict[str, str] = dict(BALANCE_ASSET_LINES + BALANCE_EQLIAB_LINES + INCOME_LINES)
+LABELS: dict[str, str] = dict(
+    BALANCE_ASSET_LINES + BALANCE_EQLIAB_LINES + INCOME_LINES + MEMO_LINES
+)
