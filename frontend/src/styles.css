@@ -149,6 +149,7 @@
    но фиолетовый); семантические danger/warn не трогаются. Активируется атрибутом
    data-product="audit" на <html> (см. components/product.ts). */
 :root[data-product="audit"] {
+  --page-bg: #E0E1F1;
   --app-bg: #F2F3FA;
   --surface-2: #EAEBF5;
   --surface-3: #D8DBEB;
@@ -160,8 +161,10 @@
   --muted: #4D4658;
   --subtle: #736E82;
   --primary: #6468EE;
+  --primary-hover: #5357E2;
   --primary-text: #120621;
   --accent: #59138A;
+  --primary-bg: #D2D6F3;
   --primary-soft: #E4E7F8;
   --good: #610E7A;
   --good-bg: #E6DBF1;
@@ -180,7 +183,7 @@
   --ico1: #59138A; --ico1-bg: #D2D6F3;
   --ico2: #5C3E7D; --ico2-bg: #E2E4EF;
   --ico3: #765FA8; --ico3-bg: #DEE0F0;
-  --chart-2: #5C3E7D; --chart-3: #765FA8; --chart-6: #831E9E; --chart-7: #5E609E;
+  --chart-1: #59138A; --chart-2: #5C3E7D; --chart-3: #765FA8; --chart-6: #831E9E; --chart-7: #5E609E;
 }
 
 :root[data-theme="dark"][data-product="audit"] {
