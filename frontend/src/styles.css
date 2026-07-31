@@ -144,6 +144,89 @@
   --chart-5: #F0796E; --chart-6: #5FD9A6; --chart-7: #9BD08E;
 }
 
+/* ── Тема продукта «Финанс-Аудит»: зелёный → фиолетовый ──────────────────────
+   Оттенок зелёных токенов повёрнут на +130° (S/L сохранены → тот же градиент,
+   но фиолетовый); семантические danger/warn не трогаются. Активируется атрибутом
+   data-product="audit" на <html> (см. components/product.ts). */
+:root[data-product="audit"] {
+  --app-bg: #F2F3FA;
+  --surface-2: #EAEBF5;
+  --surface-3: #D8DBEB;
+  --sk: #DFE0EE;
+  --border: #CDCEE4;
+  --border-strong: #AEAFCC;
+  --grid-line: #E5E6F1;
+  --text: #1C1620;
+  --muted: #4D4658;
+  --subtle: #736E82;
+  --primary: #6468EE;
+  --primary-text: #120621;
+  --accent: #59138A;
+  --primary-soft: #E4E7F8;
+  --good: #610E7A;
+  --good-bg: #E6DBF1;
+  --good-border: #CDB7DE;
+  --info: #5C3E7D;
+  --info-bg: #E2E4EF;
+  --ring: rgba(98, 56, 194, 0.30);
+  --bar-border: #CDCEE4;
+  --seg-bg: #E3E5F0;
+  --subtotal-bg: #EAECF3;
+  --grand-bg: #E6DBF1;
+  --hov: #EEEFF7;
+  --hovlab: #E6E8F2;
+  --success: #610E7A;
+  --success-bg: #E6DBF1;
+  --ico1: #59138A; --ico1-bg: #D2D6F3;
+  --ico2: #5C3E7D; --ico2-bg: #E2E4EF;
+  --ico3: #765FA8; --ico3-bg: #DEE0F0;
+  --chart-2: #5C3E7D; --chart-3: #765FA8; --chart-6: #831E9E; --chart-7: #5E609E;
+}
+
+:root[data-theme="dark"][data-product="audit"] {
+  --app-bg: #0C0C0F;
+  --surface: #252124;
+  --surface-2: #2B2A31;
+  --surface-3: #3C3C4A;
+  --sk: #2B2A31;
+  --border: #464653;
+  --border-strong: #65647D;
+  --grid-line: #242328;
+  --text: #E1DCFF;
+  --muted: #9291A0;
+  --subtle: #65647D;
+  --primary: #6468EE;
+  --primary-hover: #7D81F4;
+  --accent: #6468EE;
+  --primary-bg: rgba(100, 104, 238, 0.15);
+  --primary-soft: rgba(100, 104, 238, 0.09);
+  --good: #6468EE;
+  --good-bg: rgba(100, 104, 238, 0.15);
+  --good-border: rgba(100, 104, 238, 0.32);
+  --info: #A4A6D2;
+  --info-bg: rgba(164, 166, 210, 0.15);
+  --ring: rgba(100, 104, 238, 0.40);
+  --bar-bg: #0C0C0F;
+  --bar-border: #1E1D23;
+  --seg-bg: #0B0B0E;
+  --seg-active-bg: #2B2A31;
+  --header-bg: #0C0C0F;
+  --sticky-bg: #252124;
+  --subtotal-bg: #1D1C20;
+  --grand-bg: rgba(100, 104, 238, 0.12);
+  --hov: #25252C;
+  --hovlab: #2B2B32;
+  --cell-bg: #17161A;
+  --input-bg: #17161A;
+  --success: #6468EE;
+  --success-bg: rgba(100, 104, 238, 0.16);
+  --ico1: #6468EE; --ico1-bg: rgba(100, 104, 238, 0.15);
+  --ico2: #A4A6D2; --ico2-bg: rgba(164, 166, 210, 0.15);
+  --ico3: #B6BDF9; --ico3-bg: rgba(182, 189, 249, 0.14);
+  --chart-1: #6468EE; --chart-2: #A4A6D2; --chart-3: #B6BDF9;
+  --chart-6: #BA5FD9; --chart-7: #8E90D0;
+}
+
 /* ---------- 2. База ---------- */
 
 * { box-sizing: border-box; }
@@ -714,6 +797,16 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .shell-orgbtn--static:hover { background: none; border-color: transparent; }
 .shell-orgname { font: 600 13px var(--font-ui); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .shell-chev { color: var(--subtle); font-size: 10px; flex: none; }
+/* Переключатель продукта (Финанс-Элит / Финанс-Аудит) */
+.shell-prodwrap { display: flex; align-items: center; }
+.prod-switch {
+  display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px;
+  border-radius: 8px; border: 1px solid var(--border); background: var(--primary-soft);
+  color: var(--accent); font: 600 12.5px var(--font-ui); cursor: pointer;
+  white-space: nowrap; transition: 0.14s;
+}
+.prod-switch:hover { border-color: var(--border-strong); background: var(--primary-bg); }
+.menu--product { width: 264px; left: 0; right: auto; }
 .shell-userbtn {
   display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 10px 0 4px;
   border-radius: 9px; border: 1px solid var(--border); background: var(--surface);
