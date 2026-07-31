@@ -118,7 +118,8 @@ export function Layout() {
         <div className="shell-left">
           <NavLink to={product.home} className="shell-brand" style={{ textDecoration: "none" }}>
             <div className="shell-mark">
-              <CubeHero backdrop="transparent" showEnvironment={false} showOrbit={false} pointerTilt={false} />
+              {/* Куб — единая марка платформы: всегда зелёный, не следует теме продукта. */}
+              <CubeHero accent={["#7FEE64", "#1FAE68"]} backdrop="transparent" showEnvironment={false} showOrbit={false} pointerTilt={false} />
             </div>
             <span className="shell-word">
               Финанс<span>{product.brand}</span>
