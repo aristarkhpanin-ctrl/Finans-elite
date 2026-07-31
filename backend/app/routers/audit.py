@@ -9,16 +9,20 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from audit_core import analyze
+
 from .. import crud
 from ..database import get_db
 from ..db_models import AuditSubject
 from ..deps import require_permission
 from ..rbac import Perm
 from ..schemas import (
+    AuditAnalysisOut,
     AuditSubjectCreate,
     AuditSubjectOut,
     AuditSubjectSummary,
     AuditSubjectUpdate,
+    audit_analysis_response,
 )
 
 router = APIRouter(prefix="/api/v1/audit", tags=["audit"])
@@ -74,6 +78,15 @@ def update_subject(subject_id: str, body: AuditSubjectUpdate,
     """Обновить имя и/или модель субъекта."""
     subject = _require(db, org_id, subject_id)
     return _out(crud.update_audit_subject(db, subject, name=body.name, model=body.model))
+
+
+@router.post("/subjects/{subject_id}/analyze", response_model=AuditAnalysisOut)
+def analyze_subject(subject_id: str,
+                    org_id: str = Depends(require_permission(Perm.PROJECT_CALCULATE)),
+                    db: Session = Depends(get_db)) -> AuditAnalysisOut:
+    """Проанализировать отчётность субъекта: аналитическая форма, тренды, коэффициенты."""
+    subject = _require(db, org_id, subject_id)
+    return audit_analysis_response(analyze(crud.load_audit_model(subject)))
 
 
 @router.delete("/subjects/{subject_id}", status_code=status.HTTP_204_NO_CONTENT)

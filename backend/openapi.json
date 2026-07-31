@@ -279,6 +279,137 @@
         "title": "AssetCategory",
         "type": "string"
       },
+      "AuditAnalysisOut": {
+        "description": "Результат анализа фактической отчётности (Финанс-Аудит).",
+        "properties": {
+          "balance": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AuditLineOut"
+            },
+            "title": "Balance",
+            "type": "array"
+          },
+          "balance_gap": {
+            "default": [],
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Balance Gap",
+            "type": "array"
+          },
+          "balanced": {
+            "default": true,
+            "title": "Balanced",
+            "type": "boolean"
+          },
+          "horizontal": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AuditTrendOut"
+            },
+            "title": "Horizontal",
+            "type": "array"
+          },
+          "income": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AuditLineOut"
+            },
+            "title": "Income",
+            "type": "array"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "periods": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Periods",
+            "type": "array"
+          },
+          "ratios": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "items": {
+                  "anyOf": [
+                    {
+                      "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              "type": "object"
+            },
+            "default": {},
+            "title": "Ratios",
+            "type": "object"
+          },
+          "vertical": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AuditShareOut"
+            },
+            "title": "Vertical",
+            "type": "array"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "n"
+        ],
+        "title": "AuditAnalysisOut",
+        "type": "object"
+      },
+      "AuditLineOut": {
+        "description": "Строка аналитической формы (подытоги помечены ``subtotal``).",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "subtotal": {
+            "default": false,
+            "title": "Subtotal",
+            "type": "boolean"
+          },
+          "values": {
+            "default": [],
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Values",
+            "type": "array"
+          }
+        },
+        "required": [
+          "code",
+          "label"
+        ],
+        "title": "AuditLineOut",
+        "type": "object"
+      },
       "AuditPeriod": {
         "description": "Отчётный период: подпись (например «2024» или «2024 Q1») и тип (год/квартал).",
         "properties": {
@@ -299,6 +430,41 @@
           }
         },
         "title": "AuditPeriod",
+        "type": "object"
+      },
+      "AuditShareOut": {
+        "description": "Вертикальный анализ: доля строки в базе периода (актив / выручка).",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "share": {
+            "default": [],
+            "items": {
+              "anyOf": [
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Share",
+            "type": "array"
+          }
+        },
+        "required": [
+          "code",
+          "label"
+        ],
+        "title": "AuditShareOut",
         "type": "object"
       },
       "AuditSubjectCreate": {
@@ -561,6 +727,57 @@
           }
         },
         "title": "AuditSubjectUpdate",
+        "type": "object"
+      },
+      "AuditTrendOut": {
+        "description": "Горизонтальный анализ строки: Δ и темп к предыдущему периоду (первый — база).",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "delta": {
+            "default": [],
+            "items": {
+              "anyOf": [
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Delta",
+            "type": "array"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "rate": {
+            "default": [],
+            "items": {
+              "anyOf": [
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Rate",
+            "type": "array"
+          }
+        },
+        "required": [
+          "code",
+          "label"
+        ],
+        "title": "AuditTrendOut",
         "type": "object"
       },
       "AutoFinancing-Input": {
@@ -7714,6 +7931,70 @@
           }
         ],
         "summary": "Update Subject",
+        "tags": [
+          "audit"
+        ]
+      }
+    },
+    "/api/v1/audit/subjects/{subject_id}/analyze": {
+      "post": {
+        "description": "Проанализировать отчётность субъекта: аналитическая форма, тренды, коэффициенты.",
+        "operationId": "analyze_subject_api_v1_audit_subjects__subject_id__analyze_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "title": "Subject Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditAnalysisOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Analyze Subject",
         "tags": [
           "audit"
         ]

@@ -23,7 +23,16 @@ from calc_core.samples import TEMPLATES, build_sample_project
 
 from .database import get_db, init_db
 from .observability import setup_observability
-from .routers import audit, auth, billing, holdings, integrator, jobs, organizations, projects
+from .routers import (
+    audit,
+    auth,
+    billing,
+    holdings,
+    integrator,
+    jobs,
+    organizations,
+    projects,
+)
 from .schemas import CalcResponse, to_response
 
 

@@ -749,3 +749,65 @@ class AuditSubjectOut(AuditSubjectSummary):
     model: AuditSubjectModel
     # Актив − пассив по периодам (0 — сходится); строки-Decimal (точность без float).
     balance_gap: list[Decimal] = []
+
+
+class AuditLineOut(BaseModel):
+    """Строка аналитической формы (подытоги помечены ``subtotal``)."""
+
+    code: str
+    label: str
+    values: list[Decimal] = []
+    subtotal: bool = False
+
+
+class AuditTrendOut(BaseModel):
+    """Горизонтальный анализ строки: Δ и темп к предыдущему периоду (первый — база)."""
+
+    code: str
+    label: str
+    delta: list[Optional[Decimal]] = []
+    rate: list[Optional[Decimal]] = []
+
+
+class AuditShareOut(BaseModel):
+    """Вертикальный анализ: доля строки в базе периода (актив / выручка)."""
+
+    code: str
+    label: str
+    share: list[Optional[Decimal]] = []
+
+
+class AuditAnalysisOut(BaseModel):
+    """Результат анализа фактической отчётности (Финанс-Аудит)."""
+
+    n: int
+    periods: list[str] = []
+    balance: list[AuditLineOut] = []
+    income: list[AuditLineOut] = []
+    horizontal: list[AuditTrendOut] = []
+    vertical: list[AuditShareOut] = []
+    ratios: dict[str, dict[str, list[Optional[Decimal]]]] = {}
+    balance_gap: list[Decimal] = []
+    balanced: bool = True
+    warnings: list[str] = []
+
+
+def audit_analysis_response(result) -> "AuditAnalysisOut":
+    """Собрать ответ анализа из ``audit_core.AuditResult``."""
+    return AuditAnalysisOut(
+        n=result.n,
+        periods=list(result.periods),
+        balance=[AuditLineOut(code=ln.code, label=ln.label, values=list(ln.values),
+                              subtotal=ln.subtotal) for ln in result.balance],
+        income=[AuditLineOut(code=ln.code, label=ln.label, values=list(ln.values),
+                             subtotal=ln.subtotal) for ln in result.income],
+        horizontal=[AuditTrendOut(code=t.code, label=t.label, delta=list(t.delta),
+                                  rate=list(t.rate)) for t in result.horizontal],
+        vertical=[AuditShareOut(code=s.code, label=s.label, share=list(s.share))
+                  for s in result.vertical],
+        ratios={g: {k: list(v) for k, v in series.items()}
+                for g, series in result.ratios.items()},
+        balance_gap=list(result.balance_gap),
+        balanced=result.balanced,
+        warnings=list(result.warnings),
+    )

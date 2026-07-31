@@ -68,5 +68,8 @@ class AuditSubjectModel(BaseModel):
         """Баланс сходится во всех периодах (актив = пассив)."""
         return all(g == 0 for g in self.balance_gap())
 
+    def balance_row(self, code: str) -> list[Decimal]:
+        return self._row(self.balance, code)
+
     def income_row(self, code: str) -> list[Decimal]:
         return self._row(self.income, code) if code in INCOME_CODES else [Decimal(0)] * self.n

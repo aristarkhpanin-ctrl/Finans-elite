@@ -87,3 +87,34 @@ def test_tenant_isolation(client, register):
 
 def test_auth_required(client):
     assert client.get("/api/v1/audit/subjects").status_code in (401, 403)
+
+
+def test_analyze_endpoint(client, auth_headers):
+    """Анализ субъекта: аналитическая форма, тренды и коэффициенты по периодам."""
+    sid = _create(client, auth_headers).json()["id"]
+    r = client.post(f"/api/v1/audit/subjects/{sid}/analyze", headers=auth_headers)
+    assert r.status_code == 200
+    a = r.json()
+    assert a["n"] == 2 and a["periods"] == ["2023", "2024"] and a["balanced"] is True
+
+    # подытоги аналитической формы (актив 200/250, чистая прибыль 88/110)
+    total = next(ln for ln in a["balance"] if ln["code"] == "A_TOTAL")
+    assert [str(v) for v in total["values"]] == ["200", "250"] and total["subtotal"] is True
+    net = next(ln for ln in a["income"] if ln["code"] == "I_NET")
+    assert [str(v) for v in net["values"]] == ["88", "110"]
+
+    # коэффициенты по группам присутствуют
+    assert set(a["ratios"]) == {"liquidity", "activity", "gearing", "profitability"}
+    assert str(a["ratios"]["liquidity"]["Коэффициент текущей ликвидности"][0]) == "2"
+
+    # горизонтальный: первый период — база (null), далее Δ
+    rev = next(t for t in a["horizontal"] if t["code"] == "I_REVENUE")
+    assert rev["delta"][0] is None and str(rev["delta"][1]) == "100"
+
+
+def test_analyze_isolated_and_missing(client, register):
+    a = register(email="a2@e.ru", org="Орг A2")
+    b = register(email="b2@e.ru", org="Орг B2")
+    sid = _create(client, a).json()["id"]
+    assert client.post(f"/api/v1/audit/subjects/{sid}/analyze", headers=b).status_code == 404
+    assert client.post("/api/v1/audit/subjects/nope/analyze", headers=a).status_code == 404
