@@ -144,90 +144,105 @@
   --chart-5: #F0796E; --chart-6: #5FD9A6; --chart-7: #9BD08E;
 }
 
-/* ── Тема продукта «Финанс-Аудит»: зелёный → фиолетовый ──────────────────────
-   Оттенок зелёных токенов повёрнут на +130° (S/L сохранены → тот же градиент,
-   но фиолетовый); семантические danger/warn не трогаются. Активируется атрибутом
-   data-product="audit" на <html> (см. components/product.ts). */
+/* ── Тема продукта «Финанс-Аудит»: зелёный → фиолетовый #BC13FE ──────────────
+   Все зелёные токены получают оттенок #BC13FE (283°) с сохранением S/L (тот же
+   градиент, но фиолетовый); фирменные токены (кнопка/наведение/текст-на-кнопке/
+   фокус) заданы из #BC13FE, текст на кнопке — белый (контраст AA 4.5). Семантические
+   danger/warn не трогаются. Активируется data-product="audit" (components/product.ts). */
 :root[data-product="audit"] {
-  --page-bg: #E0E1F1;
-  --app-bg: #F2F3FA;
-  --surface-2: #EAEBF5;
-  --surface-3: #D8DBEB;
-  --sk: #DFE0EE;
-  --border: #CDCEE4;
-  --border-strong: #AEAFCC;
-  --grid-line: #E5E6F1;
-  --text: #1C1620;
-  --muted: #4D4658;
-  --subtle: #736E82;
-  --primary: #6468EE;
-  --primary-hover: #5357E2;
-  --primary-text: #120621;
-  --accent: #59138A;
-  --primary-bg: #D2D6F3;
-  --primary-soft: #E4E7F8;
-  --good: #610E7A;
-  --good-bg: #E6DBF1;
-  --good-border: #CDB7DE;
-  --info: #5C3E7D;
-  --info-bg: #E2E4EF;
-  --ring: rgba(98, 56, 194, 0.30);
-  --bar-border: #CDCEE4;
-  --seg-bg: #E3E5F0;
-  --subtotal-bg: #EAECF3;
-  --grand-bg: #E6DBF1;
-  --hov: #EEEFF7;
-  --hovlab: #E6E8F2;
-  --success: #610E7A;
-  --success-bg: #E6DBF1;
-  --ico1: #59138A; --ico1-bg: #D2D6F3;
-  --ico2: #5C3E7D; --ico2-bg: #E2E4EF;
-  --ico3: #765FA8; --ico3-bg: #DEE0F0;
-  --chart-1: #59138A; --chart-2: #5C3E7D; --chart-3: #765FA8; --chart-6: #831E9E; --chart-7: #5E609E;
+  --page-bg: #ECE0F1;
+  --app-bg: #F8F2FA;
+  --surface-2: #F2EAF5;
+  --surface-3: #E6D8EB;
+  --sk: #EADFEE;
+  --border: #DDCDE4;
+  --border-strong: #C4AECC;
+  --grid-line: #EEE5F1;
+  --text: #1D1620;
+  --muted: #534658;
+  --subtle: #7C6E82;
+  --primary: #BC13FE;
+  --primary-hover: #AA01EC;
+  --primary-text: #FFFFFF;
+  --accent: #68138A;
+  --primary-bg: #EAD2F3;
+  --primary-soft: #F2E4F8;
+  --good: #5B0E7A;
+  --good-bg: #EBDBF1;
+  --good-border: #D3B7DE;
+  --info: #6B3E7D;
+  --info-bg: #EBE2EF;
+  --ring: rgba(188, 19, 254, 0.30);
+  --bar-border: #DDCDE4;
+  --seg-bg: #ECE3F0;
+  --subtotal-bg: #F0EAF3;
+  --grand-bg: #EBDBF1;
+  --hov: #F4EEF7;
+  --hovlab: #EFE6F2;
+  --success: #5B0E7A;
+  --success-bg: #EBDBF1;
+  --ico1: #68138A;
+  --ico1-bg: #EAD2F3;
+  --ico2: #6B3E7D;
+  --ico2-bg: #EBE2EF;
+  --ico3: #935FA8;
+  --ico3-bg: #EBDEF0;
+  --chart-1: #68138A;
+  --chart-2: #6B3E7D;
+  --chart-3: #935FA8;
+  --chart-6: #7A1E9E;
+  --chart-7: #8C5E9E;
 }
 
 :root[data-theme="dark"][data-product="audit"] {
-  --app-bg: #0C0C0F;
-  --surface: #252124;
-  --surface-2: #2B2A31;
-  --surface-3: #3C3C4A;
-  --sk: #2B2A31;
-  --border: #464653;
-  --border-strong: #65647D;
-  --grid-line: #242328;
-  --text: #E1DCFF;
-  --muted: #9291A0;
-  --subtle: #65647D;
-  --primary: #6468EE;
-  --primary-hover: #7D81F4;
-  --accent: #6468EE;
-  --primary-bg: rgba(100, 104, 238, 0.15);
-  --primary-soft: rgba(100, 104, 238, 0.09);
-  --good: #6468EE;
-  --good-bg: rgba(100, 104, 238, 0.15);
-  --good-border: rgba(100, 104, 238, 0.32);
-  --info: #A4A6D2;
-  --info-bg: rgba(164, 166, 210, 0.15);
-  --ring: rgba(100, 104, 238, 0.40);
-  --bar-bg: #0C0C0F;
-  --bar-border: #1E1D23;
-  --seg-bg: #0B0B0E;
-  --seg-active-bg: #2B2A31;
-  --header-bg: #0C0C0F;
-  --sticky-bg: #252124;
-  --subtotal-bg: #1D1C20;
-  --grand-bg: rgba(100, 104, 238, 0.12);
-  --hov: #25252C;
-  --hovlab: #2B2B32;
-  --cell-bg: #17161A;
-  --input-bg: #17161A;
-  --success: #6468EE;
-  --success-bg: rgba(100, 104, 238, 0.16);
-  --ico1: #6468EE; --ico1-bg: rgba(100, 104, 238, 0.15);
-  --ico2: #A4A6D2; --ico2-bg: rgba(164, 166, 210, 0.15);
-  --ico3: #B6BDF9; --ico3-bg: rgba(182, 189, 249, 0.14);
-  --chart-1: #6468EE; --chart-2: #A4A6D2; --chart-3: #B6BDF9;
-  --chart-6: #BA5FD9; --chart-7: #8E90D0;
+  --app-bg: #0E0C0F;
+  --surface: #242125;
+  --surface-2: #2F2A31;
+  --surface-3: #463C4A;
+  --sk: #2F2A31;
+  --border: #4F4653;
+  --border-strong: #76647D;
+  --grid-line: #272328;
+  --text: #F5DCFF;
+  --muted: #9C91A0;
+  --subtle: #76647D;
+  --primary: #BC13FE;
+  --primary-hover: #C941FE;
+  --primary-text: #FFFFFF;
+  --accent: #C764EE;
+  --primary-bg: rgba(199, 100, 238, 0.15);
+  --primary-soft: rgba(199, 100, 238, 0.09);
+  --good: #C764EE;
+  --good-bg: rgba(199, 100, 238, 0.15);
+  --good-border: rgba(199, 100, 238, 0.32);
+  --info: #C5A4D2;
+  --info-bg: rgba(197, 164, 210, 0.15);
+  --ring: rgba(188, 19, 254, 0.42);
+  --bar-bg: #0E0C0F;
+  --bar-border: #211D23;
+  --seg-bg: #0D0B0E;
+  --seg-active-bg: #2F2A31;
+  --header-bg: #0E0C0F;
+  --sticky-bg: #242125;
+  --subtotal-bg: #1F1C20;
+  --grand-bg: rgba(199, 100, 238, 0.12);
+  --hov: #2A252C;
+  --hovlab: #302B32;
+  --cell-bg: #19161A;
+  --input-bg: #19161A;
+  --success: #C764EE;
+  --success-bg: rgba(199, 100, 238, 0.16);
+  --ico1: #C764EE;
+  --ico1-bg: rgba(199, 100, 238, 0.15);
+  --ico2: #C5A4D2;
+  --ico2-bg: rgba(197, 164, 210, 0.15);
+  --ico3: #E6B6F9;
+  --ico3-bg: rgba(230, 182, 249, 0.14);
+  --chart-1: #C764EE;
+  --chart-2: #C5A4D2;
+  --chart-3: #E6B6F9;
+  --chart-6: #B65FD9;
+  --chart-7: #BD8ED0;
 }
 
 /* ---------- 2. База ---------- */
