@@ -226,3 +226,82 @@ def test_no_thresholds_is_inert():
 
 def _assess_opt(r, name):
     return next((a for a in r.diagnostics.assessments if a.name == name), None)
+
+
+# --- v2: классическая модель Альтмана (публичные компании) ---
+
+def _score_opt(r, sid):
+    return next((s for s in r.diagnostics.scores if s.id == sid), None)
+
+
+def test_altman_public_formula():
+    """Z = 1.2·X1 + 1.4·X2 + 3.3·X3 + 0.6·X4 + 1.0·X5, где X4 — рыночная капитализация."""
+    m = _healthy()
+    m.balance["M_MARKET_CAP"] = [D(1200)]
+    r = analyze(m)
+    # X1=0.4; X2=0.3; X3=0.2; X4=1200/300=4 (рыночная, не 700/300); X5=1.5
+    expected = (D("1.2") * D("0.4") + D("1.4") * D("0.3") + D("3.3") * D("0.2")
+                + D("0.6") * D(4) + D("1.0") * D("1.5"))
+    z = _score(r, "altman_z_public")
+    assert z.values[0] == expected
+    assert z.zones[0] == SAFE          # > 2.99
+
+
+def test_public_model_uses_market_not_book_equity():
+    """Классическая модель берёт рыночную стоимость капитала, а не балансовую.
+
+    Балансовый капитал 700, капитализация 1200 → фактор X4 обязан отличаться, иначе под
+    именем классической модели считалась бы модификация Z′.
+    """
+    m = _healthy()
+    m.balance["M_MARKET_CAP"] = [D(1200)]
+    with_market = _score(analyze(m), "altman_z_public").values[0]
+    m.balance["M_MARKET_CAP"] = [D(700)]        # капитализация = балансовому капиталу
+    as_book = _score(analyze(m), "altman_z_public").values[0]
+    assert with_market != as_book
+    assert with_market - as_book == D("0.6") * (D(500) / D(300))
+
+
+def test_public_model_absent_without_market_cap():
+    """Без капитализации модель не показывается вовсе: у непубличной компании её нет.
+
+    Это отличается от нераспределённой прибыли: та есть у любого предприятия и может быть
+    просто не введена (модель показывается «не рассчитанной»), а капитализации у
+    непубличной компании не существует — строка «не рассчитано» вводила бы в заблуждение.
+    """
+    r = analyze(_healthy())
+    assert _score_opt(r, "altman_z_public") is None
+    assert _score_opt(r, "altman_z_private") is not None
+
+
+def test_public_model_zero_market_cap_is_entered_value():
+    """Введённый ноль — это факт (капитал обесценен), а не «не введено»: модель считается.
+
+    Отличие от отсутствия строки принципиально: там модель не показывается вовсе, здесь —
+    считается с X4 = 0. Итоговая зона остаётся за моделью: прочие факторы у предприятия
+    сильные, и подменять её вердикт своим мы не вправе.
+    """
+    m = _healthy()
+    m.balance["M_MARKET_CAP"] = [D(0)]
+    z = _score(analyze(m), "altman_z_public")
+    # X4 = 0 → Z = 1.2·0.4 + 1.4·0.3 + 3.3·0.2 + 1.0·1.5 = 3.06
+    assert z.values[0] == D("3.06")
+    assert z.zones[0] == SAFE          # 3.06 > 2.99 — вердикт модели, а не наш
+
+
+def test_public_model_needs_retained_too():
+    """Фактор накопленной прибыли общий: без него классическая модель тоже не считается."""
+    m = _healthy(with_retained=False)
+    m.balance["M_MARKET_CAP"] = [D(1200)]
+    z = _score(analyze(m), "altman_z_public")
+    assert z.values == [None] and z.zones == [None]
+    assert "Не рассчитан" in z.note
+
+
+def test_public_model_counts_in_light():
+    """Классическая модель в зоне риска влияет на «светофор» наравне с прочими."""
+    m = _distressed()
+    m.balance["M_MARKET_CAP"] = [D(10)]
+    r = analyze(m)
+    assert _score(r, "altman_z_public").zones[0] == DISTRESS
+    assert r.diagnostics.light == RISK

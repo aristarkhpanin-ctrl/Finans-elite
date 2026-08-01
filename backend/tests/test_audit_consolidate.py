@@ -201,3 +201,29 @@ def test_empty_elimination_is_inert():
     a = consolidate_subjects(members).model
     b = consolidate_subjects(members, elimination=Elimination()).model
     assert a.balance == b.balance and a.income == b.income
+
+
+# --- v2: рыночная капитализация не аддитивна ---
+
+def test_market_cap_not_summed_into_group():
+    """Капитализации участников не складываются: это был бы двойной счёт.
+
+    Капитализация материнской компании уже включает стоимость дочерних, поэтому сумма по
+    группе завышала бы капитал. В свод строка не переносится вовсе, и классическая модель
+    Альтмана для группы не считается — вместо правдоподобного, но ложного числа.
+    """
+    a = _subject(["2024"], [100], [100])
+    a.balance["M_MARKET_CAP"] = [D(500)]
+    b = _subject(["2024"], [50], [50])
+    b.balance["M_MARKET_CAP"] = [D(200)]
+    c = consolidate_subjects([("A", a), ("B", b)])
+
+    assert c.model.balance.get("M_MARKET_CAP") is None
+    assert any("двойным счётом" in w for w in c.warnings)
+    assert all(s.id != "altman_z_public" for s in analyze(c.model).diagnostics.scores)
+
+
+def test_no_market_cap_no_extra_warning():
+    """Без капитализации участников оговорка о ней не появляется."""
+    c = consolidate_subjects([("A", _subject(["2024"], [100], [100]))])
+    assert not any("двойным счётом" in w for w in c.warnings)

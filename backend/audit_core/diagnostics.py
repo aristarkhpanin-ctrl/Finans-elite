@@ -11,9 +11,12 @@
 Свод — «светофор» состояния (``ok``/``warning``/``risk``) **по последнему периоду**:
 диагноз ставится по текущему состоянию, а не по истории (история видна в трендах).
 
-Модели используют балансовые (учётные) величины: классическая пятифакторная модель для
-**публичных** компаний требует рыночной капитализации, которой во вводе факта нет, —
-поэтому реализованы модификации Альтмана для непубличных компаний (Z′ и Z″).
+Модификации Альтмана Z′ и Z″ считаются по учётным величинам и доступны всегда. Классическая
+пятифакторная модель требует **рыночной капитализации** — величины не учётной: она есть
+только у публичной компании. Поэтому классическая модель считается **только когда
+капитализация введена** (строка-расшифровка ``M_MARKET_CAP``): её отсутствие — не пробел
+во вводе, а факт о субъекте, и подставлять вместо неё балансовый капитал нельзя — это дало
+бы другую модель под именем классической.
 """
 from __future__ import annotations
 
@@ -123,13 +126,15 @@ def build_overrides(thresholds: list[RatioThreshold],
 
 
 def compute_diagnostics(result: AuditResult, factors: dict[str, list[Decimal]],
-                        *, has_retained: bool,
+                        *, has_retained: bool, has_market_cap: bool = False,
                         overrides: dict[str, tuple[str, Decimal, Decimal]] | None = None
                         ) -> Diagnostics:
     """Собрать диагностику по результату анализа и подготовленным факторам.
 
     ``factors`` — ряды по периодам: ``assets``, ``working_capital``, ``retained``, ``ebit``,
-    ``equity``, ``liabilities``, ``revenue_annual``, ``ebit_annual``.
+    ``equity``, ``liabilities``, ``revenue_annual``, ``ebit_annual``, ``market_cap``.
+    ``has_market_cap`` — введена ли рыночная капитализация (публичная компания): от этого
+    зависит, считается ли классическая модель Альтмана.
     """
     n = result.n
     if n == 0:
@@ -142,6 +147,9 @@ def compute_diagnostics(result: AuditResult, factors: dict[str, list[Decimal]],
     x3 = [_div(factors["ebit_annual"][t], assets[t]) for t in range(n)]
     x4 = [_div(factors["equity"][t], factors["liabilities"][t]) for t in range(n)]
     x5 = [_div(factors["revenue_annual"][t], assets[t]) for t in range(n)]
+    # Фактор классической модели: **рыночная** стоимость капитала к учётным обязательствам.
+    x4_market: RatioSeries = ([_div(factors["market_cap"][t], factors["liabilities"][t])
+                               for t in range(n)] if has_market_cap else [None] * n)
 
     def combine(weights: list[tuple[list[Optional[Decimal]], str]]) -> RatioSeries:
         out: RatioSeries = []
@@ -186,6 +194,21 @@ def compute_diagnostics(result: AuditResult, factors: dict[str, list[Decimal]],
                   "устойчивость." + no_retained),
         ),
     ]
+
+    # Классическая модель (1968) — только для публичных компаний: её четвёртый фактор
+    # берёт **рыночную** стоимость капитала. Без введённой капитализации модель не
+    # показывается вовсе: у непубличной компании её нет, и строка «не рассчитана» лишь
+    # создавала бы впечатление недостающих данных там, где модель просто неприменима.
+    if has_market_cap:
+        z0 = combine([(x1, "1.2"), (x2, "1.4"), (x3, "3.3"), (x4_market, "0.6"), (x5, "1.0")])
+        scores.insert(0, ScoreModel(
+            id="altman_z_public", name="Z Альтмана (публичные компании)",
+            values=z0, zones=[_zone(v, Decimal("1.81"), Decimal("2.99")) for v in z0],
+            note=("Классическая пятифакторная модель: капитал оценён по рыночной "
+                  "капитализации, остальные факторы — учётные. Зоны: < 1,81 — высокий "
+                  "риск; 1,81–2,99 — неопределённость; > 2,99 — устойчивость."
+                  + no_retained),
+        ))
 
     assessments: list[RatioAssessment] = []
     for group, series in result.ratios.items():

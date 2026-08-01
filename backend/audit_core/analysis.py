@@ -243,10 +243,12 @@ def _analyze(model: AuditSubjectModel) -> AuditResult:
             "retained": model.balance_row("M_RETAINED"),
             "equity": equity,
             "liabilities": debt,
+            "market_cap": model.balance_row("M_MARKET_CAP"),
             "ebit_annual": [ebit[t] * yr[t] for t in range(n)],
             "revenue_annual": [revenue[t] * yr[t] for t in range(n)],
         },
         has_retained=model.has_balance_row("M_RETAINED"),
+        has_market_cap=model.has_balance_row("M_MARKET_CAP"),
         overrides=overrides,
     )
 
@@ -263,6 +265,7 @@ def _user_metrics(model: AuditSubjectModel, lines: list[AuditLine],
     # Окружение — коды строк аналитической формы + число периодов N.
     env: dict[str, list[Decimal] | Decimal] = {ln.code: ln.values for ln in lines}
     env["M_RETAINED"] = model.balance_row("M_RETAINED")
+    env["M_MARKET_CAP"] = model.balance_row("M_MARKET_CAP")
     env["N"] = Decimal(n)
 
     out: list[UserMetricResult] = []

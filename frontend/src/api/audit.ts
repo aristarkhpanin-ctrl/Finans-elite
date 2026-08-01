@@ -62,6 +62,7 @@ export const EQLIAB_LINES: [string, string][] = [
 /** Справочные строки: НЕ входят в итоги баланса, нужны диагностике (модели Альтмана). */
 export const MEMO_LINES: [string, string][] = [
   ["M_RETAINED", "в т.ч. нераспределённая прибыль (для диагностики)"],
+  ["M_MARKET_CAP", "рыночная капитализация (только для публичных компаний)"],
 ];
 export const INCOME_LINES: [string, string][] = [
   ["I_REVENUE", "Выручка"],

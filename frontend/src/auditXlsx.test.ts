@@ -26,9 +26,17 @@ describe("buildAuditTemplate", () => {
     expect(values(rows, "A_FIXED")).toEqual([0, 0]);
   });
 
-  it("включает служебную строку расшифровки (нераспределённая прибыль)", () => {
+  it("включает служебные строки расшифровки (диагностика без них не считается)", () => {
     const rows = buildAuditTemplate(model()).map((r) => r.map((c) => c.value));
     expect(rows.some((r) => r[0] === "M_RETAINED")).toBe(true);
+    expect(rows.some((r) => r[0] === "M_MARKET_CAP")).toBe(true);
+  });
+
+  it("рыночная капитализация переносится через шаблон в модель", () => {
+    const m = { ...model(), balance: { ...model().balance, M_MARKET_CAP: ["1200", "1500"] } };
+    const tpl = buildAuditTemplate(m).map((r) => r.map((c) => c.value));
+    const res = applyAuditRows(m, tpl as (string | number)[][]);
+    expect(res.model.balance.M_MARKET_CAP).toEqual(["1200", "1500"]);
   });
 });
 

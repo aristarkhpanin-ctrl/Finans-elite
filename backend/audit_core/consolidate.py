@@ -24,7 +24,7 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Literal
 
-from .lines import ASSET_CODES, EQLIAB_CODES, INCOME_CODES, MEMO_CODES
+from .lines import ASSET_CODES, EQLIAB_CODES, INCOME_CODES, MEMO_SUM_CODES
 from .models import AuditPeriod, AuditSubjectModel
 
 
@@ -101,6 +101,11 @@ def consolidate_subjects(members: list[tuple[str, AuditSubjectModel]], *,
             "доли участия) — показатели группы завышены на величину внутренних операций. "
             "Внутренние обороты можно задать явно, тогда они будут вычтены.",
         ]
+    if any(m.has_balance_row("M_MARKET_CAP") for m in models):
+        warnings.append(
+            "Рыночная капитализация участников в свод не перенесена: капитализация "
+            "материнской компании уже включает стоимость дочерних, и сумма по группе была "
+            "бы двойным счётом. Классическая модель Альтмана для группы не рассчитывается.")
     if not labels:
         warnings.append("У участников нет ни одного общего отчётного периода — свод пуст.")
     if skipped:
@@ -116,7 +121,9 @@ def consolidate_subjects(members: list[tuple[str, AuditSubjectModel]], *,
 
     balance: dict[str, list[Decimal]] = {}
     income: dict[str, list[Decimal]] = {}
-    for code in ASSET_CODES + EQLIAB_CODES + MEMO_CODES:
+    # Складываются только аддитивные справочные строки: рыночная капитализация в свод не
+    # переносится (сумма капитализаций группы — двойной счёт, см. MEMO_SUM_CODES).
+    for code in ASSET_CODES + EQLIAB_CODES + MEMO_SUM_CODES:
         balance[code] = _sum_line(models, labels, code, "balance")
     for code in INCOME_CODES:
         income[code] = _sum_line(models, labels, code, "income")

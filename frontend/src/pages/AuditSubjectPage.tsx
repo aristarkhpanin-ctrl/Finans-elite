@@ -197,9 +197,11 @@ export function AuditSubjectPage() {
   const gap = (t: number) => assets(t) - eqliab(t);
   const balanced = m.periods.every((_, t) => Math.abs(gap(t)) < 0.005);
 
-  const grid = (which: "balance" | "income", lines: [string, string][], title: string) => (
+  const grid = (which: "balance" | "income", lines: [string, string][], title: string,
+                note?: string) => (
     <div className="audit-block">
       <div className="audit-block__title">{title}</div>
+      {note && <div className="field-note" style={{ marginBottom: 10 }}>{note}</div>}
       <div style={{ overflowX: "auto" }}>
         <table className="audit-grid">
           <thead>
@@ -383,7 +385,11 @@ export function AuditSubjectPage() {
           </div>
           {grid("balance", ASSET_LINES, "Баланс — актив")}
           {grid("balance", EQLIAB_LINES, "Баланс — пассив (капитал и обязательства)")}
-          {grid("balance", MEMO_LINES, "Расшифровка (в итог пассива не входит)")}
+          {grid("balance", MEMO_LINES, "Расшифровка (в итоги баланса не входит)",
+                "Нераспределённая прибыль нужна моделям Альтмана. Рыночная капитализация "
+                + "заполняется только для публичной компании: по ней считается классическая "
+                + "модель Альтмана, а без неё эта модель не показывается — балансовый "
+                + "капитал вместо рыночного дал бы другую модель под её именем.")}
           {grid("income", INCOME_LINES, "Отчёт о финансовых результатах")}
         </>
       ) : analysis.isLoading ? (
