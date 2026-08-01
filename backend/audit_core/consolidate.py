@@ -108,8 +108,8 @@ def consolidate_subjects(members: list[tuple[str, AuditSubjectModel]], *,
         warnings.append("В свод не вошли периоды, которые есть не у всех участников "
                         f"({details}).")
 
-    # Тип периода — из первого участника, у которого он есть (год/квартал).
-    kind_of: dict[str, Literal["year", "quarter"]] = {}
+    # Тип периода — из первого участника, у которого он есть (год/квартал/месяц).
+    kind_of: dict[str, Literal["year", "quarter", "month"]] = {}
     for model in models:
         for p in model.periods:
             kind_of.setdefault(p.label, p.kind)

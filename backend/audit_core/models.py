@@ -15,10 +15,15 @@ from .lines import ASSET_CODES, EQLIAB_CODES, INCOME_CODES
 
 
 class AuditPeriod(BaseModel):
-    """Отчётный период: подпись (например «2024» или «2024 Q1») и тип (год/квартал)."""
+    """Отчётный период: подпись (например «2024», «2024 Q1», «01.2024») и тип.
+
+    Тип задаёт длину периода: показатели «в днях» считаются по ней, а потоковые
+    показатели приводятся к году (квартал ×4, месяц ×12) — иначе периоды разной
+    длины были бы несопоставимы.
+    """
 
     label: str = Field(default="", max_length=40)
-    kind: Literal["year", "quarter"] = "year"
+    kind: Literal["year", "quarter", "month"] = "year"
 
 
 class UserMetric(BaseModel):

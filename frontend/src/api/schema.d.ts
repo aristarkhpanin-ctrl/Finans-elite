@@ -1308,7 +1308,11 @@ export interface components {
         };
         /**
          * AuditPeriod
-         * @description Отчётный период: подпись (например «2024» или «2024 Q1») и тип (год/квартал).
+         * @description Отчётный период: подпись (например «2024», «2024 Q1», «01.2024») и тип.
+         *
+         *     Тип задаёт длину периода: показатели «в днях» считаются по ней, а потоковые
+         *     показатели приводятся к году (квартал ×4, месяц ×12) — иначе периоды разной
+         *     длины были бы несопоставимы.
          */
         AuditPeriod: {
             /**
@@ -1316,7 +1320,7 @@ export interface components {
              * @default year
              * @enum {string}
              */
-            kind: "year" | "quarter";
+            kind: "year" | "quarter" | "month";
             /**
              * Label
              * @default

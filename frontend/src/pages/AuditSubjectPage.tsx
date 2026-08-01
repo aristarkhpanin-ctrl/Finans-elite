@@ -20,6 +20,7 @@ import {
 import { IconDownload, IconTrash, IconUpload } from "../components/icons";
 import { useToast } from "../components/Toast";
 import { Button } from "../components/ui";
+import { downloadAuditXlsx } from "../auditExport";
 import { downloadAuditTemplate, parseAuditXlsx } from "../auditXlsx";
 import { fmtMoney } from "../format";
 
@@ -244,9 +245,28 @@ export function AuditSubjectPage() {
             onChange={(e) => { setName(e.target.value); setDirty(true); }}
           />
         </div>
-        <Button onClick={() => save.mutate()} loading={save.isPending} disabled={!dirty}>
-          Сохранить
-        </Button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {/* Выгрузка всего анализа одним файлом — доступна там, где анализ уже посчитан. */}
+          {isAnalysisTab && analysis.data && analysis.data.n > 0 && (
+            <Button
+              variant="ghost"
+              onClick={async () => {
+                try {
+                  await downloadAuditXlsx(`${name || "Анализ"}.xlsx`, analysis.data!);
+                  toast("Выгрузка XLSX скачана", { kind: "success" });
+                } catch {
+                  toast("Не удалось сформировать выгрузку", { kind: "error" });
+                }
+              }}
+            >
+              <IconDownload size={15} />
+              <span style={{ marginLeft: 6 }}>Выгрузка XLSX</span>
+            </Button>
+          )}
+          <Button onClick={() => save.mutate()} loading={save.isPending} disabled={!dirty}>
+            Сохранить
+          </Button>
+        </div>
       </div>
 
       <div className="seg" style={{ marginBottom: 16, flexWrap: "wrap" }}>
@@ -307,6 +327,7 @@ export function AuditSubjectPage() {
                         onChange={(e) => setPeriod(i, { kind: e.target.value as AuditPeriod["kind"] })}>
                   <option value="year">Год</option>
                   <option value="quarter">Квартал</option>
+                  <option value="month">Месяц</option>
                 </select>
                 <button type="button" className="line-card__del" title="Удалить период"
                         disabled={n <= 1} onClick={() => removePeriod(i)}>
@@ -317,6 +338,11 @@ export function AuditSubjectPage() {
             <button type="button" className="add-row add-row--sm" onClick={addPeriod}>
               ＋&nbsp;&nbsp;Добавить период
             </button>
+          </div>
+          <div className="field-note" style={{ marginTop: 10 }}>
+            Тип периода задаёт его длину: показатели «в днях» считаются по ней, а потоковые
+            (рентабельность, оборачиваемость) приводятся к году — квартал ×4, месяц ×12.
+            Иначе периоды разной длины несопоставимы между собой.
           </div>
         </div>
       ) : tab === "input" ? (

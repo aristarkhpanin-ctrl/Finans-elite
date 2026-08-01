@@ -8,9 +8,10 @@ import {
   type AuditConsolidation,
   type AuditElimination,
 } from "../api/audit";
-import { IconBriefcase } from "../components/icons";
+import { IconBriefcase, IconDownload } from "../components/icons";
 import { useToast } from "../components/Toast";
 import { Button } from "../components/ui";
+import { downloadAuditXlsx } from "../auditExport";
 
 const dec = (v: string | null | undefined): number | null => {
   if (v === null || v === undefined || v === "") return null;
@@ -159,8 +160,26 @@ export function AuditGroupPage() {
           ))}
 
           <div className="audit-block">
-            <div className="audit-block__title">
-              Свод: {result.members.join(" + ") || "—"}
+            <div className="tab-head" style={{ marginBottom: 12 }}>
+              <div className="audit-block__title" style={{ marginBottom: 0 }}>
+                Свод: {result.members.join(" + ") || "—"}
+              </div>
+              {a.n > 0 && (
+                <Button
+                  variant="ghost"
+                  onClick={async () => {
+                    try {
+                      await downloadAuditXlsx(`${name || "Группа"}.xlsx`, a);
+                      toast("Выгрузка XLSX скачана", { kind: "success" });
+                    } catch {
+                      toast("Не удалось сформировать выгрузку", { kind: "error" });
+                    }
+                  }}
+                >
+                  <IconDownload size={15} />
+                  <span style={{ marginLeft: 6 }}>Выгрузка XLSX</span>
+                </Button>
+              )}
             </div>
             {a.n === 0 ? (
               <div className="page-sub" style={{ fontSize: 12.5 }}>

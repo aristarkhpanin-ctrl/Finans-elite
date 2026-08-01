@@ -142,3 +142,35 @@ def test_empty_model_is_inert():
     """Без периодов анализ пуст (не падает)."""
     r = analyze(AuditSubjectModel())
     assert r.n == 0 and r.balance == [] and r.ratios == {}
+
+
+# --- v2: помесячная периодичность ---
+
+def test_monthly_annualisation_is_exact():
+    """Месяц: потоковые показатели приводятся к году ровно ×12 (без накопления ошибки)."""
+    y = analyze(_model("year"))
+    mo = analyze(_model("month"))
+    roa_y = _ratio(y, "profitability", "Рентабельность активов (ROA)")[0]
+    roa_m = _ratio(mo, "profitability", "Рентабельность активов (ROA)")[0]
+    assert roa_m == roa_y * 12                       # точное равенство, не приближённое
+
+    turn_y = _ratio(y, "activity", "Оборачиваемость активов")[0]
+    turn_m = _ratio(mo, "activity", "Оборачиваемость активов")[0]
+    assert turn_m == turn_y * 12
+
+
+def test_monthly_days_ratio():
+    """Показатели «в днях» считаются по длине месяца (365/12), а не по году."""
+    mo = analyze(_model("month"))
+    expected = D(30) * (D(365) / D(12)) / D(300)     # запасы × дни / себестоимость
+    assert _ratio(mo, "activity", "Период оборачиваемости запасов, дн.")[0] == expected
+
+
+def test_period_kinds_do_not_affect_shares():
+    """Структурные показатели (доли) от периодичности не зависят."""
+    y = analyze(_model("year"))
+    mo = analyze(_model("month"))
+    assert (_ratio(y, "profitability", "Рентабельность чистой прибыли")
+            == _ratio(mo, "profitability", "Рентабельность чистой прибыли"))
+    assert (_ratio(y, "liquidity", "Коэффициент текущей ликвидности")
+            == _ratio(mo, "liquidity", "Коэффициент текущей ликвидности"))
