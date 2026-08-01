@@ -39,6 +39,23 @@ const fmtRatio = (name: string, v: string | null): string => {
   return fmtNum(v);
 };
 
+type ElimKey = keyof AuditElimination;
+
+/**
+ * Виды внутригрупповых величин: поле → подпись и что с чем вычитается парно (пара по обе
+ * стороны баланса — то, из-за чего свод остаётся сходящимся).
+ */
+const ELIM_KINDS: [ElimKey, string, string][] = [
+  ["receivables", "Взаимная задолженность",
+   "вычитается из дебиторской и из кредиторской задолженности"],
+  ["revenue", "Взаимная выручка",
+   "вычитается из выручки и из себестоимости покупателя"],
+  ["investments", "Вложения в капитал участников",
+   "доли участия: вычитаются из внеоборотных активов и из капитала"],
+  ["unrealized_profit", "Нереализованная прибыль в запасах",
+   "наценка по внутренней продаже: из запасов и из капитала, себестоимость восстанавливается"],
+];
+
 /**
  * Консолидация группы предприятий (Финанс-Аудит, фаза H): выбор субъектов → свод →
  * анализ группы как единого предприятия. Внутригрупповые обороты вычитаются, только если
@@ -65,16 +82,18 @@ export function AuditGroupPage() {
   const [dirty, setDirty] = useState(false);
   // Имена участников на момент сохранения: единственный след от удалённого субъекта.
   const [savedNames, setSavedNames] = useState<Record<string, string>>({});
-  // Внутригрупповые обороты к исключению (v2): по одному значению на период свода.
+  // Внутригрупповые величины к исключению (v2): по одному значению на период свода.
   const [elimOn, setElimOn] = useState(false);
-  const [elimRec, setElimRec] = useState("");
-  const [elimRev, setElimRev] = useState("");
+  const [elim, setElim] = useState<Partial<Record<ElimKey, string>>>({});
 
   const toggle = (id: string) => {
     setDirty(true);
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
   };
-  const editElim = (fn: () => void) => { setDirty(true); fn(); };
+  const setElimField = (key: ElimKey, value: string) => {
+    setDirty(true);
+    setElim((e) => ({ ...e, [key]: value }));
+  };
 
   /**
    * Одна сумма распространяется на все периоды свода (частый случай — одинаковый годовой
@@ -83,9 +102,12 @@ export function AuditGroupPage() {
   const MAX_PERIODS = 48;   // верхняя граница числа периодов субъекта
   const elimination = (): AuditElimination | undefined => {
     if (!elimOn) return undefined;
+    const row = (key: ElimKey) => Array.from({ length: MAX_PERIODS }, () => elim[key] || "0");
     return {
-      receivables: Array.from({ length: MAX_PERIODS }, () => elimRec || "0"),
-      revenue: Array.from({ length: MAX_PERIODS }, () => elimRev || "0"),
+      receivables: row("receivables"),
+      revenue: row("revenue"),
+      investments: row("investments"),
+      unrealized_profit: row("unrealized_profit"),
     };
   };
 
@@ -147,10 +169,10 @@ export function AuditGroupPage() {
       setName(group.name);
       setSelected(group.model.members.map((m) => m.subject_id));
       setSavedNames(Object.fromEntries(group.model.members.map((m) => [m.subject_id, m.name])));
-      const elim = group.model.elimination;
-      setElimOn(elim !== null);
-      setElimRec(elim?.receivables[0] ?? "");
-      setElimRev(elim?.revenue[0] ?? "");
+      const saved = group.model.elimination;
+      setElimOn(saved !== null);
+      setElim(saved === null ? {} : Object.fromEntries(
+        ELIM_KINDS.map(([key]) => [key, saved[key]?.[0] ?? ""])));
       setResult(consolidation);
     },
     onError: () => toast("Не удалось открыть группу", { kind: "error" }),
@@ -268,24 +290,35 @@ export function AuditGroupPage() {
             </div>
             <label className={"opt-row" + (elimOn ? " opt-row--on" : "")} style={{ cursor: "pointer", marginBottom: 10 }}>
               <input type="checkbox" style={{ position: "absolute", opacity: 0, width: 0, height: 0 }}
-                     checked={elimOn} onChange={(e) => editElim(() => setElimOn(e.target.checked))} />
+                     checked={elimOn}
+                     onChange={(e) => { setDirty(true); setElimOn(e.target.checked); }} />
               <span className="opt-row__box">{elimOn ? "✓" : ""}</span>
               <span style={{ minWidth: 0 }}>
-                <span className="opt-row__label">Исключить внутригрупповые обороты</span>
+                <span className="opt-row__label">Исключить внутригрупповые величины</span>
                 <span className="opt-row__help">
-                  Взаимная задолженность вычитается из дебиторки и кредиторки, взаимная выручка —
-                  из выручки и себестоимости. Доли участия не исключаются.
+                  Каждая вычитается парно по обе стороны баланса, поэтому свод остаётся
+                  сходящимся. Суммы указываются за период; лишнее обрезается по остатку
+                  строки с оговоркой.
                 </span>
               </span>
             </label>
             {elimOn && (
-              <div className="ft-row" style={{ marginBottom: 10 }}>
-                <input className="efield__input" inputMode="decimal" value={elimRec}
-                       placeholder="Взаимная задолженность за период"
-                       onChange={(e) => editElim(() => setElimRec(e.target.value))} />
-                <input className="efield__input" inputMode="decimal" value={elimRev}
-                       placeholder="Взаимная выручка за период"
-                       onChange={(e) => editElim(() => setElimRev(e.target.value))} />
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 10 }}>
+                {ELIM_KINDS.map(([key, label, help]) => (
+                  <label className="efield" key={key}>
+                    <span className="efield__label">{label}</span>
+                    <input className="efield__input" inputMode="decimal"
+                           value={elim[key] ?? ""} placeholder="0"
+                           onChange={(e) => setElimField(key, e.target.value)} />
+                    <span className="field-note">{help}</span>
+                  </label>
+                ))}
+                <div className="field-note">
+                  Гудвилл и неконтролирующая доля отдельными статьями не выделяются — в
+                  аналитической форме таких строк нет. Вложения вычитаются по балансовой
+                  стоимости, поэтому при доле участия менее 100% капитал группы показан по
+                  стоимости вложения, а не по чистым активам дочерних компаний.
+                </div>
               </div>
             )}
             <div className="ft-row">

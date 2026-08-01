@@ -135,7 +135,7 @@ def test_group_elimination_applied(client, auth_headers):
     body = client.post(f"/api/v1/audit/groups/{gid}/analyze", headers=auth_headers).json()
     revenue = next(ln for ln in body["analysis"]["income"] if ln["code"] == "I_REVENUE")
     assert str(revenue["values"][0]) == "700"          # 500 + 300 − 100
-    assert any("исключены заданные внутригрупповые обороты" in w for w in body["warnings"])
+    assert any("исключены заданные внутригрупповые величины" in w for w in body["warnings"])
 
 
 def test_update_and_delete_group(client, auth_headers):

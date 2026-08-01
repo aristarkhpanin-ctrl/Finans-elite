@@ -1352,9 +1352,19 @@ export interface components {
         };
         /**
          * AuditEliminationIn
-         * @description Внутригрупповые обороты к исключению из свода (по периодам).
+         * @description Внутригрупповые величины к исключению из свода (по периодам).
+         *
+         *     Каждая вычитается парно по обе стороны баланса, поэтому «актив = пассив» сохраняется:
+         *     задолженность — из дебиторки и кредиторки, выручка — из выручки и себестоимости,
+         *     вложения — из внеоборотных активов и капитала, нереализованная прибыль — из запасов
+         *     и капитала (плюс восстановление себестоимости в ОПУ).
          */
         "AuditEliminationIn-Input": {
+            /**
+             * Investments
+             * @default []
+             */
+            investments: (number | string)[];
             /**
              * Receivables
              * @default []
@@ -1365,12 +1375,27 @@ export interface components {
              * @default []
              */
             revenue: (number | string)[];
+            /**
+             * Unrealized Profit
+             * @default []
+             */
+            unrealized_profit: (number | string)[];
         };
         /**
          * AuditEliminationIn
-         * @description Внутригрупповые обороты к исключению из свода (по периодам).
+         * @description Внутригрупповые величины к исключению из свода (по периодам).
+         *
+         *     Каждая вычитается парно по обе стороны баланса, поэтому «актив = пассив» сохраняется:
+         *     задолженность — из дебиторки и кредиторки, выручка — из выручки и себестоимости,
+         *     вложения — из внеоборотных активов и капитала, нереализованная прибыль — из запасов
+         *     и капитала (плюс восстановление себестоимости в ОПУ).
          */
         "AuditEliminationIn-Output": {
+            /**
+             * Investments
+             * @default []
+             */
+            investments: string[];
             /**
              * Receivables
              * @default []
@@ -1381,6 +1406,11 @@ export interface components {
              * @default []
              */
             revenue: string[];
+            /**
+             * Unrealized Profit
+             * @default []
+             */
+            unrealized_profit: string[];
         };
         /** AuditGroupCreate */
         AuditGroupCreate: {

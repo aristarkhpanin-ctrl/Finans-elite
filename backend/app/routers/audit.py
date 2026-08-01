@@ -119,7 +119,9 @@ def _consolidate(members: list[tuple[str, AuditSubjectModel]], name: str,
 
     if members:
         elim = (Elimination(receivables=list(elimination.receivables),
-                            revenue=list(elimination.revenue))
+                            revenue=list(elimination.revenue),
+                            investments=list(elimination.investments),
+                            unrealized_profit=list(elimination.unrealized_profit))
                 if elimination is not None else None)
         consolidation = consolidate_subjects(members, name=name, elimination=elim)
         warnings += consolidation.warnings

@@ -188,9 +188,12 @@ def test_elimination_changes_warning_text():
 
     cut = consolidate_subjects([("A", _traded(50, 300))],
                                elimination=Elimination(receivables=[D(10)]))
-    assert any("исключены заданные внутригрупповые обороты" in w for w in cut.warnings)
-    # оговорка про доли участия остаётся — их мы по-прежнему не исключаем
-    assert any("Доли участия" in w for w in cut.warnings)
+    assert any("исключены заданные внутригрупповые величины" in w for w in cut.warnings)
+    # названо ровно то, что вычтено: выручку не исключали — о ней и не сообщаем
+    text = " ".join(cut.warnings)
+    assert "взаимная задолженность" in text and "взаимная выручка" not in text
+    # оговорка про гудвилл появляется только при исключении вложений
+    assert not any("Гудвилл" in w for w in cut.warnings)
 
 
 def test_empty_elimination_is_inert():
@@ -227,3 +230,131 @@ def test_no_market_cap_no_extra_warning():
     """Без капитализации участников оговорка о ней не появляется."""
     c = consolidate_subjects([("A", _subject(["2024"], [100], [100]))])
     assert not any("двойным счётом" in w for w in c.warnings)
+
+
+# --- v2: доли участия и нереализованная прибыль в запасах ---
+
+def _holder(fixed: int, inventory: int, equity: int) -> AuditSubjectModel:
+    """Участник с вложением во внеоборотных активах и запасами (баланс сходится)."""
+    return AuditSubjectModel(
+        periods=[AuditPeriod(label="2024", kind="year")],
+        balance={"A_FIXED": [D(fixed)], "A_INVENTORY": [D(inventory)],
+                 "A_CASH": [D(50)], "P_EQUITY": [D(equity)],
+                 "P_SHORT": [D(fixed + inventory + 50 - equity)],
+                 "M_RETAINED": [D(40)]},
+        income={"I_REVENUE": [D(600)], "I_COGS": [D(400)]},
+    )
+
+
+def test_investment_eliminated_against_equity():
+    """Вложение в капитал вычитается парно: из внеоборотных активов и из капитала."""
+    from audit_core.consolidate import Elimination
+
+    members = [("Мама", _holder(300, 100, 200)), ("Дочка", _holder(0, 80, 120))]
+    plain = analyze(consolidate_subjects(members).model)
+    cut = analyze(consolidate_subjects(
+        members, elimination=Elimination(investments=[D(120)])).model)
+
+    assert _line(plain, "A_FIXED") == [D(300)] and _line(cut, "A_FIXED") == [D(180)]
+    assert _line(plain, "P_EQUITY") == [D(320)] and _line(cut, "P_EQUITY") == [D(200)]
+    assert cut.balanced is True                       # инвариант держится
+    # актив группы уменьшился ровно на вложение — двойной счёт капитала снят
+    assert _line(plain, "A_TOTAL")[0] - _line(cut, "A_TOTAL")[0] == D(120)
+
+
+def test_investment_elimination_warns_about_goodwill():
+    """Гудвилл и неконтролирующая доля не выделяются — об этом сказано прямо."""
+    from audit_core.consolidate import Elimination
+
+    c = consolidate_subjects([("A", _holder(300, 100, 200))],
+                             elimination=Elimination(investments=[D(50)]))
+    assert any("Гудвилл" in w and "неконтролирующая доля" in w for w in c.warnings)
+    assert any("вложения в капитал участников" in w for w in c.warnings)
+
+
+def test_unrealized_profit_removed_from_inventory_and_profit():
+    """Нереализованная прибыль снимается из запасов, капитала и прибыли периода."""
+    from audit_core.consolidate import Elimination
+
+    members = [("A", _holder(300, 100, 200)), ("B", _holder(0, 80, 120))]
+    plain = analyze(consolidate_subjects(members).model)
+    cut = analyze(consolidate_subjects(
+        members, elimination=Elimination(unrealized_profit=[D(30)])).model)
+
+    assert _line(plain, "A_INVENTORY") == [D(180)] and _line(cut, "A_INVENTORY") == [D(150)]
+    assert _line(cut, "P_EQUITY") == [D(290)]                 # 320 − 30
+    # себестоимость восстановлена → прибыль группы ниже ровно на ту же величину
+    assert _line(cut, "I_COGS")[0] - _line(plain, "I_COGS")[0] == D(30)
+    assert _line(plain, "I_NET")[0] - _line(cut, "I_NET")[0] == D(30)
+    assert cut.balanced is True
+
+
+def test_unrealized_profit_adjusts_retained_memo():
+    """Нераспределённая прибыль (справочная строка) уменьшается на ту же сумму.
+
+    Иначе фактор моделей Альтмана «накопленная прибыль / активы» противоречил бы капиталу,
+    из которого эта прибыль уже вычтена.
+    """
+    from audit_core.consolidate import Elimination
+
+    c = consolidate_subjects([("A", _holder(300, 100, 200)), ("B", _holder(0, 80, 120))],
+                             elimination=Elimination(unrealized_profit=[D(30)]))
+    assert c.model.balance["M_RETAINED"] == [D(50)]           # 40 + 40 − 30
+
+
+def test_both_new_eliminations_keep_invariant():
+    """Вложения и нереализованная прибыль вместе — баланс группы по-прежнему сходится."""
+    from audit_core.consolidate import Elimination
+
+    members = [("A", _holder(300, 100, 200)), ("B", _holder(0, 80, 120))]
+    r = analyze(consolidate_subjects(members, elimination=Elimination(
+        receivables=[D(0)], revenue=[D(50)],
+        investments=[D(120)], unrealized_profit=[D(30)])).model)
+    assert r.balanced is True
+    assert _line(r, "A_TOTAL") == _line(r, "P_TOTAL")
+
+
+def test_new_eliminations_capped_to_available():
+    """Вычесть больше, чем есть, нельзя — обрезка с предупреждением, инвариант держится."""
+    from audit_core.consolidate import Elimination
+
+    # A_FIXED 300, A_INVENTORY 100, P_EQUITY 200
+    c = consolidate_subjects([("A", _holder(300, 100, 200))],
+                             elimination=Elimination(investments=[D(9999)],
+                                                     unrealized_profit=[D(9999)]))
+    assert sum("превышает свод" in w for w in c.warnings) == 2
+    # вложения обрезаны капиталом (200), а не активом: 300 − 200 = 100, капитал → 0
+    assert c.model.balance["A_FIXED"] == [D(100)] and c.model.balance["P_EQUITY"] == [D(0)]
+    # капитала не осталось → нереализованная прибыль не вычитается вовсе (запасы целы)
+    assert c.model.balance["A_INVENTORY"] == [D(100)]
+    assert analyze(c.model).balanced is True
+
+
+def test_unrealized_capped_after_investments():
+    """Обрезка нереализованной прибыли учитывает капитал, уже уменьшенный вложениями."""
+    from audit_core.consolidate import Elimination
+
+    # капитал 200: вложения снимают 150, на прибыль остаётся 50
+    c = consolidate_subjects([("A", _holder(300, 100, 200))],
+                             elimination=Elimination(investments=[D(150)],
+                                                     unrealized_profit=[D(80)]))
+    assert c.model.balance["P_EQUITY"] == [D(0)]
+    assert c.model.balance["A_INVENTORY"] == [D(50)]          # вычтено 50, а не 80
+    assert any("нереализованной прибыли" in w and "превышает свод" in w for w in c.warnings)
+
+
+def test_memo_row_absent_when_nobody_entered_it():
+    """Никто не вводил нераспределённую прибыль → в своде строки нет, а не ноль.
+
+    Иначе диагностика группы посчитала бы модели Альтмана с накопленной прибылью 0, тогда
+    как по тем же субъектам поодиночке они честно остаются нерассчитанными.
+    """
+    a = _subject(["2024"], [100], [100])
+    b = _subject(["2024"], [50], [50])
+    c = consolidate_subjects([("A", a), ("B", b)])
+    assert "M_RETAINED" not in c.model.balance
+    assert c.model.has_balance_row("M_RETAINED") is False
+
+    a.balance["M_RETAINED"] = [D(30)]                 # ввёл только один участник
+    c2 = consolidate_subjects([("A", a), ("B", b)])
+    assert c2.model.balance["M_RETAINED"] == [D(30)]
