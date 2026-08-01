@@ -1253,6 +1253,11 @@ export interface components {
                 };
             };
             /**
+             * Revalued
+             * @default false
+             */
+            revalued: boolean;
+            /**
              * User Metrics
              * @default []
              */
@@ -1645,6 +1650,14 @@ export interface components {
             name: string;
             /** Periods */
             periods?: components["schemas"]["AuditPeriod"][];
+            /**
+             * Reporting Standard
+             * @default rsbu
+             * @enum {string}
+             */
+            reporting_standard: "rsbu" | "ifrs" | "management";
+            /** Revaluations */
+            revaluations?: components["schemas"]["Revaluation-Input"][];
             /** Thresholds */
             thresholds?: components["schemas"]["RatioThreshold-Input"][];
             /** User Metrics */
@@ -1683,6 +1696,14 @@ export interface components {
             name: string;
             /** Periods */
             periods?: components["schemas"]["AuditPeriod"][];
+            /**
+             * Reporting Standard
+             * @default rsbu
+             * @enum {string}
+             */
+            reporting_standard: "rsbu" | "ifrs" | "management";
+            /** Revaluations */
+            revaluations?: components["schemas"]["Revaluation-Output"][];
             /** Thresholds */
             thresholds?: components["schemas"]["RatioThreshold-Output"][];
             /** User Metrics */
@@ -4317,6 +4338,52 @@ export interface components {
              * @default 0
              */
             unit_price: string;
+        };
+        /**
+         * Revaluation
+         * @description Поправка к статье баланса (v2): экспертная переоценка по периодам.
+         *
+         *     ``code`` — статья баланса (кроме капитала: он служит корреспонденцией любой поправки),
+         *     ``label`` — причина («безнадёжная дебиторка», «дооценка ОС»), ``amounts`` — поправки по
+         *     периодам (со знаком). Актив ``+Δ`` увеличивает капитал, обязательство ``+Δ`` уменьшает —
+         *     поэтому равенство «актив = пассив» сохраняется.
+         */
+        "Revaluation-Input": {
+            /** Amounts */
+            amounts?: (number | string)[];
+            /**
+             * Code
+             * @default
+             */
+            code: string;
+            /**
+             * Label
+             * @default
+             */
+            label: string;
+        };
+        /**
+         * Revaluation
+         * @description Поправка к статье баланса (v2): экспертная переоценка по периодам.
+         *
+         *     ``code`` — статья баланса (кроме капитала: он служит корреспонденцией любой поправки),
+         *     ``label`` — причина («безнадёжная дебиторка», «дооценка ОС»), ``amounts`` — поправки по
+         *     периодам (со знаком). Актив ``+Δ`` увеличивает капитал, обязательство ``+Δ`` уменьшает —
+         *     поэтому равенство «актив = пассив» сохраняется.
+         */
+        "Revaluation-Output": {
+            /** Amounts */
+            amounts?: string[];
+            /**
+             * Code
+             * @default
+             */
+            code: string;
+            /**
+             * Label
+             * @default
+             */
+            label: string;
         };
         /** ReviewResponse */
         ReviewResponse: {

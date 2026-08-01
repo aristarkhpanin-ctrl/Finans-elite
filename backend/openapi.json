@@ -369,6 +369,11 @@
             "title": "Ratios",
             "type": "object"
           },
+          "revalued": {
+            "default": false,
+            "title": "Revalued",
+            "type": "boolean"
+          },
           "user_metrics": {
             "default": [],
             "items": {
@@ -1081,6 +1086,24 @@
             "title": "Periods",
             "type": "array"
           },
+          "reporting_standard": {
+            "default": "rsbu",
+            "enum": [
+              "rsbu",
+              "ifrs",
+              "management"
+            ],
+            "title": "Reporting Standard",
+            "type": "string"
+          },
+          "revaluations": {
+            "items": {
+              "$ref": "#/components/schemas/Revaluation-Input"
+            },
+            "maxItems": 50,
+            "title": "Revaluations",
+            "type": "array"
+          },
           "thresholds": {
             "items": {
               "$ref": "#/components/schemas/RatioThreshold-Input"
@@ -1150,6 +1173,24 @@
             },
             "maxItems": 48,
             "title": "Periods",
+            "type": "array"
+          },
+          "reporting_standard": {
+            "default": "rsbu",
+            "enum": [
+              "rsbu",
+              "ifrs",
+              "management"
+            ],
+            "title": "Reporting Standard",
+            "type": "string"
+          },
+          "revaluations": {
+            "items": {
+              "$ref": "#/components/schemas/Revaluation-Output"
+            },
+            "maxItems": 50,
+            "title": "Revaluations",
             "type": "array"
           },
           "thresholds": {
@@ -6239,6 +6280,67 @@
           "id"
         ],
         "title": "Resource",
+        "type": "object"
+      },
+      "Revaluation-Input": {
+        "description": "Поправка к статье баланса (v2): экспертная переоценка по периодам.\n\n``code`` — статья баланса (кроме капитала: он служит корреспонденцией любой поправки),\n``label`` — причина («безнадёжная дебиторка», «дооценка ОС»), ``amounts`` — поправки по\nпериодам (со знаком). Актив ``+Δ`` увеличивает капитал, обязательство ``+Δ`` уменьшает —\nпоэтому равенство «актив = пассив» сохраняется.",
+        "properties": {
+          "amounts": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ]
+            },
+            "title": "Amounts",
+            "type": "array"
+          },
+          "code": {
+            "default": "",
+            "maxLength": 32,
+            "title": "Code",
+            "type": "string"
+          },
+          "label": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "title": "Revaluation",
+        "type": "object"
+      },
+      "Revaluation-Output": {
+        "description": "Поправка к статье баланса (v2): экспертная переоценка по периодам.\n\n``code`` — статья баланса (кроме капитала: он служит корреспонденцией любой поправки),\n``label`` — причина («безнадёжная дебиторка», «дооценка ОС»), ``amounts`` — поправки по\nпериодам (со знаком). Актив ``+Δ`` увеличивает капитал, обязательство ``+Δ`` уменьшает —\nпоэтому равенство «актив = пассив» сохраняется.",
+        "properties": {
+          "amounts": {
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Amounts",
+            "type": "array"
+          },
+          "code": {
+            "default": "",
+            "maxLength": 32,
+            "title": "Code",
+            "type": "string"
+          },
+          "label": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "title": "Revaluation",
         "type": "object"
       },
       "ReviewResponse": {

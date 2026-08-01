@@ -828,6 +828,8 @@ class AuditAnalysisOut(BaseModel):
     diagnostics: Optional[AuditDiagnosticsOut] = None
     # Пользовательские показатели (фаза G); пусто без методик.
     user_metrics: list[AuditUserMetricOut] = []
+    # Числа получены после переоценки статей (v2) — не «как в отчётности».
+    revalued: bool = False
     # Экспертное заключение — связный автотекст по результату анализа (фаза E).
     opinion: str = ""
     warnings: list[str] = []
@@ -935,6 +937,7 @@ def audit_analysis_response(result, opinion: str = "") -> "AuditAnalysisOut":
                 for g, series in result.ratios.items()},
         balance_gap=list(result.balance_gap),
         balanced=result.balanced,
+        revalued=result.revalued,
         user_metrics=[AuditUserMetricOut(name=u.name, values=list(u.values), error=u.error)
                       for u in result.user_metrics],
         diagnostics=(AuditDiagnosticsOut(

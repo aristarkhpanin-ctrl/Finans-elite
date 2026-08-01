@@ -34,6 +34,7 @@ from .result import (
     TrendLine,
     UserMetricResult,
 )
+from .revaluation import apply_revaluations
 
 #: Тип периода → (длина в днях, множитель приведения потока к году).
 #: Множитель задан явно (1/4/12), а не выведен делением — так он точен для любого типа.
@@ -84,10 +85,15 @@ def analyze(model: AuditSubjectModel) -> AuditResult:
         return _analyze(model)
 
 
-def _analyze(model: AuditSubjectModel) -> AuditResult:
-    n = model.n
+def _analyze(source: AuditSubjectModel) -> AuditResult:
+    n = source.n
     if n == 0:
         return AuditResult(n=0)
+
+    # ── Переоценка статей (v2): анализ идёт по скорректированной форме ────────
+    # Поправки применяются до всего остального — коэффициенты, тренды и диагностика
+    # должны видеть одни и те же числа. Без переоценок модель возвращается как есть.
+    model, revaluation_notes = apply_revaluations(source)
 
     # ── Аналитическая форма ───────────────────────────────────────────────────
     bal_raw = {code: model.balance_row(code) for code in ASSET_CODES + EQLIAB_CODES}
@@ -209,7 +215,8 @@ def _analyze(model: AuditSubjectModel) -> AuditResult:
         [_div(net[t] * yr[t], equity[t]) for t in range(n)])
 
     gap = model.balance_gap()
-    warnings: list[str] = []
+    # Переоценки идут первыми: читатель должен узнать о поправках раньше, чем увидит числа.
+    warnings: list[str] = list(revaluation_notes)
     if any(g != 0 for g in gap):
         warnings.append("Баланс не сходится: актив ≠ пассив в одном или нескольких периодах — "
                         "показатели считаются по введённым данным как есть.")
@@ -229,6 +236,7 @@ def _analyze(model: AuditSubjectModel) -> AuditResult:
         },
         balance_gap=gap,
         balanced=all(g == 0 for g in gap),
+        revalued=bool(revaluation_notes),
         warnings=warnings,
     )
 

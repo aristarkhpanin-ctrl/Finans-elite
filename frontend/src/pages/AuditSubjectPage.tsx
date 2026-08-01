@@ -7,6 +7,8 @@ import {
   INCOME_LINES,
   MEMO_LINES,
   RATIO_GROUPS,
+  REPORTING_STANDARDS,
+  REVALUABLE_LINES,
   analyzeAuditSubject,
   downloadAuditReport,
   getAuditSubject,
@@ -15,6 +17,8 @@ import {
   type AuditModel,
   type AuditPeriod,
   type RatioThreshold,
+  type ReportingStandard,
+  type Revaluation,
   type UserMetric,
 } from "../api/audit";
 import { IconDownload, IconTrash, IconUpload } from "../components/icons";
@@ -157,6 +161,21 @@ export function AuditSubjectPage() {
   const updMetric = (i: number, up: Partial<UserMetric>) =>
     setMetrics(metrics.map((x, k) => (k === i ? { ...x, ...up } : x)));
   const rmMetric = (i: number) => setMetrics(metrics.filter((_, k) => k !== i));
+
+  // Переоценка статей (v2): поправки с корреспонденцией в капитале.
+  const revals: Revaluation[] = m.revaluations ?? [];
+  const setRevals = (next: Revaluation[]) => patch({ revaluations: next });
+  const addReval = () =>
+    setRevals([...revals, { code: REVALUABLE_LINES[0][0], label: "", amounts: [] }]);
+  const updReval = (i: number, up: Partial<Revaluation>) =>
+    setRevals(revals.map((x, k) => (k === i ? { ...x, ...up } : x)));
+  const rmReval = (i: number) => setRevals(revals.filter((_, k) => k !== i));
+  const setRevalAmount = (i: number, t: number, v: string) => {
+    const row = [...(revals[i].amounts ?? [])];
+    while (row.length < n) row.push("");
+    row[t] = v;
+    updReval(i, { amounts: row });
+  };
 
   // Свои нормативы (v2): переопределяют универсальные пороги диагностики.
   const thresholds: RatioThreshold[] = m.thresholds ?? [];
@@ -317,6 +336,23 @@ export function AuditSubjectPage() {
               <input className="efield__input" value={m.industry ?? ""} placeholder="напр. Торговля"
                      onChange={(e) => patch({ industry: e.target.value })} />
             </label>
+            <label className="efield">
+              <span className="efield__label">Основа отчётности</span>
+              <select className="efield__input" value={m.reporting_standard ?? "rsbu"}
+                      onChange={(e) => patch({
+                        reporting_standard: e.target.value as ReportingStandard,
+                      })}>
+                {REPORTING_STANDARDS.map(([key, label]) => (
+                  <option value={key} key={key}>{label}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="field-note" style={{ marginBottom: 16 }}>
+            Основа фиксируется как признак и попадает в заключение — платформа
+            <b> не пересчитывает</b> отчётность из одной основы в другую. Форма ввода —
+            агрегаты, одинаковые для любого стандарта; при своде группы участники с разными
+            основами не смешиваются молча, а получают оговорку о несопоставимости.
           </div>
 
           <div className="audit-block__title" style={{ fontSize: 13 }}>Отчётные периоды</div>
@@ -391,6 +427,72 @@ export function AuditSubjectPage() {
                 + "модель Альтмана, а без неё эта модель не показывается — балансовый "
                 + "капитал вместо рыночного дал бы другую модель под её именем.")}
           {grid("income", INCOME_LINES, "Отчёт о финансовых результатах")}
+
+          <div className="audit-block">
+            <div className="tab-head" style={{ marginBottom: 10 }}>
+              <div className="audit-block__title" style={{ marginBottom: 0 }}>
+                Переоценка статей
+              </div>
+              <Button variant="ghost" onClick={addReval}>＋&nbsp;&nbsp;Поправка</Button>
+            </div>
+            <div className="field-note" style={{ marginBottom: 12 }}>
+              Экспертные поправки к балансу: дооценка основных средств, безнадёжная
+              дебиторка, неликвидные запасы. У каждой поправки есть корреспонденция в
+              капитале (актив «+» увеличивает капитал, обязательство «+» уменьшает),
+              поэтому баланс остаётся сходящимся. Весь анализ считается по
+              скорректированной форме, а сами поправки перечисляются в оговорках —
+              переоценённые числа не выдаются за учётные.
+            </div>
+            {revals.length === 0 ? (
+              <p className="page-sub" style={{ margin: 0, fontSize: 12.5 }}>
+                Поправок нет — анализ идёт по учётным данным.
+              </p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {revals.map((rv, i) => (
+                  <div key={i} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div className="ft-row">
+                      <select className="efield__input" value={rv.code}
+                              onChange={(e) => updReval(i, { code: e.target.value })}>
+                        {REVALUABLE_LINES.map(([code, label]) => (
+                          <option value={code} key={code}>{label}</option>
+                        ))}
+                      </select>
+                      <input className="efield__input" value={rv.label}
+                             placeholder="Причина (напр. безнадёжная дебиторка)"
+                             onChange={(e) => updReval(i, { label: e.target.value })} />
+                      <button type="button" className="line-card__del" title="Удалить поправку"
+                              onClick={() => rmReval(i)}>
+                        <IconTrash size={15} />
+                      </button>
+                    </div>
+                    <div style={{ overflowX: "auto" }}>
+                      <table className="audit-grid">
+                        <thead>
+                          <tr>
+                            {m.periods.map((p, t) => (
+                              <th key={t}>{p.label || `Период ${t + 1}`}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            {m.periods.map((_, t) => (
+                              <td key={t}>
+                                <input className="audit-cell" inputMode="decimal"
+                                       value={rv.amounts?.[t] ?? ""} placeholder="0"
+                                       onChange={(e) => setRevalAmount(i, t, e.target.value)} />
+                              </td>
+                            ))}
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </>
       ) : analysis.isLoading ? (
         <div className="page-sub" style={{ padding: 24 }}>Считаем анализ…</div>
@@ -533,6 +635,12 @@ export function AuditSubjectPage() {
             )}
           </div>
 
+          {analysis.data.revalued && (
+            <div className="field-note field-note--warn" style={{ marginBottom: 12 }}>
+              Показатели рассчитаны по отчётности <b>с учётом переоценки статей</b> — они
+              отличаются от учётных данных. Перечень поправок — в оговорках ниже.
+            </div>
+          )}
           {analysis.data.warnings.length > 0 && (
             <div className="audit-block">
               {analysis.data.warnings.map((w, i) => (

@@ -75,6 +75,8 @@ class AuditResult:
     diagnostics: Optional["Diagnostics"] = None
     #: Пользовательские показатели (фаза G); пусто, если методик не задано.
     user_metrics: list[UserMetricResult] = field(default_factory=list)
+    #: Числа получены после переоценки статей (v2) — не «как в отчётности».
+    revalued: bool = False
     warnings: list[str] = field(default_factory=list)
 
 

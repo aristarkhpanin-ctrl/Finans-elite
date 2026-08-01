@@ -62,7 +62,15 @@ const headerRow = (first: string, periods: string[]): XCell[] =>
 /** Лист аналитической формы: баланс и ОПУ подряд, подытоги — жирным. */
 export function formSheet(a: AuditAnalysis): XCell[][] {
   if (a.balance.length === 0 && a.income.length === 0) return [];
-  const rows: XCell[][] = [headerRow("Статья", a.periods)];
+  const rows: XCell[][] = [];
+  // Файл уходит из приложения, поэтому переоценка обязана быть видна и в нём: иначе
+  // скорректированные числа разошлись бы по почте как учётная отчётность.
+  if (a.revalued) {
+    rows.push([head("Внимание: показатели рассчитаны с учётом переоценки статей — "
+                    + "они отличаются от учётных данных.")]);
+    rows.push([]);
+  }
+  rows.push(headerRow("Статья", a.periods));
   const section = (title: string, lines: AuditLineOut[]) => {
     rows.push([head(title), ...a.periods.map(() => head(""))]);
     for (const ln of lines) {

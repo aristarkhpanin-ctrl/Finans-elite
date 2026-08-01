@@ -42,6 +42,7 @@ const analysis = (over: Partial<AuditAnalysis> = {}): AuditAnalysis => ({
     }],
   },
   user_metrics: [],
+  revalued: false,
   opinion: "Первый абзац.\n\nВторой абзац.",
   warnings: [],
   ...over,
@@ -162,5 +163,17 @@ describe("buildAuditWorkbook", () => {
       ratios: {}, balance_gap: [], diagnostics: null, opinion: "",
     });
     expect(buildAuditWorkbook(empty)).toEqual([]);
+  });
+});
+
+describe("предупреждение о переоценке", () => {
+  it("переоценённая выгрузка помечена в самом файле", () => {
+    const rows = vals(formSheet(analysis({ revalued: true })));
+    expect(String(rows[0][0])).toContain("переоценки статей");
+    expect(rows[2]).toEqual(["Статья", "2023", "2024"]);   // заголовок сместился, не пропал
+  });
+
+  it("без переоценки лишней строки нет", () => {
+    expect(vals(formSheet(analysis()))[0]).toEqual(["Статья", "2023", "2024"]);
   });
 });

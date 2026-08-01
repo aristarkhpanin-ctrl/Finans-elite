@@ -57,6 +57,20 @@ class RatioThreshold(BaseModel):
                 else self.risk_edge >= self.good_edge)
 
 
+class Revaluation(BaseModel):
+    """Поправка к статье баланса (v2): экспертная переоценка по периодам.
+
+    ``code`` — статья баланса (кроме капитала: он служит корреспонденцией любой поправки),
+    ``label`` — причина («безнадёжная дебиторка», «дооценка ОС»), ``amounts`` — поправки по
+    периодам (со знаком). Актив ``+Δ`` увеличивает капитал, обязательство ``+Δ`` уменьшает —
+    поэтому равенство «актив = пассив» сохраняется.
+    """
+
+    code: str = Field(default="", max_length=32)
+    label: str = Field(default="", max_length=200)
+    amounts: list[Decimal] = Field(default_factory=list)
+
+
 class AuditSubjectModel(BaseModel):
     """Субъект анализа с фактической отчётностью по периодам.
 
@@ -67,6 +81,11 @@ class AuditSubjectModel(BaseModel):
     name: str = Field(default="", max_length=255)
     currency: str = Field(default="RUB", max_length=8)
     industry: str = Field(default="", max_length=120)
+    # Основа отчётности (v2). Форма ввода — агрегаты, одинаковые для любого стандарта,
+    # поэтому это **атрибут, а не трансформация**: платформа не пересчитывает РСБУ в МСФО,
+    # но фиксирует основу, чтобы она попадала в заключение и чтобы свод группы не смешивал
+    # молча отчётность, составленную по разным правилам.
+    reporting_standard: Literal["rsbu", "ifrs", "management"] = "rsbu"
     periods: list[AuditPeriod] = Field(default_factory=list, max_length=48)
     balance: dict[str, list[Decimal]] = Field(default_factory=dict)
     income: dict[str, list[Decimal]] = Field(default_factory=dict)
@@ -74,6 +93,9 @@ class AuditSubjectModel(BaseModel):
     user_metrics: list[UserMetric] = Field(default_factory=list, max_length=100)
     # Свои нормативы (v2): переопределяют универсальные пороги; пусто — универсальные.
     thresholds: list[RatioThreshold] = Field(default_factory=list, max_length=100)
+    # Переоценка статей (v2): поправки к балансу с корреспонденцией в капитале. Пустой
+    # список инертен — анализ идёт по учётным данным без единого пересчёта.
+    revaluations: list[Revaluation] = Field(default_factory=list, max_length=50)
 
     @property
     def n(self) -> int:

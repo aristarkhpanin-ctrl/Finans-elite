@@ -21,16 +21,34 @@ export interface RatioThreshold {
   good_edge: string;
 }
 
+/** Основа отчётности: платформа её фиксирует, но не трансформирует одну в другую. */
+export type ReportingStandard = "rsbu" | "ifrs" | "management";
+
+export const REPORTING_STANDARDS: [ReportingStandard, string][] = [
+  ["rsbu", "РСБУ"],
+  ["ifrs", "МСФО"],
+  ["management", "Управленческая"],
+];
+
+/** Поправка к статье баланса: корреспонденция — всегда капитал. */
+export interface Revaluation {
+  code: string;
+  label: string;
+  amounts: string[];
+}
+
 /** Модель субъекта: реквизиты, периоды, фактическая отчётность (код строки → ряд по периодам). */
 export interface AuditModel {
   name?: string;
   currency?: string;
   industry?: string;
+  reporting_standard?: ReportingStandard;
   periods: AuditPeriod[];
   balance: Record<string, string[]>;   // значения-строки (Decimal, точность без float)
   income: Record<string, string[]>;
   user_metrics?: UserMetric[];
   thresholds?: RatioThreshold[];
+  revaluations?: Revaluation[];
 }
 
 export interface AuditSubjectSummary {
@@ -72,6 +90,14 @@ export const INCOME_LINES: [string, string][] = [
   ["I_OTHER", "Прочие доходы/расходы (сальдо)"],
   ["I_TAX", "Налог на прибыль"],
 ];
+
+/**
+ * Статьи, доступные для переоценки: баланс без капитала — он корреспондирует любой
+ * поправке, поэтому переоценивать его напрямую не к чему приравнять (зеркало
+ * `REVALUABLE_CODES` в `audit_core/revaluation.py`).
+ */
+export const REVALUABLE_LINES: [string, string][] =
+  [...ASSET_LINES, ...EQLIAB_LINES].filter(([code]) => code !== "P_EQUITY");
 
 export function emptyAuditModel(): AuditModel {
   return { name: "", currency: "RUB", industry: "", periods: [{ label: "", kind: "year" }],
@@ -158,6 +184,7 @@ export interface AuditAnalysis {
   balanced: boolean;
   diagnostics: AuditDiagnostics | null;
   user_metrics: AuditUserMetricOut[];
+  revalued: boolean;          // числа посчитаны после переоценки статей
   opinion: string;
   warnings: string[];
 }

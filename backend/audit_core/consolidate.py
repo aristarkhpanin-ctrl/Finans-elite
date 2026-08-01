@@ -28,6 +28,10 @@ from typing import Literal
 
 from .lines import ASSET_CODES, EQLIAB_CODES, INCOME_CODES, MEMO_SUM_CODES
 from .models import AuditPeriod, AuditSubjectModel
+from .revaluation import apply_revaluations
+
+#: Подписи основ отчётности для оговорок свода.
+_STANDARD_LABELS = {"rsbu": "РСБУ", "ifrs": "МСФО", "management": "управленческая"}
 
 
 @dataclass
@@ -93,7 +97,11 @@ def consolidate_subjects(members: list[tuple[str, AuditSubjectModel]], *,
     if not members:
         raise ValueError("Для консолидации нужен хотя бы один субъект")
 
-    models = [m for _, m in members]
+    # Переоценки участников применяются до свода: иначе группа считалась бы по учётным
+    # данным, а участники поодиночке — по скорректированным, и числа бы не сходились.
+    revalued = [apply_revaluations(m) for _, m in members]
+    models = [m for m, _ in revalued]
+    revaluation_notes = [note for _, notes in revalued for note in notes]
     labels = _common_periods(models)
 
     skipped: dict[str, list[str]] = {}
@@ -130,6 +138,17 @@ def consolidate_subjects(members: list[tuple[str, AuditSubjectModel]], *,
             "завышены на величину внутренних операций. Их можно задать явно, тогда они "
             "будут вычтены.",
         ]
+    standards = {m.reporting_standard for m in models}
+    if len(standards) > 1:
+        named = ", ".join(_STANDARD_LABELS.get(s, s) for s in sorted(standards))
+        warnings.append(
+            f"Участники отчитываются по разным основам ({named}) — статьи свода "
+            "сформированы по разным правилам и строго не сопоставимы. Платформа не "
+            "трансформирует отчётность из одной основы в другую; свод сложен как есть.")
+    if revaluation_notes:
+        warnings.append("В свод вошли переоценённые данные участников — "
+                        "числа группы отличаются от их учётной отчётности.")
+        warnings += revaluation_notes
     if any(m.has_balance_row("M_MARKET_CAP") for m in models):
         warnings.append(
             "Рыночная капитализация участников в свод не перенесена: капитализация "
@@ -170,6 +189,9 @@ def consolidate_subjects(members: list[tuple[str, AuditSubjectModel]], *,
         name=name,
         currency=models[0].currency,
         industry="Консолидированная группа",
+        # Основа свода — общая, только если она общая у участников; иначе смешение
+        # уже названо в оговорке, и приписывать группе чужой стандарт нельзя.
+        reporting_standard=(models[0].reporting_standard if len(standards) == 1 else "management"),
         periods=[AuditPeriod(label=label, kind=kind_of.get(label, "year"))
                  for label in labels],
         balance=balance,

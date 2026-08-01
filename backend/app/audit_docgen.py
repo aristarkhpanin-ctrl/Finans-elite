@@ -96,8 +96,12 @@ def _add_diagnostics(doc: Document, d: Diagnostics, periods: list[str]) -> None:
         _add_table(doc, "Оценка показателей по нормативам", periods, assessments)
 
 
+#: Подписи основ отчётности (совпадают с оговорками свода).
+_STANDARD_LABELS = {"rsbu": "РСБУ", "ifrs": "МСФО", "management": "управленческая отчётность"}
+
+
 def build_audit_docx(result: AuditResult, opinion: str, *, subject_name: str,
-                     industry: str = "", currency: str = "",
+                     industry: str = "", currency: str = "", reporting_standard: str = "",
                      today: date | None = None) -> bytes:
     """Собрать документ заключения по анализу и вернуть содержимое ``.docx``."""
     doc = Document()
@@ -109,9 +113,19 @@ def build_audit_docx(result: AuditResult, opinion: str, *, subject_name: str,
         meta.append(f"отрасль: {industry}")
     if currency:
         meta.append(f"валюта: {currency}")
+    if reporting_standard:
+        # Основа отчётности — часть контекста документа: без неё читатель не знает,
+        # по каким правилам сформированы статьи, которые он сравнивает.
+        meta.append("основа отчётности: "
+                    + _STANDARD_LABELS.get(reporting_standard, reporting_standard))
     doc.add_paragraph("; ".join(meta) + ".")
     doc.add_paragraph(f"Дата формирования: {(today or date.today()).strftime('%d.%m.%Y')}.")
     doc.add_paragraph("Финанс-Аудит · анализ по фактической отчётности.")
+    if result.revalued:
+        # Документ с переоценёнными числами обязан сказать об этом на первой странице.
+        doc.add_paragraph("Внимание: показатели рассчитаны по отчётности с учётом "
+                          "переоценки статей — они отличаются от учётных данных. "
+                          "Перечень поправок приведён в оговорках.")
 
     doc.add_heading("Экспертное заключение", level=1)
     for block in opinion.split("\n\n"):

@@ -171,7 +171,8 @@ def download_report(subject_id: str,
     model = crud.load_audit_model(subject)
     result = analyze(model)
     content = build_audit_docx(result, build_opinion(result), subject_name=subject.name,
-                               industry=model.industry, currency=model.currency)
+                               industry=model.industry, currency=model.currency,
+                               reporting_standard=model.reporting_standard)
     filename = quote(f"{subject.name or 'audit'}.docx")
     return Response(content=content, media_type=DOCX_MIME, headers={
         "Content-Disposition": f"attachment; filename*=UTF-8''{filename}",
