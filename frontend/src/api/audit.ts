@@ -194,6 +194,8 @@ export interface AuditConsolidation {
   members: string[];
   periods_used: string[];
   warnings: string[];
+  /** Участники сохранённой группы, которых больше нет (субъект удалён). */
+  missing_members: string[];
 }
 
 /** Внутригрупповые обороты к исключению из свода (по периодам). */
@@ -213,5 +215,63 @@ export async function consolidateAudit(
     name,
     elimination: elimination ?? null,
   });
+  return data;
+}
+
+// --- Сохранённые группы предприятий (v2) ---
+
+/** Участник группы: ссылка на субъект + имя на момент сохранения (для выбывших). */
+export interface AuditGroupMember {
+  subject_id: string;
+  name: string;
+}
+
+/** Состав группы: участники + внутригрупповые обороты (результат не хранится). */
+export interface AuditGroupModel {
+  members: AuditGroupMember[];
+  elimination: AuditElimination | null;
+}
+
+export interface AuditGroupSummary {
+  id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+  n_members: number;
+  n_missing: number;    // сколько участников больше не существует
+}
+
+export interface AuditGroupOut extends AuditGroupSummary {
+  model: AuditGroupModel;
+}
+
+export async function listAuditGroups(): Promise<AuditGroupSummary[]> {
+  const { data } = await api.get<AuditGroupSummary[]>("/api/v1/audit/groups");
+  return data;
+}
+
+export async function getAuditGroup(id: string): Promise<AuditGroupOut> {
+  const { data } = await api.get<AuditGroupOut>(`/api/v1/audit/groups/${id}`);
+  return data;
+}
+
+export async function createAuditGroup(name: string, model: AuditGroupModel): Promise<AuditGroupOut> {
+  const { data } = await api.post<AuditGroupOut>("/api/v1/audit/groups", { name, model });
+  return data;
+}
+
+export async function updateAuditGroup(id: string, name: string,
+                                       model: AuditGroupModel): Promise<AuditGroupOut> {
+  const { data } = await api.put<AuditGroupOut>(`/api/v1/audit/groups/${id}`, { name, model });
+  return data;
+}
+
+export async function deleteAuditGroup(id: string): Promise<void> {
+  await api.delete(`/api/v1/audit/groups/${id}`);
+}
+
+/** Свод сохранённой группы по текущей отчётности участников. */
+export async function analyzeAuditGroup(id: string): Promise<AuditConsolidation> {
+  const { data } = await api.post<AuditConsolidation>(`/api/v1/audit/groups/${id}/analyze`);
   return data;
 }

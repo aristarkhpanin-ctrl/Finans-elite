@@ -440,7 +440,7 @@
           "elimination": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AuditEliminationIn"
+                "$ref": "#/components/schemas/AuditEliminationIn-Input"
               },
               {
                 "type": "null"
@@ -477,6 +477,14 @@
               "type": "string"
             },
             "title": "Members",
+            "type": "array"
+          },
+          "missing_members": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Members",
             "type": "array"
           },
           "periods_used": {
@@ -535,7 +543,7 @@
         "title": "AuditDiagnosticsOut",
         "type": "object"
       },
-      "AuditEliminationIn": {
+      "AuditEliminationIn-Input": {
         "description": "Внутригрупповые обороты к исключению из свода (по периодам).",
         "properties": {
           "receivables": {
@@ -572,6 +580,227 @@
           }
         },
         "title": "AuditEliminationIn",
+        "type": "object"
+      },
+      "AuditEliminationIn-Output": {
+        "description": "Внутригрупповые обороты к исключению из свода (по периодам).",
+        "properties": {
+          "receivables": {
+            "default": [],
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Receivables",
+            "type": "array"
+          },
+          "revenue": {
+            "default": [],
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Revenue",
+            "type": "array"
+          }
+        },
+        "title": "AuditEliminationIn",
+        "type": "object"
+      },
+      "AuditGroupCreate": {
+        "properties": {
+          "model": {
+            "$ref": "#/components/schemas/AuditGroupModel-Input"
+          },
+          "name": {
+            "default": "Группа предприятий",
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "title": "AuditGroupCreate",
+        "type": "object"
+      },
+      "AuditGroupMember": {
+        "description": "Участник сохранённой группы: ссылка на субъект + имя на момент сохранения.\n\nИмя — только «надгробие»: если субъект удалён, по нему называют выбывшего участника.\nУ живого участника имя всегда берётся из самого субъекта (переименование не теряется).",
+        "properties": {
+          "name": {
+            "default": "",
+            "maxLength": 255,
+            "title": "Name",
+            "type": "string"
+          },
+          "subject_id": {
+            "title": "Subject Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject_id"
+        ],
+        "title": "AuditGroupMember",
+        "type": "object"
+      },
+      "AuditGroupModel-Input": {
+        "description": "Состав группы: участники + внутригрупповые обороты к исключению.\n\nХранится именно состав, а не результат: свод пересчитывается по текущей отчётности\nучастников при каждом анализе.",
+        "properties": {
+          "elimination": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AuditEliminationIn-Input"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/AuditGroupMember"
+            },
+            "maxItems": 50,
+            "title": "Members",
+            "type": "array"
+          }
+        },
+        "title": "AuditGroupModel",
+        "type": "object"
+      },
+      "AuditGroupModel-Output": {
+        "description": "Состав группы: участники + внутригрупповые обороты к исключению.\n\nХранится именно состав, а не результат: свод пересчитывается по текущей отчётности\nучастников при каждом анализе.",
+        "properties": {
+          "elimination": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AuditEliminationIn-Output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/AuditGroupMember"
+            },
+            "maxItems": 50,
+            "title": "Members",
+            "type": "array"
+          }
+        },
+        "title": "AuditGroupModel",
+        "type": "object"
+      },
+      "AuditGroupOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "model": {
+            "$ref": "#/components/schemas/AuditGroupModel-Output"
+          },
+          "n_members": {
+            "default": 0,
+            "title": "N Members",
+            "type": "integer"
+          },
+          "n_missing": {
+            "default": 0,
+            "title": "N Missing",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "created_at",
+          "updated_at",
+          "model"
+        ],
+        "title": "AuditGroupOut",
+        "type": "object"
+      },
+      "AuditGroupSummary": {
+        "description": "Метаданные группы: сколько участников сохранено и сколько из них ещё существует.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "n_members": {
+            "default": 0,
+            "title": "N Members",
+            "type": "integer"
+          },
+          "n_missing": {
+            "default": 0,
+            "title": "N Missing",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AuditGroupSummary",
+        "type": "object"
+      },
+      "AuditGroupUpdate": {
+        "properties": {
+          "model": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AuditGroupModel-Input"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "title": "AuditGroupUpdate",
         "type": "object"
       },
       "AuditLineOut": {
@@ -8103,6 +8332,383 @@
           }
         ],
         "summary": "Consolidate",
+        "tags": [
+          "audit"
+        ]
+      }
+    },
+    "/api/v1/audit/groups": {
+      "get": {
+        "description": "Список сохранённых групп (с числом участников и числом выбывших).",
+        "operationId": "list_groups_api_v1_audit_groups_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AuditGroupSummary"
+                  },
+                  "title": "Response List Groups Api V1 Audit Groups Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Groups",
+        "tags": [
+          "audit"
+        ]
+      },
+      "post": {
+        "description": "Сохранить состав группы предприятий (участники + внутригрупповые обороты).",
+        "operationId": "create_group_api_v1_audit_groups_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuditGroupCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditGroupOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Group",
+        "tags": [
+          "audit"
+        ]
+      }
+    },
+    "/api/v1/audit/groups/{group_id}": {
+      "delete": {
+        "description": "Удалить сохранённую группу (субъекты-участники не затрагиваются).",
+        "operationId": "delete_group_api_v1_audit_groups__group_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "title": "Group Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Group",
+        "tags": [
+          "audit"
+        ]
+      },
+      "get": {
+        "description": "Получить сохранённую группу с составом.",
+        "operationId": "get_group_api_v1_audit_groups__group_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "title": "Group Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditGroupOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Group",
+        "tags": [
+          "audit"
+        ]
+      },
+      "put": {
+        "description": "Обновить имя и/или состав сохранённой группы.",
+        "operationId": "update_group_api_v1_audit_groups__group_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "title": "Group Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuditGroupUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditGroupOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Group",
+        "tags": [
+          "audit"
+        ]
+      }
+    },
+    "/api/v1/audit/groups/{group_id}/analyze": {
+      "post": {
+        "description": "Свод сохранённой группы по **текущей** отчётности участников.\n\nГруппа хранит состав, а не результат: числа всегда пересчитываются. Если участника\nудалили, свод считается по оставшимся, а выбывшие названы в оговорках ответа.",
+        "operationId": "analyze_group_api_v1_audit_groups__group_id__analyze_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "title": "Group Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditConsolidateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Analyze Group",
         "tags": [
           "audit"
         ]

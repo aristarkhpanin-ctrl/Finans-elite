@@ -855,6 +855,58 @@ class AuditConsolidateResponse(BaseModel):
     members: list[str] = []            # имена вошедших субъектов
     periods_used: list[str] = []
     warnings: list[str] = []
+    # Участники сохранённой группы, которых больше нет (субъект удалён). Свод считается по
+    # оставшимся, но состав изменился — молчать об этом нельзя. Для разового свода пусто.
+    missing_members: list[str] = []
+
+
+# --- Сохранённые группы предприятий (Финанс-Аудит, v2) ---
+
+class AuditGroupMember(BaseModel):
+    """Участник сохранённой группы: ссылка на субъект + имя на момент сохранения.
+
+    Имя — только «надгробие»: если субъект удалён, по нему называют выбывшего участника.
+    У живого участника имя всегда берётся из самого субъекта (переименование не теряется).
+    """
+
+    subject_id: str
+    name: str = Field(default="", max_length=255)
+
+
+class AuditGroupModel(BaseModel):
+    """Состав группы: участники + внутригрупповые обороты к исключению.
+
+    Хранится именно состав, а не результат: свод пересчитывается по текущей отчётности
+    участников при каждом анализе.
+    """
+
+    members: list[AuditGroupMember] = Field(default_factory=list, max_length=50)
+    elimination: Optional[AuditEliminationIn] = None
+
+
+class AuditGroupCreate(BaseModel):
+    name: str = "Группа предприятий"
+    model: AuditGroupModel = Field(default_factory=AuditGroupModel)
+
+
+class AuditGroupUpdate(BaseModel):
+    name: Optional[str] = None
+    model: Optional[AuditGroupModel] = None
+
+
+class AuditGroupSummary(BaseModel):
+    """Метаданные группы: сколько участников сохранено и сколько из них ещё существует."""
+
+    id: str
+    name: str
+    created_at: datetime
+    updated_at: datetime
+    n_members: int = 0
+    n_missing: int = 0
+
+
+class AuditGroupOut(AuditGroupSummary):
+    model: AuditGroupModel
 
 
 def audit_analysis_response(result, opinion: str = "") -> "AuditAnalysisOut":

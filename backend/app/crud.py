@@ -17,6 +17,7 @@ from calc_core import ProjectModel
 
 from .db_models import (
     AnalysisJob,
+    AuditGroup,
     AuditSubject,
     Holding,
     HoldingMember,
@@ -29,6 +30,7 @@ from .db_models import (
     User,
 )
 from .plans import DEFAULT_PLAN
+from .schemas import AuditGroupModel
 
 # --- Фоновые задачи анализа (Celery) ---
 
@@ -356,6 +358,54 @@ def delete_audit_subject(db: Session, subject: AuditSubject) -> None:
 
 def load_audit_model(subject: AuditSubject) -> AuditSubjectModel:
     return AuditSubjectModel.model_validate(subject.model)
+
+
+# --- Сохранённые группы предприятий (Финанс-Аудит, v2) ---
+
+def create_audit_group(db: Session, org_id: str, name: str, model: AuditGroupModel) -> AuditGroup:
+    group = AuditGroup(organization_id=org_id, name=name, model=model.model_dump(mode="json"))
+    db.add(group)
+    db.commit()
+    db.refresh(group)
+    return group
+
+
+def list_audit_groups(db: Session, org_id: str) -> list[AuditGroup]:
+    return list(
+        db.scalars(
+            select(AuditGroup)
+            .where(AuditGroup.organization_id == org_id)
+            .order_by(AuditGroup.created_at.desc())
+        )
+    )
+
+
+def get_audit_group(db: Session, org_id: str, group_id: str) -> AuditGroup | None:
+    return db.scalar(
+        select(AuditGroup).where(
+            AuditGroup.id == group_id, AuditGroup.organization_id == org_id
+        )
+    )
+
+
+def update_audit_group(db: Session, group: AuditGroup, *, name: str | None = None,
+                       model: AuditGroupModel | None = None) -> AuditGroup:
+    if name is not None:
+        group.name = name
+    if model is not None:
+        group.model = model.model_dump(mode="json")
+    db.commit()
+    db.refresh(group)
+    return group
+
+
+def delete_audit_group(db: Session, group: AuditGroup) -> None:
+    db.delete(group)
+    db.commit()
+
+
+def load_audit_group_model(group: AuditGroup) -> AuditGroupModel:
+    return AuditGroupModel.model_validate(group.model)
 
 
 # --- Версии проекта (пакет №8, gap 4.4) ---

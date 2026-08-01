@@ -234,6 +234,30 @@ class AuditSubject(Base):
     )
 
 
+class AuditGroup(Base):
+    """Сохранённая группа предприятий (Финанс-Аудит, v2): состав свода + исключения.
+
+    Хранит **состав**, а не результат: свод пересчитывается по текущей отчётности
+    участников при каждом анализе. Участник хранится как ``subject_id`` + имя на момент
+    сохранения — имя нужно только чтобы назвать удалённого участника (у живых имя берётся
+    из самого субъекта). Изоляция арендатора — RLS + фильтр CRUD по ``organization_id``.
+    """
+
+    __tablename__ = "audit_groups"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    # Сериализованная AuditGroupModel (участники + внутригрупповые обороты).
+    model: Mapped[dict] = mapped_column(JSONType, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_now, onupdate=_now
+    )
+
+
 class AnalysisJob(Base):
     """Фоновая задача анализа (Celery): реестр владения для изоляции арендатора.
 

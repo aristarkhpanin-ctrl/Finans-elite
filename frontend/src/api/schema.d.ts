@@ -47,6 +47,81 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/audit/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Groups
+         * @description Список сохранённых групп (с числом участников и числом выбывших).
+         */
+        get: operations["list_groups_api_v1_audit_groups_get"];
+        put?: never;
+        /**
+         * Create Group
+         * @description Сохранить состав группы предприятий (участники + внутригрупповые обороты).
+         */
+        post: operations["create_group_api_v1_audit_groups_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/groups/{group_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Group
+         * @description Получить сохранённую группу с составом.
+         */
+        get: operations["get_group_api_v1_audit_groups__group_id__get"];
+        /**
+         * Update Group
+         * @description Обновить имя и/или состав сохранённой группы.
+         */
+        put: operations["update_group_api_v1_audit_groups__group_id__put"];
+        post?: never;
+        /**
+         * Delete Group
+         * @description Удалить сохранённую группу (субъекты-участники не затрагиваются).
+         */
+        delete: operations["delete_group_api_v1_audit_groups__group_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/groups/{group_id}/analyze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Analyze Group
+         * @description Свод сохранённой группы по **текущей** отчётности участников.
+         *
+         *     Группа хранит состав, а не результат: числа всегда пересчитываются. Если участника
+         *     удалили, свод считается по оставшимся, а выбывшие названы в оговорках ответа.
+         */
+        post: operations["analyze_group_api_v1_audit_groups__group_id__analyze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit/subjects": {
         parameters: {
             query?: never;
@@ -1213,7 +1288,7 @@ export interface components {
          * @description Запрос консолидации: список субъектов группы + имя свода + исключения (v2).
          */
         AuditConsolidateRequest: {
-            elimination?: components["schemas"]["AuditEliminationIn"] | null;
+            elimination?: components["schemas"]["AuditEliminationIn-Input"] | null;
             /**
              * Name
              * @default Группа предприятий
@@ -1233,6 +1308,11 @@ export interface components {
              * @default []
              */
             members: string[];
+            /**
+             * Missing Members
+             * @default []
+             */
+            missing_members: string[];
             /**
              * Periods Used
              * @default []
@@ -1274,7 +1354,7 @@ export interface components {
          * AuditEliminationIn
          * @description Внутригрупповые обороты к исключению из свода (по периодам).
          */
-        AuditEliminationIn: {
+        "AuditEliminationIn-Input": {
             /**
              * Receivables
              * @default []
@@ -1285,6 +1365,135 @@ export interface components {
              * @default []
              */
             revenue: (number | string)[];
+        };
+        /**
+         * AuditEliminationIn
+         * @description Внутригрупповые обороты к исключению из свода (по периодам).
+         */
+        "AuditEliminationIn-Output": {
+            /**
+             * Receivables
+             * @default []
+             */
+            receivables: string[];
+            /**
+             * Revenue
+             * @default []
+             */
+            revenue: string[];
+        };
+        /** AuditGroupCreate */
+        AuditGroupCreate: {
+            model?: components["schemas"]["AuditGroupModel-Input"];
+            /**
+             * Name
+             * @default Группа предприятий
+             */
+            name: string;
+        };
+        /**
+         * AuditGroupMember
+         * @description Участник сохранённой группы: ссылка на субъект + имя на момент сохранения.
+         *
+         *     Имя — только «надгробие»: если субъект удалён, по нему называют выбывшего участника.
+         *     У живого участника имя всегда берётся из самого субъекта (переименование не теряется).
+         */
+        AuditGroupMember: {
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /** Subject Id */
+            subject_id: string;
+        };
+        /**
+         * AuditGroupModel
+         * @description Состав группы: участники + внутригрупповые обороты к исключению.
+         *
+         *     Хранится именно состав, а не результат: свод пересчитывается по текущей отчётности
+         *     участников при каждом анализе.
+         */
+        "AuditGroupModel-Input": {
+            elimination?: components["schemas"]["AuditEliminationIn-Input"] | null;
+            /** Members */
+            members?: components["schemas"]["AuditGroupMember"][];
+        };
+        /**
+         * AuditGroupModel
+         * @description Состав группы: участники + внутригрупповые обороты к исключению.
+         *
+         *     Хранится именно состав, а не результат: свод пересчитывается по текущей отчётности
+         *     участников при каждом анализе.
+         */
+        "AuditGroupModel-Output": {
+            elimination?: components["schemas"]["AuditEliminationIn-Output"] | null;
+            /** Members */
+            members?: components["schemas"]["AuditGroupMember"][];
+        };
+        /** AuditGroupOut */
+        AuditGroupOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            model: components["schemas"]["AuditGroupModel-Output"];
+            /**
+             * N Members
+             * @default 0
+             */
+            n_members: number;
+            /**
+             * N Missing
+             * @default 0
+             */
+            n_missing: number;
+            /** Name */
+            name: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * AuditGroupSummary
+         * @description Метаданные группы: сколько участников сохранено и сколько из них ещё существует.
+         */
+        AuditGroupSummary: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            /**
+             * N Members
+             * @default 0
+             */
+            n_members: number;
+            /**
+             * N Missing
+             * @default 0
+             */
+            n_missing: number;
+            /** Name */
+            name: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** AuditGroupUpdate */
+        AuditGroupUpdate: {
+            model?: components["schemas"]["AuditGroupModel-Input"] | null;
+            /** Name */
+            name?: string | null;
         };
         /**
          * AuditLineOut
@@ -5068,6 +5277,206 @@ export interface operations {
                 "application/json": components["schemas"]["AuditConsolidateRequest"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditConsolidateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_groups_api_v1_audit_groups_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditGroupSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_group_api_v1_audit_groups_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuditGroupCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditGroupOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_group_api_v1_audit_groups__group_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                group_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditGroupOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_group_api_v1_audit_groups__group_id__put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                group_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuditGroupUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditGroupOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_group_api_v1_audit_groups__group_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                group_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    analyze_group_api_v1_audit_groups__group_id__analyze_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                group_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
