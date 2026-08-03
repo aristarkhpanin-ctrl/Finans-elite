@@ -1922,16 +1922,55 @@ export interface components {
         };
         /**
          * BudgetOut
-         * @description Смета по этапам календарного плана + помесячный график и итог.
+         * @description Смета по этапам календарного плана + помесячные графики и итоги.
+         *
+         *     Финансовый разрез: освоение (``monthly``) и оплата (``monthly_cash``) — разные ряды,
+         *     их накопленный разрыв (``payables``) равен кредиторке B23; итоги по трактовке
+         *     показывают, куда стоимость попадёт в отчётах.
          */
         BudgetOut: {
             /** Actual Total */
             actual_total?: string | null;
             /**
+             * Asset Total
+             * @default 0
+             */
+            asset_total: string;
+            /**
+             * Cumulative
+             * @default []
+             */
+            cumulative: string[];
+            /**
+             * Cumulative Cash
+             * @default []
+             */
+            cumulative_cash: string[];
+            /**
+             * Deferred Total
+             * @default 0
+             */
+            deferred_total: string;
+            /**
+             * Expense Total
+             * @default 0
+             */
+            expense_total: string;
+            /**
              * Monthly
              * @default []
              */
             monthly: string[];
+            /**
+             * Monthly Cash
+             * @default []
+             */
+            monthly_cash: string[];
+            /**
+             * Payables
+             * @default []
+             */
+            payables: string[];
             /**
              * Stages
              * @default []
@@ -1950,7 +1989,14 @@ export interface components {
             break_even: components["schemas"]["BreakEvenOut"];
             /**
              * @default {
+             *       "asset_total": "0",
+             *       "cumulative": [],
+             *       "cumulative_cash": [],
+             *       "deferred_total": "0",
+             *       "expense_total": "0",
              *       "monthly": [],
+             *       "monthly_cash": [],
+             *       "payables": [],
              *       "stages": [],
              *       "total": "0"
              *     }
@@ -2109,7 +2155,14 @@ export interface components {
             break_even: components["schemas"]["BreakEvenOut"];
             /**
              * @default {
+             *       "asset_total": "0",
+             *       "cumulative": [],
+             *       "cumulative_cash": [],
+             *       "deferred_total": "0",
+             *       "expense_total": "0",
              *       "monthly": [],
+             *       "monthly_cash": [],
+             *       "payables": [],
              *       "stages": [],
              *       "total": "0"
              *     }
@@ -4763,12 +4816,27 @@ export interface components {
             id: string;
             /** Kind */
             kind: string;
+            /**
+             * Monthly
+             * @default []
+             */
+            monthly: string[];
+            /**
+             * Monthly Cash
+             * @default []
+             */
+            monthly_cash: string[];
             /** Name */
             name: string;
             /** Schedule Variance Months */
             schedule_variance_months?: number | null;
             /** Start Month */
             start_month: number;
+            /**
+             * Treatment
+             * @default none
+             */
+            treatment: string;
         };
         /**
          * StageResource

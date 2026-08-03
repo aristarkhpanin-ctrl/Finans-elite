@@ -72,15 +72,31 @@ class StageBudgetOut(BaseModel):
     actual_cost: Optional[Decimal] = None
     cost_variance: Optional[Decimal] = None
     schedule_variance_months: Optional[int] = None
+    # Финансовый разрез этапа: освоение и оплата по месяцам + трактовка в отчётах.
+    monthly: list[Decimal] = []
+    monthly_cash: list[Decimal] = []
+    treatment: str = "none"        # expense | deferred | asset | mixed | none
 
 
 class BudgetOut(BaseModel):
-    """Смета по этапам календарного плана + помесячный график и итог."""
+    """Смета по этапам календарного плана + помесячные графики и итоги.
+
+    Финансовый разрез: освоение (``monthly``) и оплата (``monthly_cash``) — разные ряды,
+    их накопленный разрыв (``payables``) равен кредиторке B23; итоги по трактовке
+    показывают, куда стоимость попадёт в отчётах.
+    """
 
     stages: list[StageBudgetOut] = []
     monthly: list[Decimal] = []
     total: Decimal = Decimal(0)
     actual_total: Optional[Decimal] = None
+    monthly_cash: list[Decimal] = []
+    cumulative: list[Decimal] = []
+    cumulative_cash: list[Decimal] = []
+    payables: list[Decimal] = []
+    expense_total: Decimal = Decimal(0)
+    deferred_total: Decimal = Decimal(0)
+    asset_total: Decimal = Decimal(0)
 
 
 def budget_response(budget) -> "BudgetOut":
@@ -91,11 +107,20 @@ def budget_response(budget) -> "BudgetOut":
             finish_month=s.finish_month, cost=s.cost,
             actual_start_month=s.actual_start_month, actual_finish_month=s.actual_finish_month,
             actual_cost=s.actual_cost, cost_variance=s.cost_variance,
-            schedule_variance_months=s.schedule_variance_months)
+            schedule_variance_months=s.schedule_variance_months,
+            monthly=list(s.monthly), monthly_cash=list(s.monthly_cash),
+            treatment=s.treatment)
             for s in budget.stages],
         monthly=list(budget.monthly),
         total=budget.total,
         actual_total=budget.actual_total,
+        monthly_cash=list(budget.monthly_cash),
+        cumulative=list(budget.cumulative),
+        cumulative_cash=list(budget.cumulative_cash),
+        payables=list(budget.payables),
+        expense_total=budget.expense_total,
+        deferred_total=budget.deferred_total,
+        asset_total=budget.asset_total,
     )
 
 

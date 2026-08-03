@@ -1598,7 +1598,7 @@
         "type": "object"
       },
       "BudgetOut": {
-        "description": "Смета по этапам календарного плана + помесячный график и итог.",
+        "description": "Смета по этапам календарного плана + помесячные графики и итоги.\n\nФинансовый разрез: освоение (``monthly``) и оплата (``monthly_cash``) — разные ряды,\nих накопленный разрыв (``payables``) равен кредиторке B23; итоги по трактовке\nпоказывают, куда стоимость попадёт в отчётах.",
         "properties": {
           "actual_total": {
             "anyOf": [
@@ -1612,6 +1612,42 @@
             ],
             "title": "Actual Total"
           },
+          "asset_total": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Asset Total",
+            "type": "string"
+          },
+          "cumulative": {
+            "default": [],
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Cumulative",
+            "type": "array"
+          },
+          "cumulative_cash": {
+            "default": [],
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Cumulative Cash",
+            "type": "array"
+          },
+          "deferred_total": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Deferred Total",
+            "type": "string"
+          },
+          "expense_total": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Expense Total",
+            "type": "string"
+          },
           "monthly": {
             "default": [],
             "items": {
@@ -1619,6 +1655,24 @@
               "type": "string"
             },
             "title": "Monthly",
+            "type": "array"
+          },
+          "monthly_cash": {
+            "default": [],
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Monthly Cash",
+            "type": "array"
+          },
+          "payables": {
+            "default": [],
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Payables",
             "type": "array"
           },
           "stages": {
@@ -1660,7 +1714,14 @@
           "budget": {
             "$ref": "#/components/schemas/BudgetOut",
             "default": {
+              "asset_total": "0",
+              "cumulative": [],
+              "cumulative_cash": [],
+              "deferred_total": "0",
+              "expense_total": "0",
               "monthly": [],
+              "monthly_cash": [],
+              "payables": [],
               "stages": [],
               "total": "0"
             }
@@ -1988,7 +2049,14 @@
           "budget": {
             "$ref": "#/components/schemas/BudgetOut",
             "default": {
+              "asset_total": "0",
+              "cumulative": [],
+              "cumulative_cash": [],
+              "deferred_total": "0",
+              "expense_total": "0",
               "monthly": [],
+              "monthly_cash": [],
+              "payables": [],
               "stages": [],
               "total": "0"
             }
@@ -7209,6 +7277,24 @@
             "title": "Kind",
             "type": "string"
           },
+          "monthly": {
+            "default": [],
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Monthly",
+            "type": "array"
+          },
+          "monthly_cash": {
+            "default": [],
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Monthly Cash",
+            "type": "array"
+          },
           "name": {
             "title": "Name",
             "type": "string"
@@ -7227,6 +7313,11 @@
           "start_month": {
             "title": "Start Month",
             "type": "integer"
+          },
+          "treatment": {
+            "default": "none",
+            "title": "Treatment",
+            "type": "string"
           }
         },
         "required": [

@@ -31,17 +31,44 @@ class StageBudget:
     actual_cost: Optional[Decimal] = None
     cost_variance: Optional[Decimal] = None
     schedule_variance_months: Optional[int] = None
+    #: Освоение (начисление стоимости) по месяцам — то, что этап «съедает» по графику работ.
+    monthly: list[Decimal] = field(default_factory=list)
+    #: Оплата по месяцам — то же освоение, сдвинутое на отсрочку платежа ресурсов.
+    #: Расхождение с ``monthly`` и есть кредиторка по этапу (см. ``Budget.payables``).
+    monthly_cash: list[Decimal] = field(default_factory=list)
+    #: Трактовка стоимости в отчётах: expense (издержка периода, I21) | deferred (РБП, B15)
+    #: | asset (капвложение, C14→B14) | none (этап стоимости не несёт). У групп — от потомков,
+    #: если она у них одна; при смешении — "mixed" (свод не приписывает группе чужую трактовку).
+    treatment: str = "none"
 
 
 @dataclass
 class Budget:
-    """Бюджет проекта по этапам: смета (строки) + помесячный график + итог."""
+    """Бюджет проекта по этапам: смета (строки) + помесячные графики + итоги.
+
+    Финансовый разрез сметы: **освоение и оплата — разные ряды**. Стоимость начисляется по
+    графику работ (``monthly``), а платится с отсрочкой ресурсов (``monthly_cash``); разрыв
+    между накопленными рядами — неоплаченные обязательства (``payables``, тот же ряд, что
+    уходит в кредиторку B23). Итоги по трактовке показывают, куда стоимость попадёт в
+    отчётах: в издержки периода, в расходы будущих периодов или в основные средства.
+    """
 
     stages: list[StageBudget] = field(default_factory=list)
     monthly: list[Decimal] = field(default_factory=list)  # Σ стоимости этапов по месяцам (начисление)
     total: Decimal = Decimal(0)
     # Σ фактических стоимостей листьев (None, если факта нет) — план-факт итог.
     actual_total: Optional[Decimal] = None
+    #: Платежи по месяцам (освоение со сдвигом на отсрочку ресурсов).
+    monthly_cash: list[Decimal] = field(default_factory=list)
+    #: Накопленное освоение и накопленная оплата (S-кривые бюджетного контроля).
+    cumulative: list[Decimal] = field(default_factory=list)
+    cumulative_cash: list[Decimal] = field(default_factory=list)
+    #: Начислено − оплачено на конец месяца: обязательства перед подрядчиками.
+    payables: list[Decimal] = field(default_factory=list)
+    #: Разбивка сметы по трактовке (Σ = ``total``): издержки периода, РБП, капвложения.
+    expense_total: Decimal = Decimal(0)
+    deferred_total: Decimal = Decimal(0)
+    asset_total: Decimal = Decimal(0)
 
 
 @dataclass
