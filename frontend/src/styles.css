@@ -2729,3 +2729,123 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .zone-chip.tone--warn { background: var(--warn-bg); color: var(--warn-text); }
 .zone-chip.tone--risk { background: var(--danger-bg); color: var(--danger-text); }
 .opinion-block { font: 400 13.5px/1.62 var(--font-ui); color: var(--text); margin-bottom: 12px; white-space: pre-line; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Бюджетная диаграмма Ганта (календарный план глазами финансового директора).
+   Левая таблица и полосы обязаны совпадать по высоте строки: --bg-row.
+   ───────────────────────────────────────────────────────────────────────────── */
+.bg-gantt { --bg-row: 30px; --bg-lane: 26px; }
+.bg-gantt__bar {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.bg-gantt__toggle {
+  display: flex; align-items: center; gap: 6px;
+  font: 400 12.5px var(--font-ui); color: var(--muted); cursor: pointer;
+}
+.bg-gantt__legend { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-left: auto; }
+.bg-gantt__lg { display: flex; align-items: center; gap: 6px; font: 400 12px var(--font-ui); color: var(--subtle); }
+.bg-gantt__lg i { width: 12px; height: 8px; border-radius: 2px; flex: none; }
+.bg-gantt__lg--cash { background: transparent; border-bottom: 3px dotted var(--chart-2); height: 3px !important; }
+
+.bg-gantt__body {
+  display: flex; border: 1px solid var(--border); border-radius: 10px;
+  overflow: hidden; background: var(--surface);
+}
+.bg-gantt__grid { flex: none; width: 430px; border-right: 1px solid var(--border); }
+.bg-gantt__chart { flex: 1; min-width: 0; overflow-x: auto; }
+
+.bg-gantt__head, .bg-gantt__row { display: flex; align-items: center; }
+.bg-gantt__head {
+  border-bottom: 1px solid var(--border); background: var(--surface-2);
+  font: 600 11px var(--font-ui); letter-spacing: 0.03em; text-transform: uppercase;
+  color: var(--subtle);
+}
+.bg-gantt__row { border-bottom: 1px solid var(--border); cursor: pointer; transition: 0.12s; }
+.bg-gantt__row:hover { background: var(--surface-2); }
+.bg-gantt__row--sel { background: var(--primary-soft); }
+.bg-gantt__cell {
+  padding: 0 8px; font: 400 12.5px var(--font-ui); color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: none; width: 78px;
+}
+.bg-gantt__cell--name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 2px; }
+.bg-gantt__cell--num { text-align: right; font-variant-numeric: tabular-nums; }
+.bg-gantt__nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bg-gantt__tw {
+  flex: none; width: 16px; height: 16px; border: none; background: none; cursor: pointer;
+  color: var(--subtle); font-size: 10px; line-height: 1; padding: 0;
+}
+.bg-gantt__tw--empty { cursor: default; }
+.bg-gantt__chip {
+  display: inline-block; padding: 1px 7px; border-radius: 999px;
+  font: 600 10.5px var(--font-ui); color: #fff; white-space: nowrap;
+}
+
+.bg-gantt__timehead {
+  display: flex; align-items: stretch; border-bottom: 1px solid var(--border);
+  background: var(--surface-2); position: sticky; top: 0; z-index: 2;
+}
+.bg-gantt__col {
+  flex: none; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 2px; border-left: 1px solid var(--border);
+}
+.bg-gantt__colTop { font: 600 10px var(--font-ui); color: var(--subtle); }
+.bg-gantt__colBottom { font: 500 11.5px var(--font-ui); color: var(--muted); }
+
+.bg-gantt__gridline {
+  position: absolute; top: 0; width: 1px; background: var(--border);
+  opacity: 0.55; pointer-events: none;
+}
+.bg-gantt__beyond {
+  position: absolute; top: 0; background: var(--warn-bg); opacity: 0.35; pointer-events: none;
+}
+.bg-gantt__track {
+  position: relative; border-bottom: 1px solid var(--border); cursor: pointer;
+}
+.bg-gantt__track:hover { background: var(--surface-2); }
+.bg-gantt__track--sel { background: var(--primary-soft); }
+.bg-gantt__bar {
+  position: absolute; top: 7px; height: 13px; border-radius: 4px; opacity: 0.92;
+}
+.bg-gantt__bar--group { top: 9px; height: 7px; border-radius: 3px; opacity: 0.55; }
+/* Полоса оплаты — пунктиром под полосой работ: видно, насколько деньги отстают. */
+.bg-gantt__cash {
+  position: absolute; top: 22px; height: 0; border-bottom: 3px dotted var(--chart-2);
+}
+.bg-gantt__fact {
+  position: absolute; top: 21px; height: 4px; border-radius: 2px;
+  background: var(--text); opacity: 0.45;
+}
+.bg-gantt__cost {
+  position: absolute; top: 8px; font: 500 11px var(--font-ui); color: var(--subtle);
+  white-space: nowrap; pointer-events: none;
+}
+
+.bg-gantt__lanehead {
+  display: flex; align-items: center; padding: 0 8px;
+  border-top: 1px solid var(--border); background: var(--surface-2);
+  font: 600 11px var(--font-ui); letter-spacing: 0.03em; text-transform: uppercase;
+  color: var(--subtle);
+}
+.bg-gantt__lanelabel {
+  display: flex; align-items: center; padding: 0 8px;
+  border-top: 1px solid var(--border);
+  font: 400 12px var(--font-ui); color: var(--muted); white-space: nowrap;
+}
+.bg-gantt__lane { display: flex; border-top: 1px solid var(--border); }
+.bg-gantt__laneCell {
+  flex: none; position: relative; display: flex; align-items: flex-end;
+  justify-content: center; border-left: 1px solid var(--border); overflow: hidden;
+}
+.bg-gantt__laneFill { position: absolute; left: 2px; right: 2px; bottom: 0; opacity: 0.22; border-radius: 2px 2px 0 0; }
+.bg-gantt__laneNum {
+  position: relative; font: 500 10.5px var(--font-ui); color: var(--muted);
+  font-variant-numeric: tabular-nums; padding-bottom: 5px; white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .bg-gantt__grid { width: 250px; }
+  .bg-gantt__cell { width: 66px; }
+  .bg-gantt__cell:nth-child(2), .bg-gantt__cell:nth-child(4) { display: none; }
+}
+/* Карточка этапа, выбранного на диаграмме Ганта. */
+.line-card--sel { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-soft); }

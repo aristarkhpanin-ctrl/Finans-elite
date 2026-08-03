@@ -229,7 +229,7 @@ export function ProjectEditorPage() {
                    onChange={(investment_plan) => setModel({ ...model, investment_plan })} />
       )}
       {tab === "calendar" && (
-        <CalendarTab n={n} investment={model.investment_plan}
+        <CalendarTab n={n} startDate={model.header.start_date} investment={model.investment_plan}
                      products={model.operating_plan.products}
                      onChange={(investment_plan) => setModel({ ...model, investment_plan })} />
       )}

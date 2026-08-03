@@ -56,6 +56,13 @@ export function stageCost(stage: Stage, byRes: Map<string, Resource>): number {
   return num(stage.cost);
 }
 
+/**
+ * Трактовка стоимости этапа в отчётах — то, ради чего смета вообще нужна финансисту:
+ * одна и та же сумма попадёт либо в издержки периода, либо в расходы будущих периодов,
+ * либо в основные средства, и прибыль с налогом будут разными.
+ */
+export type Treatment = "expense" | "deferred" | "asset" | "mixed" | "none";
+
 export interface BudgetRow {
   id: string;
   name: string;
@@ -69,14 +76,63 @@ export interface BudgetRow {
   actualFinish: number | null;
   costVariance: number | null;
   scheduleVariance: number | null;
+  // Финансовый разрез этапа: освоение и оплата по месяцам + трактовка.
+  monthly: number[];
+  monthlyCash: number[];
+  treatment: Treatment;
 }
 
 export interface Budget {
   rows: BudgetRow[];
-  monthly: number[];
+  monthly: number[];        // освоение (начисление) по месяцам
+  monthlyCash: number[];    // оплата по месяцам (со сдвигом на отсрочку ресурсов)
+  cumulative: number[];     // накопленное освоение
+  cumulativeCash: number[]; // накопленная оплата
+  payables: number[];       // начислено − оплачено = обязательства перед подрядчиками
   total: number;
   actualTotal: number | null;
+  // Разбивка сметы по трактовке (Σ = total).
+  expenseTotal: number;
+  deferredTotal: number;
+  assetTotal: number;
 }
+
+/**
+ * Помесячная оплата этапа: график начисления со сдвигом на отсрочку каждого ресурса.
+ * Зеркало `_payment_graph` движка. Прямая стоимость (без ресурсов) платится без сдвига.
+ */
+function paymentGraph(stage: Stage, cost: number, graph: [number, number][],
+                      byRes: Map<string, Resource>, n: number): number[] {
+  const out = new Array(Math.max(0, n)).fill(0);
+  if (stage.resources && stage.resources.length) {
+    for (const sr of stage.resources) {
+      const r = byRes.get(sr.resource_id);
+      if (!r) continue;
+      const costR = num(sr.quantity) * num(r.unit_price);
+      for (const [m, frac] of graph) {
+        const pay = m + (r.payment_delay_months ?? 0);
+        if (pay >= 0 && pay < n) out[pay] += costR * frac;
+      }
+    }
+  } else {
+    for (const [m, frac] of graph) {
+      if (m >= 0 && m < n) out[m] += cost * frac;
+    }
+  }
+  return out;
+}
+
+/** График начисления стоимости этапа: пары (месяц, доля). Зеркало `_schedule` движка. */
+function accrualGraph(start: number, dur: number, timing: string): [number, number][] {
+  if (timing === "on_finish") return [[start + dur - 1, 1]];
+  const per = 1 / dur;
+  return Array.from({ length: dur }, (_, k) => [start + k, per] as [number, number]);
+}
+
+const cumsum = (xs: number[]): number[] => {
+  let acc = 0;
+  return xs.map((x) => (acc += x));
+};
 
 /** Смета: строки (листья + свёрнутые группы), помесячный график начисления, итог. */
 export function computeBudget(stages: Stage[], resources: Resource[], n: number): Budget {
@@ -84,31 +140,45 @@ export function computeBudget(stages: Stage[], resources: Resource[], n: number)
   const groups = groupIds(stages);
   const sched = resolveSchedule(stages);
   const monthly = new Array(Math.max(0, n)).fill(0);
+  const monthlyCash = new Array(Math.max(0, n)).fill(0);
   const leaf = new Map<string, { cost: number; start: number; finish: number }>();
+  const leafRows = new Map<string, { accrual: number[]; cash: number[] }>();
+  const leafTreatment = new Map<string, Treatment>();
 
   for (const st of stages) {
     if (groups.has(st.id)) continue;
     const { start, finish } = sched.get(st.id)!;
     const kind = (st.kind ?? "expense") as StageKind;
+    const accrual = new Array(Math.max(0, n)).fill(0);
+    let cash = new Array(Math.max(0, n)).fill(0);
     let cost = 0;
+    let treatment: Treatment = "none";
     if (kind === "expense") {
       cost = stageCost(st, byRes);
       const dur = Math.max(1, st.duration_months ?? 1);
-      if (st.cost_timing === "on_finish") {
-        const m = start + dur - 1;
-        if (m >= 0 && m < n) monthly[m] += cost;
-      } else {
-        const per = cost / dur;
-        for (let k = 0; k < dur; k++) {
-          const m = start + k;
-          if (m >= 0 && m < n) monthly[m] += per;
-        }
+      const graph = accrualGraph(start, dur, st.cost_timing ?? "uniform");
+      for (const [m, frac] of graph) {
+        if (m >= 0 && m < n) accrual[m] += cost * frac;
       }
+      cash = paymentGraph(st, cost, graph, byRes, n);
+      treatment = (st.amortize_months ?? 0) > 0 ? "deferred" : "expense";
     } else if (kind === "asset") {
       cost = stageCost(st, byRes);
-      if (finish >= 0 && finish < n) monthly[finish] += cost;
+      // Актив ставится разово в месяц финиша; отсрочки ресурсов машинерия активов
+      // не применяет, поэтому оплата совпадает с освоением (как в движке).
+      if (finish >= 0 && finish < n) {
+        accrual[finish] += cost;
+        cash[finish] += cost;
+      }
+      treatment = "asset";
+    }
+    for (let m = 0; m < n; m++) {
+      monthly[m] += accrual[m];
+      monthlyCash[m] += cash[m];
     }
     leaf.set(st.id, { cost, start, finish });
+    leafRows.set(st.id, { accrual, cash });
+    leafTreatment.set(st.id, treatment);
   }
 
   const children = new Map<string, string[]>();
@@ -167,19 +237,70 @@ export function computeBudget(stages: Stage[], resources: Resource[], n: number)
     };
   };
 
+  /** Свёртка помесячных рядов группы: суммы рядов потомков. */
+  const rollupRows = (id: string, visiting: Set<string>): { accrual: number[]; cash: number[] } => {
+    const l = leafRows.get(id);
+    if (l) return l;
+    const accrual = new Array(Math.max(0, n)).fill(0);
+    const cash = new Array(Math.max(0, n)).fill(0);
+    for (const kid of children.get(id) ?? []) {
+      if (visiting.has(kid)) continue;
+      const c = rollupRows(kid, new Set(visiting).add(id));
+      for (let m = 0; m < n; m++) {
+        accrual[m] += c.accrual[m];
+        cash[m] += c.cash[m];
+      }
+    }
+    return { accrual, cash };
+  };
+
+  /**
+   * Трактовка группы — общая трактовка потомков; при смешении «mixed». Приписывать группе
+   * трактовку одного из потомков нельзя: она определяет, куда стоимость попадёт в отчётах.
+   */
+  const rollupTreatment = (id: string, visiting: Set<string>): Treatment => {
+    const l = leafTreatment.get(id);
+    if (l) return l;
+    const kinds = new Set<Treatment>();
+    for (const kid of children.get(id) ?? []) {
+      if (visiting.has(kid)) continue;
+      const t = rollupTreatment(kid, new Set(visiting).add(id));
+      if (t !== "none") kinds.add(t);
+    }
+    return kinds.size === 1 ? [...kinds][0] : kinds.size ? "mixed" : "none";
+  };
+
   const rows: BudgetRow[] = stages.map((st) => {
     const r = rollup(st.id, new Set());
     const f = rollupFact(st.id, new Set());
+    const series = rollupRows(st.id, new Set());
     return {
       id: st.id, name: st.name ?? "", kind: (st.kind ?? "expense") as StageKind, ...r,
       actualCost: f.cost, actualStart: f.start, actualFinish: f.finish,
       costVariance: f.cost !== null ? f.cost - r.cost : null,
       scheduleVariance: f.finish !== null ? f.finish - r.finish : null,
+      monthly: series.accrual, monthlyCash: series.cash,
+      treatment: rollupTreatment(st.id, new Set()),
     };
   });
   let total = 0;
   for (const v of leaf.values()) total += v.cost;
   const factCosts = [...factLeaf.values()].map((f) => f.cost).filter((c): c is number => c !== null);
   const actualTotal = factCosts.length ? factCosts.reduce((a, b) => a + b, 0) : null;
-  return { rows, monthly, total, actualTotal };
+
+  // Разбивка по трактовке — по листьям: только они несут стоимость.
+  const by: Record<string, number> = { expense: 0, deferred: 0, asset: 0 };
+  for (const [id, v] of leaf) {
+    const t = leafTreatment.get(id) ?? "none";
+    if (t in by) by[t] += v.cost;
+  }
+
+  const cumulative = cumsum(monthly);
+  const cumulativeCash = cumsum(monthlyCash);
+  return {
+    rows, monthly, monthlyCash, cumulative, cumulativeCash,
+    payables: cumulative.map((v, t) => v - cumulativeCash[t]),
+    total, actualTotal,
+    expenseTotal: by.expense, deferredTotal: by.deferred, assetTotal: by.asset,
+  };
 }

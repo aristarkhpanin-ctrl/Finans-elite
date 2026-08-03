@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type {
   CalendarPlan,
   InvestmentPlan,
@@ -10,10 +11,13 @@ import { EField, ESelect } from "../../components/EditorField";
 import { IconTrash } from "../../components/icons";
 import { Button } from "../../components/ui";
 import { fmtMoney } from "../../format";
+import { BudgetGantt } from "./BudgetGantt";
 import { computeBudget, resolveSchedule, stageCost } from "./calendar.logic";
 
 interface Props {
   n: number;
+  /** Дата старта проекта — для календарных подписей колонок диаграммы. */
+  startDate?: string;
   investment: InvestmentPlan;
   products: Product[];
   onChange: (iv: InvestmentPlan) => void;
@@ -33,7 +37,9 @@ const KIND_OPTIONS: [string, string][] = [
   ["production", "Старт производства"],
 ];
 
-export function CalendarTab({ n, investment, products, onChange }: Props) {
+export function CalendarTab({ n, startDate, investment, products, onChange }: Props) {
+  // Выбранный на диаграмме этап — подсвечивается и в списке карточек ниже.
+  const [selected, setSelected] = useState<string | null>(null);
   const cal: CalendarPlan = investment.calendar ?? { stages: [], resources: [] };
   const stages = cal.stages;
   const resources = cal.resources;
@@ -46,8 +52,6 @@ export function CalendarTab({ n, investment, products, onChange }: Props) {
 
   const sched = resolveSchedule(stages);
   const budget = computeBudget(stages, resources, n);
-  const horizon = Math.max(1, n, ...[...sched.values()].map((s) => s.finish));
-  const maxMonthly = Math.max(1, ...budget.monthly);
 
   const addStage = () =>
     setStages([...stages, { id: uid("st"), name: "Этап", kind: "expense", start_month: 0, duration_months: 1, cost: "0" }]);
@@ -108,6 +112,27 @@ export function CalendarTab({ n, investment, products, onChange }: Props) {
             )}
           </div>
 
+          {/* Куда смета попадёт в отчётах: от этого зависят прибыль и налог, поэтому
+              разбивка вынесена рядом с итогом, а не спрятана в диаграмму. */}
+          <div className="sum-row">
+            <div className="sum-card">
+              <div className="sum-card__label">Издержки периода (I21)</div>
+              <div className="sum-card__value">{fmtMoney(budget.expenseTotal)}</div>
+            </div>
+            <div className="sum-card">
+              <div className="sum-card__label">Расходы будущих периодов (B15)</div>
+              <div className="sum-card__value">{fmtMoney(budget.deferredTotal)}</div>
+            </div>
+            <div className="sum-card">
+              <div className="sum-card__label">Капвложения (B14)</div>
+              <div className="sum-card__value">{fmtMoney(budget.assetTotal)}</div>
+            </div>
+            <div className="sum-card">
+              <div className="sum-card__label">Не оплачено на пике</div>
+              <div className="sum-card__value">{fmtMoney(Math.max(0, ...budget.payables))}</div>
+            </div>
+          </div>
+
           {budget.actualTotal !== null && (
             <div className="gantt-card">
               <div className="gantt-card__title">Смета: план-факт (контроль реализации)</div>
@@ -140,49 +165,12 @@ export function CalendarTab({ n, investment, products, onChange }: Props) {
             </div>
           )}
 
-          {/* Диаграмма Гантта */}
+          {/* Бюджетная диаграмма Ганта: сроки + деньги во времени */}
           <div className="gantt-card">
-            <div className="gantt-card__title">Диаграмма Гантта</div>
-            <div className="gantt">
-              {stages.map((s) => {
-                const sc = sched.get(s.id);
-                if (!sc) return null;
-                const kind = (s.kind ?? "expense") as StageKind;
-                const left = (sc.start / horizon) * 100;
-                const width = (Math.max(1, sc.finish - sc.start) / horizon) * 100;
-                const isGroup = stages.some((x) => x.parent_id === s.id);
-                return (
-                  <div className="gantt-row" key={s.id}>
-                    <div className="gantt-label" style={{ paddingLeft: s.parent_id ? 14 : 0 }}>
-                      {s.name || s.id}
-                    </div>
-                    <div className="gantt-track">
-                      <div
-                        className={"gantt-bar" + (isGroup ? " gantt-bar--group" : "")}
-                        style={{ left: `${left}%`, width: `${width}%`, background: KIND[kind].color }}
-                        title={`${KIND[kind].label} · мес. ${sc.start}–${sc.finish}`}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="gantt-axis">
-              <span>мес. 0</span>
-              <span>{horizon}</span>
-            </div>
-          </div>
-
-          {/* График инвестиций (помесячно) */}
-          <div className="gantt-card">
-            <div className="gantt-card__title">График инвестиций (начисление по месяцам)</div>
-            <div className="inv-bars">
-              {budget.monthly.map((v, t) => (
-                <div key={t} className="inv-bar-col" title={`мес. ${t}: ${fmtMoney(v)}`}>
-                  <div className="inv-bar" style={{ height: `${(v / maxMonthly) * 100}%` }} />
-                </div>
-              ))}
-            </div>
+            <div className="gantt-card__title">Диаграмма Ганта (бюджетный разрез)</div>
+            <BudgetGantt n={n} startDate={startDate} stages={stages} budget={budget}
+                         sched={sched} selectedId={selected}
+                         onSelect={(id) => setSelected(id === selected ? null : id)} />
           </div>
 
           {/* Карточки этапов */}
@@ -193,7 +181,8 @@ export function CalendarTab({ n, investment, products, onChange }: Props) {
               const cost = stageCost(s, byRes);
               const sc = sched.get(s.id);
               return (
-                <div className="line-card" key={s.id}>
+                <div className={"line-card" + (selected === s.id ? " line-card--sel" : "")}
+                     key={s.id}>
                   <div className="line-card__head">
                     <span className="stage-dot" style={{ background: KIND[kind].color }} />
                     <div className="line-card__name">

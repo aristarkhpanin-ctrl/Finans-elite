@@ -45,3 +45,114 @@ describe("computeBudget", () => {
     expect(g.finish).toBe(3);
   });
 });
+
+/**
+ * Финансовый разрез сметы (бюджетный Гантт). Числа повторяют бэкенд-тесты
+ * `test_budget_finance.py`: если зеркало разойдётся с движком, живой предпросмотр
+ * покажет одно, а расчёт даст другое.
+ */
+describe("computeBudget — освоение и оплата", () => {
+  const resources: Resource[] = [
+    { id: "r", name: "Подрядчик", unit_price: "300", payment_delay_months: 2 },
+  ];
+  const stages: Stage[] = [{
+    id: "s", kind: "expense", start_month: 0, duration_months: 2,
+    resources: [{ resource_id: "r", quantity: "2" }],
+  }];
+
+  it("оплата сдвинута на отсрочку ресурса", () => {
+    const b = computeBudget(stages, resources, 6);
+    expect(b.monthly).toEqual([300, 300, 0, 0, 0, 0]);
+    expect(b.monthlyCash).toEqual([0, 0, 300, 300, 0, 0]);
+    expect(b.total).toBe(600);
+  });
+
+  it("кредиторка = начислено − оплачено (та же величина, что B23)", () => {
+    expect(computeBudget(stages, resources, 6).payables).toEqual([300, 600, 300, 0, 0, 0]);
+  });
+
+  it("прямая стоимость платится в момент освоения", () => {
+    const b = computeBudget(
+      [{ id: "s", kind: "expense", start_month: 1, duration_months: 2, cost: "400" }], [], 4);
+    expect(b.monthly).toEqual([0, 200, 200, 0]);
+    expect(b.monthlyCash).toEqual(b.monthly);
+    expect(b.payables).toEqual([0, 0, 0, 0]);
+  });
+
+  it("этап-актив: разово в месяц финиша, оплата = освоению (отсрочка не применяется)", () => {
+    const b = computeBudget([{
+      id: "a", kind: "asset", start_month: 0, duration_months: 3, asset_life_months: 12,
+      resources: [{ resource_id: "r", quantity: "3" }],
+    }], resources, 6);
+    expect(b.monthly).toEqual([0, 0, 0, 900, 0, 0]);
+    expect(b.monthlyCash).toEqual(b.monthly);
+  });
+
+  it("стоимость в конце (on_finish) начисляется одним месяцем", () => {
+    const b = computeBudget([{
+      id: "s", kind: "expense", start_month: 0, duration_months: 3, cost: "600",
+      cost_timing: "on_finish",
+    }], [], 4);
+    expect(b.monthly).toEqual([0, 0, 600, 0]);
+  });
+
+  it("S-кривые: накопленное освоение и оплата", () => {
+    const b = computeBudget(
+      [{ id: "s", kind: "expense", start_month: 0, duration_months: 2, cost: "200" }], [], 4);
+    expect(b.cumulative).toEqual([100, 200, 200, 200]);
+    expect(b.cumulativeCash).toEqual(b.cumulative);
+  });
+});
+
+describe("computeBudget — трактовка стоимости", () => {
+  const stages: Stage[] = [
+    { id: "e", kind: "expense", start_month: 0, duration_months: 1, cost: "100" },
+    { id: "d", kind: "expense", start_month: 0, duration_months: 1, cost: "200", amortize_months: 6 },
+    { id: "a", kind: "asset", start_month: 0, duration_months: 1, cost: "300", asset_life_months: 12 },
+    { id: "p", kind: "production", start_month: 0, duration_months: 1 },
+  ];
+
+  it("разбивка по трактовке в сумме даёт смету", () => {
+    const b = computeBudget(stages, [], 12);
+    expect(b.expenseTotal).toBe(100);     // издержка периода (I21)
+    expect(b.deferredTotal).toBe(200);    // расходы будущих периодов (B15)
+    expect(b.assetTotal).toBe(300);       // капвложение (C14 → B14)
+    expect(b.expenseTotal + b.deferredTotal + b.assetTotal).toBe(b.total);
+  });
+
+  it("этап производства стоимости не несёт", () => {
+    const p = computeBudget(stages, [], 12).rows.find((r) => r.id === "p")!;
+    expect(p.treatment).toBe("none");
+    expect(p.cost).toBe(0);
+  });
+
+  it("смешанной группе трактовка потомка не приписывается", () => {
+    const b = computeBudget([
+      { id: "g", start_month: 0, duration_months: 1 },
+      { id: "c1", parent_id: "g", kind: "expense", start_month: 0, duration_months: 1, cost: "100" },
+      { id: "c2", parent_id: "g", kind: "asset", start_month: 0, duration_months: 1, cost: "300", asset_life_months: 12 },
+    ], [], 4);
+    expect(b.rows.find((r) => r.id === "g")!.treatment).toBe("mixed");
+  });
+
+  it("однородная группа наследует трактовку потомков", () => {
+    const b = computeBudget([
+      { id: "g", start_month: 0, duration_months: 1 },
+      { id: "c1", parent_id: "g", kind: "expense", start_month: 0, duration_months: 1, cost: "100" },
+      { id: "c2", parent_id: "g", kind: "expense", start_month: 1, duration_months: 1, cost: "50" },
+    ], [], 4);
+    const g = b.rows.find((r) => r.id === "g")!;
+    expect(g.treatment).toBe("expense");
+    expect(g.monthly).toEqual([100, 50, 0, 0]);   // ряды группы — сумма рядов потомков
+  });
+});
+
+describe("computeBudget — пустой план инертен", () => {
+  it("без этапов смета пуста, ряды нулевые", () => {
+    const b = computeBudget([], [], 6);
+    expect(b.rows).toEqual([]);
+    expect(b.total).toBe(0);
+    expect(b.monthlyCash).toEqual([0, 0, 0, 0, 0, 0]);
+    expect(b.expenseTotal + b.deferredTotal + b.assetTotal).toBe(0);
+  });
+});
