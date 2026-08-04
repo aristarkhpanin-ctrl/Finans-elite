@@ -168,9 +168,11 @@ export function CalendarTab({ n, startDate, investment, products, onChange }: Pr
           {/* Бюджетная диаграмма Ганта: сроки + деньги во времени */}
           <div className="gantt-card">
             <div className="gantt-card__title">Диаграмма Ганта (бюджетный разрез)</div>
-            <BudgetGantt n={n} startDate={startDate} stages={stages} budget={budget}
-                         sched={sched} selectedId={selected}
-                         onSelect={(id) => setSelected(id === selected ? null : id)} />
+            <BudgetGantt n={n} startDate={startDate} stages={stages} resources={resources}
+                         budget={budget} sched={sched} selectedId={selected}
+                         onSelect={(id) => setSelected(id === selected ? null : id)}
+                         onStageChange={(id, patch) =>
+                           setStages(stages.map((s) => (s.id === id ? { ...s, ...patch } : s)))} />
           </div>
 
           {/* Карточки этапов */}

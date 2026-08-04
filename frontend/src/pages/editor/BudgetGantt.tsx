@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { periodChunks } from "../../aggregate";
-import type { Stage } from "../../api/model";
+import type { Resource, Stage } from "../../api/model";
 import { fmtMoney } from "../../format";
-import type { Budget, BudgetRow, Sched, Treatment } from "./calendar.logic";
+import { applyDrag, computeBudget, resolveSchedule } from "./calendar.logic";
+import type { Budget, BudgetRow, DragMode, Sched, Treatment } from "./calendar.logic";
 
 /**
  * Бюджетная диаграмма Ганта — календарный план глазами финансового директора.
@@ -45,6 +46,7 @@ const MONTH_NAMES = ["янв", "фев", "мар", "апр", "май", "июн",
 
 interface Node {
   row: BudgetRow;
+  stage: Stage;            // исходный этап — источник правки при перетаскивании
   depth: number;
   hasKids: boolean;
 }
@@ -68,7 +70,7 @@ function flatten(stages: Stage[], rows: Map<string, BudgetRow>,
       const row = rows.get(s.id);
       if (!row) continue;
       const children = kids.get(s.id) ?? [];
-      out.push({ row, depth, hasKids: children.length > 0 });
+      out.push({ row, stage: s, depth, hasKids: children.length > 0 });
       if (children.length && !collapsed.has(s.id)) {
         walk(children, depth + 1, new Set(seen).add(s.id));
       }
@@ -91,29 +93,74 @@ function span(series: number[]): [number, number] | null {
   return first < 0 ? null : [first, last + 1];
 }
 
+interface DragState {
+  id: string;
+  mode: DragMode;
+  fromX: number;
+  delta: number;           // сдвиг в целых месяцах
+}
+
+/** Длина «уса» связи от края полосы до поворота, px. */
+const STUB = 9;
+
+/**
+ * Путь связи «финиш → старт» между полосами. Если преемник начинается правее финиша
+ * предшественника — прямой путь в три сегмента; если левее или вплотную (нулевой лаг,
+ * перекрытие) — обход между строками, иначе линия легла бы поверх самих полос.
+ */
+export function linkPath(x1: number, y1: number, x2: number, y2: number): string {
+  return x2 >= x1 + STUB
+    ? `M${x1},${y1} H${x1 + STUB} V${y2} H${x2 - 3}`
+    : `M${x1},${y1} H${x1 + STUB} V${(y1 + y2) / 2} H${x2 - STUB} V${y2} H${x2 - 3}`;
+}
+
 interface Props {
   n: number;
   startDate?: string;          // дата старта проекта — для календарных подписей колонок
   stages: Stage[];
+  resources: Resource[];
   budget: Budget;
   sched: Map<string, Sched>;
   selectedId?: string | null;
   onSelect?: (id: string) => void;
+  /** Правка сроков перетаскиванием; без обработчика диаграмма только для чтения. */
+  onStageChange?: (id: string, patch: Partial<Stage>) => void;
 }
 
-export function BudgetGantt({ n, startDate, stages, budget, sched, selectedId, onSelect }: Props) {
+export function BudgetGantt({ n, startDate, stages, resources, budget, sched,
+                             selectedId, onSelect, onStageChange }: Props) {
   const [scale, setScale] = useState<Scale>(n <= 24 ? "month" : n <= 72 ? "quarter" : "year");
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [showCash, setShowCash] = useState(true);
+  const [drag, setDrag] = useState<DragState | null>(null);
+
+  const draggable = !!onStageChange;
+
+  /** Сроки этапа после перетаскивания (без правки модели — только предпросмотр). */
+  const dragged = (st: Stage): Stage =>
+    (!drag || drag.id !== st.id || drag.delta === 0)
+      ? st
+      : { ...st, ...applyDrag(st, drag.mode, drag.delta) };
+
+  // Во время перетаскивания смета и расписание считаются по предпросмотру: деньги внизу
+  // должны меняться вместе с полосой, иначе сдвиг этапа выглядит как чисто календарная
+  // правка — а он двигает и освоение, и оплату.
+  const liveStages = useMemo(
+    () => (drag ? stages.map(dragged) : stages), [stages, drag]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const liveSched = useMemo(
+    () => (drag ? resolveSchedule(liveStages) : sched), [drag, liveStages, sched]);
+  const liveBudget = useMemo(
+    () => (drag ? computeBudget(liveStages, resources, n) : budget),
+    [drag, liveStages, resources, n, budget]);
 
   const rowsById = useMemo(
-    () => new Map(budget.rows.map((r) => [r.id, r])), [budget.rows]);
+    () => new Map(liveBudget.rows.map((r) => [r.id, r])), [liveBudget.rows]);
   const nodes = useMemo(
     () => flatten(stages, rowsById, collapsed), [stages, rowsById, collapsed]);
 
   // Горизонт диаграммы: месяцы проекта плюс этапы, выходящие за него (их видно, но
   // деньги за горизонтом в отчёты не попадают — об этом предупреждает подпись ниже).
-  const maxFinish = Math.max(0, ...[...sched.values()].map((s) => s.finish));
+  const maxFinish = Math.max(0, ...[...liveSched.values()].map((s) => s.finish));
   const horizon = Math.max(1, n, maxFinish);
   const overrun = maxFinish > n;
 
@@ -155,17 +202,80 @@ export function BudgetGantt({ n, startDate, stages, budget, sched, selectedId, o
   });
   const foldLevel = (s: number[]) => chunks.map(([, b]) => s[b - 1] ?? 0);
 
+  // ── Перетаскивание ─────────────────────────────────────────────────────────
+  const pxPerMonth = colW / per;
+
+  const onDragStart = (e: React.PointerEvent, st: Stage, mode: DragMode) => {
+    if (!draggable) return;
+    e.preventDefault();
+    e.stopPropagation();
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    setDrag({ id: st.id, mode, fromX: e.clientX, delta: 0 });
+  };
+
+  const onDragMove = (e: React.PointerEvent) => {
+    if (!drag) return;
+    // Шаг — целый месяц при любом масштабе: модель месячная, дробных сроков не бывает.
+    const delta = Math.round((e.clientX - drag.fromX) / pxPerMonth);
+    if (delta !== drag.delta) setDrag({ ...drag, delta });
+  };
+
+  const onDragEnd = (e: React.PointerEvent) => {
+    if (!drag) return;
+    (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+    const st = stages.find((x) => x.id === drag.id);
+    if (st && drag.delta !== 0) {
+      const next = dragged(st);
+      const patch: Partial<Stage> = {};
+      if (next.start_month !== st.start_month) patch.start_month = next.start_month;
+      if (next.duration_months !== st.duration_months) patch.duration_months = next.duration_months;
+      if (Object.keys(patch).length) onStageChange?.(drag.id, patch);
+    }
+    setDrag(null);
+  };
+
+  // ── Связи-предшественники ──────────────────────────────────────────────────
+  const indexOf = new Map(nodes.map((nd, i) => [nd.row.id, i]));
+  const parentOf = new Map(stages.map((st) => [st.id, st.parent_id ?? null]));
+
+  /** Ближайший видимый предок (этап внутри свёрнутой группы «переезжает» на неё). */
+  const visibleRow = (id: string | null | undefined): number | undefined => {
+    let cur = id ?? null;
+    const seen = new Set<string>();
+    while (cur && !seen.has(cur)) {
+      const i = indexOf.get(cur);
+      if (i !== undefined) return i;
+      seen.add(cur);
+      cur = parentOf.get(cur) ?? null;
+    }
+    return undefined;
+  };
+
+  const yOf = (i: number) => i * ROW_H + ROW_H / 2;
+
+  /** Пути связей «финиш → старт»; связь внутри одной строки не рисуется. */
+  const links = stages.flatMap((st) => {
+    const from = visibleRow(st.predecessor_id);
+    const to = visibleRow(st.id);
+    if (from === undefined || to === undefined || from === to) return [];
+    const pred = liveSched.get(st.predecessor_id!);
+    const self = liveSched.get(st.id);
+    if (!pred || !self) return [];
+    const d = linkPath(xOf(pred.finish), yOf(from), xOf(self.start), yOf(to));
+    return [{ key: `${st.predecessor_id}->${st.id}`, d }];
+  });
+
   const lanes: [string, number[], string][] = [
-    ["Освоение", foldFlow(budget.monthly), "Начисление стоимости по графику работ"],
-    ["Оплата", foldFlow(budget.monthlyCash), "Отток денег с учётом отсрочек по ресурсам"],
-    ["Оплачено нарастающим", foldLevel(budget.cumulativeCash), "Сколько денег ушло с начала проекта"],
-    ["Не оплачено", foldLevel(budget.payables), "Обязательства перед подрядчиками (кредиторка)"],
+    ["Освоение", foldFlow(liveBudget.monthly), "Начисление стоимости по графику работ"],
+    ["Оплата", foldFlow(liveBudget.monthlyCash), "Отток денег с учётом отсрочек по ресурсам"],
+    ["Оплачено нарастающим", foldLevel(liveBudget.cumulativeCash), "Сколько денег ушло с начала проекта"],
+    ["Не оплачено", foldLevel(liveBudget.payables), "Обязательства перед подрядчиками (кредиторка)"],
   ];
-  const maxFlow = Math.max(1, ...foldFlow(budget.monthly), ...foldFlow(budget.monthlyCash));
+  const maxFlow = Math.max(1, ...foldFlow(liveBudget.monthly), ...foldFlow(liveBudget.monthlyCash));
 
   return (
     <div className="bg-gantt">
-      <div className="bg-gantt__bar">
+      <div className="bg-gantt__toolbar">
         <div className="seg seg--sm">
           {SCALES.map(([key, text]) => (
             <button key={key} type="button"
@@ -191,6 +301,14 @@ export function BudgetGantt({ n, startDate, stages, budget, sched, selectedId, o
         </div>
       </div>
 
+      {draggable && (
+        <div className="field-note" style={{ marginBottom: 8 }}>
+          Полосы можно перетаскивать: тело — сдвиг сроков, края — начало и длительность.
+          Деньги внизу пересчитываются на лету, поэтому сдвиг этапа сразу видно в графике
+          освоения и оплаты. Сроки групп — свёртка потомков, поэтому тянутся только они.
+        </div>
+      )}
+
       <div className="bg-gantt__body">
         {/* Левая таблица — колонки финансиста: смета, доля, отклонение факта */}
         <div className="bg-gantt__grid">
@@ -202,7 +320,7 @@ export function BudgetGantt({ n, startDate, stages, budget, sched, selectedId, o
             <div className="bg-gantt__cell bg-gantt__cell--num">Δ факт</div>
           </div>
           {nodes.map(({ row, depth, hasKids }) => {
-            const share = budget.total > 0 ? row.cost / budget.total : 0;
+            const share = liveBudget.total > 0 ? row.cost / liveBudget.total : 0;
             const dv = row.costVariance;
             return (
               <div key={row.id} style={{ height: ROW_H }}
@@ -272,23 +390,66 @@ export function BudgetGantt({ n, startDate, stages, budget, sched, selectedId, o
                      style={{ left: xOf(n), width: xOf(horizon) - xOf(n),
                               height: nodes.length * ROW_H }} />
               )}
-              {nodes.map(({ row, hasKids }) => {
+              {/* Связи «финиш → старт». Мышь их не ловит — тянуть надо полосы. */}
+              {links.length > 0 && (
+                <svg className="bg-gantt__links" width={width} height={nodes.length * ROW_H}>
+                  <defs>
+                    <marker id="bgGanttArrow" markerWidth="7" markerHeight="7"
+                            refX="6" refY="3" orient="auto">
+                      <path d="M0,0 L6,3 L0,6 Z" fill="var(--muted)" />
+                    </marker>
+                  </defs>
+                  {links.map((l) => (
+                    <path key={l.key} className="bg-gantt__link" d={l.d}
+                          markerEnd="url(#bgGanttArrow)" />
+                  ))}
+                </svg>
+              )}
+              {nodes.map(({ row, hasKids, stage }) => {
                 const cashSpan = span(row.monthlyCash);
                 const tr = TREATMENT[row.treatment];
+                // Группу перетаскивать нельзя: её сроки — свёртка потомков, тянуть надо их.
+                const canDrag = draggable && !hasKids;
+                const isDragging = drag?.id === row.id;
                 return (
                   <div key={row.id} style={{ height: ROW_H }}
                        className={"bg-gantt__track" + (selectedId === row.id ? " bg-gantt__track--sel" : "")}
                        onClick={() => onSelect?.(row.id)}>
                     <div
-                      className={"bg-gantt__bar" + (hasKids ? " bg-gantt__bar--group" : "")}
+                      className={"bg-gantt__bar" + (hasKids ? " bg-gantt__bar--group" : "")
+                                 + (canDrag ? " bg-gantt__bar--drag" : "")
+                                 + (isDragging ? " bg-gantt__bar--active" : "")}
                       style={{
                         left: xOf(row.start),
                         width: Math.max(4, xOf(row.finish) - xOf(row.start)),
                         background: tr.color,
                       }}
+                      onPointerDown={canDrag ? (e) => onDragStart(e, stage, "move") : undefined}
+                      onPointerMove={canDrag ? onDragMove : undefined}
+                      onPointerUp={canDrag ? onDragEnd : undefined}
+                      onPointerCancel={canDrag ? onDragEnd : undefined}
                       title={`${row.name || row.id} · мес. ${row.start}–${row.finish}`
-                             + ` · ${tr.label} · ${fmtMoney(row.cost)}`}
-                    />
+                             + ` · ${tr.label} · ${fmtMoney(row.cost)}`
+                             + (canDrag ? "\nПотяните, чтобы сдвинуть сроки" : "")
+                             + (hasKids ? "\nСроки группы — свёртка потомков" : "")}
+                    >
+                      {canDrag && (
+                        <>
+                          <span className="bg-gantt__handle bg-gantt__handle--l"
+                                title="Тянуть — сдвинуть начало (финиш на месте)"
+                                onPointerDown={(e) => onDragStart(e, stage, "start")}
+                                onPointerMove={onDragMove}
+                                onPointerUp={onDragEnd}
+                                onPointerCancel={onDragEnd} />
+                          <span className="bg-gantt__handle bg-gantt__handle--r"
+                                title="Тянуть — изменить длительность"
+                                onPointerDown={(e) => onDragStart(e, stage, "end")}
+                                onPointerMove={onDragMove}
+                                onPointerUp={onDragEnd}
+                                onPointerCancel={onDragEnd} />
+                        </>
+                      )}
+                    </div>
                     {showCash && cashSpan && (
                       <div className="bg-gantt__cash"
                            style={{ left: xOf(cashSpan[0]),
@@ -301,9 +462,18 @@ export function BudgetGantt({ n, startDate, stages, budget, sched, selectedId, o
                                     width: Math.max(4, xOf(row.actualFinish) - xOf(row.actualStart)) }}
                            title={`Факт: мес. ${row.actualStart}–${row.actualFinish}`} />
                     )}
-                    {row.cost > 0 && (
+                    {row.cost > 0 && !isDragging && (
                       <span className="bg-gantt__cost" style={{ left: xOf(row.finish) + 6 }}>
                         {fmtMoney(row.cost)}
+                      </span>
+                    )}
+                    {isDragging && (
+                      <span className="bg-gantt__tip" style={{ left: xOf(row.finish) + 8 }}>
+                        мес. {row.start}–{row.finish}
+                        {stage.predecessor_id
+                          ? ` · лаг ${liveStages.find((x) => x.id === row.id)?.start_month ?? 0} мес.`
+                          : ""}
+                        {" · "}{fmtMoney(row.cost)}
                       </span>
                     )}
                   </div>

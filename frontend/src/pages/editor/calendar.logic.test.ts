@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Resource, Stage } from "../../api/model";
-import { computeBudget, resolveSchedule, stageCost } from "./calendar.logic";
+import { applyDrag, computeBudget, resolveSchedule, stageCost } from "./calendar.logic";
 
 describe("resolveSchedule", () => {
   it("предшественник сдвигает старт (финиш→старт + лаг)", () => {
@@ -154,5 +154,54 @@ describe("computeBudget — пустой план инертен", () => {
     expect(b.total).toBe(0);
     expect(b.monthlyCash).toEqual([0, 0, 0, 0, 0, 0]);
     expect(b.expenseTotal + b.deferredTotal + b.assetTotal).toBe(0);
+  });
+});
+
+describe("applyDrag — правка сроков перетаскиванием", () => {
+  const st: Stage = { id: "s", kind: "expense", start_month: 4, duration_months: 3 };
+
+  it("тело полосы двигает старт, длительность не трогает", () => {
+    expect(applyDrag(st, "move", 2)).toEqual({ start_month: 6, duration_months: 3 });
+    expect(applyDrag(st, "move", -3)).toEqual({ start_month: 1, duration_months: 3 });
+  });
+
+  it("влево старт упирается в ноль: отрицательного месяца (и лага) в модели нет", () => {
+    expect(applyDrag(st, "move", -99)).toEqual({ start_month: 0, duration_months: 3 });
+  });
+
+  it("правый край меняет длительность, не короче месяца", () => {
+    expect(applyDrag(st, "end", 2)).toEqual({ start_month: 4, duration_months: 5 });
+    expect(applyDrag(st, "end", -99)).toEqual({ start_month: 4, duration_months: 1 });
+  });
+
+  it("левый край двигает старт, оставляя финиш на месте", () => {
+    const r = applyDrag(st, "start", -2);
+    expect(r).toEqual({ start_month: 2, duration_months: 5 });
+    expect(r.start_month + r.duration_months).toBe(7);   // финиш прежний: 4 + 3
+  });
+
+  it("левый край не схлопывает этап в ноль", () => {
+    const r = applyDrag(st, "start", 99);
+    expect(r).toEqual({ start_month: 6, duration_months: 1 });
+    expect(r.start_month + r.duration_months).toBe(7);   // финиш всё ещё прежний
+  });
+
+  it("левый край не уводит старт в минус", () => {
+    expect(applyDrag({ id: "z", start_month: 1, duration_months: 4 }, "start", -5))
+      .toEqual({ start_month: 0, duration_months: 5 });
+  });
+
+  it("нулевой сдвиг ничего не меняет", () => {
+    expect(applyDrag(st, "move", 0)).toEqual({ start_month: 4, duration_months: 3 });
+  });
+
+  it("перетаскивание двигает деньги, а не только сроки", () => {
+    const paid: Stage = { ...st, cost: "600" };
+    const moved: Stage = { ...paid, ...applyDrag(paid, "move", 2) };
+    const before = computeBudget([paid], [], 12);
+    const after = computeBudget([moved], [], 12);
+    expect(before.monthly.slice(4, 7)).toEqual([200, 200, 200]);
+    expect(after.monthly.slice(6, 9)).toEqual([200, 200, 200]);
+    expect(after.total).toBe(before.total);              // смета та же, сдвинут график
   });
 });

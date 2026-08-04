@@ -8,6 +8,31 @@ const num = (v: string | number | undefined | null): number => {
   return Number.isFinite(x) ? x : 0;
 };
 
+/** Что тянем на диаграмме: тело полосы, левый край или правый край. */
+export type DragMode = "move" | "start" | "end";
+
+/**
+ * Сроки этапа после перетаскивания на `delta` месяцев. Чистая функция — она же считает
+ * предпросмотр во время движения мыши и итоговую правку при отпускании.
+ *
+ * Ограничения модели соблюдаются здесь, а не в UI:
+ * - `start_month` неотрицателен (для этапа со связью это **лаг** от предшественника, и
+ *   отрицательного лага в модели нет — влево полоса упирается в финиш предшественника);
+ * - длительность не меньше одного месяца;
+ * - левый край двигает старт, оставляя финиш на месте, поэтому дальше `duration−1`
+ *   он не уходит — иначе этап схлопнулся бы в ноль.
+ */
+export function applyDrag(stage: Stage, mode: DragMode, delta: number,
+                          ): { start_month: number; duration_months: number } {
+  const start = stage.start_month ?? 0;
+  const dur = Math.max(1, stage.duration_months ?? 1);
+  if (delta === 0) return { start_month: start, duration_months: dur };
+  if (mode === "move") return { start_month: Math.max(0, start + delta), duration_months: dur };
+  if (mode === "end") return { start_month: start, duration_months: Math.max(1, dur + delta) };
+  const shift = Math.max(-start, Math.min(delta, dur - 1));
+  return { start_month: start + shift, duration_months: dur - shift };
+}
+
 export interface Sched {
   start: number;
   finish: number;

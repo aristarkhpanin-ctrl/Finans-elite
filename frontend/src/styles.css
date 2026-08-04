@@ -2735,7 +2735,7 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
    Левая таблица и полосы обязаны совпадать по высоте строки: --bg-row.
    ───────────────────────────────────────────────────────────────────────────── */
 .bg-gantt { --bg-row: 30px; --bg-lane: 26px; }
-.bg-gantt__bar {
+.bg-gantt__toolbar {
   display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 12px;
 }
 .bg-gantt__toggle {
@@ -2849,3 +2849,30 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 }
 /* Карточка этапа, выбранного на диаграмме Ганта. */
 .line-card--sel { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-soft); }
+
+/* Связи «финиш → старт» и перетаскивание полос бюджетного Гантта. */
+.bg-gantt__links {
+  position: absolute; top: 0; left: 0; pointer-events: none; overflow: visible;
+}
+.bg-gantt__link { fill: none; stroke: var(--muted); stroke-width: 1.2; opacity: 0.7; }
+
+.bg-gantt__bar--drag { cursor: grab; touch-action: none; }
+.bg-gantt__bar--drag:active { cursor: grabbing; }
+.bg-gantt__bar--active {
+  outline: 2px solid var(--primary); outline-offset: 1px; opacity: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+/* Ручки изменения сроков — узкие зоны у краёв полосы. */
+.bg-gantt__handle {
+  position: absolute; top: 0; bottom: 0; width: 7px; cursor: ew-resize;
+  touch-action: none; background: rgba(255, 255, 255, 0.35);
+}
+.bg-gantt__handle--l { left: 0; border-radius: 4px 0 0 4px; }
+.bg-gantt__handle--r { right: 0; border-radius: 0 4px 4px 0; }
+.bg-gantt__bar--group .bg-gantt__handle { display: none; }
+/* Живая подсказка на полосе во время перетаскивания. */
+.bg-gantt__tip {
+  position: absolute; top: 5px; padding: 1px 7px; border-radius: 5px;
+  background: var(--text); color: var(--surface); white-space: nowrap;
+  font: 600 11px var(--font-ui); pointer-events: none; z-index: 3;
+}
