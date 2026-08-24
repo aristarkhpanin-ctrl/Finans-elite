@@ -41,23 +41,31 @@ export function periodLabels(n: number, period: Period): string[] {
   return Array.from({ length: count }, (_, i) => `${prefix}${i + 1}`);
 }
 
-/** Денежная строка API («1234.56») → целые копейки. Пустое/нечисловое → 0. */
-function toCents(v: string): number {
+/** Денежная строка API («1234.56») → число. Пустое/нечисловое → 0. */
+function toNumber(v: string): number {
   const x = Number(v);
-  return Number.isFinite(x) ? Math.round(x * 100) : 0;
+  return Number.isFinite(x) ? x : 0;
 }
 
 const fromCents = (c: number): string => String(c / 100);
 
-/** Свернуть один ряд значений по правилу: sum | first | last. */
+/**
+ * Свернуть один ряд значений по правилу: sum | first | last.
+ *
+ * Суммирование идёт **в полной точности**, а к копейкам приводится один раз — в конце.
+ * Раньше каждый месяц округлялся до копеек до сложения, и годовое число расходилось с тем,
+ * что печатает DOCX-генератор (он складывает Decimal и округляет однажды): на реальном
+ * проекте расхождение доходило до 2 копеек. Ряды приходят с полной точностью Decimal,
+ * поэтому терять её на промежуточном шаге нельзя — округление живёт на границе вывода.
+ */
 function foldSeries(values: string[], chunks: [number, number][],
                     rule: "sum" | "first" | "last"): string[] {
   return chunks.map(([a, b]) => {
     if (rule === "first") return values[a];
     if (rule === "last") return values[b - 1];
     let acc = 0;
-    for (let t = a; t < b; t++) acc += toCents(values[t]);
-    return fromCents(acc);
+    for (let t = a; t < b; t++) acc += toNumber(values[t]);
+    return fromCents(Math.round(acc * 100));
   });
 }
 
@@ -75,16 +83,21 @@ export function aggregateStatement(stmt: StatementOut, kind: StatementKind,
                                    n: number, period: Period): StatementOut {
   if (period === "month") return stmt;
   const chunks = periodChunks(n, period);
-  const byCode = new Map<string, string[]>();
-  const lines = stmt.lines.map((l) => {
-    const values = foldSeries(l.values, chunks, ruleFor(l.code, kind));
-    byCode.set(l.code, values);
-    return { ...l, values };
-  });
-  const p1 = byCode.get("P1");
-  const p2 = byCode.get("P2");
-  if (p1 && p2) {
-    const p3 = p1.map((v, i) => fromCents(toCents(v) + toCents(p2[i])));
+  const raw = new Map(stmt.lines.map((l) => [l.code, l.values]));
+  const lines = stmt.lines.map((l) => (
+    { ...l, values: foldSeries(l.values, chunks, ruleFor(l.code, kind)) }
+  ));
+  const rawP1 = raw.get("P1");
+  const rawP2 = raw.get("P2");
+  if (rawP1 && rawP2) {
+    // Тождество выводится из **исходных** рядов, а не из уже свёрнутых: P2 на начало
+    // периода плюс сумма P1 за период, округление — один раз. Складывать округлённые
+    // слагаемые значило бы копить копейку, которой нет в документе.
+    const p3 = chunks.map(([a, b]) => {
+      let acc = toNumber(rawP2[a]);
+      for (let t = a; t < b; t++) acc += toNumber(rawP1[t]);
+      return fromCents(Math.round(acc * 100));
+    });
     for (const l of lines) if (l.code === "P3") l.values = p3;
   }
   return { ...stmt, lines };
