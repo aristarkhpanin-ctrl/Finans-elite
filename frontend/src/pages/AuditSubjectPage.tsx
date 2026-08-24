@@ -24,19 +24,10 @@ import {
 import { IconDownload, IconTrash, IconUpload } from "../components/icons";
 import { useToast } from "../components/Toast";
 import { Button } from "../components/ui";
+import { allBalanced, balanceGaps, serverGaps } from "../auditBalance";
 import { downloadAuditXlsx } from "../auditExport";
 import { downloadAuditTemplate, parseAuditXlsx } from "../auditXlsx";
 import { fmtMoney } from "../format";
-
-const num = (v: string | undefined): number => {
-  const x = Number(String(v ?? "").replace(",", "."));
-  return Number.isFinite(x) ? x : 0;
-};
-
-/** Сумма значений строк группы по периоду t. */
-function groupSum(table: Record<string, string[]>, codes: string[], t: number): number {
-  return codes.reduce((s, c) => s + num(table[c]?.[t]), 0);
-}
 
 type Tab = "subject" | "input" | "reports" | "ratios" | "trends" | "diagnostics"
   | "methods" | "opinion";
@@ -130,7 +121,7 @@ export function AuditSubjectPage() {
     enabled: isAnalysisTab,
   });
 
-  if (isLoading || !model) {
+  if (isLoading || !model || !data) {
     return <div className="page-sub" style={{ padding: 24 }}>Загрузка…</div>;
   }
   const m = model;
@@ -211,10 +202,12 @@ export function AuditSubjectPage() {
     }
   };
 
-  const assets = (t: number) => groupSum(m.balance, ASSET_LINES.map(([c]) => c), t);
-  const eqliab = (t: number) => groupSum(m.balance, EQLIAB_LINES.map(([c]) => c), t);
-  const gap = (t: number) => assets(t) - eqliab(t);
-  const balanced = m.periods.every((_, t) => Math.abs(gap(t)) < 0.005);
+  // Сходимость баланса: пока правки не сохранены — предварительная оценка по форме,
+  // после сохранения — вердикт сервера (он считает в Decimal и требует ровно нуля).
+  const draftGaps = balanceGaps(m.balance, n);
+  const gapsKop = dirty ? draftGaps : serverGaps(data.balance_gap);
+  const balanced = dirty ? allBalanced(draftGaps) : data.balanced;
+  const gapRub = (t: number) => (gapsKop[t] ?? 0) / 100;
 
   const grid = (which: "balance" | "income", lines: [string, string][], title: string,
                 note?: string) => (
@@ -313,10 +306,11 @@ export function AuditSubjectPage() {
         {balanced
           ? "Баланс сходится во всех периодах (актив = пассив)."
           : "Баланс не сходится — проверьте ввод:"}
+        {dirty && " Предварительно: правки не сохранены."}
         {!balanced && (
           <span className="balance-banner__gaps">
-            {m.periods.map((p, t) => Math.abs(gap(t)) >= 0.005 && (
-              <span key={t}>{p.label || `П${t + 1}`}: разрыв {fmtMoney(gap(t))}</span>
+            {m.periods.map((p, t) => (gapsKop[t] ?? 0) !== 0 && (
+              <span key={t}>{p.label || `П${t + 1}`}: разрыв {fmtMoney(gapRub(t))}</span>
             ))}
           </span>
         )}
