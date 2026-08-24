@@ -3,6 +3,7 @@ import { httpDetail } from "../api/client";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { aggregateFlowSeries, aggregateStatement, defaultPeriod, periodLabels, type Period } from "../aggregate";
+import { efficiencyCards, foreignCards, valuationCards } from "../metricCards";
 import { calculateProject } from "../api/calc";
 import { getProject } from "../api/projects";
 import { HintBadge } from "../components/EditorField";
@@ -17,7 +18,7 @@ import { SummaryView } from "../components/SummaryView";
 import { useToast } from "../components/Toast";
 import { Button, Skeleton } from "../components/ui";
 import { downloadBusinessPlanDocx, downloadCsv, downloadPdf, downloadXlsx, statementsToCsv } from "../export";
-import { fmtMillions, fmtRatio, percent } from "../format";
+import { fmtMillions, percent } from "../format";
 
 const STATEMENTS = [
   ["income", "Прибыли и убытки"],
@@ -187,116 +188,21 @@ export function ProjectResultsPage() {
   const m = data.metrics;
   const val = data.valuation;
   const discountRate = projectQuery.data?.model.settings.discount_rate_annual;
-  const rate = discountRate ? Number(discountRate) : null;
-  const irr = m.irr_annual !== null && m.irr_annual !== undefined ? Number(m.irr_annual) : null;
-  const npv = Number(m.npv);
 
   const tabs = ["summary", "income", "cashflow", "balance", "ratios", "charts"];
   if (data.user_tables.length > 0) tabs.push("tables");
   if (data.actualized_cashflow) tabs.push("plan_fact");
 
-  const effCards: Array<{ label: string; value: string; sub: string; tone: string; hint: string }> = [
-    {
-      label: "NPV",
-      value: fmtMillions(m.npv, { sign: true, digits: 1 }),
-      sub: npv > 0 ? "Создаёт стоимость" : npv < 0 ? "Разрушает стоимость" : "На грани",
-      tone: npv > 0 ? "good" : npv < 0 ? "bad" : "warn",
-      hint: "Чистая приведённая стоимость — сумма дисконтированных денежных потоков. Положительная — проект создаёт стоимость.",
-    },
-    {
-      label: "IRR",
-      value: irr !== null ? percent(m.irr_annual, 1) : "—",
-      sub:
-        irr === null
-          ? "Не определена"
-          : rate !== null
-            ? irr >= rate
-              ? `Выше ставки ${percent(discountRate, 0)}`
-              : `Ниже ставки ${percent(discountRate, 0)}`
-            : "Годовая доходность",
-      tone: irr === null ? "" : rate === null || irr >= rate ? "good" : "bad",
-      hint: "Внутренняя норма доходности — ставка, при которой NPV = 0. Сравнивается со ставкой дисконтирования.",
-    },
-    {
-      label: "MIRR",
-      value: m.mirr_annual != null ? percent(m.mirr_annual, 1) : "—",
-      sub: m.mirr_annual == null
-        ? "Не определена"
-        : rate !== null
-          ? Number(m.mirr_annual) >= rate
-            ? `Выше ставки ${percent(discountRate, 0)}`
-            : `Ниже ставки ${percent(discountRate, 0)}`
-          : "Модифицированная IRR",
-      tone: m.mirr_annual == null ? "" : rate === null || Number(m.mirr_annual) >= rate ? "good" : "bad",
-      hint: "Модифицированная IRR: притоки реинвестируются по ставке дисконтирования — всегда один корень.",
-    },
-    {
-      label: "ARR",
-      value: m.arr_annual != null ? percent(m.arr_annual, 1) : "—",
-      sub: m.arr_annual != null ? "Среднегодовая отдача" : "Нет инвестиций",
-      tone: "",
-      hint: "Средняя норма рентабельности: среднегодовые поступления к потребности в капитале.",
-    },
-    {
-      label: "PI",
-      value: m.pi ? fmtRatio(m.pi, 2) : "—",
-      sub: m.pi == null ? "—" : Number(m.pi) >= 1 ? "> 1 — эффективно" : "< 1 — неэффективно",
-      tone: m.pi == null ? "" : Number(m.pi) >= 1 ? "good" : "bad",
-      hint: "Индекс прибыльности — отношение дисконтированных притоков к вложениям.",
-    },
-    {
-      label: "Срок окупаемости",
-      value: m.pb_months != null ? `${m.pb_months} мес` : "> горизонта",
-      sub: m.pb_months != null ? "В пределах горизонта" : "Не окупается",
-      tone: m.pb_months != null ? "good" : "bad",
-      hint: "Месяц, когда накопленный денежный поток становится положительным.",
-    },
-    {
-      label: "Дисконт. окупаемость",
-      value: m.dpb_months != null ? `${m.dpb_months} мес` : "—",
-      sub: m.dpb_months != null ? "По дисконт. потоку" : "Не достигается",
-      tone: m.dpb_months != null ? "good" : m.pb_months != null ? "warn" : "bad",
-      hint: "То же по дисконтированному потоку — учитывает стоимость денег во времени.",
-    },
-    {
-      label: "Потребность в финанс.",
-      value: m.peak_financing_need ? fmtMillions(m.peak_financing_need, { digits: 1 }) : "—",
-      sub: m.pv_investments
-        ? `PV инвестиций ${fmtMillions(m.pv_investments, { digits: 1 })}`
-        : "Максимальный дефицит",
-      tone: "",
-      hint: "Приведённая пиковая потребность в деньгах до выхода проекта в плюс.",
-    },
-  ];
-
-  const valCards: Array<{ label: string; value: string; hint: string }> = [
-    { label: "Чистые активы", value: fmtMillions(val.net_assets, { digits: 1 }), hint: "Активы минус обязательства на конец горизонта." },
-    { label: "Модель Гордона", value: val.gordon_value ? fmtMillions(val.gordon_value, { digits: 1 }) : "—", hint: "Капитализация бессрочного потока: CF·(1+g)/(r−g). Не считается при g ≥ ставки." },
-    { label: "DDM", value: val.dividend_value ? fmtMillions(val.dividend_value, { digits: 1 }) : "—", hint: "Капитализация дивидендов по модели Гордона." },
-    { label: "По мультипликатору", value: val.earnings_multiple_value ? fmtMillions(val.earnings_multiple_value, { digits: 1 }) : "—", hint: "Годовая чистая прибыль × заданный множитель (P/E-подход)." },
-    { label: "Ликвидационная", value: val.liquidation_value ? fmtMillions(val.liquidation_value, { digits: 1 }) : "—", hint: "Возвратная стоимость активов при ликвидации минус обязательства." },
-  ];
+  // Интерпретация показателей (знак, сравнение со ставкой, «не определено») вынесена
+  // в чистый модуль `metricCards.ts` — там же её тесты.
+  const effCards = efficiencyCards(m, discountRate);
+  const valCards = valuationCards(val);
 
   // Показатели во второй валюте (gap 1.4): поток пересчитан по курсу, дисконт — своей ставкой.
   const mf = data.metrics_foreign;
   const foreignCode = projectQuery.data?.model.environment.currencies?.[1]?.code ?? "вал.";
   const foreignRate = projectQuery.data?.model.settings.discount_rate_annual_foreign;
-  const foreignCards: Array<{ label: string; value: string; hint: string }> = mf
-    ? [
-        { label: "NPV", value: fmtMillions(mf.npv, { sign: true, digits: 1, unit: foreignCode }),
-          hint: `Чистая приведённая стоимость во второй валюте (${foreignCode}) по ставке ${percent(foreignRate, 0)}.` },
-        { label: "IRR", value: mf.irr_annual != null ? percent(mf.irr_annual, 1) : "—",
-          hint: "Внутренняя норма доходности потока во второй валюте (годовая)." },
-        { label: "MIRR", value: mf.mirr_annual != null ? percent(mf.mirr_annual, 1) : "—",
-          hint: "Модифицированная IRR потока во второй валюте." },
-        { label: "PI", value: mf.pi ? fmtRatio(mf.pi, 2) : "—",
-          hint: "Индекс прибыльности во второй валюте." },
-        { label: "Срок окупаемости", value: mf.pb_months != null ? `${mf.pb_months} мес` : "> горизонта",
-          hint: "Месяц выхода накопленного потока (во второй валюте) в плюс." },
-        { label: "Дисконт. окупаемость", value: mf.dpb_months != null ? `${mf.dpb_months} мес` : "—",
-          hint: "То же по дисконтированному потоку во второй валюте." },
-      ]
-    : [];
+  const fxCards = foreignCards(mf, foreignCode, foreignRate);
 
   const statementView = (key: StatementKey) => {
     const eff = period ?? defaultPeriod(data.n);
@@ -404,11 +310,11 @@ export function ProjectResultsPage() {
           ))}
         </div>
 
-        {foreignCards.length > 0 && (
+        {fxCards.length > 0 && (
           <>
             <div className="rsection-label">Показатели во второй валюте ({foreignCode})</div>
             <div className="metric-grid metric-grid--val">
-              {foreignCards.map((c) => (
+              {fxCards.map((c) => (
                 <div key={c.label} className="metric-card2">
                   <div className="metric-card2__top">
                     <span className="metric-card2__label" style={{ fontSize: 11.5 }}>
