@@ -781,7 +781,12 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .shell-header {
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
   height: 60px; padding: 0 32px; background: var(--header-bg);
-  border-bottom: 1px solid var(--border); position: relative; z-index: 30;
+  border-bottom: 1px solid var(--border); position: relative;
+  /* Выше .menu-overlay (40): шапка создаёт контекст наложения, и меню внутри неё
+     (z-index: 50) считается относительно неё, а не корня. При z-index: 30 оверлей,
+     который ловит клики вне меню, накрывал шапку целиком — меню было видно, но все
+     клики забирал он. Инвариант проверяется тестом shellLayers.test.ts. */
+  z-index: 50;
 }
 .shell-left { display: flex; align-items: center; gap: 28px; min-width: 0; height: 100%; }
 .shell-brand { display: flex; align-items: center; gap: 9px; flex: none; }
