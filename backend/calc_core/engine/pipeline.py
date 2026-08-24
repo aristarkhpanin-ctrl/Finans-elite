@@ -208,6 +208,27 @@ def _volumes(model: ProjectModel, n: int):
     return tp, tq
 
 
+def _dangling_bom_warnings(model: ProjectModel) -> list[str]:
+    """Рецептуры, ссылающиеся на несуществующие материалы.
+
+    Такая ссылка остаётся, если материал удалили, а строку рецептуры — нет. Развернуть её
+    нельзя (цены не существует), и движок её пропускает; но **молчаливый** пропуск занизил
+    бы себестоимость и завысил прибыль, поэтому о нём сообщается. Модель без висячих
+    ссылок предупреждений не даёт — правило инертно.
+    """
+    op = model.operating_plan
+    known = {m.id for m in op.materials}
+    out: list[str] = []
+    for p in op.products:
+        missing = sorted({b.material_id for b in p.bom if b.material_id not in known})
+        if missing:
+            out.append(
+                f"Рецептура продукта «{p.name or p.id}» ссылается на несуществующие "
+                f"материалы ({', '.join(missing)}) — они не учтены ни в себестоимости, "
+                "ни в марже.")
+    return out
+
+
 def _bom_direct_lines(model: ProjectModel, n: int) -> list[DirectCostLine]:
     """Развернуть рецептуры продуктов (BOM) в синтетические прямые издержки.
 
@@ -1056,4 +1077,6 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
     }
     balance = build_balance(balance_leaves, n)
 
-    return income, cashflow, balance, profit_use, inv_warnings
+    # Целостность модели идёт первой: она объясняет, почему числа ниже ожидаемых.
+    return (income, cashflow, balance, profit_use,
+            _dangling_bom_warnings(model) + inv_warnings)

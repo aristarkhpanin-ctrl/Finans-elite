@@ -121,7 +121,22 @@ export function SalesTab({ n, operating, company, onChange, onCompany }: Props) 
     setMaterials([...materials, { id: crypto.randomUUID(), name: "Материал", unit_price: "0" }]);
   const updMaterial = (i: number, patch: Partial<Material>) =>
     setMaterials(materials.map((m, k) => (k === i ? { ...m, ...patch } : m)));
-  const rmMaterial = (i: number) => setMaterials(materials.filter((_, k) => k !== i));
+  /**
+   * Удаление материала снимает и ссылки на него в рецептурах — иначе строка BOM осталась
+   * бы висеть: движок пропускает несуществующий материал, и себестоимость молча упала бы,
+   * а прибыль выросла. Симметрично удалению подразделения, снимающему `division_id`.
+   */
+  const rmMaterial = (i: number) => {
+    const gone = materials[i]?.id;
+    onChange({
+      ...operating,
+      materials: materials.filter((_, k) => k !== i),
+      products: products.map((p) =>
+        p.bom?.some((b) => b.material_id === gone)
+          ? { ...p, bom: p.bom.filter((b) => b.material_id !== gone) }
+          : p),
+    });
+  };
   const updProduct = (id: string, patch: Partial<Product>) =>
     onChange({ ...operating, products: products.map((p) => (p.id === id ? { ...p, ...patch } : p)) });
 

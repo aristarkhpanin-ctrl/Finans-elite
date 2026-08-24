@@ -155,3 +155,59 @@ def test_product_margins_absent_without_bom():
     sales = SalesLine(product_id="p1", volume=[D(10)] * n, price=[D(100)] * n)
     pm = run(_model(n, [prod], [sales])).product_margins
     assert pm.products == [] and pm.unallocated_direct == 0
+
+
+# --- Целостность рецептуры: висячая ссылка на удалённый материал ---
+
+def test_dangling_material_is_reported_not_silent():
+    """Ссылка на несуществующий материал пропускается, но об этом сообщается.
+
+    Иначе удаление материала молча занизило бы себестоимость и завысило прибыль —
+    пользователь увидел бы более выгодный проект и не узнал, почему.
+    """
+    mat = Material(id="m1", name="Сталь", unit_price=D(5))
+    prod = Product(id="p1", name="Изделие", bom=[
+        BomLine(material_id="m1", qty_per_unit=D(3)),
+        BomLine(material_id="m_removed", qty_per_unit=D(7)),   # материала больше нет
+    ])
+    sales = SalesLine(product_id="p1", volume=[D(10)] * 2, price=[D(100)] * 2)
+    r = run(_model(2, [prod], [sales], materials=[mat]))
+
+    # учтён только существующий материал: 10 × 3 × 5 = 150
+    assert [q(v) for v in r.income["I5"]] == [D("150.00"), D("150.00")]
+    assert any("m_removed" in w and "Изделие" in w for w in r.warnings)
+    assert _balanced(r)
+
+
+def test_intact_recipe_is_quiet():
+    """Модель без висячих ссылок предупреждений о рецептуре не даёт — правило инертно."""
+    mat = Material(id="m1", name="Сталь", unit_price=D(5))
+    prod = Product(id="p1", name="Изделие", bom=[BomLine(material_id="m1", qty_per_unit=D(3))])
+    sales = SalesLine(product_id="p1", volume=[D(10)] * 2, price=[D(100)] * 2)
+    r = run(_model(2, [prod], [sales], materials=[mat]))
+    assert not any("рецептура" in w.lower() for w in r.warnings)
+
+
+def test_dangling_material_named_once_per_product():
+    """Повторные ссылки на один и тот же материал не размножают предупреждение."""
+    prod = Product(id="p1", name="Изделие", bom=[
+        BomLine(material_id="нет", qty_per_unit=D(1)),
+        BomLine(material_id="нет", qty_per_unit=D(2)),
+    ])
+    sales = SalesLine(product_id="p1", volume=[D(10)], price=[D(100)])
+    r = run(_model(1, [prod], [sales], materials=[]))
+    assert sum("нет" in w for w in r.warnings) == 1
+
+
+def test_dangling_material_hits_margins_too():
+    """Маржа продукта считается по тем же учтённым материалам — отчёт и аналитика согласны."""
+    mat = Material(id="m1", name="Сталь", unit_price=D(5))
+    prod = Product(id="p1", name="Изделие", bom=[
+        BomLine(material_id="m1", qty_per_unit=D(3)),
+        BomLine(material_id="призрак", qty_per_unit=D(7)),
+    ])
+    sales = SalesLine(product_id="p1", volume=[D(10)], price=[D(100)])
+    r = run(_model(1, [prod], [sales], materials=[mat]))
+    pm = r.product_margins.products[0]
+    assert q(pm.bom_cost) == D("150.00")          # без «призрака», как и в I5
+    assert any("призрак" in w for w in r.warnings)
