@@ -33,7 +33,8 @@ export const PRODUCTS: Record<Product, ProductMeta> = {
       ["/audit/group", "Группа"],
       ["/organization", "Организация"],
     ],
-    cubeAccent: ["#BC13FE", "#851FAE"],   // фиолетовый (#BC13FE)
+    // Канон хендоффа: Cube Hero (Audit) — accentColor ['#C77DFF','#7B3FE4'].
+    cubeAccent: ["#C77DFF", "#7B3FE4"],   // фиолетовый неон
   },
 };
 

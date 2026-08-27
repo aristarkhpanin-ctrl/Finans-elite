@@ -43,6 +43,7 @@
   --ring: rgba(56, 194, 75, 0.30);
   --shadow: 0 18px 44px -22px rgba(20, 40, 24, 0.22), 0 2px 6px rgba(20, 40, 24, 0.05);
   --menu-shadow: 0 24px 56px -16px rgba(20, 40, 24, 0.28);
+  --glow: none;                   /* свечение фирменного цвета — только в тёмной теме */
   --bar-bg: #FFFFFF;
   --bar-border: #D2E4CD;
   --seg-bg: #E7F0E3;
@@ -64,6 +65,12 @@
   /* Палитра графиков (PAL из Этапа 15) */
   --chart-1: #138A45; --chart-2: #3E7D52; --chart-3: #5FA86A; --chart-4: #B07A12;
   --chart-5: #C0473B; --chart-6: #1E9E6E; --chart-7: #6B9E5E;
+  /* Тепловая карта таблиц и чувствительности: 1–3 — норма (густая → бледная),
+     4 — внимание, 5 — риск. Текст задан отдельно: на густой заливке инвертируется. */
+  --heat-1: #C6EBBA; --heat-2: #DBF3D2; --heat-3: #EAF8E4;
+  --heat-4: #FBF0D8; --heat-5: #F7DED9;
+  --heat-text-1: #12351C; --heat-text-2: #12351C; --heat-text-3: #46584A;
+  --heat-text-4: #8A5300; --heat-text-5: #A53A30;
 
   /* Форма */
   --radius-btn: 4px;
@@ -122,6 +129,7 @@
   --ring: rgba(127, 238, 100, 0.40);
   --shadow: 0 30px 70px -34px rgba(0, 0, 0, 0.9);
   --menu-shadow: 0 22px 52px -16px rgba(0, 0, 0, 0.82);
+  --glow: 0 0 18px rgba(127, 238, 100, 0.35);
   --bar-bg: #0C0F0C;
   --bar-border: #1D231D;
   --seg-bg: #0B0E0B;
@@ -142,107 +150,130 @@
   --ico4: #E0A23A; --ico4-bg: rgba(224, 162, 58, 0.16);
   --chart-1: #7FEE64; --chart-2: #AED2A4; --chart-3: #C8F9B6; --chart-4: #E0A23A;
   --chart-5: #F0796E; --chart-6: #5FD9A6; --chart-7: #9BD08E;
+  --heat-1: rgba(127, 238, 100, 0.42); --heat-2: rgba(127, 238, 100, 0.30);
+  --heat-3: rgba(127, 238, 100, 0.18);
+  --heat-4: rgba(224, 162, 58, 0.24); --heat-5: rgba(240, 121, 110, 0.30);
+  --heat-text-1: #04140A; --heat-text-2: #04140A; --heat-text-3: #DDFFDC;
+  --heat-text-4: #E0A23A; --heat-text-5: #F0796E;
 }
 
-/* ── Тема продукта «Финанс-Аудит»: зелёный → фиолетовый #BC13FE ──────────────
-   Все зелёные токены получают оттенок #BC13FE (283°) с сохранением S/L (тот же
-   градиент, но фиолетовый); фирменные токены (кнопка/наведение/текст-на-кнопке/
-   фокус) заданы из #BC13FE, текст на кнопке — белый (контраст AA 4.5). Семантические
-   danger/warn не трогаются. Активируется data-product="audit" (components/product.ts). */
+/* ── Тема продукта «Финанс-Аудит»: неоново-фиолетовая ветка системы ──────────
+   Канон — объект, который **возвращает** THEME() в
+   docs/design/finans-audit/«Финанс Аудит - Стиль-гайд.dc.html» (карта — README §6).
+   Свежесть сверяет auditTheme.test.ts: разойтись со стиль-гайдом молча нельзя.
+
+   Фиолет #C77DFF играет ровно ту роль, что зелёный #7FEE64 в «Элит»: заливка кнопок,
+   активное состояние, кольцо фокуса, grand-итог. Никогда — декор.
+
+   У фиолета две ипостаси, и это не опечатка: заливка на обеих темах неоновая
+   (--primary), но текстовым акцентом светлой темы служит Deep Violet #7A2BC4
+   (--accent). Неон против белого даёт ~2.7:1 и как текст нечитаем, а нетекстовому
+   индикатору фокуса WCAG 1.4.11 требует 3:1. В тёмной теме обе роли — неон.
+
+   Семантические danger/warn совпадают с базовой темой и потому не переопределяются:
+   тест сверяет действующее значение через каскад, а не наличие строки здесь.
+   Активируется data-product="audit" (components/product.ts). */
 :root[data-product="audit"] {
-  --page-bg: #ECE0F1;
-  --app-bg: #F8F2FA;
-  --surface-2: #F2EAF5;
-  --surface-3: #E6D8EB;
-  --sk: #EADFEE;
-  --border: #DDCDE4;
-  --border-strong: #C4AECC;
-  --grid-line: #EEE5F1;
-  --text: #1D1620;
-  --muted: #534658;
-  --subtle: #7C6E82;
-  --primary: #BC13FE;
-  --primary-hover: #AA01EC;
-  --primary-text: #FFFFFF;
-  --accent: #68138A;
-  --primary-bg: #EAD2F3;
-  --primary-soft: #F2E4F8;
-  --good: #5B0E7A;
-  --good-bg: #EBDBF1;
-  --good-border: #D3B7DE;
-  --info: #6B3E7D;
-  --info-bg: #EBE2EF;
-  --ring: rgba(188, 19, 254, 0.30);
-  --bar-border: #DDCDE4;
-  --seg-bg: #ECE3F0;
-  --subtotal-bg: #F0EAF3;
-  --grand-bg: #EBDBF1;
-  --hov: #F4EEF7;
-  --hovlab: #EFE6F2;
-  --success: #5B0E7A;
-  --success-bg: #EBDBF1;
-  --ico1: #68138A;
-  --ico1-bg: #EAD2F3;
-  --ico2: #6B3E7D;
-  --ico2-bg: #EBE2EF;
-  --ico3: #935FA8;
-  --ico3-bg: #EBDEF0;
-  --chart-1: #68138A;
-  --chart-2: #6B3E7D;
-  --chart-3: #935FA8;
-  --chart-6: #7A1E9E;
-  --chart-7: #8C5E9E;
+  --page-bg: #F2EDFA;
+  --app-bg: #FAF7FE;
+  --surface-2: #F4EEFA;
+  --surface-3: #E8DEF4;
+  --sk: #EDE6F6;
+  --border: #DED2EC;
+  --border-strong: #C2B0D6;
+  --grid-line: #EDE6F6;
+  --text: #1B1523;
+  --muted: #4E4459;
+  --subtle: #756884;
+  --primary: #C77DFF;
+  --primary-hover: #B968F5;
+  --primary-text: #17061F;
+  --accent: #7A2BC4;             /* Deep Violet — текст, ссылки, иконки (7.07:1 к белому) */
+  --primary-bg: #EEE0FB;
+  --primary-soft: #F6EFFD;
+  --good: #7A2BC4;
+  --good-bg: #EEE0FB;
+  --good-border: #D9BFF0;
+  --info: #6B5E8C;
+  --info-bg: #EDE9F6;
+  --ring: rgba(199, 125, 255, 0.34);
+  --shadow: 0 18px 44px -22px rgba(40, 20, 60, 0.22), 0 2px 6px rgba(40, 20, 60, 0.05);
+  --menu-shadow: 0 24px 56px -16px rgba(40, 20, 60, 0.28);
+  --glow: none;
+  --bar-border: #DED2EC;
+  --seg-bg: #EDE6F6;
+  --subtotal-bg: #F6EFFD;
+  --grand-bg: #EEE0FB;
+  --hov: #F7F2FC;
+  --hovlab: #EFE7F7;
+  --success: #7A2BC4;
+  --success-bg: #EEE0FB;
+  --ico1: #7A2BC4; --ico1-bg: #EEE0FB;
+  --ico2: #6B5E8C; --ico2-bg: #EDE9F6;
+  --ico3: #9B6BD0; --ico3-bg: #F1E9F9;
+  --chart-1: #7A2BC4; --chart-2: #6B5E8C; --chart-3: #9B6BD0;
+  --chart-6: #5B21A0; --chart-7: #A88FC7;
+  --heat-1: #D9BFF0; --heat-2: #E6D4F6; --heat-3: #F1E7FA;
+  --heat-4: #FBF0D8; --heat-5: #F7DED9;
+  --heat-text-1: #3A1D5A; --heat-text-2: #3A1D5A; --heat-text-3: #4E4459;
+  --heat-text-4: #8A5E0C; --heat-text-5: #A53A30;
 }
 
 :root[data-theme="dark"][data-product="audit"] {
-  --app-bg: #0E0C0F;
-  --surface: #242125;
-  --surface-2: #2F2A31;
-  --surface-3: #463C4A;
-  --sk: #2F2A31;
-  --border: #4F4653;
-  --border-strong: #76647D;
-  --grid-line: #272328;
-  --text: #F5DCFF;
-  --muted: #9C91A0;
-  --subtle: #76647D;
-  --primary: #BC13FE;
-  --primary-hover: #C941FE;
-  --primary-text: #FFFFFF;
-  --accent: #C764EE;
-  --primary-bg: rgba(199, 100, 238, 0.15);
-  --primary-soft: rgba(199, 100, 238, 0.09);
-  --good: #C764EE;
-  --good-bg: rgba(199, 100, 238, 0.15);
-  --good-border: rgba(199, 100, 238, 0.32);
-  --info: #C5A4D2;
-  --info-bg: rgba(197, 164, 210, 0.15);
-  --ring: rgba(188, 19, 254, 0.42);
-  --bar-bg: #0E0C0F;
-  --bar-border: #211D23;
-  --seg-bg: #0D0B0E;
-  --seg-active-bg: #2F2A31;
-  --header-bg: #0E0C0F;
-  --sticky-bg: #242125;
-  --subtotal-bg: #1F1C20;
-  --grand-bg: rgba(199, 100, 238, 0.12);
-  --hov: #2A252C;
-  --hovlab: #302B32;
-  --cell-bg: #19161A;
-  --input-bg: #19161A;
-  --success: #C764EE;
-  --success-bg: rgba(199, 100, 238, 0.16);
-  --ico1: #C764EE;
-  --ico1-bg: rgba(199, 100, 238, 0.15);
-  --ico2: #C5A4D2;
-  --ico2-bg: rgba(197, 164, 210, 0.15);
-  --ico3: #E6B6F9;
-  --ico3-bg: rgba(230, 182, 249, 0.14);
-  --chart-1: #C764EE;
-  --chart-2: #C5A4D2;
-  --chart-3: #E6B6F9;
-  --chart-6: #B65FD9;
-  --chart-7: #BD8ED0;
+  --page-bg: #000000;
+  --app-bg: #000000;
+  --surface: #0E0B14;
+  --surface-2: #171122;
+  --surface-3: #241A38;
+  --sk: #171122;
+  --border: #2B2140;
+  --border-strong: #4B3A6E;
+  --grid-line: #191324;
+  --text: #F2E8FF;
+  --muted: #9C8FB5;
+  --subtle: #6A5C86;
+  --primary: #C77DFF;
+  --primary-hover: #D69AFF;
+  --primary-text: #17061F;
+  --accent: #C77DFF;
+  --primary-bg: rgba(199, 125, 255, 0.15);
+  --primary-soft: rgba(199, 125, 255, 0.09);
+  --good: #C77DFF;
+  --good-bg: rgba(199, 125, 255, 0.15);
+  --good-border: rgba(199, 125, 255, 0.34);
+  --danger-border: rgba(240, 121, 110, 0.34);
+  --info: #B9A6E8;
+  --info-bg: rgba(185, 166, 232, 0.15);
+  --ring: rgba(199, 125, 255, 0.40);
+  /* Тени переобъявлены не для красоты: :root[data-product="audit"] специфичнее
+     [data-theme="dark"], поэтому светлая тень блока выше перебила бы тёмную. */
+  --shadow: 0 30px 70px -34px rgba(0, 0, 0, 0.9);
+  --menu-shadow: 0 22px 52px -16px rgba(0, 0, 0, 0.82);
+  --glow: 0 0 18px rgba(199, 125, 255, 0.35);
+  --bar-bg: #0A0710;
+  --bar-border: #191324;
+  --seg-bg: #0A0710;
+  --seg-active-bg: #241A38;
+  --header-bg: #0E0B14;
+  --sticky-bg: #0E0B14;
+  --subtotal-bg: #171122;
+  --grand-bg: rgba(199, 125, 255, 0.12);
+  --hov: #1B1428;
+  --hovlab: #211830;
+  --cell-bg: #0B0812;
+  --input-bg: #0B0812;
+  --success: #C77DFF;
+  --success-bg: rgba(199, 125, 255, 0.16);
+  --ico1: #C77DFF; --ico1-bg: rgba(199, 125, 255, 0.15);
+  --ico2: #B9A6E8; --ico2-bg: rgba(185, 166, 232, 0.15);
+  --ico3: #E0B6FF; --ico3-bg: rgba(224, 182, 255, 0.14);
+  --chart-1: #C77DFF; --chart-2: #B9A6E8; --chart-3: #E0B6FF;
+  --chart-6: #9B6BD0; --chart-7: #C0AEE0;
+  --heat-1: rgba(199, 125, 255, 0.42); --heat-2: rgba(199, 125, 255, 0.30);
+  --heat-3: rgba(199, 125, 255, 0.18);
+  --heat-4: rgba(224, 162, 58, 0.24); --heat-5: rgba(240, 121, 110, 0.30);
+  --heat-text-1: #0C0714; --heat-text-2: #0C0714; --heat-text-3: #F2E8FF;
+  --heat-text-4: #E0A23A; --heat-text-5: #F0796E;
 }
 
 /* ---------- 2. База ---------- */
