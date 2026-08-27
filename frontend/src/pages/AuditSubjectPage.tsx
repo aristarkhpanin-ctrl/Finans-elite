@@ -34,16 +34,42 @@ import { fmtMoney } from "../format";
 type Tab = "subject" | "input" | "reports" | "ratios" | "trends" | "diagnostics"
   | "methods" | "opinion";
 
-const TABS: [Tab, string][] = [
-  ["subject", "Субъект"],
-  ["input", "Ввод отчётности"],
-  ["reports", "Отчёты"],
-  ["ratios", "Коэффициенты"],
-  ["trends", "Тренды"],
-  ["diagnostics", "Диагностика"],
-  ["methods", "Методики"],
-  ["opinion", "Заключение"],
+/** Подписи вкладок (в том же виде, что были — ни одна не исчезла). */
+const TAB_LABEL: Record<Tab, string> = {
+  subject: "Субъект",
+  input: "Ввод отчётности",
+  reports: "Отчёты",
+  ratios: "Коэффициенты",
+  trends: "Тренды",
+  diagnostics: "Диагностика",
+  methods: "Методики",
+  opinion: "Заключение",
+};
+
+/**
+ * Разделы дела по макетам: ввод и отчёты — «Отчётность» (Экран 2), коэффициенты,
+ * тренды и диагностика — «Финансовое состояние».
+ *
+ * Раздела «Финансовое состояние» на макетах нет: они ведут покупателя от скана к цене
+ * и не показывают анализ финсостояния цели. Это **осознанное расширение** (решение
+ * фазы 0): выбрасывать 16 показателей, горизонталь, вертикаль и три модели Альтмана
+ * ради полноты картинки нельзя — это работающая, оттестированная часть продукта.
+ *
+ * Вкладки не свёрнуты и не переписаны — они сгруппированы. Внутри раздела с
+ * несколькими вкладками появляется вторая полоса; содержимое каждой вкладки прежнее.
+ */
+const SECTIONS: [string, string, Tab[]][] = [
+  ["subject", "Субъект", ["subject"]],
+  ["reporting", "Отчётность", ["input", "reports"]],
+  ["health", "Финансовое состояние", ["ratios", "trends", "diagnostics"]],
+  ["methods", "Методики", ["methods"]],
+  ["opinion", "Заключение", ["opinion"]],
 ];
+
+/** Раздел, которому принадлежит вкладка. */
+function sectionOf(tab: Tab): string {
+  return SECTIONS.find(([, , tabs]) => tabs.includes(tab))?.[0] ?? "subject";
+}
 
 /** Подписи и тон зон скоринга / статусов нормативов. */
 const ZONE_LABEL: Record<string, string> = {
@@ -314,17 +340,39 @@ export function AuditSubjectPage() {
         </div>
       </div>
 
-      <div className="seg" style={{ marginBottom: 16, flexWrap: "wrap" }}>
-        {TABS.map(([key, label]) => (
+      <div className="seg" style={{ marginBottom: 10, flexWrap: "wrap" }}>
+        {SECTIONS.map(([key, label, tabs]) => (
           <button
             key={key}
-            className={"seg__btn" + (tab === key ? " seg__btn--active" : "")}
-            onClick={() => setTab(key)}
+            className={"seg__btn" + (sectionOf(tab) === key ? " seg__btn--active" : "")}
+            onClick={() => setTab(tabs[0])}
           >
             {label}
           </button>
         ))}
       </div>
+
+      {/* Вторая полоса — только там, где в разделе больше одной вкладки. Полоса из
+          одной кнопки не выбор, а лишний шум. */}
+      {(() => {
+        const tabs = SECTIONS.find(([key]) => key === sectionOf(tab))?.[2] ?? [];
+        if (tabs.length < 2) return null;
+        return (
+          <div className="subseg" role="tablist" aria-label="Разделы вкладки">
+            {tabs.map((key) => (
+              <button
+                key={key}
+                role="tab"
+                aria-selected={tab === key}
+                className={"subseg__btn" + (tab === key ? " subseg__btn--active" : "")}
+                onClick={() => setTab(key)}
+              >
+                {TAB_LABEL[key]}
+              </button>
+            ))}
+          </div>
+        );
+      })()}
 
       {isAnalysisTab && dirty && (
         <div className="field-note field-note--warn" style={{ marginBottom: 12 }}>

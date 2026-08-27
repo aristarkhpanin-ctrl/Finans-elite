@@ -1195,6 +1195,20 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .icon-action--danger { color: var(--danger); }
 .icon-action--danger:hover { background: var(--danger-bg); border-color: var(--danger-border); }
 
+/* Вторая полоса вкладок внутри раздела дела («Финанс-Аудит»). Тише основной:
+   это уточнение внутри раздела, а не выбор раздела. */
+.subseg { display: flex; flex-wrap: wrap; gap: 2px; margin-bottom: 16px; }
+.subseg__btn {
+  appearance: none; border: none; background: none; cursor: pointer;
+  padding: 6px 10px; border-radius: var(--radius-sm);
+  font: 500 12.5px var(--font-ui); color: var(--muted);
+  border-bottom: 2px solid transparent;
+}
+.subseg__btn:hover { color: var(--text); background: var(--hov); }
+.subseg__btn--active {
+  color: var(--accent); border-bottom-color: var(--primary); border-radius: 0;
+}
+
 /* Печатное заключение «Финанс-Аудит» (макет Экран 5 / «Заключение (печать)»).
    Палитра печати задана локально на листе и не зависит от темы интерфейса: из тёмной
    темы документ обязан выходить таким же белым, как из светлой. Значения — из THEME()
