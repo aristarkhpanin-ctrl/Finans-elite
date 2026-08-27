@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  input,button{font-family:inherit;}
+  a{color:#C58C10;}
+  a:hover{color:#8A5E0C;}
+  @keyframes fg-pulse{from{opacity:.4}to{opacity:1}}
+  @keyframes fg-scan{0%{transform:translateY(-130%)}100%{transform:translateY(760%)}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:11px;min-width:0;">
+      <div style="{{ s.barCube }}"><dc-import name="Cube Hero (Gold)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="30px,30px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Стиль-гайд лендинга · бренд «Финанс»</span>
+        <span style="{{ s.barSub }}">неоновое золото · нейтральный к продуктам</span>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+      <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Свет</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тьма</button></div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}" data-screen-label="Стиль-гайд лендинга">
+
+      <div style="{{ s.hero }}">
+        <div style="{{ s.heroBeam }}"></div>
+        <div style="{{ s.heroText }}">
+          <div style="{{ s.eyebrow }}"><span style="{{ s.eyebrowDot }}"></span>БРЕНД-ПАЛИТРА ЛЕНДИНГА</div>
+          <h1 style="{{ s.h1 }}">Золото — про бренд, а не про продукт</h1>
+          <p style="{{ s.heroLead }}">Лендинг говорит от имени компании, поэтому его акцент нейтрален к платформам: неоновое золото #FFCE3A. Фиолет «Финанс Аудит» и зелёный «Финанс-Элит» появляются только там, где речь идёт о конкретном продукте — на карточках в hero и в сравнении.</p>
+        </div>
+        <div style="{{ s.heroCube }}"><dc-import name="Cube Hero (Gold)" backdrop="transparent" style="width:100%;height:100%" hint-size="100%,100%"></dc-import></div>
+      </div>
+
+      <div style="{{ s.body }}">
+
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">01 · РАЗДЕЛЕНИЕ РОЛЕЙ</div>
+          <div style="{{ s.secTitle }}">Три акцента, три зоны ответственности</div>
+          <div style="{{ s.roleGrid }}">
+            <sc-for list="{{ roles }}" as="r" hint-placeholder-count="3">
+            <div style="{{ r.cardStyle }}">
+              <div style="{{ r.chipStyle }}">{{ r.hex }}</div>
+              <div style="{{ s.roleName }}">{{ r.name }}</div>
+              <div style="{{ s.roleWhere }}">{{ r.where }}</div>
+              <div style="{{ s.roleNever }}">{{ r.never }}</div>
+            </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">02 · ТОКЕНЫ</div>
+          <div style="{{ s.secTitle }}">Тёплые нейтрали, чтобы фон не спорил с жёлтым</div>
+          <div style="{{ s.secLead }}">Нейтрали лендинга сдвинуты в тёплую сторону — в отличие от фиолетово-холодных нейтралей «Финанс Аудит». Это единственное расхождение между продуктовой и бренд-палитрой.</div>
+          <div style="{{ s.swGroupLabel }}">Поверхности и текст</div>
+          <div style="{{ s.swatchGrid }}">
+            <sc-for list="{{ neutrals }}" as="w" hint-placeholder-count="8"><div style="{{ w.cardStyle }}"><div style="{{ w.chipStyle }}"></div><div style="{{ s.swMeta }}"><div style="{{ s.swName }}">{{ w.name }}</div><div style="{{ s.swHex }}">{{ w.hex }}</div></div></div></sc-for>
+          </div>
+          <div style="{{ s.swGroupLabel }}">Акцент и семантика</div>
+          <div style="{{ s.swatchGrid }}">
+            <sc-for list="{{ accents }}" as="w" hint-placeholder-count="6"><div style="{{ w.cardStyle }}"><div style="{{ w.chipStyle }}"></div><div style="{{ s.swMeta }}"><div style="{{ s.swName }}">{{ w.name }}</div><div style="{{ s.swHex }}">{{ w.hex }}</div></div></div></sc-for>
+          </div>
+        </div>
+
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">03 · КОНТРАСТ</div>
+          <div style="{{ s.secTitle }}">Заливка неоновая, текст — глубокое золото</div>
+          <div style="{{ s.secLead }}">На светлой теме #FFCE3A даёт около 1.5:1 к белому — как текст он нечитаем. Поэтому у золота две ипостаси: заливка остаётся неоновой на обеих темах, а текстовый акцент на светлой становится #8A5E0C.</div>
+          <div style="{{ s.contrastGrid }}">
+            <div style="{{ s.ctCard }}">
+              <div style="{{ s.ctLabel }}">Заливка · верно</div>
+              <button style="{{ s.btnPrimary }}" style-hover="{{ s.btnPrimaryHover }}">Обсудить сделку</button>
+              <div style="{{ s.ctNote }}">Тёмный текст #1F1705 на неоне — 11.8:1. Работает в обеих темах.</div>
+            </div>
+            <div style="{{ s.ctCard }}">
+              <div style="{{ s.ctLabel }}">Текст · верно</div>
+              <div style="{{ s.ctTextOk }}">1 020 млн ₽</div>
+              <div style="{{ s.ctNote }}">{{ inkNote }}</div>
+            </div>
+            <div style="{{ s.ctCardBad }}">
+              <div style="{{ s.ctLabelBad }}">Текст · неверно</div>
+              <div style="{{ s.ctTextBad }}">1 020 млн ₽</div>
+              <div style="{{ s.ctNote }}">Неон как текст на светлом фоне. Так не делаем никогда.</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">04 · ТИПОГРАФИКА</div>
+          <div style="{{ s.secTitle }}">Та же тройка, что в продуктах</div>
+          <div style="{{ s.typeCard }}">
+            <div style="{{ s.typeRow }}"><span style="{{ s.typeTag }}">h1 · 54 / 40 / 31</span><span style="{{ s.typeH1 }}">Решение о деньгах опирается на проверенную цифру</span></div>
+            <div style="{{ s.typeRow }}"><span style="{{ s.typeTag }}">h2 · 35 / 28 / 23</span><span style="{{ s.typeH2 }}">24 процедуры, шесть направлений</span></div>
+            <div style="{{ s.typeRow }}"><span style="{{ s.typeTag }}">lead · 15</span><span style="{{ s.typeLead }}">Загрузите отчётность цели — система просветит её и назовёт справедливую цену.</span></div>
+            <div style="{{ s.typeRow }}"><span style="{{ s.typeTag }}">eyebrow · 9.5</span><span style="{{ s.typeEyebrow }}">01 · ЦЕНА НЕПРОВЕРЕННОЙ ЦИФРЫ</span></div>
+            <div style="{{ s.typeRow }}"><span style="{{ s.typeTag }}">mono · число</span><span style="{{ s.typeMono }}">−220 млн ₽ · 4.6× EBITDA</span></div>
+          </div>
+        </div>
+
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">05 · СЕТКА И РИТМ</div>
+          <div style="{{ s.secTitle }}">Контейнер 1200, три брейкпоинта</div>
+          <div style="{{ s.gridSpecs }}">
+            <sc-for list="{{ specs }}" as="p" hint-placeholder-count="3">
+            <div style="{{ s.specCard }}">
+              <div style="{{ s.specName }}">{{ p.name }}</div>
+              <sc-for list="{{ p.rows }}" as="r" hint-placeholder-count="4">
+              <div style="{{ s.specRow }}"><span style="{{ s.specKey }}">{{ r.key }}</span><span style="{{ s.specVal }}">{{ r.value }}</span></div>
+              </sc-for>
+            </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">06 · ПРАВИЛА</div>
+          <div style="{{ s.secTitle }}">Что можно и чего нельзя</div>
+          <div style="{{ s.ruleList }}">
+            <sc-for list="{{ rules }}" as="r" hint-placeholder-count="6">
+            <div style="{{ s.ruleRow }}"><span style="{{ r.dotStyle }}"></span><span style="{{ s.ruleText }}">{{ r.text }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">07 · КУБ</div>
+          <div style="{{ s.secTitle }}">Cube Hero (Gold) — бренд-версия объекта</div>
+          <div style="{{ s.secLead }}">Геометрия и анимация те же, что у продуктовых кубов; меняется только свет. На лендинге золотой куб живёт в шапке, hero-витрине и футере. Продуктовые кубы — фиолетовый и зелёный — только внутри своих карточек.</div>
+          <div style="{{ s.cubeRow }}">
+            <div style="{{ s.cubeCell }}"><div style="{{ s.cubeLg }}"><dc-import name="Cube Hero (Gold)" backdrop="transparent" style="width:100%;height:100%" hint-size="160px,160px"></dc-import></div><div style="{{ s.cubeCap }}">бренд · золото</div></div>
+            <div style="{{ s.cubeCell }}"><div style="{{ s.cubeMd }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" style="width:100%;height:100%" hint-size="112px,112px"></dc-import></div><div style="{{ s.cubeCap }}">Финанс Аудит · фиолет</div></div>
+            <div style="{{ s.cubeCell }}"><div style="{{ s.cubeMd }}"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" style="width:100%;height:100%" hint-size="112px,112px"></dc-import></div><div style="{{ s.cubeCap }}">Финанс-Элит · зелёный</div></div>
+          </div>
+        </div>
+
+        <div style="height:8px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { theme:'dark' };
+
+  THEME(){
+    const dark={
+      pageBg:'#000000', bg:'#000000', surface:'#100E09', surface2:'#191610', surface3:'#262117', sk:'#191610',
+      border:'#2C2719', borderStrong:'#4A422B', gridLine:'#1C1810',
+      text:'#F5F0E4', muted:'#A79E8B', subtle:'#77705F',
+      accent:'#FFCE3A', accentHover:'#FFDF7A', accentText:'#FFCE3A', accentSoft:'rgba(255,206,58,0.10)', accentBorder:'rgba(255,206,58,0.32)',
+      onAccent:'#1F1705',
+      productViolet:'#C77DFF', green:'#7FEE64',
+      danger:'#F0796E', warn:'#E8792B',
+      ring:'rgba(255,206,58,0.42)',
+      shadow:'0 30px 70px -34px rgba(0,0,0,.9)', glow:'0 0 20px rgba(255,206,58,.30)',
+      barBg:'#0B0904', segBg:'#0B0904', segActiveBg:'#262117', altBg:'#0A0805'
+    };
+    const light={
+      pageBg:'#F6F4EF', bg:'#FCFBF7', surface:'#FFFFFF', surface2:'#F3F0E8', surface3:'#EBE6DA', sk:'#F0EDE5',
+      border:'#E4DFD2', borderStrong:'#C9C2AF', gridLine:'#F0EDE5',
+      text:'#1B1810', muted:'#4F4A3C', subtle:'#7A7364',
+      accent:'#FFCE3A', accentHover:'#F5BE18', accentText:'#8A5E0C', accentSoft:'#FFF7DE', accentBorder:'#EFDCA8',
+      onAccent:'#1F1705',
+      productViolet:'#7A2BC4', green:'#138A45',
+      danger:'#C0473B', warn:'#A8541A',
+      ring:'rgba(255,206,58,0.40)',
+      shadow:'0 18px 44px -22px rgba(44,34,12,.20), 0 2px 6px rgba(44,34,12,.05)', glow:'none',
+      barBg:'#FFFFFF', segBg:'#F0EDE5', segActiveBg:'#FFFFFF', altBg:'#F3F0E8'
+    };
+    return this.state.theme==='dark'?dark:light;
+  }
+
+  setLight=()=>this.setState({theme:'light'});
+  setDark=()=>this.setState({theme:'dark'});
+
+  segBtn(active,t){
+    return 'height:28px;padding:0 12px;border:0;border-radius:7px;cursor:pointer;font:'+(active?'600':'500')+' 11.5px/1 Inter,sans-serif;letter-spacing:-.01em;'+
+      (active?('background:'+t.segActiveBg+';color:'+t.text+';'):('background:transparent;color:'+t.subtle+';'));
+  }
+
+  swatch(t,name,hex,dark){
+    return {
+      name, hex,
+      cardStyle:'display:flex;flex-direction:column;gap:7px;padding:9px;border:1px solid '+t.border+';border-radius:12px;background:'+t.surface+';',
+      chipStyle:'height:44px;border-radius:8px;background:'+hex+';'+(dark?'border:1px solid rgba(255,255,255,.10);':'border:1px solid rgba(0,0,0,.08);')
+    };
+  }
+
+  renderVals(){
+    const t=this.THEME(), dark=this.state.theme==='dark';
+    const mono='JetBrains Mono,ui-monospace,monospace';
+    const disp='Satoshi,Inter,sans-serif';
+    const card='border:1px solid '+t.border+';border-radius:16px;background:'+t.surface+';'+(dark?'':'box-shadow:'+t.shadow+';');
+
+    const s={
+      page:'min-height:100vh;background:'+t.pageBg+';display:flex;flex-direction:column;align-items:center;padding:0 0 60px;',
+      bar:'position:sticky;top:0;z-index:20;width:100%;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:12px 20px;background:'+t.barBg+';border-bottom:1px solid '+t.border+';',
+      barCube:'width:30px;height:30px;flex:none;',
+      barTitle:'font:600 13px/1.2 Inter,sans-serif;letter-spacing:-.015em;color:'+t.text+';',
+      barSub:'font:400 10.5px/1.2 '+mono+';color:'+t.subtle+';',
+      barLabel:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+      seg:'display:flex;gap:2px;padding:3px;border-radius:9px;background:'+t.segBg+';border:1px solid '+t.border+';',
+      segLight:this.segBtn(!dark,t), segDark:this.segBtn(dark,t),
+      stage:'width:100%;display:flex;justify-content:center;padding:26px 18px 0;',
+      frame:'width:100%;max-width:1180px;border:1px solid '+t.border+';border-radius:30px;background:'+t.bg+';overflow:hidden;'+(dark?'':'box-shadow:'+t.shadow+';'),
+
+      hero:'position:relative;display:flex;align-items:center;gap:34px;padding:46px 34px 42px;overflow:hidden;background:'+(dark?'radial-gradient(ellipse 70% 90% at 24% 40%, rgba(255,206,58,.14) 0%, rgba(226,164,26,.04) 46%, transparent 78%)':'linear-gradient(160deg,'+t.accentSoft+' 0%, '+t.bg+' 64%)')+';',
+      heroBeam:'position:absolute;left:0;right:0;top:0;height:90px;pointer-events:none;background:linear-gradient(to bottom,transparent,'+(dark?'rgba(255,206,58,.10)':'rgba(255,206,58,.16)')+',transparent);animation:fg-scan 11s linear infinite;',
+      heroText:'position:relative;flex:1;min-width:0;',
+      heroCube:'position:relative;flex:none;width:250px;height:250px;',
+      eyebrow:'display:flex;align-items:center;gap:7px;font:500 10px/1 Inter,sans-serif;letter-spacing:.15em;text-transform:uppercase;color:'+t.accentText+';margin-bottom:15px;',
+      eyebrowDot:'width:5px;height:5px;border-radius:50%;background:'+t.accent+';'+(dark?'box-shadow:0 0 8px rgba(255,206,58,.9);':'')+'animation:fg-pulse 2.2s ease-in-out infinite alternate;',
+      h1:'margin:0;font:500 44px/1.06 '+disp+';letter-spacing:-.03em;color:'+t.text+';max-width:18ch;',
+      heroLead:'margin:18px 0 0;font:400 14px/1.66 Inter,sans-serif;color:'+t.muted+';max-width:58ch;text-wrap:pretty;',
+
+      body:'display:flex;flex-direction:column;gap:56px;padding:56px 34px;',
+      section:'display:flex;flex-direction:column;gap:12px;',
+      secEyebrow:'font:500 9.5px/1 Inter,sans-serif;letter-spacing:.17em;text-transform:uppercase;color:'+t.subtle+';',
+      secTitle:'font:500 26px/1.16 '+disp+';letter-spacing:-.024em;color:'+t.text+';',
+      secLead:'font:400 13px/1.68 Inter,sans-serif;color:'+t.muted+';max-width:70ch;text-wrap:pretty;margin-bottom:6px;',
+
+      roleGrid:'display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;',
+      roleName:'margin-top:14px;font:500 16px/1.24 '+disp+';letter-spacing:-.02em;color:'+t.text+';',
+      roleWhere:'margin-top:9px;font:400 12px/1.6 Inter,sans-serif;color:'+t.muted+';',
+      roleNever:'margin-top:11px;padding-top:11px;border-top:1px solid '+t.border+';font:400 11px/1.55 '+mono+';color:'+t.subtle+';',
+
+      swGroupLabel:'font:500 9.5px/1 Inter,sans-serif;letter-spacing:.13em;text-transform:uppercase;color:'+t.subtle+';margin-top:8px;',
+      swatchGrid:'display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;',
+      swMeta:'display:flex;flex-direction:column;gap:3px;padding:0 2px 2px;',
+      swName:'font:500 11px/1.2 Inter,sans-serif;color:'+t.text+';',
+      swHex:'font:400 10px/1.2 '+mono+';color:'+t.subtle+';',
+
+      contrastGrid:'display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;',
+      ctCard:card+'padding:18px;display:flex;flex-direction:column;gap:12px;align-items:flex-start;',
+      ctCardBad:'padding:18px;border:1px dashed '+t.danger+';border-radius:16px;background:'+t.surface+';display:flex;flex-direction:column;gap:12px;align-items:flex-start;',
+      ctLabel:'font:500 9px/1 Inter,sans-serif;letter-spacing:.13em;text-transform:uppercase;color:'+t.subtle+';',
+      ctLabelBad:'font:500 9px/1 Inter,sans-serif;letter-spacing:.13em;text-transform:uppercase;color:'+t.danger+';',
+      ctTextOk:'font:600 26px/1 '+mono+';letter-spacing:-.03em;color:'+t.accentText+';',
+      ctTextBad:'font:600 26px/1 '+mono+';letter-spacing:-.03em;color:'+t.accent+';',
+      ctNote:'font:400 11px/1.55 Inter,sans-serif;color:'+t.muted+';',
+
+      typeCard:card+'padding:20px;display:flex;flex-direction:column;gap:16px;',
+      typeRow:'display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;',
+      typeTag:'flex:none;width:118px;font:400 9.5px/1.3 '+mono+';color:'+t.subtle+';',
+      typeH1:'flex:1;min-width:220px;font:500 32px/1.1 '+disp+';letter-spacing:-.03em;color:'+t.text+';',
+      typeH2:'font:500 24px/1.16 '+disp+';letter-spacing:-.026em;color:'+t.text+';',
+      typeLead:'flex:1;min-width:220px;font:400 15px/1.62 Inter,sans-serif;color:'+t.muted+';',
+      typeEyebrow:'font:500 9.5px/1 Inter,sans-serif;letter-spacing:.17em;text-transform:uppercase;color:'+t.subtle+';',
+      typeMono:'font:500 15px/1.3 '+mono+';letter-spacing:-.015em;color:'+t.accentText+';',
+
+      gridSpecs:'display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;',
+      specCard:card+'padding:18px;display:flex;flex-direction:column;gap:10px;',
+      specName:'font:500 15px/1.2 '+disp+';letter-spacing:-.02em;color:'+t.text+';margin-bottom:2px;',
+      specRow:'display:flex;align-items:baseline;justify-content:space-between;gap:10px;',
+      specKey:'font:400 11.5px/1.4 Inter,sans-serif;color:'+t.muted+';',
+      specVal:'font:500 11px/1.4 '+mono+';color:'+t.text+';',
+
+      ruleList:'display:flex;flex-direction:column;gap:11px;',
+      ruleRow:'display:flex;align-items:flex-start;gap:11px;',
+      ruleText:'font:400 12.5px/1.62 Inter,sans-serif;color:'+t.muted+';max-width:80ch;',
+
+      cubeRow:'display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end;',
+      cubeCell:'display:flex;flex-direction:column;gap:10px;align-items:center;',
+      cubeLg:'width:160px;height:160px;border-radius:16px;border:1px solid '+t.border+';background:'+t.pageBg+';',
+      cubeMd:'width:112px;height:112px;border-radius:14px;border:1px solid '+t.border+';background:'+t.pageBg+';',
+      cubeCap:'font:400 10px/1.4 '+mono+';color:'+t.subtle+';text-align:center;max-width:160px;',
+
+      btnPrimary:'height:42px;padding:0 20px;border:0;border-radius:4px;background:'+t.accent+';color:'+t.onAccent+';font:600 13px/1 Inter,sans-serif;letter-spacing:-.01em;cursor:pointer;'+(dark?'box-shadow:'+t.glow+';':''),
+      btnPrimaryHover:'background:'+t.accentHover+';'
+    };
+
+    const role=(hex,name,where,never,c)=>({
+      hex, name, where, never,
+      cardStyle:'padding:18px;border:1px solid '+t.border+';border-radius:16px;background:'+t.surface+';'+(dark?'':'box-shadow:'+t.shadow+';'),
+      chipStyle:'display:inline-flex;align-items:center;padding:5px 11px;border-radius:999px;background:'+c+';color:'+(hex==='#FFCE3A'?t.onAccent:'#0F0A14')+';font:600 10px/1.3 '+mono+';letter-spacing:.06em;'
+    });
+
+    return {
+      s,
+      setLight:this.setLight, setDark:this.setDark,
+      inkNote:dark?'На тёмной теме текстовый акцент — тот же неон #FFCE3A, 12.4:1 к чёрному.':'На светлой теме текстовый акцент — глубокое золото #8A5E0C, 5.1:1 к белому.',
+      roles:[
+        role('#FFCE3A','Неоновое золото','Кнопки, шкалы, свечения, итоговые цифры, кольцо фокуса, активные состояния — всё, что говорит от имени бренда.','Никогда: фон секции, декоративная иконка, текст на светлом.','#FFCE3A'),
+        role('#C77DFF','Фиолет «Финанс Аудит»','Только карточка продукта в hero, сравнение платформ и ссылки на страницу продукта.','Никогда: общие элементы лендинга.','#C77DFF'),
+        role('#7FEE64','Зелёный «Финанс-Элит»','Только карточка продукта в hero и сравнение платформ.','Никогда: статусы, шкалы, кнопки.','#7FEE64')
+      ],
+      neutrals:[
+        this.swatch(t,'Void · канва',t.pageBg,dark),
+        this.swatch(t,'Ink · карта',t.surface,dark),
+        this.swatch(t,'Alt · секция',t.altBg,dark),
+        this.swatch(t,'Raise · контейнер',t.surface2,dark),
+        this.swatch(t,'Граница',t.border,dark),
+        this.swatch(t,'Граница сильная',t.borderStrong,dark),
+        this.swatch(t,'Текст',t.text,dark),
+        this.swatch(t,'Приглушённый',t.muted,dark)
+      ],
+      accents:[
+        this.swatch(t,'Неон · заливка',t.accent,dark),
+        this.swatch(t,'Hover',t.accentHover,dark),
+        this.swatch(t,'Текстовый акцент',t.accentText,dark),
+        this.swatch(t,'Мягкий фон',t.accentSoft,dark),
+        this.swatch(t,'Внимание · оранж',t.warn,dark),
+        this.swatch(t,'Ошибка · коралл',t.danger,dark)
+      ],
+      specs:[
+        {name:'Desktop 1920', rows:[
+          {key:'Контейнер', value:'1200 px'},
+          {key:'Боковые поля', value:'40 px'},
+          {key:'Отступ секции', value:'88 px'},
+          {key:'Колонок в сетке', value:'3–4'}
+        ]},
+        {name:'Tablet 768', rows:[
+          {key:'Контейнер', value:'768 px'},
+          {key:'Боковые поля', value:'24 px'},
+          {key:'Отступ секции', value:'68 px'},
+          {key:'Колонок в сетке', value:'2'}
+        ]},
+        {name:'Mobile 375', rows:[
+          {key:'Контейнер', value:'375 px'},
+          {key:'Боковые поля', value:'16 px'},
+          {key:'Отступ секции', value:'52 px'},
+          {key:'Колонок в сетке', value:'1'}
+        ]}
+      ],
+      rules:[
+        {text:'Одна кнопка-акцент на экран. Второе действие — призрачная кнопка с рамкой, не второе золото.', dotStyle:'flex:none;width:5px;height:5px;margin-top:7px;border-radius:50%;background:'+t.accent+';'},
+        {text:'Свечение (glow, сканирующий луч) живёт только в тёмной теме. На светлой его заменяет тонкая тень.', dotStyle:'flex:none;width:5px;height:5px;margin-top:7px;border-radius:50%;background:'+t.accent+';'},
+        {text:'«Внимание» на лендинге — оранжевое, не янтарное: янтарь слишком близок к бренд-золоту и путает семантику.', dotStyle:'flex:none;width:5px;height:5px;margin-top:7px;border-radius:50%;background:'+t.warn+';'},
+        {text:'Ошибки и потери — коралл. Он же для перечёркнутой запрошенной цены в кейсе.', dotStyle:'flex:none;width:5px;height:5px;margin-top:7px;border-radius:50%;background:'+t.danger+';'},
+        {text:'Продуктовые цвета не смешиваются с золотом в одном элементе: карточка либо бренд, либо продукт.', dotStyle:'flex:none;width:5px;height:5px;margin-top:7px;border-radius:50%;background:'+t.productViolet+';'},
+        {text:'Радиусы: кнопки 4 px, карточки 16–18 px, крупные блоки-герои 20 px, чипы pill. Как в продуктах.', dotStyle:'flex:none;width:5px;height:5px;margin-top:7px;border-radius:50%;background:'+t.accent+';'}
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
