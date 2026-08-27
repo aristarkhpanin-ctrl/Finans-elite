@@ -30,17 +30,19 @@ import { AuditEarnings } from "../components/AuditEarnings";
 import { AuditFlags } from "../components/AuditFlags";
 import { AuditObligations } from "../components/AuditObligations";
 import { AuditProcedures } from "../components/AuditProcedures";
+import { AuditSummary } from "../components/AuditSummary";
 import { AuditPrintReport } from "../components/AuditPrintReport";
 import { allBalanced, balanceGaps, serverGaps } from "../auditBalance";
 import { downloadAuditXlsx } from "../auditExport";
 import { downloadAuditTemplate, parseAuditXlsx } from "../auditXlsx";
 import { fmtMoney } from "../format";
 
-type Tab = "subject" | "input" | "reports" | "ratios" | "trends" | "diagnostics"
+type Tab = "summary" | "subject" | "input" | "reports" | "ratios" | "trends" | "diagnostics"
   | "flags" | "earnings" | "obligations" | "procedures" | "methods" | "opinion";
 
 /** Подписи вкладок (в том же виде, что были — ни одна не исчезла). */
 const TAB_LABEL: Record<Tab, string> = {
+  summary: "Сводка",
   subject: "Субъект",
   input: "Ввод отчётности",
   reports: "Отчёты",
@@ -68,6 +70,7 @@ const TAB_LABEL: Record<Tab, string> = {
  * несколькими вкладками появляется вторая полоса; содержимое каждой вкладки прежнее.
  */
 const SECTIONS: [string, string, Tab[]][] = [
+  ["summary", "Сводка", ["summary"]],
   ["subject", "Субъект", ["subject"]],
   ["reporting", "Отчётность", ["input", "reports"]],
   ["health", "Финансовое состояние", ["ratios", "trends", "diagnostics"]],
@@ -81,7 +84,7 @@ const SECTIONS: [string, string, Tab[]][] = [
 
 /** Раздел, которому принадлежит вкладка. */
 function sectionOf(tab: Tab): string {
-  return SECTIONS.find(([, , tabs]) => tabs.includes(tab))?.[0] ?? "subject";
+  return SECTIONS.find(([, , tabs]) => tabs.includes(tab))?.[0] ?? "summary";
 }
 
 /** Подписи и тон зон скоринга / статусов нормативов. */
@@ -133,7 +136,7 @@ export function AuditSubjectPage() {
 
   const [name, setName] = useState("");
   const [model, setModel] = useState<AuditModel | null>(null);
-  const [tab, setTab] = useState<Tab>("subject");
+  const [tab, setTab] = useState<Tab>("summary");
   const [printMode, setPrintMode] = useState(false);
   const [dirty, setDirty] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -157,7 +160,7 @@ export function AuditSubjectPage() {
   // Анализ считается по сохранённым данным — только для аналитических вкладок.
   const isAnalysisTab = tab === "reports" || tab === "ratios" || tab === "trends"
     || tab === "diagnostics" || tab === "opinion" || tab === "methods" || tab === "flags" || tab === "earnings"
-    || tab === "obligations" || tab === "procedures";
+    || tab === "obligations" || tab === "procedures" || tab === "summary";
   const analysis = useQuery({
     queryKey: ["audit-analysis", id],
     queryFn: () => analyzeAuditSubject(id),
@@ -795,6 +798,14 @@ export function AuditSubjectPage() {
           register={analysis.data.obligations}
           obligations={m.obligations ?? []}
           onChange={(next) => patch({ obligations: next })}
+        />
+      ) : tab === "summary" ? (
+        <AuditSummary
+          summary={analysis.data.summary}
+          onInput={() => setTab("input")}
+          onFlags={() => setTab("flags")}
+          onProcedures={() => setTab("procedures")}
+          onOpinion={() => setTab("opinion")}
         />
       ) : tab === "procedures" ? (
         <AuditProcedures

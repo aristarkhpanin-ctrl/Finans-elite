@@ -15,6 +15,7 @@ from .models import AuditPeriod, AuditSubjectModel, Obligation
 from .obligations import ObligationRegister, build_obligations
 from .procedures import Procedure, ProcedureReport, run_procedures
 from .result import AuditLine, AuditResult, ShareLine, TrendLine
+from .summary import CaseSummary, build_summary
 
 __all__ = [
     "AuditLine",
@@ -29,12 +30,14 @@ __all__ = [
     "InputIssue",
     "Obligation",
     "ObligationRegister",
+    "CaseSummary",
     "Procedure",
     "ProcedureReport",
     "ShareLine",
     "TrendLine",
     "analyze",
     "build_obligations",
+    "build_summary",
     "check_input",
     "detect_flags",
     "run_procedures",

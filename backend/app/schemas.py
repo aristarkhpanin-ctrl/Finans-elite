@@ -944,6 +944,8 @@ class AuditAnalysisOut(BaseModel):
     obligations: "AuditObligationsOut" = None  # type: ignore[assignment]
     # Чек-лист процедур («Экран 21»); в AuditResult не входит — SPEC, Прил. М.
     procedures: "AuditProceduresOut" = None  # type: ignore[assignment]
+    # Сводка дела и вердикт («Экран 1»); в AuditResult не входит — SPEC, Прил. Н.
+    summary: "AuditSummaryOut" = None  # type: ignore[assignment]
 
 
 class AuditAdjustmentOut(BaseModel):
@@ -1044,6 +1046,41 @@ class AuditObligationsOut(BaseModel):
     pledged_share: Optional[Decimal] = None
     covenants_breached: int = 0
     covenants_unknown: int = 0
+
+
+class AuditHeadMetricOut(BaseModel):
+    """Показатель шапки сводки. ``value=None`` — величина не считается, а не равна нулю."""
+
+    key: str
+    label: str
+    value: Optional[Decimal] = None
+    unit: str                            # money | ratio | grade
+    note: str = ""
+    tone: str = "neutral"                # ok | warn | risk | neutral
+    text: str = ""                       # буквенное значение (качество прибыли)
+
+
+class AuditSummaryOut(BaseModel):
+    """Сводка дела и вердикт (SPEC, Прил. Н).
+
+    Оценки сделки здесь нет намеренно: запрошенной цены в модели не существует, DCF не
+    построен, бенчмарков нет. ``priced_total`` — оценённое влияние флагов, **не скидка
+    к цене**. Всё, чего сводка не считает, перечислено в ``not_computed``.
+    """
+
+    state: str = "empty"                 # empty | ready
+    verdict: str = "ok"                  # unreliable | risk | warning | ok
+    headline: str = ""
+    detail: str = ""
+    coverage: Optional[Decimal] = None
+    open_procedures: int = 0
+    metrics: list[AuditHeadMetricOut] = []
+    risk_flags: int = 0
+    warning_flags: int = 0
+    priced_total: Decimal = Decimal(0)
+    unpriced: int = 0
+    input_errors: int = 0
+    not_computed: list[str] = []
 
 
 class AuditProcedureOut(BaseModel):
@@ -1176,11 +1213,29 @@ class AuditGroupOut(AuditGroupSummary):
 
 
 def audit_analysis_response(result, opinion: str = "", issues=(),
-                            flags=None, earnings=None,
-                            obligations=None, procedures=None) -> "AuditAnalysisOut":
+                            flags=None, earnings=None, obligations=None,
+                            procedures=None, summary=None) -> "AuditAnalysisOut":
     """Собрать ответ анализа из ``audit_core.AuditResult`` (+ заключение, ввод, флаги)."""
     return AuditAnalysisOut(
         opinion=opinion,
+        summary=AuditSummaryOut(
+            state=summary.state if summary else "empty",
+            verdict=summary.verdict if summary else "ok",
+            headline=summary.headline if summary else "",
+            detail=summary.detail if summary else "",
+            coverage=summary.coverage if summary else None,
+            open_procedures=summary.open_procedures if summary else 0,
+            metrics=[AuditHeadMetricOut(key=m.key, label=m.label, value=m.value,
+                                        unit=m.unit, note=m.note, tone=m.tone,
+                                        text=m.text)
+                     for m in (summary.metrics if summary else [])],
+            risk_flags=summary.risk_flags if summary else 0,
+            warning_flags=summary.warning_flags if summary else 0,
+            priced_total=summary.priced_total if summary else Decimal(0),
+            unpriced=summary.unpriced if summary else 0,
+            input_errors=summary.input_errors if summary else 0,
+            not_computed=list(summary.not_computed) if summary else [],
+        ),
         procedures=AuditProceduresOut(
             items=[AuditProcedureOut(
                 code=i.code, group=i.group, title=i.title, source=i.source,

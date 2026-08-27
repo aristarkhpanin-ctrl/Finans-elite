@@ -55,6 +55,9 @@ const analysis = (over: Partial<AuditAnalysis> = {}): AuditAnalysis => ({
                  covenants_unknown: 0 },
   procedures: { items: [], total: 0, closed: 0, passed: 0, findings: 0, no_data: 0,
                 done: 0, skipped: 0, pending: 0, coverage: null, limits: [] },
+  summary: { state: "ready", verdict: "ok", headline: "", detail: "", coverage: null,
+             open_procedures: 0, metrics: [], risk_flags: 0, warning_flags: 0,
+             priced_total: "0", unpriced: 0, input_errors: 0, not_computed: [] },
   ...over,
 });
 

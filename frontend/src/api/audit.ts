@@ -297,6 +297,40 @@ export interface AuditAnalysis {
   earnings: AuditEarnings;
   obligations: AuditObligations;
   procedures: AuditProcedures;
+  summary: AuditSummary;
+}
+
+/** Показатель шапки сводки. `value === null` — величина не считается, а не равна нулю. */
+export interface AuditHeadMetric {
+  key: string;
+  label: string;
+  value: string | null;
+  unit: "money" | "ratio" | "grade";
+  note: string;
+  tone: "ok" | "warn" | "risk" | "neutral";
+  text: string;
+}
+
+/**
+ * Сводка дела и вердикт (SPEC, Прил. Н). Оценки сделки здесь нет намеренно:
+ * запрошенной цены в модели не существует, DCF не построен, бенчмарков нет.
+ * `priced_total` — оценённое влияние флагов, **не скидка к цене**; всё, чего сводка
+ * не считает, перечислено в `not_computed`.
+ */
+export interface AuditSummary {
+  state: "empty" | "ready";
+  verdict: "unreliable" | "risk" | "warning" | "ok";
+  headline: string;
+  detail: string;
+  coverage: string | null;
+  open_procedures: number;
+  metrics: AuditHeadMetric[];
+  risk_flags: number;
+  warning_flags: number;
+  priced_total: string;
+  unpriced: number;
+  input_errors: number;
+  not_computed: string[];
 }
 
 /** Итог процедуры: `pass|finding|no_data` выводится из прогона, остальное — отметка. */

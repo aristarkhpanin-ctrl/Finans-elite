@@ -457,6 +457,9 @@
             "title": "Revalued",
             "type": "boolean"
           },
+          "summary": {
+            "$ref": "#/components/schemas/AuditSummaryOut"
+          },
           "user_metrics": {
             "default": [],
             "items": {
@@ -1089,6 +1092,57 @@
           }
         },
         "title": "AuditGroupUpdate",
+        "type": "object"
+      },
+      "AuditHeadMetricOut": {
+        "description": "Показатель шапки сводки. ``value=None`` — величина не считается, а не равна нулю.",
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          },
+          "text": {
+            "default": "",
+            "title": "Text",
+            "type": "string"
+          },
+          "tone": {
+            "default": "neutral",
+            "title": "Tone",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "unit"
+        ],
+        "title": "AuditHeadMetricOut",
         "type": "object"
       },
       "AuditInputIssueOut": {
@@ -2109,6 +2163,92 @@
           }
         },
         "title": "AuditSubjectUpdate",
+        "type": "object"
+      },
+      "AuditSummaryOut": {
+        "description": "Сводка дела и вердикт (SPEC, Прил. Н).\n\nОценки сделки здесь нет намеренно: запрошенной цены в модели не существует, DCF не\nпостроен, бенчмарков нет. ``priced_total`` — оценённое влияние флагов, **не скидка\nк цене**. Всё, чего сводка не считает, перечислено в ``not_computed``.",
+        "properties": {
+          "coverage": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage"
+          },
+          "detail": {
+            "default": "",
+            "title": "Detail",
+            "type": "string"
+          },
+          "headline": {
+            "default": "",
+            "title": "Headline",
+            "type": "string"
+          },
+          "input_errors": {
+            "default": 0,
+            "title": "Input Errors",
+            "type": "integer"
+          },
+          "metrics": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AuditHeadMetricOut"
+            },
+            "title": "Metrics",
+            "type": "array"
+          },
+          "not_computed": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Not Computed",
+            "type": "array"
+          },
+          "open_procedures": {
+            "default": 0,
+            "title": "Open Procedures",
+            "type": "integer"
+          },
+          "priced_total": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Priced Total",
+            "type": "string"
+          },
+          "risk_flags": {
+            "default": 0,
+            "title": "Risk Flags",
+            "type": "integer"
+          },
+          "state": {
+            "default": "empty",
+            "title": "State",
+            "type": "string"
+          },
+          "unpriced": {
+            "default": 0,
+            "title": "Unpriced",
+            "type": "integer"
+          },
+          "verdict": {
+            "default": "ok",
+            "title": "Verdict",
+            "type": "string"
+          },
+          "warning_flags": {
+            "default": 0,
+            "title": "Warning Flags",
+            "type": "integer"
+          }
+        },
+        "title": "AuditSummaryOut",
         "type": "object"
       },
       "AuditTrendOut": {

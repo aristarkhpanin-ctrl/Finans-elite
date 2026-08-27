@@ -1280,6 +1280,75 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .flag__evidence td { padding: 4px 0; border-top: 1px solid var(--border); }
 .flag__num { text-align: right; font-family: var(--font-mono); white-space: nowrap; }
 
+/* Сводка дела и вердикт «Финанс-Аудит» (макет Экран 1) */
+/* Охват живёт внутри карточки вердикта: это его ограничение, а не соседняя метрика.
+   Разнести их по экрану — значит позволить прочитать вердикт без охвата. */
+.verdict {
+  display: flex; align-items: stretch; justify-content: space-between; gap: 20px;
+  flex-wrap: wrap; padding: 18px 20px; border-radius: 16px;
+  border: 1px solid var(--border); background: var(--surface); margin-bottom: 14px;
+}
+.verdict--ok { border-color: var(--good-border); background: var(--good-bg); }
+.verdict--warning { border-color: var(--warn-border); background: var(--warn-bg); }
+.verdict--risk { border-color: var(--danger-border); background: var(--danger-bg); }
+.verdict--unreliable { border-color: var(--border-strong); background: var(--surface-2); }
+.verdict__main { flex: 1; min-width: 280px; }
+.verdict__headline {
+  font: 700 20px var(--font-display); letter-spacing: -0.01em; color: var(--text);
+  margin-top: 2px;
+}
+.verdict__detail {
+  margin-top: 7px; max-width: 720px;
+  font: 400 12.5px/1.6 var(--font-ui); color: var(--muted);
+}
+.verdict__coverage {
+  flex: none; min-width: 150px; padding-left: 20px;
+  border-left: 1px solid var(--border); display: flex; flex-direction: column;
+  justify-content: center;
+}
+.verdict__coverage-val {
+  font: 600 30px var(--font-mono); letter-spacing: -0.02em; color: var(--text);
+}
+.linkish {
+  appearance: none; border: none; background: none; padding: 0; cursor: pointer;
+  margin-top: 5px; text-align: left;
+  font: 400 11.5px var(--font-ui); color: var(--accent); text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.sum-metrics {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px;
+  margin-bottom: 14px;
+}
+.sum-metric {
+  padding: 13px 15px; border-radius: 12px;
+  border: 1px solid var(--border); background: var(--surface);
+}
+.sum-metric.tone--ok { border-color: var(--good-border); }
+.sum-metric.tone--warn { border-color: var(--warn-border); }
+.sum-metric.tone--risk { border-color: var(--danger-border); }
+.sum-metric__val {
+  margin-top: 7px; font: 600 19px var(--font-mono); letter-spacing: -0.02em;
+  color: var(--text);
+}
+.sum-metric.tone--warn .sum-metric__val { color: var(--warn-text); }
+.sum-metric.tone--risk .sum-metric__val { color: var(--danger-text); }
+.sum-metric__note {
+  margin-top: 6px; font: 400 11px/1.45 var(--font-ui); color: var(--subtle);
+}
+.sum-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+.sum-row__card { margin: 0; }
+.sum-flags { display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap;
+  font: 400 12.5px var(--font-ui); color: var(--muted); }
+.sum-flags__n { font: 600 22px var(--font-mono); color: var(--text); }
+.sum-flags__n--risk { color: var(--danger); }
+.sum-gaps {
+  margin: 0; padding-left: 18px; font: 400 12.5px/1.6 var(--font-ui); color: var(--muted);
+}
+@media (max-width: 700px) {
+  .verdict__coverage { padding-left: 0; border-left: none; border-top: 1px solid var(--border);
+    padding-top: 12px; }
+}
+
 /* Чек-лист процедур «Финанс-Аудит» (макет Экран 21) */
 .proc-head {
   display: flex; align-items: flex-start; justify-content: space-between; gap: 20px;

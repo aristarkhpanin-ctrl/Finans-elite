@@ -1447,6 +1447,7 @@ export interface components {
              * @default false
              */
             revalued: boolean;
+            summary?: components["schemas"]["AuditSummaryOut"];
             /**
              * User Metrics
              * @default []
@@ -1810,6 +1811,35 @@ export interface components {
             model?: components["schemas"]["AuditGroupModel-Input"] | null;
             /** Name */
             name?: string | null;
+        };
+        /**
+         * AuditHeadMetricOut
+         * @description Показатель шапки сводки. ``value=None`` — величина не считается, а не равна нулю.
+         */
+        AuditHeadMetricOut: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Text
+             * @default
+             */
+            text: string;
+            /**
+             * Tone
+             * @default neutral
+             */
+            tone: string;
+            /** Unit */
+            unit: string;
+            /** Value */
+            value?: string | null;
         };
         /**
          * AuditInputIssueOut
@@ -2389,6 +2419,78 @@ export interface components {
             model?: components["schemas"]["AuditSubjectModel-Input"] | null;
             /** Name */
             name?: string | null;
+        };
+        /**
+         * AuditSummaryOut
+         * @description Сводка дела и вердикт (SPEC, Прил. Н).
+         *
+         *     Оценки сделки здесь нет намеренно: запрошенной цены в модели не существует, DCF не
+         *     построен, бенчмарков нет. ``priced_total`` — оценённое влияние флагов, **не скидка
+         *     к цене**. Всё, чего сводка не считает, перечислено в ``not_computed``.
+         */
+        AuditSummaryOut: {
+            /** Coverage */
+            coverage?: string | null;
+            /**
+             * Detail
+             * @default
+             */
+            detail: string;
+            /**
+             * Headline
+             * @default
+             */
+            headline: string;
+            /**
+             * Input Errors
+             * @default 0
+             */
+            input_errors: number;
+            /**
+             * Metrics
+             * @default []
+             */
+            metrics: components["schemas"]["AuditHeadMetricOut"][];
+            /**
+             * Not Computed
+             * @default []
+             */
+            not_computed: string[];
+            /**
+             * Open Procedures
+             * @default 0
+             */
+            open_procedures: number;
+            /**
+             * Priced Total
+             * @default 0
+             */
+            priced_total: string;
+            /**
+             * Risk Flags
+             * @default 0
+             */
+            risk_flags: number;
+            /**
+             * State
+             * @default empty
+             */
+            state: string;
+            /**
+             * Unpriced
+             * @default 0
+             */
+            unpriced: number;
+            /**
+             * Verdict
+             * @default ok
+             */
+            verdict: string;
+            /**
+             * Warning Flags
+             * @default 0
+             */
+            warning_flags: number;
         };
         /**
          * AuditTrendOut
