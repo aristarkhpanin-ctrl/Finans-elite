@@ -1421,6 +1421,7 @@ export interface components {
             input_issues: components["schemas"]["AuditInputIssueOut"][];
             /** N */
             n: number;
+            obligations?: components["schemas"]["AuditObligationsOut"];
             /**
              * Opinion
              * @default
@@ -1912,6 +1913,136 @@ export interface components {
             total: number;
         };
         /**
+         * AuditMaturityBucketOut
+         * @description Сколько долга упирается в год погашения (не платёж года — график не вводится).
+         */
+        AuditMaturityBucketOut: {
+            /** Amount */
+            amount: string;
+            /**
+             * Kind
+             * @default year
+             */
+            kind: string;
+            /** Label */
+            label: string;
+        };
+        /**
+         * AuditObligationRowOut
+         * @description Строка реестра обязательств: введённое + то, что следует из вида обязательства.
+         */
+        AuditObligationRowOut: {
+            /** Amount */
+            amount: string;
+            /**
+             * Collateral
+             * @default
+             */
+            collateral: string;
+            /** Contract */
+            contract: string;
+            /**
+             * Covenant
+             * @default
+             */
+            covenant: string;
+            /**
+             * Covenant Note
+             * @default
+             */
+            covenant_note: string;
+            /**
+             * Covenant Status
+             * @default unknown
+             */
+            covenant_status: string;
+            /** Creditor */
+            creditor: string;
+            /** Kind */
+            kind: string;
+            /** Kind Label */
+            kind_label: string;
+            /** Maturity */
+            maturity: string;
+            /** Off Balance */
+            off_balance: boolean;
+            /**
+             * On Demand
+             * @default false
+             */
+            on_demand: boolean;
+            /**
+             * Pledged Amount
+             * @default 0
+             */
+            pledged_amount: string;
+            /** Rate */
+            rate?: string | null;
+        };
+        /**
+         * AuditObligationsOut
+         * @description Реестр обязательств: два несводимых итога + сверка с балансом (SPEC, Прил. Л).
+         *
+         *     ``balance_debt`` и ``off_balance`` намеренно не имеют общей суммы: условное
+         *     обязательство ещё не наступило, и сложение утверждало бы обратное.
+         */
+        AuditObligationsOut: {
+            /**
+             * Balance Debt
+             * @default 0
+             */
+            balance_debt: string;
+            /**
+             * Buckets
+             * @default []
+             */
+            buckets: components["schemas"]["AuditMaturityBucketOut"][];
+            /**
+             * Covenants Breached
+             * @default 0
+             */
+            covenants_breached: number;
+            /**
+             * Covenants Unknown
+             * @default 0
+             */
+            covenants_unknown: number;
+            /**
+             * Discrepancy
+             * @default 0
+             */
+            discrepancy: string;
+            /** Free Assets */
+            free_assets?: string | null;
+            /**
+             * Off Balance
+             * @default 0
+             */
+            off_balance: string;
+            /** Pledged Share */
+            pledged_share?: string | null;
+            /**
+             * Pledged Total
+             * @default 0
+             */
+            pledged_total: string;
+            /**
+             * Reconciled
+             * @default true
+             */
+            reconciled: boolean;
+            /**
+             * Reported Debt
+             * @default 0
+             */
+            reported_debt: string;
+            /**
+             * Rows
+             * @default []
+             */
+            rows: components["schemas"]["AuditObligationRowOut"][];
+        };
+        /**
          * AuditPeriod
          * @description Отчётный период: подпись (например «2024», «2024 Q1», «01.2024») и тип.
          *
@@ -2011,6 +2142,8 @@ export interface components {
              * @default
              */
             name: string;
+            /** Obligations */
+            obligations?: components["schemas"]["Obligation-Input"][];
             /** Periods */
             periods?: components["schemas"]["AuditPeriod"][];
             /**
@@ -2059,6 +2192,8 @@ export interface components {
              * @default
              */
             name: string;
+            /** Obligations */
+            obligations?: components["schemas"]["Obligation-Output"][];
             /** Periods */
             periods?: components["schemas"]["AuditPeriod"][];
             /**
@@ -3656,6 +3791,148 @@ export interface components {
             npv_std: string;
             /** Probability Npv Positive */
             probability_npv_positive: string;
+        };
+        /**
+         * Obligation
+         * @description Обязательство реестра (SPEC, Приложение Л): кредит, лизинг или условное.
+         *
+         *     Долг в балансе — две строки-агрегата. Из них не видно ни кому должны, ни под какой
+         *     залог, ни что будет при нарушении ковенанта, — поэтому реестр **вводится**, а не
+         *     выводится из отчётности.
+         *
+         *     ``rate`` и ``maturity_year`` — ``None``, когда не указаны: беспроцентный займ (0%) и
+         *     заём без указанной ставки — разные факты, как и «погашение в 2029» против «срок в
+         *     реестре не заполнен». ``on_demand`` — заём «по требованию»: срока нет не потому, что
+         *     его забыли ввести, а потому, что его нет в договоре.
+         */
+        "Obligation-Input": {
+            /**
+             * Amount
+             * @default 0
+             */
+            amount: number | string;
+            /**
+             * Collateral
+             * @default
+             */
+            collateral: string;
+            /**
+             * Contract
+             * @default
+             */
+            contract: string;
+            /**
+             * Covenant
+             * @default
+             */
+            covenant: string;
+            /**
+             * Covenant Note
+             * @default
+             */
+            covenant_note: string;
+            /**
+             * Covenant Status
+             * @default unknown
+             * @enum {string}
+             */
+            covenant_status: "ok" | "breached" | "unknown";
+            /**
+             * Creditor
+             * @default
+             */
+            creditor: string;
+            /**
+             * Kind
+             * @default credit
+             * @enum {string}
+             */
+            kind: "credit" | "lease" | "loan" | "other" | "guarantee" | "pledge_third_party";
+            /** Maturity Year */
+            maturity_year?: number | null;
+            /**
+             * On Demand
+             * @default false
+             */
+            on_demand: boolean;
+            /**
+             * Pledged Amount
+             * @default 0
+             */
+            pledged_amount: number | string;
+            /** Rate */
+            rate?: number | string | null;
+        };
+        /**
+         * Obligation
+         * @description Обязательство реестра (SPEC, Приложение Л): кредит, лизинг или условное.
+         *
+         *     Долг в балансе — две строки-агрегата. Из них не видно ни кому должны, ни под какой
+         *     залог, ни что будет при нарушении ковенанта, — поэтому реестр **вводится**, а не
+         *     выводится из отчётности.
+         *
+         *     ``rate`` и ``maturity_year`` — ``None``, когда не указаны: беспроцентный займ (0%) и
+         *     заём без указанной ставки — разные факты, как и «погашение в 2029» против «срок в
+         *     реестре не заполнен». ``on_demand`` — заём «по требованию»: срока нет не потому, что
+         *     его забыли ввести, а потому, что его нет в договоре.
+         */
+        "Obligation-Output": {
+            /**
+             * Amount
+             * @default 0
+             */
+            amount: string;
+            /**
+             * Collateral
+             * @default
+             */
+            collateral: string;
+            /**
+             * Contract
+             * @default
+             */
+            contract: string;
+            /**
+             * Covenant
+             * @default
+             */
+            covenant: string;
+            /**
+             * Covenant Note
+             * @default
+             */
+            covenant_note: string;
+            /**
+             * Covenant Status
+             * @default unknown
+             * @enum {string}
+             */
+            covenant_status: "ok" | "breached" | "unknown";
+            /**
+             * Creditor
+             * @default
+             */
+            creditor: string;
+            /**
+             * Kind
+             * @default credit
+             * @enum {string}
+             */
+            kind: "credit" | "lease" | "loan" | "other" | "guarantee" | "pledge_third_party";
+            /** Maturity Year */
+            maturity_year?: number | null;
+            /**
+             * On Demand
+             * @default false
+             */
+            on_demand: boolean;
+            /**
+             * Pledged Amount
+             * @default 0
+             */
+            pledged_amount: string;
+            /** Rate */
+            rate?: string | null;
         };
         /** OperatingPlan */
         "OperatingPlan-Input": {

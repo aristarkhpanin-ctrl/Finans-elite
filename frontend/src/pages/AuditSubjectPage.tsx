@@ -28,6 +28,7 @@ import { Button } from "../components/ui";
 import { AuditInputIssues } from "../components/AuditInputIssues";
 import { AuditEarnings } from "../components/AuditEarnings";
 import { AuditFlags } from "../components/AuditFlags";
+import { AuditObligations } from "../components/AuditObligations";
 import { AuditPrintReport } from "../components/AuditPrintReport";
 import { allBalanced, balanceGaps, serverGaps } from "../auditBalance";
 import { downloadAuditXlsx } from "../auditExport";
@@ -35,7 +36,7 @@ import { downloadAuditTemplate, parseAuditXlsx } from "../auditXlsx";
 import { fmtMoney } from "../format";
 
 type Tab = "subject" | "input" | "reports" | "ratios" | "trends" | "diagnostics"
-  | "flags" | "earnings" | "methods" | "opinion";
+  | "flags" | "earnings" | "obligations" | "methods" | "opinion";
 
 /** Подписи вкладок (в том же виде, что были — ни одна не исчезла). */
 const TAB_LABEL: Record<Tab, string> = {
@@ -47,6 +48,7 @@ const TAB_LABEL: Record<Tab, string> = {
   diagnostics: "Диагностика",
   flags: "Реестр флагов",
   earnings: "Качество прибыли",
+  obligations: "Обязательства и залоги",
   methods: "Методики",
   opinion: "Заключение",
 };
@@ -69,6 +71,7 @@ const SECTIONS: [string, string, Tab[]][] = [
   ["health", "Финансовое состояние", ["ratios", "trends", "diagnostics"]],
   ["quality", "Качество прибыли", ["earnings"]],
   ["flags", "Реестр флагов", ["flags"]],
+  ["obligations", "Обязательства", ["obligations"]],
   ["methods", "Методики", ["methods"]],
   ["opinion", "Заключение", ["opinion"]],
 ];
@@ -150,7 +153,8 @@ export function AuditSubjectPage() {
 
   // Анализ считается по сохранённым данным — только для аналитических вкладок.
   const isAnalysisTab = tab === "reports" || tab === "ratios" || tab === "trends"
-    || tab === "diagnostics" || tab === "opinion" || tab === "methods" || tab === "flags" || tab === "earnings";
+    || tab === "diagnostics" || tab === "opinion" || tab === "methods" || tab === "flags" || tab === "earnings"
+    || tab === "obligations";
   const analysis = useQuery({
     queryKey: ["audit-analysis", id],
     queryFn: () => analyzeAuditSubject(id),
@@ -783,6 +787,12 @@ export function AuditSubjectPage() {
         />
       ) : tab === "flags" ? (
         <AuditFlags registry={analysis.data.flags} periods={analysis.data.periods} />
+      ) : tab === "obligations" ? (
+        <AuditObligations
+          register={analysis.data.obligations}
+          obligations={m.obligations ?? []}
+          onChange={(next) => patch({ obligations: next })}
+        />
       ) : tab === "opinion" ? (
         <div className="audit-block">
           <div className="tab-head" style={{ marginBottom: 12 }}>

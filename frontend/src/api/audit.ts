@@ -50,6 +50,58 @@ export interface AuditModel {
   thresholds?: RatioThreshold[];
   revaluations?: Revaluation[];
   earnings_adjustments?: EarningsAdjustment[];
+  obligations?: Obligation[];
+}
+
+/** Вид обязательства → подпись; забалансовость — свойство вида, а не отдельная галочка. */
+export type ObligationKind =
+  "credit" | "lease" | "loan" | "other" | "guarantee" | "pledge_third_party";
+
+export const OBLIGATION_KINDS: [ObligationKind, string, boolean][] = [
+  ["credit", "Кредит банка", false],
+  ["lease", "Лизинг", false],
+  ["loan", "Займ (в т.ч. участника)", false],
+  ["other", "Иное балансовое обязательство", false],
+  ["guarantee", "Поручительство за третье лицо", true],
+  ["pledge_third_party", "Залог за третье лицо", true],
+];
+
+export const isOffBalanceKind = (kind: ObligationKind): boolean =>
+  OBLIGATION_KINDS.find(([k]) => k === kind)?.[2] ?? false;
+
+/** Статус ковенанта: ставится человеком, `unknown` — по умолчанию и не значит «в норме». */
+export type CovenantStatus = "ok" | "breached" | "unknown";
+
+export const COVENANT_STATUSES: [CovenantStatus, string][] = [
+  ["unknown", "Не проверен"],
+  ["ok", "Соблюдён"],
+  ["breached", "Нарушен"],
+];
+
+/**
+ * Обязательство реестра (SPEC, Приложение Л). `rate`/`maturity_year` — `null`, когда
+ * не указаны: беспроцентный займ (0%) и займ без ставки — разные факты, как и
+ * «погашение в 2029» против «срок не заполнен».
+ */
+export interface Obligation {
+  creditor: string;
+  contract: string;
+  kind: ObligationKind;
+  amount: string;
+  rate: string | null;
+  maturity_year: number | null;
+  on_demand: boolean;
+  collateral: string;
+  pledged_amount: string;
+  covenant: string;
+  covenant_status: CovenantStatus;
+  covenant_note: string;
+}
+
+export function emptyObligation(): Obligation {
+  return { creditor: "", contract: "", kind: "credit", amount: "", rate: null,
+           maturity_year: null, on_demand: false, collateral: "", pledged_amount: "",
+           covenant: "", covenant_status: "unknown", covenant_note: "" };
 }
 
 export interface AuditSubjectSummary {
@@ -210,6 +262,51 @@ export interface AuditAnalysis {
   input_issues: AuditInputIssue[];
   flags: AuditFlagRegistry;
   earnings: AuditEarnings;
+  obligations: AuditObligations;
+}
+
+/** Строка реестра: введённое + то, что следует из вида обязательства. */
+export interface AuditObligationRow {
+  creditor: string;
+  contract: string;
+  kind: string;
+  kind_label: string;
+  off_balance: boolean;
+  amount: string;
+  rate: string | null;
+  maturity: string;              // «2029» | «по требованию» | «срок не указан»
+  on_demand: boolean;
+  collateral: string;
+  pledged_amount: string;
+  covenant: string;
+  covenant_status: CovenantStatus;
+  covenant_note: string;
+}
+
+/** Сколько долга упирается в год погашения (не платёж года — график не вводится). */
+export interface AuditMaturityBucket {
+  label: string;
+  amount: string;
+  kind: "year" | "on_demand" | "unknown";
+}
+
+/**
+ * Реестр обязательств: два итога, которые **никогда не складываются** (SPEC, Прил. Л.1),
+ * и сверка с балансом. `free_assets` — `null`, когда активов нет: сравнивать не с чем.
+ */
+export interface AuditObligations {
+  rows: AuditObligationRow[];
+  balance_debt: string;
+  off_balance: string;
+  reported_debt: string;
+  discrepancy: string;
+  reconciled: boolean;
+  buckets: AuditMaturityBucket[];
+  pledged_total: string;
+  free_assets: string | null;
+  pledged_share: string | null;
+  covenants_breached: number;
+  covenants_unknown: number;
 }
 
 /** Вид корректировки при нормализации прибыли (SPEC, Приложение К.2). */

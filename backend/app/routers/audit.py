@@ -16,6 +16,7 @@ from audit_core import (
     AuditSubjectModel,
     Elimination,
     analyze,
+    build_obligations,
     check_input,
     consolidate_subjects,
     detect_flags,
@@ -166,9 +167,11 @@ def analyze_subject(subject_id: str,
     result = analyze(model)
     # Находки о качестве ввода считаются по исходной модели, а не по результату:
     # анализ уже применил переоценки, а претензии предъявляются к тому, что ввели.
+    obligations = build_obligations(model, result)
     return audit_analysis_response(result, build_opinion(result), check_input(model),
-                                   detect_flags(model, result),
-                                   normalize_earnings(model, result))
+                                   detect_flags(model, result, obligations),
+                                   normalize_earnings(model, result),
+                                   obligations)
 
 
 def _consolidate(members: list[tuple[str, AuditSubjectModel]], name: str,

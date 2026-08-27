@@ -3,22 +3,22 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 /**
- * Контракт ручного зеркала модели.
+ * Контракт ручных зеркал модели.
  *
- * `api/model.ts` написан руками — им типизированы все вкладки редактора. `schema.d.ts`
- * генерируется из OpenAPI, и CI следит за его свежестью, но зеркало не сверялось ни с чем.
- * Поэтому переименование или удаление поля в бэкенде до сих пор доходило до пользователя
- * молча: `tsc` проходит (зеркало самосогласовано), редактор пишет старый ключ, сервер его
+ * `api/model.ts` (проект «Финанс-Элит») и `api/audit.ts` (дело «Финанс-Аудит») написаны
+ * руками — ими типизированы все вкладки редакторов. `schema.d.ts` генерируется из
+ * OpenAPI, и CI следит за его свежестью, но зеркала не сверялись ни с чем. Поэтому
+ * переименование или удаление поля в бэкенде до сих пор доходило до пользователя молча:
+ * `tsc` проходит (зеркало самосогласовано), редактор пишет старый ключ, сервер его
  * игнорирует, введённое значение пропадает без единой ошибки.
  *
- * Здесь имена полей зеркала сверяются с контрактом. Типы намеренно **не** сверяются:
+ * Здесь имена полей зеркал сверяются с контрактом. Типы намеренно **не** сверяются:
  * зеркало сужает деньги до `string` (чтобы во float-поле нельзя было положить число) и
  * допускает частично заполненные объекты — точное совпадение типов заставило бы его
  * ослабнуть. Ловятся ровно переименования и пропажи.
  */
 
 const root = fileURLToPath(new URL("../..", import.meta.url));
-const modelTs = readFileSync(new URL("./model.ts", import.meta.url), "utf8");
 const spec = JSON.parse(readFileSync(root + "../backend/openapi.json", "utf8"));
 const schemas: Record<string, { properties?: Record<string, unknown>; required?: string[] }> =
   spec.components.schemas;
@@ -30,6 +30,20 @@ const schemas: Record<string, { properties?: Record<string, unknown>; required?:
 const ALIASES: Record<string, string> = {
   CustomTax: "Tax",             // в бэкенде просто Tax, во фронте уточнено «настраиваемый»
   ProjectDetail: "ProjectOut",  // ответ GET /projects/{id}
+  // «Финанс-Аудит»: во фронте суффикс `Out` опущен там, где ответ один-единственный.
+  AuditModel: "AuditSubjectModel",
+  AuditDiagnostics: "AuditDiagnosticsOut",
+  AuditAnalysis: "AuditAnalysisOut",
+  AuditAppliedAdjustment: "AuditAdjustmentOut",
+  AuditEarnings: "AuditEarningsOut",
+  AuditFlag: "AuditFlagOut",
+  AuditFlagRegistry: "AuditFlagsOut",
+  AuditInputIssue: "AuditInputIssueOut",
+  AuditObligationRow: "AuditObligationRowOut",
+  AuditMaturityBucket: "AuditMaturityBucketOut",
+  AuditObligations: "AuditObligationsOut",
+  AuditConsolidation: "AuditConsolidateResponse",
+  AuditElimination: "AuditEliminationIn",
 };
 
 /** Схема контракта по имени интерфейса (pydantic делит на -Input/-Output). */
@@ -41,9 +55,9 @@ function schemaFor(name: string) {
   return null;
 }
 
-/** Поля интерфейса из текста `model.ts` (без комментариев и вложенных литералов). */
-function fieldsOf(source: string, name: string): string[] {
-  const start = source.indexOf(`export interface ${name} {`);
+/** Собственные поля интерфейса из текста (без комментариев и вложенных литералов). */
+function ownFields(source: string, name: string): string[] {
+  const start = source.indexOf(`export interface ${name} `);
   if (start < 0) return [];
   let depth = 0;
   let i = source.indexOf("{", start);
@@ -68,11 +82,32 @@ function fieldsOf(source: string, name: string): string[] {
   return out;
 }
 
-const interfaces = [...modelTs.matchAll(/export interface (\w+)/g)].map((m) => m[1]);
+/**
+ * Поля интерфейса **вместе с унаследованными**: `AuditSubjectOut extends
+ * AuditSubjectSummary` — обязательные поля контракта лежат в родителе, и без обхода
+ * `extends` тест ругался бы на пропажу того, что на месте.
+ */
+function fieldsOf(source: string, name: string, seen = new Set<string>()): string[] {
+  if (seen.has(name)) return [];
+  seen.add(name);
+  const decl = new RegExp(`export interface ${name} extends ([\\w,\\s]+)\\{`).exec(source);
+  const inherited = decl
+    ? decl[1].split(",").flatMap((p) => fieldsOf(source, p.trim(), seen))
+    : [];
+  return [...inherited, ...ownFields(source, name)];
+}
 
-describe("Зеркало модели совпадает с контрактом бэкенда", () => {
+/** Зеркала под проверкой: файл и то, сколько интерфейсов в нём ожидается как минимум. */
+const MIRRORS: [string, string, number][] = [
+  ["модель проекта (model.ts)", readFileSync(new URL("./model.ts", import.meta.url), "utf8"), 30],
+  ["дело аудита (audit.ts)", readFileSync(new URL("./audit.ts", import.meta.url), "utf8"), 25],
+];
+
+describe.each(MIRRORS)("Зеркало «%s» совпадает с контрактом бэкенда", (_label, src, least) => {
+  const interfaces = [...src.matchAll(/export interface (\w+)/g)].map((m) => m[1]);
+
   it("интерфейсы найдены и их достаточно много (парсер не сломался)", () => {
-    expect(interfaces.length).toBeGreaterThan(30);
+    expect(interfaces.length).toBeGreaterThan(least);
   });
 
   it("у каждого интерфейса есть схема в контракте", () => {
@@ -85,7 +120,7 @@ describe("Зеркало модели совпадает с контрактом
     const found = schemaFor(name);
     if (!found) return;                       // покрыто отдельным тестом выше
     const known = new Set(Object.keys(found.schema.properties ?? {}));
-    const extra = fieldsOf(modelTs, name).filter((f) => !known.has(f));
+    const extra = fieldsOf(src, name).filter((f) => !known.has(f));
     expect(extra, `поля есть в зеркале, но нет в схеме ${found.key} — ` +
       "редактор запишет их, а сервер молча проигнорирует").toEqual([]);
   });
@@ -93,16 +128,23 @@ describe("Зеркало модели совпадает с контрактом
   it.each(interfaces)("«%s»: обязательные поля контракта присутствуют", (name) => {
     const found = schemaFor(name);
     if (!found) return;
-    const mine = new Set(fieldsOf(modelTs, name));
+    const mine = new Set(fieldsOf(src, name));
     const missing = (found.schema.required ?? []).filter((f) => !mine.has(f));
     expect(missing, `обязательные поля схемы ${found.key} отсутствуют в зеркале`)
       .toEqual([]);
   });
+});
 
+describe("Разбор зеркала", () => {
   it("парсер полей действительно читает поля, а не пустоту", () => {
     // Защита от «зелёного» теста при сломанном разборе: у известного интерфейса
     // поля обязаны найтись, причём именно те.
-    expect(fieldsOf(modelTs, "CustomTax").sort())
+    expect(fieldsOf(MIRRORS[0][1], "CustomTax").sort())
       .toEqual(["allocation", "base", "formula", "name", "periodicity", "rate"]);
+  });
+
+  it("унаследованные поля попадают в разбор", () => {
+    // Без обхода `extends` обязательные поля родителя выглядели бы пропавшими.
+    expect(fieldsOf(MIRRORS[1][1], "AuditSubjectOut")).toContain("created_at");
   });
 });

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from .models import AuditPeriod, AuditSubjectModel
+from .models import AuditPeriod, AuditSubjectModel, Obligation
 
 D = Decimal
 
@@ -41,6 +41,36 @@ def build_trading_subject() -> AuditSubjectModel:
             "I_OTHER": [D(0), D(100), D(-50)],
             "I_TAX": [D(320), D(414), D(540)],
         },
+        # Реестр обязательств (SPEC, Приложение Л). Сумма балансовых = 6300 = P_LONG
+        # 2600 + P_SHORT 3700 последнего периода: демо показывает **сошедшийся** реестр,
+        # иначе экран учил бы читателя мириться с расхождением.
+        obligations=[
+            Obligation(creditor="Сбербанк", contract="КД-4417/24 от 18.04.2024",
+                       kind="credit", amount=D(2600), rate=D("0.158"),
+                       maturity_year=2029, collateral="склад, кадастр 54:35:0141",
+                       pledged_amount=D(3200), covenant="Долг / EBITDA ≤ 3.0",
+                       covenant_status="ok",
+                       covenant_note="проверка ежеквартально по данным РСБУ"),
+            Obligation(creditor="Альфа-Банк", contract="ВКЛ-119-Т от 02.11.2023",
+                       kind="credit", amount=D(2200), rate=D("0.172"),
+                       maturity_year=2026, collateral="товары в обороте",
+                       pledged_amount=D(2600), covenant="Текущая ликвидность ≥ 1.2",
+                       covenant_status="ok"),
+            # Ковенант без проверки: «не проверен» — значение по умолчанию, и оно
+            # намеренно не выдаётся за «соблюдён» (Л.3).
+            Obligation(creditor="Лизинг «Балтийский»", contract="ДЛ-2291 от 30.06.2024",
+                       kind="lease", amount=D(900), rate=D("0.164"), maturity_year=2027,
+                       collateral="предмет лизинга", pledged_amount=D(1100),
+                       covenant="Долг / капитал ≤ 1.5"),
+            # Беспроцентный займ участника: ставка **0**, а не «не указана» — разные факты.
+            Obligation(creditor="Займ участника", contract="ДЗ-1 от 11.02.2023",
+                       kind="loan", amount=D(600), rate=D(0), on_demand=True),
+            # Забалансовое: в сумму долга не входит и с ней не складывается (Л.1).
+            Obligation(creditor="ООО «Смежный склад»",
+                       contract="Договор поручительства ДП-7 от 05.03.2024",
+                       kind="guarantee", amount=D(1500),
+                       covenant_note="поручительство за связанную сторону"),
+        ],
     )
 
 

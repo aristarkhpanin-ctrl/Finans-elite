@@ -1280,6 +1280,81 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .flag__evidence td { padding: 4px 0; border-top: 1px solid var(--border); }
 .flag__num { text-align: right; font-family: var(--font-mono); white-space: nowrap; }
 
+/* Обязательства и залоги «Финанс-Аудит» (макет Экран 10) */
+/* Два итога стоят рядом и намеренно **не** объединены общей суммой: забалансовое
+   обязательство ещё не наступило (SPEC, Приложение Л.1). Оговорка занимает место
+   третьей карточки — там, где взгляд ищет итог. */
+.obl-totals {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;
+  margin-bottom: 12px;
+}
+.obl-total {
+  padding: 14px 16px; border-radius: 14px;
+  border: 1px solid var(--border); background: var(--surface);
+}
+.obl-total--off { border-color: var(--warn-border); background: var(--warn-bg); }
+.obl-total__val {
+  font: 600 22px var(--font-mono); letter-spacing: -0.02em; color: var(--text);
+}
+.obl-total__sub { margin-top: 5px; font: 400 11.5px var(--font-ui); color: var(--subtle); }
+.obl-totals__note {
+  align-self: center; font: 400 12.5px/1.55 var(--font-ui); color: var(--muted);
+}
+.obl-recon {
+  display: flex; align-items: flex-start; gap: 20px; flex-wrap: wrap;
+  padding: 13px 16px; border-radius: 12px; margin-bottom: 16px;
+  border: 1px solid var(--border); background: var(--surface-2);
+}
+.obl-recon--ok { border-color: var(--good-border); background: var(--good-bg); }
+.obl-recon--bad { border-color: var(--danger-border); background: var(--danger-bg); }
+.obl-recon__val { font: 600 18px var(--font-mono); color: var(--text); }
+.obl-recon__text {
+  flex: 1; min-width: 260px; font: 400 12.5px/1.55 var(--font-ui); color: var(--muted);
+}
+.obl-bars { display: flex; flex-direction: column; gap: 6px; }
+.obl-bar { display: grid; grid-template-columns: 92px 1fr 110px; gap: 10px; align-items: center; }
+.obl-bar__label { font: 500 12px var(--font-mono); color: var(--muted); }
+.obl-bar__track {
+  height: 18px; border-radius: 5px; background: var(--surface-2); overflow: hidden;
+}
+.obl-bar__fill { height: 100%; border-radius: 5px; background: var(--primary); }
+/* «По требованию» и «срок не указан» — не годы: полоса штрихуется, чтобы её не
+   прочитали как обычный год на шкале. */
+.obl-bar__fill--odd {
+  background: repeating-linear-gradient(135deg, var(--warn) 0 5px, transparent 5px 10px),
+              var(--warn-bg);
+}
+.obl-bar__val { font: 500 12.5px var(--font-mono); color: var(--text); text-align: right; }
+.obl-pledge {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;
+  align-items: center;
+}
+.obl-pledge__pct { font: 400 12px var(--font-ui); color: var(--muted); }
+.obl-editor {
+  padding: 12px 0; border-top: 1px solid var(--grid-line);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.obl-editor__row {
+  display: grid; grid-template-columns: 1.3fr 1.3fr 1fr auto; gap: 8px; align-items: end;
+}
+.obl-editor__note { margin: 0; }
+/* Строка обеспечения короче остальных: без растяжки поле «что заложено» осталось бы
+   узким, а справа висела бы дыра в две колонки. */
+.obl-editor__wide { grid-column: span 2; }
+.obl-cell { display: flex; flex-direction: column; gap: 3px; }
+.obl-cell--check { flex-direction: row; align-items: center; gap: 7px;
+  font: 400 12.5px var(--font-ui); color: var(--muted); padding-bottom: 9px; }
+.obl-cell--warn { color: var(--warn-text, var(--warn)); }
+.obl-row--off td { background: var(--warn-bg); }
+.obl-cov { display: block; }
+.cov--ok { color: var(--accent); }
+.cov--bad { color: var(--danger); }
+.cov--unknown { color: var(--warn-text, var(--warn)); }
+@media (max-width: 900px) {
+  .obl-editor__row { grid-template-columns: 1fr 1fr; }
+  .obl-bar { grid-template-columns: 72px 1fr 92px; }
+}
+
 /* Вторая полоса вкладок внутри раздела дела («Финанс-Аудит»). Тише основной:
    это уточнение внутри раздела, а не выбор раздела. */
 .subseg { display: flex; flex-wrap: wrap; gap: 2px; margin-bottom: 16px; }

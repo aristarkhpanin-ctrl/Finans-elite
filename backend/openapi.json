@@ -411,6 +411,9 @@
             "title": "N",
             "type": "integer"
           },
+          "obligations": {
+            "$ref": "#/components/schemas/AuditObligationsOut"
+          },
           "opinion": {
             "default": "",
             "title": "Opinion",
@@ -1234,6 +1237,211 @@
         "title": "AuditLogPage",
         "type": "object"
       },
+      "AuditMaturityBucketOut": {
+        "description": "Сколько долга упирается в год погашения (не платёж года — график не вводится).",
+        "properties": {
+          "amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "kind": {
+            "default": "year",
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "amount"
+        ],
+        "title": "AuditMaturityBucketOut",
+        "type": "object"
+      },
+      "AuditObligationRowOut": {
+        "description": "Строка реестра обязательств: введённое + то, что следует из вида обязательства.",
+        "properties": {
+          "amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "collateral": {
+            "default": "",
+            "title": "Collateral",
+            "type": "string"
+          },
+          "contract": {
+            "title": "Contract",
+            "type": "string"
+          },
+          "covenant": {
+            "default": "",
+            "title": "Covenant",
+            "type": "string"
+          },
+          "covenant_note": {
+            "default": "",
+            "title": "Covenant Note",
+            "type": "string"
+          },
+          "covenant_status": {
+            "default": "unknown",
+            "title": "Covenant Status",
+            "type": "string"
+          },
+          "creditor": {
+            "title": "Creditor",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "kind_label": {
+            "title": "Kind Label",
+            "type": "string"
+          },
+          "maturity": {
+            "title": "Maturity",
+            "type": "string"
+          },
+          "off_balance": {
+            "title": "Off Balance",
+            "type": "boolean"
+          },
+          "on_demand": {
+            "default": false,
+            "title": "On Demand",
+            "type": "boolean"
+          },
+          "pledged_amount": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Pledged Amount",
+            "type": "string"
+          },
+          "rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate"
+          }
+        },
+        "required": [
+          "creditor",
+          "contract",
+          "kind",
+          "kind_label",
+          "off_balance",
+          "amount",
+          "maturity"
+        ],
+        "title": "AuditObligationRowOut",
+        "type": "object"
+      },
+      "AuditObligationsOut": {
+        "description": "Реестр обязательств: два несводимых итога + сверка с балансом (SPEC, Прил. Л).\n\n``balance_debt`` и ``off_balance`` намеренно не имеют общей суммы: условное\nобязательство ещё не наступило, и сложение утверждало бы обратное.",
+        "properties": {
+          "balance_debt": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Balance Debt",
+            "type": "string"
+          },
+          "buckets": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AuditMaturityBucketOut"
+            },
+            "title": "Buckets",
+            "type": "array"
+          },
+          "covenants_breached": {
+            "default": 0,
+            "title": "Covenants Breached",
+            "type": "integer"
+          },
+          "covenants_unknown": {
+            "default": 0,
+            "title": "Covenants Unknown",
+            "type": "integer"
+          },
+          "discrepancy": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Discrepancy",
+            "type": "string"
+          },
+          "free_assets": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Free Assets"
+          },
+          "off_balance": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Off Balance",
+            "type": "string"
+          },
+          "pledged_share": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pledged Share"
+          },
+          "pledged_total": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Pledged Total",
+            "type": "string"
+          },
+          "reconciled": {
+            "default": true,
+            "title": "Reconciled",
+            "type": "boolean"
+          },
+          "reported_debt": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Reported Debt",
+            "type": "string"
+          },
+          "rows": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AuditObligationRowOut"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "title": "AuditObligationsOut",
+        "type": "object"
+      },
       "AuditPeriod": {
         "description": "Отчётный период: подпись (например «2024», «2024 Q1», «01.2024») и тип.\n\nТип задаёт длину периода: показатели «в днях» считаются по ней, а потоковые\nпоказатели приводятся к году (квартал ×4, месяц ×12) — иначе периоды разной\nдлины были бы несопоставимы.",
         "properties": {
@@ -1429,6 +1637,14 @@
             "title": "Name",
             "type": "string"
           },
+          "obligations": {
+            "items": {
+              "$ref": "#/components/schemas/Obligation-Input"
+            },
+            "maxItems": 200,
+            "title": "Obligations",
+            "type": "array"
+          },
           "periods": {
             "items": {
               "$ref": "#/components/schemas/AuditPeriod"
@@ -1525,6 +1741,14 @@
             "maxLength": 255,
             "title": "Name",
             "type": "string"
+          },
+          "obligations": {
+            "items": {
+              "$ref": "#/components/schemas/Obligation-Output"
+            },
+            "maxItems": 200,
+            "title": "Obligations",
+            "type": "array"
           },
           "periods": {
             "items": {
@@ -4660,6 +4884,223 @@
           "probability_npv_positive"
         ],
         "title": "MonteCarloResponse",
+        "type": "object"
+      },
+      "Obligation-Input": {
+        "description": "Обязательство реестра (SPEC, Приложение Л): кредит, лизинг или условное.\n\nДолг в балансе — две строки-агрегата. Из них не видно ни кому должны, ни под какой\nзалог, ни что будет при нарушении ковенанта, — поэтому реестр **вводится**, а не\nвыводится из отчётности.\n\n``rate`` и ``maturity_year`` — ``None``, когда не указаны: беспроцентный займ (0%) и\nзаём без указанной ставки — разные факты, как и «погашение в 2029» против «срок в\nреестре не заполнен». ``on_demand`` — заём «по требованию»: срока нет не потому, что\nего забыли ввести, а потому, что его нет в договоре.",
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Amount"
+          },
+          "collateral": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Collateral",
+            "type": "string"
+          },
+          "contract": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Contract",
+            "type": "string"
+          },
+          "covenant": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Covenant",
+            "type": "string"
+          },
+          "covenant_note": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Covenant Note",
+            "type": "string"
+          },
+          "covenant_status": {
+            "default": "unknown",
+            "enum": [
+              "ok",
+              "breached",
+              "unknown"
+            ],
+            "title": "Covenant Status",
+            "type": "string"
+          },
+          "creditor": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Creditor",
+            "type": "string"
+          },
+          "kind": {
+            "default": "credit",
+            "enum": [
+              "credit",
+              "lease",
+              "loan",
+              "other",
+              "guarantee",
+              "pledge_third_party"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "maturity_year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maturity Year"
+          },
+          "on_demand": {
+            "default": false,
+            "title": "On Demand",
+            "type": "boolean"
+          },
+          "pledged_amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Pledged Amount"
+          },
+          "rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate"
+          }
+        },
+        "title": "Obligation",
+        "type": "object"
+      },
+      "Obligation-Output": {
+        "description": "Обязательство реестра (SPEC, Приложение Л): кредит, лизинг или условное.\n\nДолг в балансе — две строки-агрегата. Из них не видно ни кому должны, ни под какой\nзалог, ни что будет при нарушении ковенанта, — поэтому реестр **вводится**, а не\nвыводится из отчётности.\n\n``rate`` и ``maturity_year`` — ``None``, когда не указаны: беспроцентный займ (0%) и\nзаём без указанной ставки — разные факты, как и «погашение в 2029» против «срок в\nреестре не заполнен». ``on_demand`` — заём «по требованию»: срока нет не потому, что\nего забыли ввести, а потому, что его нет в договоре.",
+        "properties": {
+          "amount": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "collateral": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Collateral",
+            "type": "string"
+          },
+          "contract": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Contract",
+            "type": "string"
+          },
+          "covenant": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Covenant",
+            "type": "string"
+          },
+          "covenant_note": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Covenant Note",
+            "type": "string"
+          },
+          "covenant_status": {
+            "default": "unknown",
+            "enum": [
+              "ok",
+              "breached",
+              "unknown"
+            ],
+            "title": "Covenant Status",
+            "type": "string"
+          },
+          "creditor": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Creditor",
+            "type": "string"
+          },
+          "kind": {
+            "default": "credit",
+            "enum": [
+              "credit",
+              "lease",
+              "loan",
+              "other",
+              "guarantee",
+              "pledge_third_party"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "maturity_year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maturity Year"
+          },
+          "on_demand": {
+            "default": false,
+            "title": "On Demand",
+            "type": "boolean"
+          },
+          "pledged_amount": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Pledged Amount",
+            "type": "string"
+          },
+          "rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate"
+          }
+        },
+        "title": "Obligation",
         "type": "object"
       },
       "OperatingPlan-Input": {

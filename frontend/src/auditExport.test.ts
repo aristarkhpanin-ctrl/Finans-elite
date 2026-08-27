@@ -49,6 +49,10 @@ const analysis = (over: Partial<AuditAnalysis> = {}): AuditAnalysis => ({
   flags: { flags: [], priced_total: "0", unpriced: 0 },
   earnings: { base_code: "EBIT", reported: [], normalized: [], adjustments: [],
               grade: null, grade_note: "", deviation: null },
+  obligations: { rows: [], balance_debt: "0", off_balance: "0", reported_debt: "0",
+                 discrepancy: "0", reconciled: true, buckets: [], pledged_total: "0",
+                 free_assets: null, pledged_share: null, covenants_breached: 0,
+                 covenants_unknown: 0 },
   ...over,
 });
 

@@ -940,6 +940,8 @@ class AuditAnalysisOut(BaseModel):
     flags: "AuditFlagsOut" = None  # type: ignore[assignment]
     # Качество прибыли («Экран 7»); в AuditResult не входит — см. SPEC, Прил. К.
     earnings: "AuditEarningsOut" = None  # type: ignore[assignment]
+    # Реестр обязательств и залогов («Экран 10»); в AuditResult не входит — SPEC, Прил. Л.
+    obligations: "AuditObligationsOut" = None  # type: ignore[assignment]
 
 
 class AuditAdjustmentOut(BaseModel):
@@ -992,6 +994,54 @@ class AuditFlagsOut(BaseModel):
     flags: list[AuditFlagOut] = []
     priced_total: Decimal = Decimal(0)
     unpriced: int = 0
+
+
+class AuditObligationRowOut(BaseModel):
+    """Строка реестра обязательств: введённое + то, что следует из вида обязательства."""
+
+    creditor: str
+    contract: str
+    kind: str
+    kind_label: str
+    off_balance: bool
+    amount: Decimal
+    rate: Optional[Decimal] = None       # None — ставка не указана (≠ беспроцентный)
+    maturity: str                        # «2029» | «по требованию» | «срок не указан»
+    on_demand: bool = False
+    collateral: str = ""
+    pledged_amount: Decimal = Decimal(0)
+    covenant: str = ""
+    covenant_status: str = "unknown"     # ok | breached | unknown
+    covenant_note: str = ""
+
+
+class AuditMaturityBucketOut(BaseModel):
+    """Сколько долга упирается в год погашения (не платёж года — график не вводится)."""
+
+    label: str
+    amount: Decimal
+    kind: str = "year"                   # year | on_demand | unknown
+
+
+class AuditObligationsOut(BaseModel):
+    """Реестр обязательств: два несводимых итога + сверка с балансом (SPEC, Прил. Л).
+
+    ``balance_debt`` и ``off_balance`` намеренно не имеют общей суммы: условное
+    обязательство ещё не наступило, и сложение утверждало бы обратное.
+    """
+
+    rows: list[AuditObligationRowOut] = []
+    balance_debt: Decimal = Decimal(0)
+    off_balance: Decimal = Decimal(0)
+    reported_debt: Decimal = Decimal(0)  # P_LONG + P_SHORT последнего периода
+    discrepancy: Decimal = Decimal(0)    # отчётность − реестр
+    reconciled: bool = True
+    buckets: list[AuditMaturityBucketOut] = []
+    pledged_total: Decimal = Decimal(0)
+    free_assets: Optional[Decimal] = None    # None — активов нет, сравнивать не с чем
+    pledged_share: Optional[Decimal] = None
+    covenants_breached: int = 0
+    covenants_unknown: int = 0
 
 
 class AuditInputIssueOut(BaseModel):
@@ -1090,10 +1140,33 @@ class AuditGroupOut(AuditGroupSummary):
 
 
 def audit_analysis_response(result, opinion: str = "", issues=(),
-                            flags=None, earnings=None) -> "AuditAnalysisOut":
+                            flags=None, earnings=None,
+                            obligations=None) -> "AuditAnalysisOut":
     """Собрать ответ анализа из ``audit_core.AuditResult`` (+ заключение, ввод, флаги)."""
     return AuditAnalysisOut(
         opinion=opinion,
+        obligations=AuditObligationsOut(
+            rows=[AuditObligationRowOut(
+                creditor=r.creditor, contract=r.contract, kind=r.kind,
+                kind_label=r.kind_label, off_balance=r.off_balance, amount=r.amount,
+                rate=r.rate, maturity=r.maturity, on_demand=r.on_demand,
+                collateral=r.collateral, pledged_amount=r.pledged_amount,
+                covenant=r.covenant, covenant_status=r.covenant_status,
+                covenant_note=r.covenant_note,
+            ) for r in (obligations.rows if obligations else [])],
+            balance_debt=obligations.balance_debt if obligations else Decimal(0),
+            off_balance=obligations.off_balance if obligations else Decimal(0),
+            reported_debt=obligations.reported_debt if obligations else Decimal(0),
+            discrepancy=obligations.discrepancy if obligations else Decimal(0),
+            reconciled=obligations.reconciled if obligations else True,
+            buckets=[AuditMaturityBucketOut(label=b.label, amount=b.amount, kind=b.kind)
+                     for b in (obligations.buckets if obligations else [])],
+            pledged_total=obligations.pledged_total if obligations else Decimal(0),
+            free_assets=obligations.free_assets if obligations else None,
+            pledged_share=obligations.pledged_share if obligations else None,
+            covenants_breached=obligations.covenants_breached if obligations else 0,
+            covenants_unknown=obligations.covenants_unknown if obligations else 0,
+        ),
         earnings=AuditEarningsOut(
             base_code=earnings.base_code if earnings else "EBIT",
             reported=list(earnings.reported) if earnings else [],

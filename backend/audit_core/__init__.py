@@ -11,7 +11,8 @@ from .consolidate import Consolidation, Elimination, consolidate_subjects
 from .earnings import EarningsQuality, normalize_earnings
 from .flags import Flag, FlagRegistry, detect_flags
 from .input_check import InputIssue, check_input
-from .models import AuditPeriod, AuditSubjectModel
+from .models import AuditPeriod, AuditSubjectModel, Obligation
+from .obligations import ObligationRegister, build_obligations
 from .result import AuditLine, AuditResult, ShareLine, TrendLine
 
 __all__ = [
@@ -25,9 +26,12 @@ __all__ = [
     "Flag",
     "FlagRegistry",
     "InputIssue",
+    "Obligation",
+    "ObligationRegister",
     "ShareLine",
     "TrendLine",
     "analyze",
+    "build_obligations",
     "check_input",
     "detect_flags",
     "normalize_earnings",

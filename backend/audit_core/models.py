@@ -89,6 +89,57 @@ class EarningsAdjustment(BaseModel):
     amounts: list[Decimal] = Field(default_factory=list)
 
 
+#: Виды обязательства → (подпись, забалансовое ли). Забалансовость — свойство **вида**,
+#: а не отдельная галочка: кредит нельзя объявить условным, а поручительство — балансовым.
+OBLIGATION_KINDS: dict[str, tuple[str, bool]] = {
+    "credit": ("Кредит банка", False),
+    "lease": ("Лизинг", False),
+    "loan": ("Займ (в т.ч. участника)", False),
+    "other": ("Иное балансовое обязательство", False),
+    "guarantee": ("Поручительство за третье лицо", True),
+    "pledge_third_party": ("Залог за третье лицо", True),
+}
+
+
+class Obligation(BaseModel):
+    """Обязательство реестра (SPEC, Приложение Л): кредит, лизинг или условное.
+
+    Долг в балансе — две строки-агрегата. Из них не видно ни кому должны, ни под какой
+    залог, ни что будет при нарушении ковенанта, — поэтому реестр **вводится**, а не
+    выводится из отчётности.
+
+    ``rate`` и ``maturity_year`` — ``None``, когда не указаны: беспроцентный займ (0%) и
+    заём без указанной ставки — разные факты, как и «погашение в 2029» против «срок в
+    реестре не заполнен». ``on_demand`` — заём «по требованию»: срока нет не потому, что
+    его забыли ввести, а потому, что его нет в договоре.
+    """
+
+    creditor: str = Field(default="", max_length=200)
+    contract: str = Field(default="", max_length=200)
+    kind: Literal["credit", "lease", "loan", "other",
+                  "guarantee", "pledge_third_party"] = "credit"
+    #: Остаток долга (балансовое) либо сумма условного обязательства.
+    amount: Decimal = Decimal(0)
+    rate: Decimal | None = None
+    maturity_year: int | None = None
+    on_demand: bool = False
+    collateral: str = Field(default="", max_length=200)
+    #: Оценка заложенного имущества. 0 — залога нет либо он не оценён.
+    pledged_amount: Decimal = Decimal(0)
+    #: Условие договора текстом («Долг/EBITDA ≤ 2.5×») — к нашим показателям не сводится.
+    covenant: str = Field(default="", max_length=200)
+    covenant_status: Literal["ok", "breached", "unknown"] = "unknown"
+    covenant_note: str = Field(default="", max_length=300)
+
+    @property
+    def is_off_balance(self) -> bool:
+        return OBLIGATION_KINDS[self.kind][1]
+
+    @property
+    def kind_label(self) -> str:
+        return OBLIGATION_KINDS[self.kind][0]
+
+
 class AuditSubjectModel(BaseModel):
     """Субъект анализа с фактической отчётностью по периодам.
 
@@ -118,6 +169,9 @@ class AuditSubjectModel(BaseModel):
     # список инертен — нормализованный показатель равен отчётному.
     earnings_adjustments: list[EarningsAdjustment] = Field(default_factory=list,
                                                            max_length=50)
+    # Реестр обязательств и залогов (фаза 4). Пустой список инертен: реестра нет —
+    # сверять и нечего, новых флагов не появляется.
+    obligations: list[Obligation] = Field(default_factory=list, max_length=200)
 
     @property
     def n(self) -> int:

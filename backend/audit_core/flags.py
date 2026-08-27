@@ -24,6 +24,12 @@ from decimal import Decimal
 from typing import Optional
 
 from .models import AuditSubjectModel
+from .obligations import (
+    OFF_BALANCE_MATERIAL_SHARE,
+    PLEDGE_HEAVY_SHARE,
+    ObligationRegister,
+    build_obligations,
+)
 from .result import AuditResult
 
 D = Decimal
@@ -78,13 +84,17 @@ def _grew(series: list[Decimal], t: int) -> Optional[Decimal]:
     return (cur - base) / base
 
 
-def detect_flags(model: AuditSubjectModel, result: AuditResult) -> FlagRegistry:
-    """Красные флаги по введённой отчётности.
+def detect_flags(model: AuditSubjectModel, result: AuditResult,
+                 obligations: Optional[ObligationRegister] = None) -> FlagRegistry:
+    """Красные флаги по введённой отчётности и реестру обязательств.
 
-    Правила опираются только на агрегатную отчётность. 24 процедуры из макета требуют
-    первичных документов — выписок, реестра залогов, договоров, — которых в модели нет;
-    правило, которому нечего читать, не заводится: оно не «пока не реализовано», а не
-    имеет входных данных.
+    Правила опираются на агрегатную отчётность и на то, что введено руками (реестр
+    обязательств — SPEC, Приложение Л). 24 процедуры из макета требуют первичных
+    документов — выписок, договоров, — которых в модели нет; правило, которому нечего
+    читать, не заводится: оно не «пока не реализовано», а не имеет входных данных.
+
+    ``obligations`` — уже посчитанный реестр (чтобы не считать его дважды за запрос);
+    не передан — считается здесь.
     """
     n = result.n
     reg = FlagRegistry()
@@ -229,6 +239,76 @@ def detect_flags(model: AuditSubjectModel, result: AuditResult) -> FlagRegistry:
                         "Рост куплен ценой."),
                 periods=[t],
                 evidence={"margin_was": was, "margin_now": now},
+            ))
+
+    # ── Реестр обязательств (SPEC, Приложение Л.4) ───────────────────────────
+    # Пустой реестр не даёт ни одного флага: обязательства не выводятся из отчётности,
+    # и молчание реестра — это «не заполнено», а не «обязательств нет».
+    reg_ob = obligations if obligations is not None else build_obligations(model, result)
+    if reg_ob.has_rows:
+        breached = [r for r in reg_ob.rows if r.covenant and r.covenant_status == "breached"]
+        if breached:
+            add(Flag(
+                code="covenant_breached", severity="risk",
+                title="Нарушены ковенанты по кредитам",
+                detail=("Кредитор вправе потребовать досрочного погашения: "
+                        + "; ".join(f"{r.creditor} — «{r.covenant}»" for r in breached)
+                        + ". Такой долг перестаёт быть долгосрочным."),
+                periods=[last],
+                # Мера — весь остаток по нарушенным договорам: истребован может быть он весь.
+                impact=sum((r.amount for r in breached), D(0)),
+                evidence={"breached_debt": sum((r.amount for r in breached), D(0)),
+                          "covenants_breached": D(len(breached))},
+            ))
+
+        if reg_ob.off_balance > 0:
+            eq = equity[last]
+            material = eq <= 0 or reg_ob.off_balance >= eq * OFF_BALANCE_MATERIAL_SHARE
+            if material:
+                why = ("у предприятия отрицательный капитал, поэтому существенно любое"
+                       if eq <= 0 else
+                       f"это больше половины собственного капитала ({eq})")
+                add(Flag(
+                    code="off_balance_material", severity="risk",
+                    title="Существенные забалансовые обязательства",
+                    detail=(f"Условные обязательства (поручительства, залоги за третьих "
+                            f"лиц) — {reg_ob.off_balance}: {why}. В балансе их нет, но "
+                            "они станут долгом покупателя, если основной должник "
+                            "перестанет платить."),
+                    periods=[last], impact=reg_ob.off_balance,
+                    evidence={"off_balance": reg_ob.off_balance, "equity": eq},
+                ))
+
+        if reg_ob.pledged_share is not None and reg_ob.pledged_share >= PLEDGE_HEAVY_SHARE:
+            # Денежной меры нет: залог не уменьшает стоимость активов, он лишает
+            # свободы ими распорядиться. Сумма скидки отсюда не выводится.
+            add(Flag(
+                code="pledged_most_assets", severity="warning",
+                title="Активы заложены почти целиком",
+                detail=(f"Под залогом {reg_ob.pledged_share * 100:.0f}% активов "
+                        f"({reg_ob.pledged_total}). Свободных от обременения активов "
+                        f"осталось на {reg_ob.free_assets} — в этих пределах покупатель "
+                        "сможет привлечь новое финансирование без согласия кредиторов."),
+                periods=[last],
+                evidence={"pledged": reg_ob.pledged_total,
+                          "free_assets": reg_ob.free_assets or D(0)},
+            ))
+
+        if reg_ob.balance_debt > 0 and not reg_ob.reconciled:
+            more = reg_ob.discrepancy > 0
+            add(Flag(
+                code="debt_not_reconciled", severity="warning",
+                title="Реестр обязательств расходится с балансом",
+                detail=(f"В балансе долга {reg_ob.reported_debt}, в реестре — "
+                        f"{reg_ob.balance_debt}. "
+                        + ("Часть долга не названа: неизвестно, кому она и на каких "
+                           "условиях." if more else
+                           "Реестр шире баланса: либо в него попало условное "
+                           "обязательство, либо отчётность неполна.")),
+                periods=[last], impact=abs(reg_ob.discrepancy),
+                evidence={"reported_debt": reg_ob.reported_debt,
+                          "register_debt": reg_ob.balance_debt,
+                          "discrepancy": reg_ob.discrepancy},
             ))
 
     # ── Итог: складываем только то, что имеет денежную меру ──────────────────
