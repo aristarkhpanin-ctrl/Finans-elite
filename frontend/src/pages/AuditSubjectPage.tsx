@@ -21,10 +21,11 @@ import {
   type Revaluation,
   type UserMetric,
 } from "../api/audit";
-import { IconDownload, IconTrash, IconUpload } from "../components/icons";
+import { IconDownload, IconPrint, IconTrash, IconUpload } from "../components/icons";
 import { useToast } from "../components/Toast";
 import { Button } from "../components/ui";
 import { AuditInputIssues } from "../components/AuditInputIssues";
+import { AuditPrintReport } from "../components/AuditPrintReport";
 import { allBalanced, balanceGaps, serverGaps } from "../auditBalance";
 import { downloadAuditXlsx } from "../auditExport";
 import { downloadAuditTemplate, parseAuditXlsx } from "../auditXlsx";
@@ -94,6 +95,7 @@ export function AuditSubjectPage() {
   const [name, setName] = useState("");
   const [model, setModel] = useState<AuditModel | null>(null);
   const [tab, setTab] = useState<Tab>("subject");
+  const [printMode, setPrintMode] = useState(false);
   const [dirty, setDirty] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -247,6 +249,34 @@ export function AuditSubjectPage() {
       </div>
     </div>
   );
+
+  // Печатный бланк — отдельный экран, а не модалка: он занимает лист целиком, и его
+  // печатают как есть. Тулбар помечен screen-only и на бумагу не попадает.
+  if (printMode && analysis.data) {
+    return (
+      <div className="print-mode">
+        <div className="print-toolbar">
+          <div style={{ minWidth: 0 }}>
+            <div className="print-toolbar__title">Печатный бланк · PDF (A4, книжная)</div>
+            <div className="print-toolbar__sub">
+              Два листа: заключение и показатели. Бумага не зависит от темы интерфейса,
+              отрицательные значения — в скобках.
+            </div>
+          </div>
+          <div className="print-toolbar__actions">
+            <Button variant="ghost" onClick={() => setPrintMode(false)}>← К заключению</Button>
+            <Button onClick={() => window.print()}>
+              <IconPrint size={15} />
+              <span style={{ marginLeft: 7 }}>Печать</span>
+            </Button>
+          </div>
+        </div>
+        <AuditPrintReport analysis={analysis.data} name={name}
+                          industry={m.industry ?? ""}
+                          standard={m.reporting_standard ?? "rsbu"} />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -687,6 +717,10 @@ export function AuditSubjectPage() {
         <div className="audit-block">
           <div className="tab-head" style={{ marginBottom: 12 }}>
             <div className="audit-block__title" style={{ marginBottom: 0 }}>Экспертное заключение</div>
+            <Button variant="ghost" onClick={() => setPrintMode(true)}>
+              <IconPrint size={15} />
+              <span style={{ marginLeft: 6 }}>Печатный бланк</span>
+            </Button>
             <Button
               variant="ghost"
               onClick={async () => {

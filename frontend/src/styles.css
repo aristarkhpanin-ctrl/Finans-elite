@@ -1195,6 +1195,95 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .icon-action--danger { color: var(--danger); }
 .icon-action--danger:hover { background: var(--danger-bg); border-color: var(--danger-border); }
 
+/* Печатное заключение «Финанс-Аудит» (макет Экран 5 / «Заключение (печать)»).
+   Палитра печати задана локально на листе и не зависит от темы интерфейса: из тёмной
+   темы документ обязан выходить таким же белым, как из светлой. Значения — из THEME()
+   стиль-гайда, раздел «Печать». */
+.ap-paper {
+  --paper: #FFFFFF; --ink: #17141C; --muted: #5A5364; --faint: #8C8598;
+  --rule: #E3DEE8; --rule-strong: #CFC7DA;
+  --accent: #7A2BC4; --accent-soft: #F4EDFB;
+  --neg: #A53A30; --attn: #8A5E0C;
+  position: relative; width: 794px; max-width: 100%; min-height: 1123px;
+  background: var(--paper); color: var(--ink);
+  padding: 15mm 16mm 11mm; margin: 0 auto 22px; border-radius: 3px;
+  display: flex; flex-direction: column;
+  font-family: var(--font-ui); font-size: 14px;
+}
+.ap-pagenum {
+  position: absolute; top: 8mm; right: 16mm;
+  font: 600 10px var(--font-mono); color: var(--faint);
+}
+.ap-band {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  padding-bottom: 14px; border-bottom: 2px solid var(--ink);
+}
+.ap-brand { font: 700 16px var(--font-ui); letter-spacing: -0.01em; }
+.ap-brand-sub { font: 500 10.5px var(--font-ui); color: var(--muted); margin-top: 1px; }
+.ap-dockind {
+  font: 700 11px var(--font-ui); letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--accent);
+}
+.ap-docdate { font: 500 11px var(--font-mono); color: var(--muted); margin-top: 4px; }
+.ap-subject {
+  font: 500 28px var(--font-display); letter-spacing: -0.03em; margin: 20px 0 0;
+}
+.ap-subject-sub { font: 500 12.5px var(--font-ui); color: var(--muted); margin-top: 5px; }
+
+.ap-verdict {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 14px;
+  margin-top: 20px; padding: 14px 16px;
+  border: 1px solid var(--rule); border-left: 4px solid var(--accent);
+  border-radius: 8px; background: var(--accent-soft);
+}
+.ap-verdict--warning { border-left-color: var(--attn); background: #FBF3E2; }
+.ap-verdict--risk { border-left-color: var(--neg); background: #FAECEA; }
+.ap-verdict__title { font: 600 15px var(--font-ui); }
+.ap-verdict__sub { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+.ap-verdict__period {
+  font: 500 11px var(--font-mono); color: var(--muted); white-space: nowrap;
+}
+.ap-note {
+  margin-top: 12px; padding: 9px 12px; border-radius: 6px;
+  border: 1px solid var(--rule); background: var(--accent-soft);
+  font-size: 12px; color: var(--muted);
+}
+.ap-note--warn { border-color: #EBD9A9; background: #FBF3E2; color: var(--attn); }
+
+.ap-block { margin-top: 20px; }
+.ap-block__title {
+  font: 600 9.5px var(--font-ui); letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--faint); padding-bottom: 6px; border-bottom: 1px solid var(--rule-strong);
+  margin-bottom: 8px;
+}
+.ap-sheet-head { font: 600 15px var(--font-ui); }
+.ap-para { font-size: 12.8px; line-height: 1.55; margin: 0 0 8px; }
+.ap-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.ap-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.ap-table td { padding: 5px 0; border-bottom: 1px solid var(--rule); }
+.ap-num { text-align: right; font: 500 12.5px var(--font-mono); white-space: nowrap; }
+.ap-zone { text-align: right; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.ap-fineprint {
+  margin-top: 18px; font-size: 10.5px; line-height: 1.5; color: var(--faint);
+}
+.ap-footer {
+  margin-top: auto; padding-top: 12px; border-top: 1px solid var(--rule);
+  display: flex; justify-content: space-between;
+  font: 500 10px var(--font-ui); color: var(--faint);
+}
+
+@media print {
+  /* Лист печатается сам собой: рамки, тени и отступы экрана убираются, а разрыв
+     страницы ставится между листами явно — иначе браузер разрежет их по своему. */
+  .ap-paper {
+    width: 100%; max-width: none; min-height: auto;
+    padding: 0; margin: 0; border-radius: 0; box-shadow: none;
+    break-after: page;
+  }
+  .ap-paper:last-child { break-after: auto; }
+  .ap-pagenum { top: 0; right: 0; }
+}
+
 /* Журнал действий организации (макет Экран 11, раздел «Журнал доступа») */
 .log-list { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
 .log-row {
