@@ -7,6 +7,7 @@ import {
   type ReportingStandard,
   REPORTING_STANDARDS,
   createAuditSubject,
+  createDemoAuditSubject,
   deleteAuditSubject,
   duplicateAuditSubject,
   emptyAuditModel,
@@ -134,6 +135,12 @@ export function AuditHomePage() {
     onError: () => toast("Не удалось создать копию", { kind: "error" }),
   });
 
+  const demo = useMutation({
+    mutationFn: () => createDemoAuditSubject(),
+    onSuccess: (s) => navigate(`/audit/${s.id}`),
+    onError: () => toast("Не удалось завести демо-дело", { kind: "error" }),
+  });
+
   const remove = useMutation({
     mutationFn: (id: string) => deleteAuditSubject(id),
     onSuccess: () => { invalidate(); setConfirm(null); toast("Дело удалено", { kind: "success" }); },
@@ -178,7 +185,15 @@ export function AuditHomePage() {
             о финансовых результатах. Дальше появятся аналитическая форма, коэффициенты,
             тренды, диагностика и заключение.
           </div>
-          <Button onClick={openCreate}>＋&nbsp;&nbsp;Создать первое дело</Button>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+            <Button onClick={openCreate}>＋&nbsp;&nbsp;Создать первое дело</Button>
+            {/* Демо — обычное дело с вымышленными данными, а не режим просмотра:
+                его можно править и удалить теми же кнопками. Пометка живёт в имени,
+                поэтому едет с ним и в список, и в свод группы, и в заключение. */}
+            <Button variant="ghost" onClick={() => demo.mutate()} loading={demo.isPending}>
+              Посмотреть демо-дело
+            </Button>
+          </div>
         </div>
       ) : (
         <>

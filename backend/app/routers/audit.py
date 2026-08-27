@@ -20,6 +20,7 @@ from audit_core import (
     consolidate_subjects,
 )
 from audit_core.opinion import build_opinion
+from audit_core.samples import build_trading_subject
 
 from .. import crud
 from ..audit_docgen import DOCX_MIME, build_audit_docx
@@ -104,6 +105,27 @@ def update_subject(subject_id: str, body: AuditSubjectUpdate,
     """Обновить имя и/или модель субъекта."""
     subject = _require(db, org_id, subject_id)
     return _out(crud.update_audit_subject(db, subject, name=body.name, model=body.model))
+
+
+#: Имя демо-дела. Пометка о вымышленности живёт **в имени**, а не рядом с ним: имя
+#: путешествует с делом всюду — в список, в свод группы, в шапку DOCX-заключения. Флаг
+#: в базе показывался бы только там, где его не забыли прочитать, и однажды демонстрация
+#: ушла бы инвесткомитету как настоящая проверка.
+DEMO_NAME = "Демо-дело: ООО «Торговый дом» (вымышленные данные)"
+
+
+@router.post("/subjects/demo", response_model=AuditSubjectOut,
+             status_code=status.HTTP_201_CREATED)
+def create_demo_subject(org_id: str = Depends(require_permission(Perm.PROJECT_CREATE)),
+                        db: Session = Depends(get_db)) -> AuditSubjectOut:
+    """Завести демо-дело из эталонного семпла («Экран 18»).
+
+    Обычное дело, а не особый режим: его можно править, дублировать и удалить теми же
+    кнопками. Так у нового пользователя сразу есть на чём увидеть работающий продукт —
+    аналитическую форму, коэффициенты, диагностику и заключение, — и ему не нужно
+    сперва вводить чужую отчётность, чтобы понять, что он покупает.
+    """
+    return _out(crud.create_audit_subject(db, org_id, DEMO_NAME, build_trading_subject()))
 
 
 @router.post("/subjects/{subject_id}/duplicate", response_model=AuditSubjectOut,

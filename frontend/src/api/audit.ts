@@ -136,6 +136,12 @@ export async function duplicateAuditSubject(id: string): Promise<AuditSubjectOut
   return data;
 }
 
+/** Завести демо-дело из эталонного семпла — обычное дело с вымышленными данными. */
+export async function createDemoAuditSubject(): Promise<AuditSubjectOut> {
+  const { data } = await api.post<AuditSubjectOut>("/api/v1/audit/subjects/demo");
+  return data;
+}
+
 // --- Анализ (фаза C): аналитическая форма, тренды, коэффициенты ---
 
 export interface AuditLineOut {

@@ -16,6 +16,7 @@ const listAuditSubjects = vi.fn();
 const createAuditSubject = vi.fn();
 const duplicateAuditSubject = vi.fn();
 const deleteAuditSubject = vi.fn();
+const createDemoAuditSubject = vi.fn();
 
 vi.mock("../api/audit", async (orig) => ({
   ...(await orig<typeof import("../api/audit")>()),
@@ -23,6 +24,7 @@ vi.mock("../api/audit", async (orig) => ({
   createAuditSubject: (...a: unknown[]) => createAuditSubject(...a),
   duplicateAuditSubject: (...a: unknown[]) => duplicateAuditSubject(...a),
   deleteAuditSubject: (...a: unknown[]) => deleteAuditSubject(...a),
+  createDemoAuditSubject: () => createDemoAuditSubject(),
 }));
 
 vi.mock("../components/Toast", () => ({ useToast: () => vi.fn() }));
@@ -177,5 +179,23 @@ describe("Список дел", () => {
 
     fireEvent.click(screen.getByText("Показать все"));
     expect(screen.getByText("ООО «Пример»")).toBeTruthy();
+  });
+  it("пустой экран предлагает демо-дело, а не только пустую форму", async () => {
+    // Новый пользователь иначе видит пустоту и должен сперва ввести чужую отчётность,
+    // чтобы понять, что он купил.
+    createDemoAuditSubject.mockResolvedValue(subject({ id: "demo" }));
+    await show([]);
+    fireEvent.click(screen.getByText("Посмотреть демо-дело"));
+    await waitFor(() => expect(createDemoAuditSubject).toHaveBeenCalled());
+  });
+
+  it("демо-дело живёт в списке как обычное — с теми же действиями", async () => {
+    // Отдельный режим «только просмотр» пришлось бы тянуть через весь редактор ради
+    // экрана, который видят один раз; пометка о вымышленности едет в имени.
+    const name = "Демо-дело: ООО «Торговый дом» (вымышленные данные)";
+    await show([subject({ id: "d", name })]);
+    expect(screen.getByText(name)).toBeTruthy();
+    expect(screen.getByTitle(`Удалить дело «${name}»`)).toBeTruthy();
+    expect(screen.getByTitle(`Дублировать дело «${name}»`)).toBeTruthy();
   });
 });

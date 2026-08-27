@@ -9165,6 +9165,61 @@
         ]
       }
     },
+    "/api/v1/audit/subjects/demo": {
+      "post": {
+        "description": "Завести демо-дело из эталонного семпла («Экран 18»).\n\nОбычное дело, а не особый режим: его можно править, дублировать и удалить теми же\nкнопками. Так у нового пользователя сразу есть на чём увидеть работающий продукт —\nаналитическую форму, коэффициенты, диагностику и заключение, — и ему не нужно\nсперва вводить чужую отчётность, чтобы понять, что он покупает.",
+        "operationId": "create_demo_subject_api_v1_audit_subjects_demo_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditSubjectOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Demo Subject",
+        "tags": [
+          "audit"
+        ]
+      }
+    },
     "/api/v1/audit/subjects/{subject_id}": {
       "delete": {
         "description": "Удалить субъект анализа.",

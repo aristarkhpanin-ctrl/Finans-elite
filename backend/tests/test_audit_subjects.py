@@ -209,3 +209,52 @@ def test_analyze_clean_model_has_no_input_issues(client, auth_headers):
     sid = _create(client, auth_headers).json()["id"]
     a = client.post(f"/api/v1/audit/subjects/{sid}/analyze", headers=auth_headers).json()
     assert a["input_issues"] == []
+
+
+def test_demo_subject_is_a_normal_case(client, auth_headers):
+    """Демо-дело — обычное дело, а не особый режим.
+
+    Его можно открыть, проанализировать, дублировать и удалить теми же кнопками:
+    отдельный режим «только для просмотра» пришлось бы тянуть через весь редактор
+    ради экрана, который пользователь видит один раз.
+    """
+    r = client.post("/api/v1/audit/subjects/demo", headers=auth_headers)
+    assert r.status_code == 201
+    demo = r.json()
+    assert "вымышленные данные" in demo["name"]
+    assert demo["n_periods"] == 3 and demo["balanced"] is True
+
+    # оно действительно считается: светофор и заключение на месте
+    a = client.post(f"/api/v1/audit/subjects/{demo['id']}/analyze",
+                    headers=auth_headers).json()
+    assert a["diagnostics"]["light"] in {"ok", "warning", "risk"}
+    assert a["opinion"]
+    # и проходит проверку ввода чисто — демонстрировать ошибки данных незачем
+    assert a["input_issues"] == []
+
+    # удаляется как любое другое
+    assert client.delete(f"/api/v1/audit/subjects/{demo['id']}",
+                         headers=auth_headers).status_code == 204
+
+
+def test_demo_marks_fiction_in_the_name(client, auth_headers):
+    """Пометка о вымышленности — в имени, потому что имя едет с делом всюду.
+
+    В список, в свод группы, в шапку DOCX-заключения. Флаг в базе читали бы только
+    там, где не забыли, и однажды демонстрация ушла бы наружу как настоящая проверка.
+    """
+    demo = client.post("/api/v1/audit/subjects/demo", headers=auth_headers).json()
+    row = next(s for s in client.get("/api/v1/audit/subjects",
+                                     headers=auth_headers).json() if s["id"] == demo["id"])
+    assert "Демо" in row["name"] and "вымышленные" in row["name"]
+
+    docx = client.get(f"/api/v1/audit/subjects/{demo['id']}/report.docx",
+                      headers=auth_headers)
+    assert docx.status_code == 200 and len(docx.content) > 0
+
+
+def test_demo_isolated_by_organization(client, register):
+    a = register(email="a4@e.ru", org="Орг A4")
+    b = register(email="b4@e.ru", org="Орг B4")
+    demo = client.post("/api/v1/audit/subjects/demo", headers=a).json()
+    assert client.get(f"/api/v1/audit/subjects/{demo['id']}", headers=b).status_code == 404
