@@ -1,6 +1,30 @@
 {
   "components": {
     "schemas": {
+      "ActivateRequest": {
+        "description": "Активация приглашения: по токену задать пароль и войти.",
+        "properties": {
+          "full_name": {
+            "default": "",
+            "title": "Full Name",
+            "type": "string"
+          },
+          "password": {
+            "title": "Password",
+            "type": "string"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "password"
+        ],
+        "title": "ActivateRequest",
+        "type": "object"
+      },
       "Actualization-Input": {
         "description": "Фактические значения строк Кэш-фло по месяцам.\n\n``actual_until`` — индекс последнего актуализированного месяца (``-1`` — актуализация\nотсутствует). ``actuals`` — фактические значения листовых строк Кэш-фло\n(код → ряд по месяцам); применяются к периодам ``t <= actual_until``.",
         "properties": {
@@ -4009,6 +4033,7 @@
         "type": "object"
       },
       "MemberOut": {
+        "description": "Участник организации.\n\n``invite_token`` заполняется **только в ответе на приглашение** и только если\nучастник ещё не заводил пароль: это одноразовая ссылка активации, которую\nпригласивший передаёт лично (почтовой отправки у платформы нет). В списке\nучастников его нет — там он был бы вечно доступным пропуском в чужой аккаунт.",
         "properties": {
           "email": {
             "title": "Email",
@@ -4017,6 +4042,17 @@
           "full_name": {
             "title": "Full Name",
             "type": "string"
+          },
+          "invite_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invite Token"
           },
           "role": {
             "title": "Role",
@@ -4706,6 +4742,25 @@
         "title": "ParticipantOut",
         "type": "object"
       },
+      "PasswordChange": {
+        "description": "Смена своего пароля. Текущий обязателен — иначе украденная сессия меняет пароль.",
+        "properties": {
+          "current_password": {
+            "title": "Current Password",
+            "type": "string"
+          },
+          "new_password": {
+            "title": "New Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "current_password",
+          "new_password"
+        ],
+        "title": "PasswordChange",
+        "type": "object"
+      },
       "PaymentPart-Input": {
         "description": "Часть графика оплаты: доля выручки со сдвигом относительно месяца отгрузки.\n\n``offset_months`` < 0 — предоплата (за |offset| мес. до отгрузки → авансы B24);\n> 0 — рассрочка (через offset мес. после отгрузки → дебиторка B2); 0 — при отгрузке.",
         "properties": {
@@ -5195,6 +5250,18 @@
           "product_id"
         ],
         "title": "ProductionLine",
+        "type": "object"
+      },
+      "ProfileUpdate": {
+        "properties": {
+          "full_name": {
+            "default": "",
+            "maxLength": 255,
+            "title": "Full Name",
+            "type": "string"
+          }
+        },
+        "title": "ProfileUpdate",
         "type": "object"
       },
       "ProjectCreate": {
@@ -9708,6 +9775,48 @@
         ]
       }
     },
+    "/api/v1/auth/activate": {
+      "post": {
+        "description": "Активация приглашения: по токену задать пароль и сразу войти.\n\nДо этого приглашённый участник существовал, но войти не мог никогда:\n``crud.add_member`` заводит пользователя без пароля, а других путей его задать\nне было — приглашение вело в никуда.\n\nТокен приглашения **не является токеном входа** (см. ``decode_token``): им можно\nтолько завести пароль. И только один раз: если пароль уже есть, активация\nотклоняется — иначе ссылка-приглашение осталась бы вечным способом сбросить\nчужой пароль, минуя знание текущего.",
+        "operationId": "activate_api_v1_auth_activate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Activate",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
         "description": "Вход по email и паролю → токен доступа.",
@@ -9772,6 +9881,91 @@
           }
         ],
         "summary": "Me",
+        "tags": [
+          "auth"
+        ]
+      },
+      "patch": {
+        "description": "Профиль: имя. Почта не меняется — она же логин и адрес приглашений.",
+        "operationId": "update_me_api_v1_auth_me_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Me",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/password": {
+      "post": {
+        "description": "Смена своего пароля. Текущий обязателен: иначе украденная сессия меняет пароль\nи запирает владельца снаружи.",
+        "operationId": "change_password_api_v1_auth_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Change Password",
         "tags": [
           "auth"
         ]

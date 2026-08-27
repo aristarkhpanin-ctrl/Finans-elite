@@ -54,16 +54,40 @@ def verify_password(hashed: str | None, password: str) -> bool:
         return False
 
 
-def create_access_token(user_id: str) -> str:
+#: Срок жизни приглашения. Неделя: приглашённый должен успеть зайти, но вечная
+#: ссылка на заведение пароля — это вечная дыра, если письмо утекло.
+INVITE_TTL_SECONDS = int(os.getenv("INVITE_TTL_SECONDS", str(7 * 24 * 3600)))
+
+
+def _token(user_id: str, typ: str, ttl: int) -> str:
     now = int(time.time())
-    payload = {"sub": user_id, "iat": now, "exp": now + JWT_TTL_SECONDS}
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALG)
+    return jwt.encode({"sub": user_id, "iat": now, "exp": now + ttl, "typ": typ},
+                      JWT_SECRET, algorithm=JWT_ALG)
 
 
-def decode_token(token: str) -> str | None:
-    """Вернуть user_id из валидного токена либо ``None``."""
+def create_access_token(user_id: str) -> str:
+    return _token(user_id, "access", JWT_TTL_SECONDS)
+
+
+def create_invite_token(user_id: str) -> str:
+    """Токен приглашения: им заводят **пароль**, а не входят в систему."""
+    return _token(user_id, "invite", INVITE_TTL_SECONDS)
+
+
+def decode_token(token: str, expect: str = "access") -> str | None:
+    """Вернуть user_id из валидного токена нужного назначения либо ``None``.
+
+    Назначение проверяется обязательно. Без этого токен приглашения работал бы как
+    токен входа: приглашённый попадал бы внутрь **до** того, как задал пароль, а
+    сама ссылка-приглашение становилась бы вечным пропуском в чужую организацию.
+
+    Токены без ``typ`` — выпущенные до разделения — считаются токенами доступа:
+    иначе разделение выкинуло бы из системы всех, кто в ней сейчас сидит.
+    """
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
     except jwt.PyJWTError:
+        return None
+    if payload.get("typ", "access") != expect:
         return None
     return payload.get("sub")

@@ -15,6 +15,7 @@ import { OrganizationPage } from "./pages/OrganizationPage";
 import { ProjectEditorPage } from "./pages/ProjectEditorPage";
 import { ProjectsPage } from "./pages/ProjectsPage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { ActivatePage } from "./pages/ActivatePage";
 
 // Тяжёлые страницы результатов/анализа грузим лениво (code-split).
 const ProjectResultsPage = lazy(() =>
@@ -43,6 +44,8 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      {/* Активация приглашения — до входа: пароля у приглашённого ещё нет. */}
+      <Route path="/activate" element={<ActivatePage />} />
       <Route
         element={
           <ProtectedRoute>

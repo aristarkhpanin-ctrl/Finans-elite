@@ -430,10 +430,19 @@ class AuditLogPage(BaseModel):
 
 
 class MemberOut(BaseModel):
+    """Участник организации.
+
+    ``invite_token`` заполняется **только в ответе на приглашение** и только если
+    участник ещё не заводил пароль: это одноразовая ссылка активации, которую
+    пригласивший передаёт лично (почтовой отправки у платформы нет). В списке
+    участников его нет — там он был бы вечно доступным пропуском в чужой аккаунт.
+    """
+
     user_id: str
     email: str
     full_name: str
     role: str
+    invite_token: Optional[str] = None
 
 
 # --- Аутентификация (6.3) ---
@@ -459,6 +468,25 @@ class UserOut(BaseModel):
     id: str
     email: str
     full_name: str
+
+
+class ActivateRequest(BaseModel):
+    """Активация приглашения: по токену задать пароль и войти."""
+
+    token: str
+    password: str
+    full_name: str = ""
+
+
+class ProfileUpdate(BaseModel):
+    full_name: str = Field(default="", max_length=255)
+
+
+class PasswordChange(BaseModel):
+    """Смена своего пароля. Текущий обязателен — иначе украденная сессия меняет пароль."""
+
+    current_password: str
+    new_password: str
 
 
 # --- Тарифы и подписка (биллинг, 6.5) ---

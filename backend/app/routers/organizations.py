@@ -21,6 +21,7 @@ from ..schemas import (
     OrganizationMembershipOut,
     OrganizationOut,
 )
+from ..security import create_invite_token
 
 router = APIRouter(prefix="/api/v1/organizations", tags=["organizations"])
 
@@ -68,8 +69,13 @@ def add_member(body: MemberCreate,
     crud.log_action(db, org_id, actor, "member.add", entity_type="member",
                     entity_id=user.id, entity_name=user.email,
                     details=f"роль: {membership.role}")
+    # Приглашённому, у которого ещё нет пароля, нужен способ его завести. Почтовой
+    # отправки у платформы нет, поэтому ссылка активации возвращается пригласившему —
+    # он передаёт её лично. В списке участников токена нет: там он был бы вечным
+    # пропуском в чужой аккаунт для всякого, кто видит состав организации.
+    invite = None if user.hashed_password else create_invite_token(user.id)
     return MemberOut(user_id=user.id, email=user.email, full_name=user.full_name,
-                     role=membership.role)
+                     role=membership.role, invite_token=invite)
 
 
 @router.get("/{org_id}/members", response_model=list[MemberOut])

@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { httpStatus } from "../../api/client";
 import { useState } from "react";
-import { addMember, getMembers, patchMemberRole, removeMember, roleLabel, ROLES } from "../../api/org";
+import { addMember, getMembers, patchMemberRole, removeMember, roleLabel, ROLES,
+         type Member } from "../../api/org";
 import { ESelect } from "../../components/EditorField";
 import { IconTrash } from "../../components/icons";
 import { useToast } from "../../components/Toast";
@@ -34,6 +35,8 @@ export function MembersTab({ orgId, myRole, myUserId }: { orgId: string; myRole:
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState("editor");
   const [inviteErr, setInviteErr] = useState("");
+  /** Приглашённый, которому нужно передать ссылку активации (пароля у него ещё нет). */
+  const [invited, setInvited] = useState<Member | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const { data, isLoading } = useQuery({ queryKey: ["members", orgId], queryFn: () => getMembers(orgId) });
@@ -41,13 +44,17 @@ export function MembersTab({ orgId, myRole, myUserId }: { orgId: string; myRole:
 
   const add = useMutation({
     mutationFn: () => addMember(orgId, { email: email.trim(), full_name: fullName.trim(), role }),
-    onSuccess: () => {
+    onSuccess: (member) => {
       setInviteOpen(false);
       setEmail("");
       setFullName("");
       setInviteErr("");
       invalidate();
-      toast("Приглашение отправлено", { kind: "success" });
+      // Раньше здесь говорилось «Приглашение отправлено» — и это была неправда:
+      // почтовой отправки у платформы нет, письмо не уходило никуда, а приглашённый
+      // ждал его и не мог войти вовсе. Теперь ссылку активации отдаём пригласившему.
+      if (member.invite_token) setInvited(member);
+      else toast(`${member.email} добавлен — у него уже есть пароль`, { kind: "success" });
     },
     onError: (e: unknown) => {
       const s = httpStatus(e);
@@ -263,6 +270,31 @@ export function MembersTab({ orgId, myRole, myUserId }: { orgId: string; myRole:
             </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* Ссылку активации передаёт пригласивший: писем платформа не шлёт, и делать
+          вид, что письмо ушло, значит оставить человека ждать его навсегда. */}
+      <Modal
+        open={invited !== null}
+        onClose={() => setInvited(null)}
+        title="Передайте ссылку приглашённому"
+        sub={invited ? `${invited.email} · ${roleLabel(invited.role)}` : undefined}
+        actions={<Button onClick={() => setInvited(null)}>Готово</Button>}
+      >
+        <div className="page-sub" style={{ marginBottom: 10 }}>
+          По этой ссылке участник задаст пароль и войдёт. Ссылка действует неделю и
+          срабатывает один раз — писем платформа пока не отправляет, поэтому передайте
+          её сами.
+        </div>
+        <textarea
+          className="input"
+          readOnly
+          rows={3}
+          aria-label="Ссылка приглашения"
+          style={{ width: "100%", height: "auto", padding: 10, fontFamily: "var(--font-mono)", fontSize: 12 }}
+          value={invited ? `${window.location.origin}/activate?token=${invited.invite_token}` : ""}
+          onFocus={(e) => e.currentTarget.select()}
+        />
       </Modal>
     </div>
   );

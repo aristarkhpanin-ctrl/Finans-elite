@@ -3,10 +3,12 @@ import { roleLabel } from "../api/org";
 import { useAuth } from "../auth/AuthContext";
 import { BillingTab } from "./org/BillingTab";
 import { AuditLogTab } from "./org/AuditLogTab";
+import { ProfileTab } from "./org/ProfileTab";
 import { MembersTab } from "./org/MembersTab";
 
 const TABS = [
   ["members", "Участники"],
+  ["profile", "Профиль"],
   ["log", "Журнал доступа"],
   ["billing", "Тариф и оплата"],
 ] as const;
@@ -49,6 +51,7 @@ export function OrganizationPage() {
       {/* Журнал видит только тот, кто управляет организацией: право org.manage.
           Аналитик работает с делами — следы чужой работы не его дело. Вкладка не
           прячется, а объясняет отказ: недоступное показывается, а не исчезает. */}
+      {tab === "profile" && <ProfileTab />}
       {tab === "log" && (canManageOrg
         ? <AuditLogTab orgId={currentOrgId} />
         : <div className="tab-empty">

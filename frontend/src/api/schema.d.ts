@@ -259,6 +259,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate
+         * @description Активация приглашения: по токену задать пароль и сразу войти.
+         *
+         *     До этого приглашённый участник существовал, но войти не мог никогда:
+         *     ``crud.add_member`` заводит пользователя без пароля, а других путей его задать
+         *     не было — приглашение вело в никуда.
+         *
+         *     Токен приглашения **не является токеном входа** (см. ``decode_token``): им можно
+         *     только завести пароль. И только один раз: если пароль уже есть, активация
+         *     отклоняется — иначе ссылка-приглашение осталась бы вечным способом сбросить
+         *     чужой пароль, минуя знание текущего.
+         */
+        post: operations["activate_api_v1_auth_activate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -293,6 +322,31 @@ export interface paths {
         get: operations["me_api_v1_auth_me_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Me
+         * @description Профиль: имя. Почта не меняется — она же логин и адрес приглашений.
+         */
+        patch: operations["update_me_api_v1_auth_me_patch"];
+        trace?: never;
+    };
+    "/api/v1/auth/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change Password
+         * @description Смена своего пароля. Текущий обязателен: иначе украденная сессия меняет пароль
+         *     и запирает владельца снаружи.
+         */
+        post: operations["change_password_api_v1_auth_password_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1132,6 +1186,21 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * ActivateRequest
+         * @description Активация приглашения: по токену задать пароль и войти.
+         */
+        ActivateRequest: {
+            /**
+             * Full Name
+             * @default
+             */
+            full_name: string;
+            /** Password */
+            password: string;
+            /** Token */
+            token: string;
+        };
         /**
          * Actualization
          * @description Фактические значения строк Кэш-фло по месяцам.
@@ -3288,12 +3357,22 @@ export interface components {
              */
             role: string;
         };
-        /** MemberOut */
+        /**
+         * MemberOut
+         * @description Участник организации.
+         *
+         *     ``invite_token`` заполняется **только в ответе на приглашение** и только если
+         *     участник ещё не заводил пароль: это одноразовая ссылка активации, которую
+         *     пригласивший передаёт лично (почтовой отправки у платформы нет). В списке
+         *     участников его нет — там он был бы вечно доступным пропуском в чужой аккаунт.
+         */
         MemberOut: {
             /** Email */
             email: string;
             /** Full Name */
             full_name: string;
+            /** Invite Token */
+            invite_token?: string | null;
             /** Role */
             role: string;
             /** User Id */
@@ -3555,6 +3634,16 @@ export interface components {
              * @default 0
              */
             withdrawn: string;
+        };
+        /**
+         * PasswordChange
+         * @description Смена своего пароля. Текущий обязателен — иначе украденная сессия меняет пароль.
+         */
+        PasswordChange: {
+            /** Current Password */
+            current_password: string;
+            /** New Password */
+            new_password: string;
         };
         /**
          * PaymentPart
@@ -3820,6 +3909,14 @@ export interface components {
             start_month?: number | null;
             /** Volume */
             volume?: string[];
+        };
+        /** ProfileUpdate */
+        ProfileUpdate: {
+            /**
+             * Full Name
+             * @default
+             */
+            full_name: string;
         };
         /** ProjectCreate */
         ProjectCreate: {
@@ -6195,6 +6292,39 @@ export interface operations {
             };
         };
     };
+    activate_api_v1_auth_activate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActivateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     login_api_v1_auth_login_post: {
         parameters: {
             query?: never;
@@ -6244,6 +6374,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserOut"];
+                };
+            };
+        };
+    };
+    update_me_api_v1_auth_me_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_password_api_v1_auth_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordChange"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

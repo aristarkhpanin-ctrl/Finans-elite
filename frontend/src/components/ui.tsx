@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import type { ButtonHTMLAttributes, CSSProperties, InputHTMLAttributes, ReactNode } from "react";
 import { createPortal } from "react-dom";
 
@@ -83,14 +83,22 @@ export function Field({
   suffix?: ReactNode;
 }) {
   const inputCls = ["input", error ? "input--error" : "", className ?? ""].filter(Boolean).join(" ");
+  // Идентификатор генерируется, если его не передали: без него htmlFor пуст, подпись
+  // ни с чем не связана, и скринридер читает поле как безымянное. Передают id почти
+  // нигде, так что «по умолчанию не связано» означало «не связано никогда».
+  const auto = useId();
+  const id = props.id ?? auto;
+  const hintId = `${id}-hint`;
   return (
     <div className="field">
-      <label htmlFor={props.id}>
-        {label}
-        {hint && <Hint text={hint} />}
-      </label>
+      {/* Подсказка вынесена из <label> намеренно: внутри него её текст попадал в
+          **имя** поля, и скринридер читал «Пароль Не короче 8 символов» как название.
+          Подсказка — это описание, поэтому она связана через aria-describedby. */}
+      <label htmlFor={id}>{label}</label>
+      {hint && <Hint text={hint} id={hintId} />}
       <InputWrap prefix={prefix} suffix={suffix}>
-        <input className={inputCls} {...props} />
+        <input className={inputCls} {...props} id={id}
+               aria-describedby={hint ? hintId : props["aria-describedby"]} />
       </InputWrap>
       {error ? (
         <span className="field-error">{error}</span>
@@ -279,9 +287,9 @@ export function CountChip({ children }: { children: ReactNode }) {
 }
 
 /** Маленькая подсказка «?» с нативным тултипом (title). */
-export function Hint({ text }: { text: string }) {
+export function Hint({ text, id }: { text: string; id?: string }) {
   return (
-    <span className="hint" title={text} aria-label={text} role="img">
+    <span className="hint" id={id} title={text} aria-label={text} role="img">
       ?
     </span>
   );

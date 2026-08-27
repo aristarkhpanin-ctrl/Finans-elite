@@ -171,6 +171,20 @@ def get_or_create_user(db: Session, email: str, full_name: str = "") -> User:
     return user
 
 
+def set_password(db: Session, user: User, hashed: str) -> User:
+    user.hashed_password = hashed
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def set_full_name(db: Session, user: User, full_name: str) -> User:
+    user.full_name = full_name
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 def add_membership(db: Session, org_id: str, user_id: str, role: str = "owner") -> Membership:
     existing = db.scalar(
         select(Membership).where(
