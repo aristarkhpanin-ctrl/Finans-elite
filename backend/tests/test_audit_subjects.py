@@ -118,3 +118,74 @@ def test_analyze_isolated_and_missing(client, register):
     sid = _create(client, a).json()["id"]
     assert client.post(f"/api/v1/audit/subjects/{sid}/analyze", headers=b).status_code == 404
     assert client.post("/api/v1/audit/subjects/nope/analyze", headers=a).status_code == 404
+
+
+# --- Карточка дела в списке и дубль (фаза 2 перехода на макеты) ---
+
+def test_summary_carries_light_and_industry(client, auth_headers):
+    """В списке дел видно состояние цели, а не только имя.
+
+    Светофор считается по той же диагностике, что на вкладке дела: хранить его
+    отдельно значило бы показывать результат, разошедшийся с отчётностью после
+    первой же правки.
+    """
+    _create(client, auth_headers)
+    row = client.get("/api/v1/audit/subjects", headers=auth_headers).json()[0]
+    assert row["industry"] == "Торговля"
+    assert row["light"] in {"ok", "warning", "risk"}
+
+    # тот же светофор, что отдаёт анализ этого субъекта
+    sid = row["id"]
+    a = client.post(f"/api/v1/audit/subjects/{sid}/analyze", headers=auth_headers).json()
+    assert row["light"] == a["diagnostics"]["light"]
+
+
+def test_summary_light_absent_without_reporting(client, auth_headers):
+    """Без отчётности светофор пуст, а не зелёный.
+
+    «Не считалось» и «благополучно» — разные факты. Подставив ok, список показывал бы
+    норму там, где данных просто не вводили.
+    """
+    empty = {"name": "", "currency": "RUB", "industry": "", "periods": [],
+             "balance": {}, "income": {}}
+    client.post("/api/v1/audit/subjects", json={"name": "Пустое", "model": empty},
+                headers=auth_headers)
+    row = next(r for r in client.get("/api/v1/audit/subjects",
+                                     headers=auth_headers).json() if r["name"] == "Пустое")
+    assert row["light"] is None and row["n_periods"] == 0
+
+
+def test_duplicate_subject(client, auth_headers):
+    """Дубль дела: модель целиком, имя с пометкой; оригинал не тронут."""
+    sid = _create(client, auth_headers).json()["id"]
+    r = client.post(f"/api/v1/audit/subjects/{sid}/duplicate", headers=auth_headers)
+    assert r.status_code == 201
+    copy = r.json()
+    assert copy["id"] != sid
+    assert copy["name"] == "ООО «Пример» (копия)"
+    assert copy["model"] == client.get(f"/api/v1/audit/subjects/{sid}",
+                                       headers=auth_headers).json()["model"]
+
+    # оригинал на месте, в списке оба
+    names = {s["name"] for s in client.get("/api/v1/audit/subjects",
+                                           headers=auth_headers).json()}
+    assert {"ООО «Пример»", "ООО «Пример» (копия)"} <= names
+
+
+def test_duplicate_is_independent(client, auth_headers):
+    """Копия — самостоятельное дело: правка копии не задевает оригинал."""
+    sid = _create(client, auth_headers).json()["id"]
+    cid = client.post(f"/api/v1/audit/subjects/{sid}/duplicate",
+                      headers=auth_headers).json()["id"]
+    client.put(f"/api/v1/audit/subjects/{cid}", json={"name": "Другое"},
+               headers=auth_headers)
+    assert client.get(f"/api/v1/audit/subjects/{sid}",
+                      headers=auth_headers).json()["name"] == "ООО «Пример»"
+
+
+def test_duplicate_isolated_and_missing(client, register):
+    a = register(email="a3@e.ru", org="Орг A3")
+    b = register(email="b3@e.ru", org="Орг B3")
+    sid = _create(client, a).json()["id"]
+    assert client.post(f"/api/v1/audit/subjects/{sid}/duplicate", headers=b).status_code == 404
+    assert client.post("/api/v1/audit/subjects/nope/duplicate", headers=a).status_code == 404

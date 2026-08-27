@@ -194,6 +194,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/audit/subjects/{subject_id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Duplicate Subject
+         * @description Дублировать дело: модель целиком, имя «{name} (копия)».
+         */
+        post: operations["duplicate_subject_api_v1_audit_subjects__subject_id__duplicate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit/subjects/{subject_id}/report.docx": {
         parameters: {
             query?: never;
@@ -1728,6 +1748,13 @@ export interface components {
             created_at: string;
             /** Id */
             id: string;
+            /**
+             * Industry
+             * @default
+             */
+            industry: string;
+            /** Light */
+            light?: string | null;
             model: components["schemas"]["AuditSubjectModel-Output"];
             /**
              * N Periods
@@ -1759,6 +1786,13 @@ export interface components {
             created_at: string;
             /** Id */
             id: string;
+            /**
+             * Industry
+             * @default
+             */
+            industry: string;
+            /** Light */
+            light?: string | null;
             /**
              * N Periods
              * @default 0
@@ -5850,6 +5884,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuditAnalysisOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    duplicate_subject_api_v1_audit_subjects__subject_id__duplicate_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditSubjectOut"];
                 };
             };
             /** @description Validation Error */

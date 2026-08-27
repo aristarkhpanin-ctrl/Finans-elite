@@ -351,6 +351,21 @@ def update_audit_subject(db: Session, subject: AuditSubject, *, name: str | None
     return subject
 
 
+def duplicate_audit_subject(db: Session, subject: AuditSubject, name: str) -> AuditSubject:
+    """Копия субъекта: модель целиком, новое имя.
+
+    Для аудита дубль уместнее, чем для проекта: повторная проверка той же фирмы через
+    год начинается с прошлогоднего дела — реквизиты, методики и нормативы уже заведены,
+    меняется только отчётность.
+    """
+    copy = AuditSubject(organization_id=subject.organization_id, name=name,
+                        model=subject.model)
+    db.add(copy)
+    db.commit()
+    db.refresh(copy)
+    return copy
+
+
 def delete_audit_subject(db: Session, subject: AuditSubject) -> None:
     db.delete(subject)
     db.commit()

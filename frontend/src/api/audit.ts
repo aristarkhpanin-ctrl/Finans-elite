@@ -58,6 +58,9 @@ export interface AuditSubjectSummary {
   updated_at: string;
   n_periods: number;
   balanced: boolean;
+  industry: string;
+  /** Светофор диагностики: ok | warning | risk. `null` — отчётности нет, не считалось. */
+  light: string | null;
 }
 
 export interface AuditSubjectOut extends AuditSubjectSummary {
@@ -126,6 +129,11 @@ export async function updateAuditSubject(id: string, name: string, model: AuditM
 
 export async function deleteAuditSubject(id: string): Promise<void> {
   await api.delete(`/api/v1/audit/subjects/${id}`);
+}
+
+export async function duplicateAuditSubject(id: string): Promise<AuditSubjectOut> {
+  const { data } = await api.post<AuditSubjectOut>(`/api/v1/audit/subjects/${id}/duplicate`);
+  return data;
 }
 
 // --- Анализ (фаза C): аналитическая форма, тренды, коэффициенты ---

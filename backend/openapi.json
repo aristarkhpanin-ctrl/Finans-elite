@@ -1238,6 +1238,22 @@
             "title": "Id",
             "type": "string"
           },
+          "industry": {
+            "default": "",
+            "title": "Industry",
+            "type": "string"
+          },
+          "light": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Light"
+          },
           "model": {
             "$ref": "#/components/schemas/AuditSubjectModel-Output"
           },
@@ -1282,6 +1298,22 @@
           "id": {
             "title": "Id",
             "type": "string"
+          },
+          "industry": {
+            "default": "",
+            "title": "Industry",
+            "type": "string"
+          },
+          "light": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Light"
           },
           "n_periods": {
             "default": 0,
@@ -9329,6 +9361,70 @@
           }
         ],
         "summary": "Analyze Subject",
+        "tags": [
+          "audit"
+        ]
+      }
+    },
+    "/api/v1/audit/subjects/{subject_id}/duplicate": {
+      "post": {
+        "description": "Дублировать дело: модель целиком, имя «{name} (копия)».",
+        "operationId": "duplicate_subject_api_v1_audit_subjects__subject_id__duplicate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "title": "Subject Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditSubjectOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Duplicate Subject",
         "tags": [
           "audit"
         ]

@@ -768,6 +768,12 @@ class AuditSubjectSummary(BaseModel):
     updated_at: datetime
     n_periods: int = 0
     balanced: bool = True
+    industry: str = ""
+    #: Сводный «светофор» диагностики последнего периода: ok | warning | risk.
+    #: ``None`` — отчётности нет, диагностика не считалась. Это разные факты, и
+    #: подставлять вместо «не считалось» зелёный «ok» нельзя: список дел показывал бы
+    #: благополучие там, где данных просто не вводили.
+    light: Optional[str] = None
 
 
 class AuditSubjectOut(AuditSubjectSummary):

@@ -43,8 +43,15 @@ router = APIRouter(prefix="/api/v1/audit", tags=["audit"])
 
 def _summary(s: AuditSubject) -> AuditSubjectSummary:
     m = crud.load_audit_model(s)
-    return AuditSubjectSummary(id=s.id, name=s.name, created_at=s.created_at,
-                              updated_at=s.updated_at, n_periods=m.n, balanced=m.is_balanced())
+    # Светофор считается здесь же: карточка дела в списке показывает состояние цели,
+    # и без него список — это просто имена. Анализ чистый и дешёвый (арифметика над
+    # ≤48 периодами), отдельного хранения не заводим: хранился бы результат, который
+    # расходится с отчётностью после первой же правки.
+    result = analyze(m) if m.n else None
+    return AuditSubjectSummary(
+        id=s.id, name=s.name, created_at=s.created_at, updated_at=s.updated_at,
+        n_periods=m.n, balanced=m.is_balanced(), industry=m.industry,
+        light=result.diagnostics.light if result and result.diagnostics else None)
 
 
 def _out(s: AuditSubject) -> AuditSubjectOut:
@@ -91,6 +98,16 @@ def update_subject(subject_id: str, body: AuditSubjectUpdate,
     """Обновить имя и/или модель субъекта."""
     subject = _require(db, org_id, subject_id)
     return _out(crud.update_audit_subject(db, subject, name=body.name, model=body.model))
+
+
+@router.post("/subjects/{subject_id}/duplicate", response_model=AuditSubjectOut,
+             status_code=status.HTTP_201_CREATED)
+def duplicate_subject(subject_id: str,
+                      org_id: str = Depends(require_permission(Perm.PROJECT_CREATE)),
+                      db: Session = Depends(get_db)) -> AuditSubjectOut:
+    """Дублировать дело: модель целиком, имя «{name} (копия)»."""
+    subject = _require(db, org_id, subject_id)
+    return _out(crud.duplicate_audit_subject(db, subject, f"{subject.name} (копия)"))
 
 
 @router.post("/subjects/{subject_id}/analyze", response_model=AuditAnalysisOut)
