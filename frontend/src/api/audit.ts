@@ -51,6 +51,39 @@ export interface AuditModel {
   revaluations?: Revaluation[];
   earnings_adjustments?: EarningsAdjustment[];
   obligations?: Obligation[];
+  procedure_marks?: ProcedureMark[];
+  custom_procedures?: CustomProcedure[];
+}
+
+/** Статус процедуры, который ставит человек (системный выводится из прогона). */
+export type MarkStatus = "pending" | "done" | "skipped";
+
+export const MARK_STATUSES: [MarkStatus, string][] = [
+  ["pending", "Не отмечено"],
+  ["done", "Выполнено"],
+  ["skipped", "Снято"],
+];
+
+/**
+ * Отметка аналитика по процедуре каталога (SPEC, Прил. М.3). Ставится только у
+ * процедур с исполнителем «аналитик»; причина при снятии обязательна — процедура,
+ * снятая молча, неотличима от забытой.
+ */
+export interface ProcedureMark {
+  code: string;
+  status: MarkStatus;
+  note: string;
+}
+
+/** Своя процедура аналитика (SPEC, Прил. М.5): платформа её не выполняет. */
+export interface CustomProcedure {
+  title: string;
+  status: MarkStatus;
+  note: string;
+}
+
+export function emptyCustomProcedure(): CustomProcedure {
+  return { title: "", status: "pending", note: "" };
 }
 
 /** Вид обязательства → подпись; забалансовость — свойство вида, а не отдельная галочка. */
@@ -263,6 +296,40 @@ export interface AuditAnalysis {
   flags: AuditFlagRegistry;
   earnings: AuditEarnings;
   obligations: AuditObligations;
+  procedures: AuditProcedures;
+}
+
+/** Итог процедуры: `pass|finding|no_data` выводится из прогона, остальное — отметка. */
+export type ProcedureStatus =
+  "pass" | "finding" | "no_data" | "done" | "skipped" | "pending";
+
+export interface AuditProcedure {
+  code: string;
+  group: string;
+  title: string;
+  source: "system" | "analyst";
+  method: string;
+  status: ProcedureStatus;
+  detail: string;
+  findings: string[];
+}
+
+/**
+ * Чек-лист процедур (SPEC, Прил. М). `coverage` честен только вместе с `limits`:
+ * «охват 70%» без перечня тех 30% читается как «почти всё проверено».
+ */
+export interface AuditProcedures {
+  items: AuditProcedure[];
+  total: number;
+  closed: number;
+  passed: number;
+  findings: number;
+  no_data: number;
+  done: number;
+  skipped: number;
+  pending: number;
+  coverage: string | null;
+  limits: string[];
 }
 
 /** Строка реестра: введённое + то, что следует из вида обязательства. */

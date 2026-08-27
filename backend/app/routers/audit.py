@@ -21,6 +21,7 @@ from audit_core import (
     consolidate_subjects,
     detect_flags,
     normalize_earnings,
+    run_procedures,
 )
 from audit_core.opinion import build_opinion
 from audit_core.samples import build_trading_subject
@@ -168,10 +169,14 @@ def analyze_subject(subject_id: str,
     # Находки о качестве ввода считаются по исходной модели, а не по результату:
     # анализ уже применил переоценки, а претензии предъявляются к тому, что ввели.
     obligations = build_obligations(model, result)
-    return audit_analysis_response(result, build_opinion(result), check_input(model),
-                                   detect_flags(model, result, obligations),
-                                   normalize_earnings(model, result),
-                                   obligations)
+    issues = check_input(model)
+    flags = detect_flags(model, result, obligations)
+    earnings = normalize_earnings(model, result)
+    procedures = run_procedures(model, result, flags, issues, obligations, earnings)
+    # Границы проверки идут в заключение: умолчание о непроверенном читается как
+    # проверенное, и скрыть его нельзя (SPEC, Приложение М.4).
+    return audit_analysis_response(result, build_opinion(result, procedures), issues,
+                                   flags, earnings, obligations, procedures)
 
 
 def _consolidate(members: list[tuple[str, AuditSubjectModel]], name: str,
@@ -242,9 +247,18 @@ def download_report(subject_id: str,
     subject = _require(db, org_id, subject_id)
     model = crud.load_audit_model(subject)
     result = analyze(model)
-    content = build_audit_docx(result, build_opinion(result), subject_name=subject.name,
+    obligations = build_obligations(model, result)
+    procedures = run_procedures(model, result,
+                                detect_flags(model, result, obligations),
+                                check_input(model), obligations,
+                                normalize_earnings(model, result))
+    # Границы проверки обязаны быть в документе: его читатель и есть тот, кому они
+    # адресованы, — умолчание о непроверенном он прочтёт как проверенное.
+    content = build_audit_docx(result, build_opinion(result, procedures),
+                               subject_name=subject.name,
                                industry=model.industry, currency=model.currency,
-                               reporting_standard=model.reporting_standard)
+                               reporting_standard=model.reporting_standard,
+                               procedures=procedures)
     # Выгрузка документа — вынос данных за пределы системы, и для 152-ФЗ это событие
     # важнее половины правок: именно так отчётность цели покидает контур.
     crud.log_action(db, org_id, actor, "case.export", entity_type="case",

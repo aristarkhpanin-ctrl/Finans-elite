@@ -39,6 +39,8 @@ const ALIASES: Record<string, string> = {
   AuditFlag: "AuditFlagOut",
   AuditFlagRegistry: "AuditFlagsOut",
   AuditInputIssue: "AuditInputIssueOut",
+  AuditProcedure: "AuditProcedureOut",
+  AuditProcedures: "AuditProceduresOut",
   AuditObligationRow: "AuditObligationRowOut",
   AuditMaturityBucket: "AuditMaturityBucketOut",
   AuditObligations: "AuditObligationsOut",

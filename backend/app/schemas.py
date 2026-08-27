@@ -942,6 +942,8 @@ class AuditAnalysisOut(BaseModel):
     earnings: "AuditEarningsOut" = None  # type: ignore[assignment]
     # Реестр обязательств и залогов («Экран 10»); в AuditResult не входит — SPEC, Прил. Л.
     obligations: "AuditObligationsOut" = None  # type: ignore[assignment]
+    # Чек-лист процедур («Экран 21»); в AuditResult не входит — SPEC, Прил. М.
+    procedures: "AuditProceduresOut" = None  # type: ignore[assignment]
 
 
 class AuditAdjustmentOut(BaseModel):
@@ -1044,6 +1046,40 @@ class AuditObligationsOut(BaseModel):
     covenants_unknown: int = 0
 
 
+class AuditProcedureOut(BaseModel):
+    """Процедура чек-листа: что проверяется, кем и с каким итогом."""
+
+    code: str
+    group: str
+    title: str
+    source: str                          # system | analyst
+    method: str                          # чем выполняется (или почему нужен человек)
+    #: pass | finding | no_data — выводится из прогона; done | skipped | pending — отметка.
+    status: str
+    detail: str = ""
+    findings: list[str] = []             # коды сработавших находок
+
+
+class AuditProceduresOut(BaseModel):
+    """Чек-лист целиком: итоги, охват и границы проверки (SPEC, Прил. М).
+
+    ``coverage`` честен только вместе с ``limits``: «охват 70%» без перечня тех 30%
+    читается как «почти всё проверено», а не как «треть не проверялась».
+    """
+
+    items: list[AuditProcedureOut] = []
+    total: int = 0
+    closed: int = 0
+    passed: int = 0
+    findings: int = 0
+    no_data: int = 0
+    done: int = 0
+    skipped: int = 0
+    pending: int = 0
+    coverage: Optional[Decimal] = None   # None — каталога нет, делить не на что
+    limits: list[str] = []
+
+
 class AuditInputIssueOut(BaseModel):
     """Находка проверки ввода: что не так с данными и в каких периодах."""
 
@@ -1141,10 +1177,27 @@ class AuditGroupOut(AuditGroupSummary):
 
 def audit_analysis_response(result, opinion: str = "", issues=(),
                             flags=None, earnings=None,
-                            obligations=None) -> "AuditAnalysisOut":
+                            obligations=None, procedures=None) -> "AuditAnalysisOut":
     """Собрать ответ анализа из ``audit_core.AuditResult`` (+ заключение, ввод, флаги)."""
     return AuditAnalysisOut(
         opinion=opinion,
+        procedures=AuditProceduresOut(
+            items=[AuditProcedureOut(
+                code=i.code, group=i.group, title=i.title, source=i.source,
+                method=i.method, status=i.status, detail=i.detail,
+                findings=list(i.findings),
+            ) for i in (procedures.items if procedures else [])],
+            total=procedures.total if procedures else 0,
+            closed=procedures.closed if procedures else 0,
+            passed=procedures.passed if procedures else 0,
+            findings=procedures.findings if procedures else 0,
+            no_data=procedures.no_data if procedures else 0,
+            done=procedures.done if procedures else 0,
+            skipped=procedures.skipped if procedures else 0,
+            pending=procedures.pending if procedures else 0,
+            coverage=procedures.coverage if procedures else None,
+            limits=list(procedures.limits) if procedures else [],
+        ),
         obligations=AuditObligationsOut(
             rows=[AuditObligationRowOut(
                 creditor=r.creditor, contract=r.contract, kind=r.kind,

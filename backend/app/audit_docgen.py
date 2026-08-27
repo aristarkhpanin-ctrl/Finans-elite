@@ -100,10 +100,51 @@ def _add_diagnostics(doc: Document, d: Diagnostics, periods: list[str]) -> None:
 _STANDARD_LABELS = {"rsbu": "РСБУ", "ifrs": "МСФО", "management": "управленческая отчётность"}
 
 
+#: Подписи статусов чек-листа (SPEC, Приложение М.2).
+_PROC_STATUS = {
+    "pass": "проверено",
+    "finding": "есть находка",
+    "no_data": "не проверено: нет данных",
+    "done": "выполнено аналитиком",
+    "skipped": "снято аналитиком",
+    "pending": "не выполнено",
+}
+
+
+def _add_procedures(doc: Document, procedures) -> None:
+    """Чек-лист процедур и границы проверки (SPEC, Приложение М.4).
+
+    В документ идёт весь каталог, а не только выполненное: отчёт, показывающий одни
+    закрытые процедуры, выдаёт часть проверки за целое.
+    """
+    doc.add_heading("Чек-лист процедур", level=1)
+    coverage = procedures.coverage
+    head = f"Выполнено процедур: {procedures.closed} из {procedures.total}"
+    if coverage is not None:
+        head += f" ({coverage * 100:.0f}%)"
+    doc.add_paragraph(head + ".")
+
+    table = doc.add_table(rows=1, cols=3)
+    table.style = "Table Grid"
+    for cell, title in zip(table.rows[0].cells,
+                           ("Процедура", "Исполнитель", "Итог"), strict=True):
+        cell.text = title
+    for item in procedures.items:
+        row = table.add_row().cells
+        row[0].text = item.title
+        row[1].text = "платформа" if item.source == "system" else "аналитик"
+        status = _PROC_STATUS.get(item.status, item.status)
+        row[2].text = f"{status} — {item.detail}" if item.detail else status
+
+
 def build_audit_docx(result: AuditResult, opinion: str, *, subject_name: str,
                      industry: str = "", currency: str = "", reporting_standard: str = "",
-                     today: date | None = None) -> bytes:
-    """Собрать документ заключения по анализу и вернуть содержимое ``.docx``."""
+                     procedures=None, today: date | None = None) -> bytes:
+    """Собрать документ заключения по анализу и вернуть содержимое ``.docx``.
+
+    ``procedures`` — отчёт чек-листа: в документ он идёт целиком, потому что читатель
+    документа и есть тот, кому границы проверки адресованы (SPEC, Приложение М.4).
+    """
     doc = Document()
 
     doc.add_heading(subject_name or "Субъект анализа", level=0)
@@ -155,6 +196,9 @@ def build_audit_docx(result: AuditResult, opinion: str, *, subject_name: str,
 
         if result.diagnostics is not None:
             _add_diagnostics(doc, result.diagnostics, result.periods)
+
+    if procedures is not None and procedures.total:
+        _add_procedures(doc, procedures)
 
     if not result.balanced:
         doc.add_paragraph("Внимание: введённая отчётность не сходится (актив ≠ пассив).")

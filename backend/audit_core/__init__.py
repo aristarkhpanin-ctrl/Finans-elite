@@ -13,6 +13,7 @@ from .flags import Flag, FlagRegistry, detect_flags
 from .input_check import InputIssue, check_input
 from .models import AuditPeriod, AuditSubjectModel, Obligation
 from .obligations import ObligationRegister, build_obligations
+from .procedures import Procedure, ProcedureReport, run_procedures
 from .result import AuditLine, AuditResult, ShareLine, TrendLine
 
 __all__ = [
@@ -28,12 +29,15 @@ __all__ = [
     "InputIssue",
     "Obligation",
     "ObligationRegister",
+    "Procedure",
+    "ProcedureReport",
     "ShareLine",
     "TrendLine",
     "analyze",
     "build_obligations",
     "check_input",
     "detect_flags",
+    "run_procedures",
     "normalize_earnings",
     "consolidate_subjects",
 ]

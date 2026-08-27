@@ -29,6 +29,7 @@ import { AuditInputIssues } from "../components/AuditInputIssues";
 import { AuditEarnings } from "../components/AuditEarnings";
 import { AuditFlags } from "../components/AuditFlags";
 import { AuditObligations } from "../components/AuditObligations";
+import { AuditProcedures } from "../components/AuditProcedures";
 import { AuditPrintReport } from "../components/AuditPrintReport";
 import { allBalanced, balanceGaps, serverGaps } from "../auditBalance";
 import { downloadAuditXlsx } from "../auditExport";
@@ -36,7 +37,7 @@ import { downloadAuditTemplate, parseAuditXlsx } from "../auditXlsx";
 import { fmtMoney } from "../format";
 
 type Tab = "subject" | "input" | "reports" | "ratios" | "trends" | "diagnostics"
-  | "flags" | "earnings" | "obligations" | "methods" | "opinion";
+  | "flags" | "earnings" | "obligations" | "procedures" | "methods" | "opinion";
 
 /** Подписи вкладок (в том же виде, что были — ни одна не исчезла). */
 const TAB_LABEL: Record<Tab, string> = {
@@ -49,6 +50,7 @@ const TAB_LABEL: Record<Tab, string> = {
   flags: "Реестр флагов",
   earnings: "Качество прибыли",
   obligations: "Обязательства и залоги",
+  procedures: "Чек-лист процедур",
   methods: "Методики",
   opinion: "Заключение",
 };
@@ -72,6 +74,7 @@ const SECTIONS: [string, string, Tab[]][] = [
   ["quality", "Качество прибыли", ["earnings"]],
   ["flags", "Реестр флагов", ["flags"]],
   ["obligations", "Обязательства", ["obligations"]],
+  ["procedures", "Процедуры", ["procedures"]],
   ["methods", "Методики", ["methods"]],
   ["opinion", "Заключение", ["opinion"]],
 ];
@@ -154,7 +157,7 @@ export function AuditSubjectPage() {
   // Анализ считается по сохранённым данным — только для аналитических вкладок.
   const isAnalysisTab = tab === "reports" || tab === "ratios" || tab === "trends"
     || tab === "diagnostics" || tab === "opinion" || tab === "methods" || tab === "flags" || tab === "earnings"
-    || tab === "obligations";
+    || tab === "obligations" || tab === "procedures";
   const analysis = useQuery({
     queryKey: ["audit-analysis", id],
     queryFn: () => analyzeAuditSubject(id),
@@ -792,6 +795,14 @@ export function AuditSubjectPage() {
           register={analysis.data.obligations}
           obligations={m.obligations ?? []}
           onChange={(next) => patch({ obligations: next })}
+        />
+      ) : tab === "procedures" ? (
+        <AuditProcedures
+          report={analysis.data.procedures}
+          marks={m.procedure_marks ?? []}
+          custom={m.custom_procedures ?? []}
+          onMarks={(next) => patch({ procedure_marks: next })}
+          onCustom={(next) => patch({ custom_procedures: next })}
         />
       ) : tab === "opinion" ? (
         <div className="audit-block">

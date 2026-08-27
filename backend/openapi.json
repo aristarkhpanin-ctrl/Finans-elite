@@ -427,6 +427,9 @@
             "title": "Periods",
             "type": "array"
           },
+          "procedures": {
+            "$ref": "#/components/schemas/AuditProceduresOut"
+          },
           "ratios": {
             "additionalProperties": {
               "additionalProperties": {
@@ -1465,6 +1468,133 @@
         "title": "AuditPeriod",
         "type": "object"
       },
+      "AuditProcedureOut": {
+        "description": "Процедура чек-листа: что проверяется, кем и с каким итогом.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "detail": {
+            "default": "",
+            "title": "Detail",
+            "type": "string"
+          },
+          "findings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "group": {
+            "title": "Group",
+            "type": "string"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "group",
+          "title",
+          "source",
+          "method",
+          "status"
+        ],
+        "title": "AuditProcedureOut",
+        "type": "object"
+      },
+      "AuditProceduresOut": {
+        "description": "Чек-лист целиком: итоги, охват и границы проверки (SPEC, Прил. М).\n\n``coverage`` честен только вместе с ``limits``: «охват 70%» без перечня тех 30%\nчитается как «почти всё проверено», а не как «треть не проверялась».",
+        "properties": {
+          "closed": {
+            "default": 0,
+            "title": "Closed",
+            "type": "integer"
+          },
+          "coverage": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage"
+          },
+          "done": {
+            "default": 0,
+            "title": "Done",
+            "type": "integer"
+          },
+          "findings": {
+            "default": 0,
+            "title": "Findings",
+            "type": "integer"
+          },
+          "items": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AuditProcedureOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limits": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Limits",
+            "type": "array"
+          },
+          "no_data": {
+            "default": 0,
+            "title": "No Data",
+            "type": "integer"
+          },
+          "passed": {
+            "default": 0,
+            "title": "Passed",
+            "type": "integer"
+          },
+          "pending": {
+            "default": 0,
+            "title": "Pending",
+            "type": "integer"
+          },
+          "skipped": {
+            "default": 0,
+            "title": "Skipped",
+            "type": "integer"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "title": "AuditProceduresOut",
+        "type": "object"
+      },
       "AuditScoreOut": {
         "description": "Скоринговая модель банкротства: балл и зона по периодам (None — нет данных).",
         "properties": {
@@ -1599,6 +1729,14 @@
             "title": "Currency",
             "type": "string"
           },
+          "custom_procedures": {
+            "items": {
+              "$ref": "#/components/schemas/CustomProcedure"
+            },
+            "maxItems": 100,
+            "title": "Custom Procedures",
+            "type": "array"
+          },
           "earnings_adjustments": {
             "items": {
               "$ref": "#/components/schemas/EarningsAdjustment-Input"
@@ -1651,6 +1789,14 @@
             },
             "maxItems": 48,
             "title": "Periods",
+            "type": "array"
+          },
+          "procedure_marks": {
+            "items": {
+              "$ref": "#/components/schemas/ProcedureMark"
+            },
+            "maxItems": 200,
+            "title": "Procedure Marks",
             "type": "array"
           },
           "reporting_standard": {
@@ -1711,6 +1857,14 @@
             "title": "Currency",
             "type": "string"
           },
+          "custom_procedures": {
+            "items": {
+              "$ref": "#/components/schemas/CustomProcedure"
+            },
+            "maxItems": 100,
+            "title": "Custom Procedures",
+            "type": "array"
+          },
           "earnings_adjustments": {
             "items": {
               "$ref": "#/components/schemas/EarningsAdjustment-Output"
@@ -1756,6 +1910,14 @@
             },
             "maxItems": 48,
             "title": "Periods",
+            "type": "array"
+          },
+          "procedure_marks": {
+            "items": {
+              "$ref": "#/components/schemas/ProcedureMark"
+            },
+            "maxItems": 200,
+            "title": "Procedure Marks",
             "type": "array"
           },
           "reporting_standard": {
@@ -2821,6 +2983,35 @@
           }
         },
         "title": "Currency",
+        "type": "object"
+      },
+      "CustomProcedure": {
+        "description": "Своя процедура аналитика (SPEC, Приложение М.5).\n\nОтраслевого каталога у платформы нет — он утверждал бы, что именно проверяют в\nконкретной отрасли, а такой методики у неё нет. Процедуру, которой платформа не\nзнает, пишет тот, кто знает отрасль; ведёт её аналитик.",
+        "properties": {
+          "note": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Note",
+            "type": "string"
+          },
+          "status": {
+            "default": "pending",
+            "enum": [
+              "pending",
+              "done",
+              "skipped"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "title": "CustomProcedure",
         "type": "object"
       },
       "Deposit-Input": {
@@ -5736,6 +5927,35 @@
           }
         },
         "title": "PlanSection",
+        "type": "object"
+      },
+      "ProcedureMark": {
+        "description": "Отметка аналитика по процедуре каталога (SPEC, Приложение М.3).\n\nСтавится **только** у процедур с исполнителем «аналитик»: итог системной процедуры\nвыводится из фактического прогона, и объявить его вручную нельзя.\n\n``note`` при снятии обязателен: процедура, снятая без причины, неотличима от\nзабытой, а в «Границах проверки» она обязана быть названа с объяснением.",
+        "properties": {
+          "code": {
+            "default": "",
+            "maxLength": 64,
+            "title": "Code",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Note",
+            "type": "string"
+          },
+          "status": {
+            "default": "pending",
+            "enum": [
+              "pending",
+              "done",
+              "skipped"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "ProcedureMark",
         "type": "object"
       },
       "Product-Input": {

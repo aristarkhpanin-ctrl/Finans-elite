@@ -1432,6 +1432,7 @@ export interface components {
              * @default []
              */
             periods: string[];
+            procedures?: components["schemas"]["AuditProceduresOut"];
             /**
              * Ratios
              * @default {}
@@ -2064,6 +2065,95 @@ export interface components {
             label: string;
         };
         /**
+         * AuditProcedureOut
+         * @description Процедура чек-листа: что проверяется, кем и с каким итогом.
+         */
+        AuditProcedureOut: {
+            /** Code */
+            code: string;
+            /**
+             * Detail
+             * @default
+             */
+            detail: string;
+            /**
+             * Findings
+             * @default []
+             */
+            findings: string[];
+            /** Group */
+            group: string;
+            /** Method */
+            method: string;
+            /** Source */
+            source: string;
+            /** Status */
+            status: string;
+            /** Title */
+            title: string;
+        };
+        /**
+         * AuditProceduresOut
+         * @description Чек-лист целиком: итоги, охват и границы проверки (SPEC, Прил. М).
+         *
+         *     ``coverage`` честен только вместе с ``limits``: «охват 70%» без перечня тех 30%
+         *     читается как «почти всё проверено», а не как «треть не проверялась».
+         */
+        AuditProceduresOut: {
+            /**
+             * Closed
+             * @default 0
+             */
+            closed: number;
+            /** Coverage */
+            coverage?: string | null;
+            /**
+             * Done
+             * @default 0
+             */
+            done: number;
+            /**
+             * Findings
+             * @default 0
+             */
+            findings: number;
+            /**
+             * Items
+             * @default []
+             */
+            items: components["schemas"]["AuditProcedureOut"][];
+            /**
+             * Limits
+             * @default []
+             */
+            limits: string[];
+            /**
+             * No Data
+             * @default 0
+             */
+            no_data: number;
+            /**
+             * Passed
+             * @default 0
+             */
+            passed: number;
+            /**
+             * Pending
+             * @default 0
+             */
+            pending: number;
+            /**
+             * Skipped
+             * @default 0
+             */
+            skipped: number;
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+        };
+        /**
          * AuditScoreOut
          * @description Скоринговая модель банкротства: балл и зона по периодам (None — нет данных).
          */
@@ -2126,6 +2216,8 @@ export interface components {
              * @default RUB
              */
             currency: string;
+            /** Custom Procedures */
+            custom_procedures?: components["schemas"]["CustomProcedure"][];
             /** Earnings Adjustments */
             earnings_adjustments?: components["schemas"]["EarningsAdjustment-Input"][];
             /** Income */
@@ -2146,6 +2238,8 @@ export interface components {
             obligations?: components["schemas"]["Obligation-Input"][];
             /** Periods */
             periods?: components["schemas"]["AuditPeriod"][];
+            /** Procedure Marks */
+            procedure_marks?: components["schemas"]["ProcedureMark"][];
             /**
              * Reporting Standard
              * @default rsbu
@@ -2176,6 +2270,8 @@ export interface components {
              * @default RUB
              */
             currency: string;
+            /** Custom Procedures */
+            custom_procedures?: components["schemas"]["CustomProcedure"][];
             /** Earnings Adjustments */
             earnings_adjustments?: components["schemas"]["EarningsAdjustment-Output"][];
             /** Income */
@@ -2196,6 +2292,8 @@ export interface components {
             obligations?: components["schemas"]["Obligation-Output"][];
             /** Periods */
             periods?: components["schemas"]["AuditPeriod"][];
+            /** Procedure Marks */
+            procedure_marks?: components["schemas"]["ProcedureMark"][];
             /**
              * Reporting Standard
              * @default rsbu
@@ -2750,6 +2848,32 @@ export interface components {
              * @default Российский рубль
              */
             name: string;
+        };
+        /**
+         * CustomProcedure
+         * @description Своя процедура аналитика (SPEC, Приложение М.5).
+         *
+         *     Отраслевого каталога у платформы нет — он утверждал бы, что именно проверяют в
+         *     конкретной отрасли, а такой методики у неё нет. Процедуру, которой платформа не
+         *     знает, пишет тот, кто знает отрасль; ведёт её аналитик.
+         */
+        CustomProcedure: {
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Status
+             * @default pending
+             * @enum {string}
+             */
+            status: "pending" | "done" | "skipped";
+            /**
+             * Title
+             * @default
+             */
+            title: string;
         };
         /**
          * Deposit
@@ -4264,6 +4388,34 @@ export interface components {
              * @default
              */
             title: string;
+        };
+        /**
+         * ProcedureMark
+         * @description Отметка аналитика по процедуре каталога (SPEC, Приложение М.3).
+         *
+         *     Ставится **только** у процедур с исполнителем «аналитик»: итог системной процедуры
+         *     выводится из фактического прогона, и объявить его вручную нельзя.
+         *
+         *     ``note`` при снятии обязателен: процедура, снятая без причины, неотличима от
+         *     забытой, а в «Границах проверки» она обязана быть названа с объяснением.
+         */
+        ProcedureMark: {
+            /**
+             * Code
+             * @default
+             */
+            code: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Status
+             * @default pending
+             * @enum {string}
+             */
+            status: "pending" | "done" | "skipped";
         };
         /** Product */
         "Product-Input": {

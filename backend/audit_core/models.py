@@ -140,6 +140,34 @@ class Obligation(BaseModel):
         return OBLIGATION_KINDS[self.kind][0]
 
 
+class ProcedureMark(BaseModel):
+    """Отметка аналитика по процедуре каталога (SPEC, Приложение М.3).
+
+    Ставится **только** у процедур с исполнителем «аналитик»: итог системной процедуры
+    выводится из фактического прогона, и объявить его вручную нельзя.
+
+    ``note`` при снятии обязателен: процедура, снятая без причины, неотличима от
+    забытой, а в «Границах проверки» она обязана быть названа с объяснением.
+    """
+
+    code: str = Field(default="", max_length=64)
+    status: Literal["pending", "done", "skipped"] = "pending"
+    note: str = Field(default="", max_length=500)
+
+
+class CustomProcedure(BaseModel):
+    """Своя процедура аналитика (SPEC, Приложение М.5).
+
+    Отраслевого каталога у платформы нет — он утверждал бы, что именно проверяют в
+    конкретной отрасли, а такой методики у неё нет. Процедуру, которой платформа не
+    знает, пишет тот, кто знает отрасль; ведёт её аналитик.
+    """
+
+    title: str = Field(default="", max_length=300)
+    status: Literal["pending", "done", "skipped"] = "pending"
+    note: str = Field(default="", max_length=500)
+
+
 class AuditSubjectModel(BaseModel):
     """Субъект анализа с фактической отчётностью по периодам.
 
@@ -172,6 +200,10 @@ class AuditSubjectModel(BaseModel):
     # Реестр обязательств и залогов (фаза 4). Пустой список инертен: реестра нет —
     # сверять и нечего, новых флагов не появляется.
     obligations: list[Obligation] = Field(default_factory=list, max_length=200)
+    # Чек-лист процедур (фаза 4): отметки по каталогу + свои процедуры аналитика.
+    # Пустые списки инертны — процедуры каталога остаются в статусе «не отмечено».
+    procedure_marks: list[ProcedureMark] = Field(default_factory=list, max_length=200)
+    custom_procedures: list[CustomProcedure] = Field(default_factory=list, max_length=100)
 
     @property
     def n(self) -> int:

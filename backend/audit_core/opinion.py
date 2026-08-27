@@ -162,8 +162,31 @@ def _verdict(result: AuditResult) -> str:
     return base
 
 
-def build_opinion(result: AuditResult) -> str:
-    """Собрать текст экспертного заключения по результату анализа."""
+def _limits_block(procedures) -> str:
+    """Границы проверки: что не проверялось и почему (SPEC, Приложение М.4).
+
+    Раздел обязателен, когда чек-лист посчитан: заключение без границ читается как
+    «проверено всё», а не проверено ровно то, что перечислено. Скрыть их нельзя —
+    именно за это покупатель и платит.
+    """
+    if procedures is None or not procedures.limits:
+        return ""
+    coverage = procedures.coverage
+    head = (f"Границы проверки. Выполнено процедур: {procedures.closed} из "
+            f"{procedures.total}")
+    if coverage is not None:
+        head += f" ({coverage * 100:.0f}%)"
+    head += ". Не выполнено:"
+    return head + "\n" + "\n".join(f"— {line}" for line in procedures.limits)
+
+
+def build_opinion(result: AuditResult, procedures=None) -> str:
+    """Собрать текст экспертного заключения по результату анализа.
+
+    ``procedures`` — отчёт чек-листа (``run_procedures``). Передан — в заключение
+    попадает раздел «Границы проверки»; не передан — чек-лист не считался, и
+    придумывать границы не из чего.
+    """
     if result.n == 0:
         return "Недостаточно данных для заключения: не введены отчётные периоды."
 
@@ -184,6 +207,11 @@ def build_opinion(result: AuditResult) -> str:
                       "исходных данных.")
 
     blocks.append(_verdict(result))
+
+    # Границы проверки идут после вердикта: они его ограничивают, а не предваряют.
+    limits = _limits_block(procedures)
+    if limits:
+        blocks.append(limits)
     return "\n\n".join(blocks)
 
 
