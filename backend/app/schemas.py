@@ -405,6 +405,30 @@ class MemberPatch(BaseModel):
     role: str
 
 
+class AuditLogEntryOut(BaseModel):
+    """Запись журнала действий: кто, что, над чем и когда.
+
+    ``actor_email`` берётся из журнала, а не из таблицы пользователей: участника могли
+    удалить, а журнал обязан отвечать «кто это сделал» и после его ухода.
+    """
+
+    id: str
+    actor_email: str
+    action: str
+    entity_type: str = ""
+    entity_id: str = ""
+    entity_name: str = ""
+    details: str = ""
+    created_at: datetime
+
+
+class AuditLogPage(BaseModel):
+    """Страница журнала: записи (новые сверху) и общее их число в организации."""
+
+    entries: list[AuditLogEntryOut] = []
+    total: int = 0
+
+
 class MemberOut(BaseModel):
     user_id: str
     email: str

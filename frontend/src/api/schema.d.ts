@@ -517,6 +517,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizations/{org_id}/audit-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Audit Log
+         * @description Журнал действий организации (право org.manage): новые записи сверху.
+         *
+         *     Только чтение. Ни PUT, ни DELETE у журнала нет и не будет: журнал, который можно
+         *     поправить, не журнал. Срок хранения (5 лет, ARCHITECTURE §4) — политика эксплуатации,
+         *     а не логика приложения: чистка кодом означала бы, что приложение умеет стирать
+         *     собственные следы.
+         */
+        get: operations["read_audit_log_api_v1_organizations__org_id__audit_log_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizations/{org_id}/billing/checkout": {
         parameters: {
             query?: never;
@@ -1625,6 +1650,62 @@ export interface components {
              * @default []
              */
             values: string[];
+        };
+        /**
+         * AuditLogEntryOut
+         * @description Запись журнала действий: кто, что, над чем и когда.
+         *
+         *     ``actor_email`` берётся из журнала, а не из таблицы пользователей: участника могли
+         *     удалить, а журнал обязан отвечать «кто это сделал» и после его ухода.
+         */
+        AuditLogEntryOut: {
+            /** Action */
+            action: string;
+            /** Actor Email */
+            actor_email: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Details
+             * @default
+             */
+            details: string;
+            /**
+             * Entity Id
+             * @default
+             */
+            entity_id: string;
+            /**
+             * Entity Name
+             * @default
+             */
+            entity_name: string;
+            /**
+             * Entity Type
+             * @default
+             */
+            entity_type: string;
+            /** Id */
+            id: string;
+        };
+        /**
+         * AuditLogPage
+         * @description Страница журнала: записи (новые сверху) и общее их число в организации.
+         */
+        AuditLogPage: {
+            /**
+             * Entries
+             * @default []
+             */
+            entries: components["schemas"]["AuditLogEntryOut"][];
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
         };
         /**
          * AuditPeriod
@@ -6569,6 +6650,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrganizationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_audit_log_api_v1_organizations__org_id__audit_log_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                before?: string | null;
+            };
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogPage"];
                 };
             };
             /** @description Validation Error */

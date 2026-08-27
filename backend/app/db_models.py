@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
+from typing import Optional
 
 from sqlalchemy import (
     JSON,
@@ -255,6 +256,48 @@ class AuditGroup(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_now, onupdate=_now
+    )
+
+
+class AuditLogEntry(Base):
+    """Журнал действий: кто, что и когда сделал в организации (152-ФЗ, ARCHITECTURE §4).
+
+    Запись делает тот же запрос, что выполнил действие, сразу после его успеха. Строгой
+    атомарности с самим действием нет — CRUD фиксирует транзакцию сам, — и это записано
+    здесь честно, а не выдано за гарантию: обещанная в комментарии неразрывность, которой
+    в коде нет, опаснее отсутствующей, потому что на неё сошлются при разборе инцидента.
+
+    ``actor_email`` продублирован текстом рядом с ``user_id`` намеренно. Участника можно
+    удалить из организации, и тогда ссылка перестанет что-либо называть; журнал же обязан
+    отвечать на вопрос «кто это сделал» и через год после увольнения. Тот же приём, что у
+    имени участника в сохранённой группе, — «надгробие».
+
+    Запись не редактируется и не удаляется: в API нет ни PUT, ни DELETE. Срок хранения
+    (5 лет по ARCHITECTURE §4) — политика эксплуатации, а не логика приложения; чистка
+    журнала кодом означала бы, что приложение умеет стирать собственные следы.
+    """
+
+    __tablename__ = "audit_log"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    #: Кто. Ссылка обнуляется при удалении пользователя, ``actor_email`` остаётся.
+    user_id: Mapped[Optional[str]] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    actor_email: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    #: Что: машинный код действия («project.create», «member.role_change», …).
+    action: Mapped[str] = mapped_column(String(64), nullable=False)
+    #: Над чем: тип и идентификатор объекта плюс его имя на момент действия.
+    entity_type: Mapped[str] = mapped_column(String(32), nullable=False, default="")
+    entity_id: Mapped[str] = mapped_column(String(36), nullable=False, default="")
+    entity_name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    #: Подробности, зависящие от действия (старая и новая роль, код тарифа и т. п.).
+    details: Mapped[str] = mapped_column(String(500), nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_now, index=True
     )
 
 

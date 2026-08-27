@@ -25,8 +25,8 @@ from audit_core.samples import build_trading_subject
 from .. import crud
 from ..audit_docgen import DOCX_MIME, build_audit_docx
 from ..database import get_db
-from ..db_models import AuditGroup, AuditSubject
-from ..deps import require_permission
+from ..db_models import AuditGroup, AuditSubject, User
+from ..deps import current_user, require_permission
 from ..rbac import Perm
 from ..schemas import (
     AuditAnalysisOut,
@@ -78,9 +78,13 @@ def _require(db: Session, org_id: str, subject_id: str) -> AuditSubject:
 @router.post("/subjects", response_model=AuditSubjectOut, status_code=status.HTTP_201_CREATED)
 def create_subject(body: AuditSubjectCreate,
                    org_id: str = Depends(require_permission(Perm.PROJECT_CREATE)),
+                   actor: User = Depends(current_user),
                    db: Session = Depends(get_db)) -> AuditSubjectOut:
     """Создать субъект анализа в текущей организации."""
-    return _out(crud.create_audit_subject(db, org_id, body.name, body.model))
+    subject = crud.create_audit_subject(db, org_id, body.name, body.model)
+    crud.log_action(db, org_id, actor, "case.create", entity_type="case",
+                    entity_id=subject.id, entity_name=subject.name)
+    return _out(subject)
 
 
 @router.get("/subjects", response_model=list[AuditSubjectSummary])
@@ -117,6 +121,7 @@ DEMO_NAME = "Демо-дело: ООО «Торговый дом» (вымышл
 @router.post("/subjects/demo", response_model=AuditSubjectOut,
              status_code=status.HTTP_201_CREATED)
 def create_demo_subject(org_id: str = Depends(require_permission(Perm.PROJECT_CREATE)),
+                        actor: User = Depends(current_user),
                         db: Session = Depends(get_db)) -> AuditSubjectOut:
     """Завести демо-дело из эталонного семпла («Экран 18»).
 
@@ -125,17 +130,25 @@ def create_demo_subject(org_id: str = Depends(require_permission(Perm.PROJECT_CR
     аналитическую форму, коэффициенты, диагностику и заключение, — и ему не нужно
     сперва вводить чужую отчётность, чтобы понять, что он покупает.
     """
-    return _out(crud.create_audit_subject(db, org_id, DEMO_NAME, build_trading_subject()))
+    subject = crud.create_audit_subject(db, org_id, DEMO_NAME, build_trading_subject())
+    crud.log_action(db, org_id, actor, "case.create", entity_type="case",
+                    entity_id=subject.id, entity_name=subject.name, details="демо-дело")
+    return _out(subject)
 
 
 @router.post("/subjects/{subject_id}/duplicate", response_model=AuditSubjectOut,
              status_code=status.HTTP_201_CREATED)
 def duplicate_subject(subject_id: str,
                       org_id: str = Depends(require_permission(Perm.PROJECT_CREATE)),
+                      actor: User = Depends(current_user),
                       db: Session = Depends(get_db)) -> AuditSubjectOut:
     """Дублировать дело: модель целиком, имя «{name} (копия)»."""
     subject = _require(db, org_id, subject_id)
-    return _out(crud.duplicate_audit_subject(db, subject, f"{subject.name} (копия)"))
+    copy = crud.duplicate_audit_subject(db, subject, f"{subject.name} (копия)")
+    crud.log_action(db, org_id, actor, "case.duplicate", entity_type="case",
+                    entity_id=copy.id, entity_name=copy.name,
+                    details=f"копия дела «{subject.name}»")
+    return _out(copy)
 
 
 @router.post("/subjects/{subject_id}/analyze", response_model=AuditAnalysisOut)
@@ -213,6 +226,7 @@ def consolidate(body: AuditConsolidateRequest,
 @router.get("/subjects/{subject_id}/report.docx")
 def download_report(subject_id: str,
                     org_id: str = Depends(require_permission(Perm.PROJECT_READ)),
+                    actor: User = Depends(current_user),
                     db: Session = Depends(get_db)) -> Response:
     """Документ заключения по анализу (DOCX): заключение, отчёты, коэффициенты, диагностика."""
     subject = _require(db, org_id, subject_id)
@@ -221,6 +235,10 @@ def download_report(subject_id: str,
     content = build_audit_docx(result, build_opinion(result), subject_name=subject.name,
                                industry=model.industry, currency=model.currency,
                                reporting_standard=model.reporting_standard)
+    # Выгрузка документа — вынос данных за пределы системы, и для 152-ФЗ это событие
+    # важнее половины правок: именно так отчётность цели покидает контур.
+    crud.log_action(db, org_id, actor, "case.export", entity_type="case",
+                    entity_id=subject.id, entity_name=subject.name, details="DOCX-заключение")
     filename = quote(f"{subject.name or 'audit'}.docx")
     return Response(content=content, media_type=DOCX_MIME, headers={
         "Content-Disposition": f"attachment; filename*=UTF-8''{filename}",
@@ -230,9 +248,16 @@ def download_report(subject_id: str,
 @router.delete("/subjects/{subject_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_subject(subject_id: str,
                    org_id: str = Depends(require_permission(Perm.PROJECT_DELETE)),
+                   actor: User = Depends(current_user),
                    db: Session = Depends(get_db)) -> None:
     """Удалить субъект анализа."""
-    crud.delete_audit_subject(db, _require(db, org_id, subject_id))
+    subject = _require(db, org_id, subject_id)
+    # Имя запоминается до удаления: после него журнал уже не смог бы назвать,
+    # что именно исчезло, — а это главное, что от записи об удалении и нужно.
+    name = subject.name
+    crud.delete_audit_subject(db, subject)
+    crud.log_action(db, org_id, actor, "case.delete", entity_type="case",
+                    entity_id=subject_id, entity_name=name)
 
 
 # --- Сохранённые группы предприятий (v2) ---

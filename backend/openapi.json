@@ -945,6 +945,76 @@
         "title": "AuditLineOut",
         "type": "object"
       },
+      "AuditLogEntryOut": {
+        "description": "Запись журнала действий: кто, что, над чем и когда.\n\n``actor_email`` берётся из журнала, а не из таблицы пользователей: участника могли\nудалить, а журнал обязан отвечать «кто это сделал» и после его ухода.",
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "actor_email": {
+            "title": "Actor Email",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "details": {
+            "default": "",
+            "title": "Details",
+            "type": "string"
+          },
+          "entity_id": {
+            "default": "",
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "entity_name": {
+            "default": "",
+            "title": "Entity Name",
+            "type": "string"
+          },
+          "entity_type": {
+            "default": "",
+            "title": "Entity Type",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "actor_email",
+          "action",
+          "created_at"
+        ],
+        "title": "AuditLogEntryOut",
+        "type": "object"
+      },
+      "AuditLogPage": {
+        "description": "Страница журнала: записи (новые сверху) и общее их число в организации.",
+        "properties": {
+          "entries": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AuditLogEntryOut"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "title": "AuditLogPage",
+        "type": "object"
+      },
       "AuditPeriod": {
         "description": "Отчётный период: подпись (например «2024», «2024 Q1», «01.2024») и тип.\n\nТип задаёт длину периода: показатели «в днях» считаются по ней, а потоковые\nпоказатели приводятся к году (квартал ×4, месяц ×12) — иначе периоды разной\nдлины были бы несопоставимы.",
         "properties": {
@@ -10500,6 +10570,81 @@
           }
         ],
         "summary": "Get Organization",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/api/v1/organizations/{org_id}/audit-log": {
+      "get": {
+        "description": "Журнал действий организации (право org.manage): новые записи сверху.\n\nТолько чтение. Ни PUT, ни DELETE у журнала нет и не будет: журнал, который можно\nпоправить, не журнал. Срок хранения (5 лет, ARCHITECTURE §4) — политика эксплуатации,\nа не логика приложения: чистка кодом означала бы, что приложение умеет стирать\nсобственные следы.",
+        "operationId": "read_audit_log_api_v1_organizations__org_id__audit_log_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 200,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "before",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Before"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditLogPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Audit Log",
         "tags": [
           "organizations"
         ]

@@ -18,6 +18,7 @@ from calc_core import ProjectModel
 from .db_models import (
     AnalysisJob,
     AuditGroup,
+    AuditLogEntry,
     AuditSubject,
     Holding,
     HoldingMember,
@@ -576,3 +577,46 @@ def save_holding_consolidation(db: Session, holding: Holding, *, npv: Decimal,
     holding.last_consolidation_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(holding)
+
+# --- Журнал действий (152-ФЗ, ARCHITECTURE §4) ---
+
+def log_action(db: Session, org_id: str, user, action: str, *, entity_type: str = "",
+               entity_id: str = "", entity_name: str = "", details: str = "") -> AuditLogEntry:
+    """Записать действие в журнал организации.
+
+    ``user`` может быть ``None`` (системное действие). Почта актора дублируется текстом:
+    участника удалят, а журнал обязан отвечать «кто это сделал» и через год.
+
+    Длинные поля обрезаются до размера колонки, а не роняют запрос: имя дела задаёт
+    пользователь, и слишком длинное имя не повод потерять запись о его удалении.
+    """
+    entry = AuditLogEntry(
+        organization_id=org_id,
+        user_id=getattr(user, "id", None),
+        actor_email=(getattr(user, "email", "") or "")[:255],
+        action=action[:64],
+        entity_type=entity_type[:32],
+        entity_id=entity_id[:36],
+        entity_name=entity_name[:255],
+        details=details[:500],
+    )
+    db.add(entry)
+    db.commit()
+    return entry
+
+
+def list_audit_log(db: Session, org_id: str, limit: int = 200,
+                   before: datetime | None = None) -> list[AuditLogEntry]:
+    """Записи журнала организации, новые сверху; ``before`` — курсор постраничного чтения."""
+    stmt = select(AuditLogEntry).where(AuditLogEntry.organization_id == org_id)
+    if before is not None:
+        stmt = stmt.where(AuditLogEntry.created_at < before)
+    stmt = stmt.order_by(AuditLogEntry.created_at.desc()).limit(limit)
+    return list(db.execute(stmt).scalars())
+
+
+def count_audit_log(db: Session, org_id: str) -> int:
+    return int(db.execute(
+        select(func.count()).select_from(AuditLogEntry)
+        .where(AuditLogEntry.organization_id == org_id)
+    ).scalar_one())

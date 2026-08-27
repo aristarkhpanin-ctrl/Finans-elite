@@ -16,6 +16,8 @@ export type Member = Schema<"MemberOut">;
 export type Plan = Schema<"PlanOut">;
 export type Subscription = Schema<"SubscriptionOut">;
 export type CheckoutResponse = Schema<"CheckoutResponse">;
+export type AuditLogEntry = Schema<"AuditLogEntryOut">;
+export type AuditLogPage = Schema<"AuditLogPage">;
 
 export async function createOrganization(name: string): Promise<{ id: string; name: string }> {
   const { data } = await api.post<{ id: string; name: string }>("/api/v1/organizations", { name });
@@ -56,5 +58,15 @@ export async function checkout(orgId: string, planCode: string): Promise<Checkou
     plan_code: planCode,
     return_url: window.location.origin + "/organization",
   });
+  return data;
+}
+
+/**
+ * Журнал действий организации (152-ФЗ). Только чтение: у журнала нет операций правки
+ * и удаления — журнал, который можно поправить, не журнал.
+ */
+export async function getAuditLog(orgId: string, limit = 200): Promise<AuditLogPage> {
+  const { data } = await api.get<AuditLogPage>(
+    `/api/v1/organizations/${orgId}/audit-log`, { params: { limit } });
   return data;
 }
