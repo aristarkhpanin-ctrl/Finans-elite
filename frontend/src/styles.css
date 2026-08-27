@@ -1195,7 +1195,28 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .icon-action--danger { color: var(--danger); }
 .icon-action--danger:hover { background: var(--danger-bg); border-color: var(--danger-border); }
 
+/* Панель качества данных «Финанс-Аудит» (макет Экран 19) */
+.issue-list { display: flex; flex-direction: column; gap: 8px; }
+.issue {
+  padding: 11px 13px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--surface-2);
+  border-left-width: 3px;
+}
+.issue--error { border-left-color: var(--danger); background: var(--danger-bg); }
+.issue--warn { border-left-color: var(--warn); background: var(--warn-bg); }
+.issue--info { border-left-color: var(--info); background: var(--info-bg); }
+.issue__head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+.issue__badge {
+  font: 600 9px var(--font-ui); letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 3px 6px; border-radius: 4px; background: var(--surface); color: var(--muted);
+}
+.issue__title { font: 600 13px var(--font-ui); color: var(--text); }
+.issue__periods { font: 500 11px var(--font-mono); color: var(--muted); }
+.issue__detail { margin-top: 5px; font: 400 12.5px/1.5 var(--font-ui); color: var(--muted); }
+
 /* Список дел «Финанс-Аудит» (макет Экран 6): фильтры-пилюли и мета карточки */
+.case-toolbar { display: flex; gap: 10px; margin-bottom: 12px; }
+.case-search { max-width: 360px; }
 .case-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
 .case-filter {
   display: inline-flex; align-items: center; padding: 6px 12px;

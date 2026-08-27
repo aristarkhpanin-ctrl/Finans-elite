@@ -864,6 +864,20 @@ class AuditAnalysisOut(BaseModel):
     # Экспертное заключение — связный автотекст по результату анализа (фаза E).
     opinion: str = ""
     warnings: list[str] = []
+    # Качество ввода («Экран 19»): находки о самих данных, а не о финансовом состоянии.
+    # В AuditResult не входят — анализ и высказывание о его входе это разные вещи.
+    input_issues: list["AuditInputIssueOut"] = []
+
+
+class AuditInputIssueOut(BaseModel):
+    """Находка проверки ввода: что не так с данными и в каких периодах."""
+
+    code: str
+    severity: str                      # error | warning | info
+    title: str
+    detail: str
+    periods: list[int] = []            # индексы периодов (пусто — вся модель)
+    evidence: dict[str, Decimal] = {}
 
 
 class AuditEliminationIn(BaseModel):
@@ -950,10 +964,14 @@ class AuditGroupOut(AuditGroupSummary):
     model: AuditGroupModel
 
 
-def audit_analysis_response(result, opinion: str = "") -> "AuditAnalysisOut":
-    """Собрать ответ анализа из ``audit_core.AuditResult`` (+ текст заключения)."""
+def audit_analysis_response(result, opinion: str = "",
+                            issues=()) -> "AuditAnalysisOut":
+    """Собрать ответ анализа из ``audit_core.AuditResult`` (+ заключение и находки ввода)."""
     return AuditAnalysisOut(
         opinion=opinion,
+        input_issues=[AuditInputIssueOut(code=i.code, severity=i.severity, title=i.title,
+                                         detail=i.detail, periods=list(i.periods),
+                                         evidence=dict(i.evidence)) for i in issues],
         n=result.n,
         periods=list(result.periods),
         balance=[AuditLineOut(code=ln.code, label=ln.label, values=list(ln.values),

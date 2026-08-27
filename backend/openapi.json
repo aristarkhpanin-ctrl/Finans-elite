@@ -330,6 +330,14 @@
             "title": "Income",
             "type": "array"
           },
+          "input_issues": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AuditInputIssueOut"
+            },
+            "title": "Input Issues",
+            "type": "array"
+          },
           "n": {
             "title": "N",
             "type": "integer"
@@ -856,6 +864,52 @@
           }
         },
         "title": "AuditGroupUpdate",
+        "type": "object"
+      },
+      "AuditInputIssueOut": {
+        "description": "Находка проверки ввода: что не так с данными и в каких периодах.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "evidence": {
+            "additionalProperties": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "default": {},
+            "title": "Evidence",
+            "type": "object"
+          },
+          "periods": {
+            "default": [],
+            "items": {
+              "type": "integer"
+            },
+            "title": "Periods",
+            "type": "array"
+          },
+          "severity": {
+            "title": "Severity",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "severity",
+          "title",
+          "detail"
+        ],
+        "title": "AuditInputIssueOut",
         "type": "object"
       },
       "AuditLineOut": {

@@ -56,6 +56,22 @@ function matches(s: AuditSubjectSummary, key: string): boolean {
   return s.light === key;
 }
 
+/**
+ * Поиск по делу: название и отрасль. Регистр и «ё» не должны мешать — «ООО Ритейл»
+ * находится по «ритейл», а «Перевозки» по «перевозки». Ленты событий из макета
+ * (Экран 22) здесь нет: журнала доступа в базе не существует, и рисовать пустую
+ * ленту значило бы обещать историю, которой никто не ведёт.
+ */
+function fold(s: string): string {
+  return s.toLowerCase().replace(/ё/g, "е");
+}
+
+function found(s: AuditSubjectSummary, query: string): boolean {
+  const q = fold(query.trim());
+  if (!q) return true;
+  return fold(s.name).includes(q) || fold(s.industry).includes(q);
+}
+
 /** Дата последней правки коротко: «12 мар 2026». */
 function shortDate(iso: string): string {
   return new Date(iso).toLocaleDateString("ru-RU",
@@ -67,6 +83,7 @@ export function AuditHomePage() {
   const navigate = useNavigate();
   const toast = useToast();
   const [filter, setFilter] = useState("all");
+  const [query, setQuery] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [confirm, setConfirm] = useState<AuditSubjectSummary | null>(null);
 
@@ -84,12 +101,17 @@ export function AuditHomePage() {
   const invalidate = () => qc.invalidateQueries({ queryKey: ["audit-subjects"] });
 
   const subjects = useMemo(() => data ?? [], [data]);
-  const shown = useMemo(() => subjects.filter((s) => matches(s, filter)), [subjects, filter]);
+  const shown = useMemo(
+    () => subjects.filter((s) => matches(s, filter) && found(s, query)),
+    [subjects, filter, query]);
+  // Счётчики считаются по результату поиска, а не по всему списку: иначе «Риск · 3»
+  // рядом с одной найденной карточкой — обещание двух дел, которых на экране нет.
   const counts = useMemo(() => {
     const out: Record<string, number> = {};
-    for (const [key] of FILTERS) out[key] = subjects.filter((s) => matches(s, key)).length;
+    const pool = subjects.filter((s) => found(s, query));
+    for (const [key] of FILTERS) out[key] = pool.filter((s) => matches(s, key)).length;
     return out;
-  }, [subjects]);
+  }, [subjects, query]);
 
   const create = useMutation({
     mutationFn: () => {
@@ -160,6 +182,17 @@ export function AuditHomePage() {
         </div>
       ) : (
         <>
+          <div className="case-toolbar">
+            <input
+              type="search"
+              className="input case-search"
+              placeholder="Поиск по названию и отрасли"
+              aria-label="Поиск по делам"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+
           <div className="case-filters" role="group" aria-label="Фильтр дел">
             {FILTERS.filter(([key]) => key === "all" || counts[key] > 0).map(([key, label]) => (
               <button
@@ -175,10 +208,22 @@ export function AuditHomePage() {
           </div>
 
           {shown.length === 0 ? (
+            // Пустой результат объясняет свою причину: поиск и фильтр отсекают
+            // по-разному, и «ничего не найдено» без указания на что именно —
+            // тупик, из которого пользователь выходит перезагрузкой страницы.
             <div className="tab-empty">
-              <div className="tab-empty__title">В этой группе дел нет</div>
-              <div className="tab-empty__sub">Снимите фильтр, чтобы увидеть остальные.</div>
-              <Button variant="ghost" onClick={() => setFilter("all")}>Показать все</Button>
+              <div className="tab-empty__title">
+                {query.trim() ? "Ничего не найдено" : "В этой группе дел нет"}
+              </div>
+              <div className="tab-empty__sub">
+                {query.trim()
+                  ? `По запросу «${query.trim()}» нет ни одного дела.`
+                  : "Снимите фильтр, чтобы увидеть остальные."}
+              </div>
+              <Button variant="ghost"
+                      onClick={() => { setQuery(""); setFilter("all"); }}>
+                Показать все
+              </Button>
             </div>
           ) : (
             <div className="proj-grid">

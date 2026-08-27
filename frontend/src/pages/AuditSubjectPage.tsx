@@ -24,6 +24,7 @@ import {
 import { IconDownload, IconTrash, IconUpload } from "../components/icons";
 import { useToast } from "../components/Toast";
 import { Button } from "../components/ui";
+import { AuditInputIssues } from "../components/AuditInputIssues";
 import { allBalanced, balanceGaps, serverGaps } from "../auditBalance";
 import { downloadAuditXlsx } from "../auditExport";
 import { downloadAuditTemplate, parseAuditXlsx } from "../auditXlsx";
@@ -642,6 +643,11 @@ export function AuditSubjectPage() {
               ))}
             </div>
           )}
+
+          {/* Находки о самих данных — отдельно от оговорок о результате: одно надо
+              исправить, другое просто иметь в виду. */}
+          <AuditInputIssues issues={analysis.data.input_issues ?? []}
+                            periods={analysis.data.periods} />
 
           {analysis.data.user_metrics.length > 0 && (
             <div className="audit-block">

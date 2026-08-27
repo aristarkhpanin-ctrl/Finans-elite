@@ -195,6 +195,18 @@ export interface AuditAnalysis {
   revalued: boolean;          // числа посчитаны после переоценки статей
   opinion: string;
   warnings: string[];
+  input_issues: AuditInputIssue[];
+}
+
+/** Находка о качестве ввода: что не так с самими данными (не с финансовым состоянием). */
+export interface AuditInputIssue {
+  code: string;
+  /** `error` — данные противоречивы; `warning` — часть показателей не выйдет; `info`. */
+  severity: "error" | "warning" | "info";
+  title: string;
+  detail: string;
+  periods: number[];          // индексы затронутых периодов (пусто — вся модель)
+  evidence: Record<string, string>;
 }
 
 /** Человекочитаемые названия групп коэффициентов (порядок вывода). */

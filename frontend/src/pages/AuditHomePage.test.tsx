@@ -142,4 +142,40 @@ describe("Список дел", () => {
     fireEvent.click(screen.getByText("Создать"));
     expect(createAuditSubject).not.toHaveBeenCalled();
   });
+  it("поиск ищет по названию и отрасли, не различая регистра и «ё»", async () => {
+    await show([
+      subject({ id: "a", name: "ООО «Сибтранс»", industry: "Перевозки" }),
+      subject({ id: "b", name: "АО «Ритейл»", industry: "Торговля" }),
+    ]);
+    const box = screen.getByLabelText("Поиск по делам");
+
+    fireEvent.change(box, { target: { value: "сибтранс" } });
+    expect(screen.getByText("ООО «Сибтранс»")).toBeTruthy();
+    expect(screen.queryByText("АО «Ритейл»")).toBeNull();
+
+    // по отрасли — тоже, и «ё» не мешает
+    fireEvent.change(box, { target: { value: "перевозки" } });
+    expect(screen.getByText("ООО «Сибтранс»")).toBeTruthy();
+  });
+
+  it("счётчики фильтров считают найденное, а не весь список", async () => {
+    // «Риск · 3» рядом с одной карточкой — обещание двух дел, которых на экране нет.
+    await show([
+      subject({ id: "a", name: "Альфа", light: "risk" }),
+      subject({ id: "b", name: "Бета", light: "risk" }),
+    ]);
+    expect(screen.getByText("Риск · 2")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Поиск по делам"), { target: { value: "альфа" } });
+    expect(screen.getByText("Риск · 1")).toBeTruthy();
+  });
+
+  it("пустой результат поиска объясняет свою причину и предлагает выход", async () => {
+    await show([subject()]);
+    fireEvent.change(screen.getByLabelText("Поиск по делам"), { target: { value: "неттакого" } });
+    expect(screen.getByText("Ничего не найдено")).toBeTruthy();
+    expect(screen.getByText(/По запросу «неттакого»/)).toBeTruthy();
+
+    fireEvent.click(screen.getByText("Показать все"));
+    expect(screen.getByText("ООО «Пример»")).toBeTruthy();
+  });
 });

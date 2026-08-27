@@ -189,3 +189,23 @@ def test_duplicate_isolated_and_missing(client, register):
     sid = _create(client, a).json()["id"]
     assert client.post(f"/api/v1/audit/subjects/{sid}/duplicate", headers=b).status_code == 404
     assert client.post("/api/v1/audit/subjects/nope/duplicate", headers=a).status_code == 404
+
+
+def test_analyze_carries_input_issues(client, auth_headers):
+    """Ответ анализа несёт находки о качестве ввода — «Экран 19».
+
+    Находки считаются по исходной модели, а не по результату: анализ уже применил
+    переоценки, а претензии предъявляются к тому, что ввели.
+    """
+    sid = _create(client, auth_headers, balanced=False).json()["id"]
+    a = client.post(f"/api/v1/audit/subjects/{sid}/analyze", headers=auth_headers).json()
+    gap = next(i for i in a["input_issues"] if i["code"] == "balance_gap")
+    assert gap["severity"] == "error" and gap["periods"] == [1]
+    assert "2024" in gap["detail"]
+
+
+def test_analyze_clean_model_has_no_input_issues(client, auth_headers):
+    """На здоровой отчётности список находок пуст — линтер не шумит."""
+    sid = _create(client, auth_headers).json()["id"]
+    a = client.post(f"/api/v1/audit/subjects/{sid}/analyze", headers=auth_headers).json()
+    assert a["input_issues"] == []

@@ -12,7 +12,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
-from audit_core import AuditSubjectModel, Elimination, analyze, consolidate_subjects
+from audit_core import (
+    AuditSubjectModel,
+    Elimination,
+    analyze,
+    check_input,
+    consolidate_subjects,
+)
 from audit_core.opinion import build_opinion
 
 from .. import crud
@@ -116,8 +122,11 @@ def analyze_subject(subject_id: str,
                     db: Session = Depends(get_db)) -> AuditAnalysisOut:
     """Проанализировать отчётность субъекта: аналитическая форма, тренды, коэффициенты."""
     subject = _require(db, org_id, subject_id)
-    result = analyze(crud.load_audit_model(subject))
-    return audit_analysis_response(result, build_opinion(result))
+    model = crud.load_audit_model(subject)
+    result = analyze(model)
+    # Находки о качестве ввода считаются по исходной модели, а не по результату:
+    # анализ уже применил переоценки, а претензии предъявляются к тому, что ввели.
+    return audit_analysis_response(result, build_opinion(result), check_input(model))
 
 
 def _consolidate(members: list[tuple[str, AuditSubjectModel]], name: str,

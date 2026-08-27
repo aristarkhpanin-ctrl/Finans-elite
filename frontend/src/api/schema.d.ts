@@ -1251,6 +1251,11 @@ export interface components {
              * @default []
              */
             income: components["schemas"]["AuditLineOut"][];
+            /**
+             * Input Issues
+             * @default []
+             */
+            input_issues: components["schemas"]["AuditInputIssueOut"][];
             /** N */
             n: number;
             /**
@@ -1549,6 +1554,32 @@ export interface components {
             model?: components["schemas"]["AuditGroupModel-Input"] | null;
             /** Name */
             name?: string | null;
+        };
+        /**
+         * AuditInputIssueOut
+         * @description Находка проверки ввода: что не так с данными и в каких периодах.
+         */
+        AuditInputIssueOut: {
+            /** Code */
+            code: string;
+            /** Detail */
+            detail: string;
+            /**
+             * Evidence
+             * @default {}
+             */
+            evidence: {
+                [key: string]: string;
+            };
+            /**
+             * Periods
+             * @default []
+             */
+            periods: number[];
+            /** Severity */
+            severity: string;
+            /** Title */
+            title: string;
         };
         /**
          * AuditLineOut
