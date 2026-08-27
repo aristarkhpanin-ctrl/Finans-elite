@@ -616,7 +616,7 @@ export interface paths {
         };
         /**
          * Get Subscription
-         * @description Текущая подписка организации (с использованием квот).
+         * @description Подписка организации на продукт (с использованием квот).
          */
         get: operations["get_subscription_api_v1_organizations__org_id__subscription_get"];
         put?: never;
@@ -625,6 +625,26 @@ export interface paths {
          * @description Прямая смена тарифа без платежа (право billing.manage; ручной/админский путь).
          */
         post: operations["change_subscription_api_v1_organizations__org_id__subscription_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{org_id}/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Subscriptions
+         * @description Подписки организации по всем продуктам — их столько же, сколько продуктов.
+         */
+        get: operations["get_subscriptions_api_v1_organizations__org_id__subscriptions_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -640,7 +660,7 @@ export interface paths {
         };
         /**
          * List Plans
-         * @description Каталог доступных тарифов (публично).
+         * @description Каталог тарифов (публично); ``product`` — только тарифы одного продукта.
          */
         get: operations["list_plans_api_v1_plans_get"];
         put?: never;
@@ -3656,18 +3676,36 @@ export interface components {
             /** Role */
             role: string;
         };
-        /** PlanOut */
+        /**
+         * PlanOut
+         * @description Тариф каталога. Единица квоты зависит от продукта: проект у «Элит», дело у «Аудита».
+         *
+         *     Поэтому поле называется ``max_units``, а не ``max_projects``: имя, верное лишь для
+         *     половины каталога, однажды прочитают буквально. ``unit_name`` даёт подпись для экрана.
+         */
         PlanOut: {
             /** Code */
             code: string;
             /** Max Members */
             max_members?: number | null;
-            /** Max Projects */
-            max_projects?: number | null;
+            /** Max Units */
+            max_units?: number | null;
             /** Name */
             name: string;
+            /**
+             * Price On Request
+             * @default false
+             */
+            price_on_request: boolean;
             /** Price Rub */
             price_rub: number;
+            /** Product */
+            product: string;
+            /**
+             * Unit Name
+             * @default проектов
+             */
+            unit_name: string;
         };
         /**
          * PlanSection
@@ -5212,24 +5250,50 @@ export interface components {
             /** Lines */
             lines: components["schemas"]["LineOut"][];
         };
-        /** SubscriptionOut */
+        /**
+         * SubscriptionOut
+         * @description Подписка организации на один продукт: тариф, статус и использование квот.
+         */
         SubscriptionOut: {
             /** Current Period End */
             current_period_end?: string | null;
             /** Max Members */
             max_members?: number | null;
-            /** Max Projects */
-            max_projects?: number | null;
+            /** Max Units */
+            max_units?: number | null;
             /** Plan Code */
             plan_code: string;
             /** Plan Name */
             plan_name: string;
+            /**
+             * Price On Request
+             * @default false
+             */
+            price_on_request: boolean;
+            /**
+             * Price Rub
+             * @default 0
+             */
+            price_rub: number;
+            /**
+             * Product
+             * @default business
+             */
+            product: string;
             /** Status */
             status: string;
+            /**
+             * Unit Name
+             * @default проектов
+             */
+            unit_name: string;
             /** Used Members */
             used_members: number;
-            /** Used Projects */
-            used_projects: number;
+            /**
+             * Used Units
+             * @default 0
+             */
+            used_units: number;
         };
         /** SubscriptionUpdate */
         SubscriptionUpdate: {
@@ -6866,7 +6930,9 @@ export interface operations {
     };
     get_subscription_api_v1_organizations__org_id__subscription_get: {
         parameters: {
-            query?: never;
+            query?: {
+                product?: string;
+            };
             header?: never;
             path: {
                 org_id: string;
@@ -6930,9 +6996,42 @@ export interface operations {
             };
         };
     };
-    list_plans_api_v1_plans_get: {
+    get_subscriptions_api_v1_organizations__org_id__subscriptions_get: {
         parameters: {
             query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_plans_api_v1_plans_get: {
+        parameters: {
+            query?: {
+                product?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -6946,6 +7045,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlanOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

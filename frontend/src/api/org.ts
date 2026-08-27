@@ -43,13 +43,15 @@ export async function removeMember(orgId: string, userId: string): Promise<void>
   await api.delete(`/api/v1/organizations/${orgId}/members/${userId}`);
 }
 
-export async function getPlans(): Promise<Plan[]> {
-  const { data } = await api.get<Plan[]>("/api/v1/plans");
+/** Каталог тарифов продукта: у «Элит» и «Аудита» он свой — они продаются порознь. */
+export async function getPlans(product?: string): Promise<Plan[]> {
+  const { data } = await api.get<Plan[]>("/api/v1/plans", { params: { product } });
   return data;
 }
 
-export async function getSubscription(orgId: string): Promise<Subscription> {
-  const { data } = await api.get<Subscription>(`/api/v1/organizations/${orgId}/subscription`);
+export async function getSubscription(orgId: string, product = "business"): Promise<Subscription> {
+  const { data } = await api.get<Subscription>(
+    `/api/v1/organizations/${orgId}/subscription`, { params: { product } });
   return data;
 }
 

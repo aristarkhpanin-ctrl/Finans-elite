@@ -4879,6 +4879,7 @@
         "type": "object"
       },
       "PlanOut": {
+        "description": "Тариф каталога. Единица квоты зависит от продукта: проект у «Элит», дело у «Аудита».\n\nПоэтому поле называется ``max_units``, а не ``max_projects``: имя, верное лишь для\nполовины каталога, однажды прочитают буквально. ``unit_name`` даёт подпись для экрана.",
         "properties": {
           "code": {
             "title": "Code",
@@ -4895,7 +4896,7 @@
             ],
             "title": "Max Members"
           },
-          "max_projects": {
+          "max_units": {
             "anyOf": [
               {
                 "type": "integer"
@@ -4904,19 +4905,34 @@
                 "type": "null"
               }
             ],
-            "title": "Max Projects"
+            "title": "Max Units"
           },
           "name": {
             "title": "Name",
             "type": "string"
           },
+          "price_on_request": {
+            "default": false,
+            "title": "Price On Request",
+            "type": "boolean"
+          },
           "price_rub": {
             "title": "Price Rub",
             "type": "integer"
+          },
+          "product": {
+            "title": "Product",
+            "type": "string"
+          },
+          "unit_name": {
+            "default": "проектов",
+            "title": "Unit Name",
+            "type": "string"
           }
         },
         "required": [
           "code",
+          "product",
           "name",
           "price_rub"
         ],
@@ -7869,6 +7885,7 @@
         "type": "object"
       },
       "SubscriptionOut": {
+        "description": "Подписка организации на один продукт: тариф, статус и использование квот.",
         "properties": {
           "current_period_end": {
             "anyOf": [
@@ -7893,7 +7910,7 @@
             ],
             "title": "Max Members"
           },
-          "max_projects": {
+          "max_units": {
             "anyOf": [
               {
                 "type": "integer"
@@ -7902,7 +7919,7 @@
                 "type": "null"
               }
             ],
-            "title": "Max Projects"
+            "title": "Max Units"
           },
           "plan_code": {
             "title": "Plan Code",
@@ -7912,16 +7929,37 @@
             "title": "Plan Name",
             "type": "string"
           },
+          "price_on_request": {
+            "default": false,
+            "title": "Price On Request",
+            "type": "boolean"
+          },
+          "price_rub": {
+            "default": 0,
+            "title": "Price Rub",
+            "type": "integer"
+          },
+          "product": {
+            "default": "business",
+            "title": "Product",
+            "type": "string"
+          },
           "status": {
             "title": "Status",
+            "type": "string"
+          },
+          "unit_name": {
+            "default": "проектов",
+            "title": "Unit Name",
             "type": "string"
           },
           "used_members": {
             "title": "Used Members",
             "type": "integer"
           },
-          "used_projects": {
-            "title": "Used Projects",
+          "used_units": {
+            "default": 0,
+            "title": "Used Units",
             "type": "integer"
           }
         },
@@ -7929,7 +7967,6 @@
           "plan_code",
           "plan_name",
           "status",
-          "used_projects",
           "used_members"
         ],
         "title": "SubscriptionOut",
@@ -10932,7 +10969,7 @@
     },
     "/api/v1/organizations/{org_id}/subscription": {
       "get": {
-        "description": "Текущая подписка организации (с использованием квот).",
+        "description": "Подписка организации на продукт (с использованием квот).",
         "operationId": "get_subscription_api_v1_organizations__org_id__subscription_get",
         "parameters": [
           {
@@ -10941,6 +10978,16 @@
             "required": true,
             "schema": {
               "title": "Org Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "product",
+            "required": false,
+            "schema": {
+              "default": "business",
+              "title": "Product",
               "type": "string"
             }
           }
@@ -11034,10 +11081,80 @@
         ]
       }
     },
+    "/api/v1/organizations/{org_id}/subscriptions": {
+      "get": {
+        "description": "Подписки организации по всем продуктам — их столько же, сколько продуктов.",
+        "operationId": "get_subscriptions_api_v1_organizations__org_id__subscriptions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SubscriptionOut"
+                  },
+                  "title": "Response Get Subscriptions Api V1 Organizations  Org Id  Subscriptions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Subscriptions",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
     "/api/v1/plans": {
       "get": {
-        "description": "Каталог доступных тарифов (публично).",
+        "description": "Каталог тарифов (публично); ``product`` — только тарифы одного продукта.",
         "operationId": "list_plans_api_v1_plans_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "product",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Product"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -11052,6 +11169,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "summary": "List Plans",

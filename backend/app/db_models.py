@@ -73,14 +73,23 @@ class Membership(Base):
 
 
 class Subscription(Base):
-    """Подписка организации на тариф (одна на организацию)."""
+    """Подписка организации на тариф — **своя на каждый продукт платформы**.
+
+    Продукты продаются порознь, поэтому уникальна пара «организация + продукт», а не
+    одна организация: общая подписка означала бы, что цена «Аудита» меняется вместе с
+    ценой «Элит» и наоборот.
+    """
 
     __tablename__ = "subscriptions"
+    __table_args__ = (UniqueConstraint("organization_id", "product", name="uq_org_product"),)
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     organization_id: Mapped[str] = mapped_column(
-        ForeignKey("organizations.id", ondelete="CASCADE"), unique=True, index=True, nullable=False
+        ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False
     )
+    #: "business" («Финанс-Элит») | "audit" («Финанс-Аудит»).
+    product: Mapped[str] = mapped_column(String(16), default="business",
+                                         server_default="business", nullable=False)
     plan_code: Mapped[str] = mapped_column(String(32), default="free")
     status: Mapped[str] = mapped_column(String(32), default="active")  # active/trialing/past_due/canceled
     current_period_end: Mapped[datetime | None] = mapped_column(

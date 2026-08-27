@@ -63,14 +63,23 @@ def get_organization(db: Session, org_id: str) -> Organization | None:
 
 # --- Подписки ---
 
-def get_subscription(db: Session, org_id: str) -> Subscription | None:
-    return db.scalar(select(Subscription).where(Subscription.organization_id == org_id))
+def get_subscription(db: Session, org_id: str, product: str = "business") -> Subscription | None:
+    """Подписка организации на продукт (у каждого продукта своя)."""
+    return db.scalar(select(Subscription).where(
+        Subscription.organization_id == org_id, Subscription.product == product))
 
 
-def set_plan(db: Session, org_id: str, plan_code: str, status: str = "active") -> Subscription:
-    sub = get_subscription(db, org_id)
+def list_subscriptions(db: Session, org_id: str) -> list[Subscription]:
+    return list(db.scalars(select(Subscription).where(
+        Subscription.organization_id == org_id).order_by(Subscription.product)))
+
+
+def set_plan(db: Session, org_id: str, plan_code: str, status: str = "active",
+             product: str = "business") -> Subscription:
+    sub = get_subscription(db, org_id, product)
     if sub is None:
-        sub = Subscription(organization_id=org_id, plan_code=plan_code, status=status)
+        sub = Subscription(organization_id=org_id, plan_code=plan_code, status=status,
+                           product=product)
         db.add(sub)
     else:
         sub.plan_code = plan_code
@@ -119,6 +128,14 @@ def mark_payment(db: Session, payment: Payment, status: str) -> Payment:
 def count_projects(db: Session, org_id: str) -> int:
     return db.scalar(
         select(func.count()).select_from(Project).where(Project.organization_id == org_id)
+    ) or 0
+
+
+def count_audit_subjects(db: Session, org_id: str) -> int:
+    """Число дел организации — единица квоты продукта «Финанс-Аудит»."""
+    return db.scalar(
+        select(func.count()).select_from(AuditSubject)
+        .where(AuditSubject.organization_id == org_id)
     ) or 0
 
 

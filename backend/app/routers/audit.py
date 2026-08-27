@@ -22,7 +22,7 @@ from audit_core import (
 from audit_core.opinion import build_opinion
 from audit_core.samples import build_trading_subject
 
-from .. import crud
+from .. import billing, crud
 from ..audit_docgen import DOCX_MIME, build_audit_docx
 from ..database import get_db
 from ..db_models import AuditGroup, AuditSubject, User
@@ -81,6 +81,7 @@ def create_subject(body: AuditSubjectCreate,
                    actor: User = Depends(current_user),
                    db: Session = Depends(get_db)) -> AuditSubjectOut:
     """Создать субъект анализа в текущей организации."""
+    billing.ensure_case_quota(db, org_id)
     subject = crud.create_audit_subject(db, org_id, body.name, body.model)
     crud.log_action(db, org_id, actor, "case.create", entity_type="case",
                     entity_id=subject.id, entity_name=subject.name)
@@ -130,6 +131,7 @@ def create_demo_subject(org_id: str = Depends(require_permission(Perm.PROJECT_CR
     аналитическую форму, коэффициенты, диагностику и заключение, — и ему не нужно
     сперва вводить чужую отчётность, чтобы понять, что он покупает.
     """
+    billing.ensure_case_quota(db, org_id)
     subject = crud.create_audit_subject(db, org_id, DEMO_NAME, build_trading_subject())
     crud.log_action(db, org_id, actor, "case.create", entity_type="case",
                     entity_id=subject.id, entity_name=subject.name, details="демо-дело")
@@ -144,6 +146,7 @@ def duplicate_subject(subject_id: str,
                       db: Session = Depends(get_db)) -> AuditSubjectOut:
     """Дублировать дело: модель целиком, имя «{name} (копия)»."""
     subject = _require(db, org_id, subject_id)
+    billing.ensure_case_quota(db, org_id)
     copy = crud.duplicate_audit_subject(db, subject, f"{subject.name} (копия)")
     crud.log_action(db, org_id, actor, "case.duplicate", entity_type="case",
                     entity_id=copy.id, entity_name=copy.name,

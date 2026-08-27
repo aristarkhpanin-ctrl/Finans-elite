@@ -464,21 +464,38 @@ class UserOut(BaseModel):
 # --- Тарифы и подписка (биллинг, 6.5) ---
 
 class PlanOut(BaseModel):
+    """Тариф каталога. Единица квоты зависит от продукта: проект у «Элит», дело у «Аудита».
+
+    Поэтому поле называется ``max_units``, а не ``max_projects``: имя, верное лишь для
+    половины каталога, однажды прочитают буквально. ``unit_name`` даёт подпись для экрана.
+    """
+
     code: str
+    product: str                        # business | audit
     name: str
     price_rub: int
-    max_projects: Optional[int] = None
+    #: Цена «по запросу»: корпоративные условия не выражаются числом, и ноль вместо них
+    #: выглядел бы как бесплатный тариф.
+    price_on_request: bool = False
+    max_units: Optional[int] = None
+    unit_name: str = "проектов"
     max_members: Optional[int] = None
 
 
 class SubscriptionOut(BaseModel):
+    """Подписка организации на один продукт: тариф, статус и использование квот."""
+
+    product: str = "business"
     plan_code: str
     plan_name: str
     status: str
     current_period_end: Optional[datetime] = None
-    max_projects: Optional[int] = None
+    price_rub: int = 0
+    price_on_request: bool = False
+    max_units: Optional[int] = None
+    unit_name: str = "проектов"
     max_members: Optional[int] = None
-    used_projects: int
+    used_units: int = 0
     used_members: int
 
 
