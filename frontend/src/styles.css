@@ -153,8 +153,10 @@
   --heat-1: rgba(127, 238, 100, 0.42); --heat-2: rgba(127, 238, 100, 0.30);
   --heat-3: rgba(127, 238, 100, 0.18);
   --heat-4: rgba(224, 162, 58, 0.24); --heat-5: rgba(240, 121, 110, 0.30);
-  --heat-text-1: #04140A; --heat-text-2: #04140A; --heat-text-3: #DDFFDC;
-  --heat-text-4: #E0A23A; --heat-text-5: #F0796E;
+  /* Текст на густых ячейках — светлый, а не тёмный: заливка полупрозрачная и поверх
+     тёмной поверхности так и остаётся тёмной (см. auditTheme.test.ts, отступление 1). */
+  --heat-text-1: #DDFFDC; --heat-text-2: #DDFFDC; --heat-text-3: #DDFFDC;
+  --heat-text-4: #E8C07A; --heat-text-5: #F4B0A8;
 }
 
 /* ── Тема продукта «Финанс-Аудит»: неоново-фиолетовая ветка системы ──────────
@@ -272,8 +274,12 @@
   --heat-1: rgba(199, 125, 255, 0.42); --heat-2: rgba(199, 125, 255, 0.30);
   --heat-3: rgba(199, 125, 255, 0.18);
   --heat-4: rgba(224, 162, 58, 0.24); --heat-5: rgba(240, 121, 110, 0.30);
-  --heat-text-1: #0C0714; --heat-text-2: #0C0714; --heat-text-3: #F2E8FF;
-  --heat-text-4: #E0A23A; --heat-text-5: #F0796E;
+  /* Отступление от канона стиль-гайда (там #0C0714). Тёмный текст верен для сплошной
+     неоновой заливки — но ячейка тепловой карты полупрозрачна, и поверх #0E0B14 она
+     остаётся тёмно-фиолетовой: канон даёт 2.22:1 и 1.69:1 вместо 4.5:1. Светлый текст
+     даёт 7.57:1 и 9.96:1. Отступление названо в auditTheme.test.ts и там же измеряется. */
+  --heat-text-1: #F2E8FF; --heat-text-2: #F2E8FF; --heat-text-3: #F2E8FF;
+  --heat-text-4: #E0A23A; --heat-text-5: #F4988F;
 }
 
 /* ---------- 2. База ---------- */
@@ -390,6 +396,65 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .content { flex: 1; padding: 32px; max-width: 1180px; width: 100%; margin: 0 auto; }
 @media (max-width: 1023px) { .content { padding: 24px; } }
 @media (max-width: 640px) { .content { padding: 16px; } }
+
+/* ── Боковая навигация продукта (макет «Финанс Аудит», Экран 6) ───────────────
+   Ширины — из DIM() макета: 236px рабочий стол, 76px планшет (только иконки),
+   на телефоне рейла нет и навигация возвращается в drawer шапки.
+
+   Брейкпоинты взяты **действующие в приложении** (1023 / 640), а не 1180/864/402
+   из макета: там это ширины кадров предпросмотра устройств, а не точки
+   переключения. Свои точки заставили бы рейл перестраиваться не одновременно с
+   остальной раскладкой — на промежуточной ширине получился бы узкий рейл рядом
+   с ещё широким контентом. */
+.shell-body { flex: 1; display: flex; align-items: stretch; min-height: 0; }
+.shell-body > .content { min-width: 0; }
+
+.rail {
+  display: flex; flex-direction: column; flex: none;
+  width: 236px; padding: 16px 14px; gap: 2px;
+  background: var(--bar-bg); border-right: 1px solid var(--border);
+}
+.rail__section { display: flex; flex-direction: column; gap: 2px; }
+.rail__section + .rail__section { margin-top: 18px; }
+.rail__title {
+  font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--subtle); padding: 0 8px 6px;
+}
+.rail__item {
+  display: flex; align-items: center; gap: 9px;
+  height: 34px; padding: 0 8px; border-radius: var(--radius-sm);
+  color: var(--muted); text-decoration: none; font-size: 13px;
+}
+.rail__item:hover { background: var(--hov); color: var(--text); }
+.rail__item--active { background: var(--primary-bg); color: var(--accent); font-weight: 500; }
+.rail__ico {
+  display: grid; place-items: center; flex: none;
+  width: 22px; height: 22px; border-radius: 6px;
+  background: var(--surface-2); color: var(--subtle);
+  font-size: 11px; font-weight: 600;
+}
+.rail__item--active .rail__ico { background: var(--primary); color: var(--primary-text); }
+.rail__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (max-width: 1023px) {
+  .rail { width: 76px; padding: 16px 10px; }
+  /* Заголовок раздела в 76px не помещается («ОРГАНИЗАЦИЯ» вылезала за границу рейла
+     в контент). Из отрисовки он убран, но не из разметки: группировка разделов —
+     это смысл, и скринридер обязан её слышать на любой ширине. Вместо подписи —
+     линия-разделитель, чтобы группы оставались различимы и глазом. */
+  .rail__title {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+  .rail__section + .rail__section {
+    margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);
+  }
+  /* Подпись пункта тоже убрана из отрисовки; имя берётся из title у ссылки,
+     иначе в узком рейле остались бы безымянные иконки. */
+  .rail__item { justify-content: center; padding: 0; }
+  .rail__label { display: none; }
+}
+@media (max-width: 640px) { .rail { display: none; } }
 
 .select {
   height: 34px; padding: 0 10px; border-radius: var(--radius-input);

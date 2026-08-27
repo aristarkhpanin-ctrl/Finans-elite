@@ -166,13 +166,17 @@ export function Layout() {
             )}
           </div>
 
+          {/* У продукта с рейлом навигация живёт в рейле, и в шапке её нет вовсе:
+              спрятанная разметка осталась бы во втором экземпляре — для скринридера
+              и для поиска по странице это два одинаковых меню. */}
+          {!product.rail && (
           <nav className="shell-nav">
             {product.nav.map(([to, label]) => (
               <NavLink
                 key={to}
                 to={to}
                 // Пункт, под которым вложен другой пункт меню, подсвечивается только на
-                // самом себе — иначе «Субъекты» и «Группа» горели бы одновременно.
+                // самом себе — иначе «Дела» и «Группа» горели бы одновременно.
                 end={product.nav.some(([other]) => other !== to && other.startsWith(to + "/"))}
                 className={({ isActive }) =>
                   "shell-nav__item" + (isActive ? " shell-nav__item--active" : "")
@@ -182,6 +186,7 @@ export function Layout() {
               </NavLink>
             ))}
           </nav>
+          )}
         </div>
 
         <div className="shell-right">
@@ -476,9 +481,36 @@ export function Layout() {
         </form>
       </Modal>
 
-      <main className="content">
-        <Outlet />
-      </main>
+      <div className="shell-body">
+        {product.rail && (
+          <aside className="rail" aria-label="Разделы продукта">
+            {product.rail.map((section) => (
+              <div className="rail__section" key={section.title}>
+                <div className="rail__title">{section.title}</div>
+                {section.items.map(([to, label]) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    end={section.items.some(([o]) => o !== to && o.startsWith(to + "/"))}
+                    title={label}
+                    className={({ isActive }) =>
+                      "rail__item" + (isActive ? " rail__item--active" : "")
+                    }
+                  >
+                    <span className="rail__ico" aria-hidden="true">
+                      {label.slice(0, 1)}
+                    </span>
+                    <span className="rail__label">{label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            ))}
+          </aside>
+        )}
+        <main className="content">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 }

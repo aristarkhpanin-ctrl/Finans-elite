@@ -59,3 +59,45 @@ describe("Слои оболочки", () => {
     expect(zIndex(".toast-layer")).toBeGreaterThan(zIndex(".modal-overlay"));
   });
 });
+
+/**
+ * Правила рейла, которые не проверить в jsdom: там нет ни раскладки, ни медиазапросов,
+ * поэтому узкое состояние существует только в CSS. Проверяется решение, а не оформление.
+ */
+describe("Узкий рейл", () => {
+  /**
+   * Тело правила `selector` внутри медиазапроса `at`. Такой медиазапрос в файле не
+   * один, поэтому перебираются все его блоки и берётся тот, где правило есть: поиск
+   * «от первого вхождения» находил базовое правило выше по файлу и молча проверял
+   * не то, что нужно.
+   */
+  function ruleIn(at: string, selector: string): string {
+    for (let i = css.indexOf(at); i >= 0; i = css.indexOf(at, i + 1)) {
+      let depth = 0;
+      const open = css.indexOf("{", i);
+      let close = open;
+      for (let j = open; j < css.length; j++) {
+        if (css[j] === "{") depth++;
+        else if (css[j] === "}" && --depth === 0) { close = j; break; }
+      }
+      const body = css.slice(open + 1, close);
+      const at2 = body.indexOf(selector + " {");
+      if (at2 >= 0) return body.slice(at2, body.indexOf("}", at2));
+    }
+    throw new Error(`внутри ${at} нет правила ${selector}`);
+  }
+
+  it("заголовок раздела скрыт визуально, но остаётся в доступности", () => {
+    // «ОРГАНИЗАЦИЯ» в 76px не помещалась и вылезала в контент. Убрать её напрашивалось
+    // через display:none — но тогда пропала бы и группировка разделов для скринридера,
+    // а группировка это смысл, а не оформление.
+    const rule = ruleIn("@media (max-width: 1023px)", ".rail__title");
+    expect(rule, "display:none выкинул бы заголовок и из доступности")
+      .not.toContain("display: none");
+    expect(rule, "без обрезки заголовок вылезет за границу рейла").toContain("clip-path");
+  });
+
+  it("на телефоне рейла нет вовсе — навигация возвращается в drawer", () => {
+    expect(ruleIn("@media (max-width: 640px)", ".rail")).toContain("display: none");
+  });
+});

@@ -74,7 +74,7 @@ describe("Переключатель продукта", () => {
     expect(switcher().textContent).toContain("Аудит");
     expect(screen.getByText("-Аудит")).toBeTruthy();
     // навигация тоже продуктовая
-    expect(screen.getByText("Субъекты")).toBeTruthy();
+    expect(screen.getByText("Дела")).toBeTruthy();
     expect(screen.queryByText("Проекты")).toBeNull();
   });
 
@@ -99,8 +99,65 @@ describe("Переключатель продукта", () => {
   it("общий раздел сохраняет выбранный продукт, а не сбрасывает тему", () => {
     // выбрали аудит → ушли в «Организацию»: тема не должна «прыгнуть» на зелёную
     renderShell("/audit");
-    fireEvent.click(screen.getByText("Организация"));
+    fireEvent.click(screen.getByText("Участники и тариф"));
     expect(screen.getByText("Экран организации")).toBeTruthy();
     expect(document.documentElement.getAttribute("data-product")).toBe("audit");
+  });
+});
+
+/**
+ * Боковая навигация «Финанс Аудит» (макет Экран 6). Каркас общий на два продукта,
+ * поэтому проверяется главное: рейл появляется только там, где он предусмотрен, и
+ * навигация не оказывается на экране дважды.
+ */
+describe("Рейл продукта", () => {
+  const rail = () => screen.queryByLabelText("Разделы продукта");
+
+  it("у аудита есть, у бизнес-плана нет", () => {
+    renderShell("/audit");
+    expect(rail()).toBeTruthy();
+    cleanup();
+    renderShell("/projects");
+    expect(rail()).toBeNull();
+  });
+
+  it("разделы и пункты — из описания продукта", () => {
+    renderShell("/audit");
+    for (const text of ["Работа", "Дела", "Группа", "Организация", "Участники и тариф"]) {
+      expect(screen.getByText(text), `в рейле нет «${text}»`).toBeTruthy();
+    }
+  });
+
+  it("навигация не дублируется: при рейле её нет в шапке", () => {
+    renderShell("/audit");
+    // «Дела» — один раз. Спрятанный второй экземпляр в шапке был бы вторым
+    // одинаковым меню для скринридера и для поиска по странице.
+    expect(screen.getAllByText("Дела")).toHaveLength(1);
+    expect(document.querySelector(".shell-nav")).toBeNull();
+    cleanup();
+    // у продукта без рейла навигация, наоборот, обязана быть в шапке
+    renderShell("/projects");
+    expect(document.querySelector(".shell-nav")).toBeTruthy();
+  });
+
+  it("активный пункт подсвечен ровно один", () => {
+    renderShell("/audit");
+    const active = document.querySelectorAll(".rail__item--active");
+    expect(active).toHaveLength(1);
+    expect(active[0].textContent).toContain("Дела");
+  });
+
+  it("«Дела» не горят на вложенном разделе группы", () => {
+    // /audit/group вложен в /audit: без end на родителе подсветились бы оба пункта
+    renderShell("/audit/group");
+    const active = document.querySelectorAll(".rail__item--active");
+    expect(active).toHaveLength(1);
+    expect(active[0].textContent).toContain("Группа");
+  });
+
+  it("переход по пункту рейла работает", () => {
+    renderShell("/audit");
+    fireEvent.click(screen.getByText("Группа"));
+    expect(screen.getByText("Экран группы")).toBeTruthy();
   });
 });
