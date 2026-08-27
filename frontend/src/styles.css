@@ -1195,6 +1195,48 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .icon-action--danger { color: var(--danger); }
 .icon-action--danger:hover { background: var(--danger-bg); border-color: var(--danger-border); }
 
+/* Качество прибыли «Финанс-Аудит» (макет Экран 7) */
+.eq-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 20px;
+  flex-wrap: wrap; margin-bottom: 16px;
+}
+.eq-base { font: 600 22px var(--font-mono); letter-spacing: -0.01em; color: var(--text); }
+.eq-hint {
+  margin-top: 6px; max-width: 420px;
+  font: 400 12px/1.5 var(--font-ui); color: var(--warn-text, var(--warn));
+}
+.eq-grade {
+  display: flex; gap: 13px; align-items: flex-start; flex: 1; min-width: 300px;
+  max-width: 560px; padding: 13px 15px; border-radius: 12px;
+  border: 1px solid var(--border); background: var(--surface-2);
+}
+.eq-grade--a { border-color: var(--good-border); background: var(--good-bg); }
+.eq-grade--b { border-color: var(--warn-border); background: var(--warn-bg); }
+.eq-grade--c { border-color: var(--danger-border); background: var(--danger-bg); }
+.eq-grade__letter {
+  flex: none; width: 40px; height: 40px; border-radius: 10px;
+  display: grid; place-items: center; background: var(--surface);
+  font: 700 20px var(--font-display); color: var(--text);
+}
+.eq-grade__note { font: 600 13px var(--font-ui); color: var(--text); }
+.eq-grade__dev { margin-top: 4px; font: 400 11.5px/1.5 var(--font-ui); color: var(--muted); }
+.eq-table .eq-row--adj td { color: var(--muted); }
+.eq-kind {
+  display: block; font: 400 10.5px var(--font-ui); color: var(--subtle); margin-top: 2px;
+}
+.eq-table .eq-row--total td { font-weight: 600; background: var(--subtotal-bg); }
+.eq-editor {
+  display: grid; grid-template-columns: 1.4fr 1.2fr auto 30px; gap: 8px;
+  align-items: start; padding: 10px 0; border-top: 1px solid var(--grid-line);
+}
+.eq-editor__note { grid-column: 1 / -1; margin: 0; }
+.eq-amounts { display: flex; gap: 6px; flex-wrap: wrap; }
+.eq-amounts .input { width: 110px; }
+@media (max-width: 900px) {
+  .eq-editor { grid-template-columns: 1fr auto; }
+  .eq-amounts { grid-column: 1 / -1; }
+}
+
 /* Реестр красных флагов «Финанс-Аудит» (макет Экран 9) */
 .flag-total {
   display: flex; align-items: flex-start; justify-content: space-between; gap: 20px;

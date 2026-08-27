@@ -49,6 +49,7 @@ export interface AuditModel {
   user_metrics?: UserMetric[];
   thresholds?: RatioThreshold[];
   revaluations?: Revaluation[];
+  earnings_adjustments?: EarningsAdjustment[];
 }
 
 export interface AuditSubjectSummary {
@@ -85,6 +86,11 @@ export const MEMO_LINES: [string, string][] = [
   ["M_RETAINED", "в т.ч. нераспределённая прибыль (для диагностики)"],
   ["M_MARKET_CAP", "рыночная капитализация (только для публичных компаний)"],
 ];
+/** Справочная строка ОФР: без неё EBITDA не существует (SPEC, Приложение К.1). */
+export const INCOME_MEMO_LINES: [string, string][] = [
+  ["M_DEPRECIATION", "в т.ч. амортизация (для EBITDA)"],
+];
+
 export const INCOME_LINES: [string, string][] = [
   ["I_REVENUE", "Выручка"],
   ["I_COGS", "Себестоимость продаж"],
@@ -203,6 +209,50 @@ export interface AuditAnalysis {
   warnings: string[];
   input_issues: AuditInputIssue[];
   flags: AuditFlagRegistry;
+  earnings: AuditEarnings;
+}
+
+/** Вид корректировки при нормализации прибыли (SPEC, Приложение К.2). */
+export type AdjustmentKind =
+  "one_off" | "owner" | "related_party" | "non_operating" | "accounting";
+
+export const ADJUSTMENT_KINDS: [AdjustmentKind, string][] = [
+  ["one_off", "Разовый доход или расход"],
+  ["owner", "Вознаграждение собственника сверх рыночного"],
+  ["related_party", "Сделка со связанной стороной не по рынку"],
+  ["non_operating", "Непрофильная деятельность"],
+  ["accounting", "Учётное искажение"],
+];
+
+/** Поправка нормализации: со знаком, с обязательной причиной. */
+export interface EarningsAdjustment {
+  label: string;
+  kind: AdjustmentKind;
+  amounts: string[];
+}
+
+export interface AuditAppliedAdjustment {
+  label: string;
+  kind: string;
+  kind_label: string;
+  amounts: string[];
+  total: string;
+}
+
+/**
+ * Нормализация показателя прибыли. `base_code` — что именно нормализовано: EBITDA
+ * (введена амортизация) или EBIT. Показывать это имя обязательно: показатели
+ * различаются на всю амортизацию, и мультипликатор, применённый не к тому, ошибётся
+ * ровно на неё.
+ */
+export interface AuditEarnings {
+  base_code: string;
+  reported: string[];
+  normalized: string[];
+  adjustments: AuditAppliedAdjustment[];
+  grade: string | null;          // A | B | C; null — сравнивать не с чем
+  grade_note: string;
+  deviation: string | null;
 }
 
 /** Красный флаг: что настораживает, в каких периодах и на сколько рублей. */

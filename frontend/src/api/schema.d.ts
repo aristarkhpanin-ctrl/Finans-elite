@@ -1360,6 +1360,28 @@ export interface components {
          */
         AssetCategory: "equipment" | "buildings" | "land" | "intangible";
         /**
+         * AuditAdjustmentOut
+         * @description Применённая поправка нормализации: что, почему и на сколько.
+         */
+        AuditAdjustmentOut: {
+            /**
+             * Amounts
+             * @default []
+             */
+            amounts: string[];
+            /** Kind */
+            kind: string;
+            /** Kind Label */
+            kind_label: string;
+            /** Label */
+            label: string;
+            /**
+             * Total
+             * @default 0
+             */
+            total: string;
+        };
+        /**
          * AuditAnalysisOut
          * @description Результат анализа фактической отчётности (Финанс-Аудит).
          */
@@ -1380,6 +1402,7 @@ export interface components {
              */
             balanced: boolean;
             diagnostics?: components["schemas"]["AuditDiagnosticsOut"] | null;
+            earnings?: components["schemas"]["AuditEarningsOut"];
             flags?: components["schemas"]["AuditFlagsOut"];
             /**
              * Horizontal
@@ -1519,6 +1542,45 @@ export interface components {
              * @default
              */
             summary: string;
+        };
+        /**
+         * AuditEarningsOut
+         * @description Нормализация показателя прибыли.
+         *
+         *     ``base_code`` — что именно нормализовано: EBITDA (введена амортизация) или EBIT.
+         *     Показывать это имя обязательно: два показателя различаются на всю амортизацию, и
+         *     мультипликатор, применённый не к тому, ошибётся ровно на неё.
+         */
+        AuditEarningsOut: {
+            /**
+             * Adjustments
+             * @default []
+             */
+            adjustments: components["schemas"]["AuditAdjustmentOut"][];
+            /**
+             * Base Code
+             * @default EBIT
+             */
+            base_code: string;
+            /** Deviation */
+            deviation?: string | null;
+            /** Grade */
+            grade?: string | null;
+            /**
+             * Grade Note
+             * @default
+             */
+            grade_note: string;
+            /**
+             * Normalized
+             * @default []
+             */
+            normalized: string[];
+            /**
+             * Reported
+             * @default []
+             */
+            reported: string[];
         };
         /**
          * AuditEliminationIn
@@ -1933,6 +1995,8 @@ export interface components {
              * @default RUB
              */
             currency: string;
+            /** Earnings Adjustments */
+            earnings_adjustments?: components["schemas"]["EarningsAdjustment-Input"][];
             /** Income */
             income?: {
                 [key: string]: (number | string)[];
@@ -1979,6 +2043,8 @@ export interface components {
              * @default RUB
              */
             currency: string;
+            /** Earnings Adjustments */
+            earnings_adjustments?: components["schemas"]["EarningsAdjustment-Output"][];
             /** Income */
             income?: {
                 [key: string]: string[];
@@ -2718,6 +2784,60 @@ export interface components {
             product_count: number;
             /** Revenue */
             revenue: string;
+        };
+        /**
+         * EarningsAdjustment
+         * @description Поправка к показателю прибыли при нормализации (SPEC, Приложение К.2).
+         *
+         *     Нормализация — суждение, а не расчёт: что считать разовым доходом и какое
+         *     вознаграждение собственника избыточно, знает проверяющий, а не формула. Поэтому
+         *     поправку задаёт пользователь, и у неё **обязательна причина** (``label``): без неё
+         *     нормализованный показатель нельзя объяснить, а значит нельзя и защитить в переговорах.
+         *
+         *     ``amounts`` — со знаком: «+» возвращает прибыль (убрали лишний расход), «−» убирает
+         *     (разовый доход не повторится).
+         */
+        "EarningsAdjustment-Input": {
+            /** Amounts */
+            amounts?: (number | string)[];
+            /**
+             * Kind
+             * @default one_off
+             * @enum {string}
+             */
+            kind: "one_off" | "owner" | "related_party" | "non_operating" | "accounting";
+            /**
+             * Label
+             * @default
+             */
+            label: string;
+        };
+        /**
+         * EarningsAdjustment
+         * @description Поправка к показателю прибыли при нормализации (SPEC, Приложение К.2).
+         *
+         *     Нормализация — суждение, а не расчёт: что считать разовым доходом и какое
+         *     вознаграждение собственника избыточно, знает проверяющий, а не формула. Поэтому
+         *     поправку задаёт пользователь, и у неё **обязательна причина** (``label``): без неё
+         *     нормализованный показатель нельзя объяснить, а значит нельзя и защитить в переговорах.
+         *
+         *     ``amounts`` — со знаком: «+» возвращает прибыль (убрали лишний расход), «−» убирает
+         *     (разовый доход не повторится).
+         */
+        "EarningsAdjustment-Output": {
+            /** Amounts */
+            amounts?: string[];
+            /**
+             * Kind
+             * @default one_off
+             * @enum {string}
+             */
+            kind: "one_off" | "owner" | "related_party" | "non_operating" | "accounting";
+            /**
+             * Label
+             * @default
+             */
+            label: string;
         };
         /** Environment */
         "Environment-Input": {

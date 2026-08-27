@@ -938,6 +938,35 @@ class AuditAnalysisOut(BaseModel):
     input_issues: list["AuditInputIssueOut"] = []
     # Реестр красных флагов («Экран 9»); в AuditResult не входит — см. SPEC, Прил. И.
     flags: "AuditFlagsOut" = None  # type: ignore[assignment]
+    # Качество прибыли («Экран 7»); в AuditResult не входит — см. SPEC, Прил. К.
+    earnings: "AuditEarningsOut" = None  # type: ignore[assignment]
+
+
+class AuditAdjustmentOut(BaseModel):
+    """Применённая поправка нормализации: что, почему и на сколько."""
+
+    label: str
+    kind: str
+    kind_label: str
+    amounts: list[Decimal] = []
+    total: Decimal = Decimal(0)
+
+
+class AuditEarningsOut(BaseModel):
+    """Нормализация показателя прибыли.
+
+    ``base_code`` — что именно нормализовано: EBITDA (введена амортизация) или EBIT.
+    Показывать это имя обязательно: два показателя различаются на всю амортизацию, и
+    мультипликатор, применённый не к тому, ошибётся ровно на неё.
+    """
+
+    base_code: str = "EBIT"
+    reported: list[Decimal] = []
+    normalized: list[Decimal] = []
+    adjustments: list[AuditAdjustmentOut] = []
+    grade: Optional[str] = None            # A | B | C; None — сравнивать не с чем
+    grade_note: str = ""
+    deviation: Optional[Decimal] = None
 
 
 class AuditFlagOut(BaseModel):
@@ -1061,10 +1090,22 @@ class AuditGroupOut(AuditGroupSummary):
 
 
 def audit_analysis_response(result, opinion: str = "", issues=(),
-                            flags=None) -> "AuditAnalysisOut":
+                            flags=None, earnings=None) -> "AuditAnalysisOut":
     """Собрать ответ анализа из ``audit_core.AuditResult`` (+ заключение, ввод, флаги)."""
     return AuditAnalysisOut(
         opinion=opinion,
+        earnings=AuditEarningsOut(
+            base_code=earnings.base_code if earnings else "EBIT",
+            reported=list(earnings.reported) if earnings else [],
+            normalized=list(earnings.normalized) if earnings else [],
+            adjustments=[AuditAdjustmentOut(label=a.label, kind=a.kind,
+                                            kind_label=a.kind_label,
+                                            amounts=list(a.amounts), total=a.total)
+                         for a in (earnings.adjustments if earnings else [])],
+            grade=earnings.grade if earnings else None,
+            grade_note=earnings.grade_note if earnings else "",
+            deviation=earnings.deviation if earnings else None,
+        ),
         flags=AuditFlagsOut(
             flags=[AuditFlagOut(code=f.code, severity=f.severity, title=f.title,
                                 detail=f.detail, periods=list(f.periods),

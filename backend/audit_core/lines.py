@@ -41,10 +41,18 @@ MEMO_LINES: list[tuple[str, str]] = [
     ("M_MARKET_CAP", "рыночная капитализация (только для публичных компаний)"),
 ]
 
+#: Справочные строки ОФР: **не входят ни в один подытог**, как memo-строки баланса.
+#: Амортизация нужна, чтобы EBITDA вообще существовала: в аналитической форме её нет,
+#: и без этой строки «EBIT + амортизация» неоткуда взять (SPEC, Приложение К).
+INCOME_MEMO_LINES: list[tuple[str, str]] = [
+    ("M_DEPRECIATION", "в т.ч. амортизация (для EBITDA)"),
+]
+
 ASSET_CODES = [c for c, _ in BALANCE_ASSET_LINES]
 EQLIAB_CODES = [c for c, _ in BALANCE_EQLIAB_LINES]
 INCOME_CODES = [c for c, _ in INCOME_LINES]
 MEMO_CODES = [c for c, _ in MEMO_LINES]
+INCOME_MEMO_CODES = [c for c, _ in INCOME_MEMO_LINES]
 BALANCE_CODES = ASSET_CODES + EQLIAB_CODES
 
 # Справочные строки, которые **складываются** при консолидации группы. Нераспределённая
@@ -56,4 +64,5 @@ MEMO_SUM_CODES = ["M_RETAINED"]
 
 LABELS: dict[str, str] = dict(
     BALANCE_ASSET_LINES + BALANCE_EQLIAB_LINES + INCOME_LINES + MEMO_LINES
+    + INCOME_MEMO_LINES
 )

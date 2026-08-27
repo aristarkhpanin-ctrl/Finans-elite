@@ -303,6 +303,45 @@
         "title": "AssetCategory",
         "type": "string"
       },
+      "AuditAdjustmentOut": {
+        "description": "Применённая поправка нормализации: что, почему и на сколько.",
+        "properties": {
+          "amounts": {
+            "default": [],
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Amounts",
+            "type": "array"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "kind_label": {
+            "title": "Kind Label",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "total": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "kind",
+          "kind_label"
+        ],
+        "title": "AuditAdjustmentOut",
+        "type": "object"
+      },
       "AuditAnalysisOut": {
         "description": "Результат анализа фактической отчётности (Финанс-Аудит).",
         "properties": {
@@ -337,6 +376,9 @@
                 "type": "null"
               }
             ]
+          },
+          "earnings": {
+            "$ref": "#/components/schemas/AuditEarningsOut"
           },
           "flags": {
             "$ref": "#/components/schemas/AuditFlagsOut"
@@ -581,6 +623,72 @@
           }
         },
         "title": "AuditDiagnosticsOut",
+        "type": "object"
+      },
+      "AuditEarningsOut": {
+        "description": "Нормализация показателя прибыли.\n\n``base_code`` — что именно нормализовано: EBITDA (введена амортизация) или EBIT.\nПоказывать это имя обязательно: два показателя различаются на всю амортизацию, и\nмультипликатор, применённый не к тому, ошибётся ровно на неё.",
+        "properties": {
+          "adjustments": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AuditAdjustmentOut"
+            },
+            "title": "Adjustments",
+            "type": "array"
+          },
+          "base_code": {
+            "default": "EBIT",
+            "title": "Base Code",
+            "type": "string"
+          },
+          "deviation": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deviation"
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grade"
+          },
+          "grade_note": {
+            "default": "",
+            "title": "Grade Note",
+            "type": "string"
+          },
+          "normalized": {
+            "default": [],
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Normalized",
+            "type": "array"
+          },
+          "reported": {
+            "default": [],
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Reported",
+            "type": "array"
+          }
+        },
+        "title": "AuditEarningsOut",
         "type": "object"
       },
       "AuditEliminationIn-Input": {
@@ -1283,6 +1391,14 @@
             "title": "Currency",
             "type": "string"
           },
+          "earnings_adjustments": {
+            "items": {
+              "$ref": "#/components/schemas/EarningsAdjustment-Input"
+            },
+            "maxItems": 50,
+            "title": "Earnings Adjustments",
+            "type": "array"
+          },
           "income": {
             "additionalProperties": {
               "items": {
@@ -1378,6 +1494,14 @@
             "maxLength": 8,
             "title": "Currency",
             "type": "string"
+          },
+          "earnings_adjustments": {
+            "items": {
+              "$ref": "#/components/schemas/EarningsAdjustment-Output"
+            },
+            "maxItems": 50,
+            "title": "Earnings Adjustments",
+            "type": "array"
           },
           "income": {
             "additionalProperties": {
@@ -2828,6 +2952,79 @@
           "product_count"
         ],
         "title": "DivisionMarginOut",
+        "type": "object"
+      },
+      "EarningsAdjustment-Input": {
+        "description": "Поправка к показателю прибыли при нормализации (SPEC, Приложение К.2).\n\nНормализация — суждение, а не расчёт: что считать разовым доходом и какое\nвознаграждение собственника избыточно, знает проверяющий, а не формула. Поэтому\nпоправку задаёт пользователь, и у неё **обязательна причина** (``label``): без неё\nнормализованный показатель нельзя объяснить, а значит нельзя и защитить в переговорах.\n\n``amounts`` — со знаком: «+» возвращает прибыль (убрали лишний расход), «−» убирает\n(разовый доход не повторится).",
+        "properties": {
+          "amounts": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ]
+            },
+            "title": "Amounts",
+            "type": "array"
+          },
+          "kind": {
+            "default": "one_off",
+            "enum": [
+              "one_off",
+              "owner",
+              "related_party",
+              "non_operating",
+              "accounting"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "title": "EarningsAdjustment",
+        "type": "object"
+      },
+      "EarningsAdjustment-Output": {
+        "description": "Поправка к показателю прибыли при нормализации (SPEC, Приложение К.2).\n\nНормализация — суждение, а не расчёт: что считать разовым доходом и какое\nвознаграждение собственника избыточно, знает проверяющий, а не формула. Поэтому\nпоправку задаёт пользователь, и у неё **обязательна причина** (``label``): без неё\nнормализованный показатель нельзя объяснить, а значит нельзя и защитить в переговорах.\n\n``amounts`` — со знаком: «+» возвращает прибыль (убрали лишний расход), «−» убирает\n(разовый доход не повторится).",
+        "properties": {
+          "amounts": {
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Amounts",
+            "type": "array"
+          },
+          "kind": {
+            "default": "one_off",
+            "enum": [
+              "one_off",
+              "owner",
+              "related_party",
+              "non_operating",
+              "accounting"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "title": "EarningsAdjustment",
         "type": "object"
       },
       "Environment-Input": {

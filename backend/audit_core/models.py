@@ -11,7 +11,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from .lines import ASSET_CODES, EQLIAB_CODES, INCOME_CODES
+from .lines import ASSET_CODES, EQLIAB_CODES, INCOME_CODES, INCOME_MEMO_CODES
 
 
 class AuditPeriod(BaseModel):
@@ -71,6 +71,24 @@ class Revaluation(BaseModel):
     amounts: list[Decimal] = Field(default_factory=list)
 
 
+class EarningsAdjustment(BaseModel):
+    """Поправка к показателю прибыли при нормализации (SPEC, Приложение К.2).
+
+    Нормализация — суждение, а не расчёт: что считать разовым доходом и какое
+    вознаграждение собственника избыточно, знает проверяющий, а не формула. Поэтому
+    поправку задаёт пользователь, и у неё **обязательна причина** (``label``): без неё
+    нормализованный показатель нельзя объяснить, а значит нельзя и защитить в переговорах.
+
+    ``amounts`` — со знаком: «+» возвращает прибыль (убрали лишний расход), «−» убирает
+    (разовый доход не повторится).
+    """
+
+    label: str = Field(default="", max_length=200)
+    kind: Literal["one_off", "owner", "related_party", "non_operating",
+                  "accounting"] = "one_off"
+    amounts: list[Decimal] = Field(default_factory=list)
+
+
 class AuditSubjectModel(BaseModel):
     """Субъект анализа с фактической отчётностью по периодам.
 
@@ -96,6 +114,10 @@ class AuditSubjectModel(BaseModel):
     # Переоценка статей (v2): поправки к балансу с корреспонденцией в капитале. Пустой
     # список инертен — анализ идёт по учётным данным без единого пересчёта.
     revaluations: list[Revaluation] = Field(default_factory=list, max_length=50)
+    # Нормализация прибыли (фаза 4): поправки пользователя к EBIT/EBITDA. Пустой
+    # список инертен — нормализованный показатель равен отчётному.
+    earnings_adjustments: list[EarningsAdjustment] = Field(default_factory=list,
+                                                           max_length=50)
 
     @property
     def n(self) -> int:
@@ -139,4 +161,13 @@ class AuditSubjectModel(BaseModel):
         return bool(self.balance.get(code))
 
     def income_row(self, code: str) -> list[Decimal]:
-        return self._row(self.income, code) if code in INCOME_CODES else [Decimal(0)] * self.n
+        known = code in INCOME_CODES or code in INCOME_MEMO_CODES
+        return self._row(self.income, code) if known else [Decimal(0)] * self.n
+
+    def has_income_row(self, code: str) -> bool:
+        """Строка ОФР введена. Как и у баланса: «не введено» ≠ «введён ноль».
+
+        От этого зависит, существует ли EBITDA: без введённой амортизации показатель
+        не считается вовсе, а не считается нулевым.
+        """
+        return bool(self.income.get(code))

@@ -5,6 +5,7 @@ import {
   ASSET_LINES,
   EQLIAB_LINES,
   INCOME_LINES,
+  INCOME_MEMO_LINES,
   MEMO_LINES,
   RATIO_GROUPS,
   REPORTING_STANDARDS,
@@ -25,6 +26,7 @@ import { IconDownload, IconPrint, IconTrash, IconUpload } from "../components/ic
 import { useToast } from "../components/Toast";
 import { Button } from "../components/ui";
 import { AuditInputIssues } from "../components/AuditInputIssues";
+import { AuditEarnings } from "../components/AuditEarnings";
 import { AuditFlags } from "../components/AuditFlags";
 import { AuditPrintReport } from "../components/AuditPrintReport";
 import { allBalanced, balanceGaps, serverGaps } from "../auditBalance";
@@ -33,7 +35,7 @@ import { downloadAuditTemplate, parseAuditXlsx } from "../auditXlsx";
 import { fmtMoney } from "../format";
 
 type Tab = "subject" | "input" | "reports" | "ratios" | "trends" | "diagnostics"
-  | "flags" | "methods" | "opinion";
+  | "flags" | "earnings" | "methods" | "opinion";
 
 /** Подписи вкладок (в том же виде, что были — ни одна не исчезла). */
 const TAB_LABEL: Record<Tab, string> = {
@@ -44,6 +46,7 @@ const TAB_LABEL: Record<Tab, string> = {
   trends: "Тренды",
   diagnostics: "Диагностика",
   flags: "Реестр флагов",
+  earnings: "Качество прибыли",
   methods: "Методики",
   opinion: "Заключение",
 };
@@ -64,6 +67,7 @@ const SECTIONS: [string, string, Tab[]][] = [
   ["subject", "Субъект", ["subject"]],
   ["reporting", "Отчётность", ["input", "reports"]],
   ["health", "Финансовое состояние", ["ratios", "trends", "diagnostics"]],
+  ["quality", "Качество прибыли", ["earnings"]],
   ["flags", "Реестр флагов", ["flags"]],
   ["methods", "Методики", ["methods"]],
   ["opinion", "Заключение", ["opinion"]],
@@ -146,7 +150,7 @@ export function AuditSubjectPage() {
 
   // Анализ считается по сохранённым данным — только для аналитических вкладок.
   const isAnalysisTab = tab === "reports" || tab === "ratios" || tab === "trends"
-    || tab === "diagnostics" || tab === "opinion" || tab === "methods" || tab === "flags";
+    || tab === "diagnostics" || tab === "opinion" || tab === "methods" || tab === "flags" || tab === "earnings";
   const analysis = useQuery({
     queryKey: ["audit-analysis", id],
     queryFn: () => analyzeAuditSubject(id),
@@ -503,6 +507,11 @@ export function AuditSubjectPage() {
                 + "модель Альтмана, а без неё эта модель не показывается — балансовый "
                 + "капитал вместо рыночного дал бы другую модель под её именем.")}
           {grid("income", INCOME_LINES, "Отчёт о финансовых результатах")}
+          {grid("income", INCOME_MEMO_LINES, "Расшифровка ОФР (в подытоги не входит)",
+                "Амортизация нужна, чтобы EBITDA вообще существовала: в аналитической "
+                + "форме её нет, и без этой строки нормализуется EBIT — показатель, "
+                + "который меньше EBITDA ровно на амортизацию. Мультипликатор сделки, "
+                + "применённый не к тому показателю, ошибётся на ту же величину.")}
 
           <div className="audit-block">
             <div className="tab-head" style={{ marginBottom: 10 }}>
@@ -764,6 +773,14 @@ export function AuditSubjectPage() {
             </div>
           )}
         </>
+      ) : tab === "earnings" ? (
+        <AuditEarnings
+          quality={analysis.data.earnings}
+          periods={analysis.data.periods}
+          adjustments={m.earnings_adjustments ?? []}
+          hasDepreciation={Boolean(m.income["M_DEPRECIATION"]?.some((v) => v !== ""))}
+          onChange={(next) => patch({ earnings_adjustments: next })}
+        />
       ) : tab === "flags" ? (
         <AuditFlags registry={analysis.data.flags} periods={analysis.data.periods} />
       ) : tab === "opinion" ? (

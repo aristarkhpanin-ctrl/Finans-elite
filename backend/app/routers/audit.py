@@ -19,6 +19,7 @@ from audit_core import (
     check_input,
     consolidate_subjects,
     detect_flags,
+    normalize_earnings,
 )
 from audit_core.opinion import build_opinion
 from audit_core.samples import build_trading_subject
@@ -166,7 +167,8 @@ def analyze_subject(subject_id: str,
     # Находки о качестве ввода считаются по исходной модели, а не по результату:
     # анализ уже применил переоценки, а претензии предъявляются к тому, что ввели.
     return audit_analysis_response(result, build_opinion(result), check_input(model),
-                                   detect_flags(model, result))
+                                   detect_flags(model, result),
+                                   normalize_earnings(model, result))
 
 
 def _consolidate(members: list[tuple[str, AuditSubjectModel]], name: str,
