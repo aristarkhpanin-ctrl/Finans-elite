@@ -936,6 +936,33 @@ class AuditAnalysisOut(BaseModel):
     # Качество ввода («Экран 19»): находки о самих данных, а не о финансовом состоянии.
     # В AuditResult не входят — анализ и высказывание о его входе это разные вещи.
     input_issues: list["AuditInputIssueOut"] = []
+    # Реестр красных флагов («Экран 9»); в AuditResult не входит — см. SPEC, Прил. И.
+    flags: "AuditFlagsOut" = None  # type: ignore[assignment]
+
+
+class AuditFlagOut(BaseModel):
+    """Красный флаг: что настораживает, в каких периодах и на сколько рублей."""
+
+    code: str
+    severity: str                      # risk | warning
+    title: str
+    detail: str
+    periods: list[int] = []
+    #: Денежная мера. ``None`` — её не существует, а не «ноль рублей».
+    impact: Optional[Decimal] = None
+    evidence: dict[str, Decimal] = {}
+
+
+class AuditFlagsOut(BaseModel):
+    """Реестр флагов с честным итогом: сумма оценённых + число неоценённых.
+
+    Без ``unpriced`` итог выглядел бы полной ценой рисков, хотя часть рисков в него
+    не вошла — денежной меры у них нет вовсе.
+    """
+
+    flags: list[AuditFlagOut] = []
+    priced_total: Decimal = Decimal(0)
+    unpriced: int = 0
 
 
 class AuditInputIssueOut(BaseModel):
@@ -1033,11 +1060,19 @@ class AuditGroupOut(AuditGroupSummary):
     model: AuditGroupModel
 
 
-def audit_analysis_response(result, opinion: str = "",
-                            issues=()) -> "AuditAnalysisOut":
-    """Собрать ответ анализа из ``audit_core.AuditResult`` (+ заключение и находки ввода)."""
+def audit_analysis_response(result, opinion: str = "", issues=(),
+                            flags=None) -> "AuditAnalysisOut":
+    """Собрать ответ анализа из ``audit_core.AuditResult`` (+ заключение, ввод, флаги)."""
     return AuditAnalysisOut(
         opinion=opinion,
+        flags=AuditFlagsOut(
+            flags=[AuditFlagOut(code=f.code, severity=f.severity, title=f.title,
+                                detail=f.detail, periods=list(f.periods),
+                                impact=f.impact, evidence=dict(f.evidence))
+                   for f in (flags.flags if flags else [])],
+            priced_total=flags.priced_total if flags else Decimal(0),
+            unpriced=flags.unpriced if flags else 0,
+        ),
         input_issues=[AuditInputIssueOut(code=i.code, severity=i.severity, title=i.title,
                                          detail=i.detail, periods=list(i.periods),
                                          evidence=dict(i.evidence)) for i in issues],

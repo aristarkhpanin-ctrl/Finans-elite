@@ -202,6 +202,26 @@ export interface AuditAnalysis {
   opinion: string;
   warnings: string[];
   input_issues: AuditInputIssue[];
+  flags: AuditFlagRegistry;
+}
+
+/** Красный флаг: что настораживает, в каких периодах и на сколько рублей. */
+export interface AuditFlag {
+  code: string;
+  severity: "risk" | "warning";
+  title: string;
+  detail: string;
+  periods: number[];
+  /** Денежная мера. `null` — её не существует, а не «ноль рублей». */
+  impact: string | null;
+  evidence: Record<string, string>;
+}
+
+/** Реестр флагов: сумма оценённых + число тех, у кого денежной меры нет вовсе. */
+export interface AuditFlagRegistry {
+  flags: AuditFlag[];
+  priced_total: string;
+  unpriced: number;
 }
 
 /** Находка о качестве ввода: что не так с самими данными (не с финансовым состоянием). */

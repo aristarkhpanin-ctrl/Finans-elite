@@ -25,6 +25,7 @@ import { IconDownload, IconPrint, IconTrash, IconUpload } from "../components/ic
 import { useToast } from "../components/Toast";
 import { Button } from "../components/ui";
 import { AuditInputIssues } from "../components/AuditInputIssues";
+import { AuditFlags } from "../components/AuditFlags";
 import { AuditPrintReport } from "../components/AuditPrintReport";
 import { allBalanced, balanceGaps, serverGaps } from "../auditBalance";
 import { downloadAuditXlsx } from "../auditExport";
@@ -32,7 +33,7 @@ import { downloadAuditTemplate, parseAuditXlsx } from "../auditXlsx";
 import { fmtMoney } from "../format";
 
 type Tab = "subject" | "input" | "reports" | "ratios" | "trends" | "diagnostics"
-  | "methods" | "opinion";
+  | "flags" | "methods" | "opinion";
 
 /** Подписи вкладок (в том же виде, что были — ни одна не исчезла). */
 const TAB_LABEL: Record<Tab, string> = {
@@ -42,6 +43,7 @@ const TAB_LABEL: Record<Tab, string> = {
   ratios: "Коэффициенты",
   trends: "Тренды",
   diagnostics: "Диагностика",
+  flags: "Реестр флагов",
   methods: "Методики",
   opinion: "Заключение",
 };
@@ -62,6 +64,7 @@ const SECTIONS: [string, string, Tab[]][] = [
   ["subject", "Субъект", ["subject"]],
   ["reporting", "Отчётность", ["input", "reports"]],
   ["health", "Финансовое состояние", ["ratios", "trends", "diagnostics"]],
+  ["flags", "Реестр флагов", ["flags"]],
   ["methods", "Методики", ["methods"]],
   ["opinion", "Заключение", ["opinion"]],
 ];
@@ -143,7 +146,7 @@ export function AuditSubjectPage() {
 
   // Анализ считается по сохранённым данным — только для аналитических вкладок.
   const isAnalysisTab = tab === "reports" || tab === "ratios" || tab === "trends"
-    || tab === "diagnostics" || tab === "opinion" || tab === "methods";
+    || tab === "diagnostics" || tab === "opinion" || tab === "methods" || tab === "flags";
   const analysis = useQuery({
     queryKey: ["audit-analysis", id],
     queryFn: () => analyzeAuditSubject(id),
@@ -761,6 +764,8 @@ export function AuditSubjectPage() {
             </div>
           )}
         </>
+      ) : tab === "flags" ? (
+        <AuditFlags registry={analysis.data.flags} periods={analysis.data.periods} />
       ) : tab === "opinion" ? (
         <div className="audit-block">
           <div className="tab-head" style={{ marginBottom: 12 }}>

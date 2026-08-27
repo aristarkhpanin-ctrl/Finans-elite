@@ -1380,6 +1380,7 @@ export interface components {
              */
             balanced: boolean;
             diagnostics?: components["schemas"]["AuditDiagnosticsOut"] | null;
+            flags?: components["schemas"]["AuditFlagsOut"];
             /**
              * Horizontal
              * @default []
@@ -1580,6 +1581,58 @@ export interface components {
              * @default []
              */
             unrealized_profit: string[];
+        };
+        /**
+         * AuditFlagOut
+         * @description Красный флаг: что настораживает, в каких периодах и на сколько рублей.
+         */
+        AuditFlagOut: {
+            /** Code */
+            code: string;
+            /** Detail */
+            detail: string;
+            /**
+             * Evidence
+             * @default {}
+             */
+            evidence: {
+                [key: string]: string;
+            };
+            /** Impact */
+            impact?: string | null;
+            /**
+             * Periods
+             * @default []
+             */
+            periods: number[];
+            /** Severity */
+            severity: string;
+            /** Title */
+            title: string;
+        };
+        /**
+         * AuditFlagsOut
+         * @description Реестр флагов с честным итогом: сумма оценённых + число неоценённых.
+         *
+         *     Без ``unpriced`` итог выглядел бы полной ценой рисков, хотя часть рисков в него
+         *     не вошла — денежной меры у них нет вовсе.
+         */
+        AuditFlagsOut: {
+            /**
+             * Flags
+             * @default []
+             */
+            flags: components["schemas"]["AuditFlagOut"][];
+            /**
+             * Priced Total
+             * @default 0
+             */
+            priced_total: string;
+            /**
+             * Unpriced
+             * @default 0
+             */
+            unpriced: number;
         };
         /** AuditGroupCreate */
         AuditGroupCreate: {

@@ -1195,6 +1195,49 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .icon-action--danger { color: var(--danger); }
 .icon-action--danger:hover { background: var(--danger-bg); border-color: var(--danger-border); }
 
+/* Реестр красных флагов «Финанс-Аудит» (макет Экран 9) */
+.flag-total {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 20px;
+  flex-wrap: wrap; padding: 16px 18px; border-radius: 14px;
+  border: 1px solid var(--border); background: var(--surface);
+}
+.flag-total__val {
+  font: 600 26px var(--font-mono); letter-spacing: -0.02em; color: var(--text);
+}
+.flag-total__note {
+  flex: 1; min-width: 260px; max-width: 520px;
+  font: 400 12.5px/1.55 var(--font-ui); color: var(--muted);
+}
+.flag-list { display: flex; flex-direction: column; gap: 8px; }
+.flag {
+  border: 1px solid var(--border); border-left-width: 3px; border-radius: 10px;
+  background: var(--surface-2); padding: 11px 13px;
+}
+.flag--risk { border-left-color: var(--danger); background: var(--danger-bg); }
+.flag--warn { border-left-color: var(--warn); background: var(--warn-bg); }
+.flag__head {
+  appearance: none; border: none; background: none; cursor: pointer; width: 100%;
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 9px; padding: 0;
+  text-align: left; color: inherit;
+}
+.flag__badge {
+  font: 600 9px var(--font-ui); letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 3px 6px; border-radius: 4px; background: var(--surface); color: var(--muted);
+}
+.flag__title { font: 600 13px var(--font-ui); color: var(--text); }
+.flag__periods { font: 500 11px var(--font-mono); color: var(--muted); }
+.flag__impact {
+  margin-left: auto; font: 500 12.5px var(--font-mono); color: var(--text);
+  white-space: nowrap;
+}
+.flag__detail { margin-top: 5px; font: 400 12.5px/1.5 var(--font-ui); color: var(--muted); }
+.flag__evidence {
+  margin-top: 9px; width: 100%; border-collapse: collapse;
+  font: 400 12px var(--font-ui); color: var(--muted);
+}
+.flag__evidence td { padding: 4px 0; border-top: 1px solid var(--border); }
+.flag__num { text-align: right; font-family: var(--font-mono); white-space: nowrap; }
+
 /* Вторая полоса вкладок внутри раздела дела («Финанс-Аудит»). Тише основной:
    это уточнение внутри раздела, а не выбор раздела. */
 .subseg { display: flex; flex-wrap: wrap; gap: 2px; margin-bottom: 16px; }

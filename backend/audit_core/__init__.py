@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from .analysis import analyze
 from .consolidate import Consolidation, Elimination, consolidate_subjects
+from .flags import Flag, FlagRegistry, detect_flags
 from .input_check import InputIssue, check_input
 from .models import AuditPeriod, AuditSubjectModel
 from .result import AuditLine, AuditResult, ShareLine, TrendLine
@@ -19,10 +20,13 @@ __all__ = [
     "AuditPeriod",
     "AuditResult",
     "AuditSubjectModel",
+    "Flag",
+    "FlagRegistry",
     "InputIssue",
     "ShareLine",
     "TrendLine",
     "analyze",
     "check_input",
+    "detect_flags",
     "consolidate_subjects",
 ]

@@ -338,6 +338,9 @@
               }
             ]
           },
+          "flags": {
+            "$ref": "#/components/schemas/AuditFlagsOut"
+          },
           "horizontal": {
             "default": [],
             "items": {
@@ -692,6 +695,90 @@
           }
         },
         "title": "AuditEliminationIn",
+        "type": "object"
+      },
+      "AuditFlagOut": {
+        "description": "Красный флаг: что настораживает, в каких периодах и на сколько рублей.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "evidence": {
+            "additionalProperties": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "default": {},
+            "title": "Evidence",
+            "type": "object"
+          },
+          "impact": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Impact"
+          },
+          "periods": {
+            "default": [],
+            "items": {
+              "type": "integer"
+            },
+            "title": "Periods",
+            "type": "array"
+          },
+          "severity": {
+            "title": "Severity",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "severity",
+          "title",
+          "detail"
+        ],
+        "title": "AuditFlagOut",
+        "type": "object"
+      },
+      "AuditFlagsOut": {
+        "description": "Реестр флагов с честным итогом: сумма оценённых + число неоценённых.\n\nБез ``unpriced`` итог выглядел бы полной ценой рисков, хотя часть рисков в него\nне вошла — денежной меры у них нет вовсе.",
+        "properties": {
+          "flags": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AuditFlagOut"
+            },
+            "title": "Flags",
+            "type": "array"
+          },
+          "priced_total": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Priced Total",
+            "type": "string"
+          },
+          "unpriced": {
+            "default": 0,
+            "title": "Unpriced",
+            "type": "integer"
+          }
+        },
+        "title": "AuditFlagsOut",
         "type": "object"
       },
       "AuditGroupCreate": {

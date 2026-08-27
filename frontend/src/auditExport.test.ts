@@ -46,6 +46,7 @@ const analysis = (over: Partial<AuditAnalysis> = {}): AuditAnalysis => ({
   opinion: "Первый абзац.\n\nВторой абзац.",
   warnings: [],
   input_issues: [],
+  flags: { flags: [], priced_total: "0", unpriced: 0 },
   ...over,
 });
 
