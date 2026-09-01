@@ -23,6 +23,7 @@ function summary(over: Partial<Summary> = {}): Summary {
     detail: "Красных флагов не найдено. Охват проверки — 61%.", coverage: "0.61",
     open_procedures: 11, metrics: [metric()], risk_flags: 0, warning_flags: 0,
     priced_total: "0", unpriced: 0, input_errors: 0,
+    equity_value: null, asking_price: null, discount: null,
     not_computed: ["Оценка сделки (DCF, мультипликаторы) — запрошенной цены в модели нет."],
     ...over,
   };
@@ -119,6 +120,21 @@ describe("Сводка дела", () => {
     const card = screen.getByText("Вердикт").closest(".verdict")!;
     expect(card.className).toContain("verdict--unreliable");
     expect(screen.getByText("Вердикт по этим данным не выносится")).toBeTruthy();
+  });
+
+  it("дисконт появляется, когда есть оценка и цена продавца", () => {
+    // Единственный случай, в котором сводка вправе показать то, что макет рисует
+    // безусловно: оба операнда налицо.
+    show({ equity_value: "817", asking_price: "1400", discount: "0.4163" });
+    expect(screen.getByText("Дисконт к цене")).toBeTruthy();
+    expect(screen.getByText("42%")).toBeTruthy();
+    expect(screen.queryByText(/Это не скидка к цене/)).toBeNull();
+  });
+
+  it("оценка выше запрошенной подана премией", () => {
+    show({ equity_value: "1600", asking_price: "1400", discount: "-0.1428" });
+    expect(screen.getByText("Премия к цене")).toBeTruthy();
+    expect(screen.getByText("14%")).toBeTruthy();
   });
 
   it("переходы ведут в те разделы, о которых говорит сводка", () => {

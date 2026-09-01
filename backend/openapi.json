@@ -468,6 +468,9 @@
             "title": "User Metrics",
             "type": "array"
           },
+          "valuation": {
+            "$ref": "#/components/schemas/AuditValuationOut"
+          },
           "vertical": {
             "default": [],
             "items": {
@@ -523,6 +526,36 @@
           "name"
         ],
         "title": "AuditAssessmentOut",
+        "type": "object"
+      },
+      "AuditBridgeItemOut": {
+        "description": "Слагаемое моста EV → цена: подпись, знак и величина.",
+        "properties": {
+          "amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "amount",
+          "kind"
+        ],
+        "title": "AuditBridgeItemOut",
         "type": "object"
       },
       "AuditConsolidateRequest": {
@@ -896,6 +929,62 @@
           }
         },
         "title": "AuditFlagsOut",
+        "type": "object"
+      },
+      "AuditForecastYearOut": {
+        "description": "Год прогноза: показатель, поток и его приведённая стоимость.",
+        "properties": {
+          "capex": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Capex",
+            "type": "string"
+          },
+          "depreciation": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Depreciation",
+            "type": "string"
+          },
+          "discount_factor": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Discount Factor",
+            "type": "string"
+          },
+          "ebit": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Ebit",
+            "type": "string"
+          },
+          "fcff": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Fcff",
+            "type": "string"
+          },
+          "nwc_change": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Nwc Change",
+            "type": "string"
+          },
+          "present_value": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Present Value",
+            "type": "string"
+          },
+          "year": {
+            "title": "Year",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "year",
+          "ebit",
+          "depreciation",
+          "capex",
+          "nwc_change",
+          "fcff",
+          "discount_factor",
+          "present_value"
+        ],
+        "title": "AuditForecastYearOut",
         "type": "object"
       },
       "AuditGroupCreate": {
@@ -1886,6 +1975,9 @@
             "maxItems": 100,
             "title": "User Metrics",
             "type": "array"
+          },
+          "valuation": {
+            "$ref": "#/components/schemas/ValuationAssumptions-Input"
           }
         },
         "title": "AuditSubjectModel",
@@ -2007,6 +2099,9 @@
             "maxItems": 100,
             "title": "User Metrics",
             "type": "array"
+          },
+          "valuation": {
+            "$ref": "#/components/schemas/ValuationAssumptions-Output"
           }
         },
         "title": "AuditSubjectModel",
@@ -2168,6 +2263,18 @@
       "AuditSummaryOut": {
         "description": "Сводка дела и вердикт (SPEC, Прил. Н).\n\nОценки сделки здесь нет намеренно: запрошенной цены в модели не существует, DCF не\nпостроен, бенчмарков нет. ``priced_total`` — оценённое влияние флагов, **не скидка\nк цене**. Всё, чего сводка не считает, перечислено в ``not_computed``.",
         "properties": {
+          "asking_price": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asking Price"
+          },
           "coverage": {
             "anyOf": [
               {
@@ -2184,6 +2291,30 @@
             "default": "",
             "title": "Detail",
             "type": "string"
+          },
+          "discount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount"
+          },
+          "equity_value": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Equity Value"
           },
           "headline": {
             "default": "",
@@ -2334,6 +2465,244 @@
           "name"
         ],
         "title": "AuditUserMetricOut",
+        "type": "object"
+      },
+      "AuditValuationOut": {
+        "description": "Оценка стоимости (SPEC, Прил. П).\n\nНепустой ``blockers`` означает, что оценка **не посчитана**, а не «стоит 0»:\nвеличины, для которой не хватает входных данных, не существует. Забалансовые\nобязательства из моста исключены намеренно (Л.1) и названы в ``warnings``.",
+        "properties": {
+          "asking_price": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asking Price"
+          },
+          "base_code": {
+            "default": "EBIT",
+            "title": "Base Code",
+            "type": "string"
+          },
+          "base_ebit": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Base Ebit",
+            "type": "string"
+          },
+          "blockers": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Blockers",
+            "type": "array"
+          },
+          "bridge": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AuditBridgeItemOut"
+            },
+            "title": "Bridge",
+            "type": "array"
+          },
+          "discount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount"
+          },
+          "enabled": {
+            "default": false,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "enterprise_value": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enterprise Value"
+          },
+          "equity_max": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Equity Max"
+          },
+          "equity_min": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Equity Min"
+          },
+          "equity_value": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Equity Value"
+          },
+          "implied_multiple": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Implied Multiple"
+          },
+          "not_computed": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Not Computed",
+            "type": "array"
+          },
+          "pv_forecast": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Pv Forecast",
+            "type": "string"
+          },
+          "pv_terminal": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pv Terminal"
+          },
+          "sensitivity": {
+            "default": [],
+            "items": {
+              "items": {
+                "anyOf": [
+                  {
+                    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            "title": "Sensitivity",
+            "type": "array"
+          },
+          "sensitivity_growth": {
+            "default": [],
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Sensitivity Growth",
+            "type": "array"
+          },
+          "sensitivity_wacc": {
+            "default": [],
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Sensitivity Wacc",
+            "type": "array"
+          },
+          "terminal_growth": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Terminal Growth",
+            "type": "string"
+          },
+          "terminal_share": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terminal Share"
+          },
+          "terminal_value": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terminal Value"
+          },
+          "wacc": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Wacc",
+            "type": "string"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          },
+          "years": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AuditForecastYearOut"
+            },
+            "title": "Years",
+            "type": "array"
+          }
+        },
+        "title": "AuditValuationOut",
         "type": "object"
       },
       "AutoFinancing-Input": {
@@ -9497,6 +9866,222 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "ValuationAssumptions-Input": {
+        "description": "Допущения оценки (SPEC, Приложение П): всё вводится, ничего не выводится.\n\nДисконтированный поток строится по будущему, а в деле есть только прошлое.\nЭкстраполировать выручку «как росла, так и будет» значило бы выдать регрессию за\nпрогноз, поэтому рост, капвложения и изменение оборотного капитала задаёт человек.\n\nСвязь с проверкой одна и главная: база прогноза — **нормализованный** EBIT\nпоследнего периода (Прил. К), ради чего нормализация и делалась.\n\n``asking_price`` — цена продавца. ``None`` значит «не введена», и тогда дисконта\n**не существует**: величина без второго операнда — не ноль процентов.",
+        "properties": {
+          "asking_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asking Price"
+          },
+          "capex": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ]
+            },
+            "maxItems": 15,
+            "title": "Capex",
+            "type": "array"
+          },
+          "enabled": {
+            "default": false,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "growth": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ]
+            },
+            "maxItems": 15,
+            "title": "Growth",
+            "type": "array"
+          },
+          "horizon_years": {
+            "default": 5,
+            "maximum": 15.0,
+            "minimum": 1.0,
+            "title": "Horizon Years",
+            "type": "integer"
+          },
+          "minority_interest": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Minority Interest"
+          },
+          "nwc_change": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ]
+            },
+            "maxItems": 15,
+            "title": "Nwc Change",
+            "type": "array"
+          },
+          "tax_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0.20",
+            "title": "Tax Rate"
+          },
+          "terminal_growth": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0.03",
+            "title": "Terminal Growth"
+          },
+          "wacc": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0.20",
+            "title": "Wacc"
+          }
+        },
+        "title": "ValuationAssumptions",
+        "type": "object"
+      },
+      "ValuationAssumptions-Output": {
+        "description": "Допущения оценки (SPEC, Приложение П): всё вводится, ничего не выводится.\n\nДисконтированный поток строится по будущему, а в деле есть только прошлое.\nЭкстраполировать выручку «как росла, так и будет» значило бы выдать регрессию за\nпрогноз, поэтому рост, капвложения и изменение оборотного капитала задаёт человек.\n\nСвязь с проверкой одна и главная: база прогноза — **нормализованный** EBIT\nпоследнего периода (Прил. К), ради чего нормализация и делалась.\n\n``asking_price`` — цена продавца. ``None`` значит «не введена», и тогда дисконта\n**не существует**: величина без второго операнда — не ноль процентов.",
+        "properties": {
+          "asking_price": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asking Price"
+          },
+          "capex": {
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "maxItems": 15,
+            "title": "Capex",
+            "type": "array"
+          },
+          "enabled": {
+            "default": false,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "growth": {
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "maxItems": 15,
+            "title": "Growth",
+            "type": "array"
+          },
+          "horizon_years": {
+            "default": 5,
+            "maximum": 15.0,
+            "minimum": 1.0,
+            "title": "Horizon Years",
+            "type": "integer"
+          },
+          "minority_interest": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Minority Interest",
+            "type": "string"
+          },
+          "nwc_change": {
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "maxItems": 15,
+            "title": "Nwc Change",
+            "type": "array"
+          },
+          "tax_rate": {
+            "default": "0.20",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Tax Rate",
+            "type": "string"
+          },
+          "terminal_growth": {
+            "default": "0.03",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Terminal Growth",
+            "type": "string"
+          },
+          "wacc": {
+            "default": "0.20",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Wacc",
+            "type": "string"
+          }
+        },
+        "title": "ValuationAssumptions",
         "type": "object"
       },
       "ValuationOut": {

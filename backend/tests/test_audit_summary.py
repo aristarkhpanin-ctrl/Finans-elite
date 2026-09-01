@@ -178,26 +178,26 @@ def test_leverage_thresholds_are_declared_as_a_convention():
 
 # ── Н.3. Чего на экране нет ──────────────────────────────────────────────────
 
-def test_no_price_discount_is_produced():
-    """Дисконт к цене унесли бы в переговоры — а вывести его не из чего.
+def test_no_valuation_means_no_discount():
+    """Без посчитанной оценки дисконта не существует — и он не «ноль процентов».
 
-    Запрошенной цены в модели нет, оценка не построена; оценённое влияние флагов
-    скидкой не является.
+    Оценённое влияние флагов скидкой к цене не является, и подменять её им нельзя.
     """
     s = summary(model())
-    assert not hasattr(s, "discount")
-    assert not hasattr(s, "fair_price")
+    assert s.discount is None and s.equity_value is None and s.asking_price is None
     assert not any("цена" in m.label.lower() for m in s.metrics)
+    assert any("Оценка сделки" in line for line in s.not_computed)
 
 
 def test_gaps_are_listed_rather_than_left_silent():
     """Отсутствующий раздел читается как благополучие — поэтому пробелы названы."""
     s = summary(model())
     joined = " ".join(s.not_computed)
-    assert "Оценка сделки" in joined
+    assert "Оценка сделки" in joined            # пока оценка не посчитана
     assert "банковской выпиской" in joined
     assert "Сравнение с отраслью" in joined
-    assert len(s.not_computed) == len(NOT_COMPUTED)
+    # Постоянные пробелы плюс один, который закрывается оценкой.
+    assert len(s.not_computed) == len(NOT_COMPUTED) + 1
 
 
 def test_priced_total_is_carried_with_the_count_of_unpriced():
@@ -229,3 +229,58 @@ def test_demo_case_gets_a_verdict_with_its_coverage():
     assert s.verdict != UNRELIABLE
     assert s.coverage is not None
     assert metric(build_trading_subject(), "leverage").value is not None
+
+
+# ── Связь с оценкой (Прил. П) ────────────────────────────────────────────────
+
+VALUATION = {
+    "enabled": True, "horizon_years": 5, "wacc": "0.20", "terminal_growth": "0.03",
+    "tax_rate": "0.20", "growth": ["0.08"], "capex": ["70"], "nwc_change": ["15"],
+}
+
+
+def valued(extra: dict) -> AuditSubjectModel:
+    """То же предприятие, но с введённой амортизацией и допущениями оценки."""
+    return model(income={"M_DEPRECIATION": ["50", "60"]},
+                 valuation={**VALUATION, **extra})
+
+
+def summary_with_valuation(m: AuditSubjectModel):
+    from audit_core.valuation import build_valuation
+    result = analyze(m)
+    obligations = build_obligations(m, result)
+    flags = detect_flags(m, result, obligations)
+    issues = check_input(m)
+    earnings = normalize_earnings(m, result)
+    procedures = run_procedures(m, result, flags, issues, obligations, earnings)
+    valuation = build_valuation(m, result, earnings, obligations)
+    return build_summary(m, result, flags, issues, obligations, earnings, procedures,
+                         valuation)
+
+
+def test_valuation_closes_exactly_one_gap():
+    """Посчитанная оценка убирает свою строку из пробелов — и только свою."""
+    s = summary_with_valuation(valued({"asking_price": "1400"}))
+    assert not any("Оценка сделки" in line for line in s.not_computed)
+    assert any("банковской выпиской" in line for line in s.not_computed)
+    assert any("Сравнение с отраслью" in line for line in s.not_computed)
+
+
+def test_discount_appears_only_with_both_operands():
+    """Оценка есть, цены продавца нет — дисконта по-прежнему не существует."""
+    without = summary_with_valuation(valued({}))
+    assert without.equity_value is not None      # оценка посчитана
+    assert without.discount is None              # а дисконта нет
+    assert any("цена продавца не введена" in line for line in without.not_computed)
+
+    with_price = summary_with_valuation(valued({"asking_price": "1400"}))
+    assert with_price.discount is not None
+    assert with_price.asking_price == D(1400)
+    assert not any("цена продавца не введена" in line for line in with_price.not_computed)
+
+
+def test_refused_valuation_keeps_the_gap_named():
+    """Оценка включена, но не посчиталась — пробел остаётся: «включена» ≠ «посчитана»."""
+    s = summary_with_valuation(model(valuation={**VALUATION, "asking_price": "1400"}))
+    assert s.equity_value is None and s.discount is None
+    assert any("Оценка сделки" in line for line in s.not_computed)

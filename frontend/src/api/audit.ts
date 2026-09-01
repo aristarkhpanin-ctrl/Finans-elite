@@ -53,6 +53,30 @@ export interface AuditModel {
   obligations?: Obligation[];
   procedure_marks?: ProcedureMark[];
   custom_procedures?: CustomProcedure[];
+  valuation?: ValuationAssumptions;
+}
+
+/**
+ * Допущения оценки (SPEC, Прил. П): всё вводится, ничего не выводится из истории.
+ * `asking_price === null` — цена продавца не введена, и дисконта **не существует**.
+ */
+export interface ValuationAssumptions {
+  enabled: boolean;
+  horizon_years: number;
+  wacc: string;
+  terminal_growth: string;
+  tax_rate: string;
+  growth: string[];
+  capex: string[];
+  nwc_change: string[];
+  minority_interest: string;
+  asking_price: string | null;
+}
+
+export function emptyValuation(): ValuationAssumptions {
+  return { enabled: false, horizon_years: 5, wacc: "0.20", terminal_growth: "0.03",
+           tax_rate: "0.20", growth: [], capex: [], nwc_change: [],
+           minority_interest: "0", asking_price: null };
 }
 
 /** Статус процедуры, который ставит человек (системный выводится из прогона). */
@@ -298,6 +322,60 @@ export interface AuditAnalysis {
   obligations: AuditObligations;
   procedures: AuditProcedures;
   summary: AuditSummary;
+  valuation: AuditValuation;
+}
+
+/** Год прогноза: показатель, поток и его приведённая стоимость. */
+export interface AuditForecastYear {
+  year: number;
+  ebit: string;
+  depreciation: string;
+  capex: string;
+  nwc_change: string;
+  fcff: string;
+  discount_factor: string;
+  present_value: string;
+}
+
+/** Слагаемое моста EV → цена. */
+export interface AuditBridgeItem {
+  label: string;
+  amount: string;
+  kind: "add" | "subtract" | "total";
+  note: string;
+}
+
+/**
+ * Оценка стоимости (SPEC, Прил. П). Непустой `blockers` означает, что оценка
+ * **не посчитана**, а не «стоит 0»: величины, для которой не хватает входных данных,
+ * не существует. Забалансовые обязательства из моста исключены намеренно (Л.1) и
+ * названы в `warnings`.
+ */
+export interface AuditValuation {
+  enabled: boolean;
+  blockers: string[];
+  base_code: string;
+  base_ebit: string;
+  wacc: string;
+  terminal_growth: string;
+  years: AuditForecastYear[];
+  pv_forecast: string;
+  terminal_value: string | null;
+  pv_terminal: string | null;
+  enterprise_value: string | null;
+  terminal_share: string | null;
+  bridge: AuditBridgeItem[];
+  equity_value: string | null;
+  implied_multiple: string | null;
+  asking_price: string | null;
+  discount: string | null;
+  sensitivity: (string | null)[][];
+  sensitivity_wacc: string[];
+  sensitivity_growth: string[];
+  equity_min: string | null;
+  equity_max: string | null;
+  warnings: string[];
+  not_computed: string[];
 }
 
 /** Показатель шапки сводки. `value === null` — величина не считается, а не равна нулю. */
@@ -330,6 +408,10 @@ export interface AuditSummary {
   priced_total: string;
   unpriced: number;
   input_errors: number;
+  /** Оценка (Прил. П); `null` — оценки нет, и дисконта не существует. */
+  equity_value: string | null;
+  asking_price: string | null;
+  discount: string | null;
   not_computed: string[];
 }
 

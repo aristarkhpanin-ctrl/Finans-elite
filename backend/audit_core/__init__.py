@@ -16,6 +16,7 @@ from .obligations import ObligationRegister, build_obligations
 from .procedures import Procedure, ProcedureReport, run_procedures
 from .result import AuditLine, AuditResult, ShareLine, TrendLine
 from .summary import CaseSummary, build_summary
+from .valuation import Valuation, build_valuation
 
 __all__ = [
     "AuditLine",
@@ -35,9 +36,11 @@ __all__ = [
     "ProcedureReport",
     "ShareLine",
     "TrendLine",
+    "Valuation",
     "analyze",
     "build_obligations",
     "build_summary",
+    "build_valuation",
     "check_input",
     "detect_flags",
     "run_procedures",

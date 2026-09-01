@@ -1453,6 +1453,7 @@ export interface components {
              * @default []
              */
             user_metrics: components["schemas"]["AuditUserMetricOut"][];
+            valuation?: components["schemas"]["AuditValuationOut"];
             /**
              * Vertical
              * @default []
@@ -1478,6 +1479,23 @@ export interface components {
              * @default []
              */
             status: (string | null)[];
+        };
+        /**
+         * AuditBridgeItemOut
+         * @description Слагаемое моста EV → цена: подпись, знак и величина.
+         */
+        AuditBridgeItemOut: {
+            /** Amount */
+            amount: string;
+            /** Kind */
+            kind: string;
+            /** Label */
+            label: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
         };
         /**
          * AuditConsolidateRequest
@@ -1698,6 +1716,28 @@ export interface components {
              * @default 0
              */
             unpriced: number;
+        };
+        /**
+         * AuditForecastYearOut
+         * @description Год прогноза: показатель, поток и его приведённая стоимость.
+         */
+        AuditForecastYearOut: {
+            /** Capex */
+            capex: string;
+            /** Depreciation */
+            depreciation: string;
+            /** Discount Factor */
+            discount_factor: string;
+            /** Ebit */
+            ebit: string;
+            /** Fcff */
+            fcff: string;
+            /** Nwc Change */
+            nwc_change: string;
+            /** Present Value */
+            present_value: string;
+            /** Year */
+            year: number;
         };
         /** AuditGroupCreate */
         AuditGroupCreate: {
@@ -2282,6 +2322,7 @@ export interface components {
             thresholds?: components["schemas"]["RatioThreshold-Input"][];
             /** User Metrics */
             user_metrics?: components["schemas"]["UserMetric"][];
+            valuation?: components["schemas"]["ValuationAssumptions-Input"];
         };
         /**
          * AuditSubjectModel
@@ -2336,6 +2377,7 @@ export interface components {
             thresholds?: components["schemas"]["RatioThreshold-Output"][];
             /** User Metrics */
             user_metrics?: components["schemas"]["UserMetric"][];
+            valuation?: components["schemas"]["ValuationAssumptions-Output"];
         };
         /** AuditSubjectOut */
         AuditSubjectOut: {
@@ -2429,6 +2471,8 @@ export interface components {
          *     к цене**. Всё, чего сводка не считает, перечислено в ``not_computed``.
          */
         AuditSummaryOut: {
+            /** Asking Price */
+            asking_price?: string | null;
             /** Coverage */
             coverage?: string | null;
             /**
@@ -2436,6 +2480,10 @@ export interface components {
              * @default
              */
             detail: string;
+            /** Discount */
+            discount?: string | null;
+            /** Equity Value */
+            equity_value?: string | null;
             /**
              * Headline
              * @default
@@ -2526,6 +2574,106 @@ export interface components {
              * @default []
              */
             values: string[];
+        };
+        /**
+         * AuditValuationOut
+         * @description Оценка стоимости (SPEC, Прил. П).
+         *
+         *     Непустой ``blockers`` означает, что оценка **не посчитана**, а не «стоит 0»:
+         *     величины, для которой не хватает входных данных, не существует. Забалансовые
+         *     обязательства из моста исключены намеренно (Л.1) и названы в ``warnings``.
+         */
+        AuditValuationOut: {
+            /** Asking Price */
+            asking_price?: string | null;
+            /**
+             * Base Code
+             * @default EBIT
+             */
+            base_code: string;
+            /**
+             * Base Ebit
+             * @default 0
+             */
+            base_ebit: string;
+            /**
+             * Blockers
+             * @default []
+             */
+            blockers: string[];
+            /**
+             * Bridge
+             * @default []
+             */
+            bridge: components["schemas"]["AuditBridgeItemOut"][];
+            /** Discount */
+            discount?: string | null;
+            /**
+             * Enabled
+             * @default false
+             */
+            enabled: boolean;
+            /** Enterprise Value */
+            enterprise_value?: string | null;
+            /** Equity Max */
+            equity_max?: string | null;
+            /** Equity Min */
+            equity_min?: string | null;
+            /** Equity Value */
+            equity_value?: string | null;
+            /** Implied Multiple */
+            implied_multiple?: string | null;
+            /**
+             * Not Computed
+             * @default []
+             */
+            not_computed: string[];
+            /**
+             * Pv Forecast
+             * @default 0
+             */
+            pv_forecast: string;
+            /** Pv Terminal */
+            pv_terminal?: string | null;
+            /**
+             * Sensitivity
+             * @default []
+             */
+            sensitivity: (string | null)[][];
+            /**
+             * Sensitivity Growth
+             * @default []
+             */
+            sensitivity_growth: string[];
+            /**
+             * Sensitivity Wacc
+             * @default []
+             */
+            sensitivity_wacc: string[];
+            /**
+             * Terminal Growth
+             * @default 0
+             */
+            terminal_growth: string;
+            /** Terminal Share */
+            terminal_share?: string | null;
+            /** Terminal Value */
+            terminal_value?: string | null;
+            /**
+             * Wacc
+             * @default 0
+             */
+            wacc: string;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+            /**
+             * Years
+             * @default []
+             */
+            years: components["schemas"]["AuditForecastYearOut"][];
         };
         /**
          * AutoFinancing
@@ -6305,6 +6453,114 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /**
+         * ValuationAssumptions
+         * @description Допущения оценки (SPEC, Приложение П): всё вводится, ничего не выводится.
+         *
+         *     Дисконтированный поток строится по будущему, а в деле есть только прошлое.
+         *     Экстраполировать выручку «как росла, так и будет» значило бы выдать регрессию за
+         *     прогноз, поэтому рост, капвложения и изменение оборотного капитала задаёт человек.
+         *
+         *     Связь с проверкой одна и главная: база прогноза — **нормализованный** EBIT
+         *     последнего периода (Прил. К), ради чего нормализация и делалась.
+         *
+         *     ``asking_price`` — цена продавца. ``None`` значит «не введена», и тогда дисконта
+         *     **не существует**: величина без второго операнда — не ноль процентов.
+         */
+        "ValuationAssumptions-Input": {
+            /** Asking Price */
+            asking_price?: number | string | null;
+            /** Capex */
+            capex?: (number | string)[];
+            /**
+             * Enabled
+             * @default false
+             */
+            enabled: boolean;
+            /** Growth */
+            growth?: (number | string)[];
+            /**
+             * Horizon Years
+             * @default 5
+             */
+            horizon_years: number;
+            /**
+             * Minority Interest
+             * @default 0
+             */
+            minority_interest: number | string;
+            /** Nwc Change */
+            nwc_change?: (number | string)[];
+            /**
+             * Tax Rate
+             * @default 0.20
+             */
+            tax_rate: number | string;
+            /**
+             * Terminal Growth
+             * @default 0.03
+             */
+            terminal_growth: number | string;
+            /**
+             * Wacc
+             * @default 0.20
+             */
+            wacc: number | string;
+        };
+        /**
+         * ValuationAssumptions
+         * @description Допущения оценки (SPEC, Приложение П): всё вводится, ничего не выводится.
+         *
+         *     Дисконтированный поток строится по будущему, а в деле есть только прошлое.
+         *     Экстраполировать выручку «как росла, так и будет» значило бы выдать регрессию за
+         *     прогноз, поэтому рост, капвложения и изменение оборотного капитала задаёт человек.
+         *
+         *     Связь с проверкой одна и главная: база прогноза — **нормализованный** EBIT
+         *     последнего периода (Прил. К), ради чего нормализация и делалась.
+         *
+         *     ``asking_price`` — цена продавца. ``None`` значит «не введена», и тогда дисконта
+         *     **не существует**: величина без второго операнда — не ноль процентов.
+         */
+        "ValuationAssumptions-Output": {
+            /** Asking Price */
+            asking_price?: string | null;
+            /** Capex */
+            capex?: string[];
+            /**
+             * Enabled
+             * @default false
+             */
+            enabled: boolean;
+            /** Growth */
+            growth?: string[];
+            /**
+             * Horizon Years
+             * @default 5
+             */
+            horizon_years: number;
+            /**
+             * Minority Interest
+             * @default 0
+             */
+            minority_interest: string;
+            /** Nwc Change */
+            nwc_change?: string[];
+            /**
+             * Tax Rate
+             * @default 0.20
+             */
+            tax_rate: string;
+            /**
+             * Terminal Growth
+             * @default 0.03
+             */
+            terminal_growth: string;
+            /**
+             * Wacc
+             * @default 0.20
+             */
+            wacc: string;
         };
         /** ValuationOut */
         ValuationOut: {

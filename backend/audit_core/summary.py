@@ -13,10 +13,11 @@
 вердиктом **всегда** стоит охват: «устойчивое состояние» при охвате 60% — это оценка
 шести десятых работы.
 
-**Оценки сделки здесь нет.** Макет показывает «дисконт к цене 18%» и справедливую
-стоимость. Запрошенной цены в модели не существует, DCF не построен, бенчмарков нет —
-вычисленный из ничего дисконт унесли бы в переговоры. На его месте стоит оценённое
-влияние флагов, и сказано, что скидкой оно не является.
+**Дисконт к цене показывается только тогда, когда его есть из чего вывести.** Макет
+рисует «дисконт 18%» безусловно; здесь он требует двух вещей сразу — посчитанной оценки
+(Прил. П) и введённой цены продавца. Нет любой из них — дисконта **не существует**, и
+на его месте стоит оценённое влияние флагов с оговоркой, что скидкой оно не является.
+Недостающее звено при этом названо в списке пробелов, а не оставлено молчанием.
 
 **Что не посчитано — перечислено.** Отсутствующий раздел читается как благополучие,
 поэтому сводка называет свои пробелы сама.
@@ -37,6 +38,7 @@ from .models import AuditSubjectModel
 from .obligations import ObligationRegister
 from .procedures import ProcedureReport
 from .result import AuditResult
+from .valuation import Valuation
 
 D = Decimal
 
@@ -90,6 +92,11 @@ class CaseSummary:
     priced_total: Decimal = D(0)
     unpriced: int = 0
     input_errors: int = 0
+    #: Оценка (Прил. П). Все три — ``None``, пока оценки нет: дисконта без неё **не
+    #: существует**, и сводка по-прежнему его не показывает.
+    equity_value: Optional[Decimal] = None
+    asking_price: Optional[Decimal] = None
+    discount: Optional[Decimal] = None
     #: Что сводка намеренно не считает — перечисляется, иначе читается как благополучие.
     not_computed: list[str] = field(default_factory=list)
 
@@ -169,10 +176,16 @@ def _metrics(result: AuditResult, earnings: EarningsQuality,
     return out
 
 
-#: Чего сводка не считает — и почему. Список идёт на экран как есть (Н.3).
+#: Пробел, который закрывается оценкой (Прил. П): пока её нет — он в списке.
+NO_VALUATION = ("Оценка сделки (DCF, мост EV → цена) не посчитана — включите её на "
+                "вкладке «Оценка» и задайте допущения прогноза.")
+
+#: Пробел, который остаётся и с оценкой: цену продавца знает только пользователь.
+NO_ASKING_PRICE = ("Дисконт к цене не считается: цена продавца не введена. Величина "
+                   "без второго операнда — не ноль процентов, её просто нет.")
+
+#: Чего сводка не считает **всегда** — и почему. Список идёт на экран как есть (Н.3).
 NOT_COMPUTED = [
-    "Оценка сделки (DCF, мультипликаторы) — запрошенной цены в модели нет, "
-    "модель оценки не построена.",
     "Подтверждение выручки банковской выпиской — выписок в деле нет: платформа "
     "работает с агрегатной отчётностью.",
     "Сравнение с отраслью — базы отраслевых показателей нет; сравнивать с выдуманной "
@@ -184,7 +197,8 @@ def build_summary(model: AuditSubjectModel, result: AuditResult,
                   flags: FlagRegistry, issues: Sequence[InputIssue] = (),
                   obligations: Optional[ObligationRegister] = None,
                   earnings: Optional[EarningsQuality] = None,
-                  procedures: Optional[ProcedureReport] = None) -> CaseSummary:
+                  procedures: Optional[ProcedureReport] = None,
+                  valuation: Optional[Valuation] = None) -> CaseSummary:
     """Сводка дела по уже посчитанным результатам.
 
     Пустая модель даёт ``state="empty"``: без отчётности вердикта не существует —
@@ -209,6 +223,17 @@ def build_summary(model: AuditSubjectModel, result: AuditResult,
     summary.unpriced = flags.unpriced
     summary.input_errors = sum(1 for i in issues if i.severity == "error")
     summary.metrics = _metrics(result, earnings, obligations)
+
+    # Оценка закрывает ровно один пробел сводки — и только тогда, когда посчитана.
+    # Дисконт требует ещё и цены продавца: без неё его не существует (Прил. П.4).
+    if valuation is None or valuation.enterprise_value is None:
+        summary.not_computed.insert(0, NO_VALUATION)
+    else:
+        summary.equity_value = valuation.equity_value
+        summary.asking_price = valuation.asking_price
+        summary.discount = valuation.discount
+        if valuation.discount is None:
+            summary.not_computed.insert(0, NO_ASKING_PRICE)
 
     if procedures is not None:
         summary.coverage = procedures.coverage

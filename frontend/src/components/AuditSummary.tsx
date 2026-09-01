@@ -115,11 +115,29 @@ export function AuditSummary({
               : fmtMoney(summary.priced_total)}</b>
             {summary.unpriced > 0 && <> · без денежной меры: {summary.unpriced}</>}
           </div>
-          {/* Ровно на месте, где макет показывает «Дисконт к цене 18%». */}
-          <div className="field-note field-note--warn" style={{ marginTop: 10 }}>
-            Это <b>не скидка к цене</b>. Дисконт считается от запрошенной цены и оценки
-            бизнеса — ни того, ни другого в деле пока нет.
-          </div>
+          {/* Ровно на месте, где макет показывает «Дисконт к цене 18%» — но здесь он
+              появляется, только когда есть оба операнда: посчитанная оценка и цена
+              продавца. Иначе на этом месте стоит объяснение, чего не хватает. */}
+          {summary.discount !== null ? (
+            <div className="sum-discount">
+              <div className="mini-label">
+                {Number(summary.discount) >= 0 ? "Дисконт к цене" : "Премия к цене"}
+              </div>
+              <div className={"sum-discount__val "
+                              + (Number(summary.discount) >= 0 ? "tone--ok" : "tone--risk")}>
+                {Math.abs(Math.round(Number(summary.discount) * 100))}%
+              </div>
+              <div className="sum-metric__note">
+                наша оценка {fmtMoney(summary.equity_value ?? "0")} против запрошенных{" "}
+                {fmtMoney(summary.asking_price ?? "0")}
+              </div>
+            </div>
+          ) : (
+            <div className="field-note field-note--warn" style={{ marginTop: 10 }}>
+              Это <b>не скидка к цене</b>. Дисконт считается от запрошенной цены и оценки
+              бизнеса — чего именно не хватает, сказано в списке справа.
+            </div>
+          )}
           <div style={{ marginTop: 12 }}>
             <Button variant="ghost" onClick={onFlags}>Открыть реестр флагов</Button>
           </div>

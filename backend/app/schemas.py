@@ -946,6 +946,8 @@ class AuditAnalysisOut(BaseModel):
     procedures: "AuditProceduresOut" = None  # type: ignore[assignment]
     # Сводка дела и вердикт («Экран 1»); в AuditResult не входит — SPEC, Прил. Н.
     summary: "AuditSummaryOut" = None  # type: ignore[assignment]
+    # Оценка стоимости («Экран 4»); в AuditResult не входит — SPEC, Прил. П.
+    valuation: "AuditValuationOut" = None  # type: ignore[assignment]
 
 
 class AuditAdjustmentOut(BaseModel):
@@ -1048,6 +1050,62 @@ class AuditObligationsOut(BaseModel):
     covenants_unknown: int = 0
 
 
+class AuditForecastYearOut(BaseModel):
+    """Год прогноза: показатель, поток и его приведённая стоимость."""
+
+    year: int
+    ebit: Decimal
+    depreciation: Decimal
+    capex: Decimal
+    nwc_change: Decimal
+    fcff: Decimal
+    discount_factor: Decimal
+    present_value: Decimal
+
+
+class AuditBridgeItemOut(BaseModel):
+    """Слагаемое моста EV → цена: подпись, знак и величина."""
+
+    label: str
+    amount: Decimal
+    kind: str                            # add | subtract | total
+    note: str = ""
+
+
+class AuditValuationOut(BaseModel):
+    """Оценка стоимости (SPEC, Прил. П).
+
+    Непустой ``blockers`` означает, что оценка **не посчитана**, а не «стоит 0»:
+    величины, для которой не хватает входных данных, не существует. Забалансовые
+    обязательства из моста исключены намеренно (Л.1) и названы в ``warnings``.
+    """
+
+    enabled: bool = False
+    blockers: list[str] = []
+    base_code: str = "EBIT"
+    base_ebit: Decimal = Decimal(0)
+    wacc: Decimal = Decimal(0)
+    terminal_growth: Decimal = Decimal(0)
+    years: list[AuditForecastYearOut] = []
+    pv_forecast: Decimal = Decimal(0)
+    terminal_value: Optional[Decimal] = None
+    pv_terminal: Optional[Decimal] = None
+    enterprise_value: Optional[Decimal] = None
+    terminal_share: Optional[Decimal] = None
+    bridge: list[AuditBridgeItemOut] = []
+    equity_value: Optional[Decimal] = None
+    implied_multiple: Optional[Decimal] = None
+    asking_price: Optional[Decimal] = None
+    discount: Optional[Decimal] = None
+    sensitivity: list[list[Optional[Decimal]]] = []
+    sensitivity_wacc: list[Decimal] = []
+    sensitivity_growth: list[Decimal] = []
+    equity_min: Optional[Decimal] = None
+    equity_max: Optional[Decimal] = None
+    warnings: list[str] = []
+    not_computed: list[str] = []
+
+
 class AuditHeadMetricOut(BaseModel):
     """Показатель шапки сводки. ``value=None`` — величина не считается, а не равна нулю."""
 
@@ -1080,6 +1138,10 @@ class AuditSummaryOut(BaseModel):
     priced_total: Decimal = Decimal(0)
     unpriced: int = 0
     input_errors: int = 0
+    # Оценка (Прил. П); None — оценки нет, и дисконта не существует.
+    equity_value: Optional[Decimal] = None
+    asking_price: Optional[Decimal] = None
+    discount: Optional[Decimal] = None
     not_computed: list[str] = []
 
 
@@ -1214,7 +1276,8 @@ class AuditGroupOut(AuditGroupSummary):
 
 def audit_analysis_response(result, opinion: str = "", issues=(),
                             flags=None, earnings=None, obligations=None,
-                            procedures=None, summary=None) -> "AuditAnalysisOut":
+                            procedures=None, summary=None,
+                            valuation=None) -> "AuditAnalysisOut":
     """Собрать ответ анализа из ``audit_core.AuditResult`` (+ заключение, ввод, флаги)."""
     return AuditAnalysisOut(
         opinion=opinion,
@@ -1234,7 +1297,42 @@ def audit_analysis_response(result, opinion: str = "", issues=(),
             priced_total=summary.priced_total if summary else Decimal(0),
             unpriced=summary.unpriced if summary else 0,
             input_errors=summary.input_errors if summary else 0,
+            equity_value=summary.equity_value if summary else None,
+            asking_price=summary.asking_price if summary else None,
+            discount=summary.discount if summary else None,
             not_computed=list(summary.not_computed) if summary else [],
+        ),
+        valuation=AuditValuationOut(
+            enabled=valuation.enabled if valuation else False,
+            blockers=list(valuation.blockers) if valuation else [],
+            base_code=valuation.base_code if valuation else "EBIT",
+            base_ebit=valuation.base_ebit if valuation else Decimal(0),
+            wacc=valuation.wacc if valuation else Decimal(0),
+            terminal_growth=valuation.terminal_growth if valuation else Decimal(0),
+            years=[AuditForecastYearOut(
+                year=y.year, ebit=y.ebit, depreciation=y.depreciation, capex=y.capex,
+                nwc_change=y.nwc_change, fcff=y.fcff,
+                discount_factor=y.discount_factor, present_value=y.present_value)
+                for y in (valuation.years if valuation else [])],
+            pv_forecast=valuation.pv_forecast if valuation else Decimal(0),
+            terminal_value=valuation.terminal_value if valuation else None,
+            pv_terminal=valuation.pv_terminal if valuation else None,
+            enterprise_value=valuation.enterprise_value if valuation else None,
+            terminal_share=valuation.terminal_share if valuation else None,
+            bridge=[AuditBridgeItemOut(label=b.label, amount=b.amount, kind=b.kind,
+                                       note=b.note)
+                    for b in (valuation.bridge if valuation else [])],
+            equity_value=valuation.equity_value if valuation else None,
+            implied_multiple=valuation.implied_multiple if valuation else None,
+            asking_price=valuation.asking_price if valuation else None,
+            discount=valuation.discount if valuation else None,
+            sensitivity=[list(r) for r in (valuation.sensitivity if valuation else [])],
+            sensitivity_wacc=list(valuation.sensitivity_wacc) if valuation else [],
+            sensitivity_growth=list(valuation.sensitivity_growth) if valuation else [],
+            equity_min=valuation.equity_min if valuation else None,
+            equity_max=valuation.equity_max if valuation else None,
+            warnings=list(valuation.warnings) if valuation else [],
+            not_computed=list(valuation.not_computed) if valuation else [],
         ),
         procedures=AuditProceduresOut(
             items=[AuditProcedureOut(

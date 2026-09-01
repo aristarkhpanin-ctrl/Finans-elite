@@ -57,7 +57,16 @@ const analysis = (over: Partial<AuditAnalysis> = {}): AuditAnalysis => ({
                 done: 0, skipped: 0, pending: 0, coverage: null, limits: [] },
   summary: { state: "ready", verdict: "ok", headline: "", detail: "", coverage: null,
              open_procedures: 0, metrics: [], risk_flags: 0, warning_flags: 0,
-             priced_total: "0", unpriced: 0, input_errors: 0, not_computed: [] },
+             priced_total: "0", unpriced: 0, input_errors: 0,
+             equity_value: null, asking_price: null, discount: null,
+             not_computed: [] },
+  valuation: { enabled: false, blockers: [], base_code: "EBIT", base_ebit: "0",
+               wacc: "0", terminal_growth: "0", years: [], pv_forecast: "0",
+               terminal_value: null, pv_terminal: null, enterprise_value: null,
+               terminal_share: null, bridge: [], equity_value: null,
+               implied_multiple: null, asking_price: null, discount: null,
+               sensitivity: [], sensitivity_wacc: [], sensitivity_growth: [],
+               equity_min: null, equity_max: null, warnings: [], not_computed: [] },
   ...over,
 });
 

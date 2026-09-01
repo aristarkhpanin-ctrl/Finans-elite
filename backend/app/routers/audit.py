@@ -18,6 +18,7 @@ from audit_core import (
     analyze,
     build_obligations,
     build_summary,
+    build_valuation,
     check_input,
     consolidate_subjects,
     detect_flags,
@@ -174,12 +175,14 @@ def analyze_subject(subject_id: str,
     flags = detect_flags(model, result, obligations)
     earnings = normalize_earnings(model, result)
     procedures = run_procedures(model, result, flags, issues, obligations, earnings)
+    valuation = build_valuation(model, result, earnings, obligations)
     summary = build_summary(model, result, flags, issues, obligations, earnings,
-                            procedures)
+                            procedures, valuation)
     # Границы проверки идут в заключение: умолчание о непроверенном читается как
     # проверенное, и скрыть его нельзя (SPEC, Приложение М.4).
     return audit_analysis_response(result, build_opinion(result, procedures), issues,
-                                   flags, earnings, obligations, procedures, summary)
+                                   flags, earnings, obligations, procedures, summary,
+                                   valuation)
 
 
 def _consolidate(members: list[tuple[str, AuditSubjectModel]], name: str,

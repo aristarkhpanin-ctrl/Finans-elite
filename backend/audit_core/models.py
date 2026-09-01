@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -168,6 +168,35 @@ class CustomProcedure(BaseModel):
     note: str = Field(default="", max_length=500)
 
 
+class ValuationAssumptions(BaseModel):
+    """Допущения оценки (SPEC, Приложение П): всё вводится, ничего не выводится.
+
+    Дисконтированный поток строится по будущему, а в деле есть только прошлое.
+    Экстраполировать выручку «как росла, так и будет» значило бы выдать регрессию за
+    прогноз, поэтому рост, капвложения и изменение оборотного капитала задаёт человек.
+
+    Связь с проверкой одна и главная: база прогноза — **нормализованный** EBIT
+    последнего периода (Прил. К), ради чего нормализация и делалась.
+
+    ``asking_price`` — цена продавца. ``None`` значит «не введена», и тогда дисконта
+    **не существует**: величина без второго операнда — не ноль процентов.
+    """
+
+    enabled: bool = False
+    horizon_years: int = Field(default=5, ge=1, le=15)
+    wacc: Decimal = Decimal("0.20")
+    terminal_growth: Decimal = Decimal("0.03")
+    tax_rate: Decimal = Decimal("0.20")
+    #: Рост показателя по годам прогноза; ряд короче горизонта — последнее значение
+    #: продлевается (обнулить хвост значило бы подставить своё допущение).
+    growth: list[Decimal] = Field(default_factory=list, max_length=15)
+    capex: list[Decimal] = Field(default_factory=list, max_length=15)
+    nwc_change: list[Decimal] = Field(default_factory=list, max_length=15)
+    #: Доля миноритариев: в аналитической форме её нет, поэтому вводится.
+    minority_interest: Decimal = Decimal(0)
+    asking_price: Optional[Decimal] = None
+
+
 class AuditSubjectModel(BaseModel):
     """Субъект анализа с фактической отчётностью по периодам.
 
@@ -204,6 +233,9 @@ class AuditSubjectModel(BaseModel):
     # Пустые списки инертны — процедуры каталога остаются в статусе «не отмечено».
     procedure_marks: list[ProcedureMark] = Field(default_factory=list, max_length=200)
     custom_procedures: list[CustomProcedure] = Field(default_factory=list, max_length=100)
+    # Оценка стоимости (фаза 5). `enabled=False` по умолчанию — оценка не считается,
+    # пока её не включили: DCF по невведённым допущениям был бы числом из ничего.
+    valuation: ValuationAssumptions = Field(default_factory=ValuationAssumptions)
 
     @property
     def n(self) -> int:
