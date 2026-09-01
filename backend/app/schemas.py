@@ -948,6 +948,8 @@ class AuditAnalysisOut(BaseModel):
     summary: "AuditSummaryOut" = None  # type: ignore[assignment]
     # Оценка стоимости («Экран 4»); в AuditResult не входит — SPEC, Прил. П.
     valuation: "AuditValuationOut" = None  # type: ignore[assignment]
+    # Анализ рисков оценки («Экран 13»); в AuditResult не входит — SPEC, Прил. Р.
+    risk: "AuditRiskOut" = None  # type: ignore[assignment]
 
 
 class AuditAdjustmentOut(BaseModel):
@@ -1048,6 +1050,69 @@ class AuditObligationsOut(BaseModel):
     pledged_share: Optional[Decimal] = None
     covenants_breached: int = 0
     covenants_unknown: int = 0
+
+
+class AuditTornadoBarOut(BaseModel):
+    """Столбец торнадо: цена при смещении одного допущения вниз и вверх.
+
+    ``span=None`` — одной из сторон не существует (смещение уводит туда, где оценка
+    не считается); это факт, а не «цена не изменилась».
+    """
+
+    param: str
+    label: str
+    step: Decimal
+    low_price: Optional[Decimal] = None
+    high_price: Optional[Decimal] = None
+    low_delta: Optional[Decimal] = None
+    high_delta: Optional[Decimal] = None
+    span: Optional[Decimal] = None
+    note: str = ""
+
+
+class AuditHistogramBinOut(BaseModel):
+    """Столбец гистограммы цены; ``from_`` сериализуется как ``from`` — как в первом
+    продукте: ключ `from` в JSON, а имя поля не может быть ключевым словом Python."""
+
+    from_: Decimal = Field(serialization_alias="from")
+    to: Decimal
+    count: int
+
+
+class AuditMonteCarloOut(BaseModel):
+    """Распределение цены по прогонам. ``unvalued`` — прогоны, в которых оценки нет.
+
+    Их не заменяют нулём и не выбрасывают молча: ноль занизил бы медиану, а тихое
+    выбрасывание скрыло бы, что в части сценариев бизнес не оценивается вовсе.
+    """
+
+    iterations: int = 0
+    valued: int = 0
+    unvalued: int = 0
+    median: Optional[Decimal] = None
+    mean: Optional[Decimal] = None
+    p10: Optional[Decimal] = None
+    p25: Optional[Decimal] = None
+    p75: Optional[Decimal] = None
+    p90: Optional[Decimal] = None
+    minimum: Optional[Decimal] = None
+    maximum: Optional[Decimal] = None
+    histogram: list[AuditHistogramBinOut] = []
+    below_asking: Optional[Decimal] = None      # None — цены продавца нет (Р.4)
+    median_drift: Optional[Decimal] = None
+
+
+class AuditRiskOut(BaseModel):
+    """Анализ рисков оценки (SPEC, Прил. Р): торнадо, Монте-Карло и оговорки."""
+
+    available: bool = False
+    blockers: list[str] = []
+    base_price: Optional[Decimal] = None
+    step: Decimal = Decimal("0.10")
+    tornado: list[AuditTornadoBarOut] = []
+    monte_carlo: Optional[AuditMonteCarloOut] = None
+    warnings: list[str] = []
+    not_computed: list[str] = []
 
 
 class AuditForecastYearOut(BaseModel):
@@ -1277,7 +1342,7 @@ class AuditGroupOut(AuditGroupSummary):
 def audit_analysis_response(result, opinion: str = "", issues=(),
                             flags=None, earnings=None, obligations=None,
                             procedures=None, summary=None,
-                            valuation=None) -> "AuditAnalysisOut":
+                            valuation=None, risk=None) -> "AuditAnalysisOut":
     """Собрать ответ анализа из ``audit_core.AuditResult`` (+ заключение, ввод, флаги)."""
     return AuditAnalysisOut(
         opinion=opinion,
@@ -1333,6 +1398,31 @@ def audit_analysis_response(result, opinion: str = "", issues=(),
             equity_max=valuation.equity_max if valuation else None,
             warnings=list(valuation.warnings) if valuation else [],
             not_computed=list(valuation.not_computed) if valuation else [],
+        ),
+        risk=AuditRiskOut(
+            available=risk.available if risk else False,
+            blockers=list(risk.blockers) if risk else [],
+            base_price=risk.base_price if risk else None,
+            step=risk.step if risk else Decimal("0.10"),
+            tornado=[AuditTornadoBarOut(
+                param=b.param, label=b.label, step=b.step, low_price=b.low_price,
+                high_price=b.high_price, low_delta=b.low_delta,
+                high_delta=b.high_delta, span=b.span, note=b.note)
+                for b in (risk.tornado if risk else [])],
+            monte_carlo=(AuditMonteCarloOut(
+                iterations=risk.monte_carlo.iterations,
+                valued=risk.monte_carlo.valued, unvalued=risk.monte_carlo.unvalued,
+                median=risk.monte_carlo.median, mean=risk.monte_carlo.mean,
+                p10=risk.monte_carlo.p10, p25=risk.monte_carlo.p25,
+                p75=risk.monte_carlo.p75, p90=risk.monte_carlo.p90,
+                minimum=risk.monte_carlo.minimum, maximum=risk.monte_carlo.maximum,
+                histogram=[AuditHistogramBinOut(from_=h.from_, to=h.to, count=h.count)
+                           for h in risk.monte_carlo.histogram],
+                below_asking=risk.monte_carlo.below_asking,
+                median_drift=risk.monte_carlo.median_drift)
+                if risk and risk.monte_carlo else None),
+            warnings=list(risk.warnings) if risk else [],
+            not_computed=list(risk.not_computed) if risk else [],
         ),
         procedures=AuditProceduresOut(
             items=[AuditProcedureOut(

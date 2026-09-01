@@ -197,6 +197,57 @@ class ValuationAssumptions(BaseModel):
     asking_price: Optional[Decimal] = None
 
 
+#: Допущения оценки, доступные анализу рисков (SPEC, Прил. Р.1). Смещение всегда
+#: мультипликативное — одно правило на все параметры делает столбцы торнадо
+#: сопоставимыми.
+RISK_PARAMS: dict[str, str] = {
+    "wacc": "Ставка дисконтирования",
+    "terminal_growth": "Рост в постпрогнозе",
+    "tax_rate": "Ставка налога",
+    "growth": "Рост показателя",
+    "capex": "Капвложения",
+    "nwc_change": "Δ оборотного капитала",
+}
+
+
+class RiskDistribution(BaseModel):
+    """Распределение **коэффициента** допущения (не самого значения).
+
+    То же соглашение, что в анализе рисков первого продукта: выборка даёт множитель
+    к базовому значению, поэтому одно распределение годится и для ставки, и для суммы.
+    """
+
+    kind: Literal["uniform", "normal", "triangular"] = "uniform"
+    low: Optional[Decimal] = None
+    high: Optional[Decimal] = None
+    mean: Optional[Decimal] = None
+    std: Optional[Decimal] = None
+    mode: Optional[Decimal] = None
+
+
+class UncertainAssumption(BaseModel):
+    """Допущение, объявленное неопределённым, и распределение его коэффициента."""
+
+    param: Literal["wacc", "terminal_growth", "tax_rate",
+                   "growth", "capex", "nwc_change"] = "wacc"
+    distribution: RiskDistribution = Field(default_factory=RiskDistribution)
+
+
+class RiskAnalysis(BaseModel):
+    """Настройки анализа рисков оценки (SPEC, Приложение Р).
+
+    ``seed`` фиксирован: без него медиана менялась бы при каждом обновлении страницы,
+    и назвать её за столом переговоров было бы нельзя.
+    """
+
+    #: Шаг торнадо: относительное смещение каждого допущения (Р.1).
+    tornado_step: Decimal = Decimal("0.10")
+    #: Монте-Карло считается только при непустом ``uncertain``.
+    iterations: int = Field(default=2000, ge=100, le=20000)
+    seed: int = 42
+    uncertain: list[UncertainAssumption] = Field(default_factory=list, max_length=6)
+
+
 class AuditSubjectModel(BaseModel):
     """Субъект анализа с фактической отчётностью по периодам.
 
@@ -236,6 +287,9 @@ class AuditSubjectModel(BaseModel):
     # Оценка стоимости (фаза 5). `enabled=False` по умолчанию — оценка не считается,
     # пока её не включили: DCF по невведённым допущениям был бы числом из ничего.
     valuation: ValuationAssumptions = Field(default_factory=ValuationAssumptions)
+    # Анализ рисков оценки (фаза 5). Торнадо считается всегда при посчитанной оценке;
+    # Монте-Карло — только когда объявлены неопределённые допущения.
+    risk: RiskAnalysis = Field(default_factory=RiskAnalysis)
 
     @property
     def n(self) -> int:

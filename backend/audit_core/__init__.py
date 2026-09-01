@@ -15,6 +15,7 @@ from .models import AuditPeriod, AuditSubjectModel, Obligation
 from .obligations import ObligationRegister, build_obligations
 from .procedures import Procedure, ProcedureReport, run_procedures
 from .result import AuditLine, AuditResult, ShareLine, TrendLine
+from .risk import RiskResult, analyze_risk
 from .summary import CaseSummary, build_summary
 from .valuation import Valuation, build_valuation
 
@@ -34,10 +35,12 @@ __all__ = [
     "CaseSummary",
     "Procedure",
     "ProcedureReport",
+    "RiskResult",
     "ShareLine",
     "TrendLine",
     "Valuation",
     "analyze",
+    "analyze_risk",
     "build_obligations",
     "build_summary",
     "build_valuation",

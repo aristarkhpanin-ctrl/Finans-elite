@@ -457,6 +457,9 @@
             "title": "Revalued",
             "type": "boolean"
           },
+          "risk": {
+            "$ref": "#/components/schemas/AuditRiskOut"
+          },
           "summary": {
             "$ref": "#/components/schemas/AuditSummaryOut"
           },
@@ -1234,6 +1237,32 @@
         "title": "AuditHeadMetricOut",
         "type": "object"
       },
+      "AuditHistogramBinOut": {
+        "description": "Столбец гистограммы цены; ``from_`` сериализуется как ``from`` — как в первом\nпродукте: ключ `from` в JSON, а имя поля не может быть ключевым словом Python.",
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "from": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "From",
+            "type": "string"
+          },
+          "to": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "To",
+            "type": "string"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "count"
+        ],
+        "title": "AuditHistogramBinOut",
+        "type": "object"
+      },
       "AuditInputIssueOut": {
         "description": "Находка проверки ввода: что не так с данными и в каких периодах.",
         "properties": {
@@ -1406,6 +1435,156 @@
           "amount"
         ],
         "title": "AuditMaturityBucketOut",
+        "type": "object"
+      },
+      "AuditMonteCarloOut": {
+        "description": "Распределение цены по прогонам. ``unvalued`` — прогоны, в которых оценки нет.\n\nИх не заменяют нулём и не выбрасывают молча: ноль занизил бы медиану, а тихое\nвыбрасывание скрыло бы, что в части сценариев бизнес не оценивается вовсе.",
+        "properties": {
+          "below_asking": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Below Asking"
+          },
+          "histogram": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AuditHistogramBinOut"
+            },
+            "title": "Histogram",
+            "type": "array"
+          },
+          "iterations": {
+            "default": 0,
+            "title": "Iterations",
+            "type": "integer"
+          },
+          "maximum": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maximum"
+          },
+          "mean": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean"
+          },
+          "median": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median"
+          },
+          "median_drift": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Drift"
+          },
+          "minimum": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum"
+          },
+          "p10": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P10"
+          },
+          "p25": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P25"
+          },
+          "p75": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P75"
+          },
+          "p90": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P90"
+          },
+          "unvalued": {
+            "default": 0,
+            "title": "Unvalued",
+            "type": "integer"
+          },
+          "valued": {
+            "default": 0,
+            "title": "Valued",
+            "type": "integer"
+          }
+        },
+        "title": "AuditMonteCarloOut",
         "type": "object"
       },
       "AuditObligationRowOut": {
@@ -1738,6 +1917,78 @@
         "title": "AuditProceduresOut",
         "type": "object"
       },
+      "AuditRiskOut": {
+        "description": "Анализ рисков оценки (SPEC, Прил. Р): торнадо, Монте-Карло и оговорки.",
+        "properties": {
+          "available": {
+            "default": false,
+            "title": "Available",
+            "type": "boolean"
+          },
+          "base_price": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Price"
+          },
+          "blockers": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Blockers",
+            "type": "array"
+          },
+          "monte_carlo": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AuditMonteCarloOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "not_computed": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Not Computed",
+            "type": "array"
+          },
+          "step": {
+            "default": "0.10",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Step",
+            "type": "string"
+          },
+          "tornado": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AuditTornadoBarOut"
+            },
+            "title": "Tornado",
+            "type": "array"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "title": "AuditRiskOut",
+        "type": "object"
+      },
       "AuditScoreOut": {
         "description": "Скоринговая модель банкротства: балл и зона по периодам (None — нет данных).",
         "properties": {
@@ -1960,6 +2211,9 @@
             "title": "Revaluations",
             "type": "array"
           },
+          "risk": {
+            "$ref": "#/components/schemas/RiskAnalysis-Input"
+          },
           "thresholds": {
             "items": {
               "$ref": "#/components/schemas/RatioThreshold-Input"
@@ -2083,6 +2337,9 @@
             "maxItems": 50,
             "title": "Revaluations",
             "type": "array"
+          },
+          "risk": {
+            "$ref": "#/components/schemas/RiskAnalysis-Output"
           },
           "thresholds": {
             "items": {
@@ -2380,6 +2637,96 @@
           }
         },
         "title": "AuditSummaryOut",
+        "type": "object"
+      },
+      "AuditTornadoBarOut": {
+        "description": "Столбец торнадо: цена при смещении одного допущения вниз и вверх.\n\n``span=None`` — одной из сторон не существует (смещение уводит туда, где оценка\nне считается); это факт, а не «цена не изменилась».",
+        "properties": {
+          "high_delta": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "High Delta"
+          },
+          "high_price": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "High Price"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "low_delta": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low Delta"
+          },
+          "low_price": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low Price"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          },
+          "param": {
+            "title": "Param",
+            "type": "string"
+          },
+          "span": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Span"
+          },
+          "step": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Step",
+            "type": "string"
+          }
+        },
+        "required": [
+          "param",
+          "label",
+          "step"
+        ],
+        "title": "AuditTornadoBarOut",
         "type": "object"
       },
       "AuditTrendOut": {
@@ -8143,6 +8490,248 @@
         "title": "ReviewResponse",
         "type": "object"
       },
+      "RiskAnalysis-Input": {
+        "description": "Настройки анализа рисков оценки (SPEC, Приложение Р).\n\n``seed`` фиксирован: без него медиана менялась бы при каждом обновлении страницы,\nи назвать её за столом переговоров было бы нельзя.",
+        "properties": {
+          "iterations": {
+            "default": 2000,
+            "maximum": 20000.0,
+            "minimum": 100.0,
+            "title": "Iterations",
+            "type": "integer"
+          },
+          "seed": {
+            "default": 42,
+            "title": "Seed",
+            "type": "integer"
+          },
+          "tornado_step": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0.10",
+            "title": "Tornado Step"
+          },
+          "uncertain": {
+            "items": {
+              "$ref": "#/components/schemas/UncertainAssumption-Input"
+            },
+            "maxItems": 6,
+            "title": "Uncertain",
+            "type": "array"
+          }
+        },
+        "title": "RiskAnalysis",
+        "type": "object"
+      },
+      "RiskAnalysis-Output": {
+        "description": "Настройки анализа рисков оценки (SPEC, Приложение Р).\n\n``seed`` фиксирован: без него медиана менялась бы при каждом обновлении страницы,\nи назвать её за столом переговоров было бы нельзя.",
+        "properties": {
+          "iterations": {
+            "default": 2000,
+            "maximum": 20000.0,
+            "minimum": 100.0,
+            "title": "Iterations",
+            "type": "integer"
+          },
+          "seed": {
+            "default": 42,
+            "title": "Seed",
+            "type": "integer"
+          },
+          "tornado_step": {
+            "default": "0.10",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Tornado Step",
+            "type": "string"
+          },
+          "uncertain": {
+            "items": {
+              "$ref": "#/components/schemas/UncertainAssumption-Output"
+            },
+            "maxItems": 6,
+            "title": "Uncertain",
+            "type": "array"
+          }
+        },
+        "title": "RiskAnalysis",
+        "type": "object"
+      },
+      "RiskDistribution-Input": {
+        "description": "Распределение **коэффициента** допущения (не самого значения).\n\nТо же соглашение, что в анализе рисков первого продукта: выборка даёт множитель\nк базовому значению, поэтому одно распределение годится и для ставки, и для суммы.",
+        "properties": {
+          "high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "High"
+          },
+          "kind": {
+            "default": "uniform",
+            "enum": [
+              "uniform",
+              "normal",
+              "triangular"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low"
+          },
+          "mean": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mode"
+          },
+          "std": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Std"
+          }
+        },
+        "title": "RiskDistribution",
+        "type": "object"
+      },
+      "RiskDistribution-Output": {
+        "description": "Распределение **коэффициента** допущения (не самого значения).\n\nТо же соглашение, что в анализе рисков первого продукта: выборка даёт множитель\nк базовому значению, поэтому одно распределение годится и для ставки, и для суммы.",
+        "properties": {
+          "high": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "High"
+          },
+          "kind": {
+            "default": "uniform",
+            "enum": [
+              "uniform",
+              "normal",
+              "triangular"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "low": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low"
+          },
+          "mean": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mode"
+          },
+          "std": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Std"
+          }
+        },
+        "title": "RiskDistribution",
+        "type": "object"
+      },
       "SalesLine-Input": {
         "description": "Продажи одного продукта: помесячные объём и цена (без НДС).",
         "properties": {
@@ -9664,6 +10253,52 @@
           "access_token"
         ],
         "title": "TokenResponse",
+        "type": "object"
+      },
+      "UncertainAssumption-Input": {
+        "description": "Допущение, объявленное неопределённым, и распределение его коэффициента.",
+        "properties": {
+          "distribution": {
+            "$ref": "#/components/schemas/RiskDistribution-Input"
+          },
+          "param": {
+            "default": "wacc",
+            "enum": [
+              "wacc",
+              "terminal_growth",
+              "tax_rate",
+              "growth",
+              "capex",
+              "nwc_change"
+            ],
+            "title": "Param",
+            "type": "string"
+          }
+        },
+        "title": "UncertainAssumption",
+        "type": "object"
+      },
+      "UncertainAssumption-Output": {
+        "description": "Допущение, объявленное неопределённым, и распределение его коэффициента.",
+        "properties": {
+          "distribution": {
+            "$ref": "#/components/schemas/RiskDistribution-Output"
+          },
+          "param": {
+            "default": "wacc",
+            "enum": [
+              "wacc",
+              "terminal_growth",
+              "tax_rate",
+              "growth",
+              "capex",
+              "nwc_change"
+            ],
+            "title": "Param",
+            "type": "string"
+          }
+        },
+        "title": "UncertainAssumption",
         "type": "object"
       },
       "UncertainParamIn": {
