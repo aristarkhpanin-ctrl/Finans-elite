@@ -67,6 +67,8 @@ const analysis = (over: Partial<AuditAnalysis> = {}): AuditAnalysis => ({
                implied_multiple: null, asking_price: null, discount: null,
                sensitivity: [], sensitivity_wacc: [], sensitivity_growth: [],
                equity_min: null, equity_max: null, warnings: [], not_computed: [] },
+  risk: { available: false, blockers: [], base_price: null, step: "0.10",
+          tornado: [], monte_carlo: null, warnings: [], not_computed: [] },
   ...over,
 });
 

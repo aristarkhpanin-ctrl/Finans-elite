@@ -1447,6 +1447,7 @@ export interface components {
              * @default false
              */
             revalued: boolean;
+            risk?: components["schemas"]["AuditRiskOut"];
             summary?: components["schemas"]["AuditSummaryOut"];
             /**
              * User Metrics
@@ -1882,6 +1883,19 @@ export interface components {
             value?: string | null;
         };
         /**
+         * AuditHistogramBinOut
+         * @description Столбец гистограммы цены; ``from_`` сериализуется как ``from`` — как в первом
+         *     продукте: ключ `from` в JSON, а имя поля не может быть ключевым словом Python.
+         */
+        AuditHistogramBinOut: {
+            /** Count */
+            count: number;
+            /** From */
+            from: string;
+            /** To */
+            to: string;
+        };
+        /**
          * AuditInputIssueOut
          * @description Находка проверки ввода: что не так с данными и в каких периодах.
          */
@@ -1997,6 +2011,55 @@ export interface components {
             kind: string;
             /** Label */
             label: string;
+        };
+        /**
+         * AuditMonteCarloOut
+         * @description Распределение цены по прогонам. ``unvalued`` — прогоны, в которых оценки нет.
+         *
+         *     Их не заменяют нулём и не выбрасывают молча: ноль занизил бы медиану, а тихое
+         *     выбрасывание скрыло бы, что в части сценариев бизнес не оценивается вовсе.
+         */
+        AuditMonteCarloOut: {
+            /** Below Asking */
+            below_asking?: string | null;
+            /**
+             * Histogram
+             * @default []
+             */
+            histogram: components["schemas"]["AuditHistogramBinOut"][];
+            /**
+             * Iterations
+             * @default 0
+             */
+            iterations: number;
+            /** Maximum */
+            maximum?: string | null;
+            /** Mean */
+            mean?: string | null;
+            /** Median */
+            median?: string | null;
+            /** Median Drift */
+            median_drift?: string | null;
+            /** Minimum */
+            minimum?: string | null;
+            /** P10 */
+            p10?: string | null;
+            /** P25 */
+            p25?: string | null;
+            /** P75 */
+            p75?: string | null;
+            /** P90 */
+            p90?: string | null;
+            /**
+             * Unvalued
+             * @default 0
+             */
+            unvalued: number;
+            /**
+             * Valued
+             * @default 0
+             */
+            valued: number;
         };
         /**
          * AuditObligationRowOut
@@ -2224,6 +2287,45 @@ export interface components {
             total: number;
         };
         /**
+         * AuditRiskOut
+         * @description Анализ рисков оценки (SPEC, Прил. Р): торнадо, Монте-Карло и оговорки.
+         */
+        AuditRiskOut: {
+            /**
+             * Available
+             * @default false
+             */
+            available: boolean;
+            /** Base Price */
+            base_price?: string | null;
+            /**
+             * Blockers
+             * @default []
+             */
+            blockers: string[];
+            monte_carlo?: components["schemas"]["AuditMonteCarloOut"] | null;
+            /**
+             * Not Computed
+             * @default []
+             */
+            not_computed: string[];
+            /**
+             * Step
+             * @default 0.10
+             */
+            step: string;
+            /**
+             * Tornado
+             * @default []
+             */
+            tornado: components["schemas"]["AuditTornadoBarOut"][];
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /**
          * AuditScoreOut
          * @description Скоринговая модель банкротства: балл и зона по периодам (None — нет данных).
          */
@@ -2318,6 +2420,7 @@ export interface components {
             reporting_standard: "rsbu" | "ifrs" | "management";
             /** Revaluations */
             revaluations?: components["schemas"]["Revaluation-Input"][];
+            risk?: components["schemas"]["RiskAnalysis-Input"];
             /** Thresholds */
             thresholds?: components["schemas"]["RatioThreshold-Input"][];
             /** User Metrics */
@@ -2373,6 +2476,7 @@ export interface components {
             reporting_standard: "rsbu" | "ifrs" | "management";
             /** Revaluations */
             revaluations?: components["schemas"]["Revaluation-Output"][];
+            risk?: components["schemas"]["RiskAnalysis-Output"];
             /** Thresholds */
             thresholds?: components["schemas"]["RatioThreshold-Output"][];
             /** User Metrics */
@@ -2539,6 +2643,36 @@ export interface components {
              * @default 0
              */
             warning_flags: number;
+        };
+        /**
+         * AuditTornadoBarOut
+         * @description Столбец торнадо: цена при смещении одного допущения вниз и вверх.
+         *
+         *     ``span=None`` — одной из сторон не существует (смещение уводит туда, где оценка
+         *     не считается); это факт, а не «цена не изменилась».
+         */
+        AuditTornadoBarOut: {
+            /** High Delta */
+            high_delta?: string | null;
+            /** High Price */
+            high_price?: string | null;
+            /** Label */
+            label: string;
+            /** Low Delta */
+            low_delta?: string | null;
+            /** Low Price */
+            low_price?: string | null;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /** Param */
+            param: string;
+            /** Span */
+            span?: string | null;
+            /** Step */
+            step: string;
         };
         /**
          * AuditTrendOut
@@ -5621,6 +5755,108 @@ export interface components {
             opinion: string;
         };
         /**
+         * RiskAnalysis
+         * @description Настройки анализа рисков оценки (SPEC, Приложение Р).
+         *
+         *     ``seed`` фиксирован: без него медиана менялась бы при каждом обновлении страницы,
+         *     и назвать её за столом переговоров было бы нельзя.
+         */
+        "RiskAnalysis-Input": {
+            /**
+             * Iterations
+             * @default 2000
+             */
+            iterations: number;
+            /**
+             * Seed
+             * @default 42
+             */
+            seed: number;
+            /**
+             * Tornado Step
+             * @default 0.10
+             */
+            tornado_step: number | string;
+            /** Uncertain */
+            uncertain?: components["schemas"]["UncertainAssumption-Input"][];
+        };
+        /**
+         * RiskAnalysis
+         * @description Настройки анализа рисков оценки (SPEC, Приложение Р).
+         *
+         *     ``seed`` фиксирован: без него медиана менялась бы при каждом обновлении страницы,
+         *     и назвать её за столом переговоров было бы нельзя.
+         */
+        "RiskAnalysis-Output": {
+            /**
+             * Iterations
+             * @default 2000
+             */
+            iterations: number;
+            /**
+             * Seed
+             * @default 42
+             */
+            seed: number;
+            /**
+             * Tornado Step
+             * @default 0.10
+             */
+            tornado_step: string;
+            /** Uncertain */
+            uncertain?: components["schemas"]["UncertainAssumption-Output"][];
+        };
+        /**
+         * RiskDistribution
+         * @description Распределение **коэффициента** допущения (не самого значения).
+         *
+         *     То же соглашение, что в анализе рисков первого продукта: выборка даёт множитель
+         *     к базовому значению, поэтому одно распределение годится и для ставки, и для суммы.
+         */
+        "RiskDistribution-Input": {
+            /** High */
+            high?: number | string | null;
+            /**
+             * Kind
+             * @default uniform
+             * @enum {string}
+             */
+            kind: "uniform" | "normal" | "triangular";
+            /** Low */
+            low?: number | string | null;
+            /** Mean */
+            mean?: number | string | null;
+            /** Mode */
+            mode?: number | string | null;
+            /** Std */
+            std?: number | string | null;
+        };
+        /**
+         * RiskDistribution
+         * @description Распределение **коэффициента** допущения (не самого значения).
+         *
+         *     То же соглашение, что в анализе рисков первого продукта: выборка даёт множитель
+         *     к базовому значению, поэтому одно распределение годится и для ставки, и для суммы.
+         */
+        "RiskDistribution-Output": {
+            /** High */
+            high?: string | null;
+            /**
+             * Kind
+             * @default uniform
+             * @enum {string}
+             */
+            kind: "uniform" | "normal" | "triangular";
+            /** Low */
+            low?: string | null;
+            /** Mean */
+            mean?: string | null;
+            /** Mode */
+            mode?: string | null;
+            /** Std */
+            std?: string | null;
+        };
+        /**
          * SalesLine
          * @description Продажи одного продукта: помесячные объём и цена (без НДС).
          */
@@ -6347,6 +6583,32 @@ export interface components {
              * @default bearer
              */
             token_type: string;
+        };
+        /**
+         * UncertainAssumption
+         * @description Допущение, объявленное неопределённым, и распределение его коэффициента.
+         */
+        "UncertainAssumption-Input": {
+            distribution?: components["schemas"]["RiskDistribution-Input"];
+            /**
+             * Param
+             * @default wacc
+             * @enum {string}
+             */
+            param: "wacc" | "terminal_growth" | "tax_rate" | "growth" | "capex" | "nwc_change";
+        };
+        /**
+         * UncertainAssumption
+         * @description Допущение, объявленное неопределённым, и распределение его коэффициента.
+         */
+        "UncertainAssumption-Output": {
+            distribution?: components["schemas"]["RiskDistribution-Output"];
+            /**
+             * Param
+             * @default wacc
+             * @enum {string}
+             */
+            param: "wacc" | "terminal_growth" | "tax_rate" | "growth" | "capex" | "nwc_change";
         };
         /** UncertainParamIn */
         UncertainParamIn: {

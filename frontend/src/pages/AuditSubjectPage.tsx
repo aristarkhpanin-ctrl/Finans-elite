@@ -32,6 +32,7 @@ import { AuditObligations } from "../components/AuditObligations";
 import { AuditProcedures } from "../components/AuditProcedures";
 import { AuditSummary } from "../components/AuditSummary";
 import { AuditValuation } from "../components/AuditValuation";
+import { AuditRisk } from "../components/AuditRisk";
 import { AuditPrintReport } from "../components/AuditPrintReport";
 import { allBalanced, balanceGaps, serverGaps } from "../auditBalance";
 import { downloadAuditXlsx } from "../auditExport";
@@ -39,7 +40,7 @@ import { downloadAuditTemplate, parseAuditXlsx } from "../auditXlsx";
 import { fmtMoney } from "../format";
 
 type Tab = "summary" | "subject" | "input" | "reports" | "ratios" | "trends" | "diagnostics"
-  | "flags" | "earnings" | "obligations" | "procedures" | "valuation" | "methods" | "opinion";
+  | "flags" | "earnings" | "obligations" | "procedures" | "valuation" | "risk" | "methods" | "opinion";
 
 /** Подписи вкладок (в том же виде, что были — ни одна не исчезла). */
 const TAB_LABEL: Record<Tab, string> = {
@@ -55,6 +56,7 @@ const TAB_LABEL: Record<Tab, string> = {
   obligations: "Обязательства и залоги",
   procedures: "Чек-лист процедур",
   valuation: "Оценка стоимости",
+  risk: "Анализ рисков",
   methods: "Методики",
   opinion: "Заключение",
 };
@@ -80,7 +82,7 @@ const SECTIONS: [string, string, Tab[]][] = [
   ["flags", "Реестр флагов", ["flags"]],
   ["obligations", "Обязательства", ["obligations"]],
   ["procedures", "Процедуры", ["procedures"]],
-  ["valuation", "Оценка", ["valuation"]],
+  ["valuation", "Оценка", ["valuation", "risk"]],
   ["methods", "Методики", ["methods"]],
   ["opinion", "Заключение", ["opinion"]],
 ];
@@ -163,7 +165,7 @@ export function AuditSubjectPage() {
   // Анализ считается по сохранённым данным — только для аналитических вкладок.
   const isAnalysisTab = tab === "reports" || tab === "ratios" || tab === "trends"
     || tab === "diagnostics" || tab === "opinion" || tab === "methods" || tab === "flags" || tab === "earnings"
-    || tab === "obligations" || tab === "procedures" || tab === "summary" || tab === "valuation";
+    || tab === "obligations" || tab === "procedures" || tab === "summary" || tab === "valuation" || tab === "risk";
   const analysis = useQuery({
     queryKey: ["audit-analysis", id],
     queryFn: () => analyzeAuditSubject(id),
@@ -815,6 +817,12 @@ export function AuditSubjectPage() {
           result={analysis.data.valuation}
           assumptions={m.valuation}
           onChange={(next) => patch({ valuation: next })}
+        />
+      ) : tab === "risk" ? (
+        <AuditRisk
+          result={analysis.data.risk}
+          settings={m.risk}
+          onChange={(next) => patch({ risk: next })}
         />
       ) : tab === "procedures" ? (
         <AuditProcedures

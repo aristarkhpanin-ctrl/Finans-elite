@@ -54,6 +54,62 @@ export interface AuditModel {
   procedure_marks?: ProcedureMark[];
   custom_procedures?: CustomProcedure[];
   valuation?: ValuationAssumptions;
+  risk?: RiskAnalysis;
+}
+
+/** Допущения оценки, доступные анализу рисков (SPEC, Прил. Р.1). */
+export type RiskParam =
+  "wacc" | "terminal_growth" | "tax_rate" | "growth" | "capex" | "nwc_change";
+
+export const RISK_PARAMS: [RiskParam, string][] = [
+  ["wacc", "Ставка дисконтирования"],
+  ["terminal_growth", "Рост в постпрогнозе"],
+  ["tax_rate", "Ставка налога"],
+  ["growth", "Рост показателя"],
+  ["capex", "Капвложения"],
+  ["nwc_change", "Δ оборотного капитала"],
+];
+
+export const DISTRIBUTION_KINDS: [RiskDistribution["kind"], string][] = [
+  ["uniform", "Равномерное (от / до)"],
+  ["normal", "Нормальное (среднее / σ)"],
+  ["triangular", "Треугольное (от / мода / до)"],
+];
+
+/**
+ * Распределение **коэффициента** допущения, а не самого значения: выборка даёт
+ * множитель к базе, поэтому одно распределение годится и для ставки, и для суммы.
+ */
+export interface RiskDistribution {
+  kind: "uniform" | "normal" | "triangular";
+  low: string | null;
+  high: string | null;
+  mean: string | null;
+  std: string | null;
+  mode: string | null;
+}
+
+export interface UncertainAssumption {
+  param: RiskParam;
+  distribution: RiskDistribution;
+}
+
+/** Настройки анализа рисков. `seed` фиксирован — иначе медиана «плавала» бы. */
+export interface RiskAnalysis {
+  tornado_step: string;
+  iterations: number;
+  seed: number;
+  uncertain: UncertainAssumption[];
+}
+
+export function emptyRisk(): RiskAnalysis {
+  return { tornado_step: "0.10", iterations: 2000, seed: 42, uncertain: [] };
+}
+
+export function emptyUncertain(): UncertainAssumption {
+  return { param: "wacc",
+           distribution: { kind: "uniform", low: "0.9", high: "1.1",
+                           mean: null, std: null, mode: null } };
 }
 
 /**
@@ -323,6 +379,59 @@ export interface AuditAnalysis {
   procedures: AuditProcedures;
   summary: AuditSummary;
   valuation: AuditValuation;
+  risk: AuditRisk;
+}
+
+/**
+ * Столбец торнадо. `span === null` — одной из сторон не существует: смещение уводит
+ * туда, где оценка не считается, и это факт, а не «цена не изменилась».
+ */
+export interface AuditTornadoBar {
+  param: string;
+  label: string;
+  step: string;
+  low_price: string | null;
+  high_price: string | null;
+  low_delta: string | null;
+  high_delta: string | null;
+  span: string | null;
+  note: string;
+}
+
+export interface AuditHistogramBin {
+  from: string;
+  to: string;
+  count: number;
+}
+
+/** Распределение цены. `unvalued` — прогоны без оценки: не нули и не выброшенные. */
+export interface AuditMonteCarlo {
+  iterations: number;
+  valued: number;
+  unvalued: number;
+  median: string | null;
+  mean: string | null;
+  p10: string | null;
+  p25: string | null;
+  p75: string | null;
+  p90: string | null;
+  minimum: string | null;
+  maximum: string | null;
+  histogram: AuditHistogramBin[];
+  below_asking: string | null;   // null — цена продавца не введена (Р.4)
+  median_drift: string | null;
+}
+
+/** Анализ рисков оценки (SPEC, Прил. Р). */
+export interface AuditRisk {
+  available: boolean;
+  blockers: string[];
+  base_price: string | null;
+  step: string;
+  tornado: AuditTornadoBar[];
+  monte_carlo: AuditMonteCarlo | null;
+  warnings: string[];
+  not_computed: string[];
 }
 
 /** Год прогноза: показатель, поток и его приведённая стоимость. */

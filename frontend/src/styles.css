@@ -1353,6 +1353,60 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
     padding-top: 12px; }
 }
 
+/* Анализ рисков «Финанс-Аудит» (макет Экран 13) */
+/* Столбцы растут от общей оси в центре: длина слева и справа сравнима только потому,
+   что шаг у всех допущений один (SPEC, Р.1) — и шаг подписан у каждой строки. */
+.torn { display: flex; flex-direction: column; gap: 9px; }
+.torn__row {
+  display: grid; grid-template-columns: 190px 1fr 210px; gap: 10px; align-items: center;
+}
+.torn__label { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.torn__name { font: 400 12px/1.35 var(--font-ui); color: var(--text); }
+.torn__step { font: 400 9.5px var(--font-mono); color: var(--subtle); }
+.torn__track { position: relative; height: 20px; }
+.torn__axis {
+  position: absolute; top: 0; bottom: 0; left: 50%; width: 1px;
+  background: var(--border-strong);
+}
+.torn__fill { position: absolute; top: 2px; bottom: 2px; border-radius: 3px; }
+.torn__fill--neg { background: var(--danger); }
+.torn__fill--pos { background: var(--primary); }
+.torn__nums { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.torn__num { display: inline-flex; align-items: baseline; gap: 5px; }
+.torn__at { font: 400 9.5px var(--font-mono); color: var(--subtle); }
+.torn__neg { font: 500 10.5px var(--font-mono); color: var(--danger); }
+.torn__pos { font: 500 10.5px var(--font-mono); color: var(--accent); }
+.torn__note {
+  grid-column: 1 / -1; font: 400 11px/1.45 var(--font-ui);
+  color: var(--warn-text, var(--warn));
+}
+.torn__foot {
+  padding-top: 12px; margin-top: 4px; border-top: 1px solid var(--border);
+  font: 400 11.5px/1.6 var(--font-ui); color: var(--subtle);
+}
+.mc-hist {
+  display: flex; align-items: flex-end; gap: 3px; height: 130px; margin-top: 12px;
+  padding: 0 2px; border-bottom: 1px solid var(--border);
+}
+.mc-hist__col { flex: 1; height: 100%; display: flex; align-items: flex-end; }
+.mc-hist__bar { width: 100%; background: var(--primary); border-radius: 3px 3px 0 0; min-height: 1px; }
+.mc-hist__axis {
+  display: flex; justify-content: space-between; margin-top: 5px;
+  font: 400 10.5px var(--font-mono); color: var(--subtle);
+}
+.risk-editor {
+  display: grid; grid-template-columns: 1.2fr 1.2fr 1.4fr 30px; gap: 8px;
+  align-items: center; padding: 9px 0; border-top: 1px solid var(--grid-line);
+}
+.risk-editor__nums { display: flex; gap: 6px; }
+.risk-editor__nums .input { width: 100%; min-width: 0; }
+@media (max-width: 900px) {
+  .torn__row { grid-template-columns: 1fr; }
+  .torn__nums { justify-content: flex-start; gap: 16px; }
+  .risk-editor { grid-template-columns: 1fr auto; }
+  .risk-editor__nums { grid-column: 1 / -1; }
+}
+
 /* Оценка стоимости «Финанс-Аудит» (макет Экран 4) */
 /* Когда оценка не посчиталась, экран показывает **причины**, а не нули: «бизнес стоит
    0» и «оценка не посчитана» — разные утверждения. */
