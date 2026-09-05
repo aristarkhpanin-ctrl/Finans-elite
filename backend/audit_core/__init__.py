@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 from .analysis import analyze
+from .compare import Comparison, compare_subjects
 from .consolidate import Consolidation, Elimination, consolidate_subjects
 from .earnings import EarningsQuality, normalize_earnings
 from .flags import Flag, FlagRegistry, detect_flags
@@ -21,6 +22,7 @@ from .valuation import Valuation, build_valuation
 
 __all__ = [
     "AuditLine",
+    "Comparison",
     "Consolidation",
     "Elimination",
     "AuditPeriod",
@@ -48,5 +50,6 @@ __all__ = [
     "detect_flags",
     "run_procedures",
     "normalize_earnings",
+    "compare_subjects",
     "consolidate_subjects",
 ]

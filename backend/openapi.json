@@ -561,6 +561,211 @@
         "title": "AuditBridgeItemOut",
         "type": "object"
       },
+      "AuditCaseColumnOut": {
+        "description": "Столбец сравнения: дело и признаки, от которых зависит сопоставимость.",
+        "properties": {
+          "base_code": {
+            "default": "",
+            "title": "Base Code",
+            "type": "string"
+          },
+          "currency": {
+            "default": "",
+            "title": "Currency",
+            "type": "string"
+          },
+          "industry": {
+            "default": "",
+            "title": "Industry",
+            "type": "string"
+          },
+          "last_period": {
+            "default": "",
+            "title": "Last Period",
+            "type": "string"
+          },
+          "n_periods": {
+            "default": 0,
+            "title": "N Periods",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "reporting_standard": {
+            "default": "",
+            "title": "Reporting Standard",
+            "type": "string"
+          },
+          "subject_id": {
+            "title": "Subject Id",
+            "type": "string"
+          },
+          "verdict": {
+            "default": "",
+            "title": "Verdict",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject_id",
+          "name"
+        ],
+        "title": "AuditCaseColumnOut",
+        "type": "object"
+      },
+      "AuditCompareRequest": {
+        "description": "Запрос сравнения: дела организации, до четырёх (макет «Экран 20»).",
+        "properties": {
+          "subject_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Subject Ids",
+            "type": "array"
+          }
+        },
+        "title": "AuditCompareRequest",
+        "type": "object"
+      },
+      "AuditCompareResponse": {
+        "description": "Сравнение дел: столбцы, строки, счёт побед и оговорки сопоставимости.\n\nСводного балла с весами и рекомендации по сделке здесь нет намеренно (SPEC, Прил.\nС.2 и С.3) — причины перечислены в ``not_computed``.",
+        "properties": {
+          "cases": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AuditCaseColumnOut"
+            },
+            "title": "Cases",
+            "type": "array"
+          },
+          "caveats": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "comparable": {
+            "default": 0,
+            "title": "Comparable",
+            "type": "integer"
+          },
+          "excluded": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Excluded",
+            "type": "array"
+          },
+          "not_computed": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Not Computed",
+            "type": "array"
+          },
+          "rows": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AuditCompareRowOut"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "wins": {
+            "default": [],
+            "items": {
+              "type": "integer"
+            },
+            "title": "Wins",
+            "type": "array"
+          }
+        },
+        "title": "AuditCompareResponse",
+        "type": "object"
+      },
+      "AuditCompareRowOut": {
+        "description": "Строка сравнения. ``winner=None`` — либо «лучше» не определено (размер не\nкачество), либо значение есть не у всех; оба случая объяснены в ``note``.",
+        "properties": {
+          "direction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Direction"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          },
+          "texts": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Texts",
+            "type": "array"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "values": {
+            "default": [],
+            "items": {
+              "anyOf": [
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Values",
+            "type": "array"
+          },
+          "winner": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Winner"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "unit"
+        ],
+        "title": "AuditCompareRowOut",
+        "type": "object"
+      },
       "AuditConsolidateRequest": {
         "description": "Запрос консолидации: список субъектов группы + имя свода + исключения (v2).",
         "properties": {
@@ -11077,6 +11282,71 @@
         "summary": "Job Status",
         "tags": [
           "analysis"
+        ]
+      }
+    },
+    "/api/v1/audit/compare": {
+      "post": {
+        "description": "Сравнить дела организации (SPEC, Приложение С).\n\nСравнение разовое, как свод группы: хранится запрос, а не результат — числа всегда\nпо текущей отчётности дел.",
+        "operationId": "compare_api_v1_audit_compare_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuditCompareRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditCompareResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Compare",
+        "tags": [
+          "audit"
         ]
       }
     },

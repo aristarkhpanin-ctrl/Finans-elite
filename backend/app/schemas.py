@@ -1255,6 +1255,56 @@ class AuditInputIssueOut(BaseModel):
     evidence: dict[str, Decimal] = {}
 
 
+class AuditCaseColumnOut(BaseModel):
+    """Столбец сравнения: дело и признаки, от которых зависит сопоставимость."""
+
+    subject_id: str
+    name: str
+    industry: str = ""
+    currency: str = ""
+    reporting_standard: str = ""
+    last_period: str = ""
+    n_periods: int = 0
+    verdict: str = ""
+    base_code: str = ""
+
+
+class AuditCompareRowOut(BaseModel):
+    """Строка сравнения. ``winner=None`` — либо «лучше» не определено (размер не
+    качество), либо значение есть не у всех; оба случая объяснены в ``note``."""
+
+    key: str
+    label: str
+    unit: str                            # money | ratio | percent | count | text
+    direction: Optional[str] = None      # higher | lower | None
+    values: list[Optional[Decimal]] = []
+    texts: list[str] = []
+    winner: Optional[int] = None
+    note: str = ""
+
+
+class AuditCompareRequest(BaseModel):
+    """Запрос сравнения: дела организации, до четырёх (макет «Экран 20»)."""
+
+    subject_ids: list[str] = Field(default_factory=list, min_length=1, max_length=4)
+
+
+class AuditCompareResponse(BaseModel):
+    """Сравнение дел: столбцы, строки, счёт побед и оговорки сопоставимости.
+
+    Сводного балла с весами и рекомендации по сделке здесь нет намеренно (SPEC, Прил.
+    С.2 и С.3) — причины перечислены в ``not_computed``.
+    """
+
+    cases: list[AuditCaseColumnOut] = []
+    rows: list[AuditCompareRowOut] = []
+    wins: list[int] = []
+    comparable: int = 0
+    caveats: list[str] = []
+    excluded: list[str] = []
+    not_computed: list[str] = []
+
+
 class AuditEliminationIn(BaseModel):
     """Внутригрупповые величины к исключению из свода (по периодам).
 

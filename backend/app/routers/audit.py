@@ -21,6 +21,7 @@ from audit_core import (
     build_summary,
     build_valuation,
     check_input,
+    compare_subjects,
     consolidate_subjects,
     detect_flags,
     normalize_earnings,
@@ -37,6 +38,10 @@ from ..deps import current_user, require_permission
 from ..rbac import Perm
 from ..schemas import (
     AuditAnalysisOut,
+    AuditCaseColumnOut,
+    AuditCompareRequest,
+    AuditCompareResponse,
+    AuditCompareRowOut,
     AuditConsolidateRequest,
     AuditConsolidateResponse,
     AuditEliminationIn,
@@ -226,6 +231,36 @@ def _consolidate(members: list[tuple[str, AuditSubjectModel]], name: str,
         periods_used=periods_used,
         warnings=warnings,
         missing_members=missing,
+    )
+
+
+@router.post("/compare", response_model=AuditCompareResponse)
+def compare(body: AuditCompareRequest,
+            org_id: str = Depends(require_permission(Perm.PROJECT_CALCULATE)),
+            db: Session = Depends(get_db)) -> AuditCompareResponse:
+    """Сравнить дела организации (SPEC, Приложение С).
+
+    Сравнение разовое, как свод группы: хранится запрос, а не результат — числа всегда
+    по текущей отчётности дел.
+    """
+    subjects: list[tuple[str, AuditSubjectModel]] = []
+    for sid in body.subject_ids:
+        subject = _require(db, org_id, sid)
+        subjects.append((subject.id, crud.load_audit_model(subject)))
+    comparison = compare_subjects(subjects)
+    return AuditCompareResponse(
+        cases=[AuditCaseColumnOut(
+            subject_id=c.subject_id, name=c.name, industry=c.industry,
+            currency=c.currency, reporting_standard=c.reporting_standard,
+            last_period=c.last_period, n_periods=c.n_periods, verdict=c.verdict,
+            base_code=c.base_code) for c in comparison.cases],
+        rows=[AuditCompareRowOut(
+            key=r.key, label=r.label, unit=r.unit, direction=r.direction,
+            values=list(r.values), texts=list(r.texts), winner=r.winner, note=r.note)
+            for r in comparison.rows],
+        wins=list(comparison.wins), comparable=comparison.comparable,
+        caveats=list(comparison.caveats), excluded=list(comparison.excluded),
+        not_computed=list(comparison.not_computed),
     )
 
 
