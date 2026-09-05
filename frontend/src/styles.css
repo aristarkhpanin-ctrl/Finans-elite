@@ -1353,6 +1353,36 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
     padding-top: 12px; }
 }
 
+/* Сравнение дел «Финанс-Аудит» (макет Экран 20) */
+.cmp-wins {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;
+  margin-bottom: 14px;
+}
+.cmp-win {
+  padding: 14px 16px; border-radius: 14px;
+  border: 1px solid var(--border); background: var(--surface);
+}
+.cmp-win__val { font: 600 24px var(--font-mono); letter-spacing: -0.02em; color: var(--accent); }
+.cmp-win__of { font: 400 12px var(--font-ui); color: var(--subtle); }
+.cmp-win__meta { margin-top: 6px; font: 400 11px var(--font-ui); color: var(--subtle); }
+/* Победившая клетка подсвечена, но подпись победителя всё равно есть отдельным
+   столбцом: цвет один читатель заметит, другой нет. */
+.cmp-cell--win { background: var(--good-bg); font-weight: 600; }
+.cmp-verdict { font: 500 12px/1.35 var(--font-ui); color: var(--accent); min-width: 110px; }
+.cmp-picker {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px;
+}
+.cmp-pick {
+  display: flex; align-items: flex-start; gap: 9px; padding: 11px 13px;
+  border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2);
+  cursor: pointer;
+}
+.cmp-pick--on { border-color: var(--primary); background: var(--good-bg); }
+.cmp-pick:has(input:disabled) { cursor: not-allowed; opacity: 0.6; }
+.cmp-pick__body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.cmp-pick__name { font: 600 12.5px var(--font-ui); color: var(--text); }
+.cmp-pick__meta { font: 400 11px/1.4 var(--font-ui); color: var(--subtle); }
+
 /* Анализ рисков «Финанс-Аудит» (макет Экран 13) */
 /* Столбцы растут от общей оси в центре: длина слева и справа сравнима только потому,
    что шаг у всех допущений один (SPEC, Р.1) — и шаг подписан у каждой строки. */

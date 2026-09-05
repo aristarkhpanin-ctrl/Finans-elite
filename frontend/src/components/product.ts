@@ -55,7 +55,8 @@ export const PRODUCTS: Record<Product, ProductMeta> = {
     // «Заключения») появятся вместе со своими экранами: ссылка в никуда хуже, чем
     // её отсутствие — она обещает то, чего нет.
     rail: [
-      { title: "Работа", items: [["/audit", "Дела"], ["/audit/group", "Группа"]] },
+      { title: "Работа", items: [["/audit", "Дела"], ["/audit/compare", "Сравнение"],
+                                ["/audit/group", "Группа"]] },
       { title: "Организация", items: [["/organization", "Участники и тариф"]] },
     ],
   },

@@ -793,3 +793,54 @@ export async function analyzeAuditGroup(id: string): Promise<AuditConsolidation>
   const { data } = await api.post<AuditConsolidation>(`/api/v1/audit/groups/${id}/analyze`);
   return data;
 }
+
+// ── Сравнение дел («Экран 20»; методика — SPEC, Приложение С) ────────────────
+
+/** Столбец сравнения: дело и признаки, от которых зависит сопоставимость. */
+export interface AuditCaseColumn {
+  subject_id: string;
+  name: string;
+  industry: string;
+  currency: string;
+  reporting_standard: string;
+  last_period: string;
+  n_periods: number;
+  verdict: string;
+  base_code: string;
+}
+
+/**
+ * Строка сравнения. `winner === null` значит одно из двух: «лучше» у показателя не
+ * определено (размер — не качество) либо значение есть не у всех дел. Оба случая
+ * объяснены в `note`.
+ */
+export interface AuditCompareRow {
+  key: string;
+  label: string;
+  unit: "money" | "ratio" | "percent" | "count" | "text";
+  direction: "higher" | "lower" | null;
+  values: (string | null)[];
+  texts: string[];
+  winner: number | null;
+  note: string;
+}
+
+/**
+ * Сравнение дел. Сводного балла с весами и рекомендации по сделке здесь нет
+ * намеренно — причины перечислены в `not_computed`.
+ */
+export interface AuditComparison {
+  cases: AuditCaseColumn[];
+  rows: AuditCompareRow[];
+  wins: number[];
+  comparable: number;
+  caveats: string[];
+  excluded: string[];
+  not_computed: string[];
+}
+
+export async function compareAuditSubjects(ids: string[]): Promise<AuditComparison> {
+  const { data } = await api.post<AuditComparison>("/api/v1/audit/compare",
+                                                   { subject_ids: ids });
+  return data;
+}

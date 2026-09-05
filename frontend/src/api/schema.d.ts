@@ -24,6 +24,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/audit/compare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Compare
+         * @description Сравнить дела организации (SPEC, Приложение С).
+         *
+         *     Сравнение разовое, как свод группы: хранится запрос, а не результат — числа всегда
+         *     по текущей отчётности дел.
+         */
+        post: operations["compare_api_v1_audit_compare_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit/consolidate": {
         parameters: {
             query?: never;
@@ -1497,6 +1520,135 @@ export interface components {
              * @default
              */
             note: string;
+        };
+        /**
+         * AuditCaseColumnOut
+         * @description Столбец сравнения: дело и признаки, от которых зависит сопоставимость.
+         */
+        AuditCaseColumnOut: {
+            /**
+             * Base Code
+             * @default
+             */
+            base_code: string;
+            /**
+             * Currency
+             * @default
+             */
+            currency: string;
+            /**
+             * Industry
+             * @default
+             */
+            industry: string;
+            /**
+             * Last Period
+             * @default
+             */
+            last_period: string;
+            /**
+             * N Periods
+             * @default 0
+             */
+            n_periods: number;
+            /** Name */
+            name: string;
+            /**
+             * Reporting Standard
+             * @default
+             */
+            reporting_standard: string;
+            /** Subject Id */
+            subject_id: string;
+            /**
+             * Verdict
+             * @default
+             */
+            verdict: string;
+        };
+        /**
+         * AuditCompareRequest
+         * @description Запрос сравнения: дела организации, до четырёх (макет «Экран 20»).
+         */
+        AuditCompareRequest: {
+            /** Subject Ids */
+            subject_ids?: string[];
+        };
+        /**
+         * AuditCompareResponse
+         * @description Сравнение дел: столбцы, строки, счёт побед и оговорки сопоставимости.
+         *
+         *     Сводного балла с весами и рекомендации по сделке здесь нет намеренно (SPEC, Прил.
+         *     С.2 и С.3) — причины перечислены в ``not_computed``.
+         */
+        AuditCompareResponse: {
+            /**
+             * Cases
+             * @default []
+             */
+            cases: components["schemas"]["AuditCaseColumnOut"][];
+            /**
+             * Caveats
+             * @default []
+             */
+            caveats: string[];
+            /**
+             * Comparable
+             * @default 0
+             */
+            comparable: number;
+            /**
+             * Excluded
+             * @default []
+             */
+            excluded: string[];
+            /**
+             * Not Computed
+             * @default []
+             */
+            not_computed: string[];
+            /**
+             * Rows
+             * @default []
+             */
+            rows: components["schemas"]["AuditCompareRowOut"][];
+            /**
+             * Wins
+             * @default []
+             */
+            wins: number[];
+        };
+        /**
+         * AuditCompareRowOut
+         * @description Строка сравнения. ``winner=None`` — либо «лучше» не определено (размер не
+         *     качество), либо значение есть не у всех; оба случая объяснены в ``note``.
+         */
+        AuditCompareRowOut: {
+            /** Direction */
+            direction?: string | null;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Texts
+             * @default []
+             */
+            texts: string[];
+            /** Unit */
+            unit: string;
+            /**
+             * Values
+             * @default []
+             */
+            values: (string | null)[];
+            /** Winner */
+            winner?: number | null;
         };
         /**
          * AuditConsolidateRequest
@@ -6969,6 +7121,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    compare_api_v1_audit_compare_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuditCompareRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditCompareResponse"];
                 };
             };
             /** @description Validation Error */
