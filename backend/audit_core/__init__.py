@@ -14,6 +14,7 @@ from .flags import Flag, FlagRegistry, detect_flags
 from .input_check import InputIssue, check_input
 from .models import AuditPeriod, AuditSubjectModel, Obligation
 from .obligations import ObligationRegister, build_obligations
+from .planfact import PlanFact, build_plan_fact
 from .procedures import Procedure, ProcedureReport, run_procedures
 from .result import AuditLine, AuditResult, ShareLine, TrendLine
 from .risk import RiskResult, analyze_risk
@@ -35,6 +36,7 @@ __all__ = [
     "Obligation",
     "ObligationRegister",
     "CaseSummary",
+    "PlanFact",
     "Procedure",
     "ProcedureReport",
     "RiskResult",
@@ -44,6 +46,7 @@ __all__ = [
     "analyze",
     "analyze_risk",
     "build_obligations",
+    "build_plan_fact",
     "build_summary",
     "build_valuation",
     "check_input",

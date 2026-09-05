@@ -248,6 +248,23 @@ class RiskAnalysis(BaseModel):
     uncertain: list[UncertainAssumption] = Field(default_factory=list, max_length=6)
 
 
+class RealizedFlag(BaseModel):
+    """Отметка аналитика: сработал ли флаг после сделки и во что обошёлся (Прил. Т.4).
+
+    Реализовался ли риск, платформа не знает — она видит отчётность, а не причины.
+    Предсказанное влияние берётся из реестра флагов (посчитано платформой), фактическая
+    потеря **вводится**; обе половины подписаны, и «дисконт окупился» — сравнение
+    введённого с посчитанным, а не одного вычисления с другим.
+
+    ``actual_cost`` — ``None``, когда факт ещё не оценён: это не «обошёлся в ноль».
+    """
+
+    code: str = Field(default="", max_length=64)
+    realized: bool = False
+    actual_cost: Optional[Decimal] = None
+    note: str = Field(default="", max_length=500)
+
+
 class AuditSubjectModel(BaseModel):
     """Субъект анализа с фактической отчётностью по периодам.
 
@@ -290,6 +307,11 @@ class AuditSubjectModel(BaseModel):
     # Анализ рисков оценки (фаза 5). Торнадо считается всегда при посчитанной оценке;
     # Монте-Карло — только когда объявлены неопределённые допущения.
     risk: RiskAnalysis = Field(default_factory=RiskAnalysis)
+    # План-факт после сделки (фаза 6). Прогноз продавца из меморандума по тем же кодам
+    # строк и периодам, что и факт; факт — сама отчётность дела, второго источника
+    # фактических чисел план-факт не заводит.
+    seller_plan: dict[str, list[Decimal]] = Field(default_factory=dict)
+    realized_flags: list[RealizedFlag] = Field(default_factory=list, max_length=50)
 
     @property
     def n(self) -> int:

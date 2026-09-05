@@ -950,6 +950,8 @@ class AuditAnalysisOut(BaseModel):
     valuation: "AuditValuationOut" = None  # type: ignore[assignment]
     # Анализ рисков оценки («Экран 13»); в AuditResult не входит — SPEC, Прил. Р.
     risk: "AuditRiskOut" = None  # type: ignore[assignment]
+    # План-факт после сделки («Экран 17»); в AuditResult не входит — SPEC, Прил. Т.
+    plan_fact: "AuditPlanFactOut" = None  # type: ignore[assignment]
 
 
 class AuditAdjustmentOut(BaseModel):
@@ -1050,6 +1052,49 @@ class AuditObligationsOut(BaseModel):
     pledged_share: Optional[Decimal] = None
     covenants_breached: int = 0
     covenants_unknown: int = 0
+
+
+class AuditPlanFactRowOut(BaseModel):
+    """Строка план-факта. ``verdict`` учитывает направление: себестоимость ниже плана —
+    успех, а не недобор."""
+
+    code: str
+    label: str
+    direction: str                       # higher | lower
+    plan: Decimal = Decimal(0)
+    fact: Decimal = Decimal(0)
+    delta: Decimal = Decimal(0)
+    delta_share: Optional[Decimal] = None
+    verdict: str = "on_plan"             # better | worse | on_plan
+    note: str = ""
+
+
+class AuditRealizedFlagOut(BaseModel):
+    """Сопоставление флага: предсказанное посчитано платформой, фактическое введено."""
+
+    code: str
+    title: str
+    severity: str = ""
+    predicted: Optional[Decimal] = None  # None — денежной меры у флага нет
+    realized: bool = False
+    actual_cost: Optional[Decimal] = None  # None — факт ещё не оценён, а не «ноль»
+    note: str = ""
+
+
+class AuditPlanFactOut(BaseModel):
+    """План-факт после сделки (SPEC, Прил. Т). ``available=False`` — плана нет,
+    сравнивать не с чем; это не «всё сошлось»."""
+
+    available: bool = False
+    periods: list[str] = []
+    rows: list[AuditPlanFactRowOut] = []
+    flags: list[AuditRealizedFlagOut] = []
+    predicted_total: Decimal = Decimal(0)
+    realized_total: Decimal = Decimal(0)
+    unpriced_realized: int = 0
+    orphan_marks: list[str] = []
+    caveats: list[str] = []
+    not_computed: list[str] = []
 
 
 class AuditTornadoBarOut(BaseModel):
@@ -1392,7 +1437,8 @@ class AuditGroupOut(AuditGroupSummary):
 def audit_analysis_response(result, opinion: str = "", issues=(),
                             flags=None, earnings=None, obligations=None,
                             procedures=None, summary=None,
-                            valuation=None, risk=None) -> "AuditAnalysisOut":
+                            valuation=None, risk=None,
+                            plan_fact=None) -> "AuditAnalysisOut":
     """Собрать ответ анализа из ``audit_core.AuditResult`` (+ заключение, ввод, флаги)."""
     return AuditAnalysisOut(
         opinion=opinion,
@@ -1473,6 +1519,25 @@ def audit_analysis_response(result, opinion: str = "", issues=(),
                 if risk and risk.monte_carlo else None),
             warnings=list(risk.warnings) if risk else [],
             not_computed=list(risk.not_computed) if risk else [],
+        ),
+        plan_fact=AuditPlanFactOut(
+            available=plan_fact.available if plan_fact else False,
+            periods=list(plan_fact.periods) if plan_fact else [],
+            rows=[AuditPlanFactRowOut(
+                code=r.code, label=r.label, direction=r.direction, plan=r.plan,
+                fact=r.fact, delta=r.delta, delta_share=r.delta_share,
+                verdict=r.verdict, note=r.note)
+                for r in (plan_fact.rows if plan_fact else [])],
+            flags=[AuditRealizedFlagOut(
+                code=f.code, title=f.title, severity=f.severity, predicted=f.predicted,
+                realized=f.realized, actual_cost=f.actual_cost, note=f.note)
+                for f in (plan_fact.flags if plan_fact else [])],
+            predicted_total=plan_fact.predicted_total if plan_fact else Decimal(0),
+            realized_total=plan_fact.realized_total if plan_fact else Decimal(0),
+            unpriced_realized=plan_fact.unpriced_realized if plan_fact else 0,
+            orphan_marks=list(plan_fact.orphan_marks) if plan_fact else [],
+            caveats=list(plan_fact.caveats) if plan_fact else [],
+            not_computed=list(plan_fact.not_computed) if plan_fact else [],
         ),
         procedures=AuditProceduresOut(
             items=[AuditProcedureOut(

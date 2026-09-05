@@ -427,6 +427,9 @@
             "title": "Periods",
             "type": "array"
           },
+          "plan_fact": {
+            "$ref": "#/components/schemas/AuditPlanFactOut"
+          },
           "procedures": {
             "$ref": "#/components/schemas/AuditProceduresOut"
           },
@@ -1995,6 +1998,147 @@
         "title": "AuditPeriod",
         "type": "object"
       },
+      "AuditPlanFactOut": {
+        "description": "План-факт после сделки (SPEC, Прил. Т). ``available=False`` — плана нет,\nсравнивать не с чем; это не «всё сошлось».",
+        "properties": {
+          "available": {
+            "default": false,
+            "title": "Available",
+            "type": "boolean"
+          },
+          "caveats": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "flags": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AuditRealizedFlagOut"
+            },
+            "title": "Flags",
+            "type": "array"
+          },
+          "not_computed": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Not Computed",
+            "type": "array"
+          },
+          "orphan_marks": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Orphan Marks",
+            "type": "array"
+          },
+          "periods": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Periods",
+            "type": "array"
+          },
+          "predicted_total": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Predicted Total",
+            "type": "string"
+          },
+          "realized_total": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Realized Total",
+            "type": "string"
+          },
+          "rows": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AuditPlanFactRowOut"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "unpriced_realized": {
+            "default": 0,
+            "title": "Unpriced Realized",
+            "type": "integer"
+          }
+        },
+        "title": "AuditPlanFactOut",
+        "type": "object"
+      },
+      "AuditPlanFactRowOut": {
+        "description": "Строка план-факта. ``verdict`` учитывает направление: себестоимость ниже плана —\nуспех, а не недобор.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "delta": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Delta",
+            "type": "string"
+          },
+          "delta_share": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delta Share"
+          },
+          "direction": {
+            "title": "Direction",
+            "type": "string"
+          },
+          "fact": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Fact",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          },
+          "plan": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Plan",
+            "type": "string"
+          },
+          "verdict": {
+            "default": "on_plan",
+            "title": "Verdict",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "label",
+          "direction"
+        ],
+        "title": "AuditPlanFactRowOut",
+        "type": "object"
+      },
       "AuditProcedureOut": {
         "description": "Процедура чек-листа: что проверяется, кем и с каким итогом.",
         "properties": {
@@ -2120,6 +2264,64 @@
           }
         },
         "title": "AuditProceduresOut",
+        "type": "object"
+      },
+      "AuditRealizedFlagOut": {
+        "description": "Сопоставление флага: предсказанное посчитано платформой, фактическое введено.",
+        "properties": {
+          "actual_cost": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Cost"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          },
+          "predicted": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Predicted"
+          },
+          "realized": {
+            "default": false,
+            "title": "Realized",
+            "type": "boolean"
+          },
+          "severity": {
+            "default": "",
+            "title": "Severity",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "title"
+        ],
+        "title": "AuditRealizedFlagOut",
         "type": "object"
       },
       "AuditRiskOut": {
@@ -2398,6 +2600,14 @@
             "title": "Procedure Marks",
             "type": "array"
           },
+          "realized_flags": {
+            "items": {
+              "$ref": "#/components/schemas/RealizedFlag-Input"
+            },
+            "maxItems": 50,
+            "title": "Realized Flags",
+            "type": "array"
+          },
           "reporting_standard": {
             "default": "rsbu",
             "enum": [
@@ -2418,6 +2628,24 @@
           },
           "risk": {
             "$ref": "#/components/schemas/RiskAnalysis-Input"
+          },
+          "seller_plan": {
+            "additionalProperties": {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                    "type": "string"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            "title": "Seller Plan",
+            "type": "object"
           },
           "thresholds": {
             "items": {
@@ -2525,6 +2753,14 @@
             "title": "Procedure Marks",
             "type": "array"
           },
+          "realized_flags": {
+            "items": {
+              "$ref": "#/components/schemas/RealizedFlag-Output"
+            },
+            "maxItems": 50,
+            "title": "Realized Flags",
+            "type": "array"
+          },
           "reporting_standard": {
             "default": "rsbu",
             "enum": [
@@ -2545,6 +2781,17 @@
           },
           "risk": {
             "$ref": "#/components/schemas/RiskAnalysis-Output"
+          },
+          "seller_plan": {
+            "additionalProperties": {
+              "items": {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Seller Plan",
+            "type": "object"
           },
           "thresholds": {
             "items": {
@@ -8487,6 +8734,81 @@
           "investment"
         ],
         "title": "RatiosOut",
+        "type": "object"
+      },
+      "RealizedFlag-Input": {
+        "description": "Отметка аналитика: сработал ли флаг после сделки и во что обошёлся (Прил. Т.4).\n\nРеализовался ли риск, платформа не знает — она видит отчётность, а не причины.\nПредсказанное влияние берётся из реестра флагов (посчитано платформой), фактическая\nпотеря **вводится**; обе половины подписаны, и «дисконт окупился» — сравнение\nвведённого с посчитанным, а не одного вычисления с другим.\n\n``actual_cost`` — ``None``, когда факт ещё не оценён: это не «обошёлся в ноль».",
+        "properties": {
+          "actual_cost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Cost"
+          },
+          "code": {
+            "default": "",
+            "maxLength": 64,
+            "title": "Code",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Note",
+            "type": "string"
+          },
+          "realized": {
+            "default": false,
+            "title": "Realized",
+            "type": "boolean"
+          }
+        },
+        "title": "RealizedFlag",
+        "type": "object"
+      },
+      "RealizedFlag-Output": {
+        "description": "Отметка аналитика: сработал ли флаг после сделки и во что обошёлся (Прил. Т.4).\n\nРеализовался ли риск, платформа не знает — она видит отчётность, а не причины.\nПредсказанное влияние берётся из реестра флагов (посчитано платформой), фактическая\nпотеря **вводится**; обе половины подписаны, и «дисконт окупился» — сравнение\nвведённого с посчитанным, а не одного вычисления с другим.\n\n``actual_cost`` — ``None``, когда факт ещё не оценён: это не «обошёлся в ноль».",
+        "properties": {
+          "actual_cost": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Cost"
+          },
+          "code": {
+            "default": "",
+            "maxLength": 64,
+            "title": "Code",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Note",
+            "type": "string"
+          },
+          "realized": {
+            "default": false,
+            "title": "Realized",
+            "type": "boolean"
+          }
+        },
+        "title": "RealizedFlag",
         "type": "object"
       },
       "RegisterRequest": {
