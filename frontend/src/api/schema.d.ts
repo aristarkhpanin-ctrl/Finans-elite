@@ -1455,6 +1455,7 @@ export interface components {
              * @default []
              */
             periods: string[];
+            plan_fact?: components["schemas"]["AuditPlanFactOut"];
             procedures?: components["schemas"]["AuditProceduresOut"];
             /**
              * Ratios
@@ -2350,6 +2351,103 @@ export interface components {
             label: string;
         };
         /**
+         * AuditPlanFactOut
+         * @description План-факт после сделки (SPEC, Прил. Т). ``available=False`` — плана нет,
+         *     сравнивать не с чем; это не «всё сошлось».
+         */
+        AuditPlanFactOut: {
+            /**
+             * Available
+             * @default false
+             */
+            available: boolean;
+            /**
+             * Caveats
+             * @default []
+             */
+            caveats: string[];
+            /**
+             * Flags
+             * @default []
+             */
+            flags: components["schemas"]["AuditRealizedFlagOut"][];
+            /**
+             * Not Computed
+             * @default []
+             */
+            not_computed: string[];
+            /**
+             * Orphan Marks
+             * @default []
+             */
+            orphan_marks: string[];
+            /**
+             * Periods
+             * @default []
+             */
+            periods: string[];
+            /**
+             * Predicted Total
+             * @default 0
+             */
+            predicted_total: string;
+            /**
+             * Realized Total
+             * @default 0
+             */
+            realized_total: string;
+            /**
+             * Rows
+             * @default []
+             */
+            rows: components["schemas"]["AuditPlanFactRowOut"][];
+            /**
+             * Unpriced Realized
+             * @default 0
+             */
+            unpriced_realized: number;
+        };
+        /**
+         * AuditPlanFactRowOut
+         * @description Строка план-факта. ``verdict`` учитывает направление: себестоимость ниже плана —
+         *     успех, а не недобор.
+         */
+        AuditPlanFactRowOut: {
+            /** Code */
+            code: string;
+            /**
+             * Delta
+             * @default 0
+             */
+            delta: string;
+            /** Delta Share */
+            delta_share?: string | null;
+            /** Direction */
+            direction: string;
+            /**
+             * Fact
+             * @default 0
+             */
+            fact: string;
+            /** Label */
+            label: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Plan
+             * @default 0
+             */
+            plan: string;
+            /**
+             * Verdict
+             * @default on_plan
+             */
+            verdict: string;
+        };
+        /**
          * AuditProcedureOut
          * @description Процедура чек-листа: что проверяется, кем и с каким итогом.
          */
@@ -2437,6 +2535,35 @@ export interface components {
              * @default 0
              */
             total: number;
+        };
+        /**
+         * AuditRealizedFlagOut
+         * @description Сопоставление флага: предсказанное посчитано платформой, фактическое введено.
+         */
+        AuditRealizedFlagOut: {
+            /** Actual Cost */
+            actual_cost?: string | null;
+            /** Code */
+            code: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /** Predicted */
+            predicted?: string | null;
+            /**
+             * Realized
+             * @default false
+             */
+            realized: boolean;
+            /**
+             * Severity
+             * @default
+             */
+            severity: string;
+            /** Title */
+            title: string;
         };
         /**
          * AuditRiskOut
@@ -2564,6 +2691,8 @@ export interface components {
             periods?: components["schemas"]["AuditPeriod"][];
             /** Procedure Marks */
             procedure_marks?: components["schemas"]["ProcedureMark"][];
+            /** Realized Flags */
+            realized_flags?: components["schemas"]["RealizedFlag-Input"][];
             /**
              * Reporting Standard
              * @default rsbu
@@ -2573,6 +2702,10 @@ export interface components {
             /** Revaluations */
             revaluations?: components["schemas"]["Revaluation-Input"][];
             risk?: components["schemas"]["RiskAnalysis-Input"];
+            /** Seller Plan */
+            seller_plan?: {
+                [key: string]: (number | string)[];
+            };
             /** Thresholds */
             thresholds?: components["schemas"]["RatioThreshold-Input"][];
             /** User Metrics */
@@ -2620,6 +2753,8 @@ export interface components {
             periods?: components["schemas"]["AuditPeriod"][];
             /** Procedure Marks */
             procedure_marks?: components["schemas"]["ProcedureMark"][];
+            /** Realized Flags */
+            realized_flags?: components["schemas"]["RealizedFlag-Output"][];
             /**
              * Reporting Standard
              * @default rsbu
@@ -2629,6 +2764,10 @@ export interface components {
             /** Revaluations */
             revaluations?: components["schemas"]["Revaluation-Output"][];
             risk?: components["schemas"]["RiskAnalysis-Output"];
+            /** Seller Plan */
+            seller_plan?: {
+                [key: string]: string[];
+            };
             /** Thresholds */
             thresholds?: components["schemas"]["RatioThreshold-Output"][];
             /** User Metrics */
@@ -5769,6 +5908,66 @@ export interface components {
             profitability: {
                 [key: string]: (string | null)[];
             };
+        };
+        /**
+         * RealizedFlag
+         * @description Отметка аналитика: сработал ли флаг после сделки и во что обошёлся (Прил. Т.4).
+         *
+         *     Реализовался ли риск, платформа не знает — она видит отчётность, а не причины.
+         *     Предсказанное влияние берётся из реестра флагов (посчитано платформой), фактическая
+         *     потеря **вводится**; обе половины подписаны, и «дисконт окупился» — сравнение
+         *     введённого с посчитанным, а не одного вычисления с другим.
+         *
+         *     ``actual_cost`` — ``None``, когда факт ещё не оценён: это не «обошёлся в ноль».
+         */
+        "RealizedFlag-Input": {
+            /** Actual Cost */
+            actual_cost?: number | string | null;
+            /**
+             * Code
+             * @default
+             */
+            code: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Realized
+             * @default false
+             */
+            realized: boolean;
+        };
+        /**
+         * RealizedFlag
+         * @description Отметка аналитика: сработал ли флаг после сделки и во что обошёлся (Прил. Т.4).
+         *
+         *     Реализовался ли риск, платформа не знает — она видит отчётность, а не причины.
+         *     Предсказанное влияние берётся из реестра флагов (посчитано платформой), фактическая
+         *     потеря **вводится**; обе половины подписаны, и «дисконт окупился» — сравнение
+         *     введённого с посчитанным, а не одного вычисления с другим.
+         *
+         *     ``actual_cost`` — ``None``, когда факт ещё не оценён: это не «обошёлся в ноль».
+         */
+        "RealizedFlag-Output": {
+            /** Actual Cost */
+            actual_cost?: string | null;
+            /**
+             * Code
+             * @default
+             */
+            code: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Realized
+             * @default false
+             */
+            realized: boolean;
         };
         /** RegisterRequest */
         RegisterRequest: {

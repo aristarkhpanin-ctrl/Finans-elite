@@ -55,6 +55,19 @@ export interface AuditModel {
   custom_procedures?: CustomProcedure[];
   valuation?: ValuationAssumptions;
   risk?: RiskAnalysis;
+  seller_plan?: Record<string, string[]>;
+  realized_flags?: RealizedFlag[];
+}
+
+/**
+ * Отметка аналитика: сработал ли флаг после сделки и во что обошёлся (SPEC, Прил. Т.4).
+ * `actual_cost === null` — факт ещё не оценён, а не «обошёлся в ноль».
+ */
+export interface RealizedFlag {
+  code: string;
+  realized: boolean;
+  actual_cost: string | null;
+  note: string;
 }
 
 /** Допущения оценки, доступные анализу рисков (SPEC, Прил. Р.1). */
@@ -380,6 +393,48 @@ export interface AuditAnalysis {
   summary: AuditSummary;
   valuation: AuditValuation;
   risk: AuditRisk;
+  plan_fact: AuditPlanFact;
+}
+
+/**
+ * Строка план-факта. `verdict` учитывает направление: себестоимость ниже плана —
+ * успех, а не недобор.
+ */
+export interface AuditPlanFactRow {
+  code: string;
+  label: string;
+  direction: "higher" | "lower";
+  plan: string;
+  fact: string;
+  delta: string;
+  delta_share: string | null;
+  verdict: "better" | "worse" | "on_plan";
+  note: string;
+}
+
+/** Сопоставление флага: предсказанное посчитано платформой, фактическое введено. */
+export interface AuditRealizedFlag {
+  code: string;
+  title: string;
+  severity: string;
+  predicted: string | null;      // null — денежной меры у флага нет
+  realized: boolean;
+  actual_cost: string | null;    // null — факт ещё не оценён, а не «ноль»
+  note: string;
+}
+
+/** План-факт после сделки. `available === false` — плана нет; это не «всё сошлось». */
+export interface AuditPlanFact {
+  available: boolean;
+  periods: string[];
+  rows: AuditPlanFactRow[];
+  flags: AuditRealizedFlag[];
+  predicted_total: string;
+  realized_total: string;
+  unpriced_realized: number;
+  orphan_marks: string[];
+  caveats: string[];
+  not_computed: string[];
 }
 
 /**
