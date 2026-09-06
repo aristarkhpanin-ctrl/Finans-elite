@@ -3,11 +3,18 @@ import type { AuditAnalysis } from "./api/audit";
 import {
   buildAuditWorkbook,
   diagnosticsSheet,
+  earningsSheet,
+  flagsSheet,
   formSheet,
   metricsSheet,
+  obligationsSheet,
+  planFactSheet,
   ratiosSheet,
+  riskSheet,
   structureSheet,
   trendsSheet,
+  valuationSheet,
+  verdictSheet,
 } from "./auditExport";
 
 /** Ответ `/analyze` в объёме, достаточном для сборки листов. */
@@ -170,10 +177,144 @@ describe("metricsSheet", () => {
   });
 });
 
+describe("Ядро due diligence в выгрузке", () => {
+  /** Дело с находками, поправками прибыли, реестром и посчитанной оценкой. */
+  const rich = () => analysis({
+    flags: { flags: [
+      { code: "receivables", severity: "risk", title: "Дебиторка растёт быстрее выручки",
+        detail: "рост дебиторки опережает выручку", periods: [1], impact: "209",
+        evidence: {} },
+      { code: "negative_equity", severity: "risk", title: "Отрицательный капитал",
+        detail: "", periods: [1], impact: null, evidence: {} },
+    ], priced_total: "209", unpriced: 1 },
+    summary: { state: "ready", verdict: "risk", headline: "Высокий риск",
+               detail: "Находки уровня риска.", coverage: "0.64", open_procedures: 6,
+               metrics: [], risk_flags: 2, warning_flags: 0, priced_total: "209",
+               unpriced: 1, input_errors: 0, equity_value: null, asking_price: null,
+               discount: null, not_computed: ["Доходность вложения — нужна цена сделки."] },
+    procedures: { items: [], total: 28, closed: 18, passed: 12, findings: 6, no_data: 4,
+                  done: 0, skipped: 0, pending: 6, coverage: "0.64", limits: [] },
+    earnings: { base_code: "EBIT", reported: ["200", "220"], normalized: ["200", "196"],
+                adjustments: [{ label: "Разовый доход", kind: "one_off",
+                                kind_label: "Разовый доход или расход",
+                                amounts: ["0", "-24"], total: "-24" }],
+                grade: "B", grade_note: "", deviation: "-0.11" },
+    obligations: { rows: [{ creditor: "Банк", contract: "К-1", kind: "loan",
+                            kind_label: "Кредит", off_balance: false, amount: "520",
+                            rate: "0.14", maturity: "2029", on_demand: false,
+                            collateral: "", pledged_amount: "0", covenant: "",
+                            covenant_status: "unknown", covenant_note: "" }],
+                   balance_debt: "520", off_balance: "300", reported_debt: "500",
+                   discrepancy: "20", reconciled: false, buckets: [],
+                   pledged_total: "0", free_assets: null, pledged_share: null,
+                   covenants_breached: 0, covenants_unknown: 1 },
+    valuation: { ...analysis().valuation, enabled: true, enterprise_value: "1240",
+                 wacc: "0.185", terminal_growth: "0.03", equity_min: "700",
+                 equity_max: "1010", implied_multiple: "6.3", equity_value: "850",
+                 bridge: [{ label: "Стоимость бизнеса (EV)", amount: "1240",
+                            kind: "total", note: "" },
+                          { label: "Долг по реестру", amount: "-520", kind: "subtract",
+                            note: "" }] },
+  });
+
+  it("вердикт несёт охват проверки и список «что не посчитано»", () => {
+    const rows = vals(verdictSheet(rich()));
+    expect(rows[0]).toEqual(["Вердикт", "Высокий риск"]);
+    expect(rows.find((r) => r[0] === "Охват проверки")).toEqual(["Охват проверки", "18 из 28"]);
+    expect(rows.some((r) => String(r[0]).includes("не скидка к цене"))).toBe(true);
+    expect(rows.some((r) => String(r[0]).includes("Доходность вложения"))).toBe(true);
+  });
+
+  it("флаг без денежной меры — пустая ячейка и слова, а не ноль", () => {
+    // Ноль в колонке «оценка влияния» ушёл бы в чужую модель как посчитанная сумма.
+    const rows = vals(flagsSheet(rich()));
+    const noPrice = rows.find((r) => r[0] === "Отрицательный капитал")!;
+    expect(noPrice[3]).toBeNull();
+    expect(noPrice[4]).toBe("денежной меры нет");
+    expect(rows.find((r) => r[0] === "Итого оценено")).toEqual(
+      ["Итого оценено", null, null, 209, "без меры ещё 1"]);
+  });
+
+  it("периоды флага названы подписями, а не индексами", () => {
+    expect(vals(flagsSheet(rich()))[1][2]).toBe("2024");
+  });
+
+  it("качество прибыли: отчётный ряд, поправки, нормализованный ряд", () => {
+    const rows = vals(earningsSheet(rich()));
+    expect(rows[0]).toEqual(["Показатель", "2023", "2024"]);
+    expect(rows[1]).toEqual(["EBIT по отчёту", 200, 220]);
+    expect(rows[2]).toEqual(["Разовый доход (Разовый доход или расход)", 0, -24]);
+    expect(rows[3]).toEqual(["EBIT нормализованный", 200, 196]);
+  });
+
+  it("забалансовые обязательства названы отдельной строкой и не в сумме долга", () => {
+    const rows = vals(obligationsSheet(rich()));
+    expect(rows.find((r) => r[0] === "Долг по реестру (в балансе)")).toEqual(
+      ["Долг по реестру (в балансе)", 520]);
+    expect(rows.find((r) => String(r[0]).startsWith("Забалансовые"))).toEqual(
+      ["Забалансовые (в сумму долга не входят)", 300]);
+  });
+
+  it("оценка выгружает мост и условия расчёта", () => {
+    const rows = vals(valuationSheet(rich()));
+    expect(rows[1]).toEqual(["Стоимость бизнеса (EV)", 1240]);
+    expect(rows.find((r) => r[0] === "Ставка дисконтирования")).toEqual(
+      ["Ставка дисконтирования", 0.185]);
+    expect(rows.find((r) => r[0] === "Диапазон по чувствительности, до")).toEqual(
+      ["Диапазон по чувствительности, до", 1010]);
+  });
+
+  it("непосчитанная оценка выгружает препятствия, а не нулевую цену", () => {
+    const rows = vals(valuationSheet(analysis()));
+    expect(rows[0][0]).toBe("Оценка не посчитана");
+    expect(rows.every((r) => r.every((c) => typeof c !== "number"))).toBe(true);
+  });
+
+  it("Монте-Карло выгружается с условием, при котором его читают", () => {
+    const rows = vals(riskSheet(analysis({
+      risk: { available: true, blockers: [], base_price: "850", step: "0.10",
+              tornado: [{ param: "growth", label: "Темп роста", step: "0.10",
+                          low_price: "700", high_price: "1010", low_delta: "-150",
+                          high_delta: "160", span: "310", note: "" }],
+              monte_carlo: { iterations: 2000, valued: 1980, unvalued: 20,
+                             median: "845", mean: "850", p10: "700", p25: "780",
+                             p75: "910", p90: "1010", minimum: "600", maximum: "1200",
+                             histogram: [], below_asking: null, median_drift: "0.01" },
+              warnings: [], not_computed: [] },
+    })));
+    expect(rows.find((r) => r[0] === "Темп роста")).toEqual(["Темп роста", 700, 1010, 310]);
+    expect(rows.find((r) => r[0] === "Оценки не вышло")).toEqual(["Оценки не вышло", 20]);
+    expect(rows.some((r) => String(r[0]).includes("настолько хороши, насколько верны")))
+      .toBe(true);
+  });
+
+  it("план-факт выгружается только при введённом плане и подписывает источники", () => {
+    expect(planFactSheet(analysis())).toEqual([]);
+    const rows = vals(planFactSheet(analysis({
+      plan_fact: { available: true, periods: ["2023", "2024"],
+                   rows: [{ code: "I_REVENUE", label: "Выручка", direction: "higher",
+                            plan: "4000", fact: "3700", delta: "-300",
+                            delta_share: "-0.075", verdict: "on_plan", note: "" }],
+                   flags: [{ code: "receivables", title: "Дебиторка", severity: "risk",
+                             predicted: "209", realized: true, actual_cost: "150",
+                             note: "" }],
+                   predicted_total: "209", realized_total: "150", unpriced_realized: 0,
+                   orphan_marks: [], caveats: [], not_computed: [] },
+    })));
+    expect(rows[1]).toEqual(["Выручка", 4000, 3700, -300, -0.075, "в пределах порога"]);
+    expect(rows.some((r) => String(r[0]).includes("посчитано платформой"))).toBe(true);
+    expect(rows.some((r) => String(r[0]).includes("введены аналитиком"))).toBe(true);
+  });
+});
+
 describe("buildAuditWorkbook", () => {
-  it("листы в порядке вкладок анализа", () => {
+  it("листы в порядке чтения: сначала вывод и находки, потом числа", () => {
+    // Тот же порядок, что в документе (SPEC, Прил. У.2). Пустые разделы пропущены:
+    // в этом эталоне нет ни флагов, ни поправок прибыли, ни плана продавца.
     expect(buildAuditWorkbook(analysis()).map((s) => s.sheet)).toEqual([
-      "Аналитическая форма", "Тренды", "Структура", "Коэффициенты", "Диагностика", "Заключение",
+      "Вердикт", "Обязательства", "Оценка",
+      "Аналитическая форма", "Тренды", "Структура", "Коэффициенты", "Диагностика",
+      "Заключение",
     ]);
   });
 
