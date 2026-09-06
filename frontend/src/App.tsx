@@ -8,6 +8,7 @@ import { ToastProvider } from "./components/Toast";
 import { AuditGroupPage } from "./pages/AuditGroupPage";
 import { AuditComparePage } from "./pages/AuditComparePage";
 import { AuditHomePage } from "./pages/AuditHomePage";
+import { AuditOnboardingPage } from "./pages/AuditOnboardingPage";
 import { AuditSubjectPage } from "./pages/AuditSubjectPage";
 import { HoldingDetailPage } from "./pages/HoldingDetailPage";
 import { HoldingsPage } from "./pages/HoldingsPage";
@@ -56,6 +57,7 @@ function AppRoutes() {
       >
         <Route path="/projects" element={<ProjectsPage />} />
         <Route path="/audit" element={<AuditHomePage />} />
+        <Route path="/audit/onboarding" element={<AuditOnboardingPage />} />
         <Route path="/audit/group" element={<AuditGroupPage />} />
         <Route path="/audit/compare" element={<AuditComparePage />} />
         <Route path="/audit/:id" element={<AuditSubjectPage />} />

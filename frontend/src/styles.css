@@ -3632,3 +3632,134 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   background: var(--text); color: var(--surface); white-space: nowrap;
   font: 600 11px var(--font-ui); pointer-events: none; z-index: 3;
 }
+
+/* ── Финанс-Аудит: онбординг (макет Экран 12) ────────────────────────────────
+   Рейл со шагами слева, шаг справа. Ниже 900px рейл встаёт над содержимым:
+   на телефоне колонка в 340px оставила бы форме половину экрана. */
+.onb {
+  display: flex; align-items: stretch; min-height: 520px;
+  border: 1px solid var(--border); border-radius: 18px; overflow: hidden;
+  background: var(--surface);
+}
+.onb__rail {
+  flex: none; width: 340px; display: flex; flex-direction: column;
+  justify-content: space-between; gap: 22px; padding: 28px 26px;
+  border-right: 1px solid var(--border);
+  background: linear-gradient(160deg, var(--primary-soft) 0%, var(--surface) 66%);
+}
+[data-theme="dark"] .onb__rail {
+  background: radial-gradient(ellipse 80% 70% at 30% 26%,
+              rgba(199, 125, 255, 0.15) 0%, rgba(123, 63, 228, 0.04) 48%, transparent 78%);
+}
+.onb__brand { display: flex; align-items: center; gap: 10px; }
+.onb__cube { width: 28px; height: 28px; flex: none; border-radius: 7px; overflow: hidden; }
+.onb__brandword {
+  font: 600 10.5px var(--font-ui); letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--text);
+}
+.onb__eyebrow {
+  font: 500 9.5px var(--font-ui); letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 12px;
+}
+.onb__railtitle {
+  font: 500 22px/1.18 var(--font-display); letter-spacing: -0.024em; color: var(--text);
+  max-width: 20ch;
+}
+.onb__steps { list-style: none; margin: 22px 0 0; padding: 0; }
+.onb__step {
+  display: flex; align-items: flex-start; gap: 11px; padding: 10px;
+  border-radius: 10px;
+}
+.onb__step--on { background: var(--surface); box-shadow: var(--shadow); }
+.onb__mark {
+  flex: none; width: 22px; height: 22px; border-radius: 50%; text-align: center;
+  font: 600 10.5px/22px var(--font-mono);
+  border: 1.5px solid var(--border-strong); color: var(--subtle);
+}
+.onb__step--on .onb__mark, .onb__step--done .onb__mark {
+  background: var(--primary); color: var(--primary-text); border-color: transparent;
+}
+.onb__stepbody { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.onb__steplabel { font: 500 12.5px var(--font-ui); color: var(--muted); }
+.onb__step--on .onb__steplabel, .onb__step--done .onb__steplabel { color: var(--text); }
+.onb__stepnote { font: 400 10.5px/1.45 var(--font-mono); color: var(--subtle); }
+.onb__progress {
+  height: 5px; border-radius: 3px; background: var(--surface-2); overflow: hidden;
+}
+.onb__progressfill { height: 100%; background: var(--primary); transition: width 0.25s ease; }
+.onb__progressnote {
+  margin-top: 10px; font: 400 10.5px var(--font-mono); color: var(--subtle);
+}
+
+.onb__content { flex: 1; min-width: 0; display: flex; justify-content: center; padding: 36px; }
+.onb__pane { width: 100%; max-width: 560px; }
+.onb__pane--done { text-align: center; display: flex; flex-direction: column; align-items: center; }
+.onb__title {
+  font: 500 28px/1.14 var(--font-display); letter-spacing: -0.026em; color: var(--text);
+  margin: 0 0 10px;
+}
+.onb__lead {
+  font: 400 13px/1.66 var(--font-ui); color: var(--muted); max-width: 56ch;
+  margin: 0 0 18px;
+}
+.onb__row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
+.onb__row > * { flex: 1; min-width: 170px; }
+.onb__periods { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 10px; }
+.onb__period { width: 110px; text-align: center; font-family: var(--font-mono); }
+/* Примечание о том, чего мастер не делает: тон нейтральный — это условие работы,
+   а не ошибка ввода. */
+.onb__note {
+  border: 1px solid var(--border); border-radius: 10px; padding: 11px 13px;
+  background: var(--surface-2); color: var(--muted);
+  font: 400 12px/1.55 var(--font-ui); margin: 12px 0;
+}
+.onb__foot { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 18px; }
+
+.onb__invited { margin-top: 16px; }
+.onb__invitedhead {
+  font: 500 9.5px var(--font-ui); letter-spacing: 0.13em; text-transform: uppercase;
+  color: var(--subtle); margin-bottom: 8px;
+}
+.onb__invite {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  padding: 10px 0; border-bottom: 1px solid var(--grid-line); flex-wrap: wrap;
+}
+.onb__invitemail { font: 500 12.5px var(--font-ui); color: var(--text); }
+.onb__invitenote { font: 400 11px var(--font-mono); color: var(--subtle); }
+.onb__link {
+  flex: 1; min-width: 240px; height: auto; padding: 8px 10px;
+  font: 400 11px/1.45 var(--font-mono);
+}
+
+.onb__donecube { width: 120px; height: 120px; }
+.onb__check {
+  width: 44px; height: 44px; margin-top: -16px; margin-bottom: 8px; border-radius: 50%;
+  background: var(--primary); color: var(--primary-text);
+  font: 600 21px/44px var(--font-ui);
+}
+.onb__next {
+  width: 100%; text-align: left; margin-top: 8px; padding: 16px;
+  border: 1px solid var(--border); border-radius: 14px; background: var(--surface-2);
+}
+.onb__nexthead {
+  font: 500 9.5px var(--font-ui); letter-spacing: 0.13em; text-transform: uppercase;
+  color: var(--subtle); margin-bottom: 10px;
+}
+.onb__nextrow {
+  font: 400 12px/1.55 var(--font-ui); color: var(--muted); padding-left: 14px;
+  position: relative; margin-top: 8px;
+}
+.onb__nextrow::before {
+  content: ""; position: absolute; left: 0; top: 7px; width: 5px; height: 5px;
+  border-radius: 50%; background: var(--primary);
+}
+
+@media (max-width: 900px) {
+  .onb { flex-direction: column; }
+  .onb__rail {
+    width: 100%; border-right: 0; border-bottom: 1px solid var(--border);
+    padding: 22px 18px;
+  }
+  .onb__content { padding: 24px 18px 30px; }
+  .onb__title { font-size: 23px; }
+}

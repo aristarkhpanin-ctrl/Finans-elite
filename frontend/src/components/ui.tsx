@@ -173,14 +173,19 @@ export function SelectField({
   hint?: string;
   disabled?: boolean;
 }) {
+  // Та же связка, что у Field: без htmlFor подпись ни с чем не связана, и скринридер
+  // читает селект безымянным — а подсказка, оставленная внутри <label>, попадала бы
+  // в имя поля вместо описания.
+  const id = useId();
+  const hintId = `${id}-hint`;
   return (
     <div className="field">
-      <label>
-        {label}
-        {hint && <Hint text={hint} />}
-      </label>
+      <label htmlFor={id}>{label}</label>
+      {hint && <Hint text={hint} id={hintId} />}
       <select
         className="select"
+        id={id}
+        aria-describedby={hint ? hintId : undefined}
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}

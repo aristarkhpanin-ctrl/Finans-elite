@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import { Field } from "./ui";
+import { Field, SelectField } from "./ui";
 
 /**
  * Доступность поля ввода. Оба инварианта — из разряда тех, что не видно глазом и
@@ -42,5 +42,26 @@ describe("Поле ввода", () => {
     const b = screen.getByLabelText("Второе").getAttribute("id");
     expect(a).toBeTruthy();
     expect(a).not.toBe(b);
+  });
+});
+
+describe("Поле выбора", () => {
+  const opts: [string, string][] = [["year", "Год"], ["quarter", "Квартал"]];
+
+  it("подпись связана с селектом", () => {
+    // Подпись рядом с селектом видно глазом, но не скринридеру: без htmlFor он
+    // читает «список, Год» — что выбирается, не сказано.
+    render(<SelectField label="Периодичность" value="year" options={opts} onChange={() => {}} />);
+    expect(screen.getByLabelText("Периодичность").tagName).toBe("SELECT");
+  });
+
+  it("подсказка — описание, а не часть имени", () => {
+    render(<SelectField label="Основа" value="year" options={opts} hint="Признак, не пересчёт."
+                        onChange={() => {}} />);
+    const select = screen.getByLabelText("Основа");
+    const describedBy = select.getAttribute("aria-describedby");
+    expect(describedBy, "подсказка не связана с полем").toBeTruthy();
+    expect(document.getElementById(describedBy!)?.getAttribute("aria-label"))
+      .toBe("Признак, не пересчёт.");
   });
 });

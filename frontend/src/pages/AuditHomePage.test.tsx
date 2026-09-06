@@ -55,7 +55,10 @@ async function show(rows: AuditSubjectSummary[]) {
 describe("Список дел", () => {
   it("пустой список зовёт завести первое дело", async () => {
     await show([]);
-    expect(screen.getByText(/Создать первое дело/)).toBeTruthy();
+    // Первое дело — через мастер (он спросит ещё и периоды); быстрая модалка
+    // остаётся рядом и в шапке.
+    expect(screen.getByRole("button", { name: /Настроить пространство/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Создать дело$/ })).toBeTruthy();
     // фильтров при пустом списке нет — фильтровать нечего
     expect(screen.queryByLabelText("Фильтр дел")).toBeNull();
   });
