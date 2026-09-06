@@ -42,12 +42,22 @@ def _metrics_paragraph(result: CalcResult) -> str:
 
 
 def _findings_block(review: ReviewResult, severity: str, title: str, limit: int = 5) -> str:
-    rows = [f for f in review.findings if f.severity == severity][:limit]
-    if not rows:
+    """Блок находок одной серьёзности; длинный список **называет свою неполноту**.
+
+    Заключение уходит в банк и инвестору отдельным файлом, без интерфейса рядом. Пять
+    строк под заголовком «Существенные риски» читаются как весь список — поэтому,
+    когда находок больше, об этом сказано прямо. Порядок внутри серьёзности — по коду
+    правила (`runner.sort`), а не по значимости, и «топ-5» называть его нельзя.
+    """
+    found = [f for f in review.findings if f.severity == severity]
+    if not found:
         return ""
     lines = [title]
-    for f in rows:
+    for f in found[:limit]:
         lines.append(f"— {f.title}. {f.recommendation}")
+    if len(found) > limit:
+        lines.append(f"Показаны {limit} находок из {len(found)}; полный список — "
+                     "в разделе «Ревью плана».")
     return "\n".join(lines)
 
 
@@ -74,9 +84,14 @@ def build_opinion(review: ReviewResult, result: CalcResult) -> str:
                    "места до привлечения финансирования.")
     else:
         verdict = "Итог: план согласован и готов к представлению инвестору/банку."
-    if counts.get("info", 0) and review.light in ("ok", "info"):
-        verdict += f" Заметок для перепроверки: {counts['info']}."
     blocks.append(verdict)
+    # Счётчики идут отдельной строкой и всегда: перечисленные выше находки могли быть
+    # усечены, и только здесь читатель видит, сколько их всего. Раньше называлось лишь
+    # число заметок, и то в единственной ветке «светофора».
+    named = [f"рисков — {counts.get('risk', 0)}",
+             f"предупреждений — {counts.get('warning', 0)}",
+             f"заметок — {counts.get('info', 0)}"]
+    blocks.append("Всего находок ревью: " + ", ".join(named) + ".")
     return "\n\n".join(blocks)
 
 

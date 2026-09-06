@@ -94,9 +94,35 @@ def test_opinion_findings_limited_to_five():
     findings = [_finding("risk", f"Риск {i}") for i in range(8)]
     opinion = build_opinion(_review("risk", findings), _result())
     assert "— Риск 4." in opinion and "— Риск 5." not in opinion
+    # Усечение названо: пять строк под «Существенные риски» без оговорки читаются
+    # как весь список (заключение уходит отдельным файлом, без интерфейса рядом).
+    assert "Показаны 5 находок из 8" in opinion
 
 
-def test_opinion_info_note_counter():
-    review = _review("info", [_finding("info")])
-    opinion = build_opinion(review, _result())
-    assert "Заметок для перепроверки: 1." in opinion
+def test_opinion_short_list_gets_no_truncation_note():
+    """Оговорка появляется от усечения, а не всегда."""
+    opinion = build_opinion(_review("risk", [_finding("risk", "Риск 0")]), _result())
+    assert "Показаны" not in opinion
+
+
+def test_opinion_truncation_says_where_the_rest_is():
+    """Читателю документа некуда посмотреть остальные находки, если не сказать куда."""
+    findings = [_finding("risk", f"Риск {i}") for i in range(8)]
+    assert "Ревью плана" in build_opinion(_review("risk", findings), _result())
+
+
+def test_opinion_counts_are_named_for_every_severity():
+    """Пришло на смену одинокому «Заметок для перепроверки: N».
+
+    Прежняя строка выводилась только в ветке «ok/info» и называла лишь заметки —
+    число рисков и предупреждений читатель документа не видел вовсе, хотя список
+    выше мог быть усечён.
+    """
+    for review in (_review("risk", [_finding("risk"), _finding("warning")]),
+                   _review("warning", [_finding("warning")]),
+                   _review("info", [_finding("info")]),
+                   _review("ok")):
+        opinion = build_opinion(review, _result())
+        c = review.counts
+        assert (f"Всего находок ревью: рисков — {c['risk']}, "
+                f"предупреждений — {c['warning']}, заметок — {c['info']}.") in opinion
