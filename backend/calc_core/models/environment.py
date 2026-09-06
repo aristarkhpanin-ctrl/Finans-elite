@@ -1,11 +1,12 @@
-"""Окружение проекта: валюта, инфляция, налоги (см. SPEC §3, §11).
+"""Окружение проекта: валюта, инфляция, налоги (см. SPEC §3, §11, §22.9).
 
-В v0 расчётного ядра используются ставки налогов из настроек проекта; полноценный
-многоналоговый движок и индексация по группам инфляции — следующие фазы.
+Ключевые ставки (прибыль/имущество/НДС/с продаж/взносы) — в ProjectSettings;
+``Environment.taxes`` — произвольные настраиваемые налоги поверх них (SPEC §22.9).
 """
 from __future__ import annotations
 
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -25,11 +26,22 @@ class InflationGroup(BaseModel):
 
 
 class Tax(BaseModel):
-    """Настраиваемый налог. В v0 ключевые ставки берутся из ProjectSettings."""
+    """Настраиваемый налог (SPEC §22.9): ставка × база, периодичность уплаты, отнесение.
+
+    База считается по показателям **до настраиваемых налогов** (предварительный прогон):
+    пресеты — выручка (I1), загруженный ФОТ (I6+I13+I14+I15), имущество (B13+B14),
+    прибыль (МАКС(I26, 0)) — либо произвольная формула языка формул (base='formula').
+    """
 
     name: str
     rate: Decimal = Decimal(0)
-    base: str = ""  # 'sales' | 'profit' | 'property' | 'payroll' | ...
+    base: Literal["revenue", "payroll", "property", "profit", "formula"] = "revenue"
+    formula: str = ""            # база-формула при base='formula'
+    # Уплата: месяц — в месяце начисления; квартал/год — в последнем месяце периода
+    # проекта; неуплаченный остаток — в B21 (отсроченные налоговые платежи).
+    periodicity: Literal["month", "quarter", "year"] = "month"
+    # Отнесение: вычитаемые (→ I21) либо за счёт прибыли (→ I24, базу прибыли не уменьшают).
+    allocation: Literal["expense", "profit"] = "expense"
 
 
 class Environment(BaseModel):

@@ -14,6 +14,7 @@ from calc_core import run
 from calc_core.models import (
     Asset,
     AutoFinancing,
+    BomLine,
     Company,
     Deposit,
     DirectCostLine,
@@ -24,7 +25,10 @@ from calc_core.models import (
     InvestmentPlan,
     Lease,
     Loan,
+    Material,
     OperatingPlan,
+    OtherFlow,
+    PaymentPart,
     PaymentTerms,
     Product,
     ProductionLine,
@@ -32,6 +36,7 @@ from calc_core.models import (
     ProjectModel,
     ProjectSettings,
     SalesLine,
+    StaffPosition,
     StartingBalance,
 )
 from calc_core.models.common import (
@@ -65,6 +70,11 @@ def _random_project(rng: random.Random) -> ProjectModel:
         return [Decimal(rng.randint(lo, hi)) for _ in range(n)]
 
     def terms() -> PaymentTerms:
+        if rng.random() < 0.3:   # сложная схема: график долей со сдвигами
+            parts = [PaymentPart(offset_months=rng.randint(-2, 3),
+                                 share=Decimal(rng.randint(0, 50)) / Decimal(100))
+                     for _ in range(rng.randint(1, 2))]
+            return PaymentTerms(schedule=parts)
         return PaymentTerms(
             prepayment_share=Decimal(rng.randint(0, 100)) / Decimal(100),
             advance_lead_months=rng.randint(0, 3),
@@ -132,7 +142,10 @@ def _random_project(rng: random.Random) -> ProjectModel:
     leases = [
         Lease(name=f"ls{i}", monthly_payment=Decimal(rng.randint(0, 20000)),
               start_month=rng.randint(0, n - 1), term_months=rng.randint(1, 24),
-              finance=rng.random() < 0.5, annual_rate=Decimal(rng.randint(0, 30)) / Decimal(100))
+              finance=rng.random() < 0.5, annual_rate=Decimal(rng.randint(0, 30)) / Decimal(100),
+              insurance_monthly=Decimal(rng.randint(0, 2000)),
+              buyout_price=(Decimal(rng.randint(1000, 100000)) if rng.random() < 0.4 else Decimal(0)),
+              buyout_life_months=rng.randint(1, 24))
         for i in range(rng.randint(0, 2))
     ]
     deposits = [
@@ -152,15 +165,33 @@ def _random_project(rng: random.Random) -> ProjectModel:
     fx_open = Decimal(rng.randint(40, 80))
     fx_rate = [Decimal(rng.randint(30, 100)) for _ in range(n)]
     fm = Decimal(rng.randint(0, 1000))
-    # Стартовый оборотный капитал: дебиторка/кредиторка и запасы, уравновешенные капиталом.
+    # Детальный стартовый баланс: все статьи случайны, баланс замыкается конструктивно
+    # (paid_in_capital ≥ 0 покрывает недостачу, остаток идёт в кассу cash ≥ 0). Так проверка
+    # сходимости (assets + foreign == liabilities+equity) выполняется по построению.
+    z = Decimal(0)
     rec = Decimal(rng.randint(0, 5000))
     pay = Decimal(rng.randint(0, 5000))
     raw = Decimal(rng.randint(0, 5000))
     fg = Decimal(rng.randint(0, 5000))
+    prepaid = Decimal(rng.randint(0, 5000))
+    fixed0 = Decimal(rng.randint(0, 50000))
+    st_debt = Decimal(rng.randint(0, 5000))
+    long_debt = Decimal(rng.randint(0, 50000))
+    adv = Decimal(rng.randint(0, 5000))
+    pref = Decimal(rng.randint(0, 20000))
+    reserves = Decimal(rng.randint(0, 10000))
+    additional = Decimal(rng.randint(0, 10000))
+    retained = Decimal(rng.randint(-5000, 20000))
+    non_cash_assets = fixed0 + rec + raw + fg + prepaid + fm * fx_open
+    other_liab_eq = long_debt + st_debt + pay + adv + pref + reserves + additional + retained
+    paid_in = max(z, non_cash_assets - other_liab_eq) + Decimal(rng.randint(0, 20000))
+    cash0 = (other_liab_eq + paid_in) - non_cash_assets   # ≥ 0 по построению
     company = Company(starting_balance=StartingBalance(
-        foreign_monetary=fm, paid_in_capital=fm * fx_open + raw + fg,
+        cash=cash0, fixed_assets_net=fixed0, foreign_monetary=fm,
         receivables=rec, payables=pay, raw_materials=raw, finished_goods=fg,
-        retained_earnings=rec - pay))
+        prepaid_expenses=prepaid, advances_received=adv, short_term_debt=st_debt,
+        debt=long_debt, paid_in_capital=paid_in, preferred_capital=pref, reserves=reserves,
+        additional_capital=additional, retained_earnings=retained))
     return ProjectModel(
         header=ProjectHeader(duration_months=n),
         company=company,
@@ -182,11 +213,43 @@ def _random_project(rng: random.Random) -> ProjectModel:
             production_cycle_months=rng.randint(0, 3),
         ),
         operating_plan=OperatingPlan(
-            products=[Product(id=s.product_id, name=s.product_id) for s in sales],
+            products=[
+                Product(id=s.product_id, name=s.product_id,
+                        # Рецептура (BOM): случайные нормы расхода + сдельная ЗП на единицу.
+                        bom=[BomLine(material_id=f"mat{k}",
+                                     qty_per_unit=Decimal(rng.randint(0, 5)))
+                             for k in range(rng.randint(0, 2))],
+                        piece_wage_per_unit=Decimal(rng.randint(0, 50)))
+                for s in sales
+            ],
             sales=sales,
             production=production,
             direct_costs=direct,
             fixed_costs=fixed,
+            staff=[
+                StaffPosition(name=f"st{k}", monthly_salary=Decimal(rng.randint(0, 5000)),
+                              headcount=Decimal(rng.randint(1, 9)),
+                              start_month=rng.randint(0, n - 1),
+                              end_month=(rng.randint(1, n) if rng.random() < 0.5 else None),
+                              function=rng.choice([CostFunction.STAFF_ADMIN,
+                                                   CostFunction.STAFF_PRODUCTION,
+                                                   CostFunction.STAFF_MARKETING]),
+                              payment_delay_months=rng.randint(0, 2))
+                for k in range(rng.randint(0, 2))
+            ],
+            other_income=[OtherFlow(name="oi", amount=series(0, 3000))
+                          for _ in range(rng.randint(0, 1))],
+            other_expenses=[OtherFlow(name="oe", amount=series(0, 3000),
+                                      from_profit=rng.random() < 0.3)
+                            for _ in range(rng.randint(0, 2))],
+            materials=[
+                Material(id=f"mat{k}", name=f"mat{k}",
+                         unit_price=Decimal(rng.randint(0, 100)),
+                         payment_delay_months=rng.randint(0, 3),
+                         stock_lead_months=rng.randint(0, 2),
+                         foreign=rng.random() < 0.3)
+                for k in range(2)
+            ],
         ),
         investment_plan=InvestmentPlan(assets=assets),
         financing=Financing(loans=loans, leases=leases, deposits=deposits, equity=equity,

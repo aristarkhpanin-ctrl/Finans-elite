@@ -19,9 +19,14 @@ from ..reports.statements import opening_balance
 from ..reports.valuation import compute_valuation
 from ..series import add, zeros
 from ..version import ENGINE_VERSION
+from .calendar import compute_budget
 from .errors import InvariantError
-from .financing_auto import AutoInjection, solve_credit_line
-from .pipeline import run_pipeline
+from .financing_auto import AutoInjection, solve_cash_management
+from .margins import compute_division_margins, compute_product_margins
+from .participants import compute_participants
+from .pipeline import DetailCollector, _fx_series, _preexisting_net_open, run_pipeline
+from .tables import compute_user_tables
+from .taxes import TaxInjection, compute_custom_taxes
 
 # Параметры сходимости автоподбора финансирования.
 _MAX_AUTOFIN_ITER = 100
@@ -50,18 +55,25 @@ def _run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
     options = options or CalcOptions()
     n = model.n
 
-    income, cashflow, balance, profit_use, warnings = _solve(model)
+    income, cashflow, balance, profit_use, warnings, details = _solve(model)
 
     if options.check_invariants:
         _check_invariants(income, cashflow, balance, profit_use, n)
 
     metrics = _metrics(model, cashflow)
+    metrics_foreign = _metrics_foreign(model, cashflow)
+    product_margins = compute_product_margins(model, n)   # свёртка по подразделениям — из него
     sb = model.company.starting_balance
+    # Остаточная стоимость пред-существующих ОС (purchase_month<0) входит в стартовые ОС (t=−1).
+    opening_fixed = sb.fixed_assets_net + _preexisting_net_open(model)
     opening = opening_balance(
-        sb.cash, sb.fixed_assets_net, sb.debt, sb.paid_in_capital, sb.retained_earnings,
+        sb.cash, opening_fixed, sb.debt, sb.paid_in_capital, sb.retained_earnings,
         sb.foreign_monetary * model.environment.fx_open,
         receivables=sb.receivables, payables=sb.payables,
         raw_materials=sb.raw_materials, finished_goods=sb.finished_goods,
+        short_term_debt=sb.short_term_debt, preferred_capital=sb.preferred_capital,
+        reserves=sb.reserves, additional_capital=sb.additional_capital,
+        prepaid_expenses=sb.prepaid_expenses, advances_received=sb.advances_received,
     )
     ratios = compute_ratios(
         income, cashflow, balance, profit_use,
@@ -90,9 +102,16 @@ def _run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
         balance=balance,
         profit_use=profit_use,
         metrics=metrics,
+        metrics_foreign=metrics_foreign,
         ratios=ratios,
         break_even=break_even,
         valuation=valuation,
+        budget=compute_budget(model, n),
+        product_margins=product_margins,
+        division_margins=compute_division_margins(model, product_margins),
+        user_tables=compute_user_tables(model, income, cashflow, balance, profit_use, n),
+        details=details,
+        participants=compute_participants(model, cashflow, balance, n),
         actualized_cashflow=actualized_cashflow,
         cashflow_variance=cashflow_variance,
         warnings=warnings,
@@ -109,43 +128,80 @@ def _solve(model: ProjectModel):
     Демпфирование не меняет неподвижную точку — только путь к ней.
     """
     af = model.financing.auto_financing
-    if not af.enabled:
-        return run_pipeline(model)
+    collector = DetailCollector()   # детализация строк (drill-down) — с финального прогона
+    taxes = _custom_taxes(model)    # настраиваемые налоги (SPEC §22.9); None — если их нет
+    if not (af.enabled or af.invest_surplus):
+        income, cashflow, balance, profit_use, warnings = run_pipeline(
+            model, details=collector, taxes=taxes)
+        return income, cashflow, balance, profit_use, warnings, collector.build()
 
     n = model.n
     opening_cash = model.company.starting_balance.cash
-    r = annual_to_monthly(af.annual_rate)
+    credit_rate = annual_to_monthly(af.annual_rate)
+    deposit_rate = annual_to_monthly(af.invest_annual_rate)
 
+    # Замкнутый контур теперь по двум рядам: проценты кредита (I18) и доход депозита (I20).
+    # Оба влияют на налог → базовый поток → графики; итерация с адаптивным демпфированием.
     interest = zeros(n)
-    draws = zeros(n)
-    principal = zeros(n)
-    damping = ONE              # шаг релаксации
+    income_yield = zeros(n)
+    plan = None
+    damping = ONE
     prev_residual = None
     converged = False
     for _ in range(_MAX_AUTOFIN_ITER):
-        # Прогон только с процентами в ОПУ (для налога), без денежных потоков автокредита.
-        probe = AutoInjection(interest, zeros(n), zeros(n), zeros(n))
-        _, cf, _, _, _ = run_pipeline(model, auto=probe)
+        # Пробный прогон: доходы/расходы в ОПУ (для налога), без денежных потоков авто.
+        probe = AutoInjection(pl_interest=interest, cash_draws=zeros(n),
+                              cash_principal=zeros(n), cash_interest=zeros(n),
+                              pl_deposit_income=income_yield)
+        _, cf, _, _, _ = run_pipeline(model, auto=probe, taxes=taxes)
         base_flow = [cf["C13"][t] + cf["C20"][t] + cf["C27"][t] for t in range(n)]
-        draws, principal, target = solve_credit_line(base_flow, opening_cash, af.min_balance, r)
+        plan = solve_cash_management(base_flow, opening_cash, af.min_balance,
+                                     credit_rate, deposit_rate,
+                                     credit_on=af.enabled, invest_on=af.invest_surplus)
 
-        residual = max((abs(target[t] - interest[t]) for t in range(n)), default=ZERO)
+        residual = max(
+            (abs(plan.interest[t] - interest[t]) for t in range(n)), default=ZERO)
+        residual = max(residual, max(
+            (abs(plan.deposit_income[t] - income_yield[t]) for t in range(n)), default=ZERO))
         if residual <= _AUTOFIN_EPS:
-            interest = target
+            interest = plan.interest
+            income_yield = plan.deposit_income
             converged = True
             break
         # Если невязка не убывает — демпфируем шаг (защита от расходимости).
         if prev_residual is not None and residual >= prev_residual:
             damping = damping / Decimal(2)
         prev_residual = residual
-        interest = [interest[t] + damping * (target[t] - interest[t]) for t in range(n)]
+        interest = [interest[t] + damping * (plan.interest[t] - interest[t]) for t in range(n)]
+        income_yield = [income_yield[t] + damping * (plan.deposit_income[t] - income_yield[t])
+                        for t in range(n)]
 
-    # Финальный прогон: проценты в ОПУ и денежные потоки кредитной линии.
-    final = AutoInjection(interest, draws, principal, interest)
-    income, cashflow, balance, profit_use, warnings = run_pipeline(model, auto=final)
+    assert plan is not None
+    # Финальный прогон: проценты/доход в ОПУ и денежные потоки кредита и депозита.
+    final = AutoInjection(
+        pl_interest=interest, cash_draws=plan.draws, cash_principal=plan.principal,
+        cash_interest=interest, pl_deposit_income=income_yield,
+        cash_deposit_income=income_yield, cash_deposit_placement=plan.deposit_placement,
+        deposit_balance=plan.deposit_balance)
+    income, cashflow, balance, profit_use, warnings = run_pipeline(
+        model, auto=final, details=collector, taxes=taxes)
     if not converged:
         warnings = warnings + ["Автоподбор финансирования не сошёлся за отведённое число итераций"]
-    return income, cashflow, balance, profit_use, warnings
+    return income, cashflow, balance, profit_use, warnings, collector.build()
+
+
+def _custom_taxes(model: ProjectModel) -> TaxInjection | None:
+    """Инъекция настраиваемых налогов (SPEC §22.9); ``None`` при пустом списке.
+
+    Базы — по предварительному прогону без настраиваемых налогов и без автоподбора
+    финансирования (решение Q2 в CUSTOM-TAXES-DECOMPOSITION.md): один детерминированный
+    проход, циклов «налог ← база ← налог» нет. Пустой список — без предварительного
+    прогона (нулевые накладные расходы, модель инертна).
+    """
+    if not model.environment.taxes:
+        return None
+    income, cashflow, balance, profit_use, _ = run_pipeline(model)
+    return compute_custom_taxes(model, income, cashflow, balance, profit_use, model.n)
 
 
 def _check_invariants(income, cashflow, balance, profit_use, n: int) -> None:
@@ -173,3 +229,20 @@ def _metrics(model: ProjectModel, cashflow) -> InvestmentMetrics:
     net_flow = add(cashflow["C13"], cashflow["C20"])
     r_m = annual_to_monthly(model.settings.discount_rate_annual)
     return build_investment_metrics(net_flow, r_m)
+
+
+def _metrics_foreign(model: ProjectModel, cashflow) -> InvestmentMetrics | None:
+    """Показатели во второй валюте (SPEC §17): поток пересчитан по курсу, дисконт — своей
+    ставкой валюты. None, если ставка дисконтирования по валюте не задана (инертно).
+
+    Курс ``fx[t]`` — единиц основной валюты за единицу второй; поток в основной валюте
+    делится на курс → поток во второй валюте. Показатели считаются той же машинерией.
+    """
+    rate = model.settings.discount_rate_annual_foreign
+    if rate <= ZERO:
+        return None
+    net_flow = add(cashflow["C13"], cashflow["C20"])
+    fx = _fx_series(model.environment, model.n)
+    foreign_flow = [net_flow[t] / fx[t] for t in range(model.n)]
+    r_m = annual_to_monthly(rate)
+    return build_investment_metrics(foreign_flow, r_m)

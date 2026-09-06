@@ -1,0 +1,102 @@
+:root {
+  --c-page: @dark-page;
+  --c-bg: @dark-page;
+  --c-surface: @dark-surface;
+  --c-surface-2: @dark-surface-2;
+  --c-alt: @dark-alt;
+  --c-border: @dark-border;
+  --c-border-strong: @dark-border-strong;
+  --c-grid-line: @dark-grid-line;
+  --c-text: @dark-text;
+  --c-muted: @dark-muted;
+  --c-subtle: @dark-subtle;
+  --c-accent: @color-gold;
+  --c-accent-hover: @color-gold-hover-dark;
+  --c-accent-text: @color-gold;
+  --c-accent-soft: rgba(255, 206, 58, .10);
+  --c-accent-border: rgba(255, 206, 58, .32);
+  --c-on-accent: @color-on-gold;
+  --c-violet: @color-violet;
+  --c-violet-soft: rgba(199, 125, 255, .10);
+  --c-violet-border: rgba(199, 125, 255, .34);
+  --c-green: @color-green;
+  --c-green-soft: rgba(127, 238, 100, .10);
+  --c-green-border: rgba(127, 238, 100, .34);
+  --c-danger: @dark-danger;
+  --c-warn: @dark-warn;
+  --c-ring: rgba(255, 206, 58, .42);
+  --c-header-bg: rgba(16, 14, 9, .92);
+  --shadow-card: none;
+  --glow: 0 0 20px rgba(255, 206, 58, .30);
+  --beam: rgba(255, 206, 58, .09);
+  --hero-bg: radial-gradient(ellipse 66% 90% at 26% 36%, rgba(255, 206, 58, .14) 0%, rgba(226, 164, 26, .05) 46%, transparent 78%);
+  --cta-bg: radial-gradient(ellipse 60% 110% at 70% 40%, rgba(255, 206, 58, .13) 0%, rgba(226, 164, 26, .05) 48%, transparent 78%);
+  --case-bg: radial-gradient(ellipse 60% 120% at 16% 30%, rgba(255, 206, 58, .12) 0%, rgba(226, 164, 26, .04) 48%, @dark-surface 78%);
+}
+
+[data-theme='light'] {
+  --c-page: @light-page;
+  --c-bg: @light-bg;
+  --c-surface: @light-surface;
+  --c-surface-2: @light-surface-2;
+  --c-alt: @light-alt;
+  --c-border: @light-border;
+  --c-border-strong: @light-border-strong;
+  --c-grid-line: @light-grid-line;
+  --c-text: @light-text;
+  --c-muted: @light-muted;
+  --c-subtle: @light-subtle;
+  --c-accent: @color-gold;
+  --c-accent-hover: @color-gold-hover-light;
+  --c-accent-text: @color-gold-ink;
+  --c-accent-soft: #FFF7DE;
+  --c-accent-border: #EFDCA8;
+  --c-violet: @color-violet-ink;
+  --c-violet-soft: #F6EFFD;
+  --c-violet-border: #DEC6F4;
+  --c-green: @color-green-ink;
+  --c-green-soft: #EDFBE7;
+  --c-green-border: #C4E9B7;
+  --c-danger: @light-danger;
+  --c-warn: @light-warn;
+  --c-ring: rgba(255, 206, 58, .40);
+  --c-header-bg: rgba(255, 255, 255, .92);
+  --shadow-card: 0 18px 44px -22px rgba(44, 34, 12, .20), 0 2px 6px rgba(44, 34, 12, .05);
+  --glow: none;
+  --beam: rgba(255, 206, 58, .12);
+  --hero-bg: linear-gradient(160deg, #FFF7DE 0%, @light-bg 64%);
+  --cta-bg: linear-gradient(200deg, #FFF7DE 0%, @light-bg 62%);
+  --case-bg: linear-gradient(150deg, #FFF7DE 0%, @light-surface 60%);
+}
+
+body {
+  font-family: @font-text;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--c-text);
+  background: var(--c-bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+a {
+  color: var(--c-accent-text);
+  transition: color .18s ease;
+}
+
+a:hover { color: var(--c-text); }
+
+::selection {
+  background: var(--c-accent);
+  color: var(--c-on-accent);
+}
+
+@keyframes fn-pulse {
+  from { opacity: .4; }
+  to { opacity: 1; }
+}
+
+@keyframes fn-scan {
+  0% { transform: translateY(-140%); }
+  100% { transform: translateY(900%); }
+}

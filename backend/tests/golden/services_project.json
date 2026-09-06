@@ -915,7 +915,7 @@
       "0.00"
     ]
   },
-  "engine_version": "0.9.9",
+  "engine_version": "0.9.39",
   "income": {
     "I1": [
       "100000.00",
@@ -1311,8 +1311,10 @@
     ]
   },
   "metrics": {
+    "arr_annual": "1.107149",
     "dpb_months": 12,
     "irr_annual": "0.237871",
+    "mirr_annual": "0.194428",
     "npv": "6028.57",
     "pb_months": 11,
     "peak_financing_need": "170504.44",
@@ -1320,6 +1322,34 @@
     "pv_investments": "170504.44"
   },
   "n": 12,
+  "participants": [
+    {
+      "flow": [
+        "-150000.00",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00"
+      ],
+      "id": "equity",
+      "invested": "150000.00",
+      "irr_annual": null,
+      "irr_with_terminal_annual": "1.194214",
+      "kind": "equity",
+      "name": "Акционеры",
+      "npv": "-150000.00",
+      "npv_with_terminal": "121200.59",
+      "terminal_value": "308269.33",
+      "withdrawn": "0.00"
+    }
+  ],
   "profit_use": {
     "P1": [
       "13162.22",

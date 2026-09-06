@@ -65,7 +65,7 @@ export function FinancingTab({ n, financing, onChange }: Props) {
     leases: leases.length,
     deposits: deposits.length,
     shares: 0,
-    auto: auto_financing.enabled ? 1 : 0,
+    auto: (auto_financing.enabled ? 1 : 0) + (auto_financing.invest_surplus ? 1 : 0),
   };
 
   const addEquity = () => onChange({ ...financing, equity: [...equity, { amount: "0", month: 0 }] });
@@ -326,6 +326,27 @@ export function FinancingTab({ n, financing, onChange }: Props) {
                           onChange={(v) => updLease(i, { annual_rate: v })}
                         />
                       )}
+                      <EField
+                        label="Страхование"
+                        prefix="₽"
+                        suffix="/ мес"
+                        value={l.insurance_monthly ?? "0"}
+                        onChange={(v) => updLease(i, { insurance_monthly: v })}
+                      />
+                      <EField
+                        label="Цена выкупа"
+                        prefix="₽"
+                        value={l.buyout_price ?? "0"}
+                        onChange={(v) => updLease(i, { buyout_price: v })}
+                      />
+                      {!!l.buyout_price && l.buyout_price !== "0" && (
+                        <EField
+                          label="Срок службы после выкупа"
+                          suffix="мес."
+                          value={l.buyout_life_months ?? 0}
+                          onChange={(v) => updLease(i, { buyout_life_months: parseInt(v || "0", 10) || 0 })}
+                        />
+                      )}
                     </div>
                     <div style={{ marginTop: 14 }}>
                       <Switch
@@ -426,7 +447,7 @@ export function FinancingTab({ n, financing, onChange }: Props) {
           {section(
             "auto",
             "Автоподбор финансирования",
-            "Кредитная линия закрывает кассовые разрывы автоматически.",
+            "Кредитная линия закрывает кассовые разрывы, излишки размещаются в депозит.",
             null,
             <div className="line-card">
               <Switch
@@ -439,7 +460,7 @@ export function FinancingTab({ n, financing, onChange }: Props) {
               {auto_financing.enabled && (
                 <div className="esec__grid" style={{ marginTop: 14 }}>
                   <EPercentField
-                    label="Ставка"
+                    label="Ставка кредита"
                     suffix="% / год"
                     value={auto_financing.annual_rate}
                     onChange={(v) =>
@@ -457,6 +478,31 @@ export function FinancingTab({ n, financing, onChange }: Props) {
                   />
                 </div>
               )}
+              <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
+                <Switch
+                  label="Размещать излишки кассы в депозит"
+                  checked={auto_financing.invest_surplus ?? false}
+                  onChange={(invest_surplus) =>
+                    onChange({ ...financing, auto_financing: { ...auto_financing, invest_surplus } })
+                  }
+                />
+                {auto_financing.invest_surplus && (
+                  <div className="esec__grid" style={{ marginTop: 14 }}>
+                    <EPercentField
+                      label="Ставка депозита"
+                      suffix="% / год"
+                      value={auto_financing.invest_annual_rate ?? "0.05"}
+                      onChange={(v) =>
+                        onChange({ ...financing, auto_financing: { ...auto_financing, invest_annual_rate: v } })
+                      }
+                    />
+                    <div className="field-note" style={{ alignSelf: "center" }}>
+                      Касса выше мин. остатка размещается в депозит; при дефиците депозит
+                      изымается раньше привлечения кредита.
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>,
           )}
         </div>

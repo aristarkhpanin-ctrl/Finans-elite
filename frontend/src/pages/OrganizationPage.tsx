@@ -1,10 +1,15 @@
 import { useState } from "react";
+import { roleLabel } from "../api/org";
 import { useAuth } from "../auth/AuthContext";
 import { BillingTab } from "./org/BillingTab";
+import { AuditLogTab } from "./org/AuditLogTab";
+import { ProfileTab } from "./org/ProfileTab";
 import { MembersTab } from "./org/MembersTab";
 
 const TABS = [
   ["members", "Участники"],
+  ["profile", "Профиль"],
+  ["log", "Журнал доступа"],
   ["billing", "Тариф и оплата"],
 ] as const;
 
@@ -16,6 +21,7 @@ export function OrganizationPage() {
   if (!currentOrgId) return <p className="muted">Организация не выбрана</p>;
 
   const myRole = org?.role ?? "viewer";
+  const canManageOrg = myRole === "owner" || myRole === "admin";
 
   return (
     <div>
@@ -42,7 +48,20 @@ export function OrganizationPage() {
       </div>
 
       {tab === "members" && <MembersTab orgId={currentOrgId} myRole={myRole} myUserId={user?.id ?? ""} />}
-      {tab === "billing" && <BillingTab orgId={currentOrgId} canManage={myRole === "owner" || myRole === "admin"} />}
+      {/* Журнал видит только тот, кто управляет организацией: право org.manage.
+          Аналитик работает с делами — следы чужой работы не его дело. Вкладка не
+          прячется, а объясняет отказ: недоступное показывается, а не исчезает. */}
+      {tab === "profile" && <ProfileTab />}
+      {tab === "log" && (canManageOrg
+        ? <AuditLogTab orgId={currentOrgId} />
+        : <div className="tab-empty">
+            <div className="tab-empty__title">Журнал доступен администраторам</div>
+            <div className="tab-empty__sub">
+              Записи журнала показывают действия всех участников организации, поэтому
+              их видят владелец и администратор. Ваша роль — {roleLabel(myRole)}.
+            </div>
+          </div>)}
+      {tab === "billing" && <BillingTab orgId={currentOrgId} canManage={canManageOrg} />}
     </div>
   );
 }

@@ -4,26 +4,34 @@
 """
 from __future__ import annotations
 
+import hashlib
+import json
 from datetime import datetime, timezone
 from decimal import Decimal
 
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
+from audit_core import AuditSubjectModel
 from calc_core import ProjectModel
 
 from .db_models import (
     AnalysisJob,
+    AuditGroup,
+    AuditLogEntry,
+    AuditSubject,
     Holding,
     HoldingMember,
     Membership,
     Organization,
     Payment,
     Project,
+    ProjectVersion,
     Subscription,
     User,
 )
 from .plans import DEFAULT_PLAN
+from .schemas import AuditGroupModel
 
 # --- Фоновые задачи анализа (Celery) ---
 
@@ -55,14 +63,23 @@ def get_organization(db: Session, org_id: str) -> Organization | None:
 
 # --- Подписки ---
 
-def get_subscription(db: Session, org_id: str) -> Subscription | None:
-    return db.scalar(select(Subscription).where(Subscription.organization_id == org_id))
+def get_subscription(db: Session, org_id: str, product: str = "business") -> Subscription | None:
+    """Подписка организации на продукт (у каждого продукта своя)."""
+    return db.scalar(select(Subscription).where(
+        Subscription.organization_id == org_id, Subscription.product == product))
 
 
-def set_plan(db: Session, org_id: str, plan_code: str, status: str = "active") -> Subscription:
-    sub = get_subscription(db, org_id)
+def list_subscriptions(db: Session, org_id: str) -> list[Subscription]:
+    return list(db.scalars(select(Subscription).where(
+        Subscription.organization_id == org_id).order_by(Subscription.product)))
+
+
+def set_plan(db: Session, org_id: str, plan_code: str, status: str = "active",
+             product: str = "business") -> Subscription:
+    sub = get_subscription(db, org_id, product)
     if sub is None:
-        sub = Subscription(organization_id=org_id, plan_code=plan_code, status=status)
+        sub = Subscription(organization_id=org_id, plan_code=plan_code, status=status,
+                           product=product)
         db.add(sub)
     else:
         sub.plan_code = plan_code
@@ -114,6 +131,14 @@ def count_projects(db: Session, org_id: str) -> int:
     ) or 0
 
 
+def count_audit_subjects(db: Session, org_id: str) -> int:
+    """Число дел организации — единица квоты продукта «Финанс-Аудит»."""
+    return db.scalar(
+        select(func.count()).select_from(AuditSubject)
+        .where(AuditSubject.organization_id == org_id)
+    ) or 0
+
+
 def count_members(db: Session, org_id: str) -> int:
     return db.scalar(
         select(func.count()).select_from(Membership).where(Membership.organization_id == org_id)
@@ -143,6 +168,20 @@ def get_or_create_user(db: Session, email: str, full_name: str = "") -> User:
     user = get_user_by_email(db, email)
     if user is None:
         user = create_user(db, email, full_name)
+    return user
+
+
+def set_password(db: Session, user: User, hashed: str) -> User:
+    user.hashed_password = hashed
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def set_full_name(db: Session, user: User, full_name: str) -> User:
+    user.full_name = full_name
+    db.commit()
+    db.refresh(user)
     return user
 
 
@@ -254,12 +293,31 @@ def get_project(db: Session, org_id: str, project_id: str) -> Project | None:
     )
 
 
+def model_hash(model: dict) -> str:
+    """SHA-256 канонического JSON модели (сорт. ключи) — стабильный отпечаток для дрейфа."""
+    canonical = json.dumps(model, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 def update_project(db: Session, project: Project, *, name: str | None = None,
                    model: ProjectModel | None = None) -> Project:
     if name is not None:
         project.name = name
     if model is not None:
         project.model = model.model_dump(mode="json")
+        # Изменение модели снимает финализацию: подтверждён был другой план (гейт ревью).
+        project.status = "draft"
+    db.commit()
+    db.refresh(project)
+    return project
+
+
+def finalize_project(db: Session, project: Project, review: dict) -> Project:
+    """Отметить проект финализированным: снимок ревью + отпечаток модели (Ф10)."""
+    project.status = "finalized"
+    project.finalized_at = datetime.now(timezone.utc)
+    project.finalized_model_hash = model_hash(project.model)
+    project.finalized_review = review
     db.commit()
     db.refresh(project)
     return project
@@ -282,6 +340,173 @@ def duplicate_project(db: Session, project: Project, name: str) -> Project:
     db.commit()
     db.refresh(copy)
     return copy
+
+
+# --- Субъекты анализа (Финанс-Аудит, продукт №2) ---
+
+def create_audit_subject(db: Session, org_id: str, name: str,
+                         model: AuditSubjectModel) -> AuditSubject:
+    subject = AuditSubject(organization_id=org_id, name=name,
+                           model=model.model_dump(mode="json"))
+    db.add(subject)
+    db.commit()
+    db.refresh(subject)
+    return subject
+
+
+def list_audit_subjects(db: Session, org_id: str) -> list[AuditSubject]:
+    return list(
+        db.scalars(
+            select(AuditSubject)
+            .where(AuditSubject.organization_id == org_id)
+            .order_by(AuditSubject.created_at.desc())
+        )
+    )
+
+
+def get_audit_subject(db: Session, org_id: str, subject_id: str) -> AuditSubject | None:
+    return db.scalar(
+        select(AuditSubject).where(
+            AuditSubject.id == subject_id, AuditSubject.organization_id == org_id
+        )
+    )
+
+
+def update_audit_subject(db: Session, subject: AuditSubject, *, name: str | None = None,
+                         model: AuditSubjectModel | None = None) -> AuditSubject:
+    if name is not None:
+        subject.name = name
+    if model is not None:
+        subject.model = model.model_dump(mode="json")
+    db.commit()
+    db.refresh(subject)
+    return subject
+
+
+def duplicate_audit_subject(db: Session, subject: AuditSubject, name: str) -> AuditSubject:
+    """Копия субъекта: модель целиком, новое имя.
+
+    Для аудита дубль уместнее, чем для проекта: повторная проверка той же фирмы через
+    год начинается с прошлогоднего дела — реквизиты, методики и нормативы уже заведены,
+    меняется только отчётность.
+    """
+    copy = AuditSubject(organization_id=subject.organization_id, name=name,
+                        model=subject.model)
+    db.add(copy)
+    db.commit()
+    db.refresh(copy)
+    return copy
+
+
+def delete_audit_subject(db: Session, subject: AuditSubject) -> None:
+    db.delete(subject)
+    db.commit()
+
+
+def load_audit_model(subject: AuditSubject) -> AuditSubjectModel:
+    return AuditSubjectModel.model_validate(subject.model)
+
+
+# --- Сохранённые группы предприятий (Финанс-Аудит, v2) ---
+
+def create_audit_group(db: Session, org_id: str, name: str, model: AuditGroupModel) -> AuditGroup:
+    group = AuditGroup(organization_id=org_id, name=name, model=model.model_dump(mode="json"))
+    db.add(group)
+    db.commit()
+    db.refresh(group)
+    return group
+
+
+def list_audit_groups(db: Session, org_id: str) -> list[AuditGroup]:
+    return list(
+        db.scalars(
+            select(AuditGroup)
+            .where(AuditGroup.organization_id == org_id)
+            .order_by(AuditGroup.created_at.desc())
+        )
+    )
+
+
+def get_audit_group(db: Session, org_id: str, group_id: str) -> AuditGroup | None:
+    return db.scalar(
+        select(AuditGroup).where(
+            AuditGroup.id == group_id, AuditGroup.organization_id == org_id
+        )
+    )
+
+
+def update_audit_group(db: Session, group: AuditGroup, *, name: str | None = None,
+                       model: AuditGroupModel | None = None) -> AuditGroup:
+    if name is not None:
+        group.name = name
+    if model is not None:
+        group.model = model.model_dump(mode="json")
+    db.commit()
+    db.refresh(group)
+    return group
+
+
+def delete_audit_group(db: Session, group: AuditGroup) -> None:
+    db.delete(group)
+    db.commit()
+
+
+def load_audit_group_model(group: AuditGroup) -> AuditGroupModel:
+    return AuditGroupModel.model_validate(group.model)
+
+
+# --- Версии проекта (пакет №8, gap 4.4) ---
+
+#: Максимум версий на проект (защита хранилища; сверх — ошибка на уровне роутера).
+MAX_VERSIONS_PER_PROJECT = 50
+
+
+def count_versions(db: Session, project_id: str) -> int:
+    return db.scalar(
+        select(func.count()).select_from(ProjectVersion)
+        .where(ProjectVersion.project_id == project_id)
+    ) or 0
+
+
+def create_version(db: Session, project: Project, label: str, *,
+                   npv: str | None = None, irr_annual: str | None = None,
+                   engine_version: str | None = None) -> ProjectVersion:
+    """Снимок текущей модели проекта как именованная версия (+ сводка расчёта)."""
+    version = ProjectVersion(
+        organization_id=project.organization_id, project_id=project.id, label=label,
+        model=project.model, npv=npv, irr_annual=irr_annual, engine_version=engine_version,
+    )
+    db.add(version)
+    db.commit()
+    db.refresh(version)
+    return version
+
+
+def list_versions(db: Session, org_id: str, project_id: str) -> list[ProjectVersion]:
+    return list(
+        db.scalars(
+            select(ProjectVersion)
+            .where(ProjectVersion.project_id == project_id,
+                   ProjectVersion.organization_id == org_id)
+            .order_by(ProjectVersion.created_at.desc())
+        )
+    )
+
+
+def get_version(db: Session, org_id: str, project_id: str,
+                version_id: str) -> ProjectVersion | None:
+    return db.scalar(
+        select(ProjectVersion).where(
+            ProjectVersion.id == version_id,
+            ProjectVersion.project_id == project_id,
+            ProjectVersion.organization_id == org_id,
+        )
+    )
+
+
+def delete_version(db: Session, version: ProjectVersion) -> None:
+    db.delete(version)
+    db.commit()
 
 
 def save_calc_summary(db: Session, project: Project, *, npv: Decimal,
@@ -383,3 +608,46 @@ def save_holding_consolidation(db: Session, holding: Holding, *, npv: Decimal,
     holding.last_consolidation_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(holding)
+
+# --- Журнал действий (152-ФЗ, ARCHITECTURE §4) ---
+
+def log_action(db: Session, org_id: str, user, action: str, *, entity_type: str = "",
+               entity_id: str = "", entity_name: str = "", details: str = "") -> AuditLogEntry:
+    """Записать действие в журнал организации.
+
+    ``user`` может быть ``None`` (системное действие). Почта актора дублируется текстом:
+    участника удалят, а журнал обязан отвечать «кто это сделал» и через год.
+
+    Длинные поля обрезаются до размера колонки, а не роняют запрос: имя дела задаёт
+    пользователь, и слишком длинное имя не повод потерять запись о его удалении.
+    """
+    entry = AuditLogEntry(
+        organization_id=org_id,
+        user_id=getattr(user, "id", None),
+        actor_email=(getattr(user, "email", "") or "")[:255],
+        action=action[:64],
+        entity_type=entity_type[:32],
+        entity_id=entity_id[:36],
+        entity_name=entity_name[:255],
+        details=details[:500],
+    )
+    db.add(entry)
+    db.commit()
+    return entry
+
+
+def list_audit_log(db: Session, org_id: str, limit: int = 200,
+                   before: datetime | None = None) -> list[AuditLogEntry]:
+    """Записи журнала организации, новые сверху; ``before`` — курсор постраничного чтения."""
+    stmt = select(AuditLogEntry).where(AuditLogEntry.organization_id == org_id)
+    if before is not None:
+        stmt = stmt.where(AuditLogEntry.created_at < before)
+    stmt = stmt.order_by(AuditLogEntry.created_at.desc()).limit(limit)
+    return list(db.execute(stmt).scalars())
+
+
+def count_audit_log(db: Session, org_id: str) -> int:
+    return int(db.execute(
+        select(func.count()).select_from(AuditLogEntry)
+        .where(AuditLogEntry.organization_id == org_id)
+    ).scalar_one())

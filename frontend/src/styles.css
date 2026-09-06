@@ -43,6 +43,7 @@
   --ring: rgba(56, 194, 75, 0.30);
   --shadow: 0 18px 44px -22px rgba(20, 40, 24, 0.22), 0 2px 6px rgba(20, 40, 24, 0.05);
   --menu-shadow: 0 24px 56px -16px rgba(20, 40, 24, 0.28);
+  --glow: none;                   /* свечение фирменного цвета — только в тёмной теме */
   --bar-bg: #FFFFFF;
   --bar-border: #D2E4CD;
   --seg-bg: #E7F0E3;
@@ -64,6 +65,12 @@
   /* Палитра графиков (PAL из Этапа 15) */
   --chart-1: #138A45; --chart-2: #3E7D52; --chart-3: #5FA86A; --chart-4: #B07A12;
   --chart-5: #C0473B; --chart-6: #1E9E6E; --chart-7: #6B9E5E;
+  /* Тепловая карта таблиц и чувствительности: 1–3 — норма (густая → бледная),
+     4 — внимание, 5 — риск. Текст задан отдельно: на густой заливке инвертируется. */
+  --heat-1: #C6EBBA; --heat-2: #DBF3D2; --heat-3: #EAF8E4;
+  --heat-4: #FBF0D8; --heat-5: #F7DED9;
+  --heat-text-1: #12351C; --heat-text-2: #12351C; --heat-text-3: #46584A;
+  --heat-text-4: #8A5300; --heat-text-5: #A53A30;
 
   /* Форма */
   --radius-btn: 4px;
@@ -122,6 +129,7 @@
   --ring: rgba(127, 238, 100, 0.40);
   --shadow: 0 30px 70px -34px rgba(0, 0, 0, 0.9);
   --menu-shadow: 0 22px 52px -16px rgba(0, 0, 0, 0.82);
+  --glow: 0 0 18px rgba(127, 238, 100, 0.35);
   --bar-bg: #0C0F0C;
   --bar-border: #1D231D;
   --seg-bg: #0B0E0B;
@@ -142,6 +150,136 @@
   --ico4: #E0A23A; --ico4-bg: rgba(224, 162, 58, 0.16);
   --chart-1: #7FEE64; --chart-2: #AED2A4; --chart-3: #C8F9B6; --chart-4: #E0A23A;
   --chart-5: #F0796E; --chart-6: #5FD9A6; --chart-7: #9BD08E;
+  --heat-1: rgba(127, 238, 100, 0.42); --heat-2: rgba(127, 238, 100, 0.30);
+  --heat-3: rgba(127, 238, 100, 0.18);
+  --heat-4: rgba(224, 162, 58, 0.24); --heat-5: rgba(240, 121, 110, 0.30);
+  /* Текст на густых ячейках — светлый, а не тёмный: заливка полупрозрачная и поверх
+     тёмной поверхности так и остаётся тёмной (см. auditTheme.test.ts, отступление 1). */
+  --heat-text-1: #DDFFDC; --heat-text-2: #DDFFDC; --heat-text-3: #DDFFDC;
+  --heat-text-4: #E8C07A; --heat-text-5: #F4B0A8;
+}
+
+/* ── Тема продукта «Финанс-Аудит»: неоново-фиолетовая ветка системы ──────────
+   Канон — объект, который **возвращает** THEME() в
+   docs/design/finans-audit/«Финанс Аудит - Стиль-гайд.dc.html» (карта — README §6).
+   Свежесть сверяет auditTheme.test.ts: разойтись со стиль-гайдом молча нельзя.
+
+   Фиолет #C77DFF играет ровно ту роль, что зелёный #7FEE64 в «Элит»: заливка кнопок,
+   активное состояние, кольцо фокуса, grand-итог. Никогда — декор.
+
+   У фиолета две ипостаси, и это не опечатка: заливка на обеих темах неоновая
+   (--primary), но текстовым акцентом светлой темы служит Deep Violet #7A2BC4
+   (--accent). Неон против белого даёт ~2.7:1 и как текст нечитаем, а нетекстовому
+   индикатору фокуса WCAG 1.4.11 требует 3:1. В тёмной теме обе роли — неон.
+
+   Семантические danger/warn совпадают с базовой темой и потому не переопределяются:
+   тест сверяет действующее значение через каскад, а не наличие строки здесь.
+   Активируется data-product="audit" (components/product.ts). */
+:root[data-product="audit"] {
+  --page-bg: #F2EDFA;
+  --app-bg: #FAF7FE;
+  --surface-2: #F4EEFA;
+  --surface-3: #E8DEF4;
+  --sk: #EDE6F6;
+  --border: #DED2EC;
+  --border-strong: #C2B0D6;
+  --grid-line: #EDE6F6;
+  --text: #1B1523;
+  --muted: #4E4459;
+  --subtle: #756884;
+  --primary: #C77DFF;
+  --primary-hover: #B968F5;
+  --primary-text: #17061F;
+  --accent: #7A2BC4;             /* Deep Violet — текст, ссылки, иконки (7.07:1 к белому) */
+  --primary-bg: #EEE0FB;
+  --primary-soft: #F6EFFD;
+  --good: #7A2BC4;
+  --good-bg: #EEE0FB;
+  --good-border: #D9BFF0;
+  --info: #6B5E8C;
+  --info-bg: #EDE9F6;
+  --ring: rgba(199, 125, 255, 0.34);
+  --shadow: 0 18px 44px -22px rgba(40, 20, 60, 0.22), 0 2px 6px rgba(40, 20, 60, 0.05);
+  --menu-shadow: 0 24px 56px -16px rgba(40, 20, 60, 0.28);
+  --glow: none;
+  --bar-border: #DED2EC;
+  --seg-bg: #EDE6F6;
+  --subtotal-bg: #F6EFFD;
+  --grand-bg: #EEE0FB;
+  --hov: #F7F2FC;
+  --hovlab: #EFE7F7;
+  --success: #7A2BC4;
+  --success-bg: #EEE0FB;
+  --ico1: #7A2BC4; --ico1-bg: #EEE0FB;
+  --ico2: #6B5E8C; --ico2-bg: #EDE9F6;
+  --ico3: #9B6BD0; --ico3-bg: #F1E9F9;
+  --chart-1: #7A2BC4; --chart-2: #6B5E8C; --chart-3: #9B6BD0;
+  --chart-6: #5B21A0; --chart-7: #A88FC7;
+  --heat-1: #D9BFF0; --heat-2: #E6D4F6; --heat-3: #F1E7FA;
+  --heat-4: #FBF0D8; --heat-5: #F7DED9;
+  --heat-text-1: #3A1D5A; --heat-text-2: #3A1D5A; --heat-text-3: #4E4459;
+  --heat-text-4: #8A5E0C; --heat-text-5: #A53A30;
+}
+
+:root[data-theme="dark"][data-product="audit"] {
+  --page-bg: #000000;
+  --app-bg: #000000;
+  --surface: #0E0B14;
+  --surface-2: #171122;
+  --surface-3: #241A38;
+  --sk: #171122;
+  --border: #2B2140;
+  --border-strong: #4B3A6E;
+  --grid-line: #191324;
+  --text: #F2E8FF;
+  --muted: #9C8FB5;
+  --subtle: #6A5C86;
+  --primary: #C77DFF;
+  --primary-hover: #D69AFF;
+  --primary-text: #17061F;
+  --accent: #C77DFF;
+  --primary-bg: rgba(199, 125, 255, 0.15);
+  --primary-soft: rgba(199, 125, 255, 0.09);
+  --good: #C77DFF;
+  --good-bg: rgba(199, 125, 255, 0.15);
+  --good-border: rgba(199, 125, 255, 0.34);
+  --danger-border: rgba(240, 121, 110, 0.34);
+  --info: #B9A6E8;
+  --info-bg: rgba(185, 166, 232, 0.15);
+  --ring: rgba(199, 125, 255, 0.40);
+  /* Тени переобъявлены не для красоты: :root[data-product="audit"] специфичнее
+     [data-theme="dark"], поэтому светлая тень блока выше перебила бы тёмную. */
+  --shadow: 0 30px 70px -34px rgba(0, 0, 0, 0.9);
+  --menu-shadow: 0 22px 52px -16px rgba(0, 0, 0, 0.82);
+  --glow: 0 0 18px rgba(199, 125, 255, 0.35);
+  --bar-bg: #0A0710;
+  --bar-border: #191324;
+  --seg-bg: #0A0710;
+  --seg-active-bg: #241A38;
+  --header-bg: #0E0B14;
+  --sticky-bg: #0E0B14;
+  --subtotal-bg: #171122;
+  --grand-bg: rgba(199, 125, 255, 0.12);
+  --hov: #1B1428;
+  --hovlab: #211830;
+  --cell-bg: #0B0812;
+  --input-bg: #0B0812;
+  --success: #C77DFF;
+  --success-bg: rgba(199, 125, 255, 0.16);
+  --ico1: #C77DFF; --ico1-bg: rgba(199, 125, 255, 0.15);
+  --ico2: #B9A6E8; --ico2-bg: rgba(185, 166, 232, 0.15);
+  --ico3: #E0B6FF; --ico3-bg: rgba(224, 182, 255, 0.14);
+  --chart-1: #C77DFF; --chart-2: #B9A6E8; --chart-3: #E0B6FF;
+  --chart-6: #9B6BD0; --chart-7: #C0AEE0;
+  --heat-1: rgba(199, 125, 255, 0.42); --heat-2: rgba(199, 125, 255, 0.30);
+  --heat-3: rgba(199, 125, 255, 0.18);
+  --heat-4: rgba(224, 162, 58, 0.24); --heat-5: rgba(240, 121, 110, 0.30);
+  /* Отступление от канона стиль-гайда (там #0C0714). Тёмный текст верен для сплошной
+     неоновой заливки — но ячейка тепловой карты полупрозрачна, и поверх #0E0B14 она
+     остаётся тёмно-фиолетовой: канон даёт 2.22:1 и 1.69:1 вместо 4.5:1. Светлый текст
+     даёт 7.57:1 и 9.96:1. Отступление названо в auditTheme.test.ts и там же измеряется. */
+  --heat-text-1: #F2E8FF; --heat-text-2: #F2E8FF; --heat-text-3: #F2E8FF;
+  --heat-text-4: #E0A23A; --heat-text-5: #F4988F;
 }
 
 /* ---------- 2. База ---------- */
@@ -258,6 +396,65 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .content { flex: 1; padding: 32px; max-width: 1180px; width: 100%; margin: 0 auto; }
 @media (max-width: 1023px) { .content { padding: 24px; } }
 @media (max-width: 640px) { .content { padding: 16px; } }
+
+/* ── Боковая навигация продукта (макет «Финанс Аудит», Экран 6) ───────────────
+   Ширины — из DIM() макета: 236px рабочий стол, 76px планшет (только иконки),
+   на телефоне рейла нет и навигация возвращается в drawer шапки.
+
+   Брейкпоинты взяты **действующие в приложении** (1023 / 640), а не 1180/864/402
+   из макета: там это ширины кадров предпросмотра устройств, а не точки
+   переключения. Свои точки заставили бы рейл перестраиваться не одновременно с
+   остальной раскладкой — на промежуточной ширине получился бы узкий рейл рядом
+   с ещё широким контентом. */
+.shell-body { flex: 1; display: flex; align-items: stretch; min-height: 0; }
+.shell-body > .content { min-width: 0; }
+
+.rail {
+  display: flex; flex-direction: column; flex: none;
+  width: 236px; padding: 16px 14px; gap: 2px;
+  background: var(--bar-bg); border-right: 1px solid var(--border);
+}
+.rail__section { display: flex; flex-direction: column; gap: 2px; }
+.rail__section + .rail__section { margin-top: 18px; }
+.rail__title {
+  font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--subtle); padding: 0 8px 6px;
+}
+.rail__item {
+  display: flex; align-items: center; gap: 9px;
+  height: 34px; padding: 0 8px; border-radius: var(--radius-sm);
+  color: var(--muted); text-decoration: none; font-size: 13px;
+}
+.rail__item:hover { background: var(--hov); color: var(--text); }
+.rail__item--active { background: var(--primary-bg); color: var(--accent); font-weight: 500; }
+.rail__ico {
+  display: grid; place-items: center; flex: none;
+  width: 22px; height: 22px; border-radius: 6px;
+  background: var(--surface-2); color: var(--subtle);
+  font-size: 11px; font-weight: 600;
+}
+.rail__item--active .rail__ico { background: var(--primary); color: var(--primary-text); }
+.rail__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (max-width: 1023px) {
+  .rail { width: 76px; padding: 16px 10px; }
+  /* Заголовок раздела в 76px не помещается («ОРГАНИЗАЦИЯ» вылезала за границу рейла
+     в контент). Из отрисовки он убран, но не из разметки: группировка разделов —
+     это смысл, и скринридер обязан её слышать на любой ширине. Вместо подписи —
+     линия-разделитель, чтобы группы оставались различимы и глазом. */
+  .rail__title {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+  .rail__section + .rail__section {
+    margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);
+  }
+  /* Подпись пункта тоже убрана из отрисовки; имя берётся из title у ссылки,
+     иначе в узком рейле остались бы безымянные иконки. */
+  .rail__item { justify-content: center; padding: 0; }
+  .rail__label { display: none; }
+}
+@media (max-width: 640px) { .rail { display: none; } }
 
 .select {
   height: 34px; padding: 0 10px; border-radius: var(--radius-input);
@@ -496,6 +693,23 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   .splash__label { font-size: 13px; }
 }
 
+/* Сплеш «Финанс-Аудита» (макет «Финанс Аудит — Сплеш-экран загрузки»). Токены здесь
+   не годятся: заставка всегда тёмная и рисуется до того, как каркас проставит
+   data-product, — цвета заданы явно, как и у зелёного варианта выше. */
+.splash--audit {
+  background: radial-gradient(ellipse 62% 62% at 50% 42%,
+              rgba(199, 125, 255, 0.16) 0%, rgba(123, 63, 228, 0.05) 44%, #000000 76%);
+  color: #f2e8ff;
+}
+.splash--audit .splash__wordmark { color: #f2e8ff; }
+.splash--audit .splash__label { color: #9c8fb5; }
+.splash--audit .splash__dot { background: #c77dff; }
+.splash--audit .splash__track { background: #171122; }
+.splash--audit .splash__bar {
+  background: #c77dff; box-shadow: 0 0 12px rgba(199, 125, 255, 0.7);
+}
+.splash--audit .splash__pct { color: #6a5c86; }
+
 /* ============================================================
    7. АУТЕНТИФИКАЦИЯ (макет «Этап 2»)
    ============================================================ */
@@ -553,6 +767,29 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 }
 [data-theme="dark"] .auth-brand__chip {
   color: #ddffdc; background: rgba(127, 238, 100, 0.1); border-color: rgba(127, 238, 100, 0.18);
+}
+
+/* Бренд-панель «Финанс-Аудита» (макет «Экран 3 — Аутентификация»). Зелёный в правилах
+   выше записан цветом, а не токеном — панель рисовалась под один продукт; здесь те же
+   места переводятся на токены темы аудита, а не заводится вторая копия панели. */
+:root[data-product="audit"] .auth-brand {
+  background: linear-gradient(160deg, var(--primary-soft) 0%, var(--app-bg) 66%);
+}
+:root[data-theme="dark"][data-product="audit"] .auth-brand {
+  background: radial-gradient(ellipse 80% 70% at 30% 26%,
+              rgba(199, 125, 255, 0.15) 0%, rgba(123, 63, 228, 0.04) 48%, transparent 78%),
+              #000000;
+}
+/* Одного селектора хватает на обе темы: (0,3,0) перебивает `[data-theme="dark"] .x`
+   (0,2,0), а нужные различия уже сидят в самих токенах. */
+:root[data-product="audit"] .auth-brand__p { color: var(--muted); }
+:root[data-product="audit"] .auth-brand__feat-s { color: var(--subtle); }
+:root[data-product="audit"] .auth-brand__tick {
+  background: var(--primary-bg); color: var(--accent);
+}
+:root[data-product="audit"] .auth-brand__foot { border-top-color: var(--good-border); }
+:root[data-product="audit"] .auth-brand__chip {
+  color: var(--accent); background: var(--primary-soft); border-color: var(--good-border);
 }
 
 /* Форма */
@@ -680,7 +917,12 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .shell-header {
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
   height: 60px; padding: 0 32px; background: var(--header-bg);
-  border-bottom: 1px solid var(--border); position: relative; z-index: 30;
+  border-bottom: 1px solid var(--border); position: relative;
+  /* Выше .menu-overlay (40): шапка создаёт контекст наложения, и меню внутри неё
+     (z-index: 50) считается относительно неё, а не корня. При z-index: 30 оверлей,
+     который ловит клики вне меню, накрывал шапку целиком — меню было видно, но все
+     клики забирал он. Инвариант проверяется тестом shellLayers.test.ts. */
+  z-index: 50;
 }
 .shell-left { display: flex; align-items: center; gap: 28px; min-width: 0; height: 100%; }
 .shell-brand { display: flex; align-items: center; gap: 9px; flex: none; }
@@ -714,6 +956,16 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .shell-orgbtn--static:hover { background: none; border-color: transparent; }
 .shell-orgname { font: 600 13px var(--font-ui); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .shell-chev { color: var(--subtle); font-size: 10px; flex: none; }
+/* Переключатель продукта (Финанс-Элит / Финанс-Аудит) */
+.shell-prodwrap { display: flex; align-items: center; }
+.prod-switch {
+  display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px;
+  border-radius: 8px; border: 1px solid var(--border); background: var(--primary-soft);
+  color: var(--accent); font: 600 12.5px var(--font-ui); cursor: pointer;
+  white-space: nowrap; transition: 0.14s;
+}
+.prod-switch:hover { border-color: var(--border-strong); background: var(--primary-bg); }
+.menu--product { width: 264px; left: 0; right: auto; }
 .shell-userbtn {
   display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 10px 0 4px;
   border-radius: 9px; border: 1px solid var(--border); background: var(--surface);
@@ -820,6 +1072,7 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .status-chip { font: 600 11px var(--font-ui); color: var(--accent); background: var(--primary-bg); padding: 4px 9px; border-radius: 6px; white-space: nowrap; flex: none; }
 .status-chip--warn { color: var(--warn-text); background: var(--warn-bg); }
 .status-chip--danger { color: var(--danger-text); background: var(--danger-bg); }
+.status-chip--good { color: var(--good); background: var(--good-bg); }
 .mode-seg { display: flex; gap: 3px; padding: 3px; background: var(--seg-bg); border-radius: 10px; }
 .mode-seg__btn {
   appearance: none; border: none; cursor: pointer; font: 600 13px var(--font-ui);
@@ -981,6 +1234,624 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .icon-action:hover { background: var(--surface-2); border-color: var(--border-strong); }
 .icon-action--danger { color: var(--danger); }
 .icon-action--danger:hover { background: var(--danger-bg); border-color: var(--danger-border); }
+
+/* Качество прибыли «Финанс-Аудит» (макет Экран 7) */
+.eq-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 20px;
+  flex-wrap: wrap; margin-bottom: 16px;
+}
+.eq-base { font: 600 22px var(--font-mono); letter-spacing: -0.01em; color: var(--text); }
+.eq-hint {
+  margin-top: 6px; max-width: 420px;
+  font: 400 12px/1.5 var(--font-ui); color: var(--warn-text, var(--warn));
+}
+.eq-grade {
+  display: flex; gap: 13px; align-items: flex-start; flex: 1; min-width: 300px;
+  max-width: 560px; padding: 13px 15px; border-radius: 12px;
+  border: 1px solid var(--border); background: var(--surface-2);
+}
+.eq-grade--a { border-color: var(--good-border); background: var(--good-bg); }
+.eq-grade--b { border-color: var(--warn-border); background: var(--warn-bg); }
+.eq-grade--c { border-color: var(--danger-border); background: var(--danger-bg); }
+.eq-grade__letter {
+  flex: none; width: 40px; height: 40px; border-radius: 10px;
+  display: grid; place-items: center; background: var(--surface);
+  font: 700 20px var(--font-display); color: var(--text);
+}
+.eq-grade__note { font: 600 13px var(--font-ui); color: var(--text); }
+.eq-grade__dev { margin-top: 4px; font: 400 11.5px/1.5 var(--font-ui); color: var(--muted); }
+.eq-table .eq-row--adj td { color: var(--muted); }
+.eq-kind {
+  display: block; font: 400 10.5px var(--font-ui); color: var(--subtle); margin-top: 2px;
+}
+.eq-table .eq-row--total td { font-weight: 600; background: var(--subtotal-bg); }
+.eq-editor {
+  display: grid; grid-template-columns: 1.4fr 1.2fr auto 30px; gap: 8px;
+  align-items: start; padding: 10px 0; border-top: 1px solid var(--grid-line);
+}
+.eq-editor__note { grid-column: 1 / -1; margin: 0; }
+.eq-amounts { display: flex; gap: 6px; flex-wrap: wrap; }
+.eq-amounts .input { width: 110px; }
+@media (max-width: 900px) {
+  .eq-editor { grid-template-columns: 1fr auto; }
+  .eq-amounts { grid-column: 1 / -1; }
+}
+
+/* Реестр красных флагов «Финанс-Аудит» (макет Экран 9) */
+.flag-total {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 20px;
+  flex-wrap: wrap; padding: 16px 18px; border-radius: 14px;
+  border: 1px solid var(--border); background: var(--surface);
+}
+.flag-total__val {
+  font: 600 26px var(--font-mono); letter-spacing: -0.02em; color: var(--text);
+}
+.flag-total__note {
+  flex: 1; min-width: 260px; max-width: 520px;
+  font: 400 12.5px/1.55 var(--font-ui); color: var(--muted);
+}
+.flag-list { display: flex; flex-direction: column; gap: 8px; }
+.flag {
+  border: 1px solid var(--border); border-left-width: 3px; border-radius: 10px;
+  background: var(--surface-2); padding: 11px 13px;
+}
+.flag--risk { border-left-color: var(--danger); background: var(--danger-bg); }
+.flag--warn { border-left-color: var(--warn); background: var(--warn-bg); }
+.flag__head {
+  appearance: none; border: none; background: none; cursor: pointer; width: 100%;
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 9px; padding: 0;
+  text-align: left; color: inherit;
+}
+.flag__badge {
+  font: 600 9px var(--font-ui); letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 3px 6px; border-radius: 4px; background: var(--surface); color: var(--muted);
+}
+.flag__title { font: 600 13px var(--font-ui); color: var(--text); }
+.flag__periods { font: 500 11px var(--font-mono); color: var(--muted); }
+.flag__impact {
+  margin-left: auto; font: 500 12.5px var(--font-mono); color: var(--text);
+  white-space: nowrap;
+}
+.flag__detail { margin-top: 5px; font: 400 12.5px/1.5 var(--font-ui); color: var(--muted); }
+.flag__evidence {
+  margin-top: 9px; width: 100%; border-collapse: collapse;
+  font: 400 12px var(--font-ui); color: var(--muted);
+}
+.flag__evidence td { padding: 4px 0; border-top: 1px solid var(--border); }
+.flag__num { text-align: right; font-family: var(--font-mono); white-space: nowrap; }
+
+/* Сводка дела и вердикт «Финанс-Аудит» (макет Экран 1) */
+/* Охват живёт внутри карточки вердикта: это его ограничение, а не соседняя метрика.
+   Разнести их по экрану — значит позволить прочитать вердикт без охвата. */
+.verdict {
+  display: flex; align-items: stretch; justify-content: space-between; gap: 20px;
+  flex-wrap: wrap; padding: 18px 20px; border-radius: 16px;
+  border: 1px solid var(--border); background: var(--surface); margin-bottom: 14px;
+}
+.verdict--ok { border-color: var(--good-border); background: var(--good-bg); }
+.verdict--warning { border-color: var(--warn-border); background: var(--warn-bg); }
+.verdict--risk { border-color: var(--danger-border); background: var(--danger-bg); }
+.verdict--unreliable { border-color: var(--border-strong); background: var(--surface-2); }
+.verdict__main { flex: 1; min-width: 280px; }
+.verdict__headline {
+  font: 700 20px var(--font-display); letter-spacing: -0.01em; color: var(--text);
+  margin-top: 2px;
+}
+.verdict__detail {
+  margin-top: 7px; max-width: 720px;
+  font: 400 12.5px/1.6 var(--font-ui); color: var(--muted);
+}
+.verdict__coverage {
+  flex: none; min-width: 150px; padding-left: 20px;
+  border-left: 1px solid var(--border); display: flex; flex-direction: column;
+  justify-content: center;
+}
+.verdict__coverage-val {
+  font: 600 30px var(--font-mono); letter-spacing: -0.02em; color: var(--text);
+}
+.linkish {
+  appearance: none; border: none; background: none; padding: 0; cursor: pointer;
+  margin-top: 5px; text-align: left;
+  font: 400 11.5px var(--font-ui); color: var(--accent); text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.sum-metrics {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px;
+  margin-bottom: 14px;
+}
+.sum-metric {
+  padding: 13px 15px; border-radius: 12px;
+  border: 1px solid var(--border); background: var(--surface);
+}
+.sum-metric.tone--ok { border-color: var(--good-border); }
+.sum-metric.tone--warn { border-color: var(--warn-border); }
+.sum-metric.tone--risk { border-color: var(--danger-border); }
+.sum-metric__val {
+  margin-top: 7px; font: 600 19px var(--font-mono); letter-spacing: -0.02em;
+  color: var(--text);
+}
+.sum-metric.tone--warn .sum-metric__val { color: var(--warn-text); }
+.sum-metric.tone--risk .sum-metric__val { color: var(--danger-text); }
+.sum-metric__note {
+  margin-top: 6px; font: 400 11px/1.45 var(--font-ui); color: var(--subtle);
+}
+.sum-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+.sum-row__card { margin: 0; }
+.sum-flags { display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap;
+  font: 400 12.5px var(--font-ui); color: var(--muted); }
+.sum-flags__n { font: 600 22px var(--font-mono); color: var(--text); }
+.sum-flags__n--risk { color: var(--danger); }
+.sum-discount { margin-top: 12px; }
+.sum-discount__val { font: 600 26px var(--font-mono); letter-spacing: -0.02em; }
+.sum-discount__val.tone--ok { color: var(--accent); }
+.sum-discount__val.tone--risk { color: var(--danger); }
+.sum-gaps {
+  margin: 0; padding-left: 18px; font: 400 12.5px/1.6 var(--font-ui); color: var(--muted);
+}
+@media (max-width: 700px) {
+  .verdict__coverage { padding-left: 0; border-left: none; border-top: 1px solid var(--border);
+    padding-top: 12px; }
+}
+
+/* План-факт «Финанс-Аудит» (макет Экран 17) */
+/* Строка красится по оценке, а оценка учитывает направление: себестоимость ниже плана
+   зелёная, потому что это успех, а не недобор (SPEC, Т.3). */
+.pf-table .pf--better td { background: var(--good-bg); }
+.pf-table .pf--worse td { background: var(--danger-bg); }
+.pf-verdict { font: 500 11.5px var(--font-ui); white-space: nowrap; }
+.pf--better .pf-verdict { color: var(--accent); }
+.pf--worse .pf-verdict { color: var(--danger-text); }
+.pf--on-plan .pf-verdict { color: var(--subtle); }
+.pf-totals {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px;
+}
+.pf-flag {
+  display: grid; grid-template-columns: 1.4fr 1fr 150px 1.2fr; gap: 8px;
+  align-items: center; padding: 9px 0; border-top: 1px solid var(--grid-line);
+}
+.pf-flag__check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.pf-flag__title { font: 500 12.5px/1.35 var(--font-ui); color: var(--text); }
+.pf-flag__pred { font: 400 11.5px var(--font-mono); color: var(--muted); }
+@media (max-width: 900px) {
+  .pf-flag { grid-template-columns: 1fr 1fr; }
+  .pf-flag__check { grid-column: 1 / -1; }
+}
+
+/* Сравнение дел «Финанс-Аудит» (макет Экран 20) */
+.cmp-wins {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;
+  margin-bottom: 14px;
+}
+.cmp-win {
+  padding: 14px 16px; border-radius: 14px;
+  border: 1px solid var(--border); background: var(--surface);
+}
+.cmp-win__val { font: 600 24px var(--font-mono); letter-spacing: -0.02em; color: var(--accent); }
+.cmp-win__of { font: 400 12px var(--font-ui); color: var(--subtle); }
+.cmp-win__meta { margin-top: 6px; font: 400 11px var(--font-ui); color: var(--subtle); }
+/* Победившая клетка подсвечена, но подпись победителя всё равно есть отдельным
+   столбцом: цвет один читатель заметит, другой нет. */
+.cmp-cell--win { background: var(--good-bg); font-weight: 600; }
+.cmp-verdict { font: 500 12px/1.35 var(--font-ui); color: var(--accent); min-width: 110px; }
+.cmp-picker {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px;
+}
+.cmp-pick {
+  display: flex; align-items: flex-start; gap: 9px; padding: 11px 13px;
+  border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2);
+  cursor: pointer;
+}
+.cmp-pick--on { border-color: var(--primary); background: var(--good-bg); }
+.cmp-pick:has(input:disabled) { cursor: not-allowed; opacity: 0.6; }
+.cmp-pick__body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.cmp-pick__name { font: 600 12.5px var(--font-ui); color: var(--text); }
+.cmp-pick__meta { font: 400 11px/1.4 var(--font-ui); color: var(--subtle); }
+
+/* Анализ рисков «Финанс-Аудит» (макет Экран 13) */
+/* Столбцы растут от общей оси в центре: длина слева и справа сравнима только потому,
+   что шаг у всех допущений один (SPEC, Р.1) — и шаг подписан у каждой строки. */
+.torn { display: flex; flex-direction: column; gap: 9px; }
+.torn__row {
+  display: grid; grid-template-columns: 190px 1fr 210px; gap: 10px; align-items: center;
+}
+.torn__label { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.torn__name { font: 400 12px/1.35 var(--font-ui); color: var(--text); }
+.torn__step { font: 400 9.5px var(--font-mono); color: var(--subtle); }
+.torn__track { position: relative; height: 20px; }
+.torn__axis {
+  position: absolute; top: 0; bottom: 0; left: 50%; width: 1px;
+  background: var(--border-strong);
+}
+.torn__fill { position: absolute; top: 2px; bottom: 2px; border-radius: 3px; }
+.torn__fill--neg { background: var(--danger); }
+.torn__fill--pos { background: var(--primary); }
+.torn__nums { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.torn__num { display: inline-flex; align-items: baseline; gap: 5px; }
+.torn__at { font: 400 9.5px var(--font-mono); color: var(--subtle); }
+.torn__neg { font: 500 10.5px var(--font-mono); color: var(--danger); }
+.torn__pos { font: 500 10.5px var(--font-mono); color: var(--accent); }
+.torn__note {
+  grid-column: 1 / -1; font: 400 11px/1.45 var(--font-ui);
+  color: var(--warn-text, var(--warn));
+}
+.torn__foot {
+  padding-top: 12px; margin-top: 4px; border-top: 1px solid var(--border);
+  font: 400 11.5px/1.6 var(--font-ui); color: var(--subtle);
+}
+.mc-hist {
+  display: flex; align-items: flex-end; gap: 3px; height: 130px; margin-top: 12px;
+  padding: 0 2px; border-bottom: 1px solid var(--border);
+}
+.mc-hist__col { flex: 1; height: 100%; display: flex; align-items: flex-end; }
+.mc-hist__bar { width: 100%; background: var(--primary); border-radius: 3px 3px 0 0; min-height: 1px; }
+.mc-hist__axis {
+  display: flex; justify-content: space-between; margin-top: 5px;
+  font: 400 10.5px var(--font-mono); color: var(--subtle);
+}
+.risk-editor {
+  display: grid; grid-template-columns: 1.2fr 1.2fr 1.4fr 30px; gap: 8px;
+  align-items: center; padding: 9px 0; border-top: 1px solid var(--grid-line);
+}
+.risk-editor__nums { display: flex; gap: 6px; }
+.risk-editor__nums .input { width: 100%; min-width: 0; }
+@media (max-width: 900px) {
+  .torn__row { grid-template-columns: 1fr; }
+  .torn__nums { justify-content: flex-start; gap: 16px; }
+  .risk-editor { grid-template-columns: 1fr auto; }
+  .risk-editor__nums { grid-column: 1 / -1; }
+}
+
+/* Оценка стоимости «Финанс-Аудит» (макет Экран 4) */
+/* Когда оценка не посчиталась, экран показывает **причины**, а не нули: «бизнес стоит
+   0» и «оценка не посчитана» — разные утверждения. */
+.val-blocked {
+  padding: 16px 18px; border-radius: 14px; margin-bottom: 14px;
+  border: 1px solid var(--warn-border); background: var(--warn-bg);
+}
+.val-blocked__title { font: 700 14px var(--font-ui); color: var(--text); margin-bottom: 6px; }
+.val-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 20px;
+  flex-wrap: wrap; padding: 18px 20px; border-radius: 16px; margin-bottom: 12px;
+  border: 1px solid var(--border); background: var(--surface);
+}
+.val-head__val {
+  font: 600 30px var(--font-mono); letter-spacing: -0.02em; color: var(--accent);
+}
+.val-head__range { margin-top: 7px; font: 400 11.5px var(--font-ui); color: var(--subtle); }
+.val-head__ask { flex: none; min-width: 240px; max-width: 380px; text-align: right; }
+.val-head__askval { font: 600 18px var(--font-mono); color: var(--text); }
+.val-head__disc { margin-top: 6px; font: 600 13px var(--font-ui); }
+.val-head__disc.tone--ok { color: var(--accent); }
+.val-head__disc.tone--risk { color: var(--danger); }
+.val-bridge { display: flex; flex-direction: column; }
+.val-bridge__row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 9px 0; border-bottom: 1px solid var(--grid-line);
+}
+.val-bridge__row--total {
+  border-bottom: none; border-top: 1px solid var(--border); margin-top: 4px;
+  padding-top: 12px;
+}
+.val-bridge__label { font: 400 12.5px/1.4 var(--font-ui); color: var(--muted); }
+.val-bridge__val { font: 500 13px var(--font-mono); color: var(--text); white-space: nowrap; }
+.val-bridge__row--total .val-bridge__label { font-weight: 600; color: var(--text); }
+.val-bridge__row--total .val-bridge__val { font: 600 16px var(--font-mono); color: var(--accent); }
+/* Клетка текущих допущений подсвечена: без неё сетка не сообщает, где мы стоим. */
+.val-sens__here { background: var(--good-bg); font-weight: 600; }
+.val-params {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px;
+  margin-bottom: 14px;
+}
+.val-row { padding: 10px 0; border-top: 1px solid var(--grid-line); }
+.val-row__head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.val-row__hint { font: 400 11px var(--font-ui); color: var(--subtle); }
+.val-row__cells { display: flex; gap: 6px; flex-wrap: wrap; }
+.val-row__cells .input { width: 108px; }
+
+/* Чек-лист процедур «Финанс-Аудит» (макет Экран 21) */
+.proc-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 20px;
+  flex-wrap: wrap; padding: 16px 18px; border-radius: 14px;
+  border: 1px solid var(--border); background: var(--surface); margin-bottom: 12px;
+}
+.proc-head__val { font: 600 26px var(--font-mono); letter-spacing: -0.02em; color: var(--text); }
+.proc-head__sub { margin-top: 5px; font: 400 11.5px var(--font-ui); color: var(--subtle); }
+.proc-head__counts {
+  display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center;
+  max-width: 560px;
+}
+.proc-count { font: 400 12px var(--font-ui); color: var(--muted); }
+.proc-count b { font: 600 13px var(--font-mono); }
+/* Границы стоят под охватом и оформлены как предупреждение: охват без них
+   читается как «почти всё проверено», а не как «столько-то не проверялось». */
+.proc-limits {
+  padding: 14px 16px; border-radius: 12px; margin-bottom: 16px;
+  border: 1px solid var(--warn-border); background: var(--warn-bg);
+}
+.proc-limits__title { font: 700 13px var(--font-ui); color: var(--text); margin-bottom: 4px; }
+.proc-limits__list {
+  margin: 0; padding-left: 18px; font: 400 12.5px/1.6 var(--font-ui); color: var(--muted);
+}
+.proc-list { display: flex; flex-direction: column; gap: 8px; }
+.proc {
+  border: 1px solid var(--border); border-left-width: 3px; border-radius: 10px;
+  background: var(--surface-2); padding: 11px 13px;
+}
+.proc--pass { border-left-color: var(--accent); }
+.proc--finding { border-left-color: var(--danger); background: var(--danger-bg); }
+.proc--nodata { border-left-color: var(--warn); background: var(--warn-bg); }
+.proc--skipped { border-left-color: var(--subtle); }
+.proc--pending { border-left-color: var(--border-strong); }
+.proc__top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.proc__title { font: 600 13px var(--font-ui); color: var(--text); }
+.proc__badge {
+  margin-left: auto; font: 600 9px var(--font-ui); letter-spacing: 0.1em;
+  text-transform: uppercase; padding: 3px 6px; border-radius: 4px;
+  background: var(--surface); color: var(--muted); white-space: nowrap;
+}
+.proc__badge.proc--finding { color: var(--danger); }
+.proc__badge.proc--nodata { color: var(--warn-text, var(--warn)); }
+.proc__method { margin-top: 5px; font: 400 12px/1.5 var(--font-ui); color: var(--subtle); }
+/* Исполнитель — не украшение: он объясняет, почему статус нельзя поставить руками. */
+.proc__who {
+  display: inline-block; margin-right: 7px; padding: 2px 6px; border-radius: 4px;
+  font: 600 10px var(--font-ui); letter-spacing: 0.04em; text-transform: uppercase;
+  background: var(--surface); color: var(--accent);
+}
+.proc__who--analyst { color: var(--warn-text, var(--warn)); }
+.proc__detail { margin-top: 5px; font: 400 12.5px/1.5 var(--font-ui); color: var(--muted); }
+.proc__mark { margin-top: 9px; display: grid; grid-template-columns: 170px 1fr; gap: 8px; }
+.proc__locked { margin-top: 7px; font: 400 11.5px var(--font-ui); color: var(--subtle); }
+.proc-editor {
+  display: grid; grid-template-columns: 1.6fr 170px 1.2fr 30px; gap: 8px;
+  align-items: start; padding: 10px 0; border-top: 1px solid var(--grid-line);
+}
+.proc-editor__note { grid-column: 1 / -1; margin: 0; }
+@media (max-width: 900px) {
+  .proc__mark { grid-template-columns: 1fr; }
+  .proc-editor { grid-template-columns: 1fr auto; }
+  .proc-editor__title { grid-column: 1 / -1; }
+}
+
+/* Обязательства и залоги «Финанс-Аудит» (макет Экран 10) */
+/* Два итога стоят рядом и намеренно **не** объединены общей суммой: забалансовое
+   обязательство ещё не наступило (SPEC, Приложение Л.1). Оговорка занимает место
+   третьей карточки — там, где взгляд ищет итог. */
+.obl-totals {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;
+  margin-bottom: 12px;
+}
+.obl-total {
+  padding: 14px 16px; border-radius: 14px;
+  border: 1px solid var(--border); background: var(--surface);
+}
+.obl-total--off { border-color: var(--warn-border); background: var(--warn-bg); }
+.obl-total__val {
+  font: 600 22px var(--font-mono); letter-spacing: -0.02em; color: var(--text);
+}
+.obl-total__sub { margin-top: 5px; font: 400 11.5px var(--font-ui); color: var(--subtle); }
+.obl-totals__note {
+  align-self: center; font: 400 12.5px/1.55 var(--font-ui); color: var(--muted);
+}
+.obl-recon {
+  display: flex; align-items: flex-start; gap: 20px; flex-wrap: wrap;
+  padding: 13px 16px; border-radius: 12px; margin-bottom: 16px;
+  border: 1px solid var(--border); background: var(--surface-2);
+}
+.obl-recon--ok { border-color: var(--good-border); background: var(--good-bg); }
+.obl-recon--bad { border-color: var(--danger-border); background: var(--danger-bg); }
+.obl-recon__val { font: 600 18px var(--font-mono); color: var(--text); }
+.obl-recon__text {
+  flex: 1; min-width: 260px; font: 400 12.5px/1.55 var(--font-ui); color: var(--muted);
+}
+.obl-bars { display: flex; flex-direction: column; gap: 6px; }
+.obl-bar { display: grid; grid-template-columns: 92px 1fr 110px; gap: 10px; align-items: center; }
+.obl-bar__label { font: 500 12px var(--font-mono); color: var(--muted); }
+.obl-bar__track {
+  height: 18px; border-radius: 5px; background: var(--surface-2); overflow: hidden;
+}
+.obl-bar__fill { height: 100%; border-radius: 5px; background: var(--primary); }
+/* «По требованию» и «срок не указан» — не годы: полоса штрихуется, чтобы её не
+   прочитали как обычный год на шкале. */
+.obl-bar__fill--odd {
+  background: repeating-linear-gradient(135deg, var(--warn) 0 5px, transparent 5px 10px),
+              var(--warn-bg);
+}
+.obl-bar__val { font: 500 12.5px var(--font-mono); color: var(--text); text-align: right; }
+.obl-pledge {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;
+  align-items: center;
+}
+.obl-pledge__pct { font: 400 12px var(--font-ui); color: var(--muted); }
+.obl-editor {
+  padding: 12px 0; border-top: 1px solid var(--grid-line);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.obl-editor__row {
+  display: grid; grid-template-columns: 1.3fr 1.3fr 1fr auto; gap: 8px; align-items: end;
+}
+.obl-editor__note { margin: 0; }
+/* Строка обеспечения короче остальных: без растяжки поле «что заложено» осталось бы
+   узким, а справа висела бы дыра в две колонки. */
+.obl-editor__wide { grid-column: span 2; }
+.obl-cell { display: flex; flex-direction: column; gap: 3px; }
+.obl-cell--check { flex-direction: row; align-items: center; gap: 7px;
+  font: 400 12.5px var(--font-ui); color: var(--muted); padding-bottom: 9px; }
+.obl-cell--warn { color: var(--warn-text, var(--warn)); }
+.obl-row--off td { background: var(--warn-bg); }
+.obl-cov { display: block; }
+.cov--ok { color: var(--accent); }
+.cov--bad { color: var(--danger); }
+.cov--unknown { color: var(--warn-text, var(--warn)); }
+@media (max-width: 900px) {
+  .obl-editor__row { grid-template-columns: 1fr 1fr; }
+  .obl-bar { grid-template-columns: 72px 1fr 92px; }
+}
+
+/* Вторая полоса вкладок внутри раздела дела («Финанс-Аудит»). Тише основной:
+   это уточнение внутри раздела, а не выбор раздела. */
+.subseg { display: flex; flex-wrap: wrap; gap: 2px; margin-bottom: 16px; }
+.subseg__btn {
+  appearance: none; border: none; background: none; cursor: pointer;
+  padding: 6px 10px; border-radius: var(--radius-sm);
+  font: 500 12.5px var(--font-ui); color: var(--muted);
+  border-bottom: 2px solid transparent;
+}
+.subseg__btn:hover { color: var(--text); background: var(--hov); }
+.subseg__btn--active {
+  color: var(--accent); border-bottom-color: var(--primary); border-radius: 0;
+}
+
+/* Печатное заключение «Финанс-Аудит» (макет Экран 5 / «Заключение (печать)»).
+   Палитра печати задана локально на листе и не зависит от темы интерфейса: из тёмной
+   темы документ обязан выходить таким же белым, как из светлой. Значения — из THEME()
+   стиль-гайда, раздел «Печать». */
+.ap-paper {
+  --paper: #FFFFFF; --ink: #17141C; --muted: #5A5364; --faint: #8C8598;
+  --rule: #E3DEE8; --rule-strong: #CFC7DA;
+  --accent: #7A2BC4; --accent-soft: #F4EDFB;
+  --neg: #A53A30; --attn: #8A5E0C;
+  position: relative; width: 794px; max-width: 100%; min-height: 1123px;
+  background: var(--paper); color: var(--ink);
+  padding: 15mm 16mm 11mm; margin: 0 auto 22px; border-radius: 3px;
+  display: flex; flex-direction: column;
+  font-family: var(--font-ui); font-size: 14px;
+}
+.ap-pagenum {
+  position: absolute; top: 8mm; right: 16mm;
+  font: 600 10px var(--font-mono); color: var(--faint);
+}
+.ap-band {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  padding-bottom: 14px; border-bottom: 2px solid var(--ink);
+}
+.ap-brand { font: 700 16px var(--font-ui); letter-spacing: -0.01em; }
+.ap-brand-sub { font: 500 10.5px var(--font-ui); color: var(--muted); margin-top: 1px; }
+.ap-dockind {
+  font: 700 11px var(--font-ui); letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--accent);
+}
+.ap-docdate { font: 500 11px var(--font-mono); color: var(--muted); margin-top: 4px; }
+.ap-subject {
+  font: 500 28px var(--font-display); letter-spacing: -0.03em; margin: 20px 0 0;
+}
+.ap-subject-sub { font: 500 12.5px var(--font-ui); color: var(--muted); margin-top: 5px; }
+
+.ap-verdict {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 14px;
+  margin-top: 20px; padding: 14px 16px;
+  border: 1px solid var(--rule); border-left: 4px solid var(--accent);
+  border-radius: 8px; background: var(--accent-soft);
+}
+.ap-verdict--warning { border-left-color: var(--attn); background: #FBF3E2; }
+.ap-verdict--risk { border-left-color: var(--neg); background: #FAECEA; }
+.ap-verdict__title { font: 600 15px var(--font-ui); }
+.ap-verdict__sub { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+.ap-verdict__period {
+  font: 500 11px var(--font-mono); color: var(--muted); white-space: nowrap;
+}
+.ap-note {
+  margin-top: 12px; padding: 9px 12px; border-radius: 6px;
+  border: 1px solid var(--rule); background: var(--accent-soft);
+  font-size: 12px; color: var(--muted);
+}
+.ap-note--warn { border-color: #EBD9A9; background: #FBF3E2; color: var(--attn); }
+
+.ap-block { margin-top: 20px; }
+.ap-block__title {
+  font: 600 9.5px var(--font-ui); letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--faint); padding-bottom: 6px; border-bottom: 1px solid var(--rule-strong);
+  margin-bottom: 8px;
+}
+.ap-sheet-head { font: 600 15px var(--font-ui); }
+.ap-para { font-size: 12.8px; line-height: 1.55; margin: 0 0 8px; }
+.ap-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.ap-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.ap-table td { padding: 5px 0; border-bottom: 1px solid var(--rule); }
+.ap-num { text-align: right; font: 500 12.5px var(--font-mono); white-space: nowrap; }
+.ap-zone { text-align: right; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+/* Оговорка внутри раздела: мельче основного текста, но крупнее подвальной —
+   её читают вместе с числами, которые она объясняет. */
+.ap-fine { font-size: 11.5px; line-height: 1.5; color: var(--muted); margin: 6px 0 0; }
+.ap-fineprint {
+  margin-top: 18px; font-size: 10.5px; line-height: 1.5; color: var(--faint);
+}
+.ap-footer {
+  margin-top: auto; padding-top: 12px; border-top: 1px solid var(--rule);
+  display: flex; justify-content: space-between;
+  font: 500 10px var(--font-ui); color: var(--faint);
+}
+
+@media print {
+  /* Лист печатается сам собой: рамки, тени и отступы экрана убираются, а разрыв
+     страницы ставится между листами явно — иначе браузер разрежет их по своему. */
+  .ap-paper {
+    width: 100%; max-width: none; min-height: auto;
+    padding: 0; margin: 0; border-radius: 0; box-shadow: none;
+    break-after: page;
+  }
+  .ap-paper:last-child { break-after: auto; }
+  .ap-pagenum { top: 0; right: 0; }
+}
+
+/* Журнал действий организации (макет Экран 11, раздел «Журнал доступа») */
+.log-list { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.log-row {
+  display: grid; grid-template-columns: 150px 1.1fr 1.3fr 1.2fr; gap: 12px;
+  padding: 9px 14px; align-items: baseline; font-size: 12.5px;
+  border-top: 1px solid var(--grid-line); background: var(--surface);
+}
+.log-row:first-child { border-top: none; }
+.log-row--head {
+  background: var(--header-bg); color: var(--subtle);
+  font: 600 9.5px var(--font-ui); letter-spacing: 0.1em; text-transform: uppercase;
+}
+.log-row--danger { background: var(--danger-bg); }
+.log-row--attn { background: var(--warn-bg); }
+.log-when { font: 400 11.5px var(--font-mono); color: var(--muted); }
+.log-who { font-weight: 500; color: var(--text); overflow-wrap: anywhere; }
+.log-entity { color: var(--muted); overflow-wrap: anywhere; }
+.log-details { color: var(--subtle); }
+@media (max-width: 900px) {
+  .log-row { grid-template-columns: 1fr 1fr; }
+  .log-row--head { display: none; }
+}
+
+/* Панель качества данных «Финанс-Аудит» (макет Экран 19) */
+.issue-list { display: flex; flex-direction: column; gap: 8px; }
+.issue {
+  padding: 11px 13px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--surface-2);
+  border-left-width: 3px;
+}
+.issue--error { border-left-color: var(--danger); background: var(--danger-bg); }
+.issue--warn { border-left-color: var(--warn); background: var(--warn-bg); }
+.issue--info { border-left-color: var(--info); background: var(--info-bg); }
+.issue__head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+.issue__badge {
+  font: 600 9px var(--font-ui); letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 3px 6px; border-radius: 4px; background: var(--surface); color: var(--muted);
+}
+.issue__title { font: 600 13px var(--font-ui); color: var(--text); }
+.issue__periods { font: 500 11px var(--font-mono); color: var(--muted); }
+.issue__detail { margin-top: 5px; font: 400 12.5px/1.5 var(--font-ui); color: var(--muted); }
+
+/* Список дел «Финанс-Аудит» (макет Экран 6): фильтры-пилюли и мета карточки */
+.case-toolbar { display: flex; gap: 10px; margin-bottom: 12px; }
+.case-search { max-width: 360px; }
+.case-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.case-filter {
+  display: inline-flex; align-items: center; padding: 6px 12px;
+  border: 1px solid var(--border); border-radius: 999px;
+  font: 500 11.5px/1.3 var(--font-ui); color: var(--muted);
+  background: var(--surface); cursor: pointer; transition: 0.14s;
+}
+.case-filter:hover { border-color: var(--border-strong); color: var(--text); }
+.case-filter--active {
+  background: var(--primary); border-color: var(--primary); color: var(--primary-text);
+}
+.case-card__meta { margin-top: 5px; font: 500 12px var(--font-ui); color: var(--subtle); }
+.case-card__chips { display: flex; flex-wrap: wrap; gap: 6px; }
 
 /* Строчный вид */
 .proj-table { border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: var(--surface); }
@@ -1787,6 +2658,15 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .fin2-cell--colhov { background: var(--hovlab); }
 .fin2-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; font: 500 11.5px var(--font-ui); color: var(--subtle); }
 .fin2-legend span { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Детализация строк (drill-down, пакет №6): раскрываемая строка + под-строки слагаемых */
+.fin2-label--exp { cursor: pointer; }
+.fin2-label--exp:hover { color: var(--primary); }
+.fin2-chev { margin-left: auto; flex: none; font-size: 10px; color: var(--subtle); }
+.fin2-label--exp:hover .fin2-chev { color: var(--primary); }
+.fin2-row--detail .fin2-label { font-weight: 400; color: var(--muted); background: var(--surface-2); }
+.fin2-row--detail .fin2-cell { font-weight: 400; color: var(--muted); background: var(--surface-2); }
+.fin2-row--detail .fin2-label span:last-child { padding-left: 6px; }
 @media (max-width: 640px) { .fin2-corner, .fin2-label { width: 168px; } .fin2-month, .fin2-cell { width: 78px; } }
 
 /* Коэффициенты */
@@ -2295,3 +3175,594 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .plan-diff__label { font: 600 9.5px var(--font-ui); text-transform: uppercase; letter-spacing: 0.05em; color: var(--subtle); }
 .plan-diff__val { font: 600 15px var(--font-ui); color: var(--text); margin-top: 4px; }
 .plan-diff__arrow { color: var(--subtle); font-size: 18px; flex: none; }
+
+/* ============================================================
+   20. РЕВЮ ПЛАНА (Ф10 — «светофор», находки, гейт финализации)
+   ============================================================ */
+
+/* «Светофор» — итоговый статус ревью */
+.rv-light {
+  display: flex; align-items: center; gap: 16px; padding: 16px 18px; margin-bottom: 14px;
+  background: var(--surface); border: 1px solid var(--border); border-left-width: 4px; border-radius: 13px;
+}
+.rv-light__dot { width: 14px; height: 14px; border-radius: 50%; flex: none; box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 12%, transparent); }
+.rv-light__text { flex: 1; min-width: 0; }
+.rv-light__title { font: 600 16px var(--font-display); color: var(--text); }
+.rv-light__sub { font: 400 12.5px/1.45 var(--font-ui); color: var(--muted); margin-top: 2px; }
+.rv-light__counts { display: flex; gap: 16px; flex: none; }
+.rv-count { display: flex; flex-direction: column; align-items: center; }
+.rv-count__n { font: 700 20px var(--font-mono); line-height: 1; }
+.rv-count__l { font: 500 10.5px var(--font-ui); color: var(--subtle); margin-top: 3px; }
+
+/* Экспертное заключение (пакет №5, D0) — автотекст по итогам ревью */
+.rv-opinion { background: var(--surface); border: 1px solid var(--border); border-radius: 13px; padding: 16px 18px; margin-bottom: 14px; }
+.rv-opinion__head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.rv-opinion__title { font: 600 14px var(--font-ui); color: var(--text); }
+.rv-opinion__text { font: 400 13px/1.6 var(--font-ui); color: var(--muted); margin-top: 9px; white-space: pre-line; }
+
+/* Гейт финализации */
+.rv-final { background: var(--surface); border: 1px solid var(--border); border-radius: 13px; padding: 16px 18px; margin-bottom: 16px; }
+.rv-final__title { font: 600 14px var(--font-ui); color: var(--text); }
+.rv-final__sub { font: 400 12.5px/1.45 var(--font-ui); color: var(--muted); margin-top: 3px; }
+.rv-final .run-btn { margin-top: 12px; }
+.rv-final__err { font: 500 12px var(--font-ui); color: var(--danger-text); margin-top: 10px; }
+.rv-final--done { border-color: var(--good-border); background: var(--good-bg); }
+.rv-final__badge { display: flex; align-items: center; gap: 12px; }
+.rv-final__check {
+  width: 30px; height: 30px; border-radius: 50%; flex: none; background: var(--good); color: #fff;
+  display: flex; align-items: center; justify-content: center; font: 700 15px var(--font-ui);
+}
+.rv-final__note { font: 400 11.5px var(--font-ui); color: var(--subtle); margin-top: 10px; }
+.rv-drift {
+  font: 500 12px/1.45 var(--font-ui); color: var(--warn-text); background: var(--warn-bg);
+  border: 1px solid var(--warn-border); border-radius: 9px; padding: 9px 12px; margin-top: 12px;
+}
+.rv-ack {
+  display: flex; align-items: flex-start; gap: 9px; margin-top: 12px; cursor: pointer;
+  font: 500 12.5px/1.4 var(--font-ui); color: var(--text);
+}
+.rv-ack input { margin-top: 2px; flex: none; accent-color: var(--danger); }
+
+/* Список находок */
+.rv-list { display: flex; flex-direction: column; gap: 10px; }
+.rv-finding { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.rv-finding__bar { width: 4px; flex: none; }
+.rv-finding__body { padding: 13px 15px; min-width: 0; flex: 1; }
+.rv-finding__head { display: flex; align-items: center; gap: 9px; margin-bottom: 7px; }
+.rv-finding__cat { font: 600 10.5px var(--font-ui); letter-spacing: 0.03em; text-transform: uppercase; color: var(--subtle); }
+.rv-finding__title { font: 600 14px var(--font-ui); color: var(--text); }
+.rv-finding__detail { font: 400 12.5px/1.5 var(--font-ui); color: var(--muted); margin-top: 4px; }
+.rv-finding__rec { display: flex; gap: 7px; font: 500 12.5px/1.45 var(--font-ui); color: var(--text); margin-top: 8px; }
+.rv-finding__arrow { color: var(--primary); font-weight: 700; flex: none; }
+.rv-finding__evi { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.rv-evi-chip {
+  font: 500 10.5px var(--font-mono); color: var(--subtle); background: var(--surface-2);
+  border: 1px solid var(--grid-line); border-radius: 6px; padding: 2px 7px;
+}
+.rv-evi-chip b { color: var(--muted); font-weight: 700; }
+
+/* Компактный баннер ревью на странице результатов */
+.rv-banner {
+  display: flex; align-items: center; gap: 13px; width: 100%; text-align: left;
+  margin-top: 16px; padding: 13px 16px; background: var(--surface);
+  border: 1px solid var(--border); border-left: 4px solid var(--border); border-radius: 12px;
+  cursor: pointer; transition: 0.14s;
+}
+.rv-banner:hover { background: var(--surface-2); }
+.rv-banner__dot { width: 11px; height: 11px; border-radius: 50%; flex: none; }
+.rv-banner__text { flex: 1; min-width: 0; }
+.rv-banner__title { font: 600 13.5px var(--font-ui); color: var(--text); }
+.rv-banner__sub { font: 400 12px var(--font-ui); color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rv-banner__counts { display: flex; gap: 6px; flex: none; }
+.rv-bchip { font: 600 11px var(--font-ui); padding: 3px 8px; border-radius: 6px; white-space: nowrap; }
+.rv-bchip--risk { color: var(--danger-text); background: var(--danger-bg); }
+.rv-bchip--warn { color: var(--warn-text); background: var(--warn-bg); }
+.rv-bchip--info { color: var(--info); background: var(--info-bg); }
+.rv-banner__arrow { font: 600 12px var(--font-ui); color: var(--accent); flex: none; white-space: nowrap; }
+@media (max-width: 640px) { .rv-banner__counts { display: none; } }
+
+/* ============================================================
+   21. КАЛЕНДАРНЫЙ ПЛАН (этапы, диаграмма Гантта, ресурсы, смета)
+   ============================================================ */
+
+.gantt-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 13px;
+  padding: 15px 16px; margin-bottom: 14px;
+}
+.gantt-card__title { font: 600 12.5px var(--font-ui); color: var(--text); margin-bottom: 12px; }
+.gantt { display: flex; flex-direction: column; gap: 7px; }
+.gantt-row { display: flex; align-items: center; gap: 12px; }
+.gantt-label {
+  width: 150px; flex: none; font: 500 12px var(--font-ui); color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gantt-track { flex: 1; height: 18px; background: var(--surface-2); border-radius: 5px; position: relative; overflow: hidden; }
+.gantt-bar { position: absolute; top: 3px; height: 12px; border-radius: 4px; min-width: 3px; opacity: 0.9; }
+.gantt-bar--group { top: 7px; height: 4px; border-radius: 2px; opacity: 0.6; }
+.gantt-axis { display: flex; justify-content: space-between; margin-top: 8px; margin-left: 162px; font: 500 10.5px var(--font-mono); color: var(--subtle); }
+
+.inv-bars { display: flex; align-items: flex-end; gap: 3px; height: 72px; padding-top: 6px; }
+.inv-bar-col { flex: 1; height: 100%; display: flex; align-items: flex-end; min-width: 4px; }
+.inv-bar { width: 100%; background: var(--primary); border-radius: 3px 3px 0 0; min-height: 1px; opacity: 0.85; }
+
+.stage-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.efield__ro {
+  height: 42px; display: flex; align-items: center; padding: 0 12px;
+  font: 600 13px var(--font-mono); color: var(--muted);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px;
+}
+.add-row--sm { padding: 8px; font-size: 12px; margin-top: 4px; }
+
+/* Библиотека ресурсов */
+.res-lib { margin-top: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 13px; padding: 15px 16px; }
+.res-lib__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.res-lib__title { font: 600 13px var(--font-ui); color: var(--text); }
+.res-row { display: flex; align-items: flex-end; gap: 10px; }
+.res-row__name {
+  flex: 1; min-width: 0; height: 42px; padding: 0 12px; align-self: stretch; margin-top: auto;
+  font: 500 13px var(--font-ui); color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px;
+}
+.res-row .efield { width: 130px; flex: none; }
+.res-assign { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 8px; }
+.res-assign .efield { flex: 1; }
+.mat-imp {
+  display: flex; align-items: center; gap: 5px; align-self: flex-end; height: 42px;
+  font: 500 11.5px var(--font-ui); color: var(--muted); cursor: pointer; flex: none;
+}
+.mat-imp input { accent-color: var(--primary); }
+.field-note--warn { color: var(--warn-text); }
+
+/* Таблицы пользователя (редактор формул) */
+.ft-help {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  padding: 12px 15px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 6px;
+}
+.ft-help__row { font: 400 12px/1.55 var(--font-ui); color: var(--muted); }
+.ft-help__row b { color: var(--text); font-weight: 600; }
+.ft-help__row code {
+  font: 500 11.5px var(--font-mono); color: var(--accent);
+  background: var(--surface-2); padding: 1px 5px; border-radius: 5px;
+}
+.ft-row { display: flex; align-items: center; gap: 10px; }
+.ft-row__name {
+  width: 220px; flex: none; height: 40px; padding: 0 12px;
+  font: 500 13px var(--font-ui); color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px;
+}
+.ft-row__formula {
+  flex: 1; min-width: 0; height: 40px; padding: 0 12px;
+  font: 500 12.5px var(--font-mono); color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px;
+}
+.ft-row__formula:focus, .ft-row__name:focus { border-color: var(--primary); outline: none; }
+@media (max-width: 640px) { .ft-row { flex-wrap: wrap; } .ft-row__name { width: 100%; } }
+
+/* Вкладка «Документ» (пакет №5, D2) — разделы бизнес-плана */
+.doc-sec__text {
+  width: 100%; padding: 10px 12px; resize: vertical; min-height: 90px;
+  font: 400 13px/1.55 var(--font-ui); color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px;
+}
+.doc-sec__text:focus { border-color: var(--primary); outline: none; }
+.doc-sec__move {
+  width: 28px; height: 28px; flex: none; display: flex; align-items: center; justify-content: center;
+  font: 600 13px var(--font-ui); color: var(--muted); cursor: pointer;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px;
+}
+.doc-sec__move:hover:not(:disabled) { color: var(--text); border-color: var(--primary); }
+.doc-sec__move:disabled { opacity: 0.4; cursor: default; }
+
+/* ============================================================
+   22. ВЕРСИИ ПРОЕКТА (снимки модели, анализ изменений; пакет №8)
+   ============================================================ */
+
+.vsave { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.vsave__input {
+  flex: 1; min-width: 220px; height: 40px; padding: 0 13px;
+  font: 500 13px var(--font-ui); color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px;
+}
+.vsave__input:focus { border-color: var(--primary); outline: none; }
+
+.vlist { display: flex; flex-direction: column; gap: 12px; }
+.vrow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.vrow__label { font: 600 14px var(--font-ui); color: var(--text); }
+.vrow__meta { font: 400 12px var(--font-ui); color: var(--muted); margin-top: 3px; }
+.vrow__actions { display: flex; gap: 6px; flex: none; margin-left: auto; flex-wrap: wrap; }
+
+.vdiff { border-top: 1px solid var(--border); padding-top: 12px; }
+.vch-list { display: flex; flex-direction: column; gap: 6px; }
+.vch-row {
+  display: flex; align-items: center; gap: 10px; padding: 6px 10px;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; flex-wrap: wrap;
+}
+.vch-badge {
+  font: 600 10px var(--font-ui); text-transform: uppercase; letter-spacing: 0.03em;
+  padding: 2px 7px; border-radius: 5px; flex: none;
+}
+.vch--add { color: var(--good); background: var(--good-bg); }
+.vch--rem { color: var(--danger-text); background: var(--danger-bg); }
+.vch--chg { color: var(--info); background: var(--info-bg); }
+.vch-path { font: 500 12px var(--font-mono); color: var(--text); min-width: 0; word-break: break-all; }
+.vch-vals { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; font: 500 12px var(--font-mono); }
+.vch-old { color: var(--danger); text-decoration: line-through; opacity: 0.75; }
+.vch-arrow { color: var(--subtle); }
+.vch-new { color: var(--good); }
+
+/* Инфляция по годам (gap 1.9) — таблица год × группа */
+.infl-year__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.infl-year__title { font: 600 14px var(--font-ui); color: var(--text); }
+.infl-year__sub { font: 400 12px/1.45 var(--font-ui); color: var(--muted); margin-top: 3px; max-width: 460px; }
+.infl-grid { overflow-x: auto; margin-top: 14px; }
+.infl-grid table { border-collapse: collapse; width: 100%; min-width: 380px; }
+.infl-grid th {
+  font: 600 11px var(--font-ui); color: var(--subtle); text-align: right; padding: 6px 8px;
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+.infl-grid th:first-child, .infl-grid__year { text-align: left; }
+.infl-grid td { padding: 4px 6px; }
+.infl-grid__year { font: 600 12px var(--font-mono); color: var(--muted); white-space: nowrap; }
+.infl-grid input {
+  width: 72px; height: 32px; padding: 0 8px; text-align: right;
+  font: 500 12.5px var(--font-mono); color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px;
+}
+.infl-grid input:focus { border-color: var(--primary); outline: none; }
+
+/* Смета план-факт (актуализация этапов, gap 4.6) */
+.budget-pf { overflow-x: auto; margin-top: 4px; }
+.budget-pf table { border-collapse: collapse; width: 100%; min-width: 480px; }
+.budget-pf th {
+  font: 600 11px var(--font-ui); color: var(--subtle); text-align: right; padding: 6px 10px;
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+.budget-pf th:first-child, .budget-pf__name { text-align: left; }
+.budget-pf td { padding: 5px 10px; text-align: right; font: 500 12.5px var(--font-mono); color: var(--text); white-space: nowrap; }
+.budget-pf__name { font: 500 12.5px var(--font-ui); color: var(--text); }
+.budget-pf--over { color: var(--danger); }
+.budget-pf--under { color: var(--good); }
+
+/* ── Финанс-Аудит (продукт №2): ввод отчётности ──────────────────────────── */
+.link-back {
+  display: inline-block; background: none; border: 0; cursor: pointer; padding: 0;
+  color: var(--accent); font: 600 12.5px var(--font-ui); margin-bottom: 6px;
+}
+.link-back:hover { text-decoration: underline; }
+.subject-name {
+  display: block; width: 100%; max-width: 520px; border: 0; background: none;
+  font: 800 22px var(--font-display); color: var(--text); padding: 2px 0;
+}
+.subject-name:focus { outline: none; border-bottom: 2px solid var(--primary); }
+.audit-block {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  padding: 16px; margin-bottom: 14px;
+}
+.audit-block__title { font: 700 14px var(--font-ui); color: var(--text); margin-bottom: 12px; }
+.audit-grid { border-collapse: collapse; width: 100%; min-width: 380px; }
+.audit-grid th, .audit-grid td {
+  border: 1px solid var(--border); padding: 0; text-align: right;
+}
+.audit-grid th {
+  background: var(--surface-2); color: var(--subtle); font: 600 11.5px var(--font-ui);
+  padding: 7px 10px; white-space: nowrap;
+}
+.audit-grid__rowhead {
+  text-align: left !important; background: var(--surface-2);
+  color: var(--text); font: 500 12.5px var(--font-ui); padding: 7px 10px !important;
+  white-space: nowrap;
+}
+.audit-cell {
+  width: 100%; min-width: 90px; border: 0; background: var(--input-bg);
+  padding: 7px 10px; text-align: right; font: 500 13px var(--font-mono); color: var(--text);
+}
+.audit-cell:focus { outline: 2px solid var(--ring); outline-offset: -2px; }
+.balance-banner {
+  display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center;
+  border-radius: 10px; padding: 10px 14px; margin-bottom: 16px;
+  font: 600 12.5px var(--font-ui);
+}
+.balance-banner--ok { background: var(--good-bg); color: var(--good); border: 1px solid var(--good-border); }
+.balance-banner--bad { background: var(--danger-bg); color: var(--danger-text); border: 1px solid var(--danger-border); }
+.balance-banner__gaps { display: flex; flex-wrap: wrap; gap: 4px 14px; font-weight: 500; }
+.audit-val { padding: 7px 10px; text-align: right; font: 500 12.5px var(--font-mono); color: var(--text); white-space: nowrap; }
+.audit-val--up { color: var(--good); }
+.audit-val--down { color: var(--danger); }
+.audit-row--subtotal { background: var(--subtotal-bg); }
+.audit-row--subtotal .audit-grid__rowhead,
+.audit-row--subtotal .audit-val { font-weight: 700; }
+
+/* Диагностика (фаза D): светофор состояния, зоны скоринга, статусы нормативов */
+.diag-light { border-radius: 14px; padding: 15px 18px; margin-bottom: 14px; border: 1px solid; }
+.diag-light__title { font: 800 17px var(--font-display); margin-bottom: 3px; }
+.diag-light__sub { font: 500 13px var(--font-ui); }
+.diag-light__note { font: 500 11.5px var(--font-ui); opacity: 0.75; margin-top: 6px; }
+.diag-light--ok { background: var(--good-bg); border-color: var(--good-border); color: var(--good); }
+.diag-light--warning { background: var(--warn-bg); border-color: var(--warn-border); color: var(--warn-text); }
+.diag-light--risk { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger-text); }
+.zone-chip {
+  display: inline-block; margin-left: 7px; padding: 2px 7px; border-radius: 999px;
+  font: 600 10.5px var(--font-ui); white-space: nowrap; vertical-align: middle;
+}
+.zone-chip.tone--ok { background: var(--good-bg); color: var(--good); }
+.zone-chip.tone--warn { background: var(--warn-bg); color: var(--warn-text); }
+.zone-chip.tone--risk { background: var(--danger-bg); color: var(--danger-text); }
+.opinion-block { font: 400 13.5px/1.62 var(--font-ui); color: var(--text); margin-bottom: 12px; white-space: pre-line; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Бюджетная диаграмма Ганта (календарный план глазами финансового директора).
+   Левая таблица и полосы обязаны совпадать по высоте строки: --bg-row.
+   ───────────────────────────────────────────────────────────────────────────── */
+.bg-gantt { --bg-row: 30px; --bg-lane: 26px; }
+.bg-gantt__toolbar {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.bg-gantt__toggle {
+  display: flex; align-items: center; gap: 6px;
+  font: 400 12.5px var(--font-ui); color: var(--muted); cursor: pointer;
+}
+.bg-gantt__legend { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-left: auto; }
+.bg-gantt__lg { display: flex; align-items: center; gap: 6px; font: 400 12px var(--font-ui); color: var(--subtle); }
+.bg-gantt__lg i { width: 12px; height: 8px; border-radius: 2px; flex: none; }
+.bg-gantt__lg--cash { background: transparent; border-bottom: 3px dotted var(--chart-2); height: 3px !important; }
+
+.bg-gantt__body {
+  display: flex; border: 1px solid var(--border); border-radius: 10px;
+  overflow: hidden; background: var(--surface);
+}
+.bg-gantt__grid { flex: none; width: 430px; border-right: 1px solid var(--border); }
+.bg-gantt__chart { flex: 1; min-width: 0; overflow-x: auto; }
+
+.bg-gantt__head, .bg-gantt__row { display: flex; align-items: center; }
+.bg-gantt__head {
+  border-bottom: 1px solid var(--border); background: var(--surface-2);
+  font: 600 11px var(--font-ui); letter-spacing: 0.03em; text-transform: uppercase;
+  color: var(--subtle);
+}
+.bg-gantt__row { border-bottom: 1px solid var(--border); cursor: pointer; transition: 0.12s; }
+.bg-gantt__row:hover { background: var(--surface-2); }
+.bg-gantt__row--sel { background: var(--primary-soft); }
+.bg-gantt__cell {
+  padding: 0 8px; font: 400 12.5px var(--font-ui); color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: none; width: 78px;
+}
+.bg-gantt__cell--name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 2px; }
+.bg-gantt__cell--num { text-align: right; font-variant-numeric: tabular-nums; }
+.bg-gantt__nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bg-gantt__tw {
+  flex: none; width: 16px; height: 16px; border: none; background: none; cursor: pointer;
+  color: var(--subtle); font-size: 10px; line-height: 1; padding: 0;
+}
+.bg-gantt__tw--empty { cursor: default; }
+.bg-gantt__chip {
+  display: inline-block; padding: 1px 7px; border-radius: 999px;
+  font: 600 10.5px var(--font-ui); color: #fff; white-space: nowrap;
+}
+
+.bg-gantt__timehead {
+  display: flex; align-items: stretch; border-bottom: 1px solid var(--border);
+  background: var(--surface-2); position: sticky; top: 0; z-index: 2;
+}
+.bg-gantt__col {
+  flex: none; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 2px; border-left: 1px solid var(--border);
+}
+.bg-gantt__colTop { font: 600 10px var(--font-ui); color: var(--subtle); }
+.bg-gantt__colBottom { font: 500 11.5px var(--font-ui); color: var(--muted); }
+
+.bg-gantt__gridline {
+  position: absolute; top: 0; width: 1px; background: var(--border);
+  opacity: 0.55; pointer-events: none;
+}
+.bg-gantt__beyond {
+  position: absolute; top: 0; background: var(--warn-bg); opacity: 0.35; pointer-events: none;
+}
+.bg-gantt__track {
+  position: relative; border-bottom: 1px solid var(--border); cursor: pointer;
+}
+.bg-gantt__track:hover { background: var(--surface-2); }
+.bg-gantt__track--sel { background: var(--primary-soft); }
+.bg-gantt__bar {
+  position: absolute; top: 7px; height: 13px; border-radius: 4px; opacity: 0.92;
+}
+.bg-gantt__bar--group { top: 9px; height: 7px; border-radius: 3px; opacity: 0.55; }
+/* Полоса оплаты — пунктиром под полосой работ: видно, насколько деньги отстают. */
+.bg-gantt__cash {
+  position: absolute; top: 22px; height: 0; border-bottom: 3px dotted var(--chart-2);
+}
+.bg-gantt__fact {
+  position: absolute; top: 21px; height: 4px; border-radius: 2px;
+  background: var(--text); opacity: 0.45;
+}
+.bg-gantt__cost {
+  position: absolute; top: 8px; font: 500 11px var(--font-ui); color: var(--subtle);
+  white-space: nowrap; pointer-events: none;
+}
+
+.bg-gantt__lanehead {
+  display: flex; align-items: center; padding: 0 8px;
+  border-top: 1px solid var(--border); background: var(--surface-2);
+  font: 600 11px var(--font-ui); letter-spacing: 0.03em; text-transform: uppercase;
+  color: var(--subtle);
+}
+.bg-gantt__lanelabel {
+  display: flex; align-items: center; padding: 0 8px;
+  border-top: 1px solid var(--border);
+  font: 400 12px var(--font-ui); color: var(--muted); white-space: nowrap;
+}
+.bg-gantt__lane { display: flex; border-top: 1px solid var(--border); }
+.bg-gantt__laneCell {
+  flex: none; position: relative; display: flex; align-items: flex-end;
+  justify-content: center; border-left: 1px solid var(--border); overflow: hidden;
+}
+.bg-gantt__laneFill { position: absolute; left: 2px; right: 2px; bottom: 0; opacity: 0.22; border-radius: 2px 2px 0 0; }
+.bg-gantt__laneNum {
+  position: relative; font: 500 10.5px var(--font-ui); color: var(--muted);
+  font-variant-numeric: tabular-nums; padding-bottom: 5px; white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .bg-gantt__grid { width: 250px; }
+  .bg-gantt__cell { width: 66px; }
+  .bg-gantt__cell:nth-child(2), .bg-gantt__cell:nth-child(4) { display: none; }
+}
+/* Карточка этапа, выбранного на диаграмме Ганта. */
+.line-card--sel { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-soft); }
+
+/* Связи «финиш → старт» и перетаскивание полос бюджетного Гантта. */
+.bg-gantt__links {
+  position: absolute; top: 0; left: 0; pointer-events: none; overflow: visible;
+}
+.bg-gantt__link { fill: none; stroke: var(--muted); stroke-width: 1.2; opacity: 0.7; }
+
+.bg-gantt__bar--drag { cursor: grab; touch-action: none; }
+.bg-gantt__bar--drag:active { cursor: grabbing; }
+.bg-gantt__bar--active {
+  outline: 2px solid var(--primary); outline-offset: 1px; opacity: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+/* Ручки изменения сроков — узкие зоны у краёв полосы. */
+.bg-gantt__handle {
+  position: absolute; top: 0; bottom: 0; width: 7px; cursor: ew-resize;
+  touch-action: none; background: rgba(255, 255, 255, 0.35);
+}
+.bg-gantt__handle--l { left: 0; border-radius: 4px 0 0 4px; }
+.bg-gantt__handle--r { right: 0; border-radius: 0 4px 4px 0; }
+.bg-gantt__bar--group .bg-gantt__handle { display: none; }
+/* Живая подсказка на полосе во время перетаскивания. */
+.bg-gantt__tip {
+  position: absolute; top: 5px; padding: 1px 7px; border-radius: 5px;
+  background: var(--text); color: var(--surface); white-space: nowrap;
+  font: 600 11px var(--font-ui); pointer-events: none; z-index: 3;
+}
+
+/* ── Финанс-Аудит: онбординг (макет Экран 12) ────────────────────────────────
+   Рейл со шагами слева, шаг справа. Ниже 900px рейл встаёт над содержимым:
+   на телефоне колонка в 340px оставила бы форме половину экрана. */
+.onb {
+  display: flex; align-items: stretch; min-height: 520px;
+  border: 1px solid var(--border); border-radius: 18px; overflow: hidden;
+  background: var(--surface);
+}
+.onb__rail {
+  flex: none; width: 340px; display: flex; flex-direction: column;
+  justify-content: space-between; gap: 22px; padding: 28px 26px;
+  border-right: 1px solid var(--border);
+  background: linear-gradient(160deg, var(--primary-soft) 0%, var(--surface) 66%);
+}
+[data-theme="dark"] .onb__rail {
+  background: radial-gradient(ellipse 80% 70% at 30% 26%,
+              rgba(199, 125, 255, 0.15) 0%, rgba(123, 63, 228, 0.04) 48%, transparent 78%);
+}
+.onb__brand { display: flex; align-items: center; gap: 10px; }
+.onb__cube { width: 28px; height: 28px; flex: none; border-radius: 7px; overflow: hidden; }
+.onb__brandword {
+  font: 600 10.5px var(--font-ui); letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--text);
+}
+.onb__eyebrow {
+  font: 500 9.5px var(--font-ui); letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 12px;
+}
+.onb__railtitle {
+  font: 500 22px/1.18 var(--font-display); letter-spacing: -0.024em; color: var(--text);
+  max-width: 20ch;
+}
+.onb__steps { list-style: none; margin: 22px 0 0; padding: 0; }
+.onb__step {
+  display: flex; align-items: flex-start; gap: 11px; padding: 10px;
+  border-radius: 10px;
+}
+.onb__step--on { background: var(--surface); box-shadow: var(--shadow); }
+.onb__mark {
+  flex: none; width: 22px; height: 22px; border-radius: 50%; text-align: center;
+  font: 600 10.5px/22px var(--font-mono);
+  border: 1.5px solid var(--border-strong); color: var(--subtle);
+}
+.onb__step--on .onb__mark, .onb__step--done .onb__mark {
+  background: var(--primary); color: var(--primary-text); border-color: transparent;
+}
+.onb__stepbody { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.onb__steplabel { font: 500 12.5px var(--font-ui); color: var(--muted); }
+.onb__step--on .onb__steplabel, .onb__step--done .onb__steplabel { color: var(--text); }
+.onb__stepnote { font: 400 10.5px/1.45 var(--font-mono); color: var(--subtle); }
+.onb__progress {
+  height: 5px; border-radius: 3px; background: var(--surface-2); overflow: hidden;
+}
+.onb__progressfill { height: 100%; background: var(--primary); transition: width 0.25s ease; }
+.onb__progressnote {
+  margin-top: 10px; font: 400 10.5px var(--font-mono); color: var(--subtle);
+}
+
+.onb__content { flex: 1; min-width: 0; display: flex; justify-content: center; padding: 36px; }
+.onb__pane { width: 100%; max-width: 560px; }
+.onb__pane--done { text-align: center; display: flex; flex-direction: column; align-items: center; }
+.onb__title {
+  font: 500 28px/1.14 var(--font-display); letter-spacing: -0.026em; color: var(--text);
+  margin: 0 0 10px;
+}
+.onb__lead {
+  font: 400 13px/1.66 var(--font-ui); color: var(--muted); max-width: 56ch;
+  margin: 0 0 18px;
+}
+.onb__row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
+.onb__row > * { flex: 1; min-width: 170px; }
+.onb__periods { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 10px; }
+.onb__period { width: 110px; text-align: center; font-family: var(--font-mono); }
+/* Примечание о том, чего мастер не делает: тон нейтральный — это условие работы,
+   а не ошибка ввода. */
+.onb__note {
+  border: 1px solid var(--border); border-radius: 10px; padding: 11px 13px;
+  background: var(--surface-2); color: var(--muted);
+  font: 400 12px/1.55 var(--font-ui); margin: 12px 0;
+}
+.onb__foot { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 18px; }
+
+.onb__invited { margin-top: 16px; }
+.onb__invitedhead {
+  font: 500 9.5px var(--font-ui); letter-spacing: 0.13em; text-transform: uppercase;
+  color: var(--subtle); margin-bottom: 8px;
+}
+.onb__invite {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  padding: 10px 0; border-bottom: 1px solid var(--grid-line); flex-wrap: wrap;
+}
+.onb__invitemail { font: 500 12.5px var(--font-ui); color: var(--text); }
+.onb__invitenote { font: 400 11px var(--font-mono); color: var(--subtle); }
+.onb__link {
+  flex: 1; min-width: 240px; height: auto; padding: 8px 10px;
+  font: 400 11px/1.45 var(--font-mono);
+}
+
+.onb__donecube { width: 120px; height: 120px; }
+.onb__check {
+  width: 44px; height: 44px; margin-top: -16px; margin-bottom: 8px; border-radius: 50%;
+  background: var(--primary); color: var(--primary-text);
+  font: 600 21px/44px var(--font-ui);
+}
+.onb__next {
+  width: 100%; text-align: left; margin-top: 8px; padding: 16px;
+  border: 1px solid var(--border); border-radius: 14px; background: var(--surface-2);
+}
+.onb__nexthead {
+  font: 500 9.5px var(--font-ui); letter-spacing: 0.13em; text-transform: uppercase;
+  color: var(--subtle); margin-bottom: 10px;
+}
+.onb__nextrow {
+  font: 400 12px/1.55 var(--font-ui); color: var(--muted); padding-left: 14px;
+  position: relative; margin-top: 8px;
+}
+.onb__nextrow::before {
+  content: ""; position: absolute; left: 0; top: 7px; width: 5px; height: 5px;
+  border-radius: 50%; background: var(--primary);
+}
+
+@media (max-width: 900px) {
+  .onb { flex-direction: column; }
+  .onb__rail {
+    width: 100%; border-right: 0; border-bottom: 1px solid var(--border);
+    padding: 22px 18px;
+  }
+  .onb__content { padding: 24px 18px 30px; }
+  .onb__title { font-size: 23px; }
+}

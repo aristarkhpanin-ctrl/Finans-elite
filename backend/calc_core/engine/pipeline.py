@@ -13,14 +13,18 @@ from __future__ import annotations
 from decimal import Decimal
 
 from ..models import (
+    Asset,
     AssetCategory,
     CostFunction,
     DirectCostKind,
+    DirectCostLine,
+    FixedCostLine,
     ProjectModel,
     RepaymentType,
     VatBasis,
 )
 from ..money import ONE, ZERO, D
+from ..reports.result import LineDetail, LineDetailItem
 from ..reports.statements import (
     build_balance,
     build_cashflow,
@@ -28,9 +32,11 @@ from ..reports.statements import (
     build_profit_use,
 )
 from ..series import add, cumulative, zeros
+from .calendar import product_start_months, stage_assets, stage_expenses
 from .errors import ModelError
 from .financing_auto import AutoInjection
 from .inventory import finished_goods, purchase_schedule, work_in_progress
+from .taxes import TaxInjection, _payment_schedule
 from .timing import cost_timing, sales_timing
 from .vat import settle_vat
 
@@ -40,6 +46,43 @@ _STAFF_FUNCTIONS = {
     CostFunction.STAFF_PRODUCTION,
     CostFunction.STAFF_MARKETING,
 }
+
+# Порядок кодов детализации в результате (drill-down, пакет №6 Q4; C12 — пакет налогов Q7).
+_DETAIL_ORDER = ("I1", "I16", "C1", "C2", "C3", "C12", "C14")
+
+
+class DetailCollector:
+    """Слагаемые ключевых строк отчётов (drill-down, пакет №6, Q4).
+
+    Сохраняет уже вычисленные конвейером ряды по источникам — методику не меняет;
+    Σ слагаемых = строка отчёта точно. Слагаемые с одинаковым именем сливаются;
+    полностью нулевые отбрасываются при сборке (модель без данных инертна).
+    """
+
+    def __init__(self) -> None:
+        self._acc: dict[str, dict[str, list[Decimal]]] = {}
+
+    def put(self, code: str, name: str, series: list[Decimal]) -> None:
+        by_name = self._acc.setdefault(code, {})
+        if name in by_name:
+            by_name[name] = add(by_name[name], series)
+        else:
+            by_name[name] = list(series)
+
+    def scale(self, code: str, factor: Decimal) -> None:
+        """Домножить все слагаемые кода (например, C14: нетто-capex → с НДС)."""
+        for name, series in self._acc.get(code, {}).items():
+            self._acc[code][name] = [v * factor for v in series]
+
+    def build(self) -> list[LineDetail]:
+        out: list[LineDetail] = []
+        for code in _DETAIL_ORDER:
+            items = [LineDetailItem(name=name, values=series)
+                     for name, series in self._acc.get(code, {}).items()
+                     if any(v != ZERO for v in series)]
+            if items:
+                out.append(LineDetail(code=code, items=items))
+        return out
 
 
 def _pad(values: list[Decimal], n: int) -> list[Decimal]:
@@ -51,26 +94,37 @@ def _pad(values: list[Decimal], n: int) -> list[Decimal]:
     return out
 
 
-def _inflation_index(annual_rate, n: int) -> list[Decimal]:
-    """Накопленный индекс инфляции по месяцам (SPEC §3).
+def _inflation_year_rates(scalar, series) -> list[Decimal]:
+    """Резолвер источника инфляции: непустой ряд по годам переопределяет скаляр (SPEC §3)."""
+    if series:
+        return [D(r) for r in series]
+    return [D(scalar)]
 
-    Период 0 — база (индекс 1); далее умножается на месячную ставку
-    ``(1+годовая)^(1/12)``. Нулевая ставка → ряд из единиц (без индексации).
+
+def _inflation_index(year_rates: list[Decimal], n: int) -> list[Decimal]:
+    """Накопленный индекс инфляции по месяцам из ставок по годам (SPEC §3).
+
+    Период 0 — база (индекс 1); рост из месяца ``t`` в ``t+1`` — по месячной ставке
+    ``(1+годовая)^(1/12)`` года ``t // 12``; за пределом ряда держится последнее значение.
+    Постоянная ставка (ряд ``[r]`` или скаляр) даёт тот же индекс, что и прежний скалярный
+    путь. Нулевые/пустые ставки → ряд из единиц (без индексации).
     """
-    r = D(annual_rate)
-    if r == ZERO:
+    if not year_rates or all(D(r) == ZERO for r in year_rates):
         return [ONE for _ in range(n)]
-    m = (ONE + r) ** (ONE / D(12)) - ONE
     out = zeros(n)
     idx = ONE
     for t in range(n):
         out[t] = idx
+        year = t // 12
+        r = year_rates[year] if year < len(year_rates) else year_rates[-1]
+        m = (ONE + r) ** (ONE / D(12)) - ONE if r != ZERO else ZERO
         idx = idx * (ONE + m)
     return out
 
 
 def _sales(model: ProjectModel, n: int, vat_rate: Decimal,
-           fx: list[Decimal], fx_prev: list[Decimal], idx_sales: list[Decimal]):
+           fx: list[Decimal], fx_prev: list[Decimal], idx_sales: list[Decimal],
+           details: DetailCollector | None = None):
     """Сбыт → (I1 нетто, C1 деньги с НДС, B2 дебиторка, B24 авансы, исходящий НДС, I25).
 
     ОПУ — без НДС (I1 = нетто-выручка); деньги и оборотный капитал — с НДС. Экспортные
@@ -85,8 +139,12 @@ def _sales(model: ProjectModel, n: int, vat_rate: Decimal,
     vat_out_paid = zeros(n)   # исходящий НДС в полученных деньгах (по оплате)
     recv_f = zeros(n)         # валютная дебиторка (в валюте) — для переоценки
     adv_f = zeros(n)          # валютные авансы (в валюте) — для переоценки
-    one_plus = Decimal(1) + vat_rate
+    product_names = {p.id: p.name for p in model.operating_plan.products}
     for line in model.operating_plan.sales:
+        pname = product_names.get(line.product_id, line.product_id)
+        # Пер-строчная ставка НДС (льготные категории, напр. 10%); None → глобальная.
+        line_vat = vat_rate if line.vat_rate is None else line.vat_rate
+        one_plus = Decimal(1) + line_vat
         vol = _pad(line.volume, n)
         price = _pad(line.price, n)
         if line.foreign:
@@ -96,8 +154,10 @@ def _sales(model: ProjectModel, n: int, vat_rate: Decimal,
         if line.foreign:
             # Экспорт: без НДС; выручка/деньги/дебиторка в валюте → пересчёт по FX.
             cash, recv, adv = sales_timing(revenue, line.payment, n)
-            i1 = add(i1, [revenue[t] * fx[t] for t in range(n)])      # начислено по курсу отгрузки
-            c1 = add(c1, [cash[t] * fx[t] for t in range(n)])        # деньги по курсу получения
+            revenue_rub = [revenue[t] * fx[t] for t in range(n)]     # начислено по курсу отгрузки
+            cash_rub = [cash[t] * fx[t] for t in range(n)]           # деньги по курсу получения
+            i1 = add(i1, revenue_rub)
+            c1 = add(c1, cash_rub)
             b2 = add(b2, [recv[t] * fx[t] for t in range(n)])
             b24 = add(b24, [adv[t] * fx[t] for t in range(n)])
             recv_f = add(recv_f, recv)
@@ -105,14 +165,18 @@ def _sales(model: ProjectModel, n: int, vat_rate: Decimal,
         else:
             gross = [revenue[t] * one_plus for t in range(n)]        # с НДС (→ деньги/WC)
             cash, recv, adv = sales_timing(gross, line.payment, n)
-            vat_amt = [revenue[t] * vat_rate for t in range(n)]
+            vat_amt = [revenue[t] * line_vat for t in range(n)]
             vat_cash, _, _ = sales_timing(vat_amt, line.payment, n)  # НДС в деньгах (та же схема)
+            revenue_rub, cash_rub = revenue, cash
             i1 = add(i1, revenue)
             c1 = add(c1, cash)
             b2 = add(b2, recv)
             b24 = add(b24, adv)
             vat_out = add(vat_out, vat_amt)
             vat_out_paid = add(vat_out_paid, vat_cash)
+        if details is not None:
+            details.put("I1", pname, revenue_rub)
+            details.put("C1", pname, cash_rub)
     # Курсовая разница по валютным дебиторке/авансам (на остаток начала периода).
     i25_sales = zeros(n)
     for t in range(n):
@@ -121,27 +185,93 @@ def _sales(model: ProjectModel, n: int, vat_rate: Decimal,
     return i1, c1, b2, b24, vat_out, vat_out_paid, i25_sales
 
 
-def _volumes(model: ProjectModel, n: int):
-    """Агрегированные объёмы → (производство TP, сбыт TQ).
-
-    Производство по продукту = его план производства, либо (по умолчанию) объём сбыта.
-    """
+def _production_by_product(model: ProjectModel, n: int) -> dict[str, list[Decimal]]:
+    """Производство по продукту = его план производства, либо (по умолчанию) объём сбыта."""
     sales_by_prod: dict[str, list[Decimal]] = {}
     for s in model.operating_plan.sales:
         cur = sales_by_prod.get(s.product_id, zeros(n))
         sales_by_prod[s.product_id] = add(cur, _pad(s.volume, n))
-
     prod_by_prod = dict(sales_by_prod)  # по умолчанию — производство под продажи
     for pl in model.operating_plan.production:
         prod_by_prod[pl.product_id] = _pad(pl.volume, n)
+    return prod_by_prod
 
+
+def _volumes(model: ProjectModel, n: int):
+    """Агрегированные объёмы → (производство TP, сбыт TQ)."""
     tq = zeros(n)
-    for v in sales_by_prod.values():
-        tq = add(tq, v)
+    for s in model.operating_plan.sales:
+        tq = add(tq, _pad(s.volume, n))
     tp = zeros(n)
-    for v in prod_by_prod.values():
+    for v in _production_by_product(model, n).values():
         tp = add(tp, v)
     return tp, tq
+
+
+def _dangling_bom_warnings(model: ProjectModel) -> list[str]:
+    """Рецептуры, ссылающиеся на несуществующие материалы.
+
+    Такая ссылка остаётся, если материал удалили, а строку рецептуры — нет. Развернуть её
+    нельзя (цены не существует), и движок её пропускает; но **молчаливый** пропуск занизил
+    бы себестоимость и завысил прибыль, поэтому о нём сообщается. Модель без висячих
+    ссылок предупреждений не даёт — правило инертно.
+    """
+    op = model.operating_plan
+    known = {m.id for m in op.materials}
+    out: list[str] = []
+    for p in op.products:
+        missing = sorted({b.material_id for b in p.bom if b.material_id not in known})
+        if missing:
+            out.append(
+                f"Рецептура продукта «{p.name or p.id}» ссылается на несуществующие "
+                f"материалы ({', '.join(missing)}) — они не учтены ни в себестоимости, "
+                "ни в марже.")
+    return out
+
+
+def _bom_direct_lines(model: ProjectModel, n: int) -> list[DirectCostLine]:
+    """Развернуть рецептуры продуктов (BOM) в синтетические прямые издержки.
+
+    Материал: ``amount[t] = Σ_продуктов qty_per_unit × TP_p[t] × unit_price`` со свойствами
+    материала (отсрочка → B23, опережающая закупка → B3, ``foreign`` — импорт). Сдельная
+    зарплата: ``piece_wage_per_unit × TP_p[t]``. Синтетические строки проходят ту же
+    машинерию, что суммовые ``DirectCostLine`` (индексация инфляцией, деньги, НДС, курс) —
+    инвариант сходится ею же. Пустые рецептуры не создают строк (модель без BOM инертна).
+    """
+    op = model.operating_plan
+    if not any(p.bom or p.piece_wage_per_unit for p in op.products):
+        return []
+    prod_vol = _production_by_product(model, n)
+    mat_by_id = {m.id: m for m in op.materials}
+    mat_amount: dict[str, list[Decimal]] = {}   # material_id → потребление в деньгах
+    wages = zeros(n)
+    for p in op.products:
+        vol = prod_vol.get(p.id)
+        if vol is None:
+            continue
+        for line in p.bom:
+            m = mat_by_id.get(line.material_id)
+            if m is None or line.qty_per_unit == 0 or m.unit_price == 0:
+                continue
+            acc = mat_amount.setdefault(m.id, zeros(n))
+            for t in range(n):
+                acc[t] += line.qty_per_unit * vol[t] * m.unit_price
+        if p.piece_wage_per_unit:
+            for t in range(n):
+                wages[t] += p.piece_wage_per_unit * vol[t]
+    out: list[DirectCostLine] = []
+    for mid, amount in mat_amount.items():
+        m = mat_by_id[mid]
+        out.append(DirectCostLine(
+            name=f"BOM: {m.name or mid}", kind=DirectCostKind.MATERIALS, amount=amount,
+            payment_delay_months=m.payment_delay_months,
+            stock_lead_months=m.stock_lead_months, foreign=m.foreign,
+        ))
+    if any(w != ZERO for w in wages):
+        out.append(DirectCostLine(
+            name="BOM: сдельная зарплата", kind=DirectCostKind.PIECE_WAGES, amount=wages,
+        ))
+    return out
 
 
 def _foreign_material_schedule(amt_f: list[Decimal], stock_lead: int,
@@ -170,7 +300,8 @@ def _foreign_material_schedule(amt_f: list[Decimal], stock_lead: int,
 
 def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal,
                          fx: list[Decimal], fx_prev: list[Decimal],
-                         idx_direct: list[Decimal], idx_wages: list[Decimal]):
+                         idx_direct: list[Decimal], idx_wages: list[Decimal],
+                         details: DetailCollector | None = None):
     """Прямые издержки → (потребление MC, сдельная ЗП WC; деньги C2, C3 с НДС; сырьё B3;
     кредиторка с НДС; входной НДС по материалам; курсовая разница I25 по валютному сырью).
 
@@ -191,7 +322,8 @@ def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal,
     vat_in_paid = zeros(n)   # входной НДС в оплаченных закупках (по оплате)
     payable_f = zeros(n)     # валютная кредиторка по материалам (в валюте) — для переоценки
     one_plus = Decimal(1) + vat_rate
-    for line in model.operating_plan.direct_costs:
+    # Суммовые статьи + синтетические строки из рецептур продуктов (BOM) — один путь.
+    for line in [*model.operating_plan.direct_costs, *_bom_direct_lines(model, n)]:
         base = _pad(line.amount, n)
         if line.kind == DirectCostKind.MATERIALS and line.foreign:
             # Валютный материал (импорт): цена в валюте (без рублёвой инфляции). Импортный
@@ -204,7 +336,10 @@ def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal,
             mc = add(mc, mc_hist)
             b3 = add(b3, b3_hist)
             # Оплата поставщику (нетто, по курсу периода) + импортный НДС на таможне (при ввозе).
-            c2 = add(c2, [cash_f[t] * fx[t] + import_vat[t] for t in range(n)])
+            line_c2 = [cash_f[t] * fx[t] + import_vat[t] for t in range(n)]
+            c2 = add(c2, line_c2)
+            if details is not None:
+                details.put("C2", line.name, line_c2)
             payables = add(payables, [pay_f[t] * fx[t] for t in range(n)])
             payable_f = add(payable_f, pay_f)
             vat_in = add(vat_in, import_vat)            # импортный НДС к вычету (начислен при ввозе)
@@ -224,11 +359,15 @@ def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal,
             payables = add(payables, pay)
             vat_in = add(vat_in, vat_amt)
             vat_in_paid = add(vat_in_paid, vat_cash)
+            if details is not None:
+                details.put("C2", line.name, cash)
         else:  # сдельная зарплата — без НДС
             cash, pay = cost_timing(amt, line.payment_delay_months, n)
             wc = add(wc, amt)
             c3 = add(c3, cash)
             payables = add(payables, pay)
+            if details is not None:
+                details.put("C3", line.name, cash)
     # Курсовая разница по валютной кредиторке материалов (на остаток начала периода).
     i25_materials = zeros(n)
     for t in range(n):
@@ -237,9 +376,34 @@ def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal,
     return mc, wc, c2, c3, b3, payables, vat_in, vat_in_paid, i25_materials
 
 
+def _staff_fixed_lines(model: ProjectModel, n: int) -> list[FixedCostLine]:
+    """Развернуть план персонала в синтетические статьи затрат на персонал.
+
+    Начисление позиции = оклад × численность в месяцах ``[start, end)``. Синтетические
+    строки проходят ту же машинерию, что суммовые статьи персонала (взносы с ФОТ,
+    индексация инфляцией зарплаты, деньги C6, кредиторка при задержке выплаты).
+    Пустой план персонала не создаёт строк (модель без штата инертна).
+    """
+    out: list[FixedCostLine] = []
+    for pos in model.operating_plan.staff:
+        per = pos.monthly_salary * pos.headcount
+        if per == 0:
+            continue
+        end = n if pos.end_month is None else min(pos.end_month, n)
+        amount = [per if pos.start_month <= t < end else ZERO for t in range(n)]
+        if all(v == ZERO for v in amount):
+            continue
+        out.append(FixedCostLine(
+            name=f"Штат: {pos.name}", function=pos.function, amount=amount,
+            payment_delay_months=pos.payment_delay_months,
+        ))
+    return out
+
+
 def _fixed(model: ProjectModel, n: int, vat_rate: Decimal,
            fx: list[Decimal], fx_prev: list[Decimal],
-           idx_wages: list[Decimal], idx_general: list[Decimal]):
+           idx_wages: list[Decimal], idx_general: list[Decimal],
+           details: DetailCollector | None = None):
     """Постоянные издержки → (группы начисления I10–I15; C5, C6 деньги; кредиторка;
     входной НДС по общим издержкам; издержки за счёт прибыли I24; курсовая разница I25).
 
@@ -259,12 +423,16 @@ def _fixed(model: ProjectModel, n: int, vat_rate: Decimal,
     payable_f = zeros(n)  # валютная кредиторка (в валюте) — для переоценки
     one_plus = Decimal(1) + vat_rate
     contrib = ONE + model.settings.payroll_contribution_rate  # загрузка ФОТ страховыми взносами
-    for line in model.operating_plan.fixed_costs:
+    # Суммовые статьи + синтетические строки плана персонала — один путь.
+    for line in [*model.operating_plan.fixed_costs, *_staff_fixed_lines(model, n)]:
         amt = _pad(line.amount, n)
         if line.foreign:
             # Валютная издержка (услуга, без НДС): пересчёт по FX; кредиторка переоценивается.
             cash_f, pay_f = cost_timing(amt, line.payment_delay_months, n)
-            groups[line.function] = add(groups[line.function], [amt[t] * fx[t] for t in range(n)])
+            accrual_fx = [amt[t] * fx[t] for t in range(n)]
+            groups[line.function] = add(groups[line.function], accrual_fx)
+            if details is not None:
+                details.put("I16", line.name, accrual_fx)
             cash_b = [cash_f[t] * fx[t] for t in range(n)]
             if line.function in _STAFF_FUNCTIONS:
                 c6 = add(c6, cash_b)
@@ -287,11 +455,15 @@ def _fixed(model: ProjectModel, n: int, vat_rate: Decimal,
             # Загруженная стоимость персонала = ЗП + страховые взносы (база — ФОТ).
             loaded = [amt[t] * contrib for t in range(n)]
             groups[line.function] = add(groups[line.function], loaded)
+            if details is not None:
+                details.put("I16", line.name, loaded)
             cash, pay = cost_timing(loaded, line.payment_delay_months, n)
             c6 = add(c6, cash)
             payables = add(payables, pay)
         else:
             groups[line.function] = add(groups[line.function], amt)
+            if details is not None:
+                details.put("I16", line.name, amt)
             gross = [amt[t] * one_plus for t in range(n)]
             cash, pay = cost_timing(gross, line.payment_delay_months, n)
             vat_amt = [amt[t] * vat_rate for t in range(n)]
@@ -308,7 +480,29 @@ def _fixed(model: ProjectModel, n: int, vat_rate: Decimal,
     return groups, c5, c6, payables, vat_in, i24, vat_in_paid, i25_fixed
 
 
-def _assets(model: ProjectModel, n: int):
+def _preexisting_net_open(model: ProjectModel) -> Decimal:
+    """Остаточная стоимость пред-существующих ОС (``purchase_month < 0``) на t=−1 (SPEC §9/§14).
+
+    Актив, купленный до старта проекта, к моменту t=−1 уже частично самортизирован
+    (``min(−purchase_month, life)`` месяцев); земля не амортизируется. Эта величина
+    сворачивается в стартовый актив (проверка баланса + opening_balance), а убыль с t=0
+    идёт через обычную машинерию амортизации. Пред-существующие доинвестиции (v1) не входят.
+    """
+    total = ZERO
+    for asset in model.investment_plan.assets:
+        if asset.purchase_month >= 0:
+            continue
+        if asset.category == AssetCategory.LAND:
+            total += asset.cost                        # земля — по стоимости (не амортизируется)
+            continue
+        months = min(-asset.purchase_month, asset.life_months)
+        acc = asset.monthly_depreciation() * Decimal(months)
+        book = asset.cost - acc
+        total += book if book > ZERO else ZERO
+    return total
+
+
+def _assets(model: ProjectModel, n: int, details: DetailCollector | None = None):
     """Активы → (capex, амортизация, поступления от продажи C16, прочие доходы/издержки
     I20/I21, выбытие первонач. стоимости и накопл. амортизации, остаточная стоимость по
     группам ОС).
@@ -327,43 +521,83 @@ def _assets(model: ProjectModel, n: int):
     b10_disposal = zeros(n)    # выбытие накопленной амортизации
     reval = zeros(n)           # дооценка → B9/остаточная и добавочный капитал B31
     nbv = {cat: zeros(n) for cat in AssetCategory}  # остаточная стоимость по группам ОС
-    for asset in model.investment_plan.assets:
+    # Выкуп лизинга: предмет становится собственным ОС (оборудование) в месяц start+term и
+    # амортизируется как обычный актив — тем же механизмом (capex→C14, амортизация I17/B10,
+    # остаточная → B14). Синтетические активы обрабатываются вместе с плановыми.
+    assets = list(model.investment_plan.assets)
+    for lease in model.financing.leases:
+        if lease.buyout_price and lease.buyout_price > ZERO:
+            assets.append(Asset(
+                name=f"Выкуп: {lease.name}",
+                cost=lease.buyout_price,
+                purchase_month=lease.start_month + lease.term_months,
+                life_months=lease.buyout_life_months,
+                category=AssetCategory.EQUIPMENT,
+            ))
+    assets.extend(stage_assets(model))   # этапы-активы календарного плана
+    for asset in assets:
         cat = asset.category
         rm = asset.revaluation_month
         rm_active = rm if (rm is not None and 0 <= rm < n) else None
         if rm_active is not None:
             reval[rm_active] += asset.revaluation_amount
         p = asset.purchase_month
-        if 0 <= p < n:
-            capex[p] += asset.cost
-        # Земля не амортизируется; прочие группы — линейно от стоимости.
-        d = ZERO if cat == AssetCategory.LAND else asset.monthly_depreciation()
-        end = min(p + asset.life_months, n)
+        natural_end = p + asset.life_months          # конец амортизации базовой стоимости
+        end = min(natural_end, n)
         sale_m = asset.sale_month
         if sale_m is not None:
-            end = min(end, sale_m)              # амортизация прекращается в месяц продажи
-        acc_dep = ZERO
-        for t in range(max(p, 0), n):
-            if t < end:
-                dep[t] += d
-                acc_dep += d
-            # Остаточная стоимость группы на конец периода t (после выбытия — только дооценка,
-            # как и в агрегате B9: дооценка не реверсируется при продаже).
+            end = min(end, sale_m)                   # амортизация прекращается в месяц продажи
+        is_land = cat == AssetCategory.LAND          # земля не амортизируется
+
+        # Слои амортизации: базовая стоимость + доинвестиции (от остаточного срока актива).
+        # Слой = (начало, сумма, ставка_в_месяц). Актив без доинвестиций = один базовый слой
+        # → числа в точности как прежде (golden без дрейфа).
+        layers: list[tuple[int, Decimal, Decimal]] = [
+            (p, asset.cost, ZERO if is_land else asset.monthly_depreciation())]
+        cap_series = zeros(n)
+        if 0 <= p < n:
+            capex[p] += asset.cost
+            cap_series[p] += asset.cost
+        for inv in asset.additional_investments:
+            m = inv.month
+            remaining = natural_end - m               # остаточный срок для доп. вложения
+            pm = ZERO if (is_land or remaining <= 0) else inv.amount / Decimal(remaining)
+            layers.append((m, inv.amount, pm))
+            if 0 <= m < n:
+                capex[m] += inv.amount
+                cap_series[m] += inv.amount
+        if details is not None and any(v != ZERO for v in cap_series):
+            # Нетто-стоимость; в C14 (с НДС) масштабируется в run_pipeline.
+            details.put("C14", asset.name, cap_series)
+
+        t0 = max(0, min(start for start, _, _ in layers))
+        for t in range(t0, n):
             disposed = sale_m is not None and 0 <= sale_m <= t
-            book = ZERO if disposed else (asset.cost - acc_dep)
+            book = ZERO
+            for start, amount, pm in layers:
+                if t < start:
+                    continue                          # слой ещё не капитализирован
+                if start <= t < end:
+                    dep[t] += pm
+                acc = pm * Decimal(min(t + 1, end) - start)  # накопленная аморт. слоя к концу t
+                if not disposed:
+                    book += amount - acc
+            # Дооценка не реверсируется при продаже (как в агрегате B9).
             if rm_active is not None and t >= rm_active:
                 book += asset.revaluation_amount
             nbv[cat][t] += book
         if sale_m is not None and 0 <= sale_m < n:
-            residual = asset.cost - acc_dep
+            total_amount = sum((amount for _, amount, _ in layers), ZERO)
+            total_acc = sum((pm * Decimal(max(0, end - start)) for start, _, pm in layers), ZERO)
+            residual = total_amount - total_acc
             proceeds[sale_m] += asset.sale_price
             gain = asset.sale_price - residual
             if gain >= 0:
                 other_income[sale_m] += gain
             else:
                 other_expense[sale_m] += -gain
-            b9_disposal[sale_m] += asset.cost
-            b10_disposal[sale_m] += acc_dep
+            b9_disposal[sale_m] += total_amount
+            b10_disposal[sale_m] += total_acc
     return (capex, dep, proceeds, other_income, other_expense,
             b9_disposal, b10_disposal, reval, nbv)
 
@@ -396,13 +630,18 @@ def _loan_schedule(loan, n: int):
     return proceeds, principal, interest
 
 
-def _loans(model: ProjectModel, n: int, fx: list[Decimal], fx_prev: list[Decimal]):
+def _loans(model: ProjectModel, n: int, fx: list[Decimal], fx_prev: list[Decimal],
+           norm_monthly: Decimal | None = None):
     """Займы (основные и валютные) → потоки в основной валюте + переоценка долга.
 
     Для валютного займа график (поступление, тело, проценты) считается в валюте займа и
     пересчитывается в основную по ``fx[t]``; остаток долга = ``остаток_валюте · fx[t]``,
     а его курсовая переоценка (на остаток начала периода) идёт в ``I25`` (рост курса →
     убыток). Возвращает кортеж рядов в основной валюте.
+
+    ``norm_monthly`` — месячная норма вычитаемости процентов (ставка ЦБ × коэффициент,
+    SPEC §11): вычитаемы проценты в её пределах, сверхнорматив идёт в I24. ``None`` —
+    норматив выключен (весь процент вычитаем, если заём не «на прибыль»).
     """
     proceeds = zeros(n)
     principal = zeros(n)
@@ -428,9 +667,15 @@ def _loans(model: ProjectModel, n: int, fx: list[Decimal], fx_prev: list[Decimal
         principal = add(principal, pp_b)
         interest_all = add(interest_all, ii_b)
         if loan.interest_on_profit:
-            interest_profit = add(interest_profit, ii_b)
+            interest_profit = add(interest_profit, ii_b)   # весь процент — на прибыль (флаг)
+        elif norm_monthly is not None:
+            # Нормирование: вычитаемая доля = min(1, норма/ставка_займа) (SPEC §11).
+            loan_m = loan.monthly_rate()
+            ratio = min(ONE, norm_monthly / loan_m) if loan_m > ZERO else ONE
+            interest_cost = add(interest_cost, [ii_b[t] * ratio for t in range(n)])
+            interest_profit = add(interest_profit, [ii_b[t] * (ONE - ratio) for t in range(n)])
         else:
-            interest_cost = add(interest_cost, ii_b)
+            interest_cost = add(interest_cost, ii_b)       # норматив выключен — весь вычитаем
         debt = add(debt, debt_b)
         reval = add(reval, rev)
     return proceeds, principal, interest_all, interest_cost, interest_profit, debt, reval
@@ -485,6 +730,12 @@ def _leases(model: ProjectModel, n: int):
         if term <= 0:
             continue
         end = min(s + term, n)
+        # Страхование предмета: операционная издержка (I21) + отток (C25), оба типа лизинга.
+        ins = D(lease.insurance_monthly)
+        if ins != ZERO:
+            for t in range(max(s, 0), end):
+                op_expense[t] += ins
+                cash[t] += ins
         if not lease.finance:
             for t in range(max(s, 0), end):
                 op_expense[t] += pay
@@ -506,15 +757,49 @@ def _leases(model: ProjectModel, n: int):
     return op_expense, cash, b19, liability, interest, dep
 
 
-def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
+def _apply_production_starts(model: ProjectModel) -> ProjectModel:
+    """Гейт объёмов по старту продукта: обнуляет объём до месяца старта.
+
+    Старт задаёт этап «производство» календарного плана (перекрывает ручной ``start_month``
+    строки) либо явный ``start_month`` строки сбыта/производства. Если гейтить нечего —
+    модель возвращается как есть (без копии), чтобы не трогать общий путь расчёта.
+    """
+    starts = product_start_months(model)
+    op = model.operating_plan
+    manual = any(s.start_month is not None for s in op.sales) or \
+        any(p.start_month is not None for p in op.production)
+    if not starts and not manual:
+        return model
+    model = model.model_copy(deep=True)
+    for line in model.operating_plan.sales:
+        es = starts.get(line.product_id, line.start_month)
+        if es:
+            for t in range(min(es, len(line.volume))):
+                line.volume[t] = ZERO
+    for pl in model.operating_plan.production:
+        es = starts.get(pl.product_id, pl.start_month)
+        if es:
+            for t in range(min(es, len(pl.volume))):
+                pl.volume[t] = ZERO
+    return model
+
+
+def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
+                 details: DetailCollector | None = None,
+                 taxes: TaxInjection | None = None):
     """Выполнить расчёт и вернуть (income, cashflow, balance, profit_use, warnings).
 
     ``auto`` — инъекция автофинансирования (проценты в ОПУ и денежные потоки кредитной
-    линии); по умолчанию отсутствует.
+    линии); по умолчанию отсутствует. ``details`` — коллектор детализации строк
+    (drill-down, пакет №6): наполняется по ходу расчёта, методику не меняет.
+    ``taxes`` — инъекция настраиваемых налогов (SPEC §22.9): начисления в I21/I24,
+    уплата в C12, задолженность в B21; по умолчанию отсутствует (нулевая инертна).
     """
     n = model.n
+    model = _apply_production_starts(model)   # гейт объёмов по старту продукта (этапы «производство»)
     sb = model.company.starting_balance
     auto = auto or AutoInjection.zero(n)
+    taxes = taxes or TaxInjection.zero(n)
 
     # Валютный контур: курс второй валюты по периодам и опорная валютная позиция (SPEC §3).
     env = model.environment
@@ -522,11 +807,15 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     fx_prev = [D(env.fx_open)] + fx[:-1]          # курс предыдущего периода (t=0 — стартовый)
     fm = sb.foreign_monetary                       # монетарный актив во 2-й валюте (ед. валюты)
     opening_foreign = fm * D(env.fx_open)          # его стоимость в основной валюте на старте
+    # Остаточная стоимость пред-существующих ОС (purchase_month<0) на старте (SPEC §9/§14).
+    preexisting = _preexisting_net_open(model)
 
-    # Проверка сходимости стартового баланса (SPEC §16), включая валютную позицию.
-    if abs(sb.assets() + opening_foreign - sb.liabilities_equity()) > Decimal("0.01"):
+    # Проверка сходимости стартового баланса (SPEC §16), включая валютную позицию и
+    # остаточную стоимость пред-существующих ОС.
+    opening_assets = sb.assets() + opening_foreign + preexisting
+    if abs(opening_assets - sb.liabilities_equity()) > Decimal("0.01"):
         raise ModelError(
-            f"Стартовый баланс не сходится: актив {sb.assets() + opening_foreign} != пассив "
+            f"Стартовый баланс не сходится: актив {opening_assets} != пассив "
             f"{sb.liabilities_equity()}"
         )
 
@@ -538,17 +827,21 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     i25_fx = [fm * (fx[t] - fx_prev[t]) for t in range(n)]
 
     # --- индексы инфляции по группам (SPEC §3) ---
-    idx_sales = _inflation_index(settings.inflation_sales, n)
-    idx_direct = _inflation_index(settings.inflation_direct, n)
-    idx_wages = _inflation_index(settings.inflation_wages, n)
-    idx_general = _inflation_index(settings.inflation_general, n)
+    idx_sales = _inflation_index(
+        _inflation_year_rates(settings.inflation_sales, settings.inflation_sales_series), n)
+    idx_direct = _inflation_index(
+        _inflation_year_rates(settings.inflation_direct, settings.inflation_direct_series), n)
+    idx_wages = _inflation_index(
+        _inflation_year_rates(settings.inflation_wages, settings.inflation_wages_series), n)
+    idx_general = _inflation_index(
+        _inflation_year_rates(settings.inflation_general, settings.inflation_general_series), n)
 
     # --- операционный контур (accrual + cash + оборотный капитал + запасы + НДС) ---
     i1, c1, b2, b24, vat_out, vat_out_paid, i25_sales = _sales(
-        model, n, vat_rate, fx, fx_prev, idx_sales)
+        model, n, vat_rate, fx, fx_prev, idx_sales, details)
     tp, tq = _volumes(model, n)
     mc, wc, c2, c3, b3, pay_direct, vat_in_mat, vat_in_paid_mat, i25_materials = \
-        _materials_and_wages(model, n, vat_rate, fx, fx_prev, idx_direct, idx_wages)
+        _materials_and_wages(model, n, vat_rate, fx, fx_prev, idx_direct, idx_wages, details)
     # НЗП (B4): производственный цикл сдвигает выпуск и его стоимость на cycle мес. (SPEC §6)
     mc_out, wc_out, tp_out, b4 = work_in_progress(
         mc, wc, tp, settings.production_cycle_months, n)
@@ -556,13 +849,17 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     i5, i6, b5, inv_warnings = finished_goods(
         tp_out, tq, mc_out, wc_out, n, settings.inventory_method)
     fixed, c5, c6, pay_fixed, vat_in_fixed, i24_fixed, vat_in_paid_fixed, i25_fixed = _fixed(
-        model, n, vat_rate, fx, fx_prev, idx_wages, idx_general)
-    b23 = add(pay_direct, pay_fixed)
+        model, n, vat_rate, fx, fx_prev, idx_wages, idx_general, details)
+    # Календарный план: обычные этапы → C15 (оплата), I21 (издержки), B15 (РБП), B23 (кредиторка).
+    stage_c15, stage_i21, stage_b15, stage_b23 = stage_expenses(model, n)
+    b23 = add(pay_direct, pay_fixed, stage_b23)
 
     # --- инвестиции и амортизация (capex в баланс — по нетто; деньги — с НДС) ---
     (capex, dep, asset_proceeds, asset_income, asset_expense,
-     b9_disp, b10_disp, asset_reval, nbv) = _assets(model, n)
+     b9_disp, b10_disp, asset_reval, nbv) = _assets(model, n, details)
     capex_gross = [capex[t] * (Decimal(1) + vat_rate) for t in range(n)]
+    if details is not None:
+        details.scale("C14", Decimal(1) + vat_rate)   # C14 в кэш-фло — с НДС
     vat_in_capex = [capex[t] * vat_rate for t in range(n)]
     reval_cum = cumulative(asset_reval)  # накопленная дооценка → B9/остаточная и B31
     b9 = [sb.fixed_assets_net + cumulative(capex)[t] - cumulative(b9_disp)[t] + reval_cum[t]
@@ -573,6 +870,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     b12 = nbv[AssetCategory.LAND]
     b13 = nbv[AssetCategory.BUILDINGS]
     b14 = [sb.fixed_assets_net + nbv[AssetCategory.EQUIPMENT][t] for t in range(n)]
+    b16 = nbv[AssetCategory.INTANGIBLE]   # НМА — остаточная стоимость → B16 (Другие активы)
     # Σ(B12,B13,B14) = b9 − b10 (B11), поэтому баланс сходится как прежде.
 
     # Налог на имущество: база — амортизируемое имущество (здания+оборудование), без земли
@@ -581,8 +879,12 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     i9 = [prop_monthly * (b13[t] + b14[t]) for t in range(n)]
 
     # --- займы (основные и валютные; валютные переоцениваются → I25) ---
+    # Норма вычитаемости процентов (SPEC §11): ставка ЦБ × коэффициент → месячная; None = выкл.
+    cb = settings.cb_refinancing_rate
+    norm_monthly = ((ONE + cb * settings.interest_norm_multiple) ** (ONE / D(12)) - ONE
+                    if cb > ZERO else None)
     (loan_proceeds, loan_principal, loan_interest, loan_interest_cost,
-     loan_interest_profit, loan_debt, loan_reval) = _loans(model, n, fx, fx_prev)
+     loan_interest_profit, loan_debt, loan_reval) = _loans(model, n, fx, fx_prev, norm_monthly)
 
     # --- лизинг: операционный (I21+C25) и финансовый (B19/B26, I17/I18, C25) ---
     (lease_op_expense, lease_cash, fl_b19, fl_liability,
@@ -607,6 +909,18 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     equity_in = _equity(model, n)
     dividends = _pad(model.financing.dividends, n)
 
+    # --- Прочие поступления/выплаты: начисление = оплата (I20/C10, I21|I24/C11) ---
+    other_inc = zeros(n)
+    for flow in model.operating_plan.other_income:
+        other_inc = add(other_inc, _pad(flow.amount, n))
+    other_exp = zeros(n)          # вычитаемые → I21
+    other_exp_profit = zeros(n)   # за счёт прибыли → I24 (не уменьшают налоговую базу)
+    for flow in model.operating_plan.other_expenses:
+        if flow.from_profit:
+            other_exp_profit = add(other_exp_profit, _pad(flow.amount, n))
+        else:
+            other_exp = add(other_exp, _pad(flow.amount, n))
+
     # --- Отчёт о прибылях и убытках (начисление) ---
     i3 = [i1[t] * settings.sales_tax_rate for t in range(n)]  # налог с продаж (база — I1)
     income_leaves = {
@@ -622,10 +936,12 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "I14": fixed[CostFunction.STAFF_PRODUCTION],
         "I15": fixed[CostFunction.STAFF_MARKETING],
         "I17": add(dep, fl_dep),                    # амортизация ОС + предмета фин. лизинга
-        "I20": add(asset_income, c9),               # прочие доходы + доход по ЦБ
-        "I21": add(asset_expense, lease_op_expense),  # прочие издержки + операционный лизинг
+        # прочие доходы + доход по ЦБ + прочие поступления + доход авто-депозита (I20 для налога)
+        "I20": add(asset_income, c9, other_inc, auto.pl_deposit_income),
+        # прочие + лизинг + этапы + настраиваемые налоги (вычитаемые, SPEC §22.9)
+        "I21": add(asset_expense, lease_op_expense, stage_i21, other_exp, taxes.expense),
         "I18": add(loan_interest_cost, auto.pl_interest, fl_interest),  # проценты: займы + фин. лизинг
-        "I24": add(i24_fixed, loan_interest_profit),
+        "I24": add(i24_fixed, loan_interest_profit, other_exp_profit, taxes.profit),
         "I25": add(i25_fx, loan_reval, i25_sales, i25_fixed, i25_materials),
     }
     income = build_income(
@@ -678,18 +994,35 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         c1[0] += sb.receivables
         c2 = list(c2)
         c2[0] += sb.payables
-    # Налоги: прибыль + имущество + налог с продаж + НДС к уплате (v0: в периоде начисления)
-    taxes_cash = add(income["I27"], i9, i3, vat_to_budget)
+    # Периодичность уплаты профильных налогов (SPEC §11): прибыль и НДС платятся в
+    # последнем месяце периода; начисление (I27, vat_to_budget) не меняется, отсрочка → B21.
+    profit_paid = _payment_schedule(income["I27"], settings.profit_tax_periodicity, n)
+    vat_paid = _payment_schedule(vat_to_budget, settings.vat_periodicity, n)
+    profit_defer = cumulative([income["I27"][t] - profit_paid[t] for t in range(n)])
+    vat_pay_defer = cumulative([vat_to_budget[t] - vat_paid[t] for t in range(n)])
+    # Налоги в кассе: прибыль + имущество + налог с продаж + НДС + настраиваемые (SPEC §22.9).
+    taxes_cash = add(profit_paid, i9, i3, vat_paid, taxes.cash)
+    if details is not None:
+        # Детализация C12 (Q7 пакета налогов): профильные налоги + каждый настраиваемый.
+        details.put("C12", "Налог на прибыль", profit_paid)
+        details.put("C12", "Налог на имущество", i9)
+        details.put("C12", "Налог с продаж", i3)
+        details.put("C12", "НДС к уплате", vat_paid)
+        for tax_name, tax_paid in taxes.cash_items:
+            details.put("C12", tax_name, tax_paid)
     cashflow_leaves = {
         "C1": c1,
         "C2": c2,
         "C3": c3,
         "C5": c5,
         "C6": c6,
-        "C8": c8,
-        "C9": c9,
+        "C8": add(c8, auto.cash_deposit_placement),   # + авторазмещение / − изъятие
+        "C9": add(c9, auto.cash_deposit_income),       # + доход авто-депозита (касса)
+        "C10": other_inc,          # прочие поступления
+        "C11": add(other_exp, other_exp_profit),   # прочие выплаты (включая «из прибыли»)
         "C12": taxes_cash,
         "C14": capex_gross,
+        "C15": stage_c15,          # издержки подготовительного периода (обычные этапы)
         "C16": asset_proceeds,
         "C21": equity_in,
         "C22": add(loan_proceeds, auto.cash_draws),
@@ -704,10 +1037,11 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
     # --- Баланс ---
     paid_in = [sb.paid_in_capital + e for e in cumulative(equity_in)]
     debt = [sb.debt + loan_debt[t] + fl_liability[t] for t in range(n)]  # займы (валютные по FX) + фин. лизинг
-    # Остаток кредитной линии автофинансирования → краткосрочные займы (B22)
+    # Краткосрочные займы (B22): стартовый долг (несётся, не гасится авто) + остаток
+    # кредитной линии автофинансирования.
     auto_draws_cum = cumulative(auto.cash_draws)
     auto_prin_cum = cumulative(auto.cash_principal)
-    auto_debt = [auto_draws_cum[t] - auto_prin_cum[t] for t in range(n)]
+    auto_debt = [sb.short_term_debt + auto_draws_cum[t] - auto_prin_cum[t] for t in range(n)]
     balance_leaves = {
         "B1": cashflow["C29"],     # денежные средства = сальдо Кэш-фло
         "B2": b2,                  # счета к получению (дебиторка, с НДС)
@@ -715,23 +1049,34 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None):
         "B3": [b3[t] + sb.raw_materials for t in range(n)],     # сырьё, материалы и комплектующие
         "B4": b4,                  # незавершённое производство (НЗП)
         "B5": [b5[t] + sb.finished_goods for t in range(n)],    # запасы готовой продукции
-        "B6": add(b6_foreign, deposit_bal),  # валютная позиция + депозиты/ЦБ
-        "B7": b7,                  # краткосрочные предоплаченные расходы (НДС-кредит)
-        "B21": b21,                # отсроченные налоговые платежи (отложенный исходящий НДС)
+        "B6": add(b6_foreign, deposit_bal, auto.deposit_balance),  # валюта + депозиты + авто-депозит
+        "B7": [sb.prepaid_expenses + b7[t] for t in range(n)],  # предоплата: старт + НДС-кредит
+        # Отсроченные налоговые платежи: отложенный исходящий НДС + задолженность
+        # по настраиваемым налогам (начислено − уплачено, SPEC §22.9).
+        # Отсроченные налоговые платежи: отложенный НДС (признание) + настраиваемые налоги
+        # + отсрочка уплаты профильных прибыли/НДС по их периодичности (SPEC §11).
+        "B21": [b21[t] + taxes.deferred[t] + profit_defer[t] + vat_pay_defer[t]
+                for t in range(n)],
         "B9": b9,
         "B10": b10,
         "B12": b12,                # земля (не амортизируется)
         "B13": b13,                # здания и сооружения
         "B14": b14,                # оборудование (+ стартовая остаточная стоимость)
+        "B15": stage_b15,          # расходы будущих периодов (капитализ. издержки этапов)
+        "B16": b16,                # другие активы: НМА (остаточная стоимость)
         "B19": fl_b19,             # имущество в финансовом лизинге (нетто)
         "B22": auto_debt,          # краткосрочные займы (кредитная линия)
         "B23": b23,                # счета к оплате (кредиторка)
-        "B24": b24,                # полученные авансы
+        "B24": [sb.advances_received + b24[t] for t in range(n)],  # авансы: старт + план продаж
         "B26": debt,               # долгосрочные займы
         "B27": paid_in,            # обыкновенные акции
-        "B31": reval_cum,          # добавочный капитал (переоценка ОС)
+        "B28": [sb.preferred_capital] * n,   # привилегированные акции (стартовая позиция)
+        "B30": [sb.reserves] * n,            # резервные фонды (стартовая позиция)
+        "B31": [sb.additional_capital + reval_cum[t] for t in range(n)],  # добавочный капитал + дооценка ОС
         "B32": retained,           # нераспределённая прибыль
     }
     balance = build_balance(balance_leaves, n)
 
-    return income, cashflow, balance, profit_use, inv_warnings
+    # Целостность модели идёт первой: она объясняет, почему числа ниже ожидаемых.
+    return (income, cashflow, balance, profit_use,
+            _dangling_bom_warnings(model) + inv_warnings)

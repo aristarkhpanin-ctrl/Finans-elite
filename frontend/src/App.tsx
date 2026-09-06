@@ -5,6 +5,11 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Layout } from "./components/Layout";
 import { Splash } from "./components/Splash";
 import { ToastProvider } from "./components/Toast";
+import { AuditGroupPage } from "./pages/AuditGroupPage";
+import { AuditComparePage } from "./pages/AuditComparePage";
+import { AuditHomePage } from "./pages/AuditHomePage";
+import { AuditOnboardingPage } from "./pages/AuditOnboardingPage";
+import { AuditSubjectPage } from "./pages/AuditSubjectPage";
 import { HoldingDetailPage } from "./pages/HoldingDetailPage";
 import { HoldingsPage } from "./pages/HoldingsPage";
 import { LoginPage } from "./pages/LoginPage";
@@ -12,6 +17,7 @@ import { OrganizationPage } from "./pages/OrganizationPage";
 import { ProjectEditorPage } from "./pages/ProjectEditorPage";
 import { ProjectsPage } from "./pages/ProjectsPage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { ActivatePage } from "./pages/ActivatePage";
 
 // Тяжёлые страницы результатов/анализа грузим лениво (code-split).
 const ProjectResultsPage = lazy(() =>
@@ -40,6 +46,8 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      {/* Активация приглашения — до входа: пароля у приглашённого ещё нет. */}
+      <Route path="/activate" element={<ActivatePage />} />
       <Route
         element={
           <ProtectedRoute>
@@ -48,6 +56,11 @@ function AppRoutes() {
         }
       >
         <Route path="/projects" element={<ProjectsPage />} />
+        <Route path="/audit" element={<AuditHomePage />} />
+        <Route path="/audit/onboarding" element={<AuditOnboardingPage />} />
+        <Route path="/audit/group" element={<AuditGroupPage />} />
+        <Route path="/audit/compare" element={<AuditComparePage />} />
+        <Route path="/audit/:id" element={<AuditSubjectPage />} />
         <Route path="/holdings" element={<HoldingsPage />} />
         <Route path="/holdings/:id" element={<HoldingDetailPage />} />
         <Route path="/organization" element={<OrganizationPage />} />

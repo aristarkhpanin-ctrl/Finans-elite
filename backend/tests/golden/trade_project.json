@@ -915,7 +915,7 @@
       "0.00"
     ]
   },
-  "engine_version": "0.9.9",
+  "engine_version": "0.9.39",
   "income": {
     "I1": [
       "100000.00",
@@ -1311,8 +1311,10 @@
     ]
   },
   "metrics": {
+    "arr_annual": "2.239928",
     "dpb_months": 7,
     "irr_annual": "5.381453",
+    "mirr_annual": "1.571137",
     "npv": "43631.22",
     "pb_months": 6,
     "peak_financing_need": "40000.00",
@@ -1320,6 +1322,60 @@
     "pv_investments": "40000.00"
   },
   "n": 12,
+  "participants": [
+    {
+      "flow": [
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+        "8000.00",
+        "8000.00",
+        "8000.00",
+        "8000.00",
+        "8000.00",
+        "8000.00"
+      ],
+      "id": "equity",
+      "invested": "0.00",
+      "irr_annual": null,
+      "irr_with_terminal_annual": null,
+      "kind": "equity",
+      "name": "Акционеры",
+      "npv": "43484.34",
+      "npv_with_terminal": "194459.91",
+      "terminal_value": "171611.50",
+      "withdrawn": "48000.00"
+    },
+    {
+      "flow": [
+        "-100000.00",
+        "9577.85",
+        "9474.14",
+        "9370.43",
+        "9266.72",
+        "9163.01",
+        "9059.30",
+        "8955.59",
+        "8851.88",
+        "8748.17",
+        "8644.46",
+        "8540.75"
+      ],
+      "id": "loan:0",
+      "invested": "100000.00",
+      "irr_annual": "-0.007073",
+      "irr_with_terminal_annual": "0.160000",
+      "kind": "lender",
+      "name": "Оборотный кредит",
+      "npv": "-6886.77",
+      "npv_with_terminal": "444.50",
+      "terminal_value": "8333.33",
+      "withdrawn": "99652.30"
+    }
+  ],
   "profit_use": {
     "P1": [
       "8000.00",

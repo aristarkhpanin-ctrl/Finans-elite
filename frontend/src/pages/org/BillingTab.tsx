@@ -5,13 +5,26 @@ import { checkout, getPlans, getSubscription, type Plan } from "../../api/org";
 import { useToast } from "../../components/Toast";
 import { Button, Modal, Skeleton } from "../../components/ui";
 
-const price = (rub: number) => (rub === 0 ? "Бесплатно" : `${rub.toLocaleString("ru-RU")} ₽`);
+/** Цена тарифа. «По запросу» — не ноль: ноль на экране читается как «бесплатно». */
+const price = (p: { price_rub: number; price_on_request: boolean }) =>
+  p.price_on_request ? "По запросу" : p.price_rub === 0 ? "Бесплатно"
+    : `${p.price_rub.toLocaleString("ru-RU")} ₽`;
+
+/** Продукты платформы: тарифы у каждого свои, поэтому и экран тарифа переключается. */
+const PRODUCTS: [string, string][] = [
+  ["business", "Финанс-Элит"],
+  ["audit", "Финанс-Аудит"],
+];
 
 /** Ключевые фичи плана по коду (для карточек). */
 const PLAN_FEATURES: Record<string, string[]> = {
   free: ["4 отчёта + показатели", "Оценка бизнеса 5 методами", "Экспорт CSV/XLSX"],
   team: ["Всё из Free", "Холдинги и консолидация", "Анализ рисков"],
   business: ["Всё из Team", "Приоритетная поддержка", "Расширенные квоты"],
+  audit_trial: ["Аналитическая форма и коэффициенты", "Диагностика и заключение",
+                "Импорт и выгрузка XLSX"],
+  audit_team: ["Всё из Пробного", "Группа компаний и консолидация", "Свои методики и нормативы"],
+  audit_corp: ["Всё из Команды", "Без ограничений по делам и местам", "Индивидуальные условия"],
 };
 
 function QuotaBar({ label, used, max }: { label: string; used: number; max: number | null }) {
@@ -37,9 +50,11 @@ export function BillingTab({ orgId, canManage }: { orgId: string; canManage: boo
   const qc = useQueryClient();
   const toast = useToast();
   const [target, setTarget] = useState<Plan | null>(null);
+  const [product, setProduct] = useState("business");
 
-  const sub = useQuery({ queryKey: ["subscription", orgId], queryFn: () => getSubscription(orgId) });
-  const plans = useQuery({ queryKey: ["plans"], queryFn: getPlans });
+  const sub = useQuery({ queryKey: ["subscription", orgId, product],
+                         queryFn: () => getSubscription(orgId, product) });
+  const plans = useQuery({ queryKey: ["plans", product], queryFn: () => getPlans(product) });
 
   const change = useMutation({
     mutationFn: (code: string) => checkout(orgId, code),
@@ -83,6 +98,18 @@ export function BillingTab({ orgId, canManage }: { orgId: string; canManage: boo
 
   return (
     <div>
+      {/* Продукты продаются порознь, поэтому и тариф у каждого свой: общий экран
+          означал бы, что покупка «Аудита» меняет условия по «Элит». */}
+      <div className="case-filters" role="group" aria-label="Продукт">
+        {PRODUCTS.map(([key, label]) => (
+          <button key={key} type="button" aria-pressed={product === key}
+                  className={"case-filter" + (product === key ? " case-filter--active" : "")}
+                  onClick={() => { setProduct(key); setTarget(null); }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
       <div className="billing-grid">
         <div className="plan-current">
           <div className="plan-current__label">Текущий тариф</div>
@@ -91,8 +118,9 @@ export function BillingTab({ orgId, canManage }: { orgId: string; canManage: boo
             <span className="plan-active-dot" title="Активна" />
           </div>
           <div className="plan-current__price">
-            {currentPlan ? price(currentPlan.price_rub) : "—"}
-            {currentPlan && currentPlan.price_rub > 0 && <span style={{ color: "var(--subtle)", fontWeight: 500 }}> / мес</span>}
+            {currentPlan ? price(currentPlan) : "—"}
+            {currentPlan && !currentPlan.price_on_request && currentPlan.price_rub > 0 &&
+              <span style={{ color: "var(--subtle)", fontWeight: 500 }}> / мес</span>}
           </div>
           {s.current_period_end && (
             <div className="plan-current__note">
@@ -102,7 +130,9 @@ export function BillingTab({ orgId, canManage }: { orgId: string; canManage: boo
         </div>
 
         <div className="quota-card">
-          <QuotaBar label="Проекты" used={s.used_projects} max={s.max_projects ?? null} />
+          {/* Подпись берётся из тарифа: у «Элит» это проекты, у «Аудита» — дела. */}
+          <QuotaBar label={s.unit_name === "дел" ? "Дела" : "Проекты"}
+                    used={s.used_units} max={s.max_units ?? null} />
           <QuotaBar label="Участники" used={s.used_members} max={s.max_members ?? null} />
         </div>
       </div>
@@ -117,11 +147,11 @@ export function BillingTab({ orgId, canManage }: { orgId: string; canManage: boo
                 {current && <span className="plan-ribbon">Текущий</span>}
                 <div className="plan-card__name">{p.name}</div>
                 <div className="plan-card__price">
-                  {price(p.price_rub)}
-                  {p.price_rub > 0 && <small> / мес</small>}
+                  {price(p)}
+                  {!p.price_on_request && p.price_rub > 0 && <small> / мес</small>}
                 </div>
                 <div className="plan-card__limits">
-                  ▢ {p.max_projects ?? "∞"} проектов · ○ {p.max_members ?? "∞"} участников
+                  ▢ {p.max_units ?? "∞"} {p.unit_name} · ○ {p.max_members ?? "∞"} участников
                 </div>
                 <div className="plan-feats">
                   {(PLAN_FEATURES[p.code] ?? []).map((f) => (
@@ -182,8 +212,13 @@ export function BillingTab({ orgId, canManage }: { orgId: string; canManage: boo
               </div>
             </div>
             <div className="modal__sub" style={{ margin: 0 }}>
-              Стоимость нового тарифа — <b style={{ color: "var(--text)" }}>{price(target.price_rub)}{target.price_rub > 0 ? " / мес" : ""}</b>.
-              {target.price_rub > 0 ? " После подтверждения откроется страница оплаты." : " Тариф активируется сразу."}
+              Стоимость нового тарифа — <b style={{ color: "var(--text)" }}>
+                {price(target)}{!target.price_on_request && target.price_rub > 0 ? " / мес" : ""}</b>.
+              {target.price_on_request
+                ? " Условия обсуждаются отдельно — мы свяжемся с вами после заявки."
+                : target.price_rub > 0
+                  ? " После подтверждения откроется страница оплаты."
+                  : " Тариф активируется сразу."}
             </div>
           </>
         )}

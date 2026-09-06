@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  input,button{font-family:inherit;}
+  a{color:#C77DFF;}
+  a:hover{color:#D69AFF;}
+  @keyframes fa-pulse{from{opacity:.4}to{opacity:1}}
+  @keyframes fa-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes fa-grow-x{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+  @keyframes fa-grow-y{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:11px;min-width:0;">
+      <div style="{{ s.barCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="30px,30px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Экран 17 · План-факт</span>
+        <span style="{{ s.barSub }}">обещал продавец — получилось после сделки</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Свет</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тьма</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Период</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segQ }}" onClick="{{ setQ }}">По кварталам</button><button style="{{ s.segY }}" onClick="{{ setY }}">Год к году</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}" data-screen-label="Экран 17 — План-факт">
+
+      <div style="{{ s.nav }}">
+        <div style="{{ s.navLeft }}">
+          <div style="{{ s.navCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="24px,24px"></dc-import></div>
+          <span style="{{ s.navBrand }}">Финанс&nbsp;Аудит</span>
+          <div style="{{ s.navTabs }}">
+            <sc-for list="{{ navTabs }}" as="n" hint-placeholder-count="6"><span style="{{ n.style }}">{{ n.label }}</span></sc-for>
+          </div>
+        </div>
+        <div style="{{ s.navRight }}">
+          <span style="{{ s.navCase }}">ДЕЛО A-2417 · СДЕЛКА ЗАКРЫТА</span>
+          <button style="{{ s.btnPrimarySm }}" style-hover="{{ s.btnPrimaryHover }}">Загрузить факт</button>
+        </div>
+      </div>
+
+      <div style="{{ s.subhead }}">
+        <div style="min-width:0;">
+          <div style="{{ s.h1 }}">ООО «Сибтранс-Логистика» после сделки</div>
+          <div style="{{ s.h1Sub }}">Прогноз продавца из инвестиционного меморандума против фактической отчётности. {{ periodNote }}</div>
+        </div>
+        <div style="{{ s.subheadRight }}">
+          <sc-for list="{{ headMetrics }}" as="m" hint-placeholder-count="3"><div style="{{ s.headMetric }}"><div style="{{ s.headMetricLabel }}">{{ m.label }}</div><div style="{{ m.valueStyle }}">{{ m.value }}</div></div></sc-for>
+        </div>
+      </div>
+
+      <div style="{{ s.main }}">
+        <div style="{{ s.col }}">
+
+          <div style="{{ s.panel }}">
+            <div style="{{ s.panelHead }}"><span style="{{ s.panelTitle }}">Выручка: план против факта</span><span style="{{ s.panelMeta }}">млн ₽ · {{ chartMeta }}</span></div>
+            <div style="{{ s.chartWrap }}">
+              <div style="{{ s.chartBars }}">
+                <sc-for list="{{ bars }}" as="b" hint-placeholder-count="8">
+                <div style="{{ s.barGroup }}">
+                  <div style="{{ s.barPair }}">
+                    <div style="{{ b.planStyle }}"></div>
+                    <div style="{{ b.factStyle }}"></div>
+                  </div>
+                  <div style="{{ s.barLabel }}">{{ b.label }}</div>
+                  <div style="{{ b.deltaStyle }}">{{ b.delta }}</div>
+                </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="{{ s.legend }}">
+              <div style="{{ s.legendItem }}"><span style="{{ s.legendPlan }}"></span><span style="{{ s.legendText }}">План продавца</span></div>
+              <div style="{{ s.legendItem }}"><span style="{{ s.legendFact }}"></span><span style="{{ s.legendText }}">Факт</span></div>
+              <div style="{{ s.legendItem }}"><span style="{{ s.legendGap }}"></span><span style="{{ s.legendText }}">Недобор больше 10%</span></div>
+            </div>
+          </div>
+
+          <div style="{{ s.panel }}">
+            <div style="{{ s.panelHead }}"><span style="{{ s.panelTitle }}">Развёрнутый план-факт</span><span style="{{ s.panelMeta }}">млн ₽, кроме процентов</span></div>
+            <div style="{{ s.tblWrap }}">
+              <div style="{{ s.tblHead }}">
+                <div style="{{ s.thFirst }}">Показатель</div>
+                <div style="{{ s.thCol }}">План</div>
+                <div style="{{ s.thCol }}">Факт</div>
+                <div style="{{ s.thCol }}">Δ</div>
+                <div style="{{ s.thCol }}">Δ, %</div>
+                <div style="{{ s.thColLast }}">Оценка</div>
+              </div>
+              <sc-for list="{{ rows }}" as="r" hint-placeholder-count="9">
+              <div style="{{ r.rowStyle }}">
+                <div style="{{ r.labelStyle }}">{{ r.label }}</div>
+                <div style="{{ r.planStyle }}">{{ r.plan }}</div>
+                <div style="{{ r.factStyle }}">{{ r.fact }}</div>
+                <div style="{{ r.deltaStyle }}">{{ r.delta }}</div>
+                <div style="{{ r.pctStyle }}">{{ r.pct }}</div>
+                <div style="{{ s.chipCell }}"><span style="{{ r.chipStyle }}">{{ r.verdict }}</span></div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="{{ s.panel }}">
+            <div style="{{ s.panelHead }}"><span style="{{ s.panelTitle }}">Что из наших флагов сработало</span><span style="{{ s.panelMeta }}">7 флагов из заключения · 18 месяцев после сделки</span></div>
+            <div style="{{ s.flagList }}">
+              <sc-for list="{{ flags }}" as="f" hint-placeholder-count="5">
+              <div style="{{ f.rowStyle }}">
+                <span style="{{ f.markStyle }}">{{ f.mark }}</span>
+                <span style="{{ s.flagBody }}">
+                  <span style="{{ s.flagName }}">{{ f.name }}</span>
+                  <span style="{{ s.flagMeta }}">{{ f.meta }}</span>
+                </span>
+                <span style="{{ s.flagForecast }}">{{ f.forecast }}</span>
+                <span style="{{ f.actualStyle }}">{{ f.actual }}</span>
+              </div>
+              </sc-for>
+            </div>
+            <div style="{{ s.flagFoot }}">Из семи флагов реализовались четыре — на 214 млн ₽ из спрогнозированных 220. Дисконт, который мы отстояли в переговорах, окупился полностью.</div>
+          </div>
+        </div>
+
+        <div style="{{ s.aside }}">
+          <div style="{{ s.cardAccent }}">
+            <div style="{{ s.cardHead }}">Дисконт окупился</div>
+            <div style="{{ s.asideBig }}">214 / 220</div>
+            <div style="{{ s.asideLead }}">Риски, за которые мы снизили цену на 220 млн ₽, обошлись покупателю в 214 млн ₽ фактических потерь. Без дисконта сделка ушла бы в минус.</div>
+          </div>
+
+          <div style="{{ s.card }}">
+            <div style="{{ s.cardHead }}">Доходность вложения</div>
+            <sc-for list="{{ returns }}" as="r" hint-placeholder-count="4">
+            <div style="{{ s.kvRow }}"><span style="{{ s.kvKey }}">{{ r.key }}</span><span style="{{ r.valueStyle }}">{{ r.value }}</span></div>
+            </sc-for>
+          </div>
+
+          <div style="{{ s.cardWarn }}">
+            <div style="{{ s.warnEyebrow }}">РЕАЛИЗОВАЛСЯ ФЛАГ</div>
+            <div style="{{ s.warnTitle }}">Ключевой заказчик ушёл</div>
+            <div style="{{ s.warnLead }}">В марте 2027 контрагент с 30% выручки не продлил договор — ровно тот стресс-сценарий, который мы оценивали в 380 млн ₽ потери стоимости.</div>
+          </div>
+
+          <div style="{{ s.card }}">
+            <div style="{{ s.cardHead }}">Источники факта</div>
+            <sc-for list="{{ sources }}" as="sc" hint-placeholder-count="4">
+            <div style="{{ s.srcRow }}"><span style="{{ sc.dotStyle }}"></span><span style="{{ s.srcBody }}"><span style="{{ s.srcName }}">{{ sc.name }}</span><span style="{{ s.srcMeta }}">{{ sc.meta }}</span></span></div>
+            </sc-for>
+            <button style="{{ s.btnGhostSm }}" style-hover="{{ s.btnGhostHover }}">Выгрузить план-факт в XLSX</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:960}}">
+class Component extends DCLogic {
+  state = { theme:'dark', device:'desktop', period:'q' };
+
+  THEME(){
+    const dark={
+      pageBg:'#000000', bg:'#000000', surface:'#0E0B14', surface2:'#171122', surface3:'#241A38',
+      border:'#2B2140', borderStrong:'#4B3A6E', gridLine:'#191324',
+      text:'#F2E8FF', muted:'#9C8FB5', subtle:'#6A5C86',
+      primary:'#C77DFF', primaryHover:'#D69AFF', primaryText:'#17061F', accent:'#C77DFF',
+      primaryBg:'rgba(199,125,255,0.15)', primarySoft:'rgba(199,125,255,0.09)',
+      goodBg:'rgba(199,125,255,0.15)', goodBorder:'rgba(199,125,255,0.34)',
+      danger:'#F0796E', dangerBg:'rgba(240,121,110,0.15)', dangerBorder:'rgba(240,121,110,0.34)',
+      warn:'#E0A23A', warnBg:'rgba(224,162,58,0.16)', warnBorder:'rgba(224,162,58,0.32)',
+      ring:'rgba(199,125,255,0.40)',
+      shadow:'0 30px 70px -34px rgba(0,0,0,.9)', glow:'0 0 18px rgba(199,125,255,.35)',
+      barBg:'#0A0710', segBg:'#0A0710', segActiveBg:'#241A38', headerBg:'#0E0B14'
+    };
+    const light={
+      pageBg:'#F2EDFA', bg:'#FAF7FE', surface:'#FFFFFF', surface2:'#F4EEFA', surface3:'#E8DEF4',
+      border:'#DED2EC', borderStrong:'#C2B0D6', gridLine:'#EDE6F6',
+      text:'#1B1523', muted:'#4E4459', subtle:'#756884',
+      primary:'#C77DFF', primaryHover:'#B968F5', primaryText:'#17061F', accent:'#7A2BC4',
+      primaryBg:'#EEE0FB', primarySoft:'#F6EFFD',
+      goodBg:'#EEE0FB', goodBorder:'#D9BFF0',
+      danger:'#C0473B', dangerBg:'#FAE7E4', dangerBorder:'#EECFCA',
+      warn:'#B07A12', warnBg:'#FBF0D8', warnBorder:'#ECDDB4',
+      ring:'rgba(199,125,255,0.34)',
+      shadow:'0 18px 44px -22px rgba(40,20,60,.22), 0 2px 6px rgba(40,20,60,.05)', glow:'none',
+      barBg:'#FFFFFF', segBg:'#EDE6F6', segActiveBg:'#FFFFFF', headerBg:'#FFFFFF'
+    };
+    return this.state.theme==='dark'?dark:light;
+  }
+
+  DIM(){
+    const d=this.state.device;
+    if(d==='mobile') return {frame:402, radius:26, pad:16, h1:22, mainCols:'1fr', tabsShown:2, compact:true, tblLabel:'96px', chartH:150, flagCols:'1fr 52px 52px'};
+    if(d==='tablet') return {frame:864, radius:30, pad:20, h1:26, mainCols:'1fr', tabsShown:5, compact:false, tblLabel:'186px', chartH:180, flagCols:'1fr 84px 84px'};
+    return {frame:1180, radius:30, pad:24, h1:30, mainCols:'1fr 300px', tabsShown:6, compact:false, tblLabel:'212px', chartH:196, flagCols:'1fr 96px 96px'};
+  }
+
+  setLight=()=>this.setState({theme:'light'});
+  setDark=()=>this.setState({theme:'dark'});
+  setDesktop=()=>this.setState({device:'desktop'});
+  setTablet=()=>this.setState({device:'tablet'});
+  setMobile=()=>this.setState({device:'mobile'});
+  setQ=()=>this.setState({period:'q'});
+  setY=()=>this.setState({period:'y'});
+
+  segBtn(active,t){
+    return 'height:28px;padding:0 12px;border:0;border-radius:7px;cursor:pointer;font:'+(active?'600':'500')+' 11.5px/1 Inter,sans-serif;letter-spacing:-.01em;'+
+      (active?('background:'+t.segActiveBg+';color:'+t.text+';'):('background:transparent;color:'+t.subtle+';'));
+  }
+
+  renderVals(){
+    const t=this.THEME(), d=this.DIM(), dark=this.state.theme==='dark', q=this.state.period==='q';
+    const mono='JetBrains Mono,ui-monospace,monospace';
+    const disp='Satoshi,Inter,sans-serif';
+    const card='border:1px solid '+t.border+';border-radius:16px;background:'+t.surface+';'+(dark?'':'box-shadow:'+t.shadow+';');
+    const chip=(bg,bd,c)=>'display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;background:'+bg+';border:1px solid '+bd+';font:500 10px/1.3 '+mono+';color:'+c+';white-space:nowrap;';
+    const tcols=d.tblLabel+' repeat(4,minmax(0,1fr)) '+(d.compact?'72px':'104px');
+
+    const s={
+      page:'min-height:100vh;background:'+t.pageBg+';display:flex;flex-direction:column;align-items:center;padding:0 0 60px;',
+      bar:'position:sticky;top:0;z-index:20;width:100%;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:12px 20px;background:'+t.barBg+';border-bottom:1px solid '+t.border+';',
+      barCube:'width:30px;height:30px;flex:none;',
+      barTitle:'font:600 13px/1.2 Inter,sans-serif;letter-spacing:-.015em;color:'+t.text+';',
+      barSub:'font:400 10.5px/1.2 '+mono+';color:'+t.subtle+';',
+      barLabel:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+      seg:'display:flex;gap:2px;padding:3px;border-radius:9px;background:'+t.segBg+';border:1px solid '+t.border+';',
+      segLight:this.segBtn(!dark,t), segDark:this.segBtn(dark,t),
+      segDesktop:this.segBtn(this.state.device==='desktop',t),
+      segTablet:this.segBtn(this.state.device==='tablet',t),
+      segMobile:this.segBtn(this.state.device==='mobile',t),
+      segQ:this.segBtn(q,t), segY:this.segBtn(!q,t),
+      stage:'width:100%;display:flex;justify-content:center;padding:26px 18px 0;',
+      frame:'width:100%;max-width:'+d.frame+'px;border:1px solid '+t.border+';border-radius:'+d.radius+'px;background:'+t.bg+';overflow:hidden;'+(dark?'':'box-shadow:'+t.shadow+';'),
+
+      nav:'display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 '+d.pad+'px;background:'+t.headerBg+';border-bottom:1px solid '+t.border+';',
+      navLeft:'display:flex;align-items:center;gap:11px;min-width:0;',
+      navCube:'width:24px;height:24px;flex:none;',
+      navBrand:'font:600 12.5px/1 Inter,sans-serif;letter-spacing:-.01em;color:'+t.text+';white-space:nowrap;',
+      navTabs:'display:'+(d.frame<500?'none':'flex')+';align-items:center;gap:2px;',
+      navRight:'display:flex;align-items:center;gap:10px;flex:none;',
+      navCase:'display:'+(d.frame<500?'none':'inline')+';font:500 10px/1 '+mono+';letter-spacing:.06em;color:'+t.subtle+';',
+
+      subhead:'display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:18px '+d.pad+'px;border-bottom:1px solid '+t.border+';',
+      h1:'font:500 '+d.h1+'px/1.14 '+disp+';letter-spacing:-.028em;color:'+t.text+';',
+      h1Sub:'margin-top:7px;font:400 12px/1.5 Inter,sans-serif;color:'+t.muted+';max-width:66ch;',
+      subheadRight:'display:flex;align-items:flex-start;gap:'+(d.compact?16:22)+'px;flex-wrap:wrap;',
+      headMetric:'display:flex;flex-direction:column;gap:6px;',
+      headMetricLabel:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+
+      main:'display:grid;grid-template-columns:'+d.mainCols+';gap:'+(d.compact?14:18)+'px;padding:'+(d.compact?16:20)+'px '+d.pad+'px;align-items:start;',
+      col:'display:flex;flex-direction:column;gap:'+(d.compact?14:18)+'px;min-width:0;',
+      aside:'display:flex;flex-direction:column;gap:'+(d.compact?14:18)+'px;min-width:0;',
+      panel:card+'padding:'+(d.compact?14:18)+'px;display:flex;flex-direction:column;gap:14px;min-width:0;animation:fa-fade .3s ease-out both;',
+      panelHead:'display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;',
+      panelTitle:'font:500 '+(d.compact?14:15.5)+'px/1.2 '+disp+';letter-spacing:-.02em;color:'+t.text+';',
+      panelMeta:'font:400 10.5px/1.3 '+mono+';color:'+t.subtle+';',
+
+      chartWrap:'min-width:0;',
+      chartBars:'display:flex;align-items:flex-end;gap:'+(d.compact?6:12)+'px;',
+      barGroup:'flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:7px;',
+      barPair:'display:flex;align-items:flex-end;gap:'+(d.compact?2:4)+'px;width:100%;height:'+d.chartH+'px;padding-bottom:1px;border-bottom:1px solid '+t.borderStrong+';',
+      barLabel:'font:400 '+(d.compact?9:10)+'px/1 '+mono+';color:'+t.subtle+';',
+
+      legend:'display:flex;flex-wrap:wrap;gap:'+(d.compact?10:16)+'px;padding-top:12px;border-top:1px solid '+t.border+';',
+      legendItem:'display:flex;align-items:center;gap:6px;',
+      legendPlan:'width:9px;height:9px;border-radius:2px;border:1px solid '+t.borderStrong+';background:'+t.surface3+';',
+      legendFact:'width:9px;height:9px;border-radius:2px;background:'+t.primary+';',
+      legendGap:'width:9px;height:9px;border-radius:2px;background:'+t.danger+';',
+      legendText:'font:400 10.5px/1.3 Inter,sans-serif;color:'+t.muted+';',
+
+      tblWrap:'min-width:0;',
+      tblHead:'display:grid;grid-template-columns:'+tcols+';padding:8px 0;border-top:1px solid '+t.border+';border-bottom:1px solid '+t.border+';',
+      thFirst:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.muted+';',
+      thCol:'text-align:right;font:500 9px/1 Inter,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:'+t.muted+';',
+      thColLast:'text-align:right;font:500 9px/1 Inter,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:'+t.muted+';',
+      chipCell:'display:flex;justify-content:flex-end;',
+
+      flagList:'display:flex;flex-direction:column;',
+      flagBody:'flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;',
+      flagName:'font:400 '+(d.compact?11.5:12.5)+'px/1.35 Inter,sans-serif;color:'+t.text+';',
+      flagMeta:'font:400 10px/1.35 '+mono+';color:'+t.subtle+';',
+      flagForecast:'flex:none;text-align:right;font:400 11px/1 '+mono+';color:'+t.subtle+';',
+      flagFoot:'padding-top:12px;border-top:1px solid '+t.border+';font:400 11px/1.55 Inter,sans-serif;color:'+t.subtle+';',
+
+      cardAccent:'padding:16px;border:1px solid '+t.goodBorder+';border-radius:16px;background:'+t.goodBg+';display:flex;flex-direction:column;gap:11px;',
+      card:card+'padding:16px;display:flex;flex-direction:column;gap:11px;',
+      cardWarn:'padding:16px;border:1px solid '+t.warnBorder+';border-radius:16px;background:'+t.warnBg+';display:flex;flex-direction:column;gap:10px;',
+      cardHead:'font:500 9.5px/1 Inter,sans-serif;letter-spacing:.13em;text-transform:uppercase;color:'+t.subtle+';',
+      asideBig:'font:500 '+(d.compact?26:30)+'px/1 '+mono+';letter-spacing:-.03em;color:'+t.accent+';',
+      asideLead:'font:400 11.5px/1.6 Inter,sans-serif;color:'+t.muted+';',
+      warnEyebrow:'font:500 9px/1 '+mono+';letter-spacing:.12em;color:'+t.warn+';',
+      warnTitle:'font:500 15px/1.2 '+disp+';letter-spacing:-.02em;color:'+t.text+';',
+      warnLead:'font:400 11.5px/1.55 Inter,sans-serif;color:'+t.muted+';',
+      kvRow:'display:flex;align-items:baseline;justify-content:space-between;gap:10px;',
+      kvKey:'font:400 11.5px/1.4 Inter,sans-serif;color:'+t.muted+';',
+
+      srcRow:'display:flex;align-items:flex-start;gap:9px;',
+      srcBody:'flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;',
+      srcName:'font:400 11.5px/1.35 Inter,sans-serif;color:'+t.text+';',
+      srcMeta:'font:400 10px/1.35 '+mono+';color:'+t.subtle+';',
+
+      btnPrimarySm:'height:32px;padding:0 13px;border:0;border-radius:4px;background:'+t.primary+';color:'+t.primaryText+';font:600 11.5px/1 Inter,sans-serif;cursor:pointer;white-space:nowrap;'+(dark?'box-shadow:'+t.glow+';':''),
+      btnPrimaryHover:'background:'+t.primaryHover+';',
+      btnGhostSm:'height:34px;padding:0 14px;border:1px solid '+t.border+';border-radius:4px;background:transparent;color:'+t.text+';font:500 11.5px/1 Inter,sans-serif;cursor:pointer;',
+      btnGhostHover:'border-color:'+t.borderStrong+';background:'+t.surface2+';'
+    };
+
+    const tabs=['Обзор','Сверка','Флаги','Оценка','План-факт','Заключение'].slice(0,d.tabsShown).map(label=>{
+      const on=label==='План-факт'||(d.tabsShown<5&&label==='Обзор');
+      return {label, style:'padding:16px 11px;font:'+(on?'500':'400')+' 12px/1 Inter,sans-serif;letter-spacing:-.01em;color:'+(on?t.text:t.muted)+';cursor:pointer;white-space:nowrap;'+(on?'box-shadow:inset 0 -2px 0 '+t.primary+';':'')};
+    });
+
+    const qData=[
+      ['III·25',462,451],['IV·25',478,466],['I·26',486,442],['II·26',498,428],
+      ['III·26',512,404],['IV·26',524,398],['I·27',538,352],['II·27',552,338]
+    ];
+    const yData=[
+      ['2025',1842,1842],['2026',2020,1672],['2027',2216,1404]
+    ];
+    const data=q?qData:yData;
+    const maxVal=Math.max.apply(null,data.map(r=>Math.max(r[1],r[2])));
+
+    const bars=data.map((r,i)=>{
+      const gap=(r[2]-r[1])/r[1]*100;
+      const bad=gap<-10;
+      return {
+        label:r[0],
+        delta:(gap>0?'+':'')+gap.toFixed(0)+'%',
+        planStyle:'flex:1;min-width:0;height:'+(r[1]/maxVal*100).toFixed(1)+'%;border-radius:3px 3px 0 0;border:1px solid '+t.borderStrong+';border-bottom:0;background:'+t.surface3+';transform-origin:bottom;animation:fa-grow-y .5s cubic-bezier(.22,1,.36,1) '+(i*0.05).toFixed(2)+'s both;',
+        factStyle:'flex:1;min-width:0;height:'+(r[2]/maxVal*100).toFixed(1)+'%;border-radius:3px 3px 0 0;background:'+(bad?t.danger:t.primary)+';transform-origin:bottom;animation:fa-grow-y .5s cubic-bezier(.22,1,.36,1) '+(i*0.05+0.06).toFixed(2)+'s both;',
+        deltaStyle:'font:500 '+(d.compact?9:10)+'px/1 '+mono+';color:'+(bad?t.danger:(gap<0?t.warn:t.accent))+';'
+      };
+    });
+
+    const row=(label,plan,fact,delta,pct,verdict,kind)=>({
+      label, plan, fact, delta, pct, verdict,
+      rowStyle:'display:grid;grid-template-columns:'+tcols+';padding:'+(kind==='total'?11:9)+'px 0;'+(kind==='total'?'border-top:1px solid '+t.borderStrong+';':'border-bottom:1px solid '+t.gridLine+';')+'align-items:center;',
+      labelStyle:'font:'+(kind==='total'?'600':'400')+' '+(d.compact?11:12)+'px/1.4 Inter,sans-serif;color:'+t.text+';',
+      planStyle:'text-align:right;font:400 '+(d.compact?10.5:11.5)+'px/1.4 '+mono+';color:'+t.subtle+';',
+      factStyle:'text-align:right;font:'+(kind==='total'?'600':'500')+' '+(d.compact?10.5:11.5)+'px/1.4 '+mono+';color:'+t.text+';',
+      deltaStyle:'text-align:right;font:400 '+(d.compact?10.5:11.5)+'px/1.4 '+mono+';color:'+(kind==='bad'?t.danger:(kind==='ok'?t.accent:t.muted))+';',
+      pctStyle:'text-align:right;font:500 '+(d.compact?10.5:11.5)+'px/1.4 '+mono+';color:'+(kind==='bad'?t.danger:(kind==='ok'?t.accent:t.warn))+';',
+      chipStyle:kind==='bad'?chip(t.dangerBg,t.dangerBorder,t.danger):(kind==='ok'?chip(t.goodBg,t.goodBorder,t.accent):chip(t.warnBg,t.warnBorder,t.warn))
+    });
+
+    const flag=(name,meta,forecast,actual,kind)=>({
+      name, meta, forecast, actual,
+      mark:kind==='hit'?'✓':(kind==='part'?'~':'—'),
+      rowStyle:'display:grid;grid-template-columns:20px '+d.flagCols+';gap:'+(d.compact?8:12)+'px;align-items:center;padding:10px 0;border-bottom:1px solid '+t.gridLine+';',
+      markStyle:'font:600 12px/1 '+mono+';color:'+(kind==='hit'?t.danger:(kind==='part'?t.warn:t.subtle))+';',
+      actualStyle:'flex:none;text-align:right;font:500 11px/1 '+mono+';color:'+(kind==='hit'?t.danger:(kind==='part'?t.warn:t.accent))+';'
+    });
+
+    return {
+      s,
+      setLight:this.setLight, setDark:this.setDark,
+      setDesktop:this.setDesktop, setTablet:this.setTablet, setMobile:this.setMobile,
+      setQ:this.setQ, setY:this.setY,
+      navTabs:tabs,
+      periodNote:q?'Сделка закрыта 30.06.2025, факт — восемь кварталов.':'Сделка закрыта 30.06.2025, факт — три года подряд.',
+      chartMeta:q?'8 кварталов после сделки':'год к году, 2025 — база',
+      headMetrics:[
+        {label:'Выручка, факт к плану', value:q?'−22%':'−37%', kind:'bad'},
+        {label:'EBITDA, факт к плану', value:'−31%', kind:'bad'},
+        {label:'Флагов реализовалось', value:'4 из 7', kind:'warn'}
+      ].map(m=>({label:m.label, value:m.value, valueStyle:'font:500 15px/1 '+mono+';letter-spacing:-.02em;color:'+(m.kind==='bad'?t.danger:t.warn)+';'})),
+      bars,
+
+      rows:[
+        row('Выручка','2 216','1 404','(812)','−37%','не выполнен','bad'),
+        row('Себестоимость продаж','(1 706)','(1 138)','568','−33%','пропорц.','neutral'),
+        row('EBITDA','510','352','(158)','−31%','не выполнен','bad'),
+        row('Маржа EBITDA, %','23,0','25,1','+2,1','+9%','лучше плана','ok'),
+        row('Оборотный капитал','286','214','(72)','−25%','лучше плана','ok'),
+        row('Капитальные затраты','(180)','(96)','84','−47%','вложений меньше','neutral'),
+        row('Долг и займы','(620)','(742)','(122)','+20%','хуже плана','bad'),
+        row('Свободный денежный поток','218','142','(76)','−35%','не выполнен','bad'),
+        row('Стоимость доли, оценка','1 620','1 084','(536)','−33%','не выполнен','total')
+      ],
+
+      flags:[
+        flag('Ключевой заказчик уходит','флаг №1 · критический · март 2027','−380','−412','hit'),
+        flag('Спорные прочие доходы не подтвердились','флаг №2 · критический · при первой сверке','−62','−62','hit'),
+        flag('Дебиторка проблемного контрагента списана','флаг №3 · средний · 2026','−84','−78','hit'),
+        flag('Аренда складов перезаключена по рынку','флаг №5 · средний · январь 2027','−24','−31','hit'),
+        flag('Поручительства сняты до сделки','флаг №4 · средний · снято продавцом','−41','0','miss'),
+        flag('Смена аудитора не повторилась','флаг №6 · низкий','−9','0','miss'),
+        flag('Индексация ставки ЦБ','флаг №7 · низкий · частично','−20','−12','part')
+      ],
+      returns:[
+        {key:'Цена сделки', value:'1 020 млн ₽'},
+        {key:'Оценка сегодня', value:'1 084 млн ₽'},
+        {key:'Дивиденды получено', value:'118 млн ₽'},
+        {key:'IRR за 26 месяцев', value:'8,4%'}
+      ].map(r=>({key:r.key, value:r.value, valueStyle:'flex:none;font:500 11.5px/1.4 '+mono+';color:'+(r.key==='IRR за 26 месяцев'?t.warn:t.text)+';'})),
+      sources:[
+        {name:'Отчётность ФНС', meta:'загружена 14.08.2026 · формы 1 и 2', dotStyle:'flex:none;width:5px;height:5px;margin-top:6px;border-radius:50%;background:'+t.primary+';'},
+        {name:'Управленческая отчётность', meta:'выгрузка из 1С · ежемесячно', dotStyle:'flex:none;width:5px;height:5px;margin-top:6px;border-radius:50%;background:'+t.primary+';'},
+        {name:'Банковские выписки', meta:'четыре счёта · через интеграцию', dotStyle:'flex:none;width:5px;height:5px;margin-top:6px;border-radius:50%;background:'+t.primary+';'},
+        {name:'План продавца', meta:'инвестиционный меморандум, март 2025', dotStyle:'flex:none;width:5px;height:5px;margin-top:6px;border-radius:50%;background:'+t.subtle+';'}
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

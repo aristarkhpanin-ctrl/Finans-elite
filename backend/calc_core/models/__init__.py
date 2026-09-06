@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from .actualization import Actualization
+from .calendar import CalendarPlan, Resource, Stage, StageResource
 from .common import (
     AssetCategory,
     CostFunction,
@@ -10,26 +11,34 @@ from .common import (
     RepaymentType,
     VatBasis,
 )
-from .company import Company, StartingBalance
+from .company import Company, Division, StartingBalance
 from .environment import Currency, Environment, InflationGroup, Tax
 from .financing import AutoFinancing, Deposit, EquityInjection, Financing, Lease, Loan
-from .investment import Asset, InvestmentPlan
+from .investment import AdditionalInvestment, Asset, InvestmentPlan
 from .operating import (
+    BomLine,
     DirectCostLine,
     FixedCostLine,
+    Material,
     OperatingPlan,
+    OtherFlow,
+    PaymentPart,
     PaymentTerms,
     Product,
     ProductionLine,
     SalesLine,
+    StaffPosition,
 )
-from .project import ProjectHeader, ProjectModel, ProjectSettings
+from .project import PlanSection, ProjectHeader, ProjectModel, ProjectSettings
+from .tables import UserRow, UserTable
 
 __all__ = [
     "ProjectModel",
     "ProjectHeader",
     "ProjectSettings",
+    "PlanSection",
     "Company",
+    "Division",
     "StartingBalance",
     "Environment",
     "Currency",
@@ -37,11 +46,23 @@ __all__ = [
     "Tax",
     "InvestmentPlan",
     "Asset",
+    "AdditionalInvestment",
+    "CalendarPlan",
+    "Stage",
+    "StageResource",
+    "Resource",
     "OperatingPlan",
     "Product",
+    "Material",
+    "BomLine",
+    "OtherFlow",
     "SalesLine",
+    "StaffPosition",
+    "UserTable",
+    "UserRow",
     "ProductionLine",
     "PaymentTerms",
+    "PaymentPart",
     "DirectCostLine",
     "FixedCostLine",
     "CostFunction",

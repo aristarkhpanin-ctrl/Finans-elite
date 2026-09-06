@@ -23,7 +23,16 @@ from calc_core.samples import TEMPLATES, build_sample_project
 
 from .database import get_db, init_db
 from .observability import setup_observability
-from .routers import auth, billing, holdings, integrator, jobs, organizations, projects
+from .routers import (
+    audit,
+    auth,
+    billing,
+    holdings,
+    integrator,
+    jobs,
+    organizations,
+    projects,
+)
 from .schemas import CalcResponse, to_response
 
 
@@ -56,6 +65,7 @@ if _cors_origins:
         allow_headers=["*"],
     )
 
+app.include_router(audit.router)
 app.include_router(auth.router)
 app.include_router(billing.router)
 app.include_router(holdings.router)

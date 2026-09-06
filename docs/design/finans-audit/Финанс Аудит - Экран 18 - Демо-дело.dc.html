@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  input,button{font-family:inherit;}
+  a{color:#C77DFF;}
+  a:hover{color:#D69AFF;}
+  @keyframes fa-pulse{from{opacity:.4}to{opacity:1}}
+  @keyframes fa-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes fa-beam{0%{transform:translateY(-120%)}100%{transform:translateY(420%)}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:11px;min-width:0;">
+      <div style="{{ s.barCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="30px,30px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Экран 18 · Демо-дело</span>
+        <span style="{{ s.barSub }}">потрогать продукт без своих документов</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Свет</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тьма</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Шаг</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segOffer }}" onClick="{{ setOffer }}">Приглашение</button><button style="{{ s.segTour }}" onClick="{{ setTour }}">Экскурсия</button><button style="{{ s.segExit }}" onClick="{{ setExit }}">Своё дело</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}" data-screen-label="Экран 18 — Демо-дело">
+
+      <sc-if value="{{ isTour }}" hint-placeholder-val="{{ false }}">
+      <div style="{{ s.demoStrip }}">
+        <span style="{{ s.stripDot }}"></span>
+        <span style="{{ s.stripText }}">Вы смотрите демо-дело. Данные вымышлены, но собраны по реальной проверке.</span>
+        <span style="{{ s.stripSpacer }}"></span>
+        <button style="{{ s.stripBtnGhost }}" style-hover="{{ s.btnGhostHover }}">Скрыть демо</button>
+        <button style="{{ s.stripBtn }}" style-hover="{{ s.btnPrimaryHover }}">Создать своё дело</button>
+      </div>
+      </sc-if>
+
+      <div style="{{ s.nav }}">
+        <div style="{{ s.navLeft }}">
+          <div style="{{ s.navCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="24px,24px"></dc-import></div>
+          <span style="{{ s.navBrand }}">Финанс&nbsp;Аудит</span>
+          <div style="{{ s.navTabs }}">
+            <sc-for list="{{ navTabs }}" as="n" hint-placeholder-count="6"><span style="{{ n.style }}">{{ n.label }}</span></sc-for>
+          </div>
+        </div>
+        <div style="{{ s.navRight }}">
+          <span style="{{ s.navCase }}">{{ navCase }}</span>
+          <span style="{{ s.navAvatar }}">АП</span>
+        </div>
+      </div>
+
+      <sc-if value="{{ isOffer }}" hint-placeholder-val="{{ true }}">
+      <div style="{{ s.hero }}">
+        <div style="{{ s.heroBeam }}"></div>
+        <div style="{{ s.heroText }}">
+          <div style="{{ s.eyebrow }}"><span style="{{ s.eyebrowDot }}"></span>ПЕРВЫЙ ВХОД · ДОКУМЕНТЫ НЕ НУЖНЫ</div>
+          <div style="{{ s.h1 }}">Посмотрите, как выглядит проверка, на готовом деле</div>
+          <div style="{{ s.heroLead }}">Мы собрали дело со всеми находками: транспортная компания, выручка 1,8 млрд ₽, семь красных флагов и заключение на две страницы. Ходите по нему как по своему — доступны все разделы, кроме выгрузки.</div>
+          <div style="{{ s.heroActions }}">
+            <button style="{{ s.btnPrimaryWide }}" style-hover="{{ s.btnPrimaryHover }}">Открыть демо-дело</button>
+            <button style="{{ s.btnGhost }}" style-hover="{{ s.btnGhostHover }}">У меня есть документы</button>
+          </div>
+          <div style="{{ s.heroFoot }}">Демо-дело не расходует лимит тарифа и в любой момент убирается из списка.</div>
+        </div>
+        <div style="{{ s.heroCard }}">
+          <div style="{{ s.demoBadge }}">ДЕМО</div>
+          <div style="{{ s.demoName }}">ООО «Сибтранс-Логистика»</div>
+          <div style="{{ s.demoMeta }}">дело A-2417 · грузоперевозки · отчётность 2023–2025</div>
+          <div style="{{ s.demoVerdict }}">
+            <div style="{{ s.demoVerdictLabel }}">Вердикт</div>
+            <div style="{{ s.demoVerdictValue }}">Покупать с дисконтом 18%</div>
+            <div style="{{ s.demoVerdictNote }}">просят 1 240 млн ₽ · справедливо 1 020 млн ₽</div>
+          </div>
+          <div style="{{ s.demoStats }}">
+            <sc-for list="{{ demoStats }}" as="st" hint-placeholder-count="4">
+            <div style="{{ s.demoStat }}"><div style="{{ s.demoStatLabel }}">{{ st.label }}</div><div style="{{ st.valueStyle }}">{{ st.value }}</div></div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <div style="{{ s.body }}">
+        <div style="{{ s.sectionHead }}">Что внутри демо-дела</div>
+        <div style="{{ s.insideGrid }}">
+          <sc-for list="{{ inside }}" as="i" hint-placeholder-count="6">
+          <div style="{{ s.insideCard }}">
+            <div style="{{ s.insideTop }}"><span style="{{ i.numStyle }}">{{ i.num }}</span><span style="{{ i.chipStyle }}">{{ i.tag }}</span></div>
+            <div style="{{ s.insideName }}">{{ i.name }}</div>
+            <div style="{{ s.insideLead }}">{{ i.lead }}</div>
+          </div>
+          </sc-for>
+        </div>
+
+        <div style="{{ s.limitBox }}">
+          <div style="{{ s.limitHead }}">Что в демо не работает — и почему</div>
+          <div style="{{ s.limitList }}">
+            <sc-for list="{{ limits }}" as="l" hint-placeholder-count="3">
+            <div style="{{ s.limitRow }}"><span style="{{ s.limitMark }}">—</span><span style="{{ s.limitBody }}"><span style="{{ s.limitName }}">{{ l.name }}</span><span style="{{ s.limitWhy }}">{{ l.why }}</span></span></div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isTour }}" hint-placeholder-val="{{ false }}">
+      <div style="{{ s.subhead }}">
+        <div style="min-width:0;">
+          <div style="{{ s.h1Sm }}">ООО «Сибтранс-Логистика»</div>
+          <div style="{{ s.h1Sub }}">Экскурсия ведёт по четырём точкам, где продукт отвечает на главные вопросы покупателя. Можно закрыть и ходить самому.</div>
+        </div>
+        <div style="{{ s.tourCounter }}"><span style="{{ s.tourCounterNum }}">2</span><span style="{{ s.tourCounterOf }}">/ 4</span></div>
+      </div>
+
+      <div style="{{ s.main }}">
+        <div style="{{ s.col }}">
+          <div style="{{ s.panelHighlight }}">
+            <div style="{{ s.panelHead }}"><span style="{{ s.panelTitle }}">Сверка отчётности с первичкой</span><span style="{{ s.panelMeta }}">412 строк · расхождения в самой строке</span></div>
+            <div style="{{ s.tourRows }}">
+              <sc-for list="{{ tourRows }}" as="r" hint-placeholder-count="4">
+              <div style="{{ r.rowStyle }}">
+                <div style="{{ s.trBody }}"><span style="{{ s.trCode }}">{{ r.code }}</span><span style="{{ r.labelStyle }}">{{ r.label }}</span></div>
+                <div style="{{ r.repStyle }}">{{ r.rep }}</div>
+                <div style="{{ r.chkStyle }}">{{ r.chk }}</div>
+                <div style="{{ r.deltaStyle }}">{{ r.delta }}</div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="{{ s.tourCallout }}">
+            <div style="{{ s.calloutTop }}"><span style="{{ s.calloutNum }}">2</span><span style="{{ s.calloutTitle }}">Расхождение видно в строке, а не в примечании</span></div>
+            <div style="{{ s.calloutLead }}">42 млн ₽ прочих доходов не подтверждены банковской выпиской. Это не сноска на последней странице отчёта — это подсвеченная строка, от которой можно провалиться в первичный документ.</div>
+            <div style="{{ s.calloutActions }}">
+              <button style="{{ s.btnPrimarySm }}" style-hover="{{ s.btnPrimaryHover }}">Дальше: цена этого риска</button>
+              <button style="{{ s.btnGhostSm }}" style-hover="{{ s.btnGhostHover }}">Закрыть экскурсию</button>
+            </div>
+            <div style="{{ s.dotsRow }}">
+              <sc-for list="{{ dots }}" as="dt" hint-placeholder-count="4"><span style="{{ dt.style }}"></span></sc-for>
+            </div>
+          </div>
+        </div>
+
+        <div style="{{ s.aside }}">
+          <div style="{{ s.card }}">
+            <div style="{{ s.cardHead }}">Точки экскурсии</div>
+            <sc-for list="{{ tourStops }}" as="st" hint-placeholder-count="4">
+            <div style="{{ st.rowStyle }}">
+              <span style="{{ st.numStyle }}">{{ st.num }}</span>
+              <span style="{{ s.stopBody }}"><span style="{{ st.nameStyle }}">{{ st.name }}</span><span style="{{ s.stopMeta }}">{{ st.meta }}</span></span>
+            </div>
+            </sc-for>
+          </div>
+          <div style="{{ s.cardAccent }}">
+            <div style="{{ s.cardHead }}">Что дальше</div>
+            <div style="{{ s.asideLead }}">Когда пройдёте четыре точки, предложим создать своё дело — отчётность подтянется из ФНС по ИНН, загружать вручную ничего не нужно.</div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isExit }}" hint-placeholder-val="{{ false }}">
+      <div style="{{ s.exitWrap }}">
+        <div style="{{ s.exitLeft }}">
+          <div style="{{ s.eyebrow }}"><span style="{{ s.eyebrowDot }}"></span>ЧЕТЫРЕ ТОЧКИ ПРОЙДЕНЫ</div>
+          <div style="{{ s.h1 }}">Теперь то же самое — по вашей цели</div>
+          <div style="{{ s.heroLead }}">Введите ИНН: отчётность за три года подтянется из ФНС, реестр залогов — из ФНП. Скан начнётся сразу, первые находки появятся через четыре минуты.</div>
+
+          <div style="{{ s.innField }}">
+            <label style="{{ s.label }}">ИНН компании, которую покупаете</label>
+            <div style="{{ s.innRow }}">
+              <input style="{{ s.input }}" style-focus="{{ s.inputFocus }}" placeholder="10 или 12 цифр">
+              <button style="{{ s.btnPrimary }}" style-hover="{{ s.btnPrimaryHover }}">Начать проверку</button>
+            </div>
+            <div style="{{ s.innHint }}">Найдём компанию по ИНН и покажем, что удалось загрузить, до запуска скана.</div>
+          </div>
+
+          <div style="{{ s.compareBox }}">
+            <div style="{{ s.compareHead }}">Демо и своё дело — разница только в источнике данных</div>
+            <sc-for list="{{ compare }}" as="c" hint-placeholder-count="4">
+            <div style="{{ s.compareRow }}">
+              <span style="{{ s.compareName }}">{{ c.name }}</span>
+              <span style="{{ c.demoStyle }}">{{ c.demo }}</span>
+              <span style="{{ c.realStyle }}">{{ c.real }}</span>
+            </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="{{ s.exitRight }}">
+          <div style="{{ s.cardAccent }}">
+            <div style="{{ s.cardHead }}">Что вы уже увидели</div>
+            <sc-for list="{{ seen }}" as="sn" hint-placeholder-count="4">
+            <div style="{{ s.seenRow }}"><span style="{{ s.seenMark }}">✓</span><span style="{{ s.seenText }}">{{ sn.text }}</span></div>
+            </sc-for>
+          </div>
+          <div style="{{ s.card }}">
+            <div style="{{ s.cardHead }}">Демо-дело останется</div>
+            <div style="{{ s.asideLead }}">Оно не расходует лимит и пригодится, чтобы показать продукт коллеге или вспомнить, как выглядит готовое заключение.</div>
+            <button style="{{ s.btnGhostSm }}" style-hover="{{ s.btnGhostHover }}">Убрать из списка дел</button>
+          </div>
+          <div style="{{ s.card }}">
+            <div style="{{ s.cardHead }}">Сколько стоит проверка</div>
+            <div style="{{ s.planRow }}"><span style="{{ s.planName }}">Разовая проверка</span><span style="{{ s.planValue }}">45 000 ₽</span></div>
+            <div style="{{ s.asideLead }}">Одно дело целиком, включая заключение на печать. При двух и более сделках в месяц выгоднее тариф «Команда» — 24 000 ₽ за 10 дел.</div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:940}}">
+class Component extends DCLogic {
+  state = { theme:'dark', device:'desktop', view:'offer' };
+
+  THEME(){
+    const dark={
+      pageBg:'#000000', bg:'#000000', surface:'#0E0B14', surface2:'#171122', surface3:'#241A38',
+      border:'#2B2140', borderStrong:'#4B3A6E', gridLine:'#191324',
+      text:'#F2E8FF', muted:'#9C8FB5', subtle:'#6A5C86',
+      primary:'#C77DFF', primaryHover:'#D69AFF', primaryText:'#17061F', accent:'#C77DFF',
+      primaryBg:'rgba(199,125,255,0.15)', primarySoft:'rgba(199,125,255,0.09)',
+      goodBg:'rgba(199,125,255,0.15)', goodBorder:'rgba(199,125,255,0.34)',
+      danger:'#F0796E', dangerBg:'rgba(240,121,110,0.15)', dangerBorder:'rgba(240,121,110,0.34)',
+      warn:'#E0A23A', warnBg:'rgba(224,162,58,0.16)', warnBorder:'rgba(224,162,58,0.32)',
+      ring:'rgba(199,125,255,0.40)',
+      shadow:'0 30px 70px -34px rgba(0,0,0,.9)', glow:'0 0 18px rgba(199,125,255,.35)',
+      barBg:'#0A0710', segBg:'#0A0710', segActiveBg:'#241A38', headerBg:'#0E0B14',
+      heroBg:'radial-gradient(ellipse 74% 90% at 26% 38%, rgba(199,125,255,.15) 0%, rgba(123,63,228,.05) 46%, transparent 78%)'
+    };
+    const light={
+      pageBg:'#F2EDFA', bg:'#FAF7FE', surface:'#FFFFFF', surface2:'#F4EEFA', surface3:'#E8DEF4',
+      border:'#DED2EC', borderStrong:'#C2B0D6', gridLine:'#EDE6F6',
+      text:'#1B1523', muted:'#4E4459', subtle:'#756884',
+      primary:'#C77DFF', primaryHover:'#B968F5', primaryText:'#17061F', accent:'#7A2BC4',
+      primaryBg:'#EEE0FB', primarySoft:'#F6EFFD',
+      goodBg:'#EEE0FB', goodBorder:'#D9BFF0',
+      danger:'#C0473B', dangerBg:'#FAE7E4', dangerBorder:'#EECFCA',
+      warn:'#B07A12', warnBg:'#FBF0D8', warnBorder:'#ECDDB4',
+      ring:'rgba(199,125,255,0.34)',
+      shadow:'0 18px 44px -22px rgba(40,20,60,.22), 0 2px 6px rgba(40,20,60,.05)', glow:'none',
+      barBg:'#FFFFFF', segBg:'#EDE6F6', segActiveBg:'#FFFFFF', headerBg:'#FFFFFF',
+      heroBg:'linear-gradient(160deg,#F6EFFD 0%,#FAF7FE 64%)'
+    };
+    return this.state.theme==='dark'?dark:light;
+  }
+
+  DIM(){
+    const d=this.state.device;
+    if(d==='mobile') return {frame:402, radius:26, pad:16, h1:24, mainCols:'1fr', tabsShown:2, compact:true, heroCols:'1fr', insideCols:'1fr', exitCols:'1fr', tourCols:'1fr 56px 56px 52px'};
+    if(d==='tablet') return {frame:864, radius:30, pad:20, h1:28, mainCols:'1fr', tabsShown:5, compact:false, heroCols:'1fr', insideCols:'repeat(2,minmax(0,1fr))', exitCols:'1fr', tourCols:'1fr 92px 92px 78px'};
+    return {frame:1180, radius:30, pad:24, h1:34, mainCols:'1fr 300px', tabsShown:6, compact:false, heroCols:'minmax(0,1.1fr) minmax(0,.9fr)', insideCols:'repeat(3,minmax(0,1fr))', exitCols:'minmax(0,1fr) 316px', tourCols:'1fr 104px 104px 88px'};
+  }
+
+  setLight=()=>this.setState({theme:'light'});
+  setDark=()=>this.setState({theme:'dark'});
+  setDesktop=()=>this.setState({device:'desktop'});
+  setTablet=()=>this.setState({device:'tablet'});
+  setMobile=()=>this.setState({device:'mobile'});
+  setOffer=()=>this.setState({view:'offer'});
+  setTour=()=>this.setState({view:'tour'});
+  setExit=()=>this.setState({view:'exit'});
+
+  segBtn(active,t){
+    return 'height:28px;padding:0 12px;border:0;border-radius:7px;cursor:pointer;font:'+(active?'600':'500')+' 11.5px/1 Inter,sans-serif;letter-spacing:-.01em;'+
+      (active?('background:'+t.segActiveBg+';color:'+t.text+';'):('background:transparent;color:'+t.subtle+';'));
+  }
+
+  renderVals(){
+    const t=this.THEME(), d=this.DIM(), dark=this.state.theme==='dark', v=this.state.view;
+    const mono='JetBrains Mono,ui-monospace,monospace';
+    const disp='Satoshi,Inter,sans-serif';
+    const card='border:1px solid '+t.border+';border-radius:16px;background:'+t.surface+';'+(dark?'':'box-shadow:'+t.shadow+';');
+    const chip=(bg,bd,c)=>'display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;background:'+bg+';border:1px solid '+bd+';font:500 10px/1.3 '+mono+';color:'+c+';white-space:nowrap;';
+
+    const s={
+      page:'min-height:100vh;background:'+t.pageBg+';display:flex;flex-direction:column;align-items:center;padding:0 0 60px;',
+      bar:'position:sticky;top:0;z-index:20;width:100%;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:12px 20px;background:'+t.barBg+';border-bottom:1px solid '+t.border+';',
+      barCube:'width:30px;height:30px;flex:none;',
+      barTitle:'font:600 13px/1.2 Inter,sans-serif;letter-spacing:-.015em;color:'+t.text+';',
+      barSub:'font:400 10.5px/1.2 '+mono+';color:'+t.subtle+';',
+      barLabel:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+      seg:'display:flex;gap:2px;padding:3px;border-radius:9px;background:'+t.segBg+';border:1px solid '+t.border+';',
+      segLight:this.segBtn(!dark,t), segDark:this.segBtn(dark,t),
+      segDesktop:this.segBtn(this.state.device==='desktop',t),
+      segTablet:this.segBtn(this.state.device==='tablet',t),
+      segMobile:this.segBtn(this.state.device==='mobile',t),
+      segOffer:this.segBtn(v==='offer',t), segTour:this.segBtn(v==='tour',t), segExit:this.segBtn(v==='exit',t),
+      stage:'width:100%;display:flex;justify-content:center;padding:26px 18px 0;',
+      frame:'width:100%;max-width:'+d.frame+'px;border:1px solid '+t.border+';border-radius:'+d.radius+'px;background:'+t.bg+';overflow:hidden;'+(dark?'':'box-shadow:'+t.shadow+';'),
+
+      nav:'display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 '+d.pad+'px;background:'+t.headerBg+';border-bottom:1px solid '+t.border+';',
+      navLeft:'display:flex;align-items:center;gap:11px;min-width:0;',
+      navCube:'width:24px;height:24px;flex:none;',
+      navBrand:'font:600 12.5px/1 Inter,sans-serif;letter-spacing:-.01em;color:'+t.text+';white-space:nowrap;',
+      navTabs:'display:'+(d.frame<500?'none':'flex')+';align-items:center;gap:2px;',
+      navRight:'display:flex;align-items:center;gap:10px;flex:none;padding:12px 0;',
+      navCase:'display:'+(d.frame<500?'none':'inline')+';font:500 10px/1 '+mono+';letter-spacing:.06em;color:'+t.subtle+';',
+      navAvatar:'flex:none;width:28px;height:28px;border-radius:50%;background:'+t.primary+';color:'+t.primaryText+';text-align:center;font:600 10px/28px '+mono+';',
+
+      hero:'position:relative;display:grid;grid-template-columns:'+d.heroCols+';gap:'+(d.compact?24:34)+'px;align-items:center;padding:'+(d.compact?26:42)+'px '+d.pad+'px;overflow:hidden;background:'+t.heroBg+';',
+      heroBeam:'position:absolute;left:0;right:0;top:0;height:100px;pointer-events:none;background:linear-gradient(to bottom,transparent,'+(dark?'rgba(199,125,255,.10)':'rgba(199,125,255,.14)')+',transparent);animation:fa-beam 9s linear infinite;',
+      heroText:'position:relative;min-width:0;',
+      eyebrow:'display:flex;align-items:center;gap:7px;font:500 9.5px/1 Inter,sans-serif;letter-spacing:.15em;text-transform:uppercase;color:'+t.accent+';margin-bottom:14px;',
+      eyebrowDot:'width:5px;height:5px;border-radius:50%;background:'+t.primary+';'+(dark?'box-shadow:0 0 8px rgba(199,125,255,.9);':'')+'animation:fa-pulse 2.2s ease-in-out infinite alternate;',
+      h1:'font:500 '+d.h1+'px/1.1 '+disp+';letter-spacing:-.03em;color:'+t.text+';max-width:22ch;',
+      h1Sm:'font:500 '+(d.compact?22:27)+'px/1.14 '+disp+';letter-spacing:-.028em;color:'+t.text+';',
+      h1Sub:'margin-top:7px;font:400 12px/1.5 Inter,sans-serif;color:'+t.muted+';max-width:66ch;',
+      heroLead:'margin-top:16px;font:400 13.5px/1.68 Inter,sans-serif;color:'+t.muted+';max-width:56ch;text-wrap:pretty;',
+      heroActions:'display:flex;align-items:center;gap:11px;flex-wrap:wrap;margin-top:24px;',
+      heroFoot:'margin-top:14px;font:400 11px/1.5 '+mono+';color:'+t.subtle+';',
+
+      heroCard:'position:relative;padding:'+(d.compact?18:22)+'px;border:1px solid '+t.goodBorder+';border-radius:20px;background:'+(dark?'rgba(14,11,20,.72)':t.surface)+';display:flex;flex-direction:column;min-width:0;'+(dark?'':'box-shadow:'+t.shadow+';'),
+      demoBadge:'align-self:flex-start;'+chip(t.primaryBg,t.primary,t.accent),
+      demoName:'margin-top:14px;font:500 '+(d.compact?18:20)+'px/1.18 '+disp+';letter-spacing:-.024em;color:'+t.text+';',
+      demoMeta:'margin-top:8px;font:400 11px/1.5 '+mono+';color:'+t.subtle+';',
+      demoVerdict:'margin-top:18px;padding:14px;border:1px solid '+t.border+';border-radius:14px;background:'+t.surface2+';',
+      demoVerdictLabel:'font:500 9px/1 Inter,sans-serif;letter-spacing:.13em;text-transform:uppercase;color:'+t.subtle+';',
+      demoVerdictValue:'margin-top:9px;font:500 '+(d.compact?17:19)+'px/1.15 '+disp+';letter-spacing:-.024em;color:'+t.accent+';',
+      demoVerdictNote:'margin-top:8px;font:400 10.5px/1.45 '+mono+';color:'+t.muted+';',
+      demoStats:'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px;padding-top:15px;border-top:1px solid '+t.border+';',
+      demoStat:'display:flex;flex-direction:column;gap:6px;min-width:0;',
+      demoStatLabel:'font:500 8.5px/1.2 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:'+t.subtle+';',
+
+      body:'display:flex;flex-direction:column;gap:'+(d.compact?14:18)+'px;padding:'+(d.compact?18:24)+'px '+d.pad+'px;',
+      sectionHead:'font:500 9.5px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:'+t.subtle+';',
+      insideGrid:'display:grid;grid-template-columns:'+d.insideCols+';gap:'+(d.compact?12:14)+'px;',
+      insideCard:card+'padding:'+(d.compact?14:16)+'px;display:flex;flex-direction:column;min-width:0;animation:fa-fade .3s ease-out both;',
+      insideTop:'display:flex;align-items:center;justify-content:space-between;gap:10px;',
+      insideName:'margin-top:13px;font:500 14px/1.25 Inter,sans-serif;letter-spacing:-.015em;color:'+t.text+';',
+      insideLead:'margin-top:8px;font:400 11.5px/1.6 Inter,sans-serif;color:'+t.muted+';',
+
+      limitBox:'padding:'+(d.compact?14:18)+'px;border:1px dashed '+t.border+';border-radius:16px;background:'+t.surface2+';display:flex;flex-direction:column;gap:12px;',
+      limitHead:'font:500 9.5px/1 Inter,sans-serif;letter-spacing:.13em;text-transform:uppercase;color:'+t.subtle+';',
+      limitList:'display:flex;flex-direction:column;gap:9px;',
+      limitRow:'display:flex;align-items:flex-start;gap:10px;',
+      limitMark:'flex:none;font:400 11px/1.5 '+mono+';color:'+t.subtle+';',
+      limitBody:'display:flex;flex-direction:column;gap:3px;min-width:0;',
+      limitName:'font:400 12px/1.4 Inter,sans-serif;color:'+t.text+';',
+      limitWhy:'font:400 10.5px/1.45 '+mono+';color:'+t.subtle+';',
+
+      demoStrip:'display:flex;align-items:center;gap:11px;flex-wrap:wrap;padding:11px '+d.pad+'px;background:'+t.primaryBg+';border-bottom:1px solid '+t.goodBorder+';',
+      stripDot:'flex:none;width:6px;height:6px;border-radius:50%;background:'+t.primary+';animation:fa-pulse 2s ease-in-out infinite alternate;',
+      stripText:'font:400 11.5px/1.4 Inter,sans-serif;color:'+t.text+';',
+      stripSpacer:'flex:1;min-width:8px;',
+      stripBtn:'height:30px;padding:0 13px;border:0;border-radius:4px;background:'+t.primary+';color:'+t.primaryText+';font:600 11px/1 Inter,sans-serif;cursor:pointer;white-space:nowrap;',
+      stripBtnGhost:'height:30px;padding:0 12px;border:1px solid '+t.border+';border-radius:4px;background:transparent;color:'+t.muted+';font:500 11px/1 Inter,sans-serif;cursor:pointer;white-space:nowrap;',
+
+      subhead:'display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:18px '+d.pad+'px;border-bottom:1px solid '+t.border+';',
+      tourCounter:'display:flex;align-items:baseline;gap:4px;',
+      tourCounterNum:'font:500 26px/1 '+mono+';letter-spacing:-.03em;color:'+t.accent+';',
+      tourCounterOf:'font:400 13px/1 '+mono+';color:'+t.subtle+';',
+
+      main:'display:grid;grid-template-columns:'+d.mainCols+';gap:'+(d.compact?14:18)+'px;padding:'+(d.compact?16:20)+'px '+d.pad+'px;align-items:start;',
+      col:'display:flex;flex-direction:column;gap:'+(d.compact?14:18)+'px;min-width:0;',
+      aside:'display:flex;flex-direction:column;gap:'+(d.compact?14:18)+'px;min-width:0;',
+      panelHighlight:'padding:'+(d.compact?14:18)+'px;border:1px solid '+t.primary+';border-radius:16px;background:'+t.surface+';display:flex;flex-direction:column;gap:14px;min-width:0;'+(dark?'box-shadow:'+t.glow+';':'box-shadow:'+t.shadow+';'),
+      panelHead:'display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;',
+      panelTitle:'font:500 '+(d.compact?14:15.5)+'px/1.2 '+disp+';letter-spacing:-.02em;color:'+t.text+';',
+      panelMeta:'font:400 10.5px/1.3 '+mono+';color:'+t.subtle+';',
+
+      tourRows:'display:flex;flex-direction:column;',
+      trBody:'display:flex;flex-direction:column;gap:3px;min-width:0;',
+      trCode:'font:400 9.5px/1.3 '+mono+';color:'+t.subtle+';',
+
+      tourCallout:'padding:'+(d.compact?16:20)+'px;border:1px solid '+t.goodBorder+';border-radius:18px;background:'+t.goodBg+';display:flex;flex-direction:column;gap:13px;animation:fa-fade .3s ease-out both;',
+      calloutTop:'display:flex;align-items:center;gap:11px;',
+      calloutNum:'flex:none;width:26px;height:26px;border-radius:50%;background:'+t.primary+';color:'+t.primaryText+';text-align:center;font:600 12px/26px '+mono+';',
+      calloutTitle:'font:500 '+(d.compact?15:16.5)+'px/1.2 '+disp+';letter-spacing:-.02em;color:'+t.text+';',
+      calloutLead:'font:400 12px/1.65 Inter,sans-serif;color:'+t.muted+';',
+      calloutActions:'display:flex;align-items:center;gap:9px;flex-wrap:wrap;',
+      dotsRow:'display:flex;align-items:center;gap:6px;',
+
+      exitWrap:'display:grid;grid-template-columns:'+d.exitCols+';gap:'+(d.compact?18:26)+'px;padding:'+(d.compact?22:32)+'px '+d.pad+'px;align-items:start;',
+      exitLeft:'min-width:0;display:flex;flex-direction:column;',
+      exitRight:'display:flex;flex-direction:column;gap:'+(d.compact?14:16)+'px;min-width:0;',
+
+      innField:'display:flex;flex-direction:column;gap:8px;margin-top:26px;',
+      label:'font:500 10px/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:'+t.subtle+';',
+      innRow:'display:flex;gap:10px;flex-wrap:wrap;',
+      input:'flex:1;min-width:180px;height:46px;padding:0 14px;border:1px solid '+t.border+';border-radius:8px;background:'+t.surface2+';color:'+t.text+';font:400 14px/1 '+mono+';outline:none;transition:border-color .16s,box-shadow .16s;',
+      inputFocus:'border-color:'+t.primary+';box-shadow:0 0 0 3px '+t.ring+';',
+      innHint:'font:400 11px/1.5 Inter,sans-serif;color:'+t.subtle+';',
+
+      compareBox:'margin-top:26px;padding:'+(d.compact?14:18)+'px;border:1px solid '+t.border+';border-radius:16px;background:'+t.surface2+';display:flex;flex-direction:column;gap:11px;',
+      compareHead:'font:500 9.5px/1 Inter,sans-serif;letter-spacing:.13em;text-transform:uppercase;color:'+t.subtle+';margin-bottom:2px;',
+      compareRow:'display:grid;grid-template-columns:1fr '+(d.compact?'72px':'112px')+' '+(d.compact?'72px':'112px')+';gap:10px;align-items:baseline;padding-bottom:9px;border-bottom:1px solid '+t.gridLine+';',
+      compareName:'font:400 11.5px/1.4 Inter,sans-serif;color:'+t.text+';min-width:0;',
+
+      card:card+'padding:16px;display:flex;flex-direction:column;gap:11px;',
+      cardAccent:'padding:16px;border:1px solid '+t.goodBorder+';border-radius:16px;background:'+t.goodBg+';display:flex;flex-direction:column;gap:11px;',
+      cardHead:'font:500 9.5px/1 Inter,sans-serif;letter-spacing:.13em;text-transform:uppercase;color:'+t.subtle+';',
+      asideLead:'font:400 11.5px/1.6 Inter,sans-serif;color:'+t.muted+';',
+      stopBody:'flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;',
+      stopMeta:'font:400 9.5px/1.35 '+mono+';color:'+t.subtle+';',
+      seenRow:'display:flex;align-items:flex-start;gap:9px;',
+      seenMark:'flex:none;font:600 11px/1.5 '+mono+';color:'+t.accent+';',
+      seenText:'font:400 11.5px/1.55 Inter,sans-serif;color:'+t.muted+';',
+      planRow:'display:flex;align-items:baseline;justify-content:space-between;gap:10px;',
+      planName:'font:500 14px/1.2 '+disp+';letter-spacing:-.02em;color:'+t.text+';',
+      planValue:'font:500 11.5px/1.2 '+mono+';color:'+t.accent+';',
+
+      btnPrimary:'flex:none;height:46px;padding:0 20px;border:0;border-radius:4px;background:'+t.primary+';color:'+t.primaryText+';font:600 13.5px/1 Inter,sans-serif;cursor:pointer;white-space:nowrap;'+(dark?'box-shadow:'+t.glow+';':''),
+      btnPrimaryWide:'height:46px;padding:0 22px;border:0;border-radius:4px;background:'+t.primary+';color:'+t.primaryText+';font:600 13.5px/1 Inter,sans-serif;letter-spacing:-.01em;cursor:pointer;'+(dark?'box-shadow:'+t.glow+';':''),
+      btnPrimarySm:'height:36px;padding:0 15px;border:0;border-radius:4px;background:'+t.primary+';color:'+t.primaryText+';font:600 12px/1 Inter,sans-serif;cursor:pointer;'+(dark?'box-shadow:'+t.glow+';':''),
+      btnPrimaryHover:'background:'+t.primaryHover+';',
+      btnGhost:'height:46px;padding:0 20px;border:1px solid '+t.border+';border-radius:4px;background:transparent;color:'+t.text+';font:500 13px/1 Inter,sans-serif;cursor:pointer;',
+      btnGhostSm:'align-self:flex-start;height:34px;padding:0 14px;border:1px solid '+t.border+';border-radius:4px;background:transparent;color:'+t.text+';font:500 11.5px/1 Inter,sans-serif;cursor:pointer;',
+      btnGhostHover:'border-color:'+t.borderStrong+';background:'+t.surface2+';'
+    };
+
+    const tabs=['Обзор','Сверка','Качество прибыли','Флаги','Оценка','Заключение'].slice(0,d.tabsShown).map(label=>{
+      const on=(v==='tour'&&label==='Сверка')||(v!=='tour'&&label==='Обзор');
+      return {label, style:'padding:16px 11px;font:'+(on?'500':'400')+' 12px/1 Inter,sans-serif;letter-spacing:-.01em;color:'+(on?t.text:t.muted)+';cursor:pointer;white-space:nowrap;'+(on?'box-shadow:inset 0 -2px 0 '+t.primary+';':'')};
+    });
+
+    const inside=(num,tag,name,lead,kind)=>({
+      num, tag, name, lead,
+      numStyle:'width:24px;height:24px;border-radius:7px;background:'+(kind==='key'?t.primary:t.surface3)+';color:'+(kind==='key'?t.primaryText:t.muted)+';text-align:center;font:600 11px/24px '+mono+';',
+      chipStyle:kind==='key'?chip(t.primaryBg,t.primary,t.accent):chip('transparent',t.border,t.subtle)
+    });
+
+    const trow=(code,label,rep,chk,delta,kind)=>({
+      code, label, rep, chk, delta,
+      rowStyle:'display:grid;grid-template-columns:'+d.tourCols+';gap:10px;align-items:center;padding:10px '+(kind==='hit'?'8px':'0')+';margin:0 '+(kind==='hit'?'-8px':'0')+';border-bottom:1px solid '+t.gridLine+';'+(kind==='hit'?'background:'+t.dangerBg+';border-radius:8px;':''),
+      labelStyle:'font:'+(kind==='hit'?'500':'400')+' '+(d.compact?11.5:12.5)+'px/1.35 Inter,sans-serif;color:'+t.text+';',
+      repStyle:'text-align:right;font:400 '+(d.compact?10.5:11.5)+'px/1 '+mono+';color:'+t.muted+';',
+      chkStyle:'text-align:right;font:'+(kind==='hit'?'500':'400')+' '+(d.compact?10.5:11.5)+'px/1 '+mono+';color:'+(kind==='hit'?t.danger:t.muted)+';',
+      deltaStyle:'text-align:right;font:500 '+(d.compact?10.5:11.5)+'px/1 '+mono+';color:'+(kind==='hit'?t.danger:t.subtle)+';'
+    });
+
+    const stop=(num,name,meta,kind)=>({
+      num, name, meta,
+      rowStyle:'display:flex;align-items:flex-start;gap:11px;padding:9px 0;'+(kind==='done'?'opacity:.72;':''),
+      numStyle:'flex:none;width:22px;height:22px;border-radius:50%;background:'+(kind==='now'?t.primary:(kind==='done'?t.surface3:'transparent'))+';border:'+(kind==='next'?'1px solid '+t.border:'0')+';color:'+(kind==='now'?t.primaryText:t.muted)+';text-align:center;font:600 10px/'+(kind==='next'?'20px':'22px')+' '+mono+';',
+      nameStyle:'font:'+(kind==='now'?'500':'400')+' 11.5px/1.35 Inter,sans-serif;color:'+(kind==='now'?t.text:t.muted)+';'
+    });
+
+    const cmp=(name,demo,real,kind)=>({
+      name, demo, real,
+      demoStyle:'text-align:right;font:400 11px/1.4 '+mono+';color:'+t.subtle+';',
+      realStyle:'text-align:right;font:500 11px/1.4 '+mono+';color:'+(kind==='key'?t.accent:t.muted)+';'
+    });
+
+    return {
+      s,
+      setLight:this.setLight, setDark:this.setDark,
+      setDesktop:this.setDesktop, setTablet:this.setTablet, setMobile:this.setMobile,
+      setOffer:this.setOffer, setTour:this.setTour, setExit:this.setExit,
+      isOffer:v==='offer', isTour:v==='tour', isExit:v==='exit',
+      navTabs:tabs,
+      navCase:v==='tour'?'ДЕЛО A-2417 · ДЕМО':(v==='exit'?'ЭКСКУРСИЯ ПРОЙДЕНА':'ООО «ИНВЕСТ-ПАРТНЁР»'),
+
+      demoStats:[
+        {label:'Красных флагов', value:'7 · 2 крит.', kind:'bad'},
+        {label:'Процедур пройдено', value:'18 / 24', kind:'text'},
+        {label:'Цена рисков', value:'220 млн ₽', kind:'bad'},
+        {label:'Долг / EBITDA', value:'3,1×', kind:'warn'}
+      ].map(m=>({
+        label:m.label, value:m.value,
+        valueStyle:'font:500 14px/1 '+mono+';letter-spacing:-.02em;color:'+(m.kind==='bad'?t.danger:(m.kind==='warn'?t.warn:t.text))+';'
+      })),
+
+      inside:[
+        inside('1','ВЕРДИКТ','Риск-скан и цена','24 процедуры, вердикт «покупать с дисконтом 18%» и мостик от запрошенной цены к справедливой.','key'),
+        inside('2','НАХОДКИ','Семь красных флагов','Каждая находка с ценой в рублях: от разрыва отчёта с выпиской до забалансовых поручительств.','key'),
+        inside('3','СВЕРКА','412 строк отчётности','Построчная сверка с первичкой. Расхождение подсвечено в строке, до документа — один клик.'),
+        inside('4','ОЦЕНКА','DCF и сценарии','Мостик до цены доли, чувствительность к WACC, Монте-Карло по 10 000 прогонов.'),
+        inside('5','ГРУППА','Связанные стороны','Пять дочерних обществ, 386 млн ₽ внутригруппового оборота, нерыночная аренда у собственника.'),
+        inside('6','ДОКУМЕНТ','Заключение на печать','Две страницы A4 с подписями — то, что уходит на инвесткомитет.')
+      ],
+      limits:[
+        {name:'Выгрузка в Excel и PDF', why:'данные вымышлены — файл с ними может уйти дальше и запутать коллег'},
+        {name:'Приглашение коллег в дело', why:'приглашения работают только в делах вашей организации'},
+        {name:'Пересчёт и изменение данных', why:'демо-дело неизменно, чтобы у всех была одна точка отсчёта'}
+      ],
+
+      tourRows:[
+        trow('2110','Выручка','1 842','1 842','0'),
+        trow('2120','Себестоимость продаж','(1 448)','(1 448)','0'),
+        trow('2340','Прочие доходы','61','19','(42)','hit'),
+        trow('1230','Дебиторская задолженность','402','402','конц.')
+      ],
+      tourStops:[
+        stop('1','Вердикт и цена рисков','обзор дела · пройдено','done'),
+        stop('2','Расхождение в строке','сверка отчётности · сейчас','now'),
+        stop('3','Цена одной находки','реестр флагов','next'),
+        stop('4','Готовое заключение','документ на печать','next')
+      ],
+      // Будущие шаги — рамка на прозрачном фоне: заливка surface3 на goodBg почти не читается.
+      dots:[0,1,2,3].map(i=>({
+        style:'box-sizing:border-box;width:'+(i===1?'18px':'6px')+';height:6px;border-radius:999px;'+
+          (i<2?('background:'+(i===1?t.primary:t.borderStrong)+';'):('background:transparent;border:1px solid '+t.borderStrong+';'))
+      })),
+
+      compare:[
+        cmp('Отчётность','готовый набор','из ФНС по ИНН','key'),
+        cmp('Банковские выписки','вымышленные','ваши файлы или интеграция','key'),
+        cmp('Залоги и поручительства','из примера','реестр ФНП'),
+        cmp('Процедуры и расчёты','те же 24','те же 24')
+      ],
+      seen:[
+        {text:'Как выглядит вердикт и из чего складывается цена рисков'},
+        {text:'Что значит «расхождение видно в строке» — на 42 млн ₽ прочих доходов'},
+        {text:'Как флаг превращается в рубли и попадает в оценку'},
+        {text:'Готовое заключение на две страницы A4 с подписями'}
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

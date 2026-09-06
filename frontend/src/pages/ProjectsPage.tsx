@@ -54,6 +54,8 @@ function plural(n: number, one: string, few: string, many: string): string {
 type Status = { text: string; dot: string; cls: string };
 
 function statusOf(p: ProjectSummary): Status {
+  // Финализация имеет приоритет: правка модели снимает её на бэкенде, так что «Изменён» тут не бывает.
+  if (p.status === "finalized") return { text: "Финализирован", dot: "✓", cls: "status-chip status-chip--good" };
   if (!p.last_calc) return { text: "Черновик", dot: "○", cls: "status-chip status-chip--warn" };
   if (p.is_stale) return { text: "Изменён", dot: "●", cls: "status-chip status-chip--info" };
   return { text: "Рассчитан", dot: "●", cls: "status-chip" };

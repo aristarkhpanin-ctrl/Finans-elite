@@ -8,19 +8,25 @@ import { Button, ErrorState, Loading, Modal } from "../components/ui";
 import { ValidationPanel } from "../components/ValidationPanel";
 import { ActualizationTab } from "./editor/ActualizationTab";
 import { AssetsTab } from "./editor/AssetsTab";
+import { CalendarTab } from "./editor/CalendarTab";
 import { CostsTab } from "./editor/CostsTab";
 import { CurrencyTab } from "./editor/CurrencyTab";
+import { DocumentTab } from "./editor/DocumentTab";
 import { FinancingTab } from "./editor/FinancingTab";
 import { GeneralTab } from "./editor/GeneralTab";
 import { SalesTab } from "./editor/SalesTab";
+import { TablesTab } from "./editor/TablesTab";
 
 const TABS = [
   ["general", "Проект"],
   ["sales", "Сбыт"],
   ["costs", "Издержки"],
   ["assets", "Инвестиции"],
+  ["calendar", "Календарный план"],
   ["financing", "Финансирование"],
   ["currency", "Валюта и старт"],
+  ["tables", "Таблицы"],
+  ["document", "Документ"],
   ["actual", "Факт"],
 ] as const;
 
@@ -32,9 +38,19 @@ function tabBadge(model: ProjectModel, tab: TabKey): number {
     case "sales":
       return model.operating_plan.sales.length;
     case "costs":
-      return model.operating_plan.direct_costs.length + model.operating_plan.fixed_costs.length;
+      return (
+        model.operating_plan.direct_costs.length +
+        model.operating_plan.fixed_costs.length +
+        (model.operating_plan.staff?.length ?? 0)
+      );
     case "assets":
       return model.investment_plan.assets.length;
+    case "calendar":
+      return model.investment_plan.calendar?.stages.length ?? 0;
+    case "tables":
+      return model.user_tables?.length ?? 0;
+    case "document":
+      return model.business_plan?.length ?? 0;
     case "financing":
       return (
         model.financing.loans.length +
@@ -193,13 +209,16 @@ export function ProjectEditorPage() {
         <GeneralTab
           header={model.header}
           settings={model.settings}
+          environment={model.environment}
           onHeader={(header) => setModel({ ...model, header })}
           onSettings={(settings) => setModel({ ...model, settings })}
+          onEnvironment={(environment) => setModel({ ...model, environment })}
         />
       )}
       {tab === "sales" && (
-        <SalesTab n={n} operating={model.operating_plan}
-                  onChange={(operating_plan) => setModel({ ...model, operating_plan })} />
+        <SalesTab n={n} operating={model.operating_plan} company={model.company}
+                  onChange={(operating_plan) => setModel({ ...model, operating_plan })}
+                  onCompany={(company) => setModel({ ...model, company })} />
       )}
       {tab === "costs" && (
         <CostsTab n={n} operating={model.operating_plan}
@@ -209,6 +228,11 @@ export function ProjectEditorPage() {
         <AssetsTab investment={model.investment_plan}
                    onChange={(investment_plan) => setModel({ ...model, investment_plan })} />
       )}
+      {tab === "calendar" && (
+        <CalendarTab n={n} startDate={model.header.start_date} investment={model.investment_plan}
+                     products={model.operating_plan.products}
+                     onChange={(investment_plan) => setModel({ ...model, investment_plan })} />
+      )}
       {tab === "financing" && (
         <FinancingTab n={n} financing={model.financing}
                       onChange={(financing) => setModel({ ...model, financing })} />
@@ -217,6 +241,14 @@ export function ProjectEditorPage() {
         <CurrencyTab n={n} environment={model.environment} company={model.company}
                      onEnvironment={(environment) => setModel({ ...model, environment })}
                      onCompany={(company) => setModel({ ...model, company })} />
+      )}
+      {tab === "tables" && (
+        <TablesTab tables={model.user_tables ?? []}
+                   onChange={(user_tables) => setModel({ ...model, user_tables })} />
+      )}
+      {tab === "document" && (
+        <DocumentTab sections={model.business_plan ?? []}
+                     onChange={(business_plan) => setModel({ ...model, business_plan })} />
       )}
       {tab === "actual" && (
         <ActualizationTab n={n} actualization={model.actualization}

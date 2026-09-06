@@ -3,6 +3,7 @@ import { NavLink, Outlet, matchPath, useLocation, useNavigate } from "react-rout
 import { createOrganization, roleLabel } from "../api/org";
 import { useAuth } from "../auth/AuthContext";
 import { CubeHero } from "./CubeHero";
+import { applyProduct, PRODUCTS, productFromPath } from "./product";
 import { useToast } from "./Toast";
 import { getTheme, toggleTheme, type Theme } from "./theme";
 import { Button, Field, Modal } from "./ui";
@@ -25,12 +26,6 @@ function initials(name: string | null | undefined, fallback = "•"): string {
 /** Палитра аватаров организаций в списке (цикл из макета). */
 const ORG_AVATAR_BG = ["", "#5E93FF", "#C77DFF"];
 
-const NAV = [
-  ["/projects", "Проекты"],
-  ["/holdings", "Холдинги"],
-  ["/organization", "Организация"],
-] as const;
-
 const PROJECT_MODES = [
   ["", "Редактор"],
   ["/results", "Результаты"],
@@ -43,7 +38,13 @@ export function Layout() {
   const { pathname } = useLocation();
   const toast = useToast();
   const [theme, setTheme] = useState<Theme>(getTheme());
-  const [open, setOpen] = useState<null | "org" | "user" | "mobile">(null);
+  const [open, setOpen] = useState<null | "org" | "user" | "mobile" | "product">(null);
+
+  // Активный продукт (по маршруту) → тема (зелёная/фиолетовая) + шапка/навигация.
+  const product = PRODUCTS[productFromPath(pathname)];
+  useEffect(() => {
+    applyProduct(product.id);
+  }, [product.id]);
   const [createOpen, setCreateOpen] = useState(false);
   const [newOrgName, setNewOrgName] = useState("");
   const [creating, setCreating] = useState(false);
@@ -115,19 +116,68 @@ export function Layout() {
     <div className="app">
       <header className="shell-header">
         <div className="shell-left">
-          <NavLink to="/projects" className="shell-brand" style={{ textDecoration: "none" }}>
+          <NavLink to={product.home} className="shell-brand" style={{ textDecoration: "none" }}>
             <div className="shell-mark">
-              <CubeHero backdrop="transparent" showEnvironment={false} showOrbit={false} pointerTilt={false} />
+              {/* Куб-марка следует продукту: зелёный (Финанс-Элит) / фиолетовый (Финанс-Аудит). */}
+              <CubeHero accent={product.cubeAccent} backdrop="transparent" showEnvironment={false} showOrbit={false} pointerTilt={false} />
             </div>
             <span className="shell-word">
-              Финанс<span>-Элит</span>
+              Финанс<span>{product.brand}</span>
             </span>
           </NavLink>
+
+          <div className="shell-prodwrap" style={{ position: "relative" }}>
+            <button
+              type="button"
+              className="prod-switch"
+              onClick={() => setOpen(open === "product" ? null : "product")}
+              aria-expanded={open === "product"}
+              title="Переключить продукт"
+            >
+              <span>{product.id === "audit" ? "Аудит" : "Бизнес-план"}</span>
+              <span className="shell-chev">▾</span>
+            </button>
+            {open === "product" && (
+              <div className="menu menu--product">
+                <div className="menu__head">Продукт</div>
+                <button
+                  type="button"
+                  className={"menu__item" + (product.id === "business" ? " menu__item--active" : "")}
+                  onClick={() => { setOpen(null); navigate(PRODUCTS.business.home); }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="menu__name">Финанс-Элит</div>
+                    <div className="menu__role">Бизнес-план и прогноз</div>
+                  </div>
+                  {product.id === "business" && <span className="menu__check">✓</span>}
+                </button>
+                <button
+                  type="button"
+                  className={"menu__item" + (product.id === "audit" ? " menu__item--active" : "")}
+                  onClick={() => { setOpen(null); navigate(PRODUCTS.audit.home); }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="menu__name">Финанс-Аудит</div>
+                    <div className="menu__role">Анализ фактической отчётности</div>
+                  </div>
+                  {product.id === "audit" && <span className="menu__check">✓</span>}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* У продукта с рейлом навигация живёт в рейле, и в шапке её нет вовсе:
+              спрятанная разметка осталась бы во втором экземпляре — для скринридера
+              и для поиска по странице это два одинаковых меню. */}
+          {!product.rail && (
           <nav className="shell-nav">
-            {NAV.map(([to, label]) => (
+            {product.nav.map(([to, label]) => (
               <NavLink
                 key={to}
                 to={to}
+                // Пункт, под которым вложен другой пункт меню, подсвечивается только на
+                // самом себе — иначе «Дела» и «Группа» горели бы одновременно.
+                end={product.nav.some(([other]) => other !== to && other.startsWith(to + "/"))}
                 className={({ isActive }) =>
                   "shell-nav__item" + (isActive ? " shell-nav__item--active" : "")
                 }
@@ -136,6 +186,7 @@ export function Layout() {
               </NavLink>
             ))}
           </nav>
+          )}
         </div>
 
         <div className="shell-right">
@@ -270,7 +321,9 @@ export function Layout() {
         </div>
       </header>
 
-      {(open === "org" || open === "user") && <div className="menu-overlay" onClick={() => setOpen(null)} />}
+      {(open === "org" || open === "user" || open === "product") && (
+        <div className="menu-overlay" onClick={() => setOpen(null)} />
+      )}
 
       {open === "mobile" && (
         <>
@@ -278,7 +331,7 @@ export function Layout() {
           <div className="drawer" role="dialog" aria-label="Меню">
             <div className="drawer__head">
               <span className="shell-word">
-                Финанс<span>-Элит</span>
+                Финанс<span>{product.brand}</span>
               </span>
               <button type="button" className="icon-btn38" onClick={() => setOpen(null)} aria-label="Закрыть">
                 <span style={{ fontSize: 15, color: "var(--muted)" }}>✕</span>
@@ -323,8 +376,26 @@ export function Layout() {
               </>
             )}
 
+            <div className="drawer__label">Продукт</div>
+            <button
+              type="button"
+              className={"drawer__item" + (product.id === "business" ? " drawer__item--active" : "")}
+              onClick={() => navigate(PRODUCTS.business.home)}
+            >
+              <span className={"drawer__dot" + (product.id === "business" ? "" : " drawer__dot--off")} />
+              Финанс-Элит · Бизнес-план
+            </button>
+            <button
+              type="button"
+              className={"drawer__item" + (product.id === "audit" ? " drawer__item--active" : "")}
+              onClick={() => navigate(PRODUCTS.audit.home)}
+            >
+              <span className={"drawer__dot" + (product.id === "audit" ? "" : " drawer__dot--off")} />
+              Финанс-Аудит · Аудит
+            </button>
+
             <div className="drawer__label">Навигация</div>
-            {NAV.map(([to, label]) => (
+            {product.nav.map(([to, label]) => (
               <NavLink
                 key={to}
                 to={to}
@@ -410,9 +481,36 @@ export function Layout() {
         </form>
       </Modal>
 
-      <main className="content">
-        <Outlet />
-      </main>
+      <div className="shell-body">
+        {product.rail && (
+          <aside className="rail" aria-label="Разделы продукта">
+            {product.rail.map((section) => (
+              <div className="rail__section" key={section.title}>
+                <div className="rail__title">{section.title}</div>
+                {section.items.map(([to, label]) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    end={section.items.some(([o]) => o !== to && o.startsWith(to + "/"))}
+                    title={label}
+                    className={({ isActive }) =>
+                      "rail__item" + (isActive ? " rail__item--active" : "")
+                    }
+                  >
+                    <span className="rail__ico" aria-hidden="true">
+                      {label.slice(0, 1)}
+                    </span>
+                    <span className="rail__label">{label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            ))}
+          </aside>
+        )}
+        <main className="content">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 }

@@ -8,7 +8,18 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+
+class Division(BaseModel):
+    """Подразделение (бизнес-единица) — справочник имён для аналитики (gap 4.5).
+
+    Отнесение продукта — через ``Product.division_id``; к расчёту отчётов отношения не
+    имеет (пустой список инертен). Маржа по подразделениям — свёртка маржи продуктов.
+    """
+
+    id: str
+    name: str = ""
 
 
 class StartingBalance(BaseModel):
@@ -21,17 +32,27 @@ class StartingBalance(BaseModel):
     payables: Decimal = Decimal(0)             # кредиторка на старте → B23 (оплачивается в мес. 0)
     raw_materials: Decimal = Decimal(0)        # запас сырья на старте → B3 (поддерживаемый уровень)
     finished_goods: Decimal = Decimal(0)       # запас ГП на старте → B5 (поддерживаемый уровень)
+    prepaid_expenses: Decimal = Decimal(0)     # выданные авансы/предоплата → B7 (поддерживаемый уровень)
+    advances_received: Decimal = Decimal(0)    # полученные авансы → B24 (поддерживаемый уровень)
+    short_term_debt: Decimal = Decimal(0)      # → B22 (краткосрочные займы; несётся как долг, не гасится авто)
     debt: Decimal = Decimal(0)                 # → B26 (долгосрочные займы)
     paid_in_capital: Decimal = Decimal(0)      # → B27 (обыкновенные акции)
+    preferred_capital: Decimal = Decimal(0)    # → B28 (привилегированные акции)
+    reserves: Decimal = Decimal(0)             # → B30 (резервные фонды)
+    additional_capital: Decimal = Decimal(0)   # → B31 (добавочный капитал; + дооценка ОС)
     retained_earnings: Decimal = Decimal(0)    # → B32 (нераспределённая прибыль)
 
     def assets(self) -> Decimal:
         return (self.cash + self.fixed_assets_net + self.receivables
-                + self.raw_materials + self.finished_goods)
+                + self.raw_materials + self.finished_goods + self.prepaid_expenses)
 
     def liabilities_equity(self) -> Decimal:
-        return self.debt + self.paid_in_capital + self.retained_earnings + self.payables
+        return (self.debt + self.short_term_debt + self.payables + self.advances_received
+                + self.paid_in_capital + self.preferred_capital + self.reserves
+                + self.additional_capital + self.retained_earnings)
 
 
 class Company(BaseModel):
     starting_balance: StartingBalance = StartingBalance()
+    # Подразделения (бизнес-единицы) для аналитики доходов (gap 4.5); пусто = без структуры.
+    divisions: list[Division] = Field(default_factory=list)

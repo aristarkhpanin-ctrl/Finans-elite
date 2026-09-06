@@ -10,7 +10,19 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from .calendar import CalendarPlan
 from .common import AssetCategory
+
+
+class AdditionalInvestment(BaseModel):
+    """Доинвестирование в актив (модернизация, SPEC §9): вложение в месяц ``month``.
+
+    Капитализируется (→ capex/C14) и амортизируется линейно за **остаточный срок** актива
+    (``purchase_month + life_months − month``), заканчиваясь вместе с базовой стоимостью.
+    """
+
+    month: int = 0
+    amount: Decimal = Decimal(0)
 
 
 class Asset(BaseModel):
@@ -29,6 +41,8 @@ class Asset(BaseModel):
     # Переоценка: месяц и сумма дооценки (→ B9/остаточная и добавочный капитал B31). SPEC §9.
     revaluation_month: Optional[int] = None
     revaluation_amount: Decimal = Decimal(0)
+    # Доинвестирование (модернизация): доп. вложения, амортизируемые от остаточного срока.
+    additional_investments: list[AdditionalInvestment] = Field(default_factory=list)
 
     def monthly_depreciation(self) -> Decimal:
         if self.life_months <= 0:
@@ -38,3 +52,5 @@ class Asset(BaseModel):
 
 class InvestmentPlan(BaseModel):
     assets: list[Asset] = Field(default_factory=list)
+    # Календарный план (этапы подготовительной фазы + ресурсы). См. models/calendar.py.
+    calendar: CalendarPlan = Field(default_factory=CalendarPlan)

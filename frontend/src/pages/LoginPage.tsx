@@ -3,13 +3,35 @@ import { httpStatus } from "../api/client";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { IconLock, IconMail } from "../components/icons";
-import { AuthLayout, AuthPasswordField, AuthField, AuthSubmit, isEmailValid } from "./auth/AuthLayout";
+import { PRODUCTS } from "../components/product";
+import {
+  AuthLayout, AuthPasswordField, AuthField, AuthSubmit, isEmailValid, useAuthProduct,
+} from "./auth/AuthLayout";
 
 const REDIRECT_DELAY_MS = 1600; // длительность прогресса success-оверлея
+
+/**
+ * Подзаголовок называет продукт, в который ведёт вход: с зелёного «Элита» и с
+ * фиолетового «Аудита» открываются разные рабочие области, и после входа
+ * пользователь попадает именно туда, откуда пришёл.
+ */
+const LEAD: Record<string, string> = {
+  business: "Войдите, чтобы продолжить работу с моделями и отчётами.",
+  audit: "Войдите, чтобы продолжить работу с делами и заключениями.",
+};
+
+/**
+ * Восстановления пароля в продукте нет: сбросить его не может ни пользователь, ни
+ * администратор организации (приглашение задаёт пароль лишь однажды). Ссылка «Забыли
+ * пароль?» из макета вела бы в никуда, а молчание — к поиску того, чего нет; поэтому
+ * отсутствие названо прямо.
+ */
+const NO_RESET = "Самостоятельного восстановления пароля пока нет.";
 
 export function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const product = useAuthProduct();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -44,12 +66,19 @@ export function LoginPage() {
     try {
       await login({ email, password });
       setSuccess(true);
-      timer.current = window.setTimeout(() => navigate("/projects"), REDIRECT_DELAY_MS);
+      timer.current = window.setTimeout(
+        () => navigate(PRODUCTS[product].home), REDIRECT_DELAY_MS);
     } catch (err: unknown) {
+      const status = httpStatus(err);
       setServerError(
-        httpStatus(err) === 401
+        status === 401
           ? "Неверный email или пароль"
-          : "Не удалось выполнить вход. Попробуйте ещё раз.",
+          // Ограничение — по числу попыток с адреса за минуту, и оно не именное:
+          // «осталось 3 попытки до блокировки» из макета обещало бы счётчик на
+          // учётную запись, которого сервер не ведёт.
+          : status === 429
+            ? "Слишком много попыток входа. Подождите минуту и попробуйте снова."
+            : "Не удалось выполнить вход. Попробуйте ещё раз.",
       );
       setBusy(false);
     }
@@ -57,8 +86,9 @@ export function LoginPage() {
 
   return (
     <AuthLayout
+      product={product}
       title="С возвращением"
-      subtitle="Войдите, чтобы продолжить работу с моделями и отчётами."
+      subtitle={LEAD[product]}
       serverError={serverError}
       onDismissError={() => setServerError("")}
       success={success ? { title: "Вход выполнен", sub: "Перенаправляем в рабочую область…" } : null}
@@ -91,6 +121,7 @@ export function LoginPage() {
           value={password}
           disabled={busy}
           error={errPass}
+          hint={NO_RESET}
           shakeKey={shakeKey}
           onChange={(e) => setPassword(e.target.value)}
           onBlur={() => setTouched((t) => ({ ...t, password: true }))}

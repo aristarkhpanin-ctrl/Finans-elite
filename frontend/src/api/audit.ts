@@ -1,0 +1,901 @@
+// Финанс-Аудит (продукт №2): API субъектов анализа + типы модели + каталог строк ввода.
+import { api } from "./client";
+
+/** Отчётный период: подпись + тип (задаёт длину периода и приведение потоков к году). */
+export interface AuditPeriod {
+  label: string;
+  kind: "year" | "quarter" | "month";
+}
+
+/** Пользовательский показатель: имя + формула над строками аналитической формы. */
+export interface UserMetric {
+  name: string;
+  formula: string;
+}
+
+/** Свой норматив показателя (v2): переопределяет универсальный порог. */
+export interface RatioThreshold {
+  ratio: string;
+  direction: "higher" | "lower";
+  risk_edge: string;
+  good_edge: string;
+}
+
+/** Основа отчётности: платформа её фиксирует, но не трансформирует одну в другую. */
+export type ReportingStandard = "rsbu" | "ifrs" | "management";
+
+export const REPORTING_STANDARDS: [ReportingStandard, string][] = [
+  ["rsbu", "РСБУ"],
+  ["ifrs", "МСФО"],
+  ["management", "Управленческая"],
+];
+
+/** Поправка к статье баланса: корреспонденция — всегда капитал. */
+export interface Revaluation {
+  code: string;
+  label: string;
+  amounts: string[];
+}
+
+/** Модель субъекта: реквизиты, периоды, фактическая отчётность (код строки → ряд по периодам). */
+export interface AuditModel {
+  name?: string;
+  currency?: string;
+  industry?: string;
+  reporting_standard?: ReportingStandard;
+  periods: AuditPeriod[];
+  balance: Record<string, string[]>;   // значения-строки (Decimal, точность без float)
+  income: Record<string, string[]>;
+  user_metrics?: UserMetric[];
+  thresholds?: RatioThreshold[];
+  revaluations?: Revaluation[];
+  earnings_adjustments?: EarningsAdjustment[];
+  obligations?: Obligation[];
+  procedure_marks?: ProcedureMark[];
+  custom_procedures?: CustomProcedure[];
+  valuation?: ValuationAssumptions;
+  risk?: RiskAnalysis;
+  seller_plan?: Record<string, string[]>;
+  realized_flags?: RealizedFlag[];
+}
+
+/**
+ * Отметка аналитика: сработал ли флаг после сделки и во что обошёлся (SPEC, Прил. Т.4).
+ * `actual_cost === null` — факт ещё не оценён, а не «обошёлся в ноль».
+ */
+export interface RealizedFlag {
+  code: string;
+  realized: boolean;
+  actual_cost: string | null;
+  note: string;
+}
+
+/** Допущения оценки, доступные анализу рисков (SPEC, Прил. Р.1). */
+export type RiskParam =
+  "wacc" | "terminal_growth" | "tax_rate" | "growth" | "capex" | "nwc_change";
+
+export const RISK_PARAMS: [RiskParam, string][] = [
+  ["wacc", "Ставка дисконтирования"],
+  ["terminal_growth", "Рост в постпрогнозе"],
+  ["tax_rate", "Ставка налога"],
+  ["growth", "Рост показателя"],
+  ["capex", "Капвложения"],
+  ["nwc_change", "Δ оборотного капитала"],
+];
+
+export const DISTRIBUTION_KINDS: [RiskDistribution["kind"], string][] = [
+  ["uniform", "Равномерное (от / до)"],
+  ["normal", "Нормальное (среднее / σ)"],
+  ["triangular", "Треугольное (от / мода / до)"],
+];
+
+/**
+ * Распределение **коэффициента** допущения, а не самого значения: выборка даёт
+ * множитель к базе, поэтому одно распределение годится и для ставки, и для суммы.
+ */
+export interface RiskDistribution {
+  kind: "uniform" | "normal" | "triangular";
+  low: string | null;
+  high: string | null;
+  mean: string | null;
+  std: string | null;
+  mode: string | null;
+}
+
+export interface UncertainAssumption {
+  param: RiskParam;
+  distribution: RiskDistribution;
+}
+
+/** Настройки анализа рисков. `seed` фиксирован — иначе медиана «плавала» бы. */
+export interface RiskAnalysis {
+  tornado_step: string;
+  iterations: number;
+  seed: number;
+  uncertain: UncertainAssumption[];
+}
+
+export function emptyRisk(): RiskAnalysis {
+  return { tornado_step: "0.10", iterations: 2000, seed: 42, uncertain: [] };
+}
+
+export function emptyUncertain(): UncertainAssumption {
+  return { param: "wacc",
+           distribution: { kind: "uniform", low: "0.9", high: "1.1",
+                           mean: null, std: null, mode: null } };
+}
+
+/**
+ * Допущения оценки (SPEC, Прил. П): всё вводится, ничего не выводится из истории.
+ * `asking_price === null` — цена продавца не введена, и дисконта **не существует**.
+ */
+export interface ValuationAssumptions {
+  enabled: boolean;
+  horizon_years: number;
+  wacc: string;
+  terminal_growth: string;
+  tax_rate: string;
+  growth: string[];
+  capex: string[];
+  nwc_change: string[];
+  minority_interest: string;
+  asking_price: string | null;
+}
+
+export function emptyValuation(): ValuationAssumptions {
+  return { enabled: false, horizon_years: 5, wacc: "0.20", terminal_growth: "0.03",
+           tax_rate: "0.20", growth: [], capex: [], nwc_change: [],
+           minority_interest: "0", asking_price: null };
+}
+
+/** Статус процедуры, который ставит человек (системный выводится из прогона). */
+export type MarkStatus = "pending" | "done" | "skipped";
+
+export const MARK_STATUSES: [MarkStatus, string][] = [
+  ["pending", "Не отмечено"],
+  ["done", "Выполнено"],
+  ["skipped", "Снято"],
+];
+
+/**
+ * Отметка аналитика по процедуре каталога (SPEC, Прил. М.3). Ставится только у
+ * процедур с исполнителем «аналитик»; причина при снятии обязательна — процедура,
+ * снятая молча, неотличима от забытой.
+ */
+export interface ProcedureMark {
+  code: string;
+  status: MarkStatus;
+  note: string;
+}
+
+/** Своя процедура аналитика (SPEC, Прил. М.5): платформа её не выполняет. */
+export interface CustomProcedure {
+  title: string;
+  status: MarkStatus;
+  note: string;
+}
+
+export function emptyCustomProcedure(): CustomProcedure {
+  return { title: "", status: "pending", note: "" };
+}
+
+/** Вид обязательства → подпись; забалансовость — свойство вида, а не отдельная галочка. */
+export type ObligationKind =
+  "credit" | "lease" | "loan" | "other" | "guarantee" | "pledge_third_party";
+
+export const OBLIGATION_KINDS: [ObligationKind, string, boolean][] = [
+  ["credit", "Кредит банка", false],
+  ["lease", "Лизинг", false],
+  ["loan", "Займ (в т.ч. участника)", false],
+  ["other", "Иное балансовое обязательство", false],
+  ["guarantee", "Поручительство за третье лицо", true],
+  ["pledge_third_party", "Залог за третье лицо", true],
+];
+
+export const isOffBalanceKind = (kind: ObligationKind): boolean =>
+  OBLIGATION_KINDS.find(([k]) => k === kind)?.[2] ?? false;
+
+/** Статус ковенанта: ставится человеком, `unknown` — по умолчанию и не значит «в норме». */
+export type CovenantStatus = "ok" | "breached" | "unknown";
+
+export const COVENANT_STATUSES: [CovenantStatus, string][] = [
+  ["unknown", "Не проверен"],
+  ["ok", "Соблюдён"],
+  ["breached", "Нарушен"],
+];
+
+/**
+ * Обязательство реестра (SPEC, Приложение Л). `rate`/`maturity_year` — `null`, когда
+ * не указаны: беспроцентный займ (0%) и займ без ставки — разные факты, как и
+ * «погашение в 2029» против «срок не заполнен».
+ */
+export interface Obligation {
+  creditor: string;
+  contract: string;
+  kind: ObligationKind;
+  amount: string;
+  rate: string | null;
+  maturity_year: number | null;
+  on_demand: boolean;
+  collateral: string;
+  pledged_amount: string;
+  covenant: string;
+  covenant_status: CovenantStatus;
+  covenant_note: string;
+}
+
+export function emptyObligation(): Obligation {
+  return { creditor: "", contract: "", kind: "credit", amount: "", rate: null,
+           maturity_year: null, on_demand: false, collateral: "", pledged_amount: "",
+           covenant: "", covenant_status: "unknown", covenant_note: "" };
+}
+
+export interface AuditSubjectSummary {
+  id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+  n_periods: number;
+  balanced: boolean;
+  industry: string;
+  /** Светофор диагностики: ok | warning | risk. `null` — отчётности нет, не считалось. */
+  light: string | null;
+}
+
+export interface AuditSubjectOut extends AuditSubjectSummary {
+  model: AuditModel;
+  balance_gap: string[];   // актив − пассив по периодам (0 — сходится)
+}
+
+// Каталог строк ввода (зеркало audit_core/lines.py).
+export const ASSET_LINES: [string, string][] = [
+  ["A_FIXED", "Внеоборотные активы"],
+  ["A_INVENTORY", "Запасы"],
+  ["A_RECEIVABLE", "Дебиторская задолженность"],
+  ["A_CASH", "Денежные средства и эквиваленты"],
+];
+export const EQLIAB_LINES: [string, string][] = [
+  ["P_EQUITY", "Капитал и резервы"],
+  ["P_LONG", "Долгосрочные обязательства"],
+  ["P_SHORT", "Краткосрочные обязательства"],
+];
+/** Справочные строки: НЕ входят в итоги баланса, нужны диагностике (модели Альтмана). */
+export const MEMO_LINES: [string, string][] = [
+  ["M_RETAINED", "в т.ч. нераспределённая прибыль (для диагностики)"],
+  ["M_MARKET_CAP", "рыночная капитализация (только для публичных компаний)"],
+];
+/** Справочная строка ОФР: без неё EBITDA не существует (SPEC, Приложение К.1). */
+export const INCOME_MEMO_LINES: [string, string][] = [
+  ["M_DEPRECIATION", "в т.ч. амортизация (для EBITDA)"],
+];
+
+export const INCOME_LINES: [string, string][] = [
+  ["I_REVENUE", "Выручка"],
+  ["I_COGS", "Себестоимость продаж"],
+  ["I_OPEX", "Коммерческие и управленческие расходы"],
+  ["I_INTEREST", "Проценты к уплате"],
+  ["I_OTHER", "Прочие доходы/расходы (сальдо)"],
+  ["I_TAX", "Налог на прибыль"],
+];
+
+/**
+ * Статьи, доступные для переоценки: баланс без капитала — он корреспондирует любой
+ * поправке, поэтому переоценивать его напрямую не к чему приравнять (зеркало
+ * `REVALUABLE_CODES` в `audit_core/revaluation.py`).
+ */
+export const REVALUABLE_LINES: [string, string][] =
+  [...ASSET_LINES, ...EQLIAB_LINES].filter(([code]) => code !== "P_EQUITY");
+
+export function emptyAuditModel(): AuditModel {
+  return { name: "", currency: "RUB", industry: "", periods: [{ label: "", kind: "year" }],
+           balance: {}, income: {} };
+}
+
+export async function listAuditSubjects(): Promise<AuditSubjectSummary[]> {
+  const { data } = await api.get<AuditSubjectSummary[]>("/api/v1/audit/subjects");
+  return data;
+}
+
+export async function getAuditSubject(id: string): Promise<AuditSubjectOut> {
+  const { data } = await api.get<AuditSubjectOut>(`/api/v1/audit/subjects/${id}`);
+  return data;
+}
+
+export async function createAuditSubject(name: string, model: AuditModel): Promise<AuditSubjectOut> {
+  const { data } = await api.post<AuditSubjectOut>("/api/v1/audit/subjects", { name, model });
+  return data;
+}
+
+export async function updateAuditSubject(id: string, name: string, model: AuditModel): Promise<AuditSubjectOut> {
+  const { data } = await api.put<AuditSubjectOut>(`/api/v1/audit/subjects/${id}`, { name, model });
+  return data;
+}
+
+export async function deleteAuditSubject(id: string): Promise<void> {
+  await api.delete(`/api/v1/audit/subjects/${id}`);
+}
+
+export async function duplicateAuditSubject(id: string): Promise<AuditSubjectOut> {
+  const { data } = await api.post<AuditSubjectOut>(`/api/v1/audit/subjects/${id}/duplicate`);
+  return data;
+}
+
+/** Завести демо-дело из эталонного семпла — обычное дело с вымышленными данными. */
+export async function createDemoAuditSubject(): Promise<AuditSubjectOut> {
+  const { data } = await api.post<AuditSubjectOut>("/api/v1/audit/subjects/demo");
+  return data;
+}
+
+// --- Анализ (фаза C): аналитическая форма, тренды, коэффициенты ---
+
+export interface AuditLineOut {
+  code: string;
+  label: string;
+  values: string[];
+  subtotal: boolean;
+}
+export interface AuditTrendOut {
+  code: string;
+  label: string;
+  delta: (string | null)[];
+  rate: (string | null)[];
+}
+export interface AuditShareOut {
+  code: string;
+  label: string;
+  share: (string | null)[];
+}
+export interface AuditScoreOut {
+  id: string;
+  name: string;
+  values: (string | null)[];
+  zones: (string | null)[];      // safe | grey | distress
+  note: string;
+}
+export interface AuditAssessmentOut {
+  group: string;
+  name: string;
+  status: (string | null)[];     // good | warn | risk
+}
+export interface AuditDiagnostics {
+  light: string;                 // ok | warning | risk
+  summary: string;
+  scores: AuditScoreOut[];
+  assessments: AuditAssessmentOut[];
+}
+
+export interface AuditUserMetricOut {
+  name: string;
+  values: string[];
+  error: string | null;
+}
+
+export interface AuditAnalysis {
+  n: number;
+  periods: string[];
+  balance: AuditLineOut[];
+  income: AuditLineOut[];
+  horizontal: AuditTrendOut[];
+  vertical: AuditShareOut[];
+  ratios: Record<string, Record<string, (string | null)[]>>;
+  balance_gap: string[];
+  balanced: boolean;
+  diagnostics: AuditDiagnostics | null;
+  user_metrics: AuditUserMetricOut[];
+  revalued: boolean;          // числа посчитаны после переоценки статей
+  opinion: string;
+  warnings: string[];
+  input_issues: AuditInputIssue[];
+  flags: AuditFlagRegistry;
+  earnings: AuditEarnings;
+  obligations: AuditObligations;
+  procedures: AuditProcedures;
+  summary: AuditSummary;
+  valuation: AuditValuation;
+  risk: AuditRisk;
+  plan_fact: AuditPlanFact;
+}
+
+/**
+ * Строка план-факта. `verdict` учитывает направление: себестоимость ниже плана —
+ * успех, а не недобор.
+ */
+export interface AuditPlanFactRow {
+  code: string;
+  label: string;
+  direction: "higher" | "lower";
+  plan: string;
+  fact: string;
+  delta: string;
+  delta_share: string | null;
+  verdict: "better" | "worse" | "on_plan";
+  note: string;
+}
+
+/** Сопоставление флага: предсказанное посчитано платформой, фактическое введено. */
+export interface AuditRealizedFlag {
+  code: string;
+  title: string;
+  severity: string;
+  predicted: string | null;      // null — денежной меры у флага нет
+  realized: boolean;
+  actual_cost: string | null;    // null — факт ещё не оценён, а не «ноль»
+  note: string;
+}
+
+/** План-факт после сделки. `available === false` — плана нет; это не «всё сошлось». */
+export interface AuditPlanFact {
+  available: boolean;
+  periods: string[];
+  rows: AuditPlanFactRow[];
+  flags: AuditRealizedFlag[];
+  predicted_total: string;
+  realized_total: string;
+  unpriced_realized: number;
+  orphan_marks: string[];
+  caveats: string[];
+  not_computed: string[];
+}
+
+/**
+ * Столбец торнадо. `span === null` — одной из сторон не существует: смещение уводит
+ * туда, где оценка не считается, и это факт, а не «цена не изменилась».
+ */
+export interface AuditTornadoBar {
+  param: string;
+  label: string;
+  step: string;
+  low_price: string | null;
+  high_price: string | null;
+  low_delta: string | null;
+  high_delta: string | null;
+  span: string | null;
+  note: string;
+}
+
+export interface AuditHistogramBin {
+  from: string;
+  to: string;
+  count: number;
+}
+
+/** Распределение цены. `unvalued` — прогоны без оценки: не нули и не выброшенные. */
+export interface AuditMonteCarlo {
+  iterations: number;
+  valued: number;
+  unvalued: number;
+  median: string | null;
+  mean: string | null;
+  p10: string | null;
+  p25: string | null;
+  p75: string | null;
+  p90: string | null;
+  minimum: string | null;
+  maximum: string | null;
+  histogram: AuditHistogramBin[];
+  below_asking: string | null;   // null — цена продавца не введена (Р.4)
+  median_drift: string | null;
+}
+
+/** Анализ рисков оценки (SPEC, Прил. Р). */
+export interface AuditRisk {
+  available: boolean;
+  blockers: string[];
+  base_price: string | null;
+  step: string;
+  tornado: AuditTornadoBar[];
+  monte_carlo: AuditMonteCarlo | null;
+  warnings: string[];
+  not_computed: string[];
+}
+
+/** Год прогноза: показатель, поток и его приведённая стоимость. */
+export interface AuditForecastYear {
+  year: number;
+  ebit: string;
+  depreciation: string;
+  capex: string;
+  nwc_change: string;
+  fcff: string;
+  discount_factor: string;
+  present_value: string;
+}
+
+/** Слагаемое моста EV → цена. */
+export interface AuditBridgeItem {
+  label: string;
+  amount: string;
+  kind: "add" | "subtract" | "total";
+  note: string;
+}
+
+/**
+ * Оценка стоимости (SPEC, Прил. П). Непустой `blockers` означает, что оценка
+ * **не посчитана**, а не «стоит 0»: величины, для которой не хватает входных данных,
+ * не существует. Забалансовые обязательства из моста исключены намеренно (Л.1) и
+ * названы в `warnings`.
+ */
+export interface AuditValuation {
+  enabled: boolean;
+  blockers: string[];
+  base_code: string;
+  base_ebit: string;
+  wacc: string;
+  terminal_growth: string;
+  years: AuditForecastYear[];
+  pv_forecast: string;
+  terminal_value: string | null;
+  pv_terminal: string | null;
+  enterprise_value: string | null;
+  terminal_share: string | null;
+  bridge: AuditBridgeItem[];
+  equity_value: string | null;
+  implied_multiple: string | null;
+  asking_price: string | null;
+  discount: string | null;
+  sensitivity: (string | null)[][];
+  sensitivity_wacc: string[];
+  sensitivity_growth: string[];
+  equity_min: string | null;
+  equity_max: string | null;
+  warnings: string[];
+  not_computed: string[];
+}
+
+/** Показатель шапки сводки. `value === null` — величина не считается, а не равна нулю. */
+export interface AuditHeadMetric {
+  key: string;
+  label: string;
+  value: string | null;
+  unit: "money" | "ratio" | "grade";
+  note: string;
+  tone: "ok" | "warn" | "risk" | "neutral";
+  text: string;
+}
+
+/**
+ * Сводка дела и вердикт (SPEC, Прил. Н). Оценки сделки здесь нет намеренно:
+ * запрошенной цены в модели не существует, DCF не построен, бенчмарков нет.
+ * `priced_total` — оценённое влияние флагов, **не скидка к цене**; всё, чего сводка
+ * не считает, перечислено в `not_computed`.
+ */
+export interface AuditSummary {
+  state: "empty" | "ready";
+  verdict: "unreliable" | "risk" | "warning" | "ok";
+  headline: string;
+  detail: string;
+  coverage: string | null;
+  open_procedures: number;
+  metrics: AuditHeadMetric[];
+  risk_flags: number;
+  warning_flags: number;
+  priced_total: string;
+  unpriced: number;
+  input_errors: number;
+  /** Оценка (Прил. П); `null` — оценки нет, и дисконта не существует. */
+  equity_value: string | null;
+  asking_price: string | null;
+  discount: string | null;
+  not_computed: string[];
+}
+
+/** Итог процедуры: `pass|finding|no_data` выводится из прогона, остальное — отметка. */
+export type ProcedureStatus =
+  "pass" | "finding" | "no_data" | "done" | "skipped" | "pending";
+
+export interface AuditProcedure {
+  code: string;
+  group: string;
+  title: string;
+  source: "system" | "analyst";
+  method: string;
+  status: ProcedureStatus;
+  detail: string;
+  findings: string[];
+}
+
+/**
+ * Чек-лист процедур (SPEC, Прил. М). `coverage` честен только вместе с `limits`:
+ * «охват 70%» без перечня тех 30% читается как «почти всё проверено».
+ */
+export interface AuditProcedures {
+  items: AuditProcedure[];
+  total: number;
+  closed: number;
+  passed: number;
+  findings: number;
+  no_data: number;
+  done: number;
+  skipped: number;
+  pending: number;
+  coverage: string | null;
+  limits: string[];
+}
+
+/** Строка реестра: введённое + то, что следует из вида обязательства. */
+export interface AuditObligationRow {
+  creditor: string;
+  contract: string;
+  kind: string;
+  kind_label: string;
+  off_balance: boolean;
+  amount: string;
+  rate: string | null;
+  maturity: string;              // «2029» | «по требованию» | «срок не указан»
+  on_demand: boolean;
+  collateral: string;
+  pledged_amount: string;
+  covenant: string;
+  covenant_status: CovenantStatus;
+  covenant_note: string;
+}
+
+/** Сколько долга упирается в год погашения (не платёж года — график не вводится). */
+export interface AuditMaturityBucket {
+  label: string;
+  amount: string;
+  kind: "year" | "on_demand" | "unknown";
+}
+
+/**
+ * Реестр обязательств: два итога, которые **никогда не складываются** (SPEC, Прил. Л.1),
+ * и сверка с балансом. `free_assets` — `null`, когда активов нет: сравнивать не с чем.
+ */
+export interface AuditObligations {
+  rows: AuditObligationRow[];
+  balance_debt: string;
+  off_balance: string;
+  reported_debt: string;
+  discrepancy: string;
+  reconciled: boolean;
+  buckets: AuditMaturityBucket[];
+  pledged_total: string;
+  free_assets: string | null;
+  pledged_share: string | null;
+  covenants_breached: number;
+  covenants_unknown: number;
+}
+
+/** Вид корректировки при нормализации прибыли (SPEC, Приложение К.2). */
+export type AdjustmentKind =
+  "one_off" | "owner" | "related_party" | "non_operating" | "accounting";
+
+export const ADJUSTMENT_KINDS: [AdjustmentKind, string][] = [
+  ["one_off", "Разовый доход или расход"],
+  ["owner", "Вознаграждение собственника сверх рыночного"],
+  ["related_party", "Сделка со связанной стороной не по рынку"],
+  ["non_operating", "Непрофильная деятельность"],
+  ["accounting", "Учётное искажение"],
+];
+
+/** Поправка нормализации: со знаком, с обязательной причиной. */
+export interface EarningsAdjustment {
+  label: string;
+  kind: AdjustmentKind;
+  amounts: string[];
+}
+
+export interface AuditAppliedAdjustment {
+  label: string;
+  kind: string;
+  kind_label: string;
+  amounts: string[];
+  total: string;
+}
+
+/**
+ * Нормализация показателя прибыли. `base_code` — что именно нормализовано: EBITDA
+ * (введена амортизация) или EBIT. Показывать это имя обязательно: показатели
+ * различаются на всю амортизацию, и мультипликатор, применённый не к тому, ошибётся
+ * ровно на неё.
+ */
+export interface AuditEarnings {
+  base_code: string;
+  reported: string[];
+  normalized: string[];
+  adjustments: AuditAppliedAdjustment[];
+  grade: string | null;          // A | B | C; null — сравнивать не с чем
+  grade_note: string;
+  deviation: string | null;
+}
+
+/** Красный флаг: что настораживает, в каких периодах и на сколько рублей. */
+export interface AuditFlag {
+  code: string;
+  severity: "risk" | "warning";
+  title: string;
+  detail: string;
+  periods: number[];
+  /** Денежная мера. `null` — её не существует, а не «ноль рублей». */
+  impact: string | null;
+  evidence: Record<string, string>;
+}
+
+/** Реестр флагов: сумма оценённых + число тех, у кого денежной меры нет вовсе. */
+export interface AuditFlagRegistry {
+  flags: AuditFlag[];
+  priced_total: string;
+  unpriced: number;
+}
+
+/** Находка о качестве ввода: что не так с самими данными (не с финансовым состоянием). */
+export interface AuditInputIssue {
+  code: string;
+  /** `error` — данные противоречивы; `warning` — часть показателей не выйдет; `info`. */
+  severity: "error" | "warning" | "info";
+  title: string;
+  detail: string;
+  periods: number[];          // индексы затронутых периодов (пусто — вся модель)
+  evidence: Record<string, string>;
+}
+
+/** Человекочитаемые названия групп коэффициентов (порядок вывода). */
+export const RATIO_GROUPS: [string, string][] = [
+  ["liquidity", "Ликвидность"],
+  ["gearing", "Финансовая устойчивость"],
+  ["profitability", "Рентабельность"],
+  ["activity", "Деловая активность"],
+];
+
+export async function analyzeAuditSubject(id: string): Promise<AuditAnalysis> {
+  const { data } = await api.post<AuditAnalysis>(`/api/v1/audit/subjects/${id}/analyze`);
+  return data;
+}
+
+/** Скачать документ заключения (DOCX) авторизованным запросом. */
+export async function downloadAuditReport(id: string, filename: string): Promise<void> {
+  const { data } = await api.get(`/api/v1/audit/subjects/${id}/report.docx`, {
+    responseType: "blob",
+  });
+  const url = URL.createObjectURL(data as Blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// --- Консолидация группы (фаза H) ---
+
+export interface AuditConsolidation {
+  analysis: AuditAnalysis;
+  members: string[];
+  periods_used: string[];
+  warnings: string[];
+  /** Участники сохранённой группы, которых больше нет (субъект удалён). */
+  missing_members: string[];
+}
+
+/**
+ * Внутригрупповые величины к исключению из свода (по периодам). Каждая вычитается парно
+ * по обе стороны баланса, поэтому равенство «актив = пассив» сохраняется.
+ */
+export interface AuditElimination {
+  receivables: string[];        // взаимная задолженность: дебиторка ↔ кредиторка
+  revenue: string[];            // взаимная выручка: выручка ↔ себестоимость
+  investments: string[];        // вложения в капитал: внеоборотные активы ↔ капитал
+  unrealized_profit: string[];  // нереализованная прибыль в запасах: запасы ↔ капитал
+}
+
+/** Свести отчётность выбранных субъектов и проанализировать группу как одно предприятие. */
+export async function consolidateAudit(
+  subjectIds: string[],
+  name: string,
+  elimination?: AuditElimination,
+): Promise<AuditConsolidation> {
+  const { data } = await api.post<AuditConsolidation>("/api/v1/audit/consolidate", {
+    subject_ids: subjectIds,
+    name,
+    elimination: elimination ?? null,
+  });
+  return data;
+}
+
+// --- Сохранённые группы предприятий (v2) ---
+
+/** Участник группы: ссылка на субъект + имя на момент сохранения (для выбывших). */
+export interface AuditGroupMember {
+  subject_id: string;
+  name: string;
+}
+
+/** Состав группы: участники + внутригрупповые обороты (результат не хранится). */
+export interface AuditGroupModel {
+  members: AuditGroupMember[];
+  elimination: AuditElimination | null;
+}
+
+export interface AuditGroupSummary {
+  id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+  n_members: number;
+  n_missing: number;    // сколько участников больше не существует
+}
+
+export interface AuditGroupOut extends AuditGroupSummary {
+  model: AuditGroupModel;
+}
+
+export async function listAuditGroups(): Promise<AuditGroupSummary[]> {
+  const { data } = await api.get<AuditGroupSummary[]>("/api/v1/audit/groups");
+  return data;
+}
+
+export async function getAuditGroup(id: string): Promise<AuditGroupOut> {
+  const { data } = await api.get<AuditGroupOut>(`/api/v1/audit/groups/${id}`);
+  return data;
+}
+
+export async function createAuditGroup(name: string, model: AuditGroupModel): Promise<AuditGroupOut> {
+  const { data } = await api.post<AuditGroupOut>("/api/v1/audit/groups", { name, model });
+  return data;
+}
+
+export async function updateAuditGroup(id: string, name: string,
+                                       model: AuditGroupModel): Promise<AuditGroupOut> {
+  const { data } = await api.put<AuditGroupOut>(`/api/v1/audit/groups/${id}`, { name, model });
+  return data;
+}
+
+export async function deleteAuditGroup(id: string): Promise<void> {
+  await api.delete(`/api/v1/audit/groups/${id}`);
+}
+
+/** Свод сохранённой группы по текущей отчётности участников. */
+export async function analyzeAuditGroup(id: string): Promise<AuditConsolidation> {
+  const { data } = await api.post<AuditConsolidation>(`/api/v1/audit/groups/${id}/analyze`);
+  return data;
+}
+
+// ── Сравнение дел («Экран 20»; методика — SPEC, Приложение С) ────────────────
+
+/** Столбец сравнения: дело и признаки, от которых зависит сопоставимость. */
+export interface AuditCaseColumn {
+  subject_id: string;
+  name: string;
+  industry: string;
+  currency: string;
+  reporting_standard: string;
+  last_period: string;
+  n_periods: number;
+  verdict: string;
+  base_code: string;
+}
+
+/**
+ * Строка сравнения. `winner === null` значит одно из двух: «лучше» у показателя не
+ * определено (размер — не качество) либо значение есть не у всех дел. Оба случая
+ * объяснены в `note`.
+ */
+export interface AuditCompareRow {
+  key: string;
+  label: string;
+  unit: "money" | "ratio" | "percent" | "count" | "text";
+  direction: "higher" | "lower" | null;
+  values: (string | null)[];
+  texts: string[];
+  winner: number | null;
+  note: string;
+}
+
+/**
+ * Сравнение дел. Сводного балла с весами и рекомендации по сделке здесь нет
+ * намеренно — причины перечислены в `not_computed`.
+ */
+export interface AuditComparison {
+  cases: AuditCaseColumn[];
+  rows: AuditCompareRow[];
+  wins: number[];
+  comparable: number;
+  caveats: string[];
+  excluded: string[];
+  not_computed: string[];
+}
+
+export async function compareAuditSubjects(ids: string[]): Promise<AuditComparison> {
+  const { data } = await api.post<AuditComparison>("/api/v1/audit/compare",
+                                                   { subject_ids: ids });
+  return data;
+}
