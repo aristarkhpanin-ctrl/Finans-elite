@@ -325,6 +325,20 @@ describe("buildAuditWorkbook", () => {
     expect(form.columns).toHaveLength(3);       // статья + 2 периода
   });
 
+  it("свод группы не получает листов проверки: её там не было", () => {
+    // У свода слои due diligence не считаются вовсе (`_consolidate` зовёт голый
+    // `analyze`), и его ответ несёт умолчания. Лист обязательств с нулями и лист
+    // «оценка не посчитана» были бы отчётом о проверке, которой не было.
+    const group = analysis({ summary: { ...analysis().summary, state: "empty" } });
+    const sheets = buildAuditWorkbook(group).map((s) => s.sheet);
+    expect(sheets).not.toContain("Обязательства");
+    expect(sheets).not.toContain("Оценка");
+    expect(sheets).not.toContain("Вердикт");
+    // Финансовое состояние свода выгружается как раньше.
+    expect(sheets).toContain("Аналитическая форма");
+    expect(sheets).toContain("Коэффициенты");
+  });
+
   it("пустой анализ не даёт ни одного листа (пустой файл не выгружается)", () => {
     const empty = analysis({
       n: 0, periods: [], balance: [], income: [], horizontal: [], vertical: [],

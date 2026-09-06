@@ -52,8 +52,23 @@ class CaseReview:
     opinion: str = ""
 
 
-def review_case(model: AuditSubjectModel) -> CaseReview:
-    """Посчитать анализ и все слои поверх него в единственном верном порядке."""
+#: Почему в разборе нет рисков, когда их не запрашивали. Пустой `available=False` без
+#: причины читался бы как «посчитали и не вышло» — а их просто не считали.
+NOT_REQUESTED = ("Анализ рисков в этом разборе не запрашивался: он считается там, где "
+                 "показывается (карточка дела, документ, выгрузка).")
+
+
+def review_case(model: AuditSubjectModel, *, deep: bool = True) -> CaseReview:
+    """Посчитать анализ и все слои поверх него в единственном верном порядке.
+
+    ``deep=False`` пропускает **стохастический слой** (торнадо и Монте-Карло): он
+    единственный дорогой — каждый прогон Монте-Карло заново строит оценку, и при
+    сравнении четырёх дел это тысячи оценок ради колонок, которых в сравнении нет.
+    Соглашение то же, что у «ревью плана» первого продукта (`run_review(deep=)`).
+
+    Пропущенный слой остаётся **при своих умолчаниях с названной причиной**, а не при
+    нулях: «не считали» и «посчитали, вышло пусто» — разные вещи.
+    """
     result = analyze(model)
     # Находки о качестве ввода считаются по исходной модели, а не по результату:
     # анализ уже применил переоценки, а претензии предъявляются к тому, что ввели.
@@ -63,7 +78,8 @@ def review_case(model: AuditSubjectModel) -> CaseReview:
     earnings = normalize_earnings(model, result)
     procedures = run_procedures(model, result, flags, issues, obligations, earnings)
     valuation = build_valuation(model, result, earnings, obligations)
-    risk = analyze_risk(model, result, earnings, obligations)
+    risk = (analyze_risk(model, result, earnings, obligations) if deep
+            else RiskResult(blockers=[NOT_REQUESTED]))
     plan_fact = build_plan_fact(model, flags)
     summary = build_summary(model, result, flags, issues, obligations, earnings,
                             procedures, valuation)

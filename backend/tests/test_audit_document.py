@@ -20,6 +20,7 @@ from zipfile import ZipFile
 from app.audit_docgen import build_audit_docx
 from audit_core import review_case
 from audit_core.models import AuditSubjectModel
+from audit_core.pipeline import NOT_REQUESTED
 
 D = Decimal
 
@@ -168,3 +169,25 @@ def test_screen_and_document_come_from_one_pipeline():
     for flag in review.flags.flags:
         assert flag.title in text, flag.title
     assert review.summary.headline in text
+
+
+def test_shallow_review_skips_only_the_stochastic_layer():
+    """`deep=False` убирает риски и ничего больше — числа дела те же (Прил. У.1).
+
+    Сравнение дел идёт этим режимом: если он менял бы вердикт или оценку, колонки
+    сравнения расходились бы с карточкой дела, и заметить это было бы нечем.
+    """
+    m = model(valuation=ASSUMPTIONS, income={"I_OTHER": ["0", "300"]})
+    deep, shallow = review_case(m), review_case(m, deep=False)
+    assert shallow.summary == deep.summary
+    assert shallow.valuation == deep.valuation
+    assert shallow.procedures == deep.procedures
+    assert shallow.earnings == deep.earnings
+    assert [f.code for f in shallow.flags.flags] == [f.code for f in deep.flags.flags]
+
+
+def test_skipped_risk_names_its_reason_instead_of_looking_computed():
+    """«Не считали» и «посчитали, не вышло» — разные вещи, и это видно в объекте."""
+    shallow = review_case(model(valuation=ASSUMPTIONS), deep=False)
+    assert shallow.risk.available is False
+    assert shallow.risk.blockers == [NOT_REQUESTED]

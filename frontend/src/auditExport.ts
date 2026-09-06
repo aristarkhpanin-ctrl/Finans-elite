@@ -385,7 +385,15 @@ export function buildAuditWorkbook(a: AuditAnalysis): Sheet[] {
   if (a.n === 0) return [];
   const p = a.periods.map(() => ({ width: 15 }));
   const wide = [{ width: 46 }, { width: 20 }];
-  const plan: Array<[string, XCell[][], { width: number }[]]> = [
+  /**
+   * Слои проверки считаются только у дела: свод группы идёт мимо конвейера
+   * (`_consolidate` зовёт голый `analyze`), и его ответ несёт **умолчания** этих
+   * полей. Без этой проверки в файл группы попали бы лист обязательств с нулями и
+   * лист «оценка не посчитана» — то есть отчёт о проверке, которой не было. Признак
+   * посчитанности — `summary.state`: его выставляет сама сводка.
+   */
+  const reviewed = a.summary.state === "ready";
+  const dd: Array<[string, XCell[][], { width: number }[]]> = reviewed ? [
     ["Вердикт", verdictSheet(a), wide],
     ["Флаги", flagsSheet(a), [{ width: 46 }, { width: 14 }, { width: 18 },
                               { width: 18 }, { width: 46 }]],
@@ -396,6 +404,9 @@ export function buildAuditWorkbook(a: AuditAnalysis): Sheet[] {
     ["Риски", riskSheet(a), [{ width: 46 }, { width: 20 }, { width: 20 }, { width: 20 }]],
     ["План-факт", planFactSheet(a), [{ width: 36 }, { width: 16 }, { width: 16 },
                                      { width: 16 }, { width: 12 }, { width: 22 }]],
+  ] : [];
+  const plan: Array<[string, XCell[][], { width: number }[]]> = [
+    ...dd,
     ["Аналитическая форма", formSheet(a), [{ width: 44 }, ...p]],
     ["Тренды", trendsSheet(a), [{ width: 44 }, { width: 18 }, ...p]],
     ["Структура", structureSheet(a), [{ width: 44 }, ...p]],

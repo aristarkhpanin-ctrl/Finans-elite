@@ -259,3 +259,23 @@ def test_compare_is_isolated_by_organization(client, register):
     sid = _make(client, theirs, "Чужое")
     r = client.post("/api/v1/audit/compare", json={"subject_ids": [sid]}, headers=mine)
     assert r.status_code == 404
+
+
+def test_comparison_numbers_equal_the_case_itself():
+    """Главный инвариант против третьей копии конвейера.
+
+    Сравнение считает дела не своим порядком слоёв, а общим разбором. Проверяется не
+    вызов, а результат: вердикт, охват и оценка в колонке равны тем, что дело
+    показывает у себя.
+    """
+    from audit_core import review_case
+
+    # Сравнение начинается с двух дел; сверяется первая колонка.
+    m = case("ООО «Цель»")
+    review = review_case(m)
+    comparison = compare_subjects([("s1", m), ("s2", case("ООО «Второе»", "2400"))])
+    by_key = {r.key: r for r in comparison.rows}
+    assert comparison.cases[0].verdict == review.summary.verdict
+    assert by_key["coverage"].values[0] == review.procedures.coverage
+    assert by_key["risk_flags"].values[0] == Decimal(review.summary.risk_flags)
+    assert by_key["equity_value"].values[0] == review.valuation.equity_value

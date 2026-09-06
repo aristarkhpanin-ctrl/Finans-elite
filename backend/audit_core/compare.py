@@ -24,15 +24,12 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Optional
 
-from .analysis import analyze
-from .earnings import EarningsQuality, normalize_earnings
-from .flags import detect_flags
-from .input_check import check_input
+from .earnings import EarningsQuality
 from .models import AuditSubjectModel
-from .obligations import build_obligations
-from .procedures import ProcedureReport, run_procedures
-from .summary import CaseSummary, build_summary
-from .valuation import Valuation, build_valuation
+from .pipeline import review_case
+from .procedures import ProcedureReport
+from .summary import CaseSummary
+from .valuation import Valuation
 
 D = Decimal
 
@@ -125,20 +122,20 @@ class _Case:
 
 
 def _prepare(subject_id: str, model: AuditSubjectModel) -> Optional[_Case]:
-    """Посчитать дело целиком; ``None`` — отчётности нет, сравнивать нечего (С.5)."""
-    result = analyze(model)
-    if result.n == 0:
+    """Посчитать дело целиком; ``None`` — отчётности нет, сравнивать нечего (С.5).
+
+    Разбор идёт **общим конвейером**, а не своим порядком слоёв: сравнение обязано
+    показывать те же числа, что карточка дела и документ, — иначе третья копия
+    однажды разойдётся с ними молча. Стохастический слой пропущен (`deep=False`):
+    ни торнадо, ни Монте-Карло в колонках сравнения нет, а Монте-Карло на четыре дела
+    стоило бы тысяч перестроений оценки.
+    """
+    review = review_case(model, deep=False)
+    if review.result.n == 0:
         return None
-    obligations = build_obligations(model, result)
-    flags = detect_flags(model, result, obligations)
-    issues = check_input(model)
-    earnings = normalize_earnings(model, result)
-    procedures = run_procedures(model, result, flags, issues, obligations, earnings)
-    valuation = build_valuation(model, result, earnings, obligations)
-    summary = build_summary(model, result, flags, issues, obligations, earnings,
-                            procedures, valuation)
-    return _Case(subject_id=subject_id, model=model, summary=summary,
-                 valuation=valuation, procedures=procedures, earnings=earnings)
+    return _Case(subject_id=subject_id, model=model, summary=review.summary,
+                 valuation=review.valuation, procedures=review.procedures,
+                 earnings=review.earnings)
 
 
 def _rows(cases: list[_Case], money_comparable: bool) -> list[CompareRow]:
