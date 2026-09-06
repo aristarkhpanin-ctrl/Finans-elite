@@ -79,6 +79,17 @@ export function productFromPath(pathname: string): Product {
   return stored();
 }
 
+/**
+ * Продукт для экранов вне каркаса — вход, регистрация, активация, сплеш. Роутера у них
+ * может не быть вовсе (сплеш рисуется и до маршрутизации), поэтому адрес читается из
+ * `window.location`, а не из `useLocation`. У `/login` своего продукта нет, и выбор
+ * падает на последний: пользователь, ушедший из «Аудита», возвращается в «Аудит», а не
+ * на зелёный экран с чужим словом в марке.
+ */
+export function currentProduct(): Product {
+  return productFromPath(window.location.pathname);
+}
+
 /** Проставить (или снять) data-product на <html> и запомнить выбор. Бизнес-план — дефолт. */
 export function applyProduct(product: Product) {
   const root = document.documentElement;

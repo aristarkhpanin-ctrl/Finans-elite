@@ -693,6 +693,23 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   .splash__label { font-size: 13px; }
 }
 
+/* Сплеш «Финанс-Аудита» (макет «Финанс Аудит — Сплеш-экран загрузки»). Токены здесь
+   не годятся: заставка всегда тёмная и рисуется до того, как каркас проставит
+   data-product, — цвета заданы явно, как и у зелёного варианта выше. */
+.splash--audit {
+  background: radial-gradient(ellipse 62% 62% at 50% 42%,
+              rgba(199, 125, 255, 0.16) 0%, rgba(123, 63, 228, 0.05) 44%, #000000 76%);
+  color: #f2e8ff;
+}
+.splash--audit .splash__wordmark { color: #f2e8ff; }
+.splash--audit .splash__label { color: #9c8fb5; }
+.splash--audit .splash__dot { background: #c77dff; }
+.splash--audit .splash__track { background: #171122; }
+.splash--audit .splash__bar {
+  background: #c77dff; box-shadow: 0 0 12px rgba(199, 125, 255, 0.7);
+}
+.splash--audit .splash__pct { color: #6a5c86; }
+
 /* ============================================================
    7. АУТЕНТИФИКАЦИЯ (макет «Этап 2»)
    ============================================================ */
@@ -750,6 +767,29 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 }
 [data-theme="dark"] .auth-brand__chip {
   color: #ddffdc; background: rgba(127, 238, 100, 0.1); border-color: rgba(127, 238, 100, 0.18);
+}
+
+/* Бренд-панель «Финанс-Аудита» (макет «Экран 3 — Аутентификация»). Зелёный в правилах
+   выше записан цветом, а не токеном — панель рисовалась под один продукт; здесь те же
+   места переводятся на токены темы аудита, а не заводится вторая копия панели. */
+:root[data-product="audit"] .auth-brand {
+  background: linear-gradient(160deg, var(--primary-soft) 0%, var(--app-bg) 66%);
+}
+:root[data-theme="dark"][data-product="audit"] .auth-brand {
+  background: radial-gradient(ellipse 80% 70% at 30% 26%,
+              rgba(199, 125, 255, 0.15) 0%, rgba(123, 63, 228, 0.04) 48%, transparent 78%),
+              #000000;
+}
+/* Одного селектора хватает на обе темы: (0,3,0) перебивает `[data-theme="dark"] .x`
+   (0,2,0), а нужные различия уже сидят в самих токенах. */
+:root[data-product="audit"] .auth-brand__p { color: var(--muted); }
+:root[data-product="audit"] .auth-brand__feat-s { color: var(--subtle); }
+:root[data-product="audit"] .auth-brand__tick {
+  background: var(--primary-bg); color: var(--accent);
+}
+:root[data-product="audit"] .auth-brand__foot { border-top-color: var(--good-border); }
+:root[data-product="audit"] .auth-brand__chip {
+  color: var(--accent); background: var(--primary-soft); border-color: var(--good-border);
 }
 
 /* Форма */
