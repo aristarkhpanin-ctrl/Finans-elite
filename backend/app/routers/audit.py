@@ -16,17 +16,9 @@ from audit_core import (
     AuditSubjectModel,
     Elimination,
     analyze,
-    analyze_risk,
-    build_obligations,
-    build_plan_fact,
-    build_summary,
-    build_valuation,
-    check_input,
     compare_subjects,
     consolidate_subjects,
-    detect_flags,
-    normalize_earnings,
-    run_procedures,
+    review_case,
 )
 from audit_core.opinion import build_opinion
 from audit_core.samples import build_trading_subject
@@ -173,25 +165,12 @@ def analyze_subject(subject_id: str,
                     db: Session = Depends(get_db)) -> AuditAnalysisOut:
     """Проанализировать отчётность субъекта: аналитическая форма, тренды, коэффициенты."""
     subject = _require(db, org_id, subject_id)
-    model = crud.load_audit_model(subject)
-    result = analyze(model)
-    # Находки о качестве ввода считаются по исходной модели, а не по результату:
-    # анализ уже применил переоценки, а претензии предъявляются к тому, что ввели.
-    obligations = build_obligations(model, result)
-    issues = check_input(model)
-    flags = detect_flags(model, result, obligations)
-    earnings = normalize_earnings(model, result)
-    procedures = run_procedures(model, result, flags, issues, obligations, earnings)
-    valuation = build_valuation(model, result, earnings, obligations)
-    risk = analyze_risk(model, result, earnings, obligations)
-    plan_fact = build_plan_fact(model, flags)
-    summary = build_summary(model, result, flags, issues, obligations, earnings,
-                            procedures, valuation)
-    # Границы проверки идут в заключение: умолчание о непроверенном читается как
-    # проверенное, и скрыть его нельзя (SPEC, Приложение М.4).
-    return audit_analysis_response(result, build_opinion(result, procedures), issues,
-                                   flags, earnings, obligations, procedures, summary,
-                                   valuation, risk, plan_fact)
+    # Конвейер один на экран и на документ (`audit_core.pipeline`): вторая копия
+    # порядка слоёв однажды уже разошлась с первой и молчала о находках.
+    r = review_case(crud.load_audit_model(subject))
+    return audit_analysis_response(r.result, r.opinion, r.issues, r.flags, r.earnings,
+                                   r.obligations, r.procedures, r.summary, r.valuation,
+                                   r.risk, r.plan_fact)
 
 
 def _consolidate(members: list[tuple[str, AuditSubjectModel]], name: str,
@@ -290,20 +269,10 @@ def download_report(subject_id: str,
                     db: Session = Depends(get_db)) -> Response:
     """Документ заключения по анализу (DOCX): заключение, отчёты, коэффициенты, диагностика."""
     subject = _require(db, org_id, subject_id)
-    model = crud.load_audit_model(subject)
-    result = analyze(model)
-    obligations = build_obligations(model, result)
-    procedures = run_procedures(model, result,
-                                detect_flags(model, result, obligations),
-                                check_input(model), obligations,
-                                normalize_earnings(model, result))
-    # Границы проверки обязаны быть в документе: его читатель и есть тот, кому они
-    # адресованы, — умолчание о непроверенном он прочтёт как проверенное.
-    content = build_audit_docx(result, build_opinion(result, procedures),
-                               subject_name=subject.name,
-                               industry=model.industry, currency=model.currency,
-                               reporting_standard=model.reporting_standard,
-                               procedures=procedures)
+    # Тот же разбор, что отдаётся на экран: документ обязан рассказывать то же самое,
+    # включая находки, оценку, риски и списки «что не посчитано».
+    content = build_audit_docx(review_case(crud.load_audit_model(subject)),
+                               subject_name=subject.name)
     # Выгрузка документа — вынос данных за пределы системы, и для 152-ФЗ это событие
     # важнее половины правок: именно так отчётность цели покидает контур.
     crud.log_action(db, org_id, actor, "case.export", entity_type="case",

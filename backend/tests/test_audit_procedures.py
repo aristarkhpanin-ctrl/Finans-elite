@@ -13,7 +13,13 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from audit_core import analyze, build_obligations, check_input, detect_flags
+from audit_core import (
+    analyze,
+    build_obligations,
+    check_input,
+    detect_flags,
+    review_case,
+)
 from audit_core.earnings import normalize_earnings
 from audit_core.models import AuditSubjectModel
 from audit_core.procedures import (
@@ -303,10 +309,7 @@ def test_checklist_reaches_the_document():
     from app.audit_docgen import build_audit_docx
     m = model(procedure_marks=[{"code": "litigation", "status": "skipped",
                                 "note": "цель моложе года"}])
-    result = analyze(m)
-    rep = report(m)
-    content = build_audit_docx(result, "Заключение.", subject_name="Цель",
-                               procedures=rep)
+    content = build_audit_docx(review_case(m), subject_name="Цель")
     assert content[:2] == b"PK" and len(content) > 5000
 
 
@@ -319,8 +322,7 @@ def test_document_lists_every_procedure_not_only_the_closed_ones():
     from app.audit_docgen import build_audit_docx
     m = model()
     rep = report(m)
-    content = build_audit_docx(analyze(m), "Заключение.", subject_name="Цель",
-                               procedures=rep)
+    content = build_audit_docx(review_case(m), subject_name="Цель")
     xml = ZipFile(BytesIO(content)).read("word/document.xml").decode("utf-8")
     text = re.sub(r"<[^>]+>", "", xml)
     for item in rep.items:

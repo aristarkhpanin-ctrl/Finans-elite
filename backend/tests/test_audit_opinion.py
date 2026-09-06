@@ -7,7 +7,7 @@ from io import BytesIO
 from docx import Document
 
 from app.audit_docgen import build_audit_docx
-from audit_core import analyze
+from audit_core import analyze, review_case
 from audit_core.models import AuditPeriod, AuditSubjectModel
 from audit_core.opinion import build_opinion, opinion_is_positive
 from audit_core.samples import build_trading_subject
@@ -83,9 +83,9 @@ def test_opinion_omits_undefined_metrics():
 
 def test_docx_document_structure():
     """DOCX: титул, заключение, отчёты, коэффициенты, диагностика."""
-    r = analyze(build_trading_subject())
-    content = build_audit_docx(r, build_opinion(r), subject_name="ООО «Торговый дом»",
-                               industry="Оптовая торговля", currency="RUB")
+    subject = build_trading_subject()
+    subject.industry = "Оптовая торговля"
+    content = build_audit_docx(review_case(subject), subject_name="ООО «Торговый дом»")
     assert content[:2] == b"PK"                        # валидный zip (docx)
     doc = Document(BytesIO(content))
     text = "\n".join(p.text for p in doc.paragraphs)
