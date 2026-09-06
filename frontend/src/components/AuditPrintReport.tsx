@@ -51,6 +51,15 @@ function ratio(v: string | null | undefined): string {
   return Number.isFinite(n) ? n.toLocaleString("ru-RU", { maximumFractionDigits: 2 }) : "—";
 }
 
+/** Доля: два знака процента; не определена — прочерк. */
+function percent(v: string | null | undefined): string {
+  if (v === null || v === undefined || v === "") return "—";
+  const n = Number(v);
+  return Number.isFinite(n)
+    ? (n * 100).toLocaleString("ru-RU", { maximumFractionDigits: 1 }) + "%"
+    : "—";
+}
+
 function Sheet({ page, total, children }: {
   page: number; total: number; children: React.ReactNode;
 }) {
@@ -103,11 +112,13 @@ export function AuditPrintReport({
   const period = analysis.periods[last] ?? "—";
   const light = analysis.diagnostics?.light ?? "";
 
-  return (
-    <div className="ap-root">
-      <PageSetup />
+  const summary = analysis.summary;
+  const valuation = analysis.valuation;
+  const flags = analysis.flags.flags;
+  const procedures = analysis.procedures;
 
-      <Sheet page={1} total={2}>
+  const sheets: React.ReactNode[] = [
+    <>
         <header className="ap-band">
           <div>
             <div className="ap-brand">Финанс-Аудит</div>
@@ -138,6 +149,48 @@ export function AuditPrintReport({
           </div>
         )}
 
+        {/* Вердикт по делу и охват проверки — то же, что в шапке экрана. Охват
+            стоит рядом с вердиктом, а не в конце: «проверено 18 из 24» меняет
+            чтение вывода, и внизу страницы его прочтут уже после решения. */}
+        {summary.state === "ready" && (
+          <div className="ap-block">
+            <div className="ap-block__title">Вердикт по делу</div>
+            <p className="ap-para"><b>{summary.headline}</b></p>
+            {summary.detail && <p className="ap-para">{summary.detail}</p>}
+            <table className="ap-table">
+              <tbody>
+                <tr>
+                  <td>Флаги</td>
+                  <td className="ap-num">
+                    {summary.risk_flags} риска · {summary.warning_flags} внимания
+                  </td>
+                </tr>
+                <tr>
+                  <td>Оценённое влияние флагов</td>
+                  <td className="ap-num">{money(summary.priced_total)}</td>
+                </tr>
+                <tr>
+                  <td>Охват проверки</td>
+                  <td className="ap-num">
+                    {procedures.total
+                      ? `${procedures.closed} из ${procedures.total}`
+                        + (procedures.coverage ? ` · ${percent(procedures.coverage)}` : "")
+                      : "—"}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            {/* Ровно та же оговорка, что на экране и в DOCX: сумма оценённых
+                находок и торг — разные величины. */}
+            <p className="ap-fine">
+              Оценённое влияние флагов — не скидка к цене.
+              {summary.unpriced > 0
+                && ` Ещё ${summary.unpriced} ${plural(summary.unpriced, "флаг", "флага", "флагов")}`
+                   + " денежной меры не имеют и в сумму не вошли."}
+            </p>
+          </div>
+        )}
+
         {/* Оговорки печатаются на бумаге, а не только на экране: документ уходит
             из системы и должен нести те же предупреждения, что и результат. */}
         {analysis.revalued && (
@@ -158,9 +211,100 @@ export function AuditPrintReport({
             <p className="ap-para" key={i}>{block.replace(/\n/g, " ")}</p>
           ))}
         </div>
-      </Sheet>
+    </>,
 
-      <Sheet page={2} total={2}>
+    // Лист находок: реестр флагов, качество прибыли, сверка долга, расчёт цены.
+    // Это и есть то, за чем документ несут в инвесткомитет, — до этой фазы всё
+    // перечисленное оставалось на экране.
+    <>
+        <div className="ap-sheet-head">Результаты проверки</div>
+
+        <div className="ap-block">
+          <div className="ap-block__title">Реестр красных флагов</div>
+          {flags.length === 0 ? (
+            <p className="ap-para">
+              Правила реестра не сработали ни разу: признаков из каталога на введённой
+              отчётности не найдено.
+            </p>
+          ) : (
+            <table className="ap-table">
+              <tbody>
+                {flags.map((f) => (
+                  <tr key={f.code}>
+                    <td>{f.title}</td>
+                    <td className="ap-zone">
+                      {f.severity === "risk" ? "риск" : "внимание"}
+                    </td>
+                    {/* «Меры нет» — не ноль рублей: флаг существует, суммы у него нет. */}
+                    <td className="ap-num">
+                      {f.impact === null ? "меры нет" : money(f.impact)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        <div className="ap-cols">
+          <Rows
+            title={`Качество прибыли (${analysis.earnings.base_code})`}
+            rows={[
+              ["По отчёту", money(analysis.earnings.reported[last])],
+              ["Нормализованный", money(analysis.earnings.normalized[last])],
+              ["Корректировок", String(analysis.earnings.adjustments.length)],
+              ["Оценка", analysis.earnings.grade ?? "не выводится"],
+            ]}
+          />
+          <Rows
+            title="Обязательства"
+            rows={[
+              ["Долг по реестру", money(analysis.obligations.balance_debt)],
+              ["Долг по балансу", money(analysis.obligations.reported_debt)],
+              ["Расхождение", money(analysis.obligations.discrepancy)],
+              // Забалансовое печатается отдельной строкой и не суммируется
+              // с долгом: сложение дало бы величину, которой нет ни в одном отчёте.
+              ["Забалансовые (не в сумме)", money(analysis.obligations.off_balance)],
+            ]}
+          />
+        </div>
+
+        <div className="ap-block">
+          <div className="ap-block__title">Расчёт цены за 100% доли</div>
+          {valuation.enterprise_value === null ? (
+            <>
+              <p className="ap-para">Оценка не посчитана.</p>
+              {valuation.blockers.map((b) => (
+                <p className="ap-fine" key={b}>{b}</p>
+              ))}
+            </>
+          ) : (
+            <>
+              <table className="ap-table">
+                <tbody>
+                  {valuation.bridge.map((b) => (
+                    <tr key={b.label}>
+                      <td>{b.label}</td>
+                      <td className="ap-num">{money(b.amount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="ap-fine">
+                Метод DCF, ставка дисконтирования {percent(valuation.wacc)}, рост в
+                постпрогнозе {percent(valuation.terminal_growth)}.
+                {valuation.equity_min !== null && valuation.equity_max !== null
+                  && ` Диапазон по чувствительности: ${money(valuation.equity_min)} — `
+                     + `${money(valuation.equity_max)}.`}
+                {valuation.discount !== null
+                  && ` Дисконт к цене продавца: ${percent(valuation.discount)}.`}
+              </p>
+            </>
+          )}
+        </div>
+    </>,
+
+    <>
         <div className="ap-sheet-head">Показатели за {period}</div>
 
         <div className="ap-cols">
@@ -203,13 +347,34 @@ export function AuditPrintReport({
           </div>
         )}
 
+        {/* Границы проверки печатаются на бумаге: умолчание о непроверенном
+            читатель документа принимает за проверенное. */}
+        {procedures.limits.length > 0 && (
+          <div className="ap-block">
+            <div className="ap-block__title">Границы проверки</div>
+            {procedures.limits.map((l) => (
+              <p className="ap-fine" key={l}>{l}</p>
+            ))}
+          </div>
+        )}
+
         <div className="ap-fineprint">
           Документ сформирован автоматически по введённой фактической отчётности.
           Оценки коэффициентов даны против универсальных нормативов, если для дела не
           заданы свои. Заключение не является аудиторским в смысле закона об аудиторской
-          деятельности.
+          деятельности и не является инвестиционной рекомендацией.
         </div>
-      </Sheet>
+    </>,
+  ];
+
+  return (
+    <div className="ap-root">
+      <PageSetup />
+      {sheets.map((content, i) => (
+        // Число листов считается, а не пишется: разделы условны (без оценки лист
+        // короче), и «1 / 2» на трёхстраничном документе — ошибка в самом документе.
+        <Sheet key={i} page={i + 1} total={sheets.length}>{content}</Sheet>
+      ))}
     </div>
   );
 }
