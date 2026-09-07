@@ -13,6 +13,7 @@ from sqlalchemy import (
     JSON,
     DateTime,
     ForeignKey,
+    Integer,
     String,
     UniqueConstraint,
 )
@@ -219,6 +220,40 @@ class ProjectVersion(Base):
     npv: Mapped[str | None] = mapped_column(String(64), nullable=True)
     irr_annual: Mapped[str | None] = mapped_column(String(64), nullable=True)
     engine_version: Mapped[str | None] = mapped_column(String(32), nullable=True)
+
+
+class AuditSubjectVersion(Base):
+    """Именованный снимок модели дела: версии проверки и анализ изменений.
+
+    Проверка идёт итерациями: пришли выписки — реестр обязательств изменился, вердикт
+    уехал. Комитет спрашивает «что изменилось с прошлой недели» и «какая версия
+    подписана», и ответить на это по одной рабочей модели нечем: заключение датировано,
+    но воспроизвести его нельзя.
+
+    Хранится **модель на момент снимка** плюс сводка того, что тогда показывал экран
+    (вердикт, флаги риска, стоимость доли). Сводка именно хранится, а не пересчитывается:
+    она описывает прошлое, и правило дела «числа всегда по текущей отчётности» здесь не
+    работает — версия и есть слепок прошлого. Диф считается на лету по двум моделям.
+
+    Изоляция — по ``organization_id`` (RLS + фильтр CRUD), каскад с делом.
+    """
+
+    __tablename__ = "audit_subject_versions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    subject_id: Mapped[str] = mapped_column(
+        ForeignKey("audit_subjects.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    label: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    model: Mapped[dict] = mapped_column(JSONType, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    #: Сводка на момент снимка (строки — точность без плавающей запятой); NULL — не считалось.
+    verdict: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    risk_flags: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    equity_value: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
 
 class AuditSubject(Base):

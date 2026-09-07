@@ -20,6 +20,7 @@ from .db_models import (
     AuditGroup,
     AuditLogEntry,
     AuditSubject,
+    AuditSubjectVersion,
     Holding,
     HoldingMember,
     Membership,
@@ -505,6 +506,63 @@ def get_version(db: Session, org_id: str, project_id: str,
 
 
 def delete_version(db: Session, version: ProjectVersion) -> None:
+    db.delete(version)
+    db.commit()
+
+
+# --- Версии дела (Финанс-Аудит): снимки модели проверки ---
+
+#: Максимум версий на дело. Тот же предел, что у проекта: снимков в проверке столько же
+#: по природе (итерация — приход документов), и второй предел спорил бы с первым.
+MAX_VERSIONS_PER_SUBJECT = MAX_VERSIONS_PER_PROJECT
+
+
+def count_audit_versions(db: Session, subject_id: str) -> int:
+    return db.scalar(
+        select(func.count()).select_from(AuditSubjectVersion)
+        .where(AuditSubjectVersion.subject_id == subject_id)
+    ) or 0
+
+
+def create_audit_version(db: Session, subject: AuditSubject, label: str, *,
+                         verdict: str | None = None, risk_flags: int | None = None,
+                         equity_value: str | None = None) -> AuditSubjectVersion:
+    """Снимок текущей модели дела как именованная версия (+ сводка на тот момент)."""
+    version = AuditSubjectVersion(
+        organization_id=subject.organization_id, subject_id=subject.id, label=label,
+        model=subject.model, verdict=verdict, risk_flags=risk_flags,
+        equity_value=equity_value,
+    )
+    db.add(version)
+    db.commit()
+    db.refresh(version)
+    return version
+
+
+def list_audit_versions(db: Session, org_id: str,
+                        subject_id: str) -> list[AuditSubjectVersion]:
+    return list(
+        db.scalars(
+            select(AuditSubjectVersion)
+            .where(AuditSubjectVersion.subject_id == subject_id,
+                   AuditSubjectVersion.organization_id == org_id)
+            .order_by(AuditSubjectVersion.created_at.desc())
+        )
+    )
+
+
+def get_audit_version(db: Session, org_id: str, subject_id: str,
+                      version_id: str) -> AuditSubjectVersion | None:
+    return db.scalar(
+        select(AuditSubjectVersion).where(
+            AuditSubjectVersion.id == version_id,
+            AuditSubjectVersion.subject_id == subject_id,
+            AuditSubjectVersion.organization_id == org_id,
+        )
+    )
+
+
+def delete_audit_version(db: Session, version: AuditSubjectVersion) -> None:
     db.delete(version)
     db.commit()
 

@@ -1,5 +1,8 @@
 // Финанс-Аудит (продукт №2): API субъектов анализа + типы модели + каталог строк ввода.
 import { api } from "./client";
+// Версии дела — обвязка API, а не модель субъекта: типы берём из сгенерированной
+// схемы (как в `api/org.ts`), ручное зеркало ниже остаётся про модель.
+import type { Schema } from "./gen";
 
 /** Отчётный период: подпись + тип (задаёт длину периода и приведение потоков к году). */
 export interface AuditPeriod {
@@ -749,6 +752,44 @@ export async function analyzeAuditSubject(id: string): Promise<AuditAnalysis> {
  */
 export async function analyzeAuditRisk(id: string): Promise<AuditRisk> {
   const { data } = await api.post<AuditRisk>(`/api/v1/audit/subjects/${id}/risk`);
+  return data;
+}
+
+// --- Версии дела: снимки модели проверки и анализ изменений ---
+
+/** Метаданные версии: сводка — та, что была на момент снимка, а не пересчитанная. */
+export type AuditVersionSummary = Schema<"AuditVersionSummary">;
+export type AuditVersion = Schema<"AuditVersionOut">;
+export type AuditVersionDiff = Schema<"AuditVersionDiffOut">;
+
+export async function listAuditVersions(id: string): Promise<AuditVersionSummary[]> {
+  const { data } = await api.get<AuditVersionSummary[]>(
+    `/api/v1/audit/subjects/${id}/versions`);
+  return data;
+}
+
+export async function createAuditVersion(id: string,
+                                         label: string): Promise<AuditVersionSummary> {
+  const { data } = await api.post<AuditVersionSummary>(
+    `/api/v1/audit/subjects/${id}/versions`, { label });
+  return data;
+}
+
+export async function deleteAuditVersion(id: string, versionId: string): Promise<void> {
+  await api.delete(`/api/v1/audit/subjects/${id}/versions/${versionId}`);
+}
+
+export async function diffAuditVersion(id: string, versionId: string,
+                                       against = "current"): Promise<AuditVersionDiff> {
+  const { data } = await api.get<AuditVersionDiff>(
+    `/api/v1/audit/subjects/${id}/versions/${versionId}/diff`, { params: { against } });
+  return data;
+}
+
+export async function restoreAuditVersion(id: string,
+                                          versionId: string): Promise<AuditSubjectOut> {
+  const { data } = await api.post<AuditSubjectOut>(
+    `/api/v1/audit/subjects/${id}/versions/${versionId}/restore`);
   return data;
 }
 

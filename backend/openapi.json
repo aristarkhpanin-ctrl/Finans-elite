@@ -1678,6 +1678,47 @@
         "title": "AuditMaturityBucketOut",
         "type": "object"
       },
+      "AuditMetricChangeOut": {
+        "description": "Изменение заголовочной величины дела между версиями.\n\nЗначения — строки, а не числа: среди величин есть вердикт («risk», «warning»),\nи приводить его к нулю ради общего типа значило бы потерять сам вердикт.",
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "new": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New"
+          },
+          "old": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Old"
+          }
+        },
+        "required": [
+          "key",
+          "label"
+        ],
+        "title": "AuditMetricChangeOut",
+        "type": "object"
+      },
       "AuditMonteCarloOut": {
         "description": "Распределение цены по прогонам. ``unvalued`` — прогоны, в которых оценки нет.\n\nИх не заменяют нулём и не выбрасывают молча: ноль занизил бы медиану, а тихое\nвыбрасывание скрыло бы, что в части сценариев бизнес не оценивается вовсе.",
         "properties": {
@@ -3535,6 +3576,168 @@
           }
         },
         "title": "AuditValuationOut",
+        "type": "object"
+      },
+      "AuditVersionDiffOut": {
+        "description": "Анализ изменений дела: диф модели + диф заголовочных величин.",
+        "properties": {
+          "against": {
+            "title": "Against",
+            "type": "string"
+          },
+          "base_id": {
+            "title": "Base Id",
+            "type": "string"
+          },
+          "metric_changes": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AuditMetricChangeOut"
+            },
+            "title": "Metric Changes",
+            "type": "array"
+          },
+          "model_changes": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ModelChangeOut"
+            },
+            "title": "Model Changes",
+            "type": "array"
+          },
+          "model_changes_truncated": {
+            "default": false,
+            "title": "Model Changes Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "base_id",
+          "against"
+        ],
+        "title": "AuditVersionDiffOut",
+        "type": "object"
+      },
+      "AuditVersionOut": {
+        "description": "Версия дела с полной моделью снимка.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "equity_value": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Equity Value"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "model": {
+            "$ref": "#/components/schemas/AuditSubjectModel-Output"
+          },
+          "risk_flags": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Flags"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verdict"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "created_at",
+          "model"
+        ],
+        "title": "AuditVersionOut",
+        "type": "object"
+      },
+      "AuditVersionSummary": {
+        "description": "Метаданные версии дела (без модели): для списка.\n\nСводка — та, что была на момент снимка, а не пересчитанная сейчас: версия и есть\nслепок прошлого. ``None`` — тогда не считалось (отчётность ещё не введена).",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "equity_value": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Equity Value"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "risk_flags": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Flags"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verdict"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "created_at"
+        ],
+        "title": "AuditVersionSummary",
         "type": "object"
       },
       "AutoFinancing-Input": {
@@ -12764,6 +12967,439 @@
           }
         ],
         "summary": "Analyze Subject Risk",
+        "tags": [
+          "audit"
+        ]
+      }
+    },
+    "/api/v1/audit/subjects/{subject_id}/versions": {
+      "get": {
+        "description": "Версии дела (метаданные, новейшие сверху).",
+        "operationId": "list_versions_api_v1_audit_subjects__subject_id__versions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "title": "Subject Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AuditVersionSummary"
+                  },
+                  "title": "Response List Versions Api V1 Audit Subjects  Subject Id  Versions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Versions",
+        "tags": [
+          "audit"
+        ]
+      },
+      "post": {
+        "description": "Снимок текущей модели дела как именованная версия (со сводкой на этот момент).",
+        "operationId": "create_version_api_v1_audit_subjects__subject_id__versions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "title": "Subject Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VersionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditVersionSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Version",
+        "tags": [
+          "audit"
+        ]
+      }
+    },
+    "/api/v1/audit/subjects/{subject_id}/versions/{version_id}": {
+      "delete": {
+        "description": "Удалить версию.",
+        "operationId": "delete_version_api_v1_audit_subjects__subject_id__versions__version_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "title": "Subject Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "title": "Version Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Version",
+        "tags": [
+          "audit"
+        ]
+      },
+      "get": {
+        "description": "Версия с полной моделью снимка.",
+        "operationId": "get_version_api_v1_audit_subjects__subject_id__versions__version_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "title": "Subject Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "title": "Version Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditVersionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Version",
+        "tags": [
+          "audit"
+        ]
+      }
+    },
+    "/api/v1/audit/subjects/{subject_id}/versions/{version_id}/diff": {
+      "get": {
+        "description": "Что изменилось от снимка к другой версии или к текущему состоянию дела.\n\n``against`` — id другой версии либо ``current``. old = эта версия, new = сравниваемое\nсостояние: диф отвечает на вопрос «что стало с делом с тех пор».",
+        "operationId": "diff_version_api_v1_audit_subjects__subject_id__versions__version_id__diff_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "title": "Subject Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "title": "Version Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "against",
+            "required": false,
+            "schema": {
+              "default": "current",
+              "title": "Against",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditVersionDiffOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Diff Version",
+        "tags": [
+          "audit"
+        ]
+      }
+    },
+    "/api/v1/audit/subjects/{subject_id}/versions/{version_id}/restore": {
+      "post": {
+        "description": "Вернуть модель версии в рабочее дело.",
+        "operationId": "restore_version_api_v1_audit_subjects__subject_id__versions__version_id__restore_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "title": "Subject Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "title": "Version Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditSubjectOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Restore Version",
         "tags": [
           "audit"
         ]

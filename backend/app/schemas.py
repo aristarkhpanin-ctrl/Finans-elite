@@ -843,6 +843,50 @@ class AuditSubjectUpdate(BaseModel):
     model: Optional[AuditSubjectModel] = None
 
 
+class AuditVersionSummary(BaseModel):
+    """Метаданные версии дела (без модели): для списка.
+
+    Сводка — та, что была на момент снимка, а не пересчитанная сейчас: версия и есть
+    слепок прошлого. ``None`` — тогда не считалось (отчётность ещё не введена).
+    """
+
+    id: str
+    label: str
+    created_at: datetime
+    verdict: Optional[str] = None
+    risk_flags: Optional[int] = None
+    equity_value: Optional[Decimal] = None
+
+
+class AuditVersionOut(AuditVersionSummary):
+    """Версия дела с полной моделью снимка."""
+
+    model: AuditSubjectModel
+
+
+class AuditMetricChangeOut(BaseModel):
+    """Изменение заголовочной величины дела между версиями.
+
+    Значения — строки, а не числа: среди величин есть вердикт («risk», «warning»),
+    и приводить его к нулю ради общего типа значило бы потерять сам вердикт.
+    """
+
+    key: str
+    label: str
+    old: Optional[str] = None
+    new: Optional[str] = None
+
+
+class AuditVersionDiffOut(BaseModel):
+    """Анализ изменений дела: диф модели + диф заголовочных величин."""
+
+    base_id: str
+    against: str
+    model_changes: list[ModelChangeOut] = []
+    model_changes_truncated: bool = False
+    metric_changes: list[AuditMetricChangeOut] = []
+
+
 class AuditSubjectSummary(BaseModel):
     """Метаданные субъекта: число периодов и сходимость баланса (актив = пассив)."""
 

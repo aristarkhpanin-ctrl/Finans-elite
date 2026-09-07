@@ -36,13 +36,15 @@ import { AuditValuation } from "../components/AuditValuation";
 import { AuditRisk } from "../components/AuditRisk";
 import { AuditPlanFact } from "../components/AuditPlanFact";
 import { AuditPrintReport } from "../components/AuditPrintReport";
+import { AuditVersions } from "../components/AuditVersions";
 import { allBalanced, balanceGaps, serverGaps } from "../auditBalance";
 import { downloadAuditXlsx } from "../auditExport";
 import { downloadAuditTemplate, parseAuditXlsx } from "../auditXlsx";
 import { fmtMoney } from "../format";
 
 type Tab = "summary" | "subject" | "input" | "reports" | "ratios" | "trends" | "diagnostics"
-  | "flags" | "earnings" | "obligations" | "procedures" | "valuation" | "risk" | "planfact" | "methods" | "opinion";
+  | "flags" | "earnings" | "obligations" | "procedures" | "valuation" | "risk" | "planfact"
+  | "versions" | "methods" | "opinion";
 
 /** Подписи вкладок (в том же виде, что были — ни одна не исчезла). */
 const TAB_LABEL: Record<Tab, string> = {
@@ -60,6 +62,7 @@ const TAB_LABEL: Record<Tab, string> = {
   valuation: "Оценка стоимости",
   risk: "Анализ рисков",
   planfact: "План-факт",
+  versions: "Версии",
   methods: "Методики",
   opinion: "Заключение",
 };
@@ -87,6 +90,7 @@ const SECTIONS: [string, string, Tab[]][] = [
   ["procedures", "Процедуры", ["procedures"]],
   ["valuation", "Оценка", ["valuation", "risk"]],
   ["planfact", "План-факт", ["planfact"]],
+  ["versions", "Версии", ["versions"]],
   ["methods", "Методики", ["methods"]],
   ["opinion", "Заключение", ["opinion"]],
 ];
@@ -615,6 +619,10 @@ export function AuditSubjectPage() {
             )}
           </div>
         </>
+      ) : tab === "versions" ? (
+        // Версии живут отдельно от анализа: список снимков не требует расчёта, а
+        // сводка в нём — сохранённая, а не сегодняшняя.
+        <AuditVersions subjectId={id} />
       ) : analysis.isLoading ? (
         <div className="page-sub" style={{ padding: 24 }}>Считаем анализ…</div>
       ) : analysis.isError || !analysis.data ? (

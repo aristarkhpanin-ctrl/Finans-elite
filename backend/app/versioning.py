@@ -99,6 +99,51 @@ def diff_metrics(old: CalcResult, new: CalcResult) -> list[MetricChange]:
     return changes
 
 
+#: Заголовочные величины дела для дифа версий (Финанс-Аудит).
+#:
+#: Это те же величины, что стоят в шапке дела, — и ровно те, из-за которых версию
+#: заводят: вердикт, тяжесть находок, охват проверки и цена. Показатели финансового
+#: состояния (16 коэффициентов) в диф не идут: они меняются на каждой правке
+#: отчётности, и список изменений из них состоял бы целиком, утопив то, ради чего
+#: диф смотрят.
+_CASE_FIELDS: list[tuple[str, str]] = [
+    ("verdict", "Вердикт"),
+    ("risk_flags", "Флагов риска"),
+    ("warning_flags", "Предупреждений"),
+    ("priced_total", "Оценённое влияние флагов"),
+    ("coverage", "Охват проверки"),
+    ("equity_value", "Стоимость доли"),
+]
+
+
+def diff_case_metrics(old: Any, new: Any) -> list[MetricChange]:
+    """Диф заголовочных величин дела по двум разборам (`CaseReview`).
+
+    Величины берутся из готового разбора, а не считаются здесь заново: диф обязан
+    показывать то же, что экран, и собственная арифметика разошлась бы с ним.
+    ``None`` пробрасывается как ``None`` — «не считалось» не превращается в ноль.
+    """
+    changes: list[MetricChange] = []
+    for key, label in _CASE_FIELDS:
+        changes.append(MetricChange(key=key, label=label,
+                                    old=_case_value(old, key), new=_case_value(new, key)))
+    return changes
+
+
+def _case_value(review: Any, key: str) -> Optional[str]:
+    """Величина разбора по ключу: сводка, охват процедур или оценка."""
+    if key == "coverage":
+        return _metric_str(review.procedures.coverage)
+    if key == "equity_value":
+        return _metric_str(review.valuation.equity_value)
+    value = getattr(review.summary, key, None)
+    # Пустое дело вердикта не имеет: «ok» по умолчанию здесь читался бы как
+    # «проверено и всё хорошо», хотя не проверялось ничего.
+    if key == "verdict" and review.summary.state != "ready":
+        return None
+    return _metric_str(value)
+
+
 def as_decimal(value: Optional[str]) -> Optional[Decimal]:
     """Строка показателя → Decimal (для сортировки/дельт в тестах); None пробрасывается."""
     return None if value is None else Decimal(value)

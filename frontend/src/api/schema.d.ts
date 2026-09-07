@@ -312,6 +312,97 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/audit/subjects/{subject_id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Versions
+         * @description Версии дела (метаданные, новейшие сверху).
+         */
+        get: operations["list_versions_api_v1_audit_subjects__subject_id__versions_get"];
+        put?: never;
+        /**
+         * Create Version
+         * @description Снимок текущей модели дела как именованная версия (со сводкой на этот момент).
+         */
+        post: operations["create_version_api_v1_audit_subjects__subject_id__versions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/subjects/{subject_id}/versions/{version_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Version
+         * @description Версия с полной моделью снимка.
+         */
+        get: operations["get_version_api_v1_audit_subjects__subject_id__versions__version_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Version
+         * @description Удалить версию.
+         */
+        delete: operations["delete_version_api_v1_audit_subjects__subject_id__versions__version_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/subjects/{subject_id}/versions/{version_id}/diff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Diff Version
+         * @description Что изменилось от снимка к другой версии или к текущему состоянию дела.
+         *
+         *     ``against`` — id другой версии либо ``current``. old = эта версия, new = сравниваемое
+         *     состояние: диф отвечает на вопрос «что стало с делом с тех пор».
+         */
+        get: operations["diff_version_api_v1_audit_subjects__subject_id__versions__version_id__diff_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/subjects/{subject_id}/versions/{version_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore Version
+         * @description Вернуть модель версии в рабочее дело.
+         */
+        post: operations["restore_version_api_v1_audit_subjects__subject_id__versions__version_id__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/activate": {
         parameters: {
             query?: never;
@@ -2258,6 +2349,23 @@ export interface components {
             label: string;
         };
         /**
+         * AuditMetricChangeOut
+         * @description Изменение заголовочной величины дела между версиями.
+         *
+         *     Значения — строки, а не числа: среди величин есть вердикт («risk», «warning»),
+         *     и приводить его к нулю ради общего типа значило бы потерять сам вердикт.
+         */
+        AuditMetricChangeOut: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** New */
+            new?: string | null;
+            /** Old */
+            old?: string | null;
+        };
+        /**
          * AuditMonteCarloOut
          * @description Распределение цены по прогонам. ``unvalued`` — прогоны, в которых оценки нет.
          *
@@ -3191,6 +3299,77 @@ export interface components {
              * @default []
              */
             years: components["schemas"]["AuditForecastYearOut"][];
+        };
+        /**
+         * AuditVersionDiffOut
+         * @description Анализ изменений дела: диф модели + диф заголовочных величин.
+         */
+        AuditVersionDiffOut: {
+            /** Against */
+            against: string;
+            /** Base Id */
+            base_id: string;
+            /**
+             * Metric Changes
+             * @default []
+             */
+            metric_changes: components["schemas"]["AuditMetricChangeOut"][];
+            /**
+             * Model Changes
+             * @default []
+             */
+            model_changes: components["schemas"]["ModelChangeOut"][];
+            /**
+             * Model Changes Truncated
+             * @default false
+             */
+            model_changes_truncated: boolean;
+        };
+        /**
+         * AuditVersionOut
+         * @description Версия дела с полной моделью снимка.
+         */
+        AuditVersionOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Equity Value */
+            equity_value?: string | null;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            model: components["schemas"]["AuditSubjectModel-Output"];
+            /** Risk Flags */
+            risk_flags?: number | null;
+            /** Verdict */
+            verdict?: string | null;
+        };
+        /**
+         * AuditVersionSummary
+         * @description Метаданные версии дела (без модели): для списка.
+         *
+         *     Сводка — та, что была на момент снимка, а не пересчитанная сейчас: версия и есть
+         *     слепок прошлого. ``None`` — тогда не считалось (отчётность ещё не введена).
+         */
+        AuditVersionSummary: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Equity Value */
+            equity_value?: string | null;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Risk Flags */
+            risk_flags?: number | null;
+            /** Verdict */
+            verdict?: string | null;
         };
         /**
          * AutoFinancing
@@ -8012,6 +8191,212 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuditRiskOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_versions_api_v1_audit_subjects__subject_id__versions_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditVersionSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_version_api_v1_audit_subjects__subject_id__versions_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VersionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditVersionSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_version_api_v1_audit_subjects__subject_id__versions__version_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditVersionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_version_api_v1_audit_subjects__subject_id__versions__version_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    diff_version_api_v1_audit_subjects__subject_id__versions__version_id__diff_get: {
+        parameters: {
+            query?: {
+                against?: string;
+            };
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditVersionDiffOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_version_api_v1_audit_subjects__subject_id__versions__version_id__restore_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditSubjectOut"];
                 };
             };
             /** @description Validation Error */

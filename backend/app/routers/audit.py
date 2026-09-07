@@ -6,10 +6,12 @@
 """
 from __future__ import annotations
 
+from decimal import Decimal
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from audit_core import (
@@ -26,7 +28,7 @@ from audit_core.samples import build_trading_subject
 from .. import billing, crud
 from ..audit_docgen import DOCX_MIME, build_audit_docx
 from ..database import get_db
-from ..db_models import AuditGroup, AuditSubject, User
+from ..db_models import AuditGroup, AuditSubject, AuditSubjectVersion, User
 from ..deps import current_user, require_permission
 from ..rbac import Perm
 from ..schemas import (
@@ -43,14 +45,21 @@ from ..schemas import (
     AuditGroupOut,
     AuditGroupSummary,
     AuditGroupUpdate,
+    AuditMetricChangeOut,
     AuditRiskOut,
     AuditSubjectCreate,
     AuditSubjectOut,
     AuditSubjectSummary,
     AuditSubjectUpdate,
+    AuditVersionDiffOut,
+    AuditVersionOut,
+    AuditVersionSummary,
+    ModelChangeOut,
+    VersionCreate,
     audit_analysis_response,
     audit_risk_response,
 )
+from ..versioning import diff_case_metrics, diff_models
 
 router = APIRouter(prefix="/api/v1/audit", tags=["audit"])
 
@@ -283,6 +292,147 @@ def consolidate(body: AuditConsolidateRequest,
         members.append((subject.name, crud.load_audit_model(subject)))
     # Разовый свод падает на неизвестном субъекте (404) → выбывших участников не бывает.
     return _consolidate(members, body.name, body.elimination, missing=[])
+
+
+# --- Версии дела: снимки модели проверки и анализ изменений ---
+
+def _version_summary(v: AuditSubjectVersion) -> AuditVersionSummary:
+    return AuditVersionSummary(
+        id=v.id, label=v.label, created_at=v.created_at, verdict=v.verdict,
+        risk_flags=v.risk_flags,
+        equity_value=Decimal(v.equity_value) if v.equity_value else None)
+
+
+def _version_out(v: AuditSubjectVersion) -> AuditVersionOut:
+    return AuditVersionOut(
+        **_version_summary(v).model_dump(),
+        model=AuditSubjectModel.model_validate(v.model))
+
+
+def _require_version(db: Session, org_id: str, subject_id: str, version_id: str):
+    version = crud.get_audit_version(db, org_id, subject_id, version_id)
+    if version is None:
+        raise HTTPException(status_code=404, detail="Версия не найдена")
+    return version
+
+
+def _case_summary(model: AuditSubjectModel) -> tuple[str | None, int | None, str | None]:
+    """Сводка дела на момент снимка: вердикт, флаги риска, стоимость доли.
+
+    Стохастика не нужна (`deep=False`): в сводку идёт то, что видно в шапке дела.
+    Пустое дело вердикта не имеет — ``None`` вместо «ok», иначе снимок пустого дела
+    читался бы в списке как «проверено, всё хорошо».
+    """
+    review = review_case(model, deep=False)
+    if review.summary.state != "ready":
+        return None, None, None
+    equity = review.valuation.equity_value
+    return (review.summary.verdict, review.summary.risk_flags,
+            str(equity) if equity is not None else None)
+
+
+@router.post("/subjects/{subject_id}/versions", response_model=AuditVersionSummary,
+             status_code=status.HTTP_201_CREATED)
+def create_version(subject_id: str, body: VersionCreate,
+                   org_id: str = Depends(require_permission(Perm.PROJECT_UPDATE)),
+                   actor: User = Depends(current_user),
+                   db: Session = Depends(get_db)) -> AuditVersionSummary:
+    """Снимок текущей модели дела как именованная версия (со сводкой на этот момент)."""
+    subject = _require(db, org_id, subject_id)
+    if crud.count_audit_versions(db, subject_id) >= crud.MAX_VERSIONS_PER_SUBJECT:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Достигнут лимит версий на дело ({crud.MAX_VERSIONS_PER_SUBJECT}). "
+                   "Удалите ненужные версии.")
+    verdict, risk_flags, equity = _case_summary(crud.load_audit_model(subject))
+    label = body.label.strip() or f"Версия от {subject.updated_at:%d.%m.%Y %H:%M}"
+    version = crud.create_audit_version(db, subject, label, verdict=verdict,
+                                        risk_flags=risk_flags, equity_value=equity)
+    crud.log_action(db, org_id, actor, "case.version", entity_type="case",
+                    entity_id=subject.id, entity_name=subject.name, details=label)
+    return _version_summary(version)
+
+
+@router.get("/subjects/{subject_id}/versions", response_model=list[AuditVersionSummary])
+def list_versions(subject_id: str,
+                  org_id: str = Depends(require_permission(Perm.PROJECT_READ)),
+                  db: Session = Depends(get_db)) -> list[AuditVersionSummary]:
+    """Версии дела (метаданные, новейшие сверху)."""
+    _require(db, org_id, subject_id)
+    return [_version_summary(v) for v in crud.list_audit_versions(db, org_id, subject_id)]
+
+
+@router.get("/subjects/{subject_id}/versions/{version_id}", response_model=AuditVersionOut)
+def get_version(subject_id: str, version_id: str,
+                org_id: str = Depends(require_permission(Perm.PROJECT_READ)),
+                db: Session = Depends(get_db)) -> AuditVersionOut:
+    """Версия с полной моделью снимка."""
+    _require(db, org_id, subject_id)
+    return _version_out(_require_version(db, org_id, subject_id, version_id))
+
+
+@router.delete("/subjects/{subject_id}/versions/{version_id}",
+               status_code=status.HTTP_204_NO_CONTENT)
+def delete_version(subject_id: str, version_id: str,
+                   org_id: str = Depends(require_permission(Perm.PROJECT_UPDATE)),
+                   db: Session = Depends(get_db)) -> None:
+    """Удалить версию."""
+    _require(db, org_id, subject_id)
+    crud.delete_audit_version(db, _require_version(db, org_id, subject_id, version_id))
+
+
+@router.get("/subjects/{subject_id}/versions/{version_id}/diff",
+            response_model=AuditVersionDiffOut)
+def diff_version(subject_id: str, version_id: str, against: str = "current",
+                 org_id: str = Depends(require_permission(Perm.PROJECT_READ)),
+                 db: Session = Depends(get_db)) -> AuditVersionDiffOut:
+    """Что изменилось от снимка к другой версии или к текущему состоянию дела.
+
+    ``against`` — id другой версии либо ``current``. old = эта версия, new = сравниваемое
+    состояние: диф отвечает на вопрос «что стало с делом с тех пор».
+    """
+    subject = _require(db, org_id, subject_id)
+    base = _require_version(db, org_id, subject_id, version_id)
+    against_model = (subject.model if against == "current"
+                     else _require_version(db, org_id, subject_id, against).model)
+
+    changes, truncated = diff_models(base.model, against_model)
+    metric_changes: list[AuditMetricChangeOut] = []
+    try:
+        base_review = review_case(AuditSubjectModel.model_validate(base.model), deep=False)
+        against_review = review_case(AuditSubjectModel.model_validate(against_model),
+                                     deep=False)
+        metric_changes = [
+            AuditMetricChangeOut(key=c.key, label=c.label, old=c.old, new=c.new)
+            for c in diff_case_metrics(base_review, against_review)
+        ]
+    except (ValidationError, ValueError):
+        # Одна из моделей не разбирается — остаётся диф модели: он не требует расчёта.
+        metric_changes = []
+
+    return AuditVersionDiffOut(
+        base_id=version_id, against=against,
+        model_changes=[ModelChangeOut(path=c.path, kind=c.kind, old=c.old, new=c.new)
+                       for c in changes],
+        model_changes_truncated=truncated,
+        metric_changes=metric_changes,
+    )
+
+
+@router.post("/subjects/{subject_id}/versions/{version_id}/restore",
+             response_model=AuditSubjectOut)
+def restore_version(subject_id: str, version_id: str,
+                    org_id: str = Depends(require_permission(Perm.PROJECT_UPDATE)),
+                    actor: User = Depends(current_user),
+                    db: Session = Depends(get_db)) -> AuditSubjectOut:
+    """Вернуть модель версии в рабочее дело."""
+    subject = _require(db, org_id, subject_id)
+    version = _require_version(db, org_id, subject_id, version_id)
+    updated = crud.update_audit_subject(
+        db, subject, model=AuditSubjectModel.model_validate(version.model))
+    crud.log_action(db, org_id, actor, "case.version_restore", entity_type="case",
+                    entity_id=subject.id, entity_name=subject.name, details=version.label)
+    return _out(updated)
 
 
 @router.get("/subjects/{subject_id}/report.docx")
