@@ -10,7 +10,8 @@
     "typecheck": "tsc -b --noEmit",
     "gen:api": "openapi-typescript ../backend/openapi.json -o src/api/schema.d.ts",
     "test": "vitest run",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",
@@ -28,6 +29,7 @@
     "write-excel-file": "^4.1.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
     "@types/react": "^18.3.11",
