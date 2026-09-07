@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { httpStatus } from "../../api/client";
+import { httpDetail, httpStatus } from "../../api/client";
 import { useState } from "react";
-import { addMember, getMembers, patchMemberRole, removeMember, roleLabel, ROLES,
-         type Member } from "../../api/org";
+import { addMember, getMembers, issueAccessLink, patchMemberRole, removeMember, roleLabel,
+         ROLES, type AccessLink, type Member } from "../../api/org";
 import { ESelect } from "../../components/EditorField";
-import { IconTrash } from "../../components/icons";
+import { IconKey, IconTrash } from "../../components/icons";
 import { useToast } from "../../components/Toast";
 import { Button, Modal, Skeleton } from "../../components/ui";
 
@@ -37,6 +37,8 @@ export function MembersTab({ orgId, myRole, myUserId }: { orgId: string; myRole:
   const [inviteErr, setInviteErr] = useState("");
   /** Приглашённый, которому нужно передать ссылку активации (пароля у него ещё нет). */
   const [invited, setInvited] = useState<Member | null>(null);
+  /** Выданная ссылка входа: приглашение заново или сброс забытого пароля. */
+  const [link, setLink] = useState<AccessLink | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const { data, isLoading } = useQuery({ queryKey: ["members", orgId], queryFn: () => getMembers(orgId) });
@@ -74,6 +76,14 @@ export function MembersTab({ orgId, myRole, myUserId }: { orgId: string; myRole:
       toast("Роль изменена", { kind: "success" });
     },
     onError: () => toast("Не удалось изменить роль", { kind: "error" }),
+  });
+  const access = useMutation({
+    mutationFn: (uid: string) => issueAccessLink(orgId, uid),
+    onSuccess: (issued) => setLink(issued),
+    // Отказ сервера здесь содержательный (владелец, несколько организаций) — его
+    // текст и показываем: своя формулировка разошлась бы с правилом на бэкенде.
+    onError: (e: unknown) => toast(httpDetail(e) ?? "Не удалось выдать ссылку",
+                                   { kind: "error" }),
   });
   const remove = useMutation({
     mutationFn: (uid: string) => removeMember(orgId, uid),
@@ -155,6 +165,17 @@ export function MembersTab({ orgId, myRole, myUserId }: { orgId: string; myRole:
                   </span>
                 </div>
                 <div className="org-col-act">
+                  {editable && (
+                    <button
+                      type="button"
+                      className="icon-action"
+                      title={`Выдать ссылку входа: ${m.full_name || m.email}`}
+                      disabled={access.isPending}
+                      onClick={() => access.mutate(m.user_id)}
+                    >
+                      <IconKey size={15} />
+                    </button>
+                  )}
                   {deletable && (
                     <button
                       type="button"
@@ -293,6 +314,35 @@ export function MembersTab({ orgId, myRole, myUserId }: { orgId: string; myRole:
           aria-label="Ссылка приглашения"
           style={{ width: "100%", height: "auto", padding: 10, fontFamily: "var(--font-mono)", fontSize: 12 }}
           value={invited ? `${window.location.origin}/activate?token=${invited.invite_token}` : ""}
+          onFocus={(e) => e.currentTarget.select()}
+        />
+      </Modal>
+
+      {/* Ссылка входа, выданная по кнопке: сброс забытого пароля или повторное
+          приглашение. Дорога та же самая — участник задаёт пароль и входит. */}
+      <Modal
+        open={link !== null}
+        onClose={() => setLink(null)}
+        title={link?.kind === "reset" ? "Ссылка для сброса пароля" : "Ссылка приглашения"}
+        sub={link?.email}
+        actions={<Button onClick={() => setLink(null)}>Готово</Button>}
+      >
+        <div className="page-sub" style={{ marginBottom: 10 }}>
+          {link?.kind === "reset"
+            ? "Участник задаст новый пароль и войдёт. Прежний пароль перестанет "
+              + "действовать. Ссылка живёт неделю и срабатывает один раз — если "
+              + "участник тем временем сменит пароль сам, она погаснет."
+            : "Пароль ещё не заведён — это приглашение заново, взамен потерянного. "
+              + "Ссылка действует неделю и срабатывает один раз."}
+          {" Писем платформа не отправляет, поэтому передайте её лично."}
+        </div>
+        <textarea
+          className="input"
+          readOnly
+          rows={3}
+          aria-label="Ссылка входа"
+          style={{ width: "100%", height: "auto", padding: 10, fontFamily: "var(--font-mono)", fontSize: 12 }}
+          value={link ? `${window.location.origin}/activate?token=${link.token}` : ""}
           onFocus={(e) => e.currentTarget.select()}
         />
       </Modal>

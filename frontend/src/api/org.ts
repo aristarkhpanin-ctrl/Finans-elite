@@ -34,6 +34,21 @@ export async function addMember(orgId: string, body: { email: string; full_name:
   return data;
 }
 
+/** Одноразовая ссылка входа: `invite` — пароля ещё нет, `reset` — пароль забыт. */
+export type AccessLink = Schema<"AccessLinkOut">;
+
+/**
+ * Выдать участнику ссылку входа. Единственный путь восстановления пароля в продукте:
+ * почтовой отправки нет, поэтому ссылку передаёт администратор лично — как и
+ * приглашение. Владельцу и участнику нескольких организаций сервер откажет и назовёт
+ * причину (это не ошибка интерфейса, а граница безопасности).
+ */
+export async function issueAccessLink(orgId: string, userId: string): Promise<AccessLink> {
+  const { data } = await api.post<AccessLink>(
+    `/api/v1/organizations/${orgId}/members/${userId}/access-link`);
+  return data;
+}
+
 export async function patchMemberRole(orgId: string, userId: string, role: string): Promise<Member> {
   const { data } = await api.patch<Member>(`/api/v1/organizations/${orgId}/members/${userId}`, { role });
   return data;

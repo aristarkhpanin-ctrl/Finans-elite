@@ -323,7 +323,12 @@ export interface paths {
         put?: never;
         /**
          * Activate
-         * @description Активация приглашения: по токену задать пароль и сразу войти.
+         * @description Задать пароль по ссылке и сразу войти — приглашение или сброс.
+         *
+         *     Дорога одна на оба случая намеренно: для пользователя это один и тот же шаг
+         *     («откройте ссылку, придумайте пароль»), и вторая страница с той же формой
+         *     отличалась бы только словом в заголовке. Правила при этом разные и строгие —
+         *     приглашение срабатывает, пока пароля нет; сброс — пока не сменился отпечаток.
          *
          *     До этого приглашённый участник существовал, но войти не мог никогда:
          *     ``crud.add_member`` заводит пользователя без пароля, а других путей его задать
@@ -712,6 +717,41 @@ export interface paths {
          * @description Изменить роль участника (право member.manage; владельца понизить нельзя, B4).
          */
         patch: operations["patch_member_role_api_v1_organizations__org_id__members__user_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/organizations/{org_id}/members/{user_id}/access-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Issue Access Link
+         * @description Выдать участнику одноразовую ссылку входа: приглашение или сброс пароля.
+         *
+         *     Закрывает дыру доступности: до этого забытый пароль было не сбросить **никому** —
+         *     ни пользователю, ни администратору, — и учётная запись терялась насовсем. Ссылка
+         *     передаётся лично: почтовой отправки у платформы нет.
+         *
+         *     Два запрета, без которых это была бы не функция, а эскалация прав:
+         *
+         *     * **Владельцу ссылка не выдаётся.** Иначе администратор сбрасывает пароль владельцу
+         *       и забирает организацию вместе с тарифом и биллингом. Владелец — единственная роль
+         *       без пути восстановления, и это осознанный размен: захват организации хуже.
+         *     * **Участнику, состоящему и в других организациях, — тоже.** Пароль один на
+         *       платформу, и администратор одной организации, сбросив его, получил бы доступ во
+         *       все остальные. Здесь администратор распоряжается не своим.
+         *
+         *     Обе причины называются в ответе, а не превращаются в молчаливый отказ.
+         */
+        post: operations["issue_access_link_api_v1_organizations__org_id__members__user_id__access_link_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/organizations/{org_id}/subscription": {
@@ -1239,6 +1279,28 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AccessLinkOut
+         * @description Одноразовая ссылка входа для участника: приглашение или сброс пароля.
+         *
+         *     ``kind`` различает два случая, потому что различаются они и по смыслу, и по тому,
+         *     что участник увидит: ``invite`` — пароля ещё нет, ``reset`` — пароль есть, но
+         *     забыт. Токен возвращается **только в ответе на выдачу**: в списке участников он
+         *     был бы вечным пропуском в чужой аккаунт для всякого, кто видит состав организации.
+         */
+        AccessLinkOut: {
+            /** Email */
+            email: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "invite" | "reset";
+            /** Token */
+            token: string;
+            /** User Id */
+            user_id: string;
+        };
         /**
          * ActivateRequest
          * @description Активация приглашения: по токену задать пароль и войти.
@@ -8780,6 +8842,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MemberOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    issue_access_link_api_v1_organizations__org_id__members__user_id__access_link_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessLinkOut"];
                 };
             };
             /** @description Validation Error */

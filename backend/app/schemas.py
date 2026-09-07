@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -427,6 +427,21 @@ class AuditLogPage(BaseModel):
 
     entries: list[AuditLogEntryOut] = []
     total: int = 0
+
+
+class AccessLinkOut(BaseModel):
+    """Одноразовая ссылка входа для участника: приглашение или сброс пароля.
+
+    ``kind`` различает два случая, потому что различаются они и по смыслу, и по тому,
+    что участник увидит: ``invite`` — пароля ещё нет, ``reset`` — пароль есть, но
+    забыт. Токен возвращается **только в ответе на выдачу**: в списке участников он
+    был бы вечным пропуском в чужой аккаунт для всякого, кто видит состав организации.
+    """
+
+    user_id: str
+    email: str
+    kind: Literal["invite", "reset"]
+    token: str
 
 
 class MemberOut(BaseModel):

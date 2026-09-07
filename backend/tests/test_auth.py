@@ -201,13 +201,152 @@ def test_short_password_rejected_everywhere(client, register):
                        headers=owner).status_code == 422
 
 
-def test_password_recovery_is_absent(client):
-    """Восстановления пароля нет — и это осознанно.
+# --- Сброс пароля: ссылку выдаёт администратор организации ---
 
-    Честный сброс требует доставки письма на подтверждённый адрес, а почтовой
-    отправки у платформы нет. Эндпоинт, который «сбрасывает пароль по e-mail» без
-    письма, — это способ угнать любой аккаунт, зная только адрес.
+def _member(client, owner, email: str, role: str = "analyst") -> str:
+    """Завести участника с паролем; вернуть его user_id."""
+    token = _invite(client, owner, email=email, role=role)
+    r = client.post("/api/v1/auth/activate", json={"token": token, "password": "first1234"})
+    assert r.status_code == 200
+    me = client.get("/api/v1/auth/me",
+                    headers={"Authorization": f"Bearer {r.json()['access_token']}"})
+    return me.json()["id"]
+
+
+def _link(client, owner, user_id: str):
+    return client.post(
+        f"/api/v1/organizations/{_org(client, owner)}/members/{user_id}/access-link",
+        headers=owner)
+
+
+def test_no_anonymous_password_recovery(client, register):
+    """Самообслуживаемого «забыли пароль?» по-прежнему нет — и это осознанно.
+
+    Честный сброс по адресу требует письма на подтверждённый ящик, а почтовой отправки
+    у платформы нет: эндпоинт, сбрасывающий пароль по одному лишь e-mail, — способ
+    угнать аккаунт, зная только адрес. Сброс в продукте появился, но он не анонимный:
+    ссылку выдаёт администратор организации вручную (тесты ниже).
     """
     from app.main import app
-    paths = app.openapi()["paths"]
-    assert not [p for p in paths if "reset" in p or "forgot" in p or "recover" in p]
+    auth_paths = [p for p in app.openapi()["paths"] if p.startswith("/api/v1/auth")]
+    assert not [p for p in auth_paths if "reset" in p or "forgot" in p or "recover" in p]
+
+    owner = register(email="anon-own@e.ru", org="Орг А")
+    uid = _member(client, owner, "anon-m@e.ru")
+    # без токена ссылку не выдают
+    r = client.post(
+        f"/api/v1/organizations/{_org(client, owner)}/members/{uid}/access-link")
+    assert r.status_code in (401, 403)
+
+
+def test_admin_issues_reset_link_and_member_regains_access(client, register):
+    """Забытый пароль перестал означать потерю учётной записи навсегда."""
+    owner = register(email="res-own@e.ru", org="Орг Р")
+    uid = _member(client, owner, "res-m@e.ru")
+
+    r = _link(client, owner, uid)
+    assert r.status_code == 200 and r.json()["kind"] == "reset"
+
+    a = client.post("/api/v1/auth/activate",
+                    json={"token": r.json()["token"], "password": "second1234"})
+    assert a.status_code == 200
+    assert client.post("/api/v1/auth/login",
+                       json={"email": "res-m@e.ru", "password": "second1234"}).status_code == 200
+    # прежний пароль больше не работает
+    assert client.post("/api/v1/auth/login",
+                       json={"email": "res-m@e.ru", "password": "first1234"}).status_code == 401
+
+
+def test_reset_link_is_single_use(client, register):
+    """Одноразовость держится на отпечатке пароля — таблицы под это не заводили."""
+    owner = register(email="once-own@e.ru", org="Орг О")
+    uid = _member(client, owner, "once-m@e.ru")
+    token = _link(client, owner, uid).json()["token"]
+    assert client.post("/api/v1/auth/activate",
+                       json={"token": token, "password": "second1234"}).status_code == 200
+    r = client.post("/api/v1/auth/activate",
+                    json={"token": token, "password": "third12345"})
+    assert r.status_code == 409
+    assert client.post("/api/v1/auth/login",
+                       json={"email": "once-m@e.ru", "password": "second1234"}).status_code == 200
+
+
+def test_reset_link_dies_when_the_user_changes_password_himself(client, register):
+    """Вспомнил пароль и сменил сам — выданная ссылка обязана умереть."""
+    owner = register(email="self-own@e.ru", org="Орг С")
+    uid = _member(client, owner, "self-m@e.ru")
+    token = _link(client, owner, uid).json()["token"]
+
+    login = client.post("/api/v1/auth/login",
+                        json={"email": "self-m@e.ru", "password": "first1234"}).json()
+    headers = {"Authorization": f"Bearer {login['access_token']}"}
+    assert client.post("/api/v1/auth/password",
+                       json={"current_password": "first1234", "new_password": "own12345"},
+                       headers=headers).status_code == 204
+
+    r = client.post("/api/v1/auth/activate",
+                    json={"token": token, "password": "hijack1234"})
+    assert r.status_code == 409
+
+
+def test_owner_gets_no_access_link(client, register):
+    """Иначе администратор сбрасывает пароль владельцу и забирает организацию."""
+    owner = register(email="ow-own@e.ru", org="Орг В")
+    me = client.get("/api/v1/auth/me", headers=owner).json()["id"]
+    r = _link(client, owner, me)
+    assert r.status_code == 409
+    assert "владельц" in r.json()["detail"].lower()
+
+
+def test_member_of_several_organizations_gets_no_link(client, register):
+    """Пароль один на платформу: сброс отсюда открыл бы доступ к чужим организациям."""
+    owner = register(email="multi-own@e.ru", org="Орг М1")
+    other = register(email="multi-m@e.ru", org="Своя")
+    uid = client.get("/api/v1/auth/me", headers=other).json()["id"]
+    oid = _org(client, owner)
+    assert client.post(f"/api/v1/organizations/{oid}/members",
+                       json={"email": "multi-m@e.ru", "full_name": "", "role": "viewer"},
+                       headers=owner).status_code == 201
+
+    r = _link(client, owner, uid)
+    assert r.status_code == 409
+    assert "других организациях" in r.json()["detail"]
+
+
+def test_access_link_reissues_an_invitation_when_there_is_no_password(client, register):
+    """Потерянное приглашение — тот же тупик, и лечится той же кнопкой."""
+    owner = register(email="lost-own@e.ru", org="Орг Л")
+    _invite(client, owner, email="lost-m@e.ru")
+    members = client.get(f"/api/v1/organizations/{_org(client, owner)}/members",
+                         headers=owner).json()
+    uid = [m for m in members if m["email"] == "lost-m@e.ru"][0]["user_id"]
+
+    r = _link(client, owner, uid)
+    assert r.status_code == 200 and r.json()["kind"] == "invite"
+    assert client.post("/api/v1/auth/activate",
+                       json={"token": r.json()["token"], "password": "fresh12345"}
+                       ).status_code == 200
+
+
+def test_access_link_requires_member_manage(client, register):
+    """Выдавать ссылки входа может владелец или администратор, а не всякий участник."""
+    owner = register(email="perm-own@e.ru", org="Орг П")
+    uid = _member(client, owner, "perm-m@e.ru", role="viewer")
+    token = _invite(client, owner, email="perm-v@e.ru", role="viewer")
+    viewer = client.post("/api/v1/auth/activate",
+                         json={"token": token, "password": "viewer1234"}).json()
+    headers = {"Authorization": f"Bearer {viewer['access_token']}"}
+    r = client.post(
+        f"/api/v1/organizations/{_org(client, owner)}/members/{uid}/access-link",
+        headers=headers)
+    assert r.status_code == 403
+
+
+def test_access_link_reaches_the_audit_log(client, register):
+    """Ссылкой получают доступ к учётной записи — в журнале это событие обязано быть."""
+    owner = register(email="log-own@e.ru", org="Орг Ж")
+    uid = _member(client, owner, "log-m@e.ru")
+    _link(client, owner, uid)
+    entries = client.get(f"/api/v1/organizations/{_org(client, owner)}/audit-log",
+                         headers=owner).json()["entries"]
+    assert any(e["action"] == "member.access_link" for e in entries)

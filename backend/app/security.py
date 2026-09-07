@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+import hashlib
 import os
 import time
 
@@ -72,6 +73,43 @@ def create_access_token(user_id: str) -> str:
 def create_invite_token(user_id: str) -> str:
     """Токен приглашения: им заводят **пароль**, а не входят в систему."""
     return _token(user_id, "invite", INVITE_TTL_SECONDS)
+
+
+def password_stamp(hashed: str | None) -> str:
+    """Отпечаток действующего пароля — им ссылка сброса делается одноразовой.
+
+    Приглашение одноразово само собой: после активации у пользователя появляется
+    пароль, и повторно оно не срабатывает. У сброса пароль есть и до, и после, поэтому
+    нужен другой признак «уже использована». Отпечаток решает это **без таблицы и
+    миграции**: сменился пароль — сменился отпечаток, старая ссылка мертва. Заодно
+    ссылка умирает, если пользователь тем временем сменил пароль сам.
+
+    В токен уходит только хэш от хэша: сам хэш пароля наружу не выносится.
+    """
+    return hashlib.sha256((hashed or "").encode()).hexdigest()[:16]
+
+
+def create_reset_token(user_id: str, hashed_password: str | None) -> str:
+    """Токен сброса пароля: задать новый пароль, не зная текущего.
+
+    Срок — как у приглашения: вечная ссылка на смену пароля это вечная дыра.
+    """
+    now = int(time.time())
+    return jwt.encode({"sub": user_id, "iat": now, "exp": now + INVITE_TTL_SECONDS,
+                       "typ": "reset", "pw": password_stamp(hashed_password)},
+                      JWT_SECRET, algorithm=JWT_ALG)
+
+
+def decode_reset_token(token: str) -> tuple[str, str] | None:
+    """``(user_id, отпечаток пароля)`` из валидного токена сброса либо ``None``."""
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
+    except jwt.PyJWTError:
+        return None
+    if payload.get("typ") != "reset":
+        return None
+    sub, stamp = payload.get("sub"), payload.get("pw")
+    return (sub, stamp) if sub and stamp else None
 
 
 def decode_token(token: str, expect: str = "access") -> str | None:

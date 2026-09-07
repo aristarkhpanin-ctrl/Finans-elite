@@ -12,6 +12,7 @@ from ..db_models import User
 from ..deps import current_user, require_membership, require_org_permission
 from ..rbac import Perm, is_valid_role
 from ..schemas import (
+    AccessLinkOut,
     AuditLogEntryOut,
     AuditLogPage,
     MemberCreate,
@@ -21,7 +22,7 @@ from ..schemas import (
     OrganizationMembershipOut,
     OrganizationOut,
 )
-from ..security import create_invite_token
+from ..security import create_invite_token, create_reset_token
 
 router = APIRouter(prefix="/api/v1/organizations", tags=["organizations"])
 
@@ -112,6 +113,57 @@ def patch_member_role(user_id: str, body: MemberPatch,
                     entity_id=user.id, entity_name=user.email,
                     details=f"{was} → {updated.role}")
     return MemberOut(user_id=user.id, email=user.email, full_name=user.full_name, role=updated.role)
+
+
+@router.post("/{org_id}/members/{user_id}/access-link", response_model=AccessLinkOut)
+def issue_access_link(user_id: str,
+                      org_id: str = Depends(require_org_permission(Perm.MEMBER_MANAGE)),
+                      actor: User = Depends(current_user),
+                      db: Session = Depends(get_db)) -> AccessLinkOut:
+    """Выдать участнику одноразовую ссылку входа: приглашение или сброс пароля.
+
+    Закрывает дыру доступности: до этого забытый пароль было не сбросить **никому** —
+    ни пользователю, ни администратору, — и учётная запись терялась насовсем. Ссылка
+    передаётся лично: почтовой отправки у платформы нет.
+
+    Два запрета, без которых это была бы не функция, а эскалация прав:
+
+    * **Владельцу ссылка не выдаётся.** Иначе администратор сбрасывает пароль владельцу
+      и забирает организацию вместе с тарифом и биллингом. Владелец — единственная роль
+      без пути восстановления, и это осознанный размен: захват организации хуже.
+    * **Участнику, состоящему и в других организациях, — тоже.** Пароль один на
+      платформу, и администратор одной организации, сбросив его, получил бы доступ во
+      все остальные. Здесь администратор распоряжается не своим.
+
+    Обе причины называются в ответе, а не превращаются в молчаливый отказ.
+    """
+    membership = _member_or_404(db, org_id, user_id)
+    user = crud.get_user(db, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Участник не найден")
+    if membership.role == "owner":
+        raise HTTPException(
+            status_code=409,
+            detail="Владельцу организации ссылка входа не выдаётся: иначе администратор "
+                   "мог бы сбросить его пароль и забрать организацию.")
+    if len(crud.list_user_memberships(db, user_id)) > 1:
+        raise HTTPException(
+            status_code=409,
+            detail="Участник состоит и в других организациях. Пароль один на платформу, "
+                   "и сброс отсюда открыл бы доступ к ним — ссылку может выдать только "
+                   "администратор той организации, где участник состоит один.")
+
+    # Пароля нет — участник ещё не активировал приглашение, и нужна именно новая
+    # ссылка приглашения (прежняя могла потеряться или истечь).
+    kind = "reset" if user.hashed_password else "invite"
+    token = (create_reset_token(user.id, user.hashed_password) if kind == "reset"
+             else create_invite_token(user.id))
+    # Выдача ссылки — событие для журнала наравне с добавлением участника: ею
+    # получают доступ к учётной записи.
+    crud.log_action(db, org_id, actor, "member.access_link", entity_type="member",
+                    entity_id=user.id, entity_name=user.email,
+                    details="сброс пароля" if kind == "reset" else "повторное приглашение")
+    return AccessLinkOut(user_id=user.id, email=user.email, kind=kind, token=token)
 
 
 @router.delete("/{org_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -57,6 +57,16 @@ export const IconLock = (p: IconProps) => (
   </Icon>
 );
 
+/** Ключ — выдача ссылки входа участнику (приглашение заново или сброс пароля). */
+export const IconKey = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="8" cy="12" r="3.5" />
+    <path d="M11.5 12H20" />
+    <path d="M17 12v3" />
+    <path d="M20 12v2.5" />
+  </Icon>
+);
+
 export const IconEye = (p: IconProps) => (
   <Icon {...p}>
     <path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12Z" />

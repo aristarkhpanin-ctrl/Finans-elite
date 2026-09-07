@@ -20,8 +20,10 @@ from ..schemas import (
 )
 from ..security import (
     create_access_token,
+    decode_reset_token,
     decode_token,
     hash_password,
+    password_stamp,
     verify_password,
 )
 
@@ -80,7 +82,12 @@ def _check_password(password: str) -> None:
 
 @router.post("/activate", response_model=TokenResponse)
 def activate(body: ActivateRequest, db: Session = Depends(get_db)) -> TokenResponse:
-    """Активация приглашения: по токену задать пароль и сразу войти.
+    """Задать пароль по ссылке и сразу войти — приглашение или сброс.
+
+    Дорога одна на оба случая намеренно: для пользователя это один и тот же шаг
+    («откройте ссылку, придумайте пароль»), и вторая страница с той же формой
+    отличалась бы только словом в заголовке. Правила при этом разные и строгие —
+    приглашение срабатывает, пока пароля нет; сброс — пока не сменился отпечаток.
 
     До этого приглашённый участник существовал, но войти не мог никогда:
     ``crud.add_member`` заводит пользователя без пароля, а других путей его задать
@@ -93,15 +100,21 @@ def activate(body: ActivateRequest, db: Session = Depends(get_db)) -> TokenRespo
     """
     _check_password(body.password)
     user_id = decode_token(body.token, expect="invite")
-    if user_id is None:
-        raise HTTPException(status_code=400, detail="Ссылка приглашения недействительна "
-                                                    "или устарела")
-    user = crud.get_user(db, user_id)
+    reset = None if user_id else decode_reset_token(body.token)
+    if user_id is None and reset is None:
+        raise HTTPException(status_code=400, detail="Ссылка недействительна или устарела")
+
+    user = crud.get_user(db, user_id or reset[0])          # type: ignore[index]
     if user is None:
-        raise HTTPException(status_code=400, detail="Ссылка приглашения недействительна")
-    if user.hashed_password:
+        raise HTTPException(status_code=400, detail="Ссылка недействительна")
+    if user_id is not None and user.hashed_password:
         raise HTTPException(status_code=409, detail="Приглашение уже активировано — "
                                                     "войдите по паролю")
+    if reset is not None and reset[1] != password_stamp(user.hashed_password):
+        # Отпечаток не совпал: пароль с тех пор менялся — либо этой же ссылкой,
+        # либо самим пользователем. Одноразовость сброса держится на этом.
+        raise HTTPException(status_code=409, detail="Ссылка уже использована — "
+                                                    "попросите выдать новую")
     crud.set_password(db, user, hash_password(body.password))
     if body.full_name:
         crud.set_full_name(db, user, body.full_name)
