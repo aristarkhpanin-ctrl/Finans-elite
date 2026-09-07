@@ -270,3 +270,69 @@ def test_gaps_are_named():
 def test_empty_model_is_inert():
     res = analyze_risk(AuditSubjectModel(), analyze(AuditSubjectModel()))
     assert not res.available and res.tornado == []
+
+
+# ── Риски считаются отдельным вызовом ────────────────────────────────────────
+
+def _case_with_uncertainty() -> dict:
+    """Дело с оценкой и объявленной неопределённостью — то, что дорого считать."""
+    return {
+        "name": "ООО «Цель»",
+        "periods": [{"label": "2023", "kind": "year"}, {"label": "2024", "kind": "year"}],
+        "balance": {
+            "A_FIXED": ["400", "440"], "A_INVENTORY": ["300", "330"],
+            "A_RECEIVABLE": ["200", "220"], "A_CASH": ["100", "130"],
+            "P_EQUITY": ["500", "600"], "P_LONG": ["200", "200"], "P_SHORT": ["300", "320"],
+        },
+        "income": {
+            "I_REVENUE": ["1800", "1980"], "I_COGS": ["1260", "1386"],
+            "I_OPEX": ["340", "374"], "I_INTEREST": ["40", "40"],
+            "I_OTHER": ["0", "0"], "I_TAX": ["32", "36"], "M_DEPRECIATION": ["50", "60"],
+        },
+        "valuation": {"enabled": True, "horizon_years": 5, "wacc": "0.20",
+                      "terminal_growth": "0.03", "tax_rate": "0.20",
+                      "growth": ["0.10"] * 5, "capex": ["70"] * 5,
+                      "nwc_change": ["20"] * 5},
+        "risk": {"iterations": 200, "seed": 7, "uncertain": [
+            {"param": "growth",
+             "distribution": {"kind": "uniform", "low": "0.8", "high": "1.2"}}]},
+    }
+
+
+def _created(client, headers) -> str:
+    r = client.post("/api/v1/audit/subjects",
+                    json={"name": "ООО «Цель»", "model": _case_with_uncertainty()},
+                    headers=headers)
+    assert r.status_code == 201, r.text
+    return r.json()["id"]
+
+
+def test_analyze_does_not_run_monte_carlo(client, auth_headers):
+    """Анализ дёргается при каждом открытии дела — стохастика ему не по карману.
+
+    До этого дело с объявленной неопределённостью открывалось секундами: 0,9 с при
+    2 000 прогонов и 8,7 с при 20 000 вместо 6 мс.
+    """
+    sid = _created(client, auth_headers)
+    risk = client.post(f"/api/v1/audit/subjects/{sid}/analyze",
+                       headers=auth_headers).json()["risk"]
+    assert risk["monte_carlo"] is None
+    assert risk["available"] is False
+    # Пропуск назван причиной: «не считали» и «посчитали, не вышло» — разные вещи.
+    assert risk["blockers"] and "не запрашивался" in risk["blockers"][0]
+
+
+def test_risk_endpoint_computes_the_stochastic_layer(client, auth_headers):
+    sid = _created(client, auth_headers)
+    risk = client.post(f"/api/v1/audit/subjects/{sid}/risk", headers=auth_headers).json()
+    assert risk["available"] is True
+    assert risk["monte_carlo"]["iterations"] == 200
+    assert risk["tornado"], "торнадо считается вместе с Монте-Карло"
+
+
+def test_risk_is_isolated_by_organization(client, register):
+    a = register(email="risk-a@e.ru", org="Орг A")
+    b = register(email="risk-b@e.ru", org="Орг B")
+    sid = _created(client, a)
+    assert client.post(f"/api/v1/audit/subjects/{sid}/risk", headers=b).status_code == 404
+    assert client.post("/api/v1/audit/subjects/nope/risk", headers=a).status_code == 404

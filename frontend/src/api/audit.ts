@@ -742,6 +742,16 @@ export async function analyzeAuditSubject(id: string): Promise<AuditAnalysis> {
   return data;
 }
 
+/**
+ * Анализ рисков — отдельным вызовом: это единственный дорогой слой (Монте-Карло
+ * перестраивает оценку на каждом прогоне). Поле `risk` в ответе `/analyze` приходит
+ * незаполненным и с названной причиной — показывать его нельзя, нужно спросить здесь.
+ */
+export async function analyzeAuditRisk(id: string): Promise<AuditRisk> {
+  const { data } = await api.post<AuditRisk>(`/api/v1/audit/subjects/${id}/risk`);
+  return data;
+}
+
 /** Скачать документ заключения (DOCX) авторизованным запросом. */
 export async function downloadAuditReport(id: string, filename: string): Promise<void> {
   const { data } = await api.get(`/api/v1/audit/subjects/${id}/report.docx`, {

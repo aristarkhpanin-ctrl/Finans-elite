@@ -12484,7 +12484,7 @@
     },
     "/api/v1/audit/subjects/{subject_id}/analyze": {
       "post": {
-        "description": "Проанализировать отчётность субъекта: аналитическая форма, тренды, коэффициенты.",
+        "description": "Проанализировать отчётность субъекта: аналитическая форма, тренды, коэффициенты.\n\n**Без стохастики** (`deep=False`). Анализ дёргается при каждом открытии дела и после\nкаждой правки модели, а Монте-Карло — единственный дорогой слой: на объявленных\nнеопределённых допущениях разбор шёл 0,9 с при 2 000 прогонов и 8,7 с при 20 000\nвместо 6 мс, и платил за это тот, кто пользуется самой продвинутой функцией. Риски\nсчитаются там, где их показывают: `…/risk`, документ, выгрузка.",
         "operationId": "analyze_subject_api_v1_audit_subjects__subject_id__analyze_post",
         "parameters": [
           {
@@ -12667,6 +12667,70 @@
           }
         ],
         "summary": "Download Report",
+        "tags": [
+          "audit"
+        ]
+      }
+    },
+    "/api/v1/audit/subjects/{subject_id}/risk": {
+      "post": {
+        "description": "Анализ рисков оценки: торнадо и Монте-Карло (SPEC, Прил. Р).\n\nОтдельный вызов, потому что это единственный дорогой слой: его просят, открывая\nвкладку рисков или скачивая документ, а не каждым открытием дела. Разбор идёт тем\nже конвейером — числа те же, что в остальных разделах.",
+        "operationId": "analyze_subject_risk_api_v1_audit_subjects__subject_id__risk_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "title": "Subject Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditRiskOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Analyze Subject Risk",
         "tags": [
           "audit"
         ]

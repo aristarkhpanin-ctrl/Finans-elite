@@ -1434,6 +1434,40 @@ class AuditGroupOut(AuditGroupSummary):
     model: AuditGroupModel
 
 
+def audit_risk_response(risk) -> "AuditRiskOut":
+    """Собрать ответ анализа рисков (SPEC, Прил. Р).
+
+    Вынесено отдельно, потому что риски отдаются **двумя дорогами**: в составе разбора
+    (документ, выгрузка) и отдельным эндпоинтом для вкладки. Второй маппинг тех же
+    полей однажды разошёлся бы с первым, как разошлись копии конвейера.
+    """
+    return AuditRiskOut(
+        available=risk.available if risk else False,
+        blockers=list(risk.blockers) if risk else [],
+        base_price=risk.base_price if risk else None,
+        step=risk.step if risk else Decimal("0.10"),
+        tornado=[AuditTornadoBarOut(
+            param=b.param, label=b.label, step=b.step, low_price=b.low_price,
+            high_price=b.high_price, low_delta=b.low_delta,
+            high_delta=b.high_delta, span=b.span, note=b.note)
+            for b in (risk.tornado if risk else [])],
+        monte_carlo=(AuditMonteCarloOut(
+            iterations=risk.monte_carlo.iterations,
+            valued=risk.monte_carlo.valued, unvalued=risk.monte_carlo.unvalued,
+            median=risk.monte_carlo.median, mean=risk.monte_carlo.mean,
+            p10=risk.monte_carlo.p10, p25=risk.monte_carlo.p25,
+            p75=risk.monte_carlo.p75, p90=risk.monte_carlo.p90,
+            minimum=risk.monte_carlo.minimum, maximum=risk.monte_carlo.maximum,
+            histogram=[AuditHistogramBinOut(from_=h.from_, to=h.to, count=h.count)
+                       for h in risk.monte_carlo.histogram],
+            below_asking=risk.monte_carlo.below_asking,
+            median_drift=risk.monte_carlo.median_drift)
+            if risk and risk.monte_carlo else None),
+        warnings=list(risk.warnings) if risk else [],
+        not_computed=list(risk.not_computed) if risk else [],
+    )
+
+
 def audit_analysis_response(result, opinion: str = "", issues=(),
                             flags=None, earnings=None, obligations=None,
                             procedures=None, summary=None,
@@ -1495,31 +1529,7 @@ def audit_analysis_response(result, opinion: str = "", issues=(),
             warnings=list(valuation.warnings) if valuation else [],
             not_computed=list(valuation.not_computed) if valuation else [],
         ),
-        risk=AuditRiskOut(
-            available=risk.available if risk else False,
-            blockers=list(risk.blockers) if risk else [],
-            base_price=risk.base_price if risk else None,
-            step=risk.step if risk else Decimal("0.10"),
-            tornado=[AuditTornadoBarOut(
-                param=b.param, label=b.label, step=b.step, low_price=b.low_price,
-                high_price=b.high_price, low_delta=b.low_delta,
-                high_delta=b.high_delta, span=b.span, note=b.note)
-                for b in (risk.tornado if risk else [])],
-            monte_carlo=(AuditMonteCarloOut(
-                iterations=risk.monte_carlo.iterations,
-                valued=risk.monte_carlo.valued, unvalued=risk.monte_carlo.unvalued,
-                median=risk.monte_carlo.median, mean=risk.monte_carlo.mean,
-                p10=risk.monte_carlo.p10, p25=risk.monte_carlo.p25,
-                p75=risk.monte_carlo.p75, p90=risk.monte_carlo.p90,
-                minimum=risk.monte_carlo.minimum, maximum=risk.monte_carlo.maximum,
-                histogram=[AuditHistogramBinOut(from_=h.from_, to=h.to, count=h.count)
-                           for h in risk.monte_carlo.histogram],
-                below_asking=risk.monte_carlo.below_asking,
-                median_drift=risk.monte_carlo.median_drift)
-                if risk and risk.monte_carlo else None),
-            warnings=list(risk.warnings) if risk else [],
-            not_computed=list(risk.not_computed) if risk else [],
-        ),
+        risk=audit_risk_response(risk),
         plan_fact=AuditPlanFactOut(
             available=plan_fact.available if plan_fact else False,
             periods=list(plan_fact.periods) if plan_fact else [],

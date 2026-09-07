@@ -234,6 +234,12 @@ export interface paths {
         /**
          * Analyze Subject
          * @description Проанализировать отчётность субъекта: аналитическая форма, тренды, коэффициенты.
+         *
+         *     **Без стохастики** (`deep=False`). Анализ дёргается при каждом открытии дела и после
+         *     каждой правки модели, а Монте-Карло — единственный дорогой слой: на объявленных
+         *     неопределённых допущениях разбор шёл 0,9 с при 2 000 прогонов и 8,7 с при 20 000
+         *     вместо 6 мс, и платил за это тот, кто пользуется самой продвинутой функцией. Риски
+         *     считаются там, где их показывают: `…/risk`, документ, выгрузка.
          */
         post: operations["analyze_subject_api_v1_audit_subjects__subject_id__analyze_post"];
         delete?: never;
@@ -276,6 +282,30 @@ export interface paths {
         get: operations["download_report_api_v1_audit_subjects__subject_id__report_docx_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/subjects/{subject_id}/risk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Analyze Subject Risk
+         * @description Анализ рисков оценки: торнадо и Монте-Карло (SPEC, Прил. Р).
+         *
+         *     Отдельный вызов, потому что это единственный дорогой слой: его просят, открывая
+         *     вкладку рисков или скачивая документ, а не каждым открытием дела. Разбор идёт тем
+         *     же конвейером — числа те же, что в остальных разделах.
+         */
+        post: operations["analyze_subject_risk_api_v1_audit_subjects__subject_id__risk_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -7887,6 +7917,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    analyze_subject_risk_api_v1_audit_subjects__subject_id__risk_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditRiskOut"];
                 };
             };
             /** @description Validation Error */

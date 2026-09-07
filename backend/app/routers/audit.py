@@ -43,11 +43,13 @@ from ..schemas import (
     AuditGroupOut,
     AuditGroupSummary,
     AuditGroupUpdate,
+    AuditRiskOut,
     AuditSubjectCreate,
     AuditSubjectOut,
     AuditSubjectSummary,
     AuditSubjectUpdate,
     audit_analysis_response,
+    audit_risk_response,
 )
 
 router = APIRouter(prefix="/api/v1/audit", tags=["audit"])
@@ -163,14 +165,35 @@ def duplicate_subject(subject_id: str,
 def analyze_subject(subject_id: str,
                     org_id: str = Depends(require_permission(Perm.PROJECT_CALCULATE)),
                     db: Session = Depends(get_db)) -> AuditAnalysisOut:
-    """Проанализировать отчётность субъекта: аналитическая форма, тренды, коэффициенты."""
+    """Проанализировать отчётность субъекта: аналитическая форма, тренды, коэффициенты.
+
+    **Без стохастики** (`deep=False`). Анализ дёргается при каждом открытии дела и после
+    каждой правки модели, а Монте-Карло — единственный дорогой слой: на объявленных
+    неопределённых допущениях разбор шёл 0,9 с при 2 000 прогонов и 8,7 с при 20 000
+    вместо 6 мс, и платил за это тот, кто пользуется самой продвинутой функцией. Риски
+    считаются там, где их показывают: `…/risk`, документ, выгрузка.
+    """
     subject = _require(db, org_id, subject_id)
     # Конвейер один на экран и на документ (`audit_core.pipeline`): вторая копия
     # порядка слоёв однажды уже разошлась с первой и молчала о находках.
-    r = review_case(crud.load_audit_model(subject))
+    r = review_case(crud.load_audit_model(subject), deep=False)
     return audit_analysis_response(r.result, r.opinion, r.issues, r.flags, r.earnings,
                                    r.obligations, r.procedures, r.summary, r.valuation,
                                    r.risk, r.plan_fact)
+
+
+@router.post("/subjects/{subject_id}/risk", response_model=AuditRiskOut)
+def analyze_subject_risk(subject_id: str,
+                         org_id: str = Depends(require_permission(Perm.PROJECT_CALCULATE)),
+                         db: Session = Depends(get_db)) -> AuditRiskOut:
+    """Анализ рисков оценки: торнадо и Монте-Карло (SPEC, Прил. Р).
+
+    Отдельный вызов, потому что это единственный дорогой слой: его просят, открывая
+    вкладку рисков или скачивая документ, а не каждым открытием дела. Разбор идёт тем
+    же конвейером — числа те же, что в остальных разделах.
+    """
+    subject = _require(db, org_id, subject_id)
+    return audit_risk_response(review_case(crud.load_audit_model(subject)).risk)
 
 
 def _consolidate(members: list[tuple[str, AuditSubjectModel]], name: str,

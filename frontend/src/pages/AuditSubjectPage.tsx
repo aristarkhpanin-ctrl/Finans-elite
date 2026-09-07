@@ -10,6 +10,7 @@ import {
   RATIO_GROUPS,
   REPORTING_STANDARDS,
   REVALUABLE_LINES,
+  analyzeAuditRisk,
   analyzeAuditSubject,
   downloadAuditReport,
   getAuditSubject,
@@ -159,6 +160,7 @@ export function AuditSubjectPage() {
       qc.setQueryData(["audit-subject", id], s);
       qc.invalidateQueries({ queryKey: ["audit-subjects"] });
       qc.invalidateQueries({ queryKey: ["audit-analysis", id] });   // пересчитать анализ
+      qc.invalidateQueries({ queryKey: ["audit-risk", id] });       // и риски по нему
       setDirty(false);
       toast("Сохранено", { kind: "success" });
     },
@@ -173,6 +175,14 @@ export function AuditSubjectPage() {
     queryKey: ["audit-analysis", id],
     queryFn: () => analyzeAuditSubject(id),
     enabled: isAnalysisTab,
+  });
+  // Риски — отдельным запросом и только на своей вкладке: Монте-Карло перестраивает
+  // оценку на каждом прогоне, и в анализе, который дёргается при каждом открытии дела,
+  // ему не место. Выгрузка XLSX берёт тот же кэш (ниже), поэтому дважды не считается.
+  const risk = useQuery({
+    queryKey: ["audit-risk", id],
+    queryFn: () => analyzeAuditRisk(id),
+    enabled: tab === "risk",
   });
 
   if (isLoading || !model || !data) {
@@ -348,7 +358,15 @@ export function AuditSubjectPage() {
               variant="ghost"
               onClick={async () => {
                 try {
-                  await downloadAuditXlsx(`${name || "Анализ"}.xlsx`, analysis.data!);
+                  // Риски в анализ больше не входят, а в файл — входят: скачивание
+                  // это осознанное действие, там прогоны терпимы. Из кэша, если
+                  // вкладку рисков уже открывали.
+                  const risks = await qc.fetchQuery({
+                    queryKey: ["audit-risk", id],
+                    queryFn: () => analyzeAuditRisk(id),
+                  });
+                  await downloadAuditXlsx(`${name || "Анализ"}.xlsx`,
+                                          { ...analysis.data!, risk: risks });
                   toast("Выгрузка XLSX скачана", { kind: "success" });
                 } catch {
                   toast("Не удалось сформировать выгрузку", { kind: "error" });
@@ -822,11 +840,23 @@ export function AuditSubjectPage() {
           onChange={(next) => patch({ valuation: next })}
         />
       ) : tab === "risk" ? (
-        <AuditRisk
-          result={analysis.data.risk}
-          settings={m.risk}
-          onChange={(next) => patch({ risk: next })}
-        />
+        risk.isLoading ? (
+          // Прогон Монте-Карло — единственное место продукта, где ожидание заметно;
+          // «считаем» честнее пустого экрана.
+          <div className="page-sub" style={{ padding: 24 }}>Считаем прогоны Монте-Карло…</div>
+        ) : risk.isError ? (
+          <div className="error-state" style={{ padding: "40px 24px" }}>
+            <div className="error-state__ico">!</div>
+            <div className="error-state__title">Не удалось посчитать риски</div>
+            <Button variant="ghost" onClick={() => risk.refetch()}>Повторить</Button>
+          </div>
+        ) : (
+          <AuditRisk
+            result={risk.data ?? analysis.data.risk}
+            settings={m.risk}
+            onChange={(next) => patch({ risk: next })}
+          />
+        )
       ) : tab === "planfact" ? (
         <AuditPlanFact
           result={analysis.data.plan_fact}
