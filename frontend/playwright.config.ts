@@ -54,14 +54,24 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,
       env: { DATABASE_URL: `sqlite:///${DB}`, APP_ENV: "development" },
+      // Вывод сервера виден: молчащий сервер отлаживать нечем (по умолчанию
+      // Playwright прячет stdout, и разбирать падение приходится вслепую).
+      stdout: "pipe",
     },
     {
-      command: `npx vite --port ${PORT} --strictPort`,
+      // `--host 127.0.0.1` обязателен, а не для порядка. По умолчанию vite слушает
+      // «localhost», а Node (17+) резолвит это имя в порядке DNS, без приоритета IPv4:
+      // где есть IPv6-петля, сервер поднимается только на [::1], и проверка адреса
+      // ниже не достучится до него никогда. Машина разработчика без IPv6 этого не
+      // показывает — на runner'е CI с ::1 ожидание готовности упиралось в таймаут,
+      // причём молча: процесс жив, порт занят, ответа нет.
+      command: `npx vite --host 127.0.0.1 --port ${PORT} --strictPort`,
       url: `http://127.0.0.1:${PORT}`,
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,
       // Фронт ходит в API через прокси vite; в e2e он смотрит на свой бэкенд.
       env: { E2E_API_PORT: String(API_PORT) },
+      stdout: "pipe",
     },
   ],
 });
