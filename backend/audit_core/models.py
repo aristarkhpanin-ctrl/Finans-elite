@@ -6,6 +6,7 @@
 """
 from __future__ import annotations
 
+import datetime
 from decimal import Decimal
 from typing import Literal, Optional
 
@@ -265,6 +266,41 @@ class RealizedFlag(BaseModel):
     note: str = Field(default="", max_length=500)
 
 
+class ReportRequisites(BaseModel):
+    """Реквизиты документа и подписи (SPEC, Прил. Х).
+
+    До этого печатный бланк был отчётом о проверке, но не документом сделки: у него не
+    было ни адресата, ни номера, ни того, кто под ним подписался. Пустые линии под
+    выдуманными должностями печатать было нельзя (Прил. У.4), а настоящих подписантов
+    в модели не существовало — теперь они здесь.
+
+    Всё поля необязательны, и пустой блок **инертен**: документ печатается ровно как
+    прежде, только с прямо названной оговоркой, что он не подписан.
+
+    Реквизиты фирмы-цели вводятся человеком и **не сверяются с реестром**: доступа к
+    ЕГРЮЛ у платформы нет. Проверяется только внутренняя согласованность ИНН и ОГРН
+    (контрольные цифры) — опечатка называется, а не печатается молча.
+    """
+
+    #: Номер документа в делопроизводстве организации (у платформы его нет).
+    number: str = Field(default="", max_length=64)
+    #: Дата документа. ``None`` — печатается дата формирования, и это сказано.
+    #: Тип берётся через модуль: поле называется ``date`` и затенило бы имя типа.
+    date: Optional[datetime.date] = None
+    #: Кому адресовано заключение («Инвестиционному комитету …»).
+    addressee: str = Field(default="", max_length=255)
+    #: Полное наименование фирмы-цели (в карточке дела — рабочее короткое).
+    subject_full_name: str = Field(default="", max_length=255)
+    subject_inn: str = Field(default="", max_length=12)
+    subject_ogrn: str = Field(default="", max_length=15)
+    subject_address: str = Field(default="", max_length=255)
+    #: Кто составил заключение и кто утвердил. Должность без имени подписью не является.
+    executor_name: str = Field(default="", max_length=120)
+    executor_role: str = Field(default="", max_length=120)
+    approver_name: str = Field(default="", max_length=120)
+    approver_role: str = Field(default="", max_length=120)
+
+
 class AuditSubjectModel(BaseModel):
     """Субъект анализа с фактической отчётностью по периодам.
 
@@ -312,6 +348,9 @@ class AuditSubjectModel(BaseModel):
     # фактических чисел план-факт не заводит.
     seller_plan: dict[str, list[Decimal]] = Field(default_factory=dict)
     realized_flags: list[RealizedFlag] = Field(default_factory=list, max_length=50)
+    # Реквизиты документа и подписи (пакет №6 улучшений). Пустой блок инертен: бланк
+    # печатается как прежде, но прямо говорит, что он не подписан.
+    report: ReportRequisites = Field(default_factory=ReportRequisites)
 
     @property
     def n(self) -> int:

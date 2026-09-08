@@ -113,6 +113,7 @@ export function AuditPrintReport({
   const light = analysis.diagnostics?.light ?? "";
 
   const summary = analysis.summary;
+  const req = analysis.requisites;
   const valuation = analysis.valuation;
   const flags = analysis.flags.flags;
   const procedures = analysis.procedures;
@@ -125,17 +126,35 @@ export function AuditPrintReport({
             <div className="ap-brand-sub">Анализ фактической отчётности</div>
           </div>
           <div style={{ textAlign: "right" }}>
-            <div className="ap-dockind">Заключение</div>
-            <div className="ap-docdate">{new Date().toLocaleDateString("ru-RU")}</div>
+            <div className="ap-dockind">
+              Заключение{req.number && ` № ${req.number}`}
+            </div>
+            {/* Дата документа, если её задали; иначе — дата печати, и она подписана
+                именно так: выдавать день печати за дату заключения нельзя. */}
+            <div className="ap-docdate">
+              {req.date
+                ? new Date(req.date).toLocaleDateString("ru-RU")
+                : `${new Date().toLocaleDateString("ru-RU")} · дата формирования`}
+            </div>
+            {req.addressee && <div className="ap-docaddr">{req.addressee}</div>}
           </div>
         </header>
 
-        <h1 className="ap-subject">{name || "Без названия"}</h1>
+        <h1 className="ap-subject">{req.subject_full_name || name || "Без названия"}</h1>
         <div className="ap-subject-sub">
           {[industry || "отрасль не указана", standardName,
             `${analysis.n} ${plural(analysis.n, "период", "периода", "периодов")}`,
           ].join(" · ")}
         </div>
+        {/* Реквизиты цели печатаются только заполненные: строка «ИНН: —» сообщает
+            лишь о том, что поле существует. */}
+        {(req.subject_inn || req.subject_ogrn || req.subject_address) && (
+          <div className="ap-subject-sub">
+            {[req.subject_inn && `ИНН ${req.subject_inn}`,
+              req.subject_ogrn && `ОГРН ${req.subject_ogrn}`,
+              req.subject_address].filter(Boolean).join(" · ")}
+          </div>
+        )}
 
         {analysis.diagnostics && (
           <div className={"ap-verdict ap-verdict--" + light}>
@@ -357,6 +376,26 @@ export function AuditPrintReport({
             ))}
           </div>
         )}
+
+        {/* Подписи — перед подвальной оговоркой: до них читатель проходит всё, что
+            подписывается. Линия под должностью без имени не печатается: подписи не
+            существует, а пустая линия предлагает документу вид, которого он не имеет. */}
+        <div className="ap-block">
+          <div className="ap-block__title">Подписи</div>
+          {req.signed ? (
+            <div className="ap-signs">
+              {req.signatures.map((s, i) => (
+                <div className="ap-sign" key={i}>
+                  <div className="ap-sign__line" />
+                  <div className="ap-sign__name">{s.name}</div>
+                  {s.role && <div className="ap-sign__role">{s.role}</div>}
+                </div>
+              ))}
+            </div>
+          ) : null}
+          {req.caveats.map((c) => <p className="ap-fine" key={c}>{c}</p>)}
+          {req.not_computed.map((t) => <p className="ap-fine" key={t}>{t}</p>)}
+        </div>
 
         <div className="ap-fineprint">
           Документ сформирован автоматически по введённой фактической отчётности.

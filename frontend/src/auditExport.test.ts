@@ -79,6 +79,9 @@ const analysis = (over: Partial<AuditAnalysis> = {}): AuditAnalysis => ({
   plan_fact: { available: false, periods: [], rows: [], flags: [],
                predicted_total: "0", realized_total: "0", unpriced_realized: 0,
                orphan_marks: [], caveats: [], not_computed: [] },
+  requisites: { filled: false, signed: false, number: "", date: null, addressee: "",
+                subject_full_name: "", subject_inn: "", subject_ogrn: "",
+                subject_address: "", signatures: [], caveats: [], not_computed: [] },
   benchmark: { available: false, blockers: ["Ориентиры организации не заведены."],
                industry: "", metric: "", metric_label: "", benchmark: null,
                case_multiple: null, deviation: null, source: "", updated_at: null,
@@ -185,7 +188,7 @@ describe("metricsSheet", () => {
 
 describe("Ядро due diligence в выгрузке", () => {
   /** Дело с находками, поправками прибыли, реестром и посчитанной оценкой. */
-  const rich = () => analysis({
+  const rich = (over: Partial<AuditAnalysis> = {}) => analysis({
     flags: { flags: [
       { code: "receivables", severity: "risk", title: "Дебиторка растёт быстрее выручки",
         detail: "рост дебиторки опережает выручку", periods: [1], impact: "209",
@@ -221,14 +224,36 @@ describe("Ядро due diligence в выгрузке", () => {
                             kind: "total", note: "" },
                           { label: "Долг по реестру", amount: "-520", kind: "subtract",
                             note: "" }] },
+    ...over,
   });
 
   it("вердикт несёт охват проверки и список «что не посчитано»", () => {
     const rows = vals(verdictSheet(rich()));
-    expect(rows[0]).toEqual(["Вердикт", "Высокий риск"]);
+    expect(rows.find((r) => r[0] === "Вердикт")).toEqual(["Вердикт", "Высокий риск"]);
     expect(rows.find((r) => r[0] === "Охват проверки")).toEqual(["Охват проверки", "18 из 28"]);
     expect(rows.some((r) => String(r[0]).includes("не скидка к цене"))).toBe(true);
     expect(rows.some((r) => String(r[0]).includes("Доходность вложения"))).toBe(true);
+  });
+
+  it("неподписанный документ называет себя рабочим материалом и в таблице", () => {
+    // Файл читают без интерфейса: «что это за документ» — первый вопрос к нему.
+    const rows = vals(verdictSheet(rich()));
+    expect(rows.some((r) => String(r[0]).includes("не подписан"))).toBe(true);
+  });
+
+  it("реквизиты и подписи идут в шапку листа вердикта", () => {
+    const rows = vals(verdictSheet(rich({
+      requisites: { filled: true, signed: true, number: "ДД-14/2026",
+                    date: "2026-09-05", addressee: "Инвесткомитету",
+                    subject_full_name: "ООО «Цель»", subject_inn: "7707083893",
+                    subject_ogrn: "", subject_address: "",
+                    signatures: [{ name: "И. Петров", role: "Аналитик" }],
+                    caveats: [], not_computed: [] },
+    })));
+    expect(rows[0]).toEqual(["Номер документа", "ДД-14/2026"]);
+    expect(rows.find((r) => r[0] === "Аналитик")).toEqual(["Аналитик", "И. Петров"]);
+    // Пустые реквизиты не печатаются: строка «ОГРН: —» сообщает лишь о поле.
+    expect(rows.some((r) => r[0] === "ОГРН")).toBe(false);
   });
 
   it("флаг без денежной меры — пустая ячейка и слова, а не ноль", () => {

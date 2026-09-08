@@ -501,6 +501,9 @@
             "title": "Ratios",
             "type": "object"
           },
+          "requisites": {
+            "$ref": "#/components/schemas/RequisitesOut"
+          },
           "revalued": {
             "default": false,
             "title": "Revalued",
@@ -2695,6 +2698,9 @@
             "title": "Realized Flags",
             "type": "array"
           },
+          "report": {
+            "$ref": "#/components/schemas/ReportRequisites"
+          },
           "reporting_standard": {
             "default": "rsbu",
             "enum": [
@@ -2847,6 +2853,9 @@
             "maxItems": 50,
             "title": "Realized Flags",
             "type": "array"
+          },
+          "report": {
+            "$ref": "#/components/schemas/ReportRequisites"
           },
           "reporting_standard": {
             "default": "rsbu",
@@ -9294,6 +9303,168 @@
         "title": "RepaymentType",
         "type": "string"
       },
+      "ReportRequisites": {
+        "description": "Реквизиты документа и подписи (SPEC, Прил. Х).\n\nДо этого печатный бланк был отчётом о проверке, но не документом сделки: у него не\nбыло ни адресата, ни номера, ни того, кто под ним подписался. Пустые линии под\nвыдуманными должностями печатать было нельзя (Прил. У.4), а настоящих подписантов\nв модели не существовало — теперь они здесь.\n\nВсё поля необязательны, и пустой блок **инертен**: документ печатается ровно как\nпрежде, только с прямо названной оговоркой, что он не подписан.\n\nРеквизиты фирмы-цели вводятся человеком и **не сверяются с реестром**: доступа к\nЕГРЮЛ у платформы нет. Проверяется только внутренняя согласованность ИНН и ОГРН\n(контрольные цифры) — опечатка называется, а не печатается молча.",
+        "properties": {
+          "addressee": {
+            "default": "",
+            "maxLength": 255,
+            "title": "Addressee",
+            "type": "string"
+          },
+          "approver_name": {
+            "default": "",
+            "maxLength": 120,
+            "title": "Approver Name",
+            "type": "string"
+          },
+          "approver_role": {
+            "default": "",
+            "maxLength": 120,
+            "title": "Approver Role",
+            "type": "string"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "executor_name": {
+            "default": "",
+            "maxLength": 120,
+            "title": "Executor Name",
+            "type": "string"
+          },
+          "executor_role": {
+            "default": "",
+            "maxLength": 120,
+            "title": "Executor Role",
+            "type": "string"
+          },
+          "number": {
+            "default": "",
+            "maxLength": 64,
+            "title": "Number",
+            "type": "string"
+          },
+          "subject_address": {
+            "default": "",
+            "maxLength": 255,
+            "title": "Subject Address",
+            "type": "string"
+          },
+          "subject_full_name": {
+            "default": "",
+            "maxLength": 255,
+            "title": "Subject Full Name",
+            "type": "string"
+          },
+          "subject_inn": {
+            "default": "",
+            "maxLength": 12,
+            "title": "Subject Inn",
+            "type": "string"
+          },
+          "subject_ogrn": {
+            "default": "",
+            "maxLength": 15,
+            "title": "Subject Ogrn",
+            "type": "string"
+          }
+        },
+        "title": "ReportRequisites",
+        "type": "object"
+      },
+      "RequisitesOut": {
+        "description": "Реквизиты документа и подписи (SPEC, Прил. Х).\n\n``signed=False`` — документ не подписан, и первая же оговорка это называет:\nнеподписанный бланк с гербовой строгостью читается как заключение.",
+        "properties": {
+          "addressee": {
+            "default": "",
+            "title": "Addressee",
+            "type": "string"
+          },
+          "caveats": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "filled": {
+            "default": false,
+            "title": "Filled",
+            "type": "boolean"
+          },
+          "not_computed": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Not Computed",
+            "type": "array"
+          },
+          "number": {
+            "default": "",
+            "title": "Number",
+            "type": "string"
+          },
+          "signatures": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SignatureOut"
+            },
+            "title": "Signatures",
+            "type": "array"
+          },
+          "signed": {
+            "default": false,
+            "title": "Signed",
+            "type": "boolean"
+          },
+          "subject_address": {
+            "default": "",
+            "title": "Subject Address",
+            "type": "string"
+          },
+          "subject_full_name": {
+            "default": "",
+            "title": "Subject Full Name",
+            "type": "string"
+          },
+          "subject_inn": {
+            "default": "",
+            "title": "Subject Inn",
+            "type": "string"
+          },
+          "subject_ogrn": {
+            "default": "",
+            "title": "Subject Ogrn",
+            "type": "string"
+          }
+        },
+        "title": "RequisitesOut",
+        "type": "object"
+      },
       "Resource-Input": {
         "description": "Ресурс (материал/оборудование/труд/услуга) с ценой единицы и условиями оплаты.",
         "properties": {
@@ -10043,6 +10214,25 @@
           "points"
         ],
         "title": "SensitivityResponse",
+        "type": "object"
+      },
+      "SignatureOut": {
+        "description": "Подписант документа. Существует только вместе с именем (Прил. Х).",
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "role": {
+            "default": "",
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "SignatureOut",
         "type": "object"
       },
       "StaffPosition-Input": {

@@ -341,6 +341,47 @@ def _add_benchmark(doc: Document, b) -> None:
         doc.add_paragraph(c)
 
 
+def _add_requisites_head(doc: Document, q, today: date) -> None:
+    """Шапка документа: номер, дата, адресат, реквизиты фирмы-цели (Прил. Х).
+
+    Печатается только заполненное: пустая строка «ИНН: —» сообщает лишь о том, что поле
+    существует. Дата документа, если её не задали, — это дата формирования, и подписана
+    именно так: выдавать день печати за дату заключения нельзя.
+    """
+    rows = [(label, value) for label, value in (
+        ("Номер", q.number),
+        ("Дата", f"{q.date:%d.%m.%Y}" if q.date
+         else f"{today:%d.%m.%Y} (дата формирования — своя дата документа не задана)"),
+        ("Адресат", q.addressee),
+        ("Полное наименование", q.subject_full_name),
+        ("ИНН", q.subject_inn),
+        ("ОГРН", q.subject_ogrn),
+        ("Адрес", q.subject_address),
+    ) if value]
+    if not rows:
+        return
+    doc.add_heading("Реквизиты документа", level=1)
+    for label, value in rows:
+        doc.add_paragraph(f"{label}: {value}")
+
+
+def _add_signatures(doc: Document, q) -> None:
+    """Подписи в конце документа — или прямое заявление, что их нет (Прил. Х).
+
+    Линия под должностью без имени не печатается: подписи не существует, а бланк с
+    пустой линией предлагает документу вид, которого он не имеет. Оговорки идут рядом
+    с подписями, а не в конце: читатель обязан узнать о неподписанности там же, где
+    ищет подпись.
+    """
+    doc.add_heading("Подписи", level=1)
+    if q.signatures:
+        for s in q.signatures:
+            doc.add_paragraph(f"{s.role or 'Подпись'}: ____________________  {s.name}")
+    for c in q.caveats:
+        doc.add_paragraph(c)
+    _not_computed(doc, q.not_computed)
+
+
 def _add_risk(doc: Document, r: RiskResult) -> None:
     """Риски оценки: торнадо и Монте-Карло — с условием их чтения."""
     doc.add_heading("Риски оценки", level=1)
@@ -476,8 +517,12 @@ def build_audit_docx(review: CaseReview, *, subject_name: str,
         meta.append("основа отчётности: "
                     + _STANDARD_LABELS.get(reporting_standard, reporting_standard))
     doc.add_paragraph("; ".join(meta) + ".")
-    doc.add_paragraph(f"Дата формирования: {(today or date.today()).strftime('%d.%m.%Y')}.")
+    stamp = today or date.today()
+    doc.add_paragraph(f"Дата формирования: {stamp.strftime('%d.%m.%Y')}.")
     doc.add_paragraph("Финанс-Аудит · анализ по фактической отчётности.")
+    # Реквизиты — сразу под шапкой: адресат и номер отвечают на вопрос «что это за
+    # документ», а он предшествует любому его содержанию.
+    _add_requisites_head(doc, review.requisites, stamp)
     if result.revalued:
         # Документ с переоценёнными числами обязан сказать об этом на первой странице.
         doc.add_paragraph("Внимание: показатели рассчитаны по отчётности с учётом "
@@ -533,6 +578,10 @@ def build_audit_docx(review: CaseReview, *, subject_name: str,
 
     if not result.balanced:
         doc.add_paragraph("Внимание: введённая отчётность не сходится (актив ≠ пассив).")
+
+    # Подписи — последним разделом, как в любом документе: до них читатель проходит
+    # всё, что подписывается.
+    _add_signatures(doc, review.requisites)
 
     buf = BytesIO()
     doc.save(buf)

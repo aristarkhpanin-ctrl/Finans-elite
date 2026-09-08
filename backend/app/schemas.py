@@ -4,6 +4,7 @@ Decimal сериализуется в JSON как строка (точность
 """
 from __future__ import annotations
 
+import datetime as dt
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal, Optional
@@ -878,6 +879,35 @@ class BenchmarkViewOut(BaseModel):
     not_computed: list[str] = []
 
 
+class SignatureOut(BaseModel):
+    """Подписант документа. Существует только вместе с именем (Прил. Х)."""
+
+    name: str
+    role: str = ""
+
+
+class RequisitesOut(BaseModel):
+    """Реквизиты документа и подписи (SPEC, Прил. Х).
+
+    ``signed=False`` — документ не подписан, и первая же оговорка это называет:
+    неподписанный бланк с гербовой строгостью читается как заключение.
+    """
+
+    filled: bool = False
+    signed: bool = False
+    number: str = ""
+    # Тип берётся через модуль: поле называется ``date`` и затенило бы имя типа.
+    date: Optional[dt.date] = None
+    addressee: str = ""
+    subject_full_name: str = ""
+    subject_inn: str = ""
+    subject_ogrn: str = ""
+    subject_address: str = ""
+    signatures: list[SignatureOut] = []
+    caveats: list[str] = []
+    not_computed: list[str] = []
+
+
 class AuditVersionSummary(BaseModel):
     """Метаданные версии дела (без модели): для списка.
 
@@ -1048,6 +1078,8 @@ class AuditAnalysisOut(BaseModel):
     plan_fact: "AuditPlanFactOut" = None  # type: ignore[assignment]
     # Сопоставление с ориентирами организации (SPEC, Прил. Ф) — её числа, не рынок.
     benchmark: "BenchmarkViewOut" = BenchmarkViewOut()
+    # Реквизиты документа и подписи (SPEC, Прил. Х); в AuditResult не входят.
+    requisites: "RequisitesOut" = None  # type: ignore[assignment]
 
 
 class AuditAdjustmentOut(BaseModel):
@@ -1530,6 +1562,23 @@ class AuditGroupOut(AuditGroupSummary):
     model: AuditGroupModel
 
 
+def requisites_response(view) -> "RequisitesOut":
+    """Собрать реквизиты документа (Прил. Х); ``None`` — слой не считался.
+
+    Пустой блок — не «нет данных», а неподписанный документ: оговорка об этом приходит
+    из ядра и здесь не сочиняется.
+    """
+    if view is None:
+        return RequisitesOut()
+    return RequisitesOut(
+        filled=view.filled, signed=view.signed, number=view.number, date=view.date,
+        addressee=view.addressee, subject_full_name=view.subject_full_name,
+        subject_inn=view.subject_inn, subject_ogrn=view.subject_ogrn,
+        subject_address=view.subject_address,
+        signatures=[SignatureOut(name=s.name, role=s.role) for s in view.signatures],
+        caveats=list(view.caveats), not_computed=list(view.not_computed))
+
+
 def benchmark_view_response(view) -> "BenchmarkViewOut":
     """Собрать сопоставление с ориентиром (Прил. Ф); ``None`` — слой не считался."""
     if view is None:
@@ -1580,7 +1629,8 @@ def audit_analysis_response(result, opinion: str = "", issues=(),
                             flags=None, earnings=None, obligations=None,
                             procedures=None, summary=None,
                             valuation=None, risk=None,
-                            plan_fact=None, benchmark=None) -> "AuditAnalysisOut":
+                            plan_fact=None, benchmark=None,
+                            requisites=None) -> "AuditAnalysisOut":
     """Собрать ответ анализа из ``audit_core.AuditResult`` (+ заключение, ввод, флаги)."""
     return AuditAnalysisOut(
         opinion=opinion,
@@ -1639,6 +1689,7 @@ def audit_analysis_response(result, opinion: str = "", issues=(),
         ),
         risk=audit_risk_response(risk),
         benchmark=benchmark_view_response(benchmark),
+        requisites=requisites_response(requisites),
         plan_fact=AuditPlanFactOut(
             available=plan_fact.available if plan_fact else False,
             periods=list(plan_fact.periods) if plan_fact else [],

@@ -1555,6 +1555,15 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px; margin-bottom: 10px;
 }
+/* Состояние документа над полями реквизитов: подписан или рабочий материал (Прил. Х). */
+.req-state {
+  padding: 10px 14px; border-radius: 10px; font: 500 12.5px var(--font-ui);
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
+}
+.req-state--ok { border-color: var(--good-border, var(--border)); background: var(--good-bg); }
+.req-state--warn { border-color: var(--warn-border); background: var(--warn-bg); }
+.req-sign { display: grid; gap: 8px; }
+
 /* Справочник ориентиров организации: таблица правится как таблица. */
 .bm-tbl td { padding: 5px 6px; vertical-align: middle; }
 .bm-tbl .input { width: 100%; min-width: 120px; height: 34px; }
@@ -1744,6 +1753,8 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   text-transform: uppercase; color: var(--accent);
 }
 .ap-docdate { font: 500 11px var(--font-mono); color: var(--muted); margin-top: 4px; }
+/* Адресат — часть шапки документа: кому он выдан, видно раньше содержания. */
+.ap-docaddr { font: 500 11px var(--font-ui); color: var(--muted); margin-top: 3px; max-width: 260px; }
 .ap-subject {
   font: 500 28px var(--font-display); letter-spacing: -0.03em; margin: 20px 0 0;
 }
@@ -1785,6 +1796,13 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 /* Оговорка внутри раздела: мельче основного текста, но крупнее подвальной —
    её читают вместе с числами, которые она объясняет. */
 .ap-fine { font-size: 11.5px; line-height: 1.5; color: var(--muted); margin: 6px 0 0; }
+/* Подписи на бланке: линия печатается только под именем — пустая линия предлагала бы
+   документу вид, которого он не имеет. */
+.ap-signs { display: flex; gap: 32px; flex-wrap: wrap; margin-top: 6px; }
+.ap-sign { min-width: 190px; }
+.ap-sign__line { border-bottom: 1px solid var(--rule-strong); height: 26px; }
+.ap-sign__name { font: 600 12.5px var(--font-ui); margin-top: 5px; }
+.ap-sign__role { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
 .ap-fineprint {
   margin-top: 18px; font-size: 10.5px; line-height: 1.5; color: var(--faint);
 }

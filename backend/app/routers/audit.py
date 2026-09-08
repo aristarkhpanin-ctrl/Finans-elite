@@ -198,7 +198,7 @@ def analyze_subject(subject_id: str,
                     benchmarks=_benchmarks(db, org_id))
     return audit_analysis_response(r.result, r.opinion, r.issues, r.flags, r.earnings,
                                    r.obligations, r.procedures, r.summary, r.valuation,
-                                   r.risk, r.plan_fact, r.benchmark)
+                                   r.risk, r.plan_fact, r.benchmark, r.requisites)
 
 
 @router.post("/subjects/{subject_id}/risk", response_model=AuditRiskOut)

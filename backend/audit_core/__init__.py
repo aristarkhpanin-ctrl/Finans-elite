@@ -18,6 +18,7 @@ from .obligations import ObligationRegister, build_obligations
 from .pipeline import CaseReview, review_case
 from .planfact import PlanFact, build_plan_fact
 from .procedures import Procedure, ProcedureReport, run_procedures
+from .requisites import RequisitesView, build_requisites
 from .result import AuditLine, AuditResult, ShareLine, TrendLine
 from .risk import RiskResult, analyze_risk
 from .summary import CaseSummary, build_summary
@@ -44,6 +45,7 @@ __all__ = [
     "PlanFact",
     "Procedure",
     "ProcedureReport",
+    "RequisitesView",
     "RiskResult",
     "ShareLine",
     "TrendLine",
@@ -52,6 +54,7 @@ __all__ = [
     "analyze_risk",
     "build_obligations",
     "build_plan_fact",
+    "build_requisites",
     "build_summary",
     "build_valuation",
     "check_input",

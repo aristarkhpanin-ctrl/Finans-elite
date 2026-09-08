@@ -1689,6 +1689,7 @@ export interface components {
                     [key: string]: (string | null)[];
                 };
             };
+            requisites?: components["schemas"]["RequisitesOut"];
             /**
              * Revalued
              * @default false
@@ -2933,6 +2934,7 @@ export interface components {
             procedure_marks?: components["schemas"]["ProcedureMark"][];
             /** Realized Flags */
             realized_flags?: components["schemas"]["RealizedFlag-Input"][];
+            report?: components["schemas"]["ReportRequisites"];
             /**
              * Reporting Standard
              * @default rsbu
@@ -2995,6 +2997,7 @@ export interface components {
             procedure_marks?: components["schemas"]["ProcedureMark"][];
             /** Realized Flags */
             realized_flags?: components["schemas"]["RealizedFlag-Output"][];
+            report?: components["schemas"]["ReportRequisites"];
             /**
              * Reporting Standard
              * @default rsbu
@@ -6402,6 +6405,142 @@ export interface components {
          */
         RepaymentType: "equal_principal" | "bullet";
         /**
+         * ReportRequisites
+         * @description Реквизиты документа и подписи (SPEC, Прил. Х).
+         *
+         *     До этого печатный бланк был отчётом о проверке, но не документом сделки: у него не
+         *     было ни адресата, ни номера, ни того, кто под ним подписался. Пустые линии под
+         *     выдуманными должностями печатать было нельзя (Прил. У.4), а настоящих подписантов
+         *     в модели не существовало — теперь они здесь.
+         *
+         *     Всё поля необязательны, и пустой блок **инертен**: документ печатается ровно как
+         *     прежде, только с прямо названной оговоркой, что он не подписан.
+         *
+         *     Реквизиты фирмы-цели вводятся человеком и **не сверяются с реестром**: доступа к
+         *     ЕГРЮЛ у платформы нет. Проверяется только внутренняя согласованность ИНН и ОГРН
+         *     (контрольные цифры) — опечатка называется, а не печатается молча.
+         */
+        ReportRequisites: {
+            /**
+             * Addressee
+             * @default
+             */
+            addressee: string;
+            /**
+             * Approver Name
+             * @default
+             */
+            approver_name: string;
+            /**
+             * Approver Role
+             * @default
+             */
+            approver_role: string;
+            /** Date */
+            date?: string | null;
+            /**
+             * Executor Name
+             * @default
+             */
+            executor_name: string;
+            /**
+             * Executor Role
+             * @default
+             */
+            executor_role: string;
+            /**
+             * Number
+             * @default
+             */
+            number: string;
+            /**
+             * Subject Address
+             * @default
+             */
+            subject_address: string;
+            /**
+             * Subject Full Name
+             * @default
+             */
+            subject_full_name: string;
+            /**
+             * Subject Inn
+             * @default
+             */
+            subject_inn: string;
+            /**
+             * Subject Ogrn
+             * @default
+             */
+            subject_ogrn: string;
+        };
+        /**
+         * RequisitesOut
+         * @description Реквизиты документа и подписи (SPEC, Прил. Х).
+         *
+         *     ``signed=False`` — документ не подписан, и первая же оговорка это называет:
+         *     неподписанный бланк с гербовой строгостью читается как заключение.
+         */
+        RequisitesOut: {
+            /**
+             * Addressee
+             * @default
+             */
+            addressee: string;
+            /**
+             * Caveats
+             * @default []
+             */
+            caveats: string[];
+            /** Date */
+            date?: string | null;
+            /**
+             * Filled
+             * @default false
+             */
+            filled: boolean;
+            /**
+             * Not Computed
+             * @default []
+             */
+            not_computed: string[];
+            /**
+             * Number
+             * @default
+             */
+            number: string;
+            /**
+             * Signatures
+             * @default []
+             */
+            signatures: components["schemas"]["SignatureOut"][];
+            /**
+             * Signed
+             * @default false
+             */
+            signed: boolean;
+            /**
+             * Subject Address
+             * @default
+             */
+            subject_address: string;
+            /**
+             * Subject Full Name
+             * @default
+             */
+            subject_full_name: string;
+            /**
+             * Subject Inn
+             * @default
+             */
+            subject_inn: string;
+            /**
+             * Subject Ogrn
+             * @default
+             */
+            subject_ogrn: string;
+        };
+        /**
          * Resource
          * @description Ресурс (материал/оборудование/труд/услуга) с ценой единицы и условиями оплаты.
          */
@@ -6740,6 +6879,19 @@ export interface components {
             param: string;
             /** Points */
             points: components["schemas"]["SensitivityPointOut"][];
+        };
+        /**
+         * SignatureOut
+         * @description Подписант документа. Существует только вместе с именем (Прил. Х).
+         */
+        SignatureOut: {
+            /** Name */
+            name: string;
+            /**
+             * Role
+             * @default
+             */
+            role: string;
         };
         /**
          * StaffPosition

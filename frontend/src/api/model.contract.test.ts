@@ -63,6 +63,8 @@ const ALIASES: Record<string, string> = {
   AuditElimination: "AuditEliminationIn",
   // Ориентиры принадлежат организации, а не делу, — отсюда разные префиксы имён.
   AuditBenchmarkView: "BenchmarkViewOut",
+  AuditRequisites: "RequisitesOut",
+  AuditSignature: "SignatureOut",
 };
 
 /** Схема контракта по имени интерфейса (pydantic делит на -Input/-Output). */

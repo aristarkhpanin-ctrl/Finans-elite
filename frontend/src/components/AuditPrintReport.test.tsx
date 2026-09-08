@@ -74,6 +74,14 @@ function analysis(over: Partial<AuditAnalysis> = {}): AuditAnalysis {
     plan_fact: { available: false, periods: [], rows: [], flags: [],
                  predicted_total: "0", realized_total: "0", unpriced_realized: 0,
                  orphan_marks: [], caveats: [], not_computed: [] },
+    // Дело без реквизитов: документ выйдет неподписанным — и скажет об этом (Прил. Х).
+    requisites: { filled: false, signed: false, number: "", date: null, addressee: "",
+                  subject_full_name: "", subject_inn: "", subject_ogrn: "",
+                  subject_address: "", signatures: [],
+                  caveats: ["Документ не подписан: ни составитель, ни утверждающий не "
+                            + "указаны. Это рабочий материал, а не заключение."],
+                  not_computed: ["Сверка реквизитов с ЕГРЮЛ — доступа к реестру у "
+                                 + "платформы нет."] },
     ...over,
   } as AuditAnalysis;
 }
@@ -207,5 +215,50 @@ describe("Печатное заключение", () => {
     // потому что бумагу показывают третьим лицам без всякого контекста.
     paper();
     expect(screen.getByText(/не является аудиторским/)).toBeTruthy();
+  });
+
+  /**
+   * Реквизиты и подписи (Прил. Х). Ради них бланк и делался документом сделки: раньше
+   * у него не было ни адресата, ни номера, ни того, кто под ним подписался.
+   */
+  const signed = {
+    filled: true, signed: true, number: "ДД-14/2026", date: "2026-09-05",
+    addressee: "Инвестиционному комитету ООО «Фонд»",
+    subject_full_name: "Общество с ограниченной ответственностью «Цель»",
+    subject_inn: "7707083893", subject_ogrn: "1027700132195",
+    subject_address: "Москва, ул. Примерная, 1",
+    signatures: [{ name: "И. Петров", role: "Аналитик" },
+                 { name: "А. Сидорова", role: "Партнёр" }],
+    caveats: [], not_computed: ["Сверка реквизитов с ЕГРЮЛ — доступа к реестру нет."],
+  };
+
+  it("подписанный документ печатает адресата, номер и линии подписей", () => {
+    paper({ requisites: signed as AuditAnalysis["requisites"] });
+    expect(screen.getByText(/ДД-14\/2026/)).toBeTruthy();
+    expect(screen.getByText("Инвестиционному комитету ООО «Фонд»")).toBeTruthy();
+    expect(screen.getByText("И. Петров")).toBeTruthy();
+    expect(document.querySelectorAll(".ap-sign__line")).toHaveLength(2);
+    // Полное наименование вытесняет рабочее короткое: документ идентифицирует цель.
+    expect(screen.getByText(/Общество с ограниченной ответственностью/)).toBeTruthy();
+    expect(screen.getByText(/ИНН 7707083893/)).toBeTruthy();
+  });
+
+  it("без подписей линий нет, и документ называет себя рабочим материалом", () => {
+    // Пустая линия под чужой должностью предлагала бы документу вид, которого у него
+    // нет: подписи не существует, и это сказано словами.
+    paper();
+    expect(document.querySelectorAll(".ap-sign__line")).toHaveLength(0);
+    expect(screen.getByText(/рабочий материал/)).toBeTruthy();
+  });
+
+  it("дата документа не подменяется датой печати молча", () => {
+    paper();
+    expect(screen.getByText(/дата формирования/)).toBeTruthy();
+  });
+
+  it("несверенность реквизитов с реестром напечатана", () => {
+    // Реквизит с видом проверенного хуже отсутствующего: доступа к ЕГРЮЛ нет.
+    paper({ requisites: signed as AuditAnalysis["requisites"] });
+    expect(screen.getByText(/ЕГРЮЛ/)).toBeTruthy();
   });
 });

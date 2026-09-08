@@ -60,6 +60,29 @@ export interface AuditModel {
   risk?: RiskAnalysis;
   seller_plan?: Record<string, string[]>;
   realized_flags?: RealizedFlag[];
+  report?: ReportRequisites;
+}
+
+/**
+ * Реквизиты документа и подписи (SPEC, Прил. Х). Пустой блок инертен: бланк печатается
+ * как прежде, но прямо называет себя неподписанным.
+ *
+ * Реквизиты фирмы-цели вводятся человеком и **не сверяются с реестром** — доступа к
+ * ЕГРЮЛ у платформы нет. Проверяется только согласованность ИНН и ОГРН (контрольные
+ * цифры): опечатка называется, но введённое значение остаётся.
+ */
+export interface ReportRequisites {
+  number?: string;
+  date?: string | null;          // ISO; пусто — печатается дата формирования
+  addressee?: string;
+  subject_full_name?: string;
+  subject_inn?: string;
+  subject_ogrn?: string;
+  subject_address?: string;
+  executor_name?: string;
+  executor_role?: string;
+  approver_name?: string;
+  approver_role?: string;
 }
 
 /**
@@ -398,6 +421,33 @@ export interface AuditAnalysis {
   risk: AuditRisk;
   plan_fact: AuditPlanFact;
   benchmark: AuditBenchmarkView;
+  requisites: AuditRequisites;
+}
+
+/** Подписант документа: существует только вместе с именем (должность необязательна). */
+export interface AuditSignature {
+  name: string;
+  role: string;
+}
+
+/**
+ * Реквизиты документа для печати (Прил. Х). `signed === false` — документ не подписан,
+ * и первая же оговорка это называет: неподписанный бланк со строгой вёрсткой читается
+ * как заключение.
+ */
+export interface AuditRequisites {
+  filled: boolean;
+  signed: boolean;
+  number: string;
+  date: string | null;
+  addressee: string;
+  subject_full_name: string;
+  subject_inn: string;
+  subject_ogrn: string;
+  subject_address: string;
+  signatures: AuditSignature[];
+  caveats: string[];
+  not_computed: string[];
 }
 
 /**

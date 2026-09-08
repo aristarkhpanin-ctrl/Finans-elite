@@ -23,6 +23,7 @@ from .obligations import ObligationRegister, build_obligations
 from .opinion import build_opinion
 from .planfact import PlanFact, build_plan_fact
 from .procedures import ProcedureReport, run_procedures
+from .requisites import RequisitesView, build_requisites
 from .result import AuditResult
 from .risk import RiskResult, analyze_risk
 from .summary import CaseSummary, build_summary
@@ -52,6 +53,9 @@ class CaseReview:
     #: Сопоставление с ориентирами организации (Прил. Ф). Ориентиры приходят
     #: снаружи: они принадлежат организации, а не делу, и ядро их не хранит.
     benchmark: BenchmarkView = field(default_factory=BenchmarkView)
+    #: Реквизиты документа и подписи (Прил. Х). Пустой блок — неподписанный документ,
+    #: и он сам об этом говорит.
+    requisites: RequisitesView = field(default_factory=RequisitesView)
     summary: CaseSummary = field(default_factory=CaseSummary)
     opinion: str = ""
 
@@ -94,6 +98,9 @@ def review_case(model: AuditSubjectModel, *, deep: bool = True,
         model=model, result=result, issues=issues, flags=flags, earnings=earnings,
         obligations=obligations, procedures=procedures, valuation=valuation, risk=risk,
         plan_fact=plan_fact, summary=summary, benchmark=benchmark,
+        # Реквизиты не зависят от чисел — они о самом документе, поэтому считаются
+        # последними и ни на что в разборе не влияют.
+        requisites=build_requisites(model),
         # Границы проверки идут в заключение: умолчание о непроверенном читается как
         # проверенное, и скрыть его нельзя (SPEC, Приложение М.4).
         opinion=build_opinion(result, procedures),

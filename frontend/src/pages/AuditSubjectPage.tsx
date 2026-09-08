@@ -32,7 +32,19 @@ import { AuditFlags } from "../components/AuditFlags";
 import { AuditObligations } from "../components/AuditObligations";
 import { AuditProcedures } from "../components/AuditProcedures";
 import { AuditSummary } from "../components/AuditSummary";
+import { AuditRequisites } from "../components/AuditRequisites";
 import { AuditValuation } from "../components/AuditValuation";
+
+/**
+ * Состояние реквизитов до первого разбора: оно не «пустое», а «документ не подписан» —
+ * ровно то, что скажет ядро. Придумывать здесь второй текст нельзя: он разошёлся бы с
+ * тем, что напечатано на бумаге.
+ */
+const EMPTY_REQUISITES = {
+  filled: false, signed: false, number: "", date: null, addressee: "",
+  subject_full_name: "", subject_inn: "", subject_ogrn: "", subject_address: "",
+  signatures: [], caveats: [], not_computed: [],
+};
 import { AuditRisk } from "../components/AuditRisk";
 import { AuditPlanFact } from "../components/AuditPlanFact";
 import { AuditPrintReport } from "../components/AuditPrintReport";
@@ -443,6 +455,7 @@ export function AuditSubjectPage() {
       </div>
 
       {tab === "subject" ? (
+        <>
         <div className="audit-block">
           <div className="audit-block__title">Реквизиты и периоды</div>
           <div className="afields-grid" style={{ marginBottom: 16 }}>
@@ -503,6 +516,12 @@ export function AuditSubjectPage() {
             Иначе периоды разной длины несопоставимы между собой.
           </div>
         </div>
+
+        {/* Реквизиты документа — рядом с реквизитами субъекта, а не в «Заключении»:
+            заполняют их один раз при заведении дела, а не перед печатью. */}
+        <AuditRequisites value={m.report} view={analysis.data?.requisites ?? EMPTY_REQUISITES}
+                         onChange={(next) => patch({ report: next })} />
+        </>
       ) : tab === "input" ? (
         <>
           <div className="audit-block" style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>

@@ -183,6 +183,7 @@ export function verdictSheet(a: AuditAnalysis): XCell[][] {
   if (s.state !== "ready") return [];
   const p = a.procedures;
   const rows: XCell[][] = [
+    ...requisitesRows(a),
     [head("Вердикт"), text(s.headline)],
     [text("Пояснение"), text(s.detail)],
     [text("Флагов риска"), num(s.risk_flags, "0")],
@@ -200,6 +201,34 @@ export function verdictSheet(a: AuditAnalysis): XCell[][] {
     rows.push([], [head("Не посчитано")], ...s.not_computed.map((t) => [text(t)]));
   }
   return rows;
+}
+
+/**
+ * Реквизиты документа и подписи (Прил. Х) — в шапке листа вердикта.
+ *
+ * В таблице, вырванной из интерфейса, вопрос «что это за документ и кто под ним
+ * подписался» стоит первым. Печатается только заполненное, а неподписанность
+ * называется словами ядра: второй текст разошёлся бы с бумагой.
+ */
+function requisitesRows(a: AuditAnalysis): XCell[][] {
+  const q = a.requisites;
+  const rows: XCell[][] = [];
+  for (const [label, value] of [
+    ["Номер документа", q.number],
+    ["Дата документа", q.date ?? ""],
+    ["Адресат", q.addressee],
+    ["Полное наименование", q.subject_full_name],
+    ["ИНН", q.subject_inn],
+    ["ОГРН", q.subject_ogrn],
+    ["Адрес", q.subject_address],
+  ] as [string, string][]) {
+    if (value) rows.push([text(label), text(value)]);
+  }
+  for (const s of q.signatures) {
+    rows.push([text(s.role || "Подпись"), text(s.name)]);
+  }
+  if (!q.signed) rows.push([head("Документ не подписан — рабочий материал.")]);
+  return rows.length > 0 ? [...rows, []] : rows;
 }
 
 /** Лист реестра флагов. Флаг без денежной меры — пустая ячейка и слова, а не ноль. */
