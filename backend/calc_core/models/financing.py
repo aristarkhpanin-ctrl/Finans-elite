@@ -7,12 +7,13 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
+from ..decimals import MoneyModel
 from .common import RepaymentType
 
 
-class Loan(BaseModel):
+class Loan(MoneyModel):
     """Заём."""
 
     name: str
@@ -32,14 +33,14 @@ class Loan(BaseModel):
         return (Decimal(1) + self.annual_rate) ** (Decimal(1) / Decimal(12)) - Decimal(1)
 
 
-class EquityInjection(BaseModel):
+class EquityInjection(MoneyModel):
     """Взнос в акционерный капитал (обыкновенные акции)."""
 
     amount: Decimal
     month: int = 0
 
 
-class Lease(BaseModel):
+class Lease(MoneyModel):
     """Лизинг (SPEC §10).
 
     **Операционный** (по умолчанию): платёж — целиком издержка (I21) и отток (C25).
@@ -68,7 +69,7 @@ class Lease(BaseModel):
         return (Decimal(1) + self.annual_rate) ** (Decimal(1) / Decimal(12)) - Decimal(1)
 
 
-class Deposit(BaseModel):
+class Deposit(MoneyModel):
     """Размещение свободных средств: вложение C8, доход C9, тело в B6 (SPEC §10)."""
 
     name: str
@@ -78,7 +79,7 @@ class Deposit(BaseModel):
     annual_rate: Decimal = Decimal("0")     # годовая ставка дохода
 
 
-class AutoFinancing(BaseModel):
+class AutoFinancing(MoneyModel):
     """Автоподбор финансирования: покрытие дефицита кредитом + размещение излишков (SPEC §19).
 
     Каждый период, если денег меньше ``min_balance``, привлекается заём до этого уровня;
@@ -96,7 +97,7 @@ class AutoFinancing(BaseModel):
     invest_annual_rate: Decimal = Decimal("0.05")  # годовая ставка депозита
 
 
-class Financing(BaseModel):
+class Financing(MoneyModel):
     loans: list[Loan] = Field(default_factory=list)
     leases: list[Lease] = Field(default_factory=list)
     deposits: list[Deposit] = Field(default_factory=list)

@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 
 from audit_core import AuditSubjectModel
 from calc_core import ProjectModel
+from calc_core.decimals import MoneyModel
 from calc_core.reports.result import CalcResult
 from calc_core.reports.statements import Statement
 
@@ -560,7 +561,7 @@ class CheckoutResponse(BaseModel):
 
 # --- Анализ чувствительности (7.3) ---
 
-class SensitivityRequest(BaseModel):
+class SensitivityRequest(MoneyModel):
     param: str
     factors: list[Decimal] = [Decimal("0.8"), Decimal("0.9"), Decimal("1.0"),
                               Decimal("1.1"), Decimal("1.2")]
@@ -579,7 +580,7 @@ class SensitivityResponse(BaseModel):
 
 # --- Монте-Карло (7.4) ---
 
-class DistributionIn(BaseModel):
+class DistributionIn(MoneyModel):
     kind: str  # uniform | normal | triangular
     low: Optional[Decimal] = None
     high: Optional[Decimal] = None
@@ -654,7 +655,7 @@ class JobStatusResponse(BaseModel):
 
 # --- What-If (9.1) ---
 
-class ScenarioAdjustmentIn(BaseModel):
+class ScenarioAdjustmentIn(MoneyModel):
     param: str
     factor: Decimal
 
@@ -844,7 +845,7 @@ class AuditSubjectUpdate(BaseModel):
     model: Optional[AuditSubjectModel] = None
 
 
-class BenchmarkIn(BaseModel):
+class BenchmarkIn(MoneyModel):
     """Строка справочника ориентиров: чьё это число — обязательная часть, а не примечание."""
 
     industry: str = Field(min_length=1, max_length=120)
@@ -1478,7 +1479,7 @@ class AuditCompareResponse(BaseModel):
     not_computed: list[str] = []
 
 
-class AuditEliminationIn(BaseModel):
+class AuditEliminationIn(MoneyModel):
     """Внутригрупповые величины к исключению из свода (по периодам).
 
     Каждая вычитается парно по обе стороны баланса, поэтому «актив = пассив» сохраняется:

@@ -19,9 +19,15 @@ import { ASSET_LINES, EQLIAB_LINES } from "./api/audit";
 const ASSET_CODES = ASSET_LINES.map(([code]) => code);
 const EQLIAB_CODES = EQLIAB_LINES.map(([code]) => code);
 
-/** Значение ячейки → целые копейки (пусто/невалидно → 0). */
+/**
+ * Значение ячейки → целые копейки (пусто/невалидно → 0).
+ *
+ * Пробелы в разрядах снимаются наравне с запятой: сервер принимает «1 200,50»
+ * (`calc_core/decimals.py`), и индикатор сходимости обязан читать то же самое — иначе
+ * он объявит разрыв там, где его нет.
+ */
 function kopecks(v: string | undefined): number {
-  const x = Number(String(v ?? "").replace(",", "."));
+  const x = Number(String(v ?? "").replace(/\s/g, "").replace(",", "."));
   return Number.isFinite(x) ? Math.round(x * 100) : 0;
 }
 

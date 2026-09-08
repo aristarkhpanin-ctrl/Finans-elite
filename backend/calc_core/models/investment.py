@@ -8,13 +8,14 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
+from ..decimals import MoneyModel
 from .calendar import CalendarPlan
 from .common import AssetCategory
 
 
-class AdditionalInvestment(BaseModel):
+class AdditionalInvestment(MoneyModel):
     """Доинвестирование в актив (модернизация, SPEC §9): вложение в месяц ``month``.
 
     Капитализируется (→ capex/C14) и амортизируется линейно за **остаточный срок** актива
@@ -25,7 +26,7 @@ class AdditionalInvestment(BaseModel):
     amount: Decimal = Decimal(0)
 
 
-class Asset(BaseModel):
+class Asset(MoneyModel):
     """Основное средство."""
 
     name: str
@@ -50,7 +51,7 @@ class Asset(BaseModel):
         return self.cost / Decimal(self.life_months)
 
 
-class InvestmentPlan(BaseModel):
+class InvestmentPlan(MoneyModel):
     assets: list[Asset] = Field(default_factory=list)
     # Календарный план (этапы подготовительной фазы + ресурсы). См. models/calendar.py.
     calendar: CalendarPlan = Field(default_factory=CalendarPlan)

@@ -9,15 +9,16 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
+from ..decimals import MoneyModel
 from .common import AssetCategory
 
 StageKind = Literal["expense", "asset", "production"]
 CostTiming = Literal["uniform", "on_finish"]
 
 
-class Resource(BaseModel):
+class Resource(MoneyModel):
     """Ресурс (материал/оборудование/труд/услуга) с ценой единицы и условиями оплаты."""
 
     id: str
@@ -26,14 +27,14 @@ class Resource(BaseModel):
     payment_delay_months: int = Field(default=0, ge=0)  # задержка оплаты → кредиторка B23
 
 
-class StageResource(BaseModel):
+class StageResource(MoneyModel):
     """Потребление ресурса этапом: ссылка на ресурс и количество."""
 
     resource_id: str
     quantity: Decimal = Decimal(0)
 
 
-class Stage(BaseModel):
+class Stage(MoneyModel):
     """Этап календарного плана.
 
     Стоимость = Σ(ресурс.quantity × Resource.unit_price), либо прямая ``cost`` при отсутствии
@@ -65,7 +66,7 @@ class Stage(BaseModel):
     actual_cost: Optional[Decimal] = None
 
 
-class CalendarPlan(BaseModel):
+class CalendarPlan(MoneyModel):
     """Календарный план: этапы + библиотека ресурсов."""
 
     stages: list[Stage] = Field(default_factory=list)

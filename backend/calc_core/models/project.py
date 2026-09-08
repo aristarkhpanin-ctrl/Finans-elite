@@ -8,8 +8,9 @@ from datetime import date
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
+from ..decimals import MoneyModel
 from .actualization import Actualization
 from .common import InventoryMethod, VatBasis
 from .company import Company
@@ -20,7 +21,7 @@ from .operating import OperatingPlan
 from .tables import UserTable
 
 
-class ProjectHeader(BaseModel):
+class ProjectHeader(MoneyModel):
     """Заголовок/паспорт проекта."""
 
     name: str = "Без названия"
@@ -30,7 +31,7 @@ class ProjectHeader(BaseModel):
     duration_months: int = Field(default=12, ge=1, le=600)
 
 
-class PlanSection(BaseModel):
+class PlanSection(MoneyModel):
     """Текстовый раздел бизнес-плана (резюме, рынок, команда…) для DOCX-документа.
 
     Текст пользователя: к расчёту отношения не имеет (модель без разделов инертна).
@@ -41,7 +42,7 @@ class PlanSection(BaseModel):
     text: str = Field(default="", max_length=50_000)
 
 
-class ProjectSettings(BaseModel):
+class ProjectSettings(MoneyModel):
     """Настройка расчёта (см. SPEC §11, §17)."""
 
     discount_rate_annual: Decimal = Decimal("0.15")   # ставка дисконтирования (для NPV)
@@ -89,7 +90,7 @@ class ProjectSettings(BaseModel):
     min_cash_balance: Decimal = Decimal("0")          # мин. остаток (для автоподбора, далее)
 
 
-class ProjectModel(BaseModel):
+class ProjectModel(MoneyModel):
     """Полная модель проекта."""
 
     header: ProjectHeader = ProjectHeader()

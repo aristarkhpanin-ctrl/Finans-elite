@@ -8,10 +8,12 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from ..decimals import MoneyModel
 
 
-class Division(BaseModel):
+class Division(MoneyModel):
     """Подразделение (бизнес-единица) — справочник имён для аналитики (gap 4.5).
 
     Отнесение продукта — через ``Product.division_id``; к расчёту отчётов отношения не
@@ -22,7 +24,7 @@ class Division(BaseModel):
     name: str = ""
 
 
-class StartingBalance(BaseModel):
+class StartingBalance(MoneyModel):
     """Начальное состояние действующего предприятия (на конец периода t = -1)."""
 
     cash: Decimal = Decimal(0)                 # → B1
@@ -52,7 +54,7 @@ class StartingBalance(BaseModel):
                 + self.additional_capital + self.retained_earnings)
 
 
-class Company(BaseModel):
+class Company(MoneyModel):
     starting_balance: StartingBalance = StartingBalance()
     # Подразделения (бизнес-единицы) для аналитики доходов (gap 4.5); пусто = без структуры.
     divisions: list[Division] = Field(default_factory=list)

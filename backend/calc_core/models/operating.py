@@ -9,12 +9,13 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
+from ..decimals import MoneyModel
 from .common import CostFunction, DirectCostKind
 
 
-class PaymentPart(BaseModel):
+class PaymentPart(MoneyModel):
     """Часть графика оплаты: доля выручки со сдвигом относительно месяца отгрузки.
 
     ``offset_months`` < 0 — предоплата (за |offset| мес. до отгрузки → авансы B24);
@@ -25,7 +26,7 @@ class PaymentPart(BaseModel):
     share: Decimal = Field(default=Decimal(0), ge=0, le=1)
 
 
-class PaymentTerms(BaseModel):
+class PaymentTerms(MoneyModel):
     """Условия оплаты продаж (SPEC §5).
 
     Простая схема: доля ``prepayment_share`` поступает предоплатой за
@@ -43,7 +44,7 @@ class PaymentTerms(BaseModel):
     schedule: list[PaymentPart] = Field(default_factory=list)
 
 
-class Material(BaseModel):
+class Material(MoneyModel):
     """Материал/комплектующая (справочник): цена единицы и условия закупки.
 
     Потребление задаёт рецептура продукта (``Product.bom``); движок разворачивает её в
@@ -60,14 +61,14 @@ class Material(BaseModel):
     foreign: bool = False
 
 
-class BomLine(BaseModel):
+class BomLine(MoneyModel):
     """Строка рецептуры: норма расхода материала на единицу продукта."""
 
     material_id: str
     qty_per_unit: Decimal = Decimal(0)
 
 
-class Product(BaseModel):
+class Product(MoneyModel):
     id: str
     name: str
     # Рецептура (BOM): нормы расхода материалов на единицу + сдельная зарплата на единицу.
@@ -79,7 +80,7 @@ class Product(BaseModel):
     division_id: Optional[str] = None
 
 
-class SalesLine(BaseModel):
+class SalesLine(MoneyModel):
     """Продажи одного продукта: помесячные объём и цена (без НДС)."""
 
     product_id: str
@@ -96,7 +97,7 @@ class SalesLine(BaseModel):
     vat_rate: Optional[Decimal] = None
 
 
-class ProductionLine(BaseModel):
+class ProductionLine(MoneyModel):
     """План производства продукта (натуральный объём по месяцам).
 
     Если для продукта план производства не задан, считается «производство под продажи»
@@ -109,7 +110,7 @@ class ProductionLine(BaseModel):
     start_month: Optional[int] = None
 
 
-class DirectCostLine(BaseModel):
+class DirectCostLine(MoneyModel):
     """Прямая издержка (материалы или сдельная зарплата), помесячно.
 
     ``amount`` — стоимость, относимая к производству месяца (себестоимость капитализуется
@@ -127,7 +128,7 @@ class DirectCostLine(BaseModel):
     foreign: bool = False
 
 
-class FixedCostLine(BaseModel):
+class FixedCostLine(MoneyModel):
     """Постоянная (общая) издержка с функциональным разносом, помесячно."""
 
     name: str
@@ -141,7 +142,7 @@ class FixedCostLine(BaseModel):
     foreign: bool = False
 
 
-class StaffPosition(BaseModel):
+class StaffPosition(MoneyModel):
     """Штатная позиция: должность с окладом и численностью на период (SPEC §8).
 
     Разворачивается движком в постоянную издержку персонала (I13–I15 по ``function``):
@@ -159,7 +160,7 @@ class StaffPosition(BaseModel):
     payment_delay_months: int = Field(default=0, ge=0)  # задержка выплаты → кредиторка B23
 
 
-class OtherFlow(BaseModel):
+class OtherFlow(MoneyModel):
     """Прочее поступление/выплата (вне основной деятельности), помесячно.
 
     Начисление = оплата (в месяце ряда): доход → I20 + C10; выплата → I21 + C11 (вычитаемая)
@@ -173,7 +174,7 @@ class OtherFlow(BaseModel):
     from_profit: bool = False
 
 
-class OperatingPlan(BaseModel):
+class OperatingPlan(MoneyModel):
     products: list[Product] = Field(default_factory=list)
     sales: list[SalesLine] = Field(default_factory=list)
     production: list[ProductionLine] = Field(default_factory=list)

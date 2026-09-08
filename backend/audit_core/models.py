@@ -10,12 +10,14 @@ import datetime
 from decimal import Decimal
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from calc_core.decimals import MoneyModel
 
 from .lines import ASSET_CODES, EQLIAB_CODES, INCOME_CODES, INCOME_MEMO_CODES
 
 
-class AuditPeriod(BaseModel):
+class AuditPeriod(MoneyModel):
     """Отчётный период: подпись (например «2024», «2024 Q1», «01.2024») и тип.
 
     Тип задаёт длину периода: показатели «в днях» считаются по ней, а потоковые
@@ -27,7 +29,7 @@ class AuditPeriod(BaseModel):
     kind: Literal["year", "quarter", "month"] = "year"
 
 
-class UserMetric(BaseModel):
+class UserMetric(MoneyModel):
     """Пользовательский показатель: имя + формула над строками аналитической формы.
 
     Формула — язык формул платформы (тот же, что в таблицах первого продукта). Доступны
@@ -39,7 +41,7 @@ class UserMetric(BaseModel):
     formula: str = Field(default="", max_length=2000)
 
 
-class RatioThreshold(BaseModel):
+class RatioThreshold(MoneyModel):
     """Свой норматив для показателя (v2): переопределяет универсальный порог.
 
     ``direction`` — «чем больше, тем лучше» (``higher``) или наоборот (``lower``).
@@ -58,7 +60,7 @@ class RatioThreshold(BaseModel):
                 else self.risk_edge >= self.good_edge)
 
 
-class Revaluation(BaseModel):
+class Revaluation(MoneyModel):
     """Поправка к статье баланса (v2): экспертная переоценка по периодам.
 
     ``code`` — статья баланса (кроме капитала: он служит корреспонденцией любой поправки),
@@ -72,7 +74,7 @@ class Revaluation(BaseModel):
     amounts: list[Decimal] = Field(default_factory=list)
 
 
-class EarningsAdjustment(BaseModel):
+class EarningsAdjustment(MoneyModel):
     """Поправка к показателю прибыли при нормализации (SPEC, Приложение К.2).
 
     Нормализация — суждение, а не расчёт: что считать разовым доходом и какое
@@ -102,7 +104,7 @@ OBLIGATION_KINDS: dict[str, tuple[str, bool]] = {
 }
 
 
-class Obligation(BaseModel):
+class Obligation(MoneyModel):
     """Обязательство реестра (SPEC, Приложение Л): кредит, лизинг или условное.
 
     Долг в балансе — две строки-агрегата. Из них не видно ни кому должны, ни под какой
@@ -141,7 +143,7 @@ class Obligation(BaseModel):
         return OBLIGATION_KINDS[self.kind][0]
 
 
-class ProcedureMark(BaseModel):
+class ProcedureMark(MoneyModel):
     """Отметка аналитика по процедуре каталога (SPEC, Приложение М.3).
 
     Ставится **только** у процедур с исполнителем «аналитик»: итог системной процедуры
@@ -156,7 +158,7 @@ class ProcedureMark(BaseModel):
     note: str = Field(default="", max_length=500)
 
 
-class CustomProcedure(BaseModel):
+class CustomProcedure(MoneyModel):
     """Своя процедура аналитика (SPEC, Приложение М.5).
 
     Отраслевого каталога у платформы нет — он утверждал бы, что именно проверяют в
@@ -169,7 +171,7 @@ class CustomProcedure(BaseModel):
     note: str = Field(default="", max_length=500)
 
 
-class ValuationAssumptions(BaseModel):
+class ValuationAssumptions(MoneyModel):
     """Допущения оценки (SPEC, Приложение П): всё вводится, ничего не выводится.
 
     Дисконтированный поток строится по будущему, а в деле есть только прошлое.
@@ -211,7 +213,7 @@ RISK_PARAMS: dict[str, str] = {
 }
 
 
-class RiskDistribution(BaseModel):
+class RiskDistribution(MoneyModel):
     """Распределение **коэффициента** допущения (не самого значения).
 
     То же соглашение, что в анализе рисков первого продукта: выборка даёт множитель
@@ -226,7 +228,7 @@ class RiskDistribution(BaseModel):
     mode: Optional[Decimal] = None
 
 
-class UncertainAssumption(BaseModel):
+class UncertainAssumption(MoneyModel):
     """Допущение, объявленное неопределённым, и распределение его коэффициента."""
 
     param: Literal["wacc", "terminal_growth", "tax_rate",
@@ -234,7 +236,7 @@ class UncertainAssumption(BaseModel):
     distribution: RiskDistribution = Field(default_factory=RiskDistribution)
 
 
-class RiskAnalysis(BaseModel):
+class RiskAnalysis(MoneyModel):
     """Настройки анализа рисков оценки (SPEC, Приложение Р).
 
     ``seed`` фиксирован: без него медиана менялась бы при каждом обновлении страницы,
@@ -249,7 +251,7 @@ class RiskAnalysis(BaseModel):
     uncertain: list[UncertainAssumption] = Field(default_factory=list, max_length=6)
 
 
-class RealizedFlag(BaseModel):
+class RealizedFlag(MoneyModel):
     """Отметка аналитика: сработал ли флаг после сделки и во что обошёлся (Прил. Т.4).
 
     Реализовался ли риск, платформа не знает — она видит отчётность, а не причины.
@@ -266,7 +268,7 @@ class RealizedFlag(BaseModel):
     note: str = Field(default="", max_length=500)
 
 
-class ReportRequisites(BaseModel):
+class ReportRequisites(MoneyModel):
     """Реквизиты документа и подписи (SPEC, Прил. Х).
 
     До этого печатный бланк был отчётом о проверке, но не документом сделки: у него не
@@ -301,7 +303,7 @@ class ReportRequisites(BaseModel):
     approver_role: str = Field(default="", max_length=120)
 
 
-class AuditSubjectModel(BaseModel):
+class AuditSubjectModel(MoneyModel):
     """Субъект анализа с фактической отчётностью по периодам.
 
     ``balance``/``income`` — ``{код строки: [значения по периодам]}`` (длина ряда = числу

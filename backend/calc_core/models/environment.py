@@ -8,24 +8,26 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from ..decimals import MoneyModel
 
 
-class Currency(BaseModel):
+class Currency(MoneyModel):
     """Валюта проекта."""
 
     code: str = "RUB"
     name: str = "Российский рубль"
 
 
-class InflationGroup(BaseModel):
+class InflationGroup(MoneyModel):
     """Группа инфляции (годовые ставки помесячно). Зарезервировано для следующей фазы."""
 
     name: str
     annual_rates: list[Decimal] = Field(default_factory=list)
 
 
-class Tax(BaseModel):
+class Tax(MoneyModel):
     """Настраиваемый налог (SPEC §22.9): ставка × база, периодичность уплаты, отнесение.
 
     База считается по показателям **до настраиваемых налогов** (предварительный прогон):
@@ -44,7 +46,7 @@ class Tax(BaseModel):
     allocation: Literal["expense", "profit"] = "expense"
 
 
-class Environment(BaseModel):
+class Environment(MoneyModel):
     currencies: list[Currency] = Field(default_factory=lambda: [Currency()])
     inflation: list[InflationGroup] = Field(default_factory=list)
     taxes: list[Tax] = Field(default_factory=list)

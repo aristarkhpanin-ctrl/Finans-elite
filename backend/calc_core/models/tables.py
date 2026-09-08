@@ -5,17 +5,19 @@
 """
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from ..decimals import MoneyModel
 
 
-class UserRow(BaseModel):
+class UserRow(MoneyModel):
     """Строка таблицы: имя + формула над кодами строк отчётов (I1…, C1…, B1…, P1…, N)."""
 
     name: str = ""
     formula: str = ""
 
 
-class UserTable(BaseModel):
+class UserTable(MoneyModel):
     """Пользовательская таблица: набор строк-формул."""
 
     id: str

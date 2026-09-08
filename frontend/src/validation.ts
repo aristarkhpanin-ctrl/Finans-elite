@@ -8,8 +8,15 @@ export interface Issue {
   where: string;
 }
 
+/**
+ * Число из поля модели. Запятая и пробелы в разрядах — обычное русское написание, и
+ * сервер их принимает (`calc_core/decimals.py`); без той же терпимости здесь панель
+ * читала бы «1 200,50» как ноль и сообщала о несходящемся балансе, которого нет.
+ */
 const num = (s: string | number | undefined | null): number => {
-  const x = Number(s ?? 0);
+  const x = typeof s === "number" ? s
+    // `\s` покрывает и неразрывный пробел — им платформа и печатает разряды.
+    : Number(String(s ?? 0).replace(/\s/g, "").replace(",", "."));
   return Number.isFinite(x) ? x : 0;
 };
 
