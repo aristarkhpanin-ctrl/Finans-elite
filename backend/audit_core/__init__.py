@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 from .analysis import analyze
+from .benchmarks import Benchmark, BenchmarkView, compare_to_benchmark
 from .compare import Comparison, compare_subjects
 from .consolidate import Consolidation, Elimination, consolidate_subjects
 from .earnings import EarningsQuality, normalize_earnings
@@ -24,6 +25,8 @@ from .valuation import Valuation, build_valuation
 
 __all__ = [
     "AuditLine",
+    "Benchmark",
+    "BenchmarkView",
     "Comparison",
     "Consolidation",
     "Elimination",
@@ -57,5 +60,6 @@ __all__ = [
     "run_procedures",
     "normalize_earnings",
     "compare_subjects",
+    "compare_to_benchmark",
     "consolidate_subjects",
 ]

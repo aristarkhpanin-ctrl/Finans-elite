@@ -1,5 +1,7 @@
-import type { AuditValuation as Result, ValuationAssumptions } from "../api/audit";
+import type { AuditBenchmarkView, AuditValuation as Result,
+              ValuationAssumptions } from "../api/audit";
 import { emptyValuation } from "../api/audit";
+import { AuditBenchmark } from "./AuditBenchmark";
 import { Button } from "./ui";
 import { fmtMoney, fracToPct, pctToFrac } from "../format";
 import { useEffect, useState } from "react";
@@ -105,10 +107,13 @@ function YearRow({ label, hint, values, horizon, onChange, percent = false }: {
 export function AuditValuation({
   result,
   assumptions,
+  benchmark,
   onChange,
 }: {
   result: Result;
   assumptions: ValuationAssumptions | undefined;
+  /** Ориентир организации (Прил. Ф): у платформы рыночных медиан нет и не будет. */
+  benchmark: AuditBenchmarkView;
   onChange: (next: ValuationAssumptions) => void;
 }) {
   const a = assumptions ?? emptyValuation();
@@ -306,6 +311,11 @@ export function AuditValuation({
               </table>
             </div>
           </div>
+
+          {/* Сравнение с ориентиром показывается там, где есть чему сравниваться:
+              при непосчитанной оценке экран уже сказал, чего не хватает, и вторая
+              карточка про то же была бы шумом, а не честностью. */}
+          <AuditBenchmark view={benchmark} />
         </>
       )}
 

@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 
 from audit_core import (
     AuditSubjectModel,
+    Benchmark,
     Elimination,
     analyze,
     compare_subjects,
@@ -170,6 +171,14 @@ def duplicate_subject(subject_id: str,
     return _out(copy)
 
 
+def _benchmarks(db: Session, org_id: str) -> list[Benchmark]:
+    """Ориентиры организации для разбора: они принадлежат ей, а не делу."""
+    return [Benchmark(industry=b.industry, metric=b.metric, value=Decimal(b.value),
+                      source=b.source,
+                      updated_at=b.updated_at.date() if b.updated_at else None)
+            for b in crud.list_benchmarks(db, org_id)]
+
+
 @router.post("/subjects/{subject_id}/analyze", response_model=AuditAnalysisOut)
 def analyze_subject(subject_id: str,
                     org_id: str = Depends(require_permission(Perm.PROJECT_CALCULATE)),
@@ -185,10 +194,11 @@ def analyze_subject(subject_id: str,
     subject = _require(db, org_id, subject_id)
     # Конвейер один на экран и на документ (`audit_core.pipeline`): вторая копия
     # порядка слоёв однажды уже разошлась с первой и молчала о находках.
-    r = review_case(crud.load_audit_model(subject), deep=False)
+    r = review_case(crud.load_audit_model(subject), deep=False,
+                    benchmarks=_benchmarks(db, org_id))
     return audit_analysis_response(r.result, r.opinion, r.issues, r.flags, r.earnings,
                                    r.obligations, r.procedures, r.summary, r.valuation,
-                                   r.risk, r.plan_fact)
+                                   r.risk, r.plan_fact, r.benchmark)
 
 
 @router.post("/subjects/{subject_id}/risk", response_model=AuditRiskOut)
@@ -444,7 +454,8 @@ def download_report(subject_id: str,
     subject = _require(db, org_id, subject_id)
     # Тот же разбор, что отдаётся на экран: документ обязан рассказывать то же самое,
     # включая находки, оценку, риски и списки «что не посчитано».
-    content = build_audit_docx(review_case(crud.load_audit_model(subject)),
+    content = build_audit_docx(review_case(crud.load_audit_model(subject),
+                                           benchmarks=_benchmarks(db, org_id)),
                                subject_name=subject.name)
     # Выгрузка документа — вынос данных за пределы системы, и для 152-ФЗ это событие
     # важнее половины правок: именно так отчётность цели покидает контур.

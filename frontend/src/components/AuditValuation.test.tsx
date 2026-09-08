@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { AuditValuation as Result, ValuationAssumptions } from "../api/audit";
+import type { AuditBenchmarkView, AuditValuation as Result,
+              ValuationAssumptions } from "../api/audit";
 import { AuditValuation } from "./AuditValuation";
 
 /**
@@ -44,11 +45,27 @@ function assumptions(over: Partial<ValuationAssumptions> = {}): ValuationAssumpt
            minority_interest: "0", asking_price: null, ...over };
 }
 
+/** Ориентиров у организации по умолчанию нет: сравнение назовёт причину, а не нули. */
+function benchmark(over: Partial<AuditBenchmarkView> = {}): AuditBenchmarkView {
+  return {
+    available: false,
+    blockers: ["Ориентиры организации не заведены: сравнивать не с чем."],
+    industry: "", metric: "", metric_label: "", benchmark: null, case_multiple: null,
+    deviation: null, source: "", updated_at: null,
+    caveats: ["Это ориентир вашей организации, а не рынок."],
+    not_computed: ["Рыночные медианы мультипликаторов — платформа не собирает "
+                   + "статистику сделок."],
+    ...over,
+  };
+}
+
 function show(over: Partial<Result> = {}, opts: {
   assumptions?: Partial<ValuationAssumptions>; onChange?: (n: ValuationAssumptions) => void;
+  benchmark?: Partial<AuditBenchmarkView>;
 } = {}) {
   render(<AuditValuation result={result(over)}
                          assumptions={assumptions(opts.assumptions)}
+                         benchmark={benchmark(opts.benchmark)}
                          onChange={opts.onChange ?? (() => {})} />);
 }
 

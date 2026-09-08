@@ -5,10 +5,12 @@ import { BillingTab } from "./org/BillingTab";
 import { AuditLogTab } from "./org/AuditLogTab";
 import { ProfileTab } from "./org/ProfileTab";
 import { MembersTab } from "./org/MembersTab";
+import { BenchmarksTab } from "./org/BenchmarksTab";
 
 const TABS = [
   ["members", "Участники"],
   ["profile", "Профиль"],
+  ["benchmarks", "Ориентиры"],
   ["log", "Журнал доступа"],
   ["billing", "Тариф и оплата"],
 ] as const;
@@ -28,7 +30,7 @@ export function OrganizationPage() {
       <div className="page-head">
         <div style={{ minWidth: 0 }}>
           <h1 className="page-title">{org?.name ?? "Организация"}</h1>
-          <div className="page-sub">Участники, роли, тариф и оплата.</div>
+          <div className="page-sub">Участники, роли, отраслевые ориентиры, тариф и оплата.</div>
         </div>
       </div>
 
@@ -52,6 +54,9 @@ export function OrganizationPage() {
           Аналитик работает с делами — следы чужой работы не его дело. Вкладка не
           прячется, а объясняет отказ: недоступное показывается, а не исчезает. */}
       {tab === "profile" && <ProfileTab />}
+      {/* Ориентиры принадлежат организации, а не делу: одна и та же медиана фонда
+          читается во всех делах, и вести её в каждом значило бы её размножить. */}
+      {tab === "benchmarks" && <BenchmarksTab orgId={currentOrgId} canManage={canManageOrg} />}
       {tab === "log" && (canManageOrg
         ? <AuditLogTab orgId={currentOrgId} />
         : <div className="tab-empty">

@@ -302,7 +302,31 @@ export function valuationSheet(a: AuditAnalysis): XCell[][] {
   if (v.warnings.length > 0) {
     rows.push([], ...v.warnings.map((w) => [text(w)]));
   }
+  rows.push([], ...benchmarkRows(a));
   return rows;
+}
+
+/**
+ * Сравнение с ориентиром организации (Прил. Ф) — на листе оценки, как и на экране.
+ *
+ * Источник и дата идут **строками таблицы**, а не примечанием: в файле, вырванном из
+ * интерфейса, число без автора неотличимо от рыночной медианы, которой у платформы
+ * нет. Оговорка выводится всегда, отказ называет причину вместо пустоты.
+ */
+function benchmarkRows(a: AuditAnalysis): XCell[][] {
+  const b = a.benchmark;
+  const rows: XCell[][] = [[head("Сравнение с ориентиром организации")]];
+  if (b.available) {
+    rows.push([text(`Ориентир ${b.metric_label} · ${b.industry}`), cell(b.benchmark, RATIO)],
+              [text("Мультипликатор дела"), cell(b.case_multiple, RATIO)],
+              [text("Отклонение от ориентира"), cell(b.deviation, PCT)],
+              [text("Источник"), text(b.source || "не указан")],
+              [text("Ориентир обновлён"), text(b.updated_at ?? "—")],
+              ...b.caveats.map((c) => [text(c)]));
+  } else {
+    rows.push(...b.blockers.map((x) => [text(x)]));
+  }
+  return [...rows, [], [head("Чего в оценке нет")], ...b.not_computed.map((t) => [text(t)])];
 }
 
 /** Лист рисков: торнадо и Монте-Карло — с условием, при котором их читают. */

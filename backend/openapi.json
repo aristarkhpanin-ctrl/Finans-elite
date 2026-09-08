@@ -400,6 +400,19 @@
             "title": "Balanced",
             "type": "boolean"
           },
+          "benchmark": {
+            "$ref": "#/components/schemas/BenchmarkViewOut",
+            "default": {
+              "available": false,
+              "blockers": [],
+              "caveats": [],
+              "industry": "",
+              "metric": "",
+              "metric_label": "",
+              "not_computed": [],
+              "source": ""
+            }
+          },
           "diagnostics": {
             "anyOf": [
               {
@@ -3829,6 +3842,203 @@
           }
         },
         "title": "AutoFinancing",
+        "type": "object"
+      },
+      "BenchmarkIn": {
+        "description": "Строка справочника ориентиров: чьё это число — обязательная часть, а не примечание.",
+        "properties": {
+          "industry": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Industry",
+            "type": "string"
+          },
+          "metric": {
+            "enum": [
+              "ev_ebitda",
+              "ev_ebit",
+              "ev_revenue"
+            ],
+            "title": "Metric",
+            "type": "string"
+          },
+          "source": {
+            "default": "",
+            "maxLength": 255,
+            "title": "Source",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "industry",
+          "metric",
+          "value"
+        ],
+        "title": "BenchmarkIn",
+        "type": "object"
+      },
+      "BenchmarkOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "industry": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Industry",
+            "type": "string"
+          },
+          "metric": {
+            "enum": [
+              "ev_ebitda",
+              "ev_ebit",
+              "ev_revenue"
+            ],
+            "title": "Metric",
+            "type": "string"
+          },
+          "source": {
+            "default": "",
+            "maxLength": 255,
+            "title": "Source",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "value": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "industry",
+          "metric",
+          "value",
+          "id",
+          "updated_at"
+        ],
+        "title": "BenchmarkOut",
+        "type": "object"
+      },
+      "BenchmarkViewOut": {
+        "description": "Сопоставление дела с ориентиром организации (SPEC, Прил. Ф).\n\n``available=False`` — сравнивать не с чем или не с тем, и причина названа в\n``blockers``. Оговорка «это ваш ориентир, а не рынок» выводится **всегда**.",
+        "properties": {
+          "available": {
+            "default": false,
+            "title": "Available",
+            "type": "boolean"
+          },
+          "benchmark": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Benchmark"
+          },
+          "blockers": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Blockers",
+            "type": "array"
+          },
+          "case_multiple": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Multiple"
+          },
+          "caveats": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "deviation": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deviation"
+          },
+          "industry": {
+            "default": "",
+            "title": "Industry",
+            "type": "string"
+          },
+          "metric": {
+            "default": "",
+            "title": "Metric",
+            "type": "string"
+          },
+          "metric_label": {
+            "default": "",
+            "title": "Metric Label",
+            "type": "string"
+          },
+          "not_computed": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Not Computed",
+            "type": "array"
+          },
+          "source": {
+            "default": "",
+            "title": "Source",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "title": "BenchmarkViewOut",
         "type": "object"
       },
       "BomLine-Input": {
@@ -14506,6 +14716,122 @@
           }
         ],
         "summary": "Read Audit Log",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/api/v1/organizations/{org_id}/benchmarks": {
+      "get": {
+        "description": "Отраслевые ориентиры организации — её собственные числа, а не рынок.",
+        "operationId": "list_benchmarks_api_v1_organizations__org_id__benchmarks_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BenchmarkOut"
+                  },
+                  "title": "Response List Benchmarks Api V1 Organizations  Org Id  Benchmarks Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Benchmarks",
+        "tags": [
+          "organizations"
+        ]
+      },
+      "put": {
+        "description": "Заменить справочник целиком (правится как таблица — сохраняется как таблица).\n\nПраво `org.manage`: ориентиры — общая память организации, по которой оценивают\nсделки; правит их тот же, кто отвечает за организацию.",
+        "operationId": "replace_benchmarks_api_v1_organizations__org_id__benchmarks_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/BenchmarkIn"
+                },
+                "title": "Body",
+                "type": "array"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BenchmarkOut"
+                  },
+                  "title": "Response Replace Benchmarks Api V1 Organizations  Org Id  Benchmarks Put",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Replace Benchmarks",
         "tags": [
           "organizations"
         ]

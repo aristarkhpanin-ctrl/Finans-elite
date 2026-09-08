@@ -4,7 +4,7 @@ Decimal сериализуется в JSON как строка (точность
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal, Optional
 
@@ -843,6 +843,41 @@ class AuditSubjectUpdate(BaseModel):
     model: Optional[AuditSubjectModel] = None
 
 
+class BenchmarkIn(BaseModel):
+    """Строка справочника ориентиров: чьё это число — обязательная часть, а не примечание."""
+
+    industry: str = Field(min_length=1, max_length=120)
+    metric: Literal["ev_ebitda", "ev_ebit", "ev_revenue"]
+    value: Decimal
+    source: str = Field(default="", max_length=255)
+
+
+class BenchmarkOut(BenchmarkIn):
+    id: str
+    updated_at: datetime
+
+
+class BenchmarkViewOut(BaseModel):
+    """Сопоставление дела с ориентиром организации (SPEC, Прил. Ф).
+
+    ``available=False`` — сравнивать не с чем или не с тем, и причина названа в
+    ``blockers``. Оговорка «это ваш ориентир, а не рынок» выводится **всегда**.
+    """
+
+    available: bool = False
+    blockers: list[str] = []
+    industry: str = ""
+    metric: str = ""
+    metric_label: str = ""
+    benchmark: Optional[Decimal] = None
+    case_multiple: Optional[Decimal] = None
+    deviation: Optional[Decimal] = None
+    source: str = ""
+    updated_at: Optional[date] = None
+    caveats: list[str] = []
+    not_computed: list[str] = []
+
+
 class AuditVersionSummary(BaseModel):
     """Метаданные версии дела (без модели): для списка.
 
@@ -1011,6 +1046,8 @@ class AuditAnalysisOut(BaseModel):
     risk: "AuditRiskOut" = None  # type: ignore[assignment]
     # План-факт после сделки («Экран 17»); в AuditResult не входит — SPEC, Прил. Т.
     plan_fact: "AuditPlanFactOut" = None  # type: ignore[assignment]
+    # Сопоставление с ориентирами организации (SPEC, Прил. Ф) — её числа, не рынок.
+    benchmark: "BenchmarkViewOut" = BenchmarkViewOut()
 
 
 class AuditAdjustmentOut(BaseModel):
@@ -1493,6 +1530,18 @@ class AuditGroupOut(AuditGroupSummary):
     model: AuditGroupModel
 
 
+def benchmark_view_response(view) -> "BenchmarkViewOut":
+    """Собрать сопоставление с ориентиром (Прил. Ф); ``None`` — слой не считался."""
+    if view is None:
+        return BenchmarkViewOut()
+    return BenchmarkViewOut(
+        available=view.available, blockers=list(view.blockers), industry=view.industry,
+        metric=view.metric, metric_label=view.metric_label, benchmark=view.benchmark,
+        case_multiple=view.case_multiple, deviation=view.deviation, source=view.source,
+        updated_at=view.updated_at, caveats=list(view.caveats),
+        not_computed=list(view.not_computed))
+
+
 def audit_risk_response(risk) -> "AuditRiskOut":
     """Собрать ответ анализа рисков (SPEC, Прил. Р).
 
@@ -1531,7 +1580,7 @@ def audit_analysis_response(result, opinion: str = "", issues=(),
                             flags=None, earnings=None, obligations=None,
                             procedures=None, summary=None,
                             valuation=None, risk=None,
-                            plan_fact=None) -> "AuditAnalysisOut":
+                            plan_fact=None, benchmark=None) -> "AuditAnalysisOut":
     """Собрать ответ анализа из ``audit_core.AuditResult`` (+ заключение, ввод, флаги)."""
     return AuditAnalysisOut(
         opinion=opinion,
@@ -1589,6 +1638,7 @@ def audit_analysis_response(result, opinion: str = "", issues=(),
             not_computed=list(valuation.not_computed) if valuation else [],
         ),
         risk=audit_risk_response(risk),
+        benchmark=benchmark_view_response(benchmark),
         plan_fact=AuditPlanFactOut(
             available=plan_fact.available if plan_fact else False,
             periods=list(plan_fact.periods) if plan_fact else [],

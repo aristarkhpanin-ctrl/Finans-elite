@@ -745,6 +745,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizations/{org_id}/benchmarks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Benchmarks
+         * @description Отраслевые ориентиры организации — её собственные числа, а не рынок.
+         */
+        get: operations["list_benchmarks_api_v1_organizations__org_id__benchmarks_get"];
+        /**
+         * Replace Benchmarks
+         * @description Заменить справочник целиком (правится как таблица — сохраняется как таблица).
+         *
+         *     Право `org.manage`: ориентиры — общая память организации, по которой оценивают
+         *     сделки; правит их тот же, кто отвечает за организацию.
+         */
+        put: operations["replace_benchmarks_api_v1_organizations__org_id__benchmarks_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizations/{org_id}/billing/checkout": {
         parameters: {
             query?: never;
@@ -1607,6 +1634,19 @@ export interface components {
              * @default true
              */
             balanced: boolean;
+            /**
+             * @default {
+             *       "available": false,
+             *       "blockers": [],
+             *       "caveats": [],
+             *       "industry": "",
+             *       "metric": "",
+             *       "metric_label": "",
+             *       "not_computed": [],
+             *       "source": ""
+             *     }
+             */
+            benchmark: components["schemas"]["BenchmarkViewOut"];
             diagnostics?: components["schemas"]["AuditDiagnosticsOut"] | null;
             earnings?: components["schemas"]["AuditEarningsOut"];
             flags?: components["schemas"]["AuditFlagsOut"];
@@ -3444,6 +3484,107 @@ export interface components {
              * @default 0
              */
             min_balance: string;
+        };
+        /**
+         * BenchmarkIn
+         * @description Строка справочника ориентиров: чьё это число — обязательная часть, а не примечание.
+         */
+        BenchmarkIn: {
+            /** Industry */
+            industry: string;
+            /**
+             * Metric
+             * @enum {string}
+             */
+            metric: "ev_ebitda" | "ev_ebit" | "ev_revenue";
+            /**
+             * Source
+             * @default
+             */
+            source: string;
+            /** Value */
+            value: number | string;
+        };
+        /** BenchmarkOut */
+        BenchmarkOut: {
+            /** Id */
+            id: string;
+            /** Industry */
+            industry: string;
+            /**
+             * Metric
+             * @enum {string}
+             */
+            metric: "ev_ebitda" | "ev_ebit" | "ev_revenue";
+            /**
+             * Source
+             * @default
+             */
+            source: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Value */
+            value: string;
+        };
+        /**
+         * BenchmarkViewOut
+         * @description Сопоставление дела с ориентиром организации (SPEC, Прил. Ф).
+         *
+         *     ``available=False`` — сравнивать не с чем или не с тем, и причина названа в
+         *     ``blockers``. Оговорка «это ваш ориентир, а не рынок» выводится **всегда**.
+         */
+        BenchmarkViewOut: {
+            /**
+             * Available
+             * @default false
+             */
+            available: boolean;
+            /** Benchmark */
+            benchmark?: string | null;
+            /**
+             * Blockers
+             * @default []
+             */
+            blockers: string[];
+            /** Case Multiple */
+            case_multiple?: string | null;
+            /**
+             * Caveats
+             * @default []
+             */
+            caveats: string[];
+            /** Deviation */
+            deviation?: string | null;
+            /**
+             * Industry
+             * @default
+             */
+            industry: string;
+            /**
+             * Metric
+             * @default
+             */
+            metric: string;
+            /**
+             * Metric Label
+             * @default
+             */
+            metric_label: string;
+            /**
+             * Not Computed
+             * @default []
+             */
+            not_computed: string[];
+            /**
+             * Source
+             * @default
+             */
+            source: string;
+            /** Updated At */
+            updated_at?: string | null;
         };
         /**
          * BomLine
@@ -9060,6 +9201,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuditLogPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_benchmarks_api_v1_organizations__org_id__benchmarks_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BenchmarkOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replace_benchmarks_api_v1_organizations__org_id__benchmarks_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BenchmarkIn"][];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BenchmarkOut"][];
                 };
             };
             /** @description Validation Error */

@@ -397,6 +397,30 @@ export interface AuditAnalysis {
   valuation: AuditValuation;
   risk: AuditRisk;
   plan_fact: AuditPlanFact;
+  benchmark: AuditBenchmarkView;
+}
+
+/**
+ * Сопоставление дела с ориентиром **организации** (SPEC, Прил. Ф).
+ *
+ * `available === false` — сравнивать не с чем или не с тем, и причина названа в
+ * `blockers`, а не подменена нулями. Оговорка «это ваш ориентир, а не рынок»
+ * приходит в `caveats` **всегда**: без неё блок читается как рыночная статистика,
+ * которой у платформы нет.
+ */
+export interface AuditBenchmarkView {
+  available: boolean;
+  blockers: string[];
+  industry: string;
+  metric: string;
+  metric_label: string;
+  benchmark: string | null;
+  case_multiple: string | null;
+  deviation: string | null;
+  source: string;
+  updated_at: string | null;
+  caveats: string[];
+  not_computed: string[];
 }
 
 /**

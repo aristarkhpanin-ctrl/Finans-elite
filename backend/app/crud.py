@@ -23,6 +23,7 @@ from .db_models import (
     AuditSubjectVersion,
     Holding,
     HoldingMember,
+    IndustryBenchmark,
     Membership,
     Organization,
     Payment,
@@ -508,6 +509,39 @@ def get_version(db: Session, org_id: str, project_id: str,
 def delete_version(db: Session, version: ProjectVersion) -> None:
     db.delete(version)
     db.commit()
+
+
+# --- Отраслевые ориентиры организации (свои, не рыночные) ---
+
+def list_benchmarks(db: Session, org_id: str) -> list[IndustryBenchmark]:
+    return list(
+        db.scalars(
+            select(IndustryBenchmark)
+            .where(IndustryBenchmark.organization_id == org_id)
+            .order_by(IndustryBenchmark.industry, IndustryBenchmark.metric)
+        )
+    )
+
+
+def replace_benchmarks(db: Session, org_id: str,
+                       rows: list[dict]) -> list[IndustryBenchmark]:
+    """Заменить справочник ориентиров организации целиком.
+
+    Справочник правится как таблица (добавили строку, поправили значение, убрали
+    лишнее), поэтому и сохраняется целиком: пять отдельных вызовов на одно нажатие
+    «Сохранить» дали бы частично применённый справочник при первой же ошибке сети.
+    """
+    for row in db.scalars(
+        select(IndustryBenchmark).where(IndustryBenchmark.organization_id == org_id)
+    ):
+        db.delete(row)
+    saved = [IndustryBenchmark(organization_id=org_id, industry=r["industry"],
+                               metric=r["metric"], value=r["value"],
+                               source=r.get("source", ""))
+             for r in rows]
+    db.add_all(saved)
+    db.commit()
+    return list_benchmarks(db, org_id)
 
 
 # --- Версии дела (Финанс-Аудит): снимки модели проверки ---

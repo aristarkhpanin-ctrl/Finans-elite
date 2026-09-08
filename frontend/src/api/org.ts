@@ -78,6 +78,33 @@ export async function checkout(orgId: string, planCode: string): Promise<Checkou
   return data;
 }
 
+/** Строка справочника отраслевых ориентиров организации (SPEC, Прил. Ф). */
+export type Benchmark = Schema<"BenchmarkOut">;
+export type BenchmarkIn = Schema<"BenchmarkIn">;
+
+/** Базы мультипликатора: сравнение возможно только при совпадении базы. */
+export const BENCHMARK_METRICS: [BenchmarkIn["metric"], string][] = [
+  ["ev_ebitda", "EV / EBITDA"],
+  ["ev_ebit", "EV / EBIT"],
+  ["ev_revenue", "EV / Выручка"],
+];
+
+export async function getBenchmarks(orgId: string): Promise<Benchmark[]> {
+  const { data } = await api.get<Benchmark[]>(`/api/v1/organizations/${orgId}/benchmarks`);
+  return data;
+}
+
+/**
+ * Записать справочник целиком. Справочник правится как таблица: строку удаляют,
+ * стирая её, а не отдельным запросом, — частичные обновления развели бы экран и
+ * хранилище (что видно на экране, то и сохранено).
+ */
+export async function putBenchmarks(orgId: string, rows: BenchmarkIn[]): Promise<Benchmark[]> {
+  const { data } = await api.put<Benchmark[]>(
+    `/api/v1/organizations/${orgId}/benchmarks`, rows);
+  return data;
+}
+
 /**
  * Журнал действий организации (152-ФЗ). Только чтение: у журнала нет операций правки
  * и удаления — журнал, который можно поправить, не журнал.

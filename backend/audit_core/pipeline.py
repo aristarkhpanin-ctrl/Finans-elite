@@ -14,6 +14,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from .analysis import analyze
+from .benchmarks import Benchmark, BenchmarkView, compare_to_benchmark
 from .earnings import EarningsQuality, normalize_earnings
 from .flags import FlagRegistry, detect_flags
 from .input_check import InputIssue, check_input
@@ -48,6 +49,9 @@ class CaseReview:
     valuation: Valuation = field(default_factory=Valuation)
     risk: RiskResult = field(default_factory=RiskResult)
     plan_fact: PlanFact = field(default_factory=PlanFact)
+    #: Сопоставление с ориентирами организации (Прил. Ф). Ориентиры приходят
+    #: снаружи: они принадлежат организации, а не делу, и ядро их не хранит.
+    benchmark: BenchmarkView = field(default_factory=BenchmarkView)
     summary: CaseSummary = field(default_factory=CaseSummary)
     opinion: str = ""
 
@@ -58,7 +62,8 @@ NOT_REQUESTED = ("Анализ рисков в этом разборе не за
                  "показывается (карточка дела, документ, выгрузка).")
 
 
-def review_case(model: AuditSubjectModel, *, deep: bool = True) -> CaseReview:
+def review_case(model: AuditSubjectModel, *, deep: bool = True,
+                benchmarks: list[Benchmark] | None = None) -> CaseReview:
     """Посчитать анализ и все слои поверх него в единственном верном порядке.
 
     ``deep=False`` пропускает **стохастический слой** (торнадо и Монте-Карло): он
@@ -83,10 +88,12 @@ def review_case(model: AuditSubjectModel, *, deep: bool = True) -> CaseReview:
     plan_fact = build_plan_fact(model, flags)
     summary = build_summary(model, result, flags, issues, obligations, earnings,
                             procedures, valuation)
+    benchmark = compare_to_benchmark(valuation, earnings, list(benchmarks or []),
+                                     model.industry)
     return CaseReview(
         model=model, result=result, issues=issues, flags=flags, earnings=earnings,
         obligations=obligations, procedures=procedures, valuation=valuation, risk=risk,
-        plan_fact=plan_fact, summary=summary,
+        plan_fact=plan_fact, summary=summary, benchmark=benchmark,
         # Границы проверки идут в заключение: умолчание о непроверенном читается как
         # проверенное, и скрыть его нельзя (SPEC, Приложение М.4).
         opinion=build_opinion(result, procedures),

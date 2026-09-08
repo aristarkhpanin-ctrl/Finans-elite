@@ -316,6 +316,31 @@ def _add_valuation(doc: Document, v: Valuation) -> None:
     _not_computed(doc, v.not_computed)
 
 
+def _add_benchmark(doc: Document, b) -> None:
+    """Сопоставление с ориентиром организации (Прил. Ф).
+
+    Печатается только при посчитанном сопоставлении: раздел «ориентиров нет» на бумаге
+    занимает место и ничего не сообщает — в отличие от оценки, которую в деле ждут.
+    Оговорка «это ваш ориентир, а не рынок» идёт **вместе с числом**: в документе,
+    который читают без экрана, её отсутствие превращает число в рыночную медиану.
+    """
+    if not b.available:
+        return
+    doc.add_heading("Сравнение с ориентиром организации", level=1)
+    line = [f"Отрасль: {b.industry}", f"{b.metric_label}: ориентир {fmt_num(b.benchmark)}×",
+            f"дело {fmt_num(b.case_multiple)}×"]
+    if b.deviation is not None:
+        line.append(f"отклонение {fmt_pct(b.deviation)}")
+    doc.add_paragraph("; ".join(line) + ".")
+    if b.source or b.updated_at:
+        # Кто назвал число и когда — часть самого числа, а не сноска.
+        src = b.source or "источник не указан"
+        when = f", {b.updated_at:%d.%m.%Y}" if b.updated_at else ""
+        doc.add_paragraph(f"Источник ориентира: {src}{when}.")
+    for c in b.caveats:
+        doc.add_paragraph(c)
+
+
 def _add_risk(doc: Document, r: RiskResult) -> None:
     """Риски оценки: торнадо и Монте-Карло — с условием их чтения."""
     doc.add_heading("Риски оценки", level=1)
@@ -474,6 +499,7 @@ def build_audit_docx(review: CaseReview, *, subject_name: str,
         _add_obligations(doc, review.obligations)
         _add_valuation(doc, review.valuation)
         _add_risk(doc, review.risk)
+        _add_benchmark(doc, review.benchmark)
         # План-факт печатается, только когда план введён: раздел «сравнивать не с
         # чем» на бумаге занимает место и ничего не сообщает.
         if review.plan_fact.available:

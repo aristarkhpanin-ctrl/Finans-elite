@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -15,6 +16,8 @@ from ..schemas import (
     AccessLinkOut,
     AuditLogEntryOut,
     AuditLogPage,
+    BenchmarkIn,
+    BenchmarkOut,
     MemberCreate,
     MemberOut,
     MemberPatch,
@@ -23,6 +26,12 @@ from ..schemas import (
     OrganizationOut,
 )
 from ..security import create_invite_token, create_reset_token
+
+
+def _benchmark_out(b) -> BenchmarkOut:
+    return BenchmarkOut(id=b.id, industry=b.industry, metric=b.metric,
+                        value=Decimal(b.value), source=b.source, updated_at=b.updated_at)
+
 
 router = APIRouter(prefix="/api/v1/organizations", tags=["organizations"])
 
@@ -183,6 +192,37 @@ def remove_member(user_id: str,
                     entity_id=user_id,
                     entity_name=removed.email if removed else user_id,
                     details=f"роль была: {membership.role}")
+
+
+@router.get("/{org_id}/benchmarks", response_model=list[BenchmarkOut])
+def list_benchmarks(org_id: str = Depends(require_membership),
+                    db: Session = Depends(get_db)) -> list[BenchmarkOut]:
+    """Отраслевые ориентиры организации — её собственные числа, а не рынок."""
+    return [_benchmark_out(b) for b in crud.list_benchmarks(db, org_id)]
+
+
+@router.put("/{org_id}/benchmarks", response_model=list[BenchmarkOut])
+def replace_benchmarks(body: list[BenchmarkIn],
+                       org_id: str = Depends(require_org_permission(Perm.ORG_MANAGE)),
+                       actor: User = Depends(current_user),
+                       db: Session = Depends(get_db)) -> list[BenchmarkOut]:
+    """Заменить справочник целиком (правится как таблица — сохраняется как таблица).
+
+    Право `org.manage`: ориентиры — общая память организации, по которой оценивают
+    сделки; правит их тот же, кто отвечает за организацию.
+    """
+    pairs = {(" ".join(b.industry.split()).casefold(), b.metric) for b in body}
+    if len(pairs) != len(body):
+        raise HTTPException(
+            status_code=422,
+            detail="Два ориентира на одну пару «отрасль + метрика»: платформа не может "
+                   "выбрать между ними за вас.")
+    rows = [{"industry": b.industry.strip(), "metric": b.metric, "value": str(b.value),
+             "source": b.source.strip()} for b in body]
+    saved = crud.replace_benchmarks(db, org_id, rows)
+    crud.log_action(db, org_id, actor, "benchmarks.replace", entity_type="organization",
+                    entity_id=org_id, details=f"строк: {len(rows)}")
+    return [_benchmark_out(b) for b in saved]
 
 
 @router.get("/{org_id}/audit-log", response_model=AuditLogPage)

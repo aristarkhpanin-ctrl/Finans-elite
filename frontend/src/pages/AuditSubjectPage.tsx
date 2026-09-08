@@ -845,6 +845,7 @@ export function AuditSubjectPage() {
         <AuditValuation
           result={analysis.data.valuation}
           assumptions={m.valuation}
+          benchmark={analysis.data.benchmark}
           onChange={(next) => patch({ valuation: next })}
         />
       ) : tab === "risk" ? (

@@ -79,6 +79,12 @@ const analysis = (over: Partial<AuditAnalysis> = {}): AuditAnalysis => ({
   plan_fact: { available: false, periods: [], rows: [], flags: [],
                predicted_total: "0", realized_total: "0", unpriced_realized: 0,
                orphan_marks: [], caveats: [], not_computed: [] },
+  benchmark: { available: false, blockers: ["Ориентиры организации не заведены."],
+               industry: "", metric: "", metric_label: "", benchmark: null,
+               case_multiple: null, deviation: null, source: "", updated_at: null,
+               caveats: ["Это ориентир вашей организации, а не рынок."],
+               not_computed: ["Рыночные медианы мультипликаторов — платформа не "
+                              + "собирает статистику сделок."] },
   ...over,
 });
 

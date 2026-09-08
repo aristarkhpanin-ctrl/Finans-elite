@@ -222,6 +222,36 @@ class ProjectVersion(Base):
     engine_version: Mapped[str | None] = mapped_column(String(32), nullable=True)
 
 
+class IndustryBenchmark(Base):
+    """Отраслевой ориентир организации: её собственное число, а не рынок.
+
+    Платформа не собирает статистику сделок и отраслевых медиан не знает — но у фонда
+    есть своя история, и сравнить дело с ней честно, пока ориентир **подписан**: кто
+    его назвал (``source``) и когда (``updated_at``). Без этих двух полей число на
+    экране неотличимо от рыночного.
+
+    Уникальна пара «организация + отрасль + метрика»: два ориентира на одно и то же
+    означали бы, что платформа выбирает между ними сама.
+    """
+
+    __tablename__ = "industry_benchmarks"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "industry", "metric", name="uq_org_industry_metric"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    industry: Mapped[str] = mapped_column(String(120), nullable=False)
+    #: ev_ebitda | ev_ebit | ev_revenue — метрика несёт базу, и сравнение идёт по ней.
+    metric: Mapped[str] = mapped_column(String(32), nullable=False)
+    value: Mapped[str] = mapped_column(String(64), nullable=False)
+    source: Mapped[str] = mapped_column(String(255), default="")
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now,
+                                                 onupdate=_now)
+
+
 class AuditSubjectVersion(Base):
     """Именованный снимок модели дела: версии проверки и анализ изменений.
 

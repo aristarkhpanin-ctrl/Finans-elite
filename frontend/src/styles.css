@@ -1548,6 +1548,18 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .val-row__cells { display: flex; gap: 6px; flex-wrap: wrap; }
 .val-row__cells .input { width: 108px; }
 
+/* Сравнение с ориентиром организации (Прил. Ф) — три величины в ряд: дело, ориентир
+   и отклонение. Тон нейтральный намеренно: «дороже» и «дешевле» сами по себе ни
+   хороши, ни плохи — это вопрос к допущениям прогноза, а не сигнал. */
+.bm-row {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px; margin-bottom: 10px;
+}
+/* Справочник ориентиров организации: таблица правится как таблица. */
+.bm-tbl td { padding: 5px 6px; vertical-align: middle; }
+.bm-tbl .input { width: 100%; min-width: 120px; height: 34px; }
+.bm-tbl select.input { padding: 0 8px; }
+
 /* Чек-лист процедур «Финанс-Аудит» (макет Экран 21) */
 .proc-head {
   display: flex; align-items: flex-start; justify-content: space-between; gap: 20px;
