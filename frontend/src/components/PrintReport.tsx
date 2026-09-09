@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { type CalcResponse, type StatementOut } from "../api/calc";
 import type { ProjectModel } from "../api/model";
-import { fmtMillions, fmtTable, percent } from "../format";
+import { fmtDateOnly, fmtMillions, fmtTable, percent } from "../format";
 import { GRANDS, SUBTOTALS } from "./StatementTable";
 
 /**
@@ -124,7 +124,7 @@ export function PrintReport({
 
   const rate = model?.settings.discount_rate_annual;
   const meta: Array<[string, string]> = [
-    ["Дата старта", model?.header.start_date ? new Date(model.header.start_date).toLocaleDateString("ru-RU") : "—"],
+    ["Дата старта", fmtDateOnly(model?.header.start_date)],
     ["Горизонт", `${n} мес.`],
     ["Валюта", "Рубль (₽)"],
     ["Ставка дисконт.", rate ? percent(rate, 1) : "—"],

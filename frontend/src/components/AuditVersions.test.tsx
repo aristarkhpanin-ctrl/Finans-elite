@@ -50,12 +50,12 @@ beforeEach(() => {
   diffAuditVersion.mockResolvedValue(diff());
 });
 
-async function show() {
+async function show(dirty = false) {
   render(
     <QueryClientProvider client={new QueryClient({
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
     })}>
-      <AuditVersions subjectId="s1" />
+      <AuditVersions subjectId="s1" dirty={dirty} />
     </QueryClientProvider>,
   );
   await screen.findByText("Перед комитетом");
@@ -120,5 +120,22 @@ describe("Версии дела", () => {
     fireEvent.click(screen.getByRole("button", { name: "Сохранить версию" }));
     await waitFor(() =>
       expect(createAuditVersion).toHaveBeenCalledWith("s1", "Для банка"));
+  });
+
+  it("снимок не берётся, пока правки не сохранены — и сказано почему", async () => {
+    // Снимок делают на сервере с сохранённой модели. Снять его при несохранённых
+    // правках значило бы записать «почти то, что было на экране» — а версию потом
+    // предъявляют как то, что уходило в комитет.
+    await show(true);
+    const btn = screen.getByText("Сохранить версию").closest("button")!;
+    expect(btn.disabled).toBe(true);
+    expect(screen.getByText(/в него не войдёт/)).toBeTruthy();
+    expect(createAuditVersion).not.toHaveBeenCalled();
+  });
+
+  it("сохранённое дело снимок берёт без оговорок", async () => {
+    await show();
+    expect((screen.getByText("Сохранить версию").closest("button")!).disabled).toBe(false);
+    expect(screen.queryByText(/в него не войдёт/)).toBeNull();
   });
 });

@@ -35,10 +35,17 @@ const SIGN_FIELDS: [keyof ReportRequisites, keyof ReportRequisites, string][] = 
   ["approver_name", "approver_role", "Утвердил"],
 ];
 
-export function AuditRequisites({ value, view, onChange }: {
+export function AuditRequisites({ value, view, stale = false, onChange }: {
   value: ReportRequisites | undefined;
   /** Состояние документа из разбора: подписан ли, что не так, чего платформа не делает. */
   view: View;
+  /**
+   * В деле есть несохранённые правки, а состояние ниже посчитано ядром по **сохранённой**
+   * модели. Пересчитать его здесь значило бы завести вторую копию правил (подпись без
+   * имени, контрольная цифра ИНН) — а две копии расходятся молча. Поэтому отставание не
+   * прячется, а называется.
+   */
+  stale?: boolean;
   onChange: (next: ReportRequisites) => void;
 }) {
   const r = value ?? {};
@@ -56,6 +63,12 @@ export function AuditRequisites({ value, view, onChange }: {
         {view.signed
           ? `Документ подписан: ${view.signatures.map((s) => s.name).join(", ")}.`
           : "Документ не подписан — на бумаге он выйдет с пометкой «рабочий материал»."}
+        {stale && (
+          <span className="req-state__stale">
+            {" "}Показано по сохранённой версии дела: проверки реквизитов (подпись,
+            контрольная цифра ИНН и ОГРН) обновятся после сохранения.
+          </span>
+        )}
       </div>
 
       <div className="afields-grid" style={{ marginTop: 12 }}>

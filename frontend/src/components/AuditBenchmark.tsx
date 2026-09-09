@@ -1,4 +1,5 @@
 import type { AuditBenchmarkView } from "../api/audit";
+import { fmtDateOnly } from "../format";
 
 /**
  * Сопоставление дела с ориентиром **организации** (SPEC, Прил. Ф).
@@ -17,9 +18,6 @@ const mult = (v: string | null): string =>
 const share = (v: string): string =>
   `${(Number(v) * 100).toLocaleString("ru-RU", { maximumFractionDigits: 0 })}%`;
 
-const fmtDate = (iso: string): string =>
-  new Date(iso).toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit",
-                                              year: "numeric" });
 
 export function AuditBenchmark({ view }: { view: AuditBenchmarkView }) {
   const dev = view.deviation === null ? null : Number(view.deviation);
@@ -40,7 +38,7 @@ export function AuditBenchmark({ view }: { view: AuditBenchmarkView }) {
               <div className="sum-metric__val">{mult(view.benchmark)}</div>
               <div className="sum-metric__note">
                 {view.source || "источник не указан"}
-                {view.updated_at && ` · ${fmtDate(view.updated_at)}`}
+                {view.updated_at && ` · ${fmtDateOnly(view.updated_at)}`}
               </div>
             </div>
             <div className="sum-metric">

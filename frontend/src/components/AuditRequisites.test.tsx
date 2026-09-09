@@ -72,4 +72,17 @@ describe("Реквизиты документа и подписи", () => {
     render(<AuditRequisites value={{}} view={view()} onChange={() => {}} />);
     expect(screen.getByText(/ЕГРЮЛ/)).toBeTruthy();
   });
+
+  it("при несохранённых правках состояние честно названо отстающим", () => {
+    // Пересчитать правила на экране значило бы завести их вторую копию — а копии
+    // расходятся молча. Поэтому отставание называется, а не прячется.
+    render(<AuditRequisites value={{ executor_name: "И. Петров" }} view={view()} stale
+                            onChange={() => {}} />);
+    expect(screen.getByText(/по сохранённой версии дела/)).toBeTruthy();
+  });
+
+  it("у сохранённого дела приписки об отставании нет", () => {
+    render(<AuditRequisites value={{}} view={view()} onChange={() => {}} />);
+    expect(screen.queryByText(/по сохранённой версии дела/)).toBeNull();
+  });
 });

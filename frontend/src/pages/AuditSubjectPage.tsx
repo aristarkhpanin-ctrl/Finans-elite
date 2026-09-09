@@ -23,6 +23,7 @@ import {
   type Revaluation,
   type UserMetric,
 } from "../api/audit";
+import { httpDetail, httpFieldError } from "../api/client";
 import { IconDownload, IconPrint, IconTrash, IconUpload } from "../components/icons";
 import { useToast } from "../components/Toast";
 import { Button } from "../components/ui";
@@ -33,6 +34,7 @@ import { AuditObligations } from "../components/AuditObligations";
 import { AuditProcedures } from "../components/AuditProcedures";
 import { AuditSummary } from "../components/AuditSummary";
 import { AuditRequisites } from "../components/AuditRequisites";
+import { UnsavedLeaveModal, useUnsavedGuard } from "../components/UnsavedGuard";
 import { AuditValuation } from "../components/AuditValuation";
 
 /**
@@ -170,6 +172,10 @@ export function AuditSubjectPage() {
     if (data) { setName(data.name); setModel(data.model); setDirty(false); }
   }, [data]);
 
+  // Страж несохранённого ввода — общий с редактором проекта. В дело вводят
+  // отчётность за несколько периодов: потерянный ввод здесь стоит столько же.
+  const { tryNav, pending: pendingLeave, cancel: cancelLeave } = useUnsavedGuard(dirty);
+
   const save = useMutation({
     mutationFn: () => updateAuditSubject(id, name, model!),
     onSuccess: (s) => {
@@ -180,7 +186,10 @@ export function AuditSubjectPage() {
       setDirty(false);
       toast("Сохранено", { kind: "success" });
     },
-    onError: () => toast("Не удалось сохранить", { kind: "error" }),
+    // Отказ по одному полю называет это поле: раньше вся правка отклонялась общим
+    // «не удалось сохранить», и виновную ячейку искали глазами.
+    onError: (e) => toast(httpFieldError(e) ?? httpDetail(e) ?? "Не удалось сохранить",
+                          { kind: "error" }),
   });
 
   // Анализ считается по сохранённым данным — только для аналитических вкладок.
@@ -359,7 +368,8 @@ export function AuditSubjectPage() {
     <div>
       <div className="page-head">
         <div style={{ minWidth: 0 }}>
-          <button type="button" className="link-back" onClick={() => navigate("/audit")}>← К субъектам</button>
+          <button type="button" className="link-back"
+                  onClick={() => tryNav("Дела", () => navigate("/audit"))}>← К субъектам</button>
           <input
             className="subject-name"
             value={name}
@@ -520,6 +530,7 @@ export function AuditSubjectPage() {
         {/* Реквизиты документа — рядом с реквизитами субъекта, а не в «Заключении»:
             заполняют их один раз при заведении дела, а не перед печатью. */}
         <AuditRequisites value={m.report} view={analysis.data?.requisites ?? EMPTY_REQUISITES}
+                         stale={dirty || !analysis.data}
                          onChange={(next) => patch({ report: next })} />
         </>
       ) : tab === "input" ? (
@@ -641,7 +652,7 @@ export function AuditSubjectPage() {
       ) : tab === "versions" ? (
         // Версии живут отдельно от анализа: список снимков не требует расчёта, а
         // сводка в нём — сохранённая, а не сегодняшняя.
-        <AuditVersions subjectId={id} />
+        <AuditVersions subjectId={id} dirty={dirty} />
       ) : analysis.isLoading ? (
         <div className="page-sub" style={{ padding: 24 }}>Считаем анализ…</div>
       ) : analysis.isError || !analysis.data ? (
@@ -1076,6 +1087,10 @@ export function AuditSubjectPage() {
           </div>
         </>
       )}
+
+      {/* Вопрос перед уходом: введённую отчётность восстанавливать по памяти нечем. */}
+      <UnsavedLeaveModal pending={pendingLeave} saving={save.isPending} onCancel={cancelLeave}
+                         onSave={async () => { await save.mutateAsync(); }} />
     </div>
   );
 }

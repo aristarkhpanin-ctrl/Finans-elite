@@ -2,9 +2,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import type { ProjectModel } from "../api/model";
+import { httpFieldError } from "../api/client";
 import { getProject, updateProject } from "../api/projects";
-import { IconWarning } from "../components/icons";
-import { Button, ErrorState, Loading, Modal } from "../components/ui";
+import { Button, ErrorState, Loading } from "../components/ui";
+import { UnsavedLeaveModal, useUnsavedGuard } from "../components/UnsavedGuard";
 import { ValidationPanel } from "../components/ValidationPanel";
 import { ActualizationTab } from "./editor/ActualizationTab";
 import { AssetsTab } from "./editor/AssetsTab";
@@ -78,7 +79,6 @@ export function ProjectEditorPage() {
     const t = searchParams.get("tab");
     return TABS.some(([k]) => k === t) ? (t as TabKey) : "general";
   });
-  const [pendingLeave, setPendingLeave] = useState<{ label: string; go: () => void } | null>(null);
   const savedSnapshot = useRef<string>("");
 
   useEffect(() => {
@@ -98,28 +98,13 @@ export function ProjectEditorPage() {
 
   const dirty = model != null && JSON.stringify(model) !== savedSnapshot.current;
 
-  // Предупреждение о несохранённых изменениях при закрытии/перезагрузке вкладки.
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      if (dirty) {
-        e.preventDefault();
-        e.returnValue = "";
-      }
-    };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, [dirty]);
+  // Страж несохранённого ввода — общий с «Финанс-Аудитом» (components/UnsavedGuard).
+  const { tryNav, pending: pendingLeave, cancel: cancelLeave } = useUnsavedGuard(dirty);
 
   if (isError) return <ErrorState text="Не удалось загрузить проект." />;
   if (isLoading || !model) return <Loading />;
 
   const n = model.header.duration_months;
-
-  /** Переход с guard несохранённых изменений. */
-  const tryNav = (label: string, go: () => void) => {
-    if (dirty) setPendingLeave({ label, go });
-    else go();
-  };
 
   const discard = () => {
     setModel(JSON.parse(savedSnapshot.current));
@@ -266,7 +251,11 @@ export function ProjectEditorPage() {
           {saveErr && (
             <>
               <span className="save-err-dot">!</span>
-              <span className="save-text--err">Не удалось сохранить · повторите</span>
+              {/* Отказ по одному полю называет это поле: искать виновную ячейку
+                  глазами по всей модели — не работа пользователя. */}
+              <span className="save-text--err" title={httpFieldError(save.error) ?? ""}>
+                {httpFieldError(save.error) ?? "Не удалось сохранить · повторите"}
+              </span>
             </>
           )}
           {dirtyIdle && (
@@ -294,44 +283,8 @@ export function ProjectEditorPage() {
         </div>
       </div>
 
-      <Modal open={!!pendingLeave} onClose={() => setPendingLeave(null)} maxWidth={420}>
-        <div style={{ textAlign: "center" }}>
-          <div className="modal-warn-ico">
-            <IconWarning size={22} />
-          </div>
-          <h3 className="modal__title">Несохранённые изменения</h3>
-          <div className="modal__sub">
-            В модели есть изменения, которые ещё не сохранены. Сохранить их перед переходом в «
-            {pendingLeave?.label}»?
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-            <Button
-              loading={saving}
-              onClick={async () => {
-                const go = pendingLeave!.go;
-                await save.mutateAsync();
-                setPendingLeave(null);
-                go();
-              }}
-            >
-              Сохранить и выйти
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                const go = pendingLeave!.go;
-                setPendingLeave(null);
-                go();
-              }}
-            >
-              Выйти без сохранения
-            </Button>
-            <Button variant="link" style={{ alignSelf: "center" }} onClick={() => setPendingLeave(null)}>
-              Отмена
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      <UnsavedLeaveModal pending={pendingLeave} saving={saving} onCancel={cancelLeave}
+                         onSave={async () => { await save.mutateAsync(); }} />
     </div>
   );
 }

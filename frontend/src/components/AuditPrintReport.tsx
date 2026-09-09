@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import type { AuditAnalysis, ReportingStandard } from "../api/audit";
 import { REPORTING_STANDARDS } from "../api/audit";
-import { plural } from "../format";
+import { fmtDateOnly, plural } from "../format";
 
 /**
  * Печатное заключение «Финанс-Аудит» (макет «Экран 5» и `Заключение (печать).dc.html`).
@@ -133,7 +133,7 @@ export function AuditPrintReport({
                 именно так: выдавать день печати за дату заключения нельзя. */}
             <div className="ap-docdate">
               {req.date
-                ? new Date(req.date).toLocaleDateString("ru-RU")
+                ? fmtDateOnly(req.date)
                 : `${new Date().toLocaleDateString("ru-RU")} · дата формирования`}
             </div>
             {req.addressee && <div className="ap-docaddr">{req.addressee}</div>}

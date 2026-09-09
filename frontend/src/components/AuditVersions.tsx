@@ -115,7 +115,16 @@ function DiffView({ diff }: { diff: AuditVersionDiff }) {
   );
 }
 
-export function AuditVersions({ subjectId }: { subjectId: string }) {
+export function AuditVersions({ subjectId, dirty = false }: {
+  subjectId: string;
+  /**
+   * В деле есть несохранённые правки. Снимок берётся **на сервере** с сохранённой
+   * модели, поэтому такие правки в него не попадут — а версия для того и делается,
+   * чтобы через месяц ответить, что именно уходило в комитет. Молча снять снимок
+   * «почти того, что на экране» здесь хуже, чем отказать и назвать причину.
+   */
+  dirty?: boolean;
+}) {
   const qc = useQueryClient();
   const toast = useToast();
   const [label, setLabel] = useState("");
@@ -176,10 +185,18 @@ export function AuditVersions({ subjectId }: { subjectId: string }) {
           value={label}
           onChange={(e) => setLabel(e.target.value)}
         />
-        <Button loading={save.isPending} onClick={() => save.mutate()}>
+        <Button loading={save.isPending} disabled={dirty} onClick={() => save.mutate()}>
           Сохранить версию
         </Button>
       </div>
+
+      {dirty && (
+        <div className="field-note field-note--warn" style={{ marginTop: -6 }}>
+          В деле есть несохранённые правки. Снимок берётся с сохранённой модели — то,
+          что сейчас на экране, в него не войдёт. Сохраните дело, и версия совпадёт с
+          тем, что вы видите.
+        </div>
+      )}
 
       {versions.isPending && <div className="field-note">Загрузка версий…</div>}
       {versions.data && versions.data.length === 0 && (

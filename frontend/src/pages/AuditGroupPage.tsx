@@ -18,6 +18,7 @@ import {
 import { IconBriefcase, IconDownload, IconTrash } from "../components/icons";
 import { useToast } from "../components/Toast";
 import { Button } from "../components/ui";
+import { UnsavedLeaveModal, useUnsavedGuard } from "../components/UnsavedGuard";
 import { downloadAuditXlsx } from "../auditExport";
 
 const dec = (v: string | null | undefined): number | null => {
@@ -144,6 +145,10 @@ export function AuditGroupPage() {
 
   const invalidateGroups = () => qc.invalidateQueries({ queryKey: ["audit-groups"] });
 
+  // Тот же страж, что у дела и у редактора проекта: несохранённый состав группы —
+  // такой же ввод, и терять его молча нельзя.
+  const { tryNav, pending: pendingLeave, cancel: cancelLeave } = useUnsavedGuard(dirty);
+
   const save = useMutation({
     mutationFn: () => (groupId ? updateAuditGroup(groupId, name, groupModel())
                                : createAuditGroup(name, groupModel())),
@@ -194,7 +199,8 @@ export function AuditGroupPage() {
     <div>
       <div className="page-head">
         <div style={{ minWidth: 0 }}>
-          <button type="button" className="link-back" onClick={() => navigate("/audit")}>← К субъектам</button>
+          <button type="button" className="link-back"
+                  onClick={() => tryNav("Дела", () => navigate("/audit"))}>← К субъектам</button>
           <h1 className="page-title">Консолидация группы</h1>
           <div className="page-sub">
             Свод отчётности нескольких предприятий и анализ группы как единого субъекта.
@@ -455,6 +461,9 @@ export function AuditGroupPage() {
           </div>
         </div>
       )}
+
+      <UnsavedLeaveModal pending={pendingLeave} saving={save.isPending} onCancel={cancelLeave}
+                         onSave={async () => { await save.mutateAsync(); }} />
     </div>
   );
 }
