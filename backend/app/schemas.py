@@ -228,7 +228,7 @@ class CalcResponse(BaseModel):
     warnings: list[str]
 
 
-# --- Ревью бизнес-плана (Ф10, вне паритета с Project Expert) ---
+# --- Ревью бизнес-плана (Ф10) ---
 
 class FindingOut(BaseModel):
     """Одна находка ревью: severity + человекочитаемый текст + числовое обоснование."""

@@ -188,7 +188,9 @@ export function ReviewTab({ projectId }: { projectId: string }) {
             Детерминированная проверка модели · находки, рекомендации и гейт финализации.
           </div>
         </div>
-        <span className="status-chip status-chip--info">Вне паритета с Project Expert</span>
+        {/* Плашка говорит о свойстве самой проверки, а не о чужом продукте: находки
+            детерминированы, каждая стоит на числе из расчёта, и ничего не «оценивается». */}
+        <span className="status-chip status-chip--info">Без ИИ — правила над числами</span>
       </div>
 
       {review.isPending && (
