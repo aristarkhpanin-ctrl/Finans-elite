@@ -49,6 +49,27 @@ export async function issueAccessLink(orgId: string, userId: string): Promise<Ac
   return data;
 }
 
+/**
+ * Приостановить доступ участника в этой организации (A1).
+ *
+ * **Приостановка — не удаление.** Участник остаётся в списке со своей ролью: удаление
+ * стирает связь, и вернуть его можно только заведением заново. Отзыв мгновенный —
+ * права проверяются по базе на каждом запросе, поэтому выданный токен не спасает.
+ * Блокируется членство, а не учётная запись: в других организациях человек работает.
+ */
+export async function blockMember(orgId: string, userId: string, reason: string): Promise<Member> {
+  const { data } = await api.post<Member>(
+    `/api/v1/organizations/${orgId}/members/${userId}/block`, { reason });
+  return data;
+}
+
+/** Вернуть доступ. Причина стирается, след в журнале остаётся — журнал и есть память. */
+export async function unblockMember(orgId: string, userId: string): Promise<Member> {
+  const { data } = await api.delete<Member>(
+    `/api/v1/organizations/${orgId}/members/${userId}/block`);
+  return data;
+}
+
 export async function patchMemberRole(orgId: string, userId: string, role: string): Promise<Member> {
   const { data } = await api.patch<Member>(`/api/v1/organizations/${orgId}/members/${userId}`, { role });
   return data;

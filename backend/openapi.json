@@ -6471,6 +6471,22 @@
         "title": "Material",
         "type": "object"
       },
+      "MemberBlockIn": {
+        "description": "Причина приостановки. Обязательна: блокировка без причины неотличима от ошибки.",
+        "properties": {
+          "reason": {
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "MemberBlockIn",
+        "type": "object"
+      },
       "MemberCreate": {
         "properties": {
           "email": {
@@ -6497,6 +6513,33 @@
       "MemberOut": {
         "description": "Участник организации.\n\n``invite_token`` заполняется **только в ответе на приглашение** и только если\nучастник ещё не заводил пароль: это одноразовая ссылка активации, которую\nпригласивший передаёт лично (почтовой отправки у платформы нет). В списке\nучастников его нет — там он был бы вечно доступным пропуском в чужой аккаунт.",
         "properties": {
+          "block_reason": {
+            "default": "",
+            "title": "Block Reason",
+            "type": "string"
+          },
+          "blocked": {
+            "default": false,
+            "title": "Blocked",
+            "type": "boolean"
+          },
+          "blocked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blocked At"
+          },
+          "blocked_by": {
+            "default": "",
+            "title": "Blocked By",
+            "type": "string"
+          },
           "email": {
             "title": "Email",
             "type": "string"
@@ -15359,6 +15402,128 @@
           }
         ],
         "summary": "Issue Access Link",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/api/v1/organizations/{org_id}/members/{user_id}/block": {
+      "delete": {
+        "description": "Вернуть доступ участнику. Причина прошлой блокировки стирается, след в журнале —\nостаётся: журнал и есть то, что помнит.",
+        "operationId": "unblock_member_api_v1_organizations__org_id__members__user_id__block_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Unblock Member",
+        "tags": [
+          "organizations"
+        ]
+      },
+      "post": {
+        "description": "Приостановить доступ участника в этой организации (право member.manage).\n\n**Приостановка — не удаление.** Участник остаётся в списке со своей ролью и историей;\nдоступ возвращается одним действием. Удаление стирает связь, и восстановить его можно\nтолько заведением заново — с потерей того, кем человек был.\n\nОтзыв **мгновенный**: членство читается из базы на каждом запросе, поэтому выданный\nранее токен доступа не даёт (см. `deps._ensure_active`). Блокируется членство, а не\nучётная запись: в других организациях человек продолжает работать — там свои\nадминистраторы, и распоряжаться чужим доступом эти не вправе.",
+        "operationId": "block_member_api_v1_organizations__org_id__members__user_id__block_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberBlockIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Block Member",
         "tags": [
           "organizations"
         ]

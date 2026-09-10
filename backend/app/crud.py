@@ -247,6 +247,21 @@ def remove_membership(db: Session, membership: Membership) -> None:
     db.commit()
 
 
+def set_membership_block(db: Session, membership: Membership, *, blocked: bool,
+                         by: str = "", reason: str = "") -> Membership:
+    """Приостановить или вернуть доступ участника (A1).
+
+    Снятие **стирает** автора и причину: оставленная причина от прошлой блокировки
+    рассказывала бы о действующем участнике то, чего уже нет.
+    """
+    membership.blocked_at = datetime.now(timezone.utc) if blocked else None
+    membership.blocked_by = by[:255] if blocked else ""
+    membership.block_reason = reason[:500] if blocked else ""
+    db.commit()
+    db.refresh(membership)
+    return membership
+
+
 def list_user_organizations(db: Session, user_id: str) -> list[tuple[Organization, str]]:
     rows = db.execute(
         select(Organization, Membership.role)

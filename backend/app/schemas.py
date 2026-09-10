@@ -403,6 +403,12 @@ class MemberCreate(BaseModel):
     role: str = "viewer"
 
 
+class MemberBlockIn(BaseModel):
+    """Причина приостановки. Обязательна: блокировка без причины неотличима от ошибки."""
+
+    reason: str = Field(min_length=3, max_length=500)
+
+
 class MemberPatch(BaseModel):
     role: str
 
@@ -459,6 +465,12 @@ class MemberOut(BaseModel):
     email: str
     full_name: str
     role: str
+    #: Доступ приостановлен (A1). Заблокированный участник **остаётся в списке**:
+    #: исчезнувший читался бы как удалённый, а это другое состояние.
+    blocked: bool = False
+    blocked_at: Optional[datetime] = None
+    blocked_by: str = ""
+    block_reason: str = ""
     invite_token: Optional[str] = None
 
 

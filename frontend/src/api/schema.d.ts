@@ -872,6 +872,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizations/{org_id}/members/{user_id}/block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Block Member
+         * @description Приостановить доступ участника в этой организации (право member.manage).
+         *
+         *     **Приостановка — не удаление.** Участник остаётся в списке со своей ролью и историей;
+         *     доступ возвращается одним действием. Удаление стирает связь, и восстановить его можно
+         *     только заведением заново — с потерей того, кем человек был.
+         *
+         *     Отзыв **мгновенный**: членство читается из базы на каждом запросе, поэтому выданный
+         *     ранее токен доступа не даёт (см. `deps._ensure_active`). Блокируется членство, а не
+         *     учётная запись: в других организациях человек продолжает работать — там свои
+         *     администраторы, и распоряжаться чужим доступом эти не вправе.
+         */
+        post: operations["block_member_api_v1_organizations__org_id__members__user_id__block_post"];
+        /**
+         * Unblock Member
+         * @description Вернуть доступ участнику. Причина прошлой блокировки стирается, след в журнале —
+         *     остаётся: журнал и есть то, что помнит.
+         */
+        delete: operations["unblock_member_api_v1_organizations__org_id__members__user_id__block_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizations/{org_id}/subscription": {
         parameters: {
             query?: never;
@@ -4864,6 +4898,14 @@ export interface components {
              */
             unit_price: string;
         };
+        /**
+         * MemberBlockIn
+         * @description Причина приостановки. Обязательна: блокировка без причины неотличима от ошибки.
+         */
+        MemberBlockIn: {
+            /** Reason */
+            reason: string;
+        };
         /** MemberCreate */
         MemberCreate: {
             /** Email */
@@ -4889,6 +4931,23 @@ export interface components {
          *     участников его нет — там он был бы вечно доступным пропуском в чужой аккаунт.
          */
         MemberOut: {
+            /**
+             * Block Reason
+             * @default
+             */
+            block_reason: string;
+            /**
+             * Blocked
+             * @default false
+             */
+            blocked: boolean;
+            /** Blocked At */
+            blocked_at?: string | null;
+            /**
+             * Blocked By
+             * @default
+             */
+            blocked_by: string;
             /** Email */
             email: string;
             /** Full Name */
@@ -9618,6 +9677,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccessLinkOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    block_member_api_v1_organizations__org_id__members__user_id__block_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberBlockIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unblock_member_api_v1_organizations__org_id__members__user_id__block_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberOut"];
                 };
             };
             /** @description Validation Error */

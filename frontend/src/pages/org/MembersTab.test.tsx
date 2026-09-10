@@ -14,10 +14,14 @@ import { MembersTab } from "./MembersTab";
 
 const getMembers = vi.fn();
 const issueAccessLink = vi.fn();
+const blockMember = vi.fn();
+const unblockMember = vi.fn();
 vi.mock("../../api/org", async (orig) => ({
   ...(await orig<typeof import("../../api/org")>()),
   getMembers: (...a: unknown[]) => getMembers(...a),
   issueAccessLink: (...a: unknown[]) => issueAccessLink(...a),
+  blockMember: (...a: unknown[]) => blockMember(...a),
+  unblockMember: (...a: unknown[]) => unblockMember(...a),
 }));
 
 const toast = vi.fn();
@@ -94,5 +98,78 @@ describe("Ссылка входа участнику", () => {
     fireEvent.click(linkButton("Коллега")!);
     await waitFor(() => expect(toast).toHaveBeenCalledWith(
       "Участник состоит и в других организациях.", { kind: "error" }));
+  });
+
+  /**
+   * Приостановка доступа (A1). Проверяется то, что отличает её от удаления: участник
+   * остаётся в списке, причина обязательна и видна, а вернуть доступ можно одной
+   * кнопкой.
+   */
+  it("приостановленный остаётся в списке и помечен причиной", async () => {
+    getMembers.mockResolvedValue([
+      member({ user_id: "u1", email: "own@e.ru", full_name: "Владелец", role: "owner" }),
+      member({ blocked: true, block_reason: "увольнение",
+               blocked_at: "2026-09-10T10:00:00Z", blocked_by: "own@e.ru" }),
+    ]);
+    await show();
+    // Исчезнувший из списка читался бы как удалённый — это другое состояние.
+    expect(screen.getByText("Коллега")).toBeTruthy();
+    expect(screen.getByTitle("увольнение")).toBeTruthy();
+    expect(screen.getByText("приостановлен")).toBeTruthy();
+  });
+
+  it("причина обязательна: без неё приостановить нельзя", async () => {
+    await show();
+    fireEvent.click(screen.getByTitle("Приостановить доступ"));
+    const submit = screen.getByText("Приостановить").closest("button")!;
+    expect(submit.disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText("Причина приостановки"),
+                     { target: { value: "увольнение" } });
+    expect(submit.disabled).toBe(false);
+  });
+
+  it("приостановка уходит на сервер вместе с причиной", async () => {
+    blockMember.mockResolvedValue(member({ blocked: true, block_reason: "увольнение" }));
+    await show();
+    fireEvent.click(screen.getByTitle("Приостановить доступ"));
+    fireEvent.change(screen.getByLabelText("Причина приостановки"),
+                     { target: { value: "увольнение" } });
+    fireEvent.click(screen.getByText("Приостановить"));
+    await waitFor(() => expect(blockMember).toHaveBeenCalledWith("o1", "u2", "увольнение"));
+  });
+
+  it("диалог предупреждает, что отзыв мгновенный", async () => {
+    // Администратор должен понимать, что открытая у сотрудника вкладка перестанет
+    // работать сейчас, а не завтра.
+    await show();
+    fireEvent.click(screen.getByTitle("Приостановить доступ"));
+    expect(screen.getByText(/сразу/)).toBeTruthy();
+  });
+
+  it("доступ возвращается одной кнопкой", async () => {
+    getMembers.mockResolvedValue([
+      member({ user_id: "u1", email: "own@e.ru", full_name: "Владелец", role: "owner" }),
+      member({ blocked: true, block_reason: "увольнение" }),
+    ]);
+    unblockMember.mockResolvedValue(member());
+    await show();
+    fireEvent.click(screen.getByTitle(/Вернуть доступ/));
+    await waitFor(() => expect(unblockMember).toHaveBeenCalledWith("o1", "u2"));
+  });
+
+  it("отказ сервера показывается его же словами", async () => {
+    // «Нельзя приостановить владельца» — граница безопасности, и своя формулировка
+    // разошлась бы с правилом на бэкенде.
+    blockMember.mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 409, data: { detail: "Нельзя приостановить себя" } },
+    });
+    await show();
+    fireEvent.click(screen.getByTitle("Приостановить доступ"));
+    fireEvent.change(screen.getByLabelText("Причина приостановки"),
+                     { target: { value: "ошибка" } });
+    fireEvent.click(screen.getByText("Приостановить"));
+    await waitFor(() => expect(toast)
+      .toHaveBeenCalledWith("Нельзя приостановить себя", { kind: "error" }));
   });
 });

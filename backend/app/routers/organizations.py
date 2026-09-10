@@ -18,6 +18,7 @@ from ..schemas import (
     AuditLogPage,
     BenchmarkIn,
     BenchmarkOut,
+    MemberBlockIn,
     MemberCreate,
     MemberOut,
     MemberPatch,
@@ -62,6 +63,17 @@ def get_organization(org_id: str = Depends(require_membership),
     return OrganizationOut(id=org.id, name=org.name, created_at=org.created_at)
 
 
+def _member_out(membership, user, *, invite_token: str | None = None) -> MemberOut:
+    """Ответ об участнике — из одного места: состояние блокировки нельзя забыть."""
+    return MemberOut(
+        user_id=user.id, email=user.email, full_name=user.full_name,
+        role=membership.role, blocked=membership.blocked_at is not None,
+        blocked_at=membership.blocked_at, blocked_by=membership.blocked_by,
+        block_reason=membership.block_reason,
+        **({"invite_token": invite_token} if invite_token is not None else {}),
+    )
+
+
 @router.post("/{org_id}/members", response_model=MemberOut, status_code=status.HTTP_201_CREATED)
 def add_member(body: MemberCreate,
                org_id: str = Depends(require_org_permission(Perm.MEMBER_MANAGE)),
@@ -84,17 +96,13 @@ def add_member(body: MemberCreate,
     # он передаёт её лично. В списке участников токена нет: там он был бы вечным
     # пропуском в чужой аккаунт для всякого, кто видит состав организации.
     invite = None if user.hashed_password else create_invite_token(user.id)
-    return MemberOut(user_id=user.id, email=user.email, full_name=user.full_name,
-                     role=membership.role, invite_token=invite)
+    return _member_out(membership, user, invite_token=invite)
 
 
 @router.get("/{org_id}/members", response_model=list[MemberOut])
 def list_members(org_id: str = Depends(require_org_permission(Perm.MEMBER_READ)),
                  db: Session = Depends(get_db)) -> list[MemberOut]:
-    return [
-        MemberOut(user_id=u.id, email=u.email, full_name=u.full_name, role=m.role)
-        for m, u in crud.list_members(db, org_id)
-    ]
+    return [_member_out(m, u) for m, u in crud.list_members(db, org_id)]
 
 
 def _member_or_404(db: Session, org_id: str, user_id: str):
@@ -121,7 +129,62 @@ def patch_member_role(user_id: str, body: MemberPatch,
     crud.log_action(db, org_id, actor, "member.role_change", entity_type="member",
                     entity_id=user.id, entity_name=user.email,
                     details=f"{was} → {updated.role}")
-    return MemberOut(user_id=user.id, email=user.email, full_name=user.full_name, role=updated.role)
+    return _member_out(updated, user)
+
+
+@router.post("/{org_id}/members/{user_id}/block", response_model=MemberOut)
+def block_member(user_id: str, body: MemberBlockIn,
+                 org_id: str = Depends(require_org_permission(Perm.MEMBER_MANAGE)),
+                 actor: User = Depends(current_user),
+                 db: Session = Depends(get_db)) -> MemberOut:
+    """Приостановить доступ участника в этой организации (право member.manage).
+
+    **Приостановка — не удаление.** Участник остаётся в списке со своей ролью и историей;
+    доступ возвращается одним действием. Удаление стирает связь, и восстановить его можно
+    только заведением заново — с потерей того, кем человек был.
+
+    Отзыв **мгновенный**: членство читается из базы на каждом запросе, поэтому выданный
+    ранее токен доступа не даёт (см. `deps._ensure_active`). Блокируется членство, а не
+    учётная запись: в других организациях человек продолжает работать — там свои
+    администраторы, и распоряжаться чужим доступом эти не вправе.
+    """
+    membership = _member_or_404(db, org_id, user_id)
+    if membership.role == "owner":
+        # Иначе администратор отстраняет владельца и забирает организацию с тарифом и
+        # биллингом — тот же запрет, что у удаления и у ссылки сброса пароля.
+        raise HTTPException(status_code=409,
+                            detail="Нельзя приостановить доступ владельца организации")
+    if user_id == actor.id:
+        raise HTTPException(status_code=409, detail="Нельзя приостановить себя")
+    if membership.blocked_at is not None:
+        raise HTTPException(status_code=409, detail="Доступ участника уже приостановлен")
+
+    user = crud.get_user(db, user_id)
+    updated = crud.set_membership_block(db, membership, blocked=True,
+                                        by=actor.email, reason=body.reason.strip())
+    crud.log_action(db, org_id, actor, "member.block", entity_type="member",
+                    entity_id=user_id, entity_name=user.email if user else user_id,
+                    details=body.reason.strip())
+    return _member_out(updated, user)
+
+
+@router.delete("/{org_id}/members/{user_id}/block", response_model=MemberOut)
+def unblock_member(user_id: str,
+                   org_id: str = Depends(require_org_permission(Perm.MEMBER_MANAGE)),
+                   actor: User = Depends(current_user),
+                   db: Session = Depends(get_db)) -> MemberOut:
+    """Вернуть доступ участнику. Причина прошлой блокировки стирается, след в журнале —
+    остаётся: журнал и есть то, что помнит."""
+    membership = _member_or_404(db, org_id, user_id)
+    if membership.blocked_at is None:
+        raise HTTPException(status_code=409, detail="Доступ участника не приостановлен")
+    was = membership.block_reason
+    user = crud.get_user(db, user_id)
+    updated = crud.set_membership_block(db, membership, blocked=False)
+    crud.log_action(db, org_id, actor, "member.unblock", entity_type="member",
+                    entity_id=user_id, entity_name=user.email if user else user_id,
+                    details=f"была причина: {was}" if was else "")
+    return _member_out(updated, user)
 
 
 @router.post("/{org_id}/members/{user_id}/access-link", response_model=AccessLinkOut)

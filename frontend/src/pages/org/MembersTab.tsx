@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { httpDetail, httpStatus } from "../../api/client";
 import { useState } from "react";
-import { addMember, getMembers, issueAccessLink, patchMemberRole, removeMember, roleLabel,
-         ROLES, type AccessLink, type Member } from "../../api/org";
+import { addMember, blockMember, getMembers, issueAccessLink, patchMemberRole, removeMember,
+         roleLabel, ROLES, unblockMember, type AccessLink, type Member } from "../../api/org";
 import { ESelect } from "../../components/EditorField";
-import { IconKey, IconTrash } from "../../components/icons";
+import { IconKey, IconTrash, IconWarning } from "../../components/icons";
 import { useToast } from "../../components/Toast";
 import { Button, Modal, Skeleton } from "../../components/ui";
 
@@ -40,6 +40,9 @@ export function MembersTab({ orgId, myRole, myUserId }: { orgId: string; myRole:
   /** Выданная ссылка входа: приглашение заново или сброс забытого пароля. */
   const [link, setLink] = useState<AccessLink | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  /** Кого приостанавливаем: причина обязательна — блокировка без неё читается как ошибка. */
+  const [blockTarget, setBlockTarget] = useState<Member | null>(null);
+  const [blockReason, setBlockReason] = useState("");
 
   const { data, isLoading } = useQuery({ queryKey: ["members", orgId], queryFn: () => getMembers(orgId) });
   const invalidate = () => qc.invalidateQueries({ queryKey: ["members", orgId] });
@@ -85,6 +88,25 @@ export function MembersTab({ orgId, myRole, myUserId }: { orgId: string; myRole:
     onError: (e: unknown) => toast(httpDetail(e) ?? "Не удалось выдать ссылку",
                                    { kind: "error" }),
   });
+  const block = useMutation({
+    mutationFn: () => blockMember(orgId, blockTarget!.user_id, blockReason.trim()),
+    onSuccess: () => {
+      invalidate();
+      setBlockTarget(null);
+      setBlockReason("");
+      toast("Доступ приостановлен", { kind: "success" });
+    },
+    // Отказы сервера содержательны (владелец, сам себя) — показываем их словами.
+    onError: (e: unknown) => toast(httpDetail(e) ?? "Не удалось приостановить доступ",
+                                   { kind: "error" }),
+  });
+  const unblock = useMutation({
+    mutationFn: (uid: string) => unblockMember(orgId, uid),
+    onSuccess: () => { invalidate(); toast("Доступ возвращён", { kind: "success" }); },
+    onError: (e: unknown) => toast(httpDetail(e) ?? "Не удалось вернуть доступ",
+                                   { kind: "error" }),
+  });
+
   const remove = useMutation({
     mutationFn: (uid: string) => removeMember(orgId, uid),
     onSuccess: () => {
@@ -160,9 +182,18 @@ export function MembersTab({ orgId, myRole, myUserId }: { orgId: string; myRole:
                   )}
                 </div>
                 <div className="org-col-status">
-                  <span className="chip chip--active" style={{ height: 22, fontSize: 11 }}>
-                    активен
-                  </span>
+                  {/* Приостановленный **остаётся в списке**: исчезнувший читался бы как
+                      удалённый, а это другое состояние — и другая дорога назад. */}
+                  {m.blocked ? (
+                    <span className="chip chip--blocked" style={{ height: 22, fontSize: 11 }}
+                          title={m.block_reason || "причина не указана"}>
+                      приостановлен
+                    </span>
+                  ) : (
+                    <span className="chip chip--active" style={{ height: 22, fontSize: 11 }}>
+                      активен
+                    </span>
+                  )}
                 </div>
                 <div className="org-col-act">
                   {editable && (
@@ -176,6 +207,26 @@ export function MembersTab({ orgId, myRole, myUserId }: { orgId: string; myRole:
                       <IconKey size={15} />
                     </button>
                   )}
+                  {deletable && (m.blocked ? (
+                    <button
+                      type="button"
+                      className="icon-action"
+                      title={`Вернуть доступ: ${m.block_reason || "без причины"}`}
+                      disabled={unblock.isPending}
+                      onClick={() => unblock.mutate(m.user_id)}
+                    >
+                      ↩
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="icon-action"
+                      title="Приостановить доступ"
+                      onClick={() => { setBlockReason(""); setBlockTarget(m); }}
+                    >
+                      <IconWarning size={15} />
+                    </button>
+                  ))}
                   {deletable && (
                     <button
                       type="button"
@@ -268,6 +319,38 @@ export function MembersTab({ orgId, myRole, myUserId }: { orgId: string; myRole:
             </div>
           </div>
           {inviteErr && <div className="field-error">{inviteErr}</div>}
+        </div>
+      </Modal>
+
+      {/* Приостановка: причина обязательна и её увидит сам участник в отказе. */}
+      <Modal open={!!blockTarget} onClose={() => !block.isPending && setBlockTarget(null)}
+             title="Приостановить доступ"
+             sub={blockTarget ? `${blockTarget.full_name || blockTarget.email} · ${roleLabel(blockTarget.role)}` : undefined}
+             maxWidth={460}
+             actions={
+               <>
+                 <Button variant="ghost" disabled={block.isPending}
+                         onClick={() => setBlockTarget(null)}>Отмена</Button>
+                 <Button variant="danger" loading={block.isPending}
+                         disabled={blockReason.trim().length < 3}
+                         onClick={() => block.mutate()}>Приостановить</Button>
+               </>
+             }>
+        <div className="page-sub" style={{ marginBottom: 10 }}>
+          Участник перестанет работать в этой организации <b>сразу</b> — открытая у него
+          вкладка перестанет отвечать на следующем же действии. Роль и история сохранятся,
+          доступ возвращается одной кнопкой. В других организациях, если он там состоит,
+          он продолжит работать: это решают их администраторы.
+        </div>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label>Причина</label>
+          <input className="input" autoFocus placeholder="напр. увольнение, проверка СБ"
+                 aria-label="Причина приостановки"
+                 value={blockReason} onChange={(e) => setBlockReason(e.target.value)} />
+        </div>
+        <div className="field-note" style={{ marginTop: 8 }}>
+          Причину увидит сам участник в отказе и любой, кто откроет журнал. Она остаётся
+          в журнале навсегда — даже после того, как доступ вернут.
         </div>
       </Modal>
 
