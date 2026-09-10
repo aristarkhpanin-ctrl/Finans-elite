@@ -48,6 +48,8 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)) -> TokenRespo
     user = crud.create_user(db, body.email, body.full_name, hash_password(body.password))
     org = crud.create_organization(db, body.organization_name)
     crud.add_membership(db, org.id, user.id, role="owner")
+    crud.log_action(db, org.id, user, "org.create", entity_type="organization",
+                    entity_id=org.id, entity_name=org.name)
     return TokenResponse(access_token=create_access_token(user.id))
 
 
@@ -56,7 +58,11 @@ def login(body: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
     """Вход по email и паролю → токен доступа."""
     user = crud.get_user_by_email(db, body.email)
     if user is None or not verify_password(user.hashed_password, body.password):
+        # Неудача известного пользователя — событие для его организаций: подбор пароля
+        # виден только так. Неизвестный адрес не пишется никуда (см. log_user_action).
+        crud.log_user_action(db, user, "auth.login_failed", details="неверный пароль")
         raise HTTPException(status_code=401, detail="Неверный email или пароль")
+    crud.log_user_action(db, user, "auth.login")
     return TokenResponse(access_token=create_access_token(user.id))
 
 
@@ -118,6 +124,8 @@ def activate(body: ActivateRequest, db: Session = Depends(get_db)) -> TokenRespo
     crud.set_password(db, user, hash_password(body.password))
     if body.full_name:
         crud.set_full_name(db, user, body.full_name)
+    crud.log_user_action(db, user, "auth.activate",
+                         details="сброс пароля" if reset is not None else "приглашение")
     return TokenResponse(access_token=create_access_token(user.id))
 
 
@@ -135,6 +143,9 @@ def change_password(body: PasswordChange, user: User = Depends(current_user),
     """Смена своего пароля. Текущий обязателен: иначе украденная сессия меняет пароль
     и запирает владельца снаружи."""
     if not verify_password(user.hashed_password, body.current_password):
+        crud.log_user_action(db, user, "auth.password_change_failed",
+                             details="текущий пароль неверен")
         raise HTTPException(status_code=400, detail="Текущий пароль неверен")
     _check_password(body.new_password)
     crud.set_password(db, user, hash_password(body.new_password))
+    crud.log_user_action(db, user, "auth.password_change")

@@ -1829,6 +1829,12 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 }
 
 /* Журнал действий организации (макет Экран 11, раздел «Журнал доступа») */
+/* Отбор журнала: строка полей над списком; на узком экране переносится. */
+.log-fetching { color: var(--subtle); }
+.log-filter { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+.log-filter .input { height: 36px; min-width: 150px; }
+.log-filter .input[type="date"] { min-width: 138px; }
+.log-filter .input:first-child { flex: 1; min-width: 220px; }
 .log-list { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
 .log-row {
   display: grid; grid-template-columns: 150px 1.1fr 1.3fr 1.2fr; gap: 12px;

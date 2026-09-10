@@ -32,8 +32,10 @@ def test_member_actions_are_recorded(client, register):
 
     page = _log(client, owner, oid).json()
     actions = [e["action"] for e in page["entries"]]
-    assert actions == ["member.remove", "member.role_change", "member.add"]  # новые сверху
-    assert page["total"] == 3
+    # «org.create» — заведение организации при регистрации: журнал начинается с того,
+    # как организация появилась, иначе первые записи висят в воздухе.
+    assert actions == ["member.remove", "member.role_change", "member.add", "org.create"]
+    assert page["total"] == 4
 
     # запись называет и объект, и суть изменения
     role_change = next(e for e in page["entries"] if e["action"] == "member.role_change")
@@ -72,7 +74,7 @@ def test_log_is_isolated_by_organization(client, register):
                 json={"email": "x@e.ru", "full_name": "", "role": "viewer"}, headers=a)
 
     assert _log(client, b, oid_a).status_code == 403
-    assert _log(client, a, oid_a).json()["total"] == 1
+    assert _log(client, a, oid_a).json()["total"] == 2   # + org.create при регистрации
 
 
 def test_log_requires_org_manage(client, register):
@@ -133,7 +135,8 @@ def test_case_lifecycle_is_recorded(client, register):
     client.delete(f"/api/v1/audit/subjects/{case['id']}", headers=owner)
 
     actions = [e["action"] for e in _log(client, owner, oid).json()["entries"]]
-    assert actions == ["case.delete", "case.export", "case.duplicate", "case.create"]
+    assert actions == ["case.delete", "case.export", "case.duplicate", "case.create",
+                       "org.create"]
 
 
 def test_deleted_case_is_still_named_in_the_log(client, register):

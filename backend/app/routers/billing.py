@@ -75,6 +75,7 @@ def get_subscriptions(org_id: str = Depends(require_membership),
 @router.post("/organizations/{org_id}/subscription", response_model=SubscriptionOut)
 def change_subscription(body: SubscriptionUpdate,
                         org_id: str = Depends(require_org_permission(Perm.BILLING_MANAGE)),
+                        user: User = Depends(current_user),
                         db: Session = Depends(get_db)) -> SubscriptionOut:
     """Прямая смена тарифа без платежа (право billing.manage; ручной/админский путь)."""
     if not is_valid_plan(body.plan_code):
@@ -83,6 +84,8 @@ def change_subscription(body: SubscriptionUpdate,
     # правды разошлись бы, и организация получила бы тариф «Аудита» в подписке «Элит».
     product = product_of(body.plan_code)
     crud.set_plan(db, org_id, body.plan_code, product=product)
+    crud.log_action(db, org_id, user, "billing.plan_change", entity_type="organization",
+                    entity_id=org_id, entity_name=body.plan_code, details=product)
     return _subscription_out(db, org_id, product)
 
 
@@ -95,8 +98,12 @@ def checkout(body: CheckoutRequest,
     """Инициировать смену тарифа через провайдера (ЮKassa — ссылка оплаты; ручной — сразу)."""
     if not is_valid_plan(body.plan_code):
         raise HTTPException(status_code=422, detail=f"Неизвестный тариф: {body.plan_code}")
-    result = provider.start_checkout(db, org_id, get_plan(body.plan_code),
-                                     body.return_url, user.email)
+    plan = get_plan(body.plan_code)
+    result = provider.start_checkout(db, org_id, plan, body.return_url, user.email)
+    # Смена тарифа — деньги и квоты организации: событие журнала наравне с участниками.
+    crud.log_action(db, org_id, user, "billing.checkout", entity_type="organization",
+                    entity_id=org_id, entity_name=plan.code,
+                    details="активирован сразу" if result.activated else "ожидает оплаты")
     return CheckoutResponse(activated=result.activated, payment_id=result.payment_id,
                             confirmation_url=result.confirmation_url)
 

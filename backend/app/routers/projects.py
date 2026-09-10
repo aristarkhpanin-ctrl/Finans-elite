@@ -24,8 +24,8 @@ from calc_core.whatif import Scenario, ScenarioAdjustment, run_what_if
 from .. import billing, crud
 from ..analysis_service import build_mc_config
 from ..database import get_db
-from ..db_models import Project
-from ..deps import require_permission
+from ..db_models import Project, User
+from ..deps import current_user, require_permission
 from ..docgen import DOCX_MIME, build_business_plan_docx
 from ..rbac import Perm
 from ..schemas import (
@@ -114,10 +114,14 @@ def _require(db: Session, org_id: str, project_id: str) -> Project:
 @router.post("", response_model=ProjectOut, status_code=status.HTTP_201_CREATED)
 def create_project(body: ProjectCreate,
                    org_id: str = Depends(require_permission(Perm.PROJECT_CREATE)),
+                   actor: User = Depends(current_user),
                    db: Session = Depends(get_db)) -> ProjectOut:
     """Создать проект в текущей организации (право project.create; учёт квоты тарифа)."""
     billing.ensure_project_quota(db, org_id)
-    return _out(crud.create_project(db, org_id, body.name, body.model))
+    project = crud.create_project(db, org_id, body.name, body.model)
+    crud.log_action(db, org_id, actor, "project.create", entity_type="project",
+                    entity_id=project.id, entity_name=project.name)
+    return _out(project)
 
 
 @router.get("", response_model=list[ProjectSummary])
@@ -138,29 +142,44 @@ def get_project(project_id: str,
 @router.put("/{project_id}", response_model=ProjectOut)
 def update_project(project_id: str, body: ProjectUpdate,
                    org_id: str = Depends(require_permission(Perm.PROJECT_UPDATE)),
+                   actor: User = Depends(current_user),
                    db: Session = Depends(get_db)) -> ProjectOut:
     """Обновить имя и/или модель проекта (право project.update)."""
     project = _require(db, org_id, project_id)
-    return _out(crud.update_project(db, project, name=body.name, model=body.model))
+    updated = crud.update_project(db, project, name=body.name, model=body.model)
+    crud.log_action(db, org_id, actor, "project.update", entity_type="project",
+                    entity_id=updated.id, entity_name=updated.name,
+                    details="модель" if body.model is not None else "имя")
+    return _out(updated)
 
 
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_project(project_id: str,
                    org_id: str = Depends(require_permission(Perm.PROJECT_DELETE)),
+                   actor: User = Depends(current_user),
                    db: Session = Depends(get_db)) -> None:
     """Удалить проект (право project.delete)."""
-    crud.delete_project(db, _require(db, org_id, project_id))
+    project = _require(db, org_id, project_id)
+    name = project.name
+    crud.delete_project(db, project)
+    crud.log_action(db, org_id, actor, "project.delete", entity_type="project",
+                    entity_id=project_id, entity_name=name)
 
 
 @router.post("/{project_id}/duplicate", response_model=ProjectOut,
              status_code=status.HTTP_201_CREATED)
 def duplicate_project(project_id: str,
                       org_id: str = Depends(require_permission(Perm.PROJECT_CREATE)),
+                      actor: User = Depends(current_user),
                       db: Session = Depends(get_db)) -> ProjectOut:
     """Дублировать проект (B2): модель целиком, имя «{name} (копия)», квота как в create."""
     project = _require(db, org_id, project_id)
     billing.ensure_project_quota(db, org_id)
-    return _out(crud.duplicate_project(db, project, f"{project.name} (копия)"))
+    copy = crud.duplicate_project(db, project, f"{project.name} (копия)")
+    crud.log_action(db, org_id, actor, "project.duplicate", entity_type="project",
+                    entity_id=copy.id, entity_name=copy.name,
+                    details=f"копия проекта «{project.name}»")
+    return _out(copy)
 
 
 @router.post("/{project_id}/calculate", response_model=CalcResponse)
@@ -216,6 +235,7 @@ def review_project(project_id: str, deep: bool = False,
 @router.get("/{project_id}/business-plan.docx")
 def business_plan_docx(project_id: str,
                        org_id: str = Depends(require_permission(Perm.PROJECT_READ)),
+                       actor: User = Depends(current_user),
                        db: Session = Depends(get_db)) -> Response:
     """DOCX-бизнес-план (пакет №5, Q5): титул, заключение, показатели, разделы, отчёты.
 
@@ -231,6 +251,10 @@ def business_plan_docx(project_id: str,
     review = run_review(ReviewContext(model=model, result=result))
     content = build_business_plan_docx(model, result, build_opinion(review, result),
                                        project_name=project.name)
+    # Выгрузка пишется в журнал, а расчёт — нет: «посчитать» открывает экран результатов
+    # при каждом заходе и утопил бы журнал, а документ уносят наружу, и это событие.
+    crud.log_action(db, org_id, actor, "project.export", entity_type="project",
+                    entity_id=project.id, entity_name=project.name, details="DOCX")
     filename = quote(f"{project.name}.docx")
     return Response(
         content=content,
@@ -243,6 +267,7 @@ def business_plan_docx(project_id: str,
 @router.post("/{project_id}/finalize", response_model=FinalizeResponse)
 def finalize_project(project_id: str, body: FinalizeRequest,
                      org_id: str = Depends(require_permission(Perm.PROJECT_UPDATE)),
+                     actor: User = Depends(current_user),
                      db: Session = Depends(get_db)) -> FinalizeResponse:
     """Финализировать план — гейт ревью (Ф10, решение Q4: ревью перед финализацией).
 
@@ -269,6 +294,11 @@ def finalize_project(project_id: str, body: FinalizeRequest,
         )
     finalized = crud.finalize_project(db, project, payload.model_dump(mode="json"))
     assert finalized.finalized_at is not None  # только что установлено в finalize_project
+    risks = review.counts.get("risk", 0)
+    crud.log_action(db, org_id, actor, "project.finalize", entity_type="project",
+                    entity_id=project.id, entity_name=project.name,
+                    details=(f"с подтверждением {risks} risk-находок" if risks
+                             else "без risk-находок"))
     return FinalizeResponse(status=finalized.status, finalized_at=finalized.finalized_at,
                             review=payload)
 
@@ -307,6 +337,7 @@ def _require_version(db: Session, org_id: str, project_id: str, version_id: str)
              status_code=status.HTTP_201_CREATED)
 def create_version(project_id: str, body: VersionCreate,
                    org_id: str = Depends(require_permission(Perm.PROJECT_UPDATE)),
+                   actor: User = Depends(current_user),
                    db: Session = Depends(get_db)) -> VersionSummary:
     """Снимок текущей модели как именованная версия (со сводкой расчёта)."""
     project = _require(db, org_id, project_id)
@@ -319,6 +350,8 @@ def create_version(project_id: str, body: VersionCreate,
     label = body.label.strip() or f"Версия от {project.updated_at:%d.%m.%Y %H:%M}"
     version = crud.create_version(db, project, label, npv=npv, irr_annual=irr,
                                   engine_version=engine_version)
+    crud.log_action(db, org_id, actor, "project.version", entity_type="project",
+                    entity_id=project.id, entity_name=project.name, details=version.label)
     return _version_summary(version)
 
 
@@ -343,10 +376,15 @@ def get_version(project_id: str, version_id: str,
 @router.delete("/{project_id}/versions/{version_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_version(project_id: str, version_id: str,
                    org_id: str = Depends(require_permission(Perm.PROJECT_UPDATE)),
+                   actor: User = Depends(current_user),
                    db: Session = Depends(get_db)) -> None:
     """Удалить версию."""
-    _require(db, org_id, project_id)
-    crud.delete_version(db, _require_version(db, org_id, project_id, version_id))
+    project = _require(db, org_id, project_id)
+    version = _require_version(db, org_id, project_id, version_id)
+    label = version.label
+    crud.delete_version(db, version)
+    crud.log_action(db, org_id, actor, "project.version_delete", entity_type="project",
+                    entity_id=project.id, entity_name=project.name, details=label)
 
 
 @router.get("/{project_id}/versions/{version_id}/diff", response_model=VersionDiffOut)
@@ -389,11 +427,14 @@ def diff_version(project_id: str, version_id: str, against: str = "current",
 @router.post("/{project_id}/versions/{version_id}/restore", response_model=ProjectOut)
 def restore_version(project_id: str, version_id: str,
                     org_id: str = Depends(require_permission(Perm.PROJECT_UPDATE)),
+                    actor: User = Depends(current_user),
                     db: Session = Depends(get_db)) -> ProjectOut:
     """Восстановить модель версии в рабочий проект (статус → draft, гейт сбрасывается)."""
     project = _require(db, org_id, project_id)
     version = _require_version(db, org_id, project_id, version_id)
     updated = crud.update_project(db, project, model=ProjectModel.model_validate(version.model))
+    crud.log_action(db, org_id, actor, "project.version_restore", entity_type="project",
+                    entity_id=project.id, entity_name=project.name, details=version.label)
     return _out(updated)
 
 

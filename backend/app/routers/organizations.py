@@ -1,10 +1,12 @@
 """REST-эндпоинты организаций и членства (6.2 + аутентификация 6.3 + RBAC 6.4)."""
 from __future__ import annotations
 
+import csv
+import io
 from datetime import datetime
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from .. import billing, crud
@@ -34,6 +36,10 @@ def _benchmark_out(b) -> BenchmarkOut:
                         value=Decimal(b.value), source=b.source, updated_at=b.updated_at)
 
 
+#: Предел строк в выгрузке. Не «весь журнал»: файл на миллион строк не откроется там,
+#: где его собираются читать, а молчаливая обрезка хуже названного предела.
+MAX_LOG_EXPORT = 10_000
+
 router = APIRouter(prefix="/api/v1/organizations", tags=["organizations"])
 
 
@@ -43,6 +49,8 @@ def create_organization(body: OrganizationCreate, user: User = Depends(current_u
     """Создать организацию; создатель становится её владельцем."""
     org = crud.create_organization(db, body.name)
     crud.add_membership(db, org.id, user.id, role="owner")
+    crud.log_action(db, org.id, user, "org.create", entity_type="organization",
+                    entity_id=org.id, entity_name=org.name)
     return OrganizationOut(id=org.id, name=org.name, created_at=org.created_at)
 
 
@@ -61,6 +69,13 @@ def get_organization(org_id: str = Depends(require_membership),
                      db: Session = Depends(get_db)) -> OrganizationOut:
     org = crud.get_organization(db, org_id)
     return OrganizationOut(id=org.id, name=org.name, created_at=org.created_at)
+
+
+def _log_entry_out(e) -> AuditLogEntryOut:
+    return AuditLogEntryOut(id=e.id, actor_email=e.actor_email, action=e.action,
+                            entity_type=e.entity_type, entity_id=e.entity_id,
+                            entity_name=e.entity_name, details=e.details,
+                            created_at=e.created_at)
 
 
 def _member_out(membership, user, *, invite_token: str | None = None) -> MemberOut:
@@ -290,9 +305,17 @@ def replace_benchmarks(body: list[BenchmarkIn],
 
 @router.get("/{org_id}/audit-log", response_model=AuditLogPage)
 def read_audit_log(limit: int = 200, before: datetime | None = None,
+                   actor: str = "", action: str = "", entity_type: str = "",
+                   since: datetime | None = None, until: datetime | None = None,
+                   q: str = "",
                    org_id: str = Depends(require_org_permission(Perm.ORG_MANAGE)),
                    db: Session = Depends(get_db)) -> AuditLogPage:
     """Журнал действий организации (право org.manage): новые записи сверху.
+
+    Отбор — по участнику, действию, виду сущности, диапазону дат и подстроке (имя
+    сущности, почта актора, примечание). Без отбора журнал на десятки тысяч записей
+    существует, но ответа из него не достать: пролистать двадцать тысяч строк никто не
+    станет. ``total`` считается **под теми же условиями**, иначе «50 из 12 000» врало бы.
 
     Только чтение. Ни PUT, ни DELETE у журнала нет и не будет: журнал, который можно
     поправить, не журнал. Срок хранения (5 лет, ARCHITECTURE §4) — политика эксплуатации,
@@ -300,11 +323,46 @@ def read_audit_log(limit: int = 200, before: datetime | None = None,
     собственные следы.
     """
     limit = max(1, min(limit, 500))
-    entries = crud.list_audit_log(db, org_id, limit=limit, before=before)
+    f = {"actor": actor, "action": action, "entity_type": entity_type,
+         "since": since, "until": until, "q": q}
+    entries = crud.list_audit_log(db, org_id, limit=limit, before=before, **f)
     return AuditLogPage(
-        entries=[AuditLogEntryOut(id=e.id, actor_email=e.actor_email, action=e.action,
-                                  entity_type=e.entity_type, entity_id=e.entity_id,
-                                  entity_name=e.entity_name, details=e.details,
-                                  created_at=e.created_at) for e in entries],
-        total=crud.count_audit_log(db, org_id),
+        entries=[_log_entry_out(e) for e in entries],
+        total=crud.count_audit_log(db, org_id, **f),
+        actors=crud.audit_log_actors(db, org_id),
+        actions=crud.audit_log_actions(db, org_id),
+    )
+
+
+@router.get("/{org_id}/audit-log.csv")
+def export_audit_log(actor: str = "", action: str = "", entity_type: str = "",
+                     since: datetime | None = None, until: datetime | None = None,
+                     q: str = "",
+                     org_id: str = Depends(require_org_permission(Perm.ORG_MANAGE)),
+                     actor_user: User = Depends(current_user),
+                     db: Session = Depends(get_db)) -> Response:
+    """Выгрузка журнала в CSV — под теми же условиями отбора, что и на экране.
+
+    **Сама выгрузка пишется в журнал**: вынос следов наружу — тоже событие, и оно
+    единственное, о котором журнал иначе умолчал бы.
+
+    Разделитель — точка с запятой, кодировка с BOM: иначе Excel в русской локали
+    раскладывает файл в один столбец и портит кириллицу, и выгрузка становится
+    бесполезной ровно для тех, кому она нужна.
+    """
+    f = {"actor": actor, "action": action, "entity_type": entity_type,
+         "since": since, "until": until, "q": q}
+    entries = crud.list_audit_log(db, org_id, limit=MAX_LOG_EXPORT, **f)
+    buf = io.StringIO()
+    writer = csv.writer(buf, delimiter=";", lineterminator="\r\n")
+    writer.writerow(["Дата и время", "Кто", "Действие", "Тип", "Объект", "Примечание"])
+    for e in entries:
+        writer.writerow([e.created_at.strftime("%d.%m.%Y %H:%M:%S"), e.actor_email,
+                         e.action, e.entity_type, e.entity_name, e.details])
+    crud.log_action(db, org_id, actor_user, "audit_log.export", entity_type="organization",
+                    entity_id=org_id, details=f"строк: {len(entries)}")
+    return Response(
+        content=buf.getvalue().encode("utf-8-sig"),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="audit-log.csv"'},
     )

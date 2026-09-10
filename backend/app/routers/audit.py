@@ -123,10 +123,15 @@ def get_subject(subject_id: str,
 @router.put("/subjects/{subject_id}", response_model=AuditSubjectOut)
 def update_subject(subject_id: str, body: AuditSubjectUpdate,
                    org_id: str = Depends(require_permission(Perm.PROJECT_UPDATE)),
+                   actor: User = Depends(current_user),
                    db: Session = Depends(get_db)) -> AuditSubjectOut:
     """Обновить имя и/или модель субъекта."""
     subject = _require(db, org_id, subject_id)
-    return _out(crud.update_audit_subject(db, subject, name=body.name, model=body.model))
+    updated = crud.update_audit_subject(db, subject, name=body.name, model=body.model)
+    crud.log_action(db, org_id, actor, "case.update", entity_type="case",
+                    entity_id=updated.id, entity_name=updated.name,
+                    details="отчётность" if body.model is not None else "имя")
+    return _out(updated)
 
 
 #: Имя демо-дела. Пометка о вымышленности живёт **в имени**, а не рядом с ним: имя
@@ -385,10 +390,15 @@ def get_version(subject_id: str, version_id: str,
                status_code=status.HTTP_204_NO_CONTENT)
 def delete_version(subject_id: str, version_id: str,
                    org_id: str = Depends(require_permission(Perm.PROJECT_UPDATE)),
+                   actor: User = Depends(current_user),
                    db: Session = Depends(get_db)) -> None:
     """Удалить версию."""
-    _require(db, org_id, subject_id)
-    crud.delete_audit_version(db, _require_version(db, org_id, subject_id, version_id))
+    subject = _require(db, org_id, subject_id)
+    version = _require_version(db, org_id, subject_id, version_id)
+    label = version.label
+    crud.delete_audit_version(db, version)
+    crud.log_action(db, org_id, actor, "case.version_delete", entity_type="case",
+                    entity_id=subject.id, entity_name=subject.name, details=label)
 
 
 @router.get("/subjects/{subject_id}/versions/{version_id}/diff",
@@ -520,9 +530,13 @@ def _require_group(db: Session, org_id: str, group_id: str) -> AuditGroup:
 @router.post("/groups", response_model=AuditGroupOut, status_code=status.HTTP_201_CREATED)
 def create_group(body: AuditGroupCreate,
                  org_id: str = Depends(require_permission(Perm.PROJECT_CREATE)),
+                 actor: User = Depends(current_user),
                  db: Session = Depends(get_db)) -> AuditGroupOut:
     """Сохранить состав группы предприятий (участники + внутригрупповые обороты)."""
-    return _group_out(db, org_id, crud.create_audit_group(db, org_id, body.name, body.model))
+    group = crud.create_audit_group(db, org_id, body.name, body.model)
+    crud.log_action(db, org_id, actor, "group.create", entity_type="group",
+                    entity_id=group.id, entity_name=group.name)
+    return _group_out(db, org_id, group)
 
 
 @router.get("/groups", response_model=list[AuditGroupSummary])
@@ -543,11 +557,15 @@ def get_group(group_id: str,
 @router.put("/groups/{group_id}", response_model=AuditGroupOut)
 def update_group(group_id: str, body: AuditGroupUpdate,
                  org_id: str = Depends(require_permission(Perm.PROJECT_UPDATE)),
+                 actor: User = Depends(current_user),
                  db: Session = Depends(get_db)) -> AuditGroupOut:
     """Обновить имя и/или состав сохранённой группы."""
     group = _require_group(db, org_id, group_id)
-    return _group_out(db, org_id,
-                      crud.update_audit_group(db, group, name=body.name, model=body.model))
+    updated = crud.update_audit_group(db, group, name=body.name, model=body.model)
+    crud.log_action(db, org_id, actor, "group.update", entity_type="group",
+                    entity_id=updated.id, entity_name=updated.name,
+                    details="состав" if body.model is not None else "имя")
+    return _group_out(db, org_id, updated)
 
 
 @router.post("/groups/{group_id}/analyze", response_model=AuditConsolidateResponse)
@@ -568,6 +586,11 @@ def analyze_group(group_id: str,
 @router.delete("/groups/{group_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_group(group_id: str,
                  org_id: str = Depends(require_permission(Perm.PROJECT_DELETE)),
+                 actor: User = Depends(current_user),
                  db: Session = Depends(get_db)) -> None:
     """Удалить сохранённую группу (субъекты-участники не затрагиваются)."""
-    crud.delete_audit_group(db, _require_group(db, org_id, group_id))
+    group = _require_group(db, org_id, group_id)
+    name = group.name
+    crud.delete_audit_group(db, group)
+    crud.log_action(db, org_id, actor, "group.delete", entity_type="group",
+                    entity_id=group_id, entity_name=name)

@@ -731,12 +731,44 @@ export interface paths {
          * Read Audit Log
          * @description Журнал действий организации (право org.manage): новые записи сверху.
          *
+         *     Отбор — по участнику, действию, виду сущности, диапазону дат и подстроке (имя
+         *     сущности, почта актора, примечание). Без отбора журнал на десятки тысяч записей
+         *     существует, но ответа из него не достать: пролистать двадцать тысяч строк никто не
+         *     станет. ``total`` считается **под теми же условиями**, иначе «50 из 12 000» врало бы.
+         *
          *     Только чтение. Ни PUT, ни DELETE у журнала нет и не будет: журнал, который можно
          *     поправить, не журнал. Срок хранения (5 лет, ARCHITECTURE §4) — политика эксплуатации,
          *     а не логика приложения: чистка кодом означала бы, что приложение умеет стирать
          *     собственные следы.
          */
         get: operations["read_audit_log_api_v1_organizations__org_id__audit_log_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{org_id}/audit-log.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Audit Log
+         * @description Выгрузка журнала в CSV — под теми же условиями отбора, что и на экране.
+         *
+         *     **Сама выгрузка пишется в журнал**: вынос следов наружу — тоже событие, и оно
+         *     единственное, о котором журнал иначе умолчал бы.
+         *
+         *     Разделитель — точка с запятой, кодировка с BOM: иначе Excel в русской локали
+         *     раскладывает файл в один столбец и портит кириллицу, и выгрузка становится
+         *     бесполезной ровно для тех, кому она нужна.
+         */
+        get: operations["export_audit_log_api_v1_organizations__org_id__audit_log_csv_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2394,9 +2426,23 @@ export interface components {
         };
         /**
          * AuditLogPage
-         * @description Страница журнала: записи (новые сверху) и общее их число в организации.
+         * @description Страница журнала: записи (новые сверху) и сколько их **под текущим отбором**.
+         *
+         *     ``actors`` и ``actions`` — то, что в журнале действительно встречалось: фильтр
+         *     предлагает существующее, а не весь каталог кодов и не список текущих участников
+         *     (удалённый сотрудник из участников исчез, а из журнала — нет).
          */
         AuditLogPage: {
+            /**
+             * Actions
+             * @default []
+             */
+            actions: string[];
+            /**
+             * Actors
+             * @default []
+             */
+            actors: string[];
             /**
              * Entries
              * @default []
@@ -9396,6 +9442,12 @@ export interface operations {
             query?: {
                 limit?: number;
                 before?: string | null;
+                actor?: string;
+                action?: string;
+                entity_type?: string;
+                since?: string | null;
+                until?: string | null;
+                q?: string;
             };
             header?: never;
             path: {
@@ -9412,6 +9464,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuditLogPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_audit_log_api_v1_organizations__org_id__audit_log_csv_get: {
+        parameters: {
+            query?: {
+                actor?: string;
+                action?: string;
+                entity_type?: string;
+                since?: string | null;
+                until?: string | null;
+                q?: string;
+            };
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

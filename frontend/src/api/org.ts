@@ -126,12 +126,44 @@ export async function putBenchmarks(orgId: string, rows: BenchmarkIn[]): Promise
   return data;
 }
 
+/** Отбор записей журнала: пустые поля не отправляются — сервер получает только заданное. */
+export interface AuditLogFilter {
+  actor?: string;
+  action?: string;
+  entity_type?: string;
+  since?: string;
+  until?: string;
+  q?: string;
+}
+
+const filled = (f: AuditLogFilter): Record<string, string> =>
+  Object.fromEntries(Object.entries(f).filter(([, v]) => v));
+
 /**
  * Журнал действий организации (152-ФЗ). Только чтение: у журнала нет операций правки
  * и удаления — журнал, который можно поправить, не журнал.
+ *
+ * `total` приходит **под тем же отбором**, что и записи, поэтому «показано N из M» не
+ * врёт при включённом фильтре.
  */
-export async function getAuditLog(orgId: string, limit = 200): Promise<AuditLogPage> {
+export async function getAuditLog(orgId: string, filter: AuditLogFilter = {},
+                                  limit = 200): Promise<AuditLogPage> {
   const { data } = await api.get<AuditLogPage>(
-    `/api/v1/organizations/${orgId}/audit-log`, { params: { limit } });
+    `/api/v1/organizations/${orgId}/audit-log`, { params: { limit, ...filled(filter) } });
   return data;
+}
+
+/**
+ * Выгрузка журнала в CSV под текущим отбором. Скачивается браузером как файл; сама
+ * выгрузка пишется в журнал — вынос следов наружу тоже событие.
+ */
+export async function downloadAuditLogCsv(orgId: string, filter: AuditLogFilter = {}) {
+  const { data } = await api.get<Blob>(`/api/v1/organizations/${orgId}/audit-log.csv`,
+                                       { params: filled(filter), responseType: "blob" });
+  const url = URL.createObjectURL(data);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "журнал-действий.csv";
+  a.click();
+  URL.revokeObjectURL(url);
 }

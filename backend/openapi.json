@@ -1650,8 +1650,24 @@
         "type": "object"
       },
       "AuditLogPage": {
-        "description": "Страница журнала: записи (новые сверху) и общее их число в организации.",
+        "description": "Страница журнала: записи (новые сверху) и сколько их **под текущим отбором**.\n\n``actors`` и ``actions`` — то, что в журнале действительно встречалось: фильтр\nпредлагает существующее, а не весь каталог кодов и не список текущих участников\n(удалённый сотрудник из участников исчез, а из журнала — нет).",
         "properties": {
+          "actions": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Actions",
+            "type": "array"
+          },
+          "actors": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Actors",
+            "type": "array"
+          },
           "entries": {
             "default": [],
             "items": {
@@ -14881,7 +14897,7 @@
     },
     "/api/v1/organizations/{org_id}/audit-log": {
       "get": {
-        "description": "Журнал действий организации (право org.manage): новые записи сверху.\n\nТолько чтение. Ни PUT, ни DELETE у журнала нет и не будет: журнал, который можно\nпоправить, не журнал. Срок хранения (5 лет, ARCHITECTURE §4) — политика эксплуатации,\nа не логика приложения: чистка кодом означала бы, что приложение умеет стирать\nсобственные следы.",
+        "description": "Журнал действий организации (право org.manage): новые записи сверху.\n\nОтбор — по участнику, действию, виду сущности, диапазону дат и подстроке (имя\nсущности, почта актора, примечание). Без отбора журнал на десятки тысяч записей\nсуществует, но ответа из него не достать: пролистать двадцать тысяч строк никто не\nстанет. ``total`` считается **под теми же условиями**, иначе «50 из 12 000» врало бы.\n\nТолько чтение. Ни PUT, ни DELETE у журнала нет и не будет: журнал, который можно\nпоправить, не журнал. Срок хранения (5 лет, ARCHITECTURE §4) — политика эксплуатации,\nа не логика приложения: чистка кодом означала бы, что приложение умеет стирать\nсобственные следы.",
         "operationId": "read_audit_log_api_v1_organizations__org_id__audit_log_get",
         "parameters": [
           {
@@ -14919,6 +14935,80 @@
               ],
               "title": "Before"
             }
+          },
+          {
+            "in": "query",
+            "name": "actor",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Actor",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "action",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Action",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "entity_type",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Entity Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Since"
+            }
+          },
+          {
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Until"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Q",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -14949,6 +15039,126 @@
           }
         ],
         "summary": "Read Audit Log",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/api/v1/organizations/{org_id}/audit-log.csv": {
+      "get": {
+        "description": "Выгрузка журнала в CSV — под теми же условиями отбора, что и на экране.\n\n**Сама выгрузка пишется в журнал**: вынос следов наружу — тоже событие, и оно\nединственное, о котором журнал иначе умолчал бы.\n\nРазделитель — точка с запятой, кодировка с BOM: иначе Excel в русской локали\nраскладывает файл в один столбец и портит кириллицу, и выгрузка становится\nбесполезной ровно для тех, кому она нужна.",
+        "operationId": "export_audit_log_api_v1_organizations__org_id__audit_log_csv_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "actor",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Actor",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "action",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Action",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "entity_type",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Entity Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Since"
+            }
+          },
+          {
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Until"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Q",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Export Audit Log",
         "tags": [
           "organizations"
         ]

@@ -718,6 +718,23 @@ def save_holding_consolidation(db: Session, holding: Holding, *, npv: Decimal,
 
 # --- Журнал действий (152-ФЗ, ARCHITECTURE §4) ---
 
+def log_user_action(db: Session, user, action: str, *, details: str = "") -> None:
+    """Событие самого пользователя (вход, смена пароля) — в журналы **его** организаций.
+
+    У журнала есть владелец-организация, а событие входа принадлежит человеку. Пишем его
+    в каждую организацию, где он состоит: администратор обязан видеть, что происходит с
+    доступом к **его** данным, а другого места у записи нет.
+
+    Для **несуществующего** адреса не пишется ничего: журнала у него нет, а запись
+    превратила бы систему в подсказчик «такой адрес у нас есть».
+    """
+    if user is None:
+        return
+    for membership in list_user_memberships(db, user.id):
+        log_action(db, membership.organization_id, user, action, entity_type="user",
+                   entity_id=user.id, entity_name=user.email, details=details)
+
+
 def log_action(db: Session, org_id: str, user, action: str, *, entity_type: str = "",
                entity_id: str = "", entity_name: str = "", details: str = "") -> AuditLogEntry:
     """Записать действие в журнал организации.
@@ -743,18 +760,71 @@ def log_action(db: Session, org_id: str, user, action: str, *, entity_type: str 
     return entry
 
 
-def list_audit_log(db: Session, org_id: str, limit: int = 200,
-                   before: datetime | None = None) -> list[AuditLogEntry]:
-    """Записи журнала организации, новые сверху; ``before`` — курсор постраничного чтения."""
+def _audit_log_filtered(org_id: str, *, actor: str = "", action: str = "",
+                        entity_type: str = "", since: datetime | None = None,
+                        until: datetime | None = None, q: str = ""):
+    """Условия отбора — общие для чтения и для счётчика.
+
+    Иначе «показано 50 из 12 000» врало бы: счётчик считал бы весь журнал, а список —
+    отобранное. Одно место условий делает эту ошибку невозможной.
+    """
     stmt = select(AuditLogEntry).where(AuditLogEntry.organization_id == org_id)
+    if actor:
+        stmt = stmt.where(AuditLogEntry.actor_email == actor)
+    if action:
+        stmt = stmt.where(AuditLogEntry.action == action)
+    if entity_type:
+        stmt = stmt.where(AuditLogEntry.entity_type == entity_type)
+    if since is not None:
+        stmt = stmt.where(AuditLogEntry.created_at >= since)
+    if until is not None:
+        stmt = stmt.where(AuditLogEntry.created_at <= until)
+    if q:
+        # Поиск по тому, что человек помнит: имя сущности, кто сделал, примечание.
+        like = f"%{q}%"
+        stmt = stmt.where(
+            AuditLogEntry.entity_name.ilike(like)
+            | AuditLogEntry.actor_email.ilike(like)
+            | AuditLogEntry.details.ilike(like)
+        )
+    return stmt
+
+
+def list_audit_log(db: Session, org_id: str, limit: int = 200,
+                   before: datetime | None = None, **filters) -> list[AuditLogEntry]:
+    """Записи журнала организации, новые сверху; ``before`` — курсор постраничного чтения."""
+    stmt = _audit_log_filtered(org_id, **filters)
     if before is not None:
         stmt = stmt.where(AuditLogEntry.created_at < before)
     stmt = stmt.order_by(AuditLogEntry.created_at.desc()).limit(limit)
     return list(db.execute(stmt).scalars())
 
 
-def count_audit_log(db: Session, org_id: str) -> int:
-    return int(db.execute(
-        select(func.count()).select_from(AuditLogEntry)
+def count_audit_log(db: Session, org_id: str, **filters) -> int:
+    """Сколько записей **под теми же условиями**, что и в списке."""
+    inner = _audit_log_filtered(org_id, **filters).subquery()
+    return int(db.execute(select(func.count()).select_from(inner)).scalar_one())
+
+
+def audit_log_actors(db: Session, org_id: str) -> list[str]:
+    """Кто вообще что-то делал в организации — для выбора в фильтре.
+
+    Из **журнала**, а не из списка участников: удалённый сотрудник из участников исчез,
+    а из журнала — нет, и отфильтровать его действия по-прежнему нужно.
+    """
+    rows = db.execute(
+        select(AuditLogEntry.actor_email)
+        .where(AuditLogEntry.organization_id == org_id, AuditLogEntry.actor_email != "")
+        .distinct().order_by(AuditLogEntry.actor_email)
+    ).scalars()
+    return list(rows)
+
+
+def audit_log_actions(db: Session, org_id: str) -> list[str]:
+    """Какие действия встречались — чтобы фильтр предлагал существующее, а не весь каталог."""
+    rows = db.execute(
+        select(AuditLogEntry.action)
         .where(AuditLogEntry.organization_id == org_id)
-    ).scalar_one())
+        .distinct().order_by(AuditLogEntry.action)
+    ).scalars()
+    return list(rows)
