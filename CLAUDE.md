@@ -28,7 +28,7 @@
 
 ## Календарный план и бюджетирование по этапам — завершено (K0–K7)
 
-- Аналог «Инвестиционного плана» PE: `calc_core/models/calendar.py` (`Stage`/`Resource`/
+- Инвестиционный план проекта: `calc_core/models/calendar.py` (`Stage`/`Resource`/
   `CalendarPlan` → `InvestmentPlan.calendar`), `calc_core/engine/calendar.py`. Этапы: тип
   (`expense`/`asset`/`production`), сроки, связи-предшественники (финиш→старт), иерархия групп,
   стоимость (прямая или Σ ресурсов с задержкой оплаты → `B23`), тайминг `uniform`/`on_finish`.

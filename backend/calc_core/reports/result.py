@@ -213,7 +213,7 @@ def build_investment_metrics(net_flow, monthly_rate: Decimal) -> InvestmentMetri
     return InvestmentMetrics(
         npv=npv_value,
         irr_annual=irr_annual(net_flow),
-        # Ставка финансирования и реинвестиций = ставке дисконтирования (дефолт PE-практики).
+        # Ставка финансирования и реинвестиций = ставке дисконтирования (обычная практика).
         mirr_annual=mirr_annual(net_flow, monthly_rate, monthly_rate),
         arr_annual=arr_annual(net_flow),
         pi=profitability_index(npv_value, pv_invest),
