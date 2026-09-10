@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { AxiosError } from "axios";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -19,6 +20,14 @@ vi.mock("../../auth/AuthContext", () => ({
   useAuth: () => ({ login, register: registerFn }),
 }));
 
+const getCapabilities = vi.fn();
+const requestPasswordReset = vi.fn();
+vi.mock("../../api/auth", async (orig) => ({
+  ...(await orig<typeof import("../../api/auth")>()),
+  getCapabilities: (...a: unknown[]) => getCapabilities(...a),
+  requestPasswordReset: (...a: unknown[]) => requestPasswordReset(...a),
+}));
+
 // Куб-марка — анимированная сцена на RAF; в тесте она не нужна и только шумит.
 vi.mock("../../components/CubeHero", () => ({ CubeHero: () => <div data-testid="cube" /> }));
 
@@ -33,6 +42,10 @@ beforeEach(() => {
   localStorage.clear();
   login.mockResolvedValue(undefined);
   registerFn.mockResolvedValue(undefined);
+  // По умолчанию почта в установке не настроена — как и в свежем развёртывании.
+  getCapabilities.mockResolvedValue({ mail: false });
+  requestPasswordReset.mockResolvedValue(
+    "Если такая учётная запись у нас есть, письмо со ссылкой уже в пути.");
 });
 
 /** Ошибка в том виде, в каком её отдаёт клиент: httpStatus читает признак axios. */
@@ -47,13 +60,17 @@ function show(page: "login" | "register", product?: "audit" | "business") {
   if (product) localStorage.setItem("fe_product", product);
   const Page = page === "login" ? LoginPage : RegisterPage;
   render(
-    <MemoryRouter initialEntries={["/" + page]}>
-      <Routes>
-        <Route path={"/" + page} element={<Page />} />
-        <Route path="/projects" element={<div>Список проектов</div>} />
-        <Route path="/audit" element={<div>Список дел</div>} />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    })}>
+      <MemoryRouter initialEntries={["/" + page]}>
+        <Routes>
+          <Route path={"/" + page} element={<Page />} />
+          <Route path="/projects" element={<div>Список проектов</div>} />
+          <Route path="/audit" element={<div>Список дел</div>} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
@@ -95,11 +112,39 @@ describe("Вход", () => {
     expect(panel).toContain("Реестр флагов, качество прибыли, обязательства");
   });
 
-  it("забывшему пароль назван реальный путь, а не ссылка в никуда", () => {
-    // Самостоятельного сброса нет (нет почты), но тупика тоже нет: ссылку выдаёт
+  it("без почты забывшему пароль назван реальный путь, а не ссылка в никуда", async () => {
+    // Самостоятельного сброса без письма нет, но тупика тоже нет: ссылку выдаёт
     // администратор организации — так и написано под полем.
     show("login");
     expect(screen.getByText(/ссылку на сброс выдаёт администратор организации/)).toBeTruthy();
+    await waitFor(() => expect(getCapabilities).toHaveBeenCalled());
+    // И ссылки, ведущей в тупик, при этом нет.
+    expect(screen.queryByRole("button", { name: "Забыли пароль?" })).toBeNull();
+  });
+
+  it("с почтой появляется «Забыли пароль?» и говорит, куда уйдёт ссылка", async () => {
+    getCapabilities.mockResolvedValue({ mail: true });
+    show("login");
+    fireEvent.click(await screen.findByRole("button", { name: "Забыли пароль?" }));
+    const dialog = within(screen.getByRole("dialog"));
+    // Ссылка уходит **в ящик**, а не просившему — на этом и держится безопасность.
+    expect(dialog.getByText(/на сам почтовый ящик/)).toBeTruthy();
+    // И письмо не заменяет второй фактор: иначе он выключался бы первым же письмом.
+    expect(dialog.getByText(/письмо его не заменяет/)).toBeTruthy();
+  });
+
+  it("ответ сервера показывается как есть — он один на любой адрес", async () => {
+    getCapabilities.mockResolvedValue({ mail: true });
+    show("login");
+    fireEvent.click(await screen.findByRole("button", { name: "Забыли пароль?" }));
+    const dialog = within(screen.getByRole("dialog"));
+    fireEvent.change(dialog.getByLabelText("Email"), { target: { value: "a@e.ru" } });
+    fireEvent.click(dialog.getByRole("button", { name: "Прислать ссылку" }));
+
+    await waitFor(() => expect(requestPasswordReset).toHaveBeenCalledWith("a@e.ru"));
+    // «Письмо отправлено на ваш адрес» было бы утверждением, которого сервер намеренно
+    // не делает: оно сказало бы, что такой адрес у платформы есть.
+    expect(await screen.findByText(/Если такая учётная запись у нас есть/)).toBeTruthy();
   });
 
   it("слишком частые попытки объяснены без именного счётчика", async () => {

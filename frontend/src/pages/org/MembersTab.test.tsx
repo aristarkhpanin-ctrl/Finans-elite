@@ -226,6 +226,45 @@ describe("Ссылка входа участнику", () => {
 });
 
 /**
+ * Письмо со ссылкой (D1). Проверяется главное обещание фазы: почта — **добавление** к
+ * «передайте лично», а не замена, и три состояния письма не сводятся одно к другому.
+ */
+describe("Письмо со ссылкой", () => {
+  it("без настроенной почты экран не обещает письма", async () => {
+    issueAccessLink.mockResolvedValue({ user_id: "u2", email: "k@e.ru", kind: "reset",
+                                        token: "tok",
+                                        mail: { attempted: false, ok: false, error: "" } });
+    await show();
+    fireEvent.click(linkButton("Коллега")!);
+    await screen.findByText("Ссылка для сброса пароля");
+    expect(screen.getByText(/Писем платформа не отправляет/)).toBeTruthy();
+  });
+
+  it("ушедшее письмо не отменяет ссылку — она рядом", async () => {
+    // Письмо может не дойти молча: спам-фильтр, опечатка в адресе. Ссылка остаётся
+    // рабочей дорогой, а не запасной.
+    issueAccessLink.mockResolvedValue({ user_id: "u2", email: "k@e.ru", kind: "reset",
+                                        token: "tok",
+                                        mail: { attempted: true, ok: true, error: "" } });
+    await show();
+    fireEvent.click(linkButton("Коллега")!);
+    expect(await screen.findByText(/Письмо со ссылкой отправлено/)).toBeTruthy();
+    expect((screen.getByLabelText("Ссылка входа") as HTMLTextAreaElement).value)
+      .toContain("/activate?token=tok");
+  });
+
+  it("неудачная отправка названа вслух, а не спрятана в лог", async () => {
+    issueAccessLink.mockResolvedValue({
+      user_id: "u2", email: "k@e.ru", kind: "reset", token: "tok",
+      mail: { attempted: true, ok: false, error: "сервер отказал" } });
+    await show();
+    fireEvent.click(linkButton("Коллега")!);
+    expect(await screen.findByText(/Письмо отправить не удалось/)).toBeTruthy();
+    expect(screen.getByText(/сервер отказал/)).toBeTruthy();
+  });
+});
+
+/**
  * Передача владения (C3). Появилась вместе с правом удалить учётную запись: без неё
  * владелец не мог им воспользоваться — организация осталась бы без того, кто платит за
  * тариф и управляет доступом.

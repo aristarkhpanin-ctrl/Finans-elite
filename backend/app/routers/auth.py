@@ -2,21 +2,35 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    Request,
+    Response,
+    status,
+)
 from sqlalchemy.orm import Session
 
 from .. import crud, totp
 from ..database import get_db
 from ..db_models import User, UserSession
 from ..deps import account_blocked_detail, current_session, current_user
+from ..mail import mail_enabled, new_device_letter, reset_letter
+from ..notify import send_and_log
 from ..password_policy import MIN_LENGTH, check_password, policy_rules
 from ..personal_data import build_export, delete_account, deletion_plan
 from ..pwned import leak_check_enabled, leaked_count
-from ..ratelimit import rate_limit
+from ..ratelimit import allow, rate_limit
 from ..schemas import (
     ActivateRequest,
+    CapabilitiesOut,
     DeletionPlanOut,
+    ForgotPasswordIn,
+    ForgotPasswordOut,
     LoginRequest,
     PasswordChange,
     PasswordConfirmIn,
@@ -35,6 +49,8 @@ from ..schemas import (
 from ..security import (
     access_ttl,
     create_access_token,
+    create_invite_token,
+    create_reset_token,
     decode_reset_token,
     decode_token,
     hash_password,
@@ -48,6 +64,9 @@ router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 # Защита от перебора: ограничение попыток в минуту с одного IP.
 _register_limit = rate_limit("register", limit=10, window_seconds=60)
 _login_limit = rate_limit("login", limit=20, window_seconds=60)
+#: «Забыли пароль» — по адресу клиента; по учётной записи ограничение своё (см. маршрут).
+#: Письмо уходит в чужой ящик, и щедрый лимит здесь означал бы почтовую бомбу.
+_forgot_limit = rate_limit("forgot", limit=5, window_seconds=600)
 
 
 
@@ -92,7 +111,7 @@ def register(body: RegisterRequest, request: Request,
 
 
 @router.post("/login", response_model=TokenResponse, dependencies=[Depends(_login_limit)])
-def login(body: LoginRequest, request: Request,
+def login(body: LoginRequest, request: Request, background: BackgroundTasks,
           db: Session = Depends(get_db)) -> TokenResponse:
     """Вход по email и паролю → токен доступа."""
     user = crud.get_user_by_email(db, body.email)
@@ -110,7 +129,38 @@ def login(body: LoginRequest, request: Request,
         raise HTTPException(status_code=403, detail=account_blocked_detail(user))
     notice = _second_factor(db, user, body.totp_code)
     crud.log_user_action(db, user, "auth.login")
-    return _issue_token(db, user, request, remember=body.remember, notice=notice)
+    # Незнакомое устройство определяется **до** выдачи токена: сеанс, который сейчас
+    # заведётся, сделал бы любое устройство знакомым самому себе.
+    stranger = _unseen_device(db, user, request)
+    token = _issue_token(db, user, request, remember=body.remember, notice=notice)
+    if stranger is not None and mail_enabled():
+        background.add_task(send_and_log, db.get_bind(), user.id, user.email, stranger,
+                            "auth.new_device_notice")
+    return token
+
+
+def _unseen_device(db: Session, user: User, request: Request):
+    """Письмо о входе с незнакомого устройства — или ``None``, если оно знакомое (D1).
+
+    Обещание, отложенное в C2 до появления почты. «Незнакомое» здесь значит **ровно то,
+    что платформа умеет проверить**: у учётной записи ещё не было сеанса с такой
+    подписью браузера. Отдельного признака устройства (куки, отпечатка) нет, и заводить
+    его ради этого письма не стали — подпись присылает сам браузер, подделывается легко,
+    и письмо говорит об этом теми же словами, что и список входов в профиле.
+
+    **Первый вход не уведомляется**: письмо «вы вошли» человеку, который только что
+    завёл учётную запись, сообщает лишь то, что он и так делает.
+    """
+    known = crud.list_all_sessions(db, user.id)
+    if not known:
+        return None
+    device = device_label(request.headers.get("user-agent", ""))
+    if any(device_label(s.user_agent) == device for s in known):
+        return None
+    ip = client_ip(forwarded_for=request.headers.get("x-forwarded-for"),
+                   remote=request.client.host if request.client else "")
+    return new_device_letter(device=device, ip=ip,
+                             when=datetime.now(timezone.utc).strftime("%d.%m.%Y %H:%M UTC"))
 
 
 #: Код нужен, но не прислан. Отдельный статус, а не 401: пароль **верен**, и человеку
@@ -219,6 +269,11 @@ def activate(body: ActivateRequest, request: Request,
         # либо самим пользователем. Одноразовость сброса держится на этом.
         raise HTTPException(status_code=409, detail="Ссылка уже использована — "
                                                     "попросите выдать новую")
+    # Второй фактор спрашивается и здесь. Без этого ссылка сброса **обходила бы его
+    # целиком**: доступ к почтовому ящику (а с D1 ссылка уходит туда) означал бы вход
+    # без кода из приложения — то есть второй фактор, выключаемый первым же письмом.
+    # Приглашения это не касается: пароля ещё нет, значит нет и второго фактора.
+    _second_factor(db, user, body.totp_code)
     # Проверка пароля **после** разбора ссылки: адрес человека известен только отсюда, а
     # без него не работает правило «пароль не повторяет вашу почту». Недействительная
     # ссылка при этом называется первой — это более крупная беда, чем слабый пароль.
@@ -233,6 +288,63 @@ def activate(body: ActivateRequest, request: Request,
     # аккаунт тому, из-за кого сброс и понадобился.
     crud.revoke_user_sessions(db, user.id)
     return _issue_token(db, user, request)
+
+
+@router.get("/capabilities", response_model=CapabilitiesOut)
+def capabilities() -> CapabilitiesOut:
+    """Что умеет **эта установка** платформы (D1).
+
+    Экран входа обязан узнать про почту с сервера: «Забыли пароль?», нарисованная там,
+    где письма не уходят, ведёт человека в тупик — а тупик, который выглядит как выход,
+    хуже, чем честно названное его отсутствие.
+    """
+    return CapabilitiesOut(mail=mail_enabled())
+
+
+#: Один ответ на любой адрес — существующий, чужой, выдуманный. Разный текст превратил
+#: бы форму в проверялку «есть ли у вас такой клиент».
+_FORGOT_ANSWER = ("Если такая учётная запись у нас есть, письмо со ссылкой уже в пути. "
+                  "Проверьте почту, в том числе папку «Спам».")
+
+
+@router.post("/forgot-password", response_model=ForgotPasswordOut,
+             dependencies=[Depends(_forgot_limit)])
+def forgot_password(body: ForgotPasswordIn, background: BackgroundTasks,
+                    db: Session = Depends(get_db)) -> ForgotPasswordOut:
+    """Забыли пароль: прислать ссылку на почту — **самому человеку**, а не через
+    администратора.
+
+    До появления почты этого маршрута не было и быть не могло: сброс по одному лишь
+    названному адресу — способ угнать чужую учётную запись. Теперь ссылка уходит **в
+    сам ящик**, то есть тому, кто им владеет, и запрос перестал что-либо доказывать:
+    просивший не получает ничего, кроме одинакового для всех ответа.
+
+    Это же закрывает дыру, названную в C2: **владельцу организации** администратор
+    ссылку не выдаёт (иначе он забрал бы организацию), и владелец был единственной
+    ролью без пути восстановления. Свой ящик его возвращает.
+
+    Ограничение — по **учётной записи**, а не только по адресу клиента: письмо уходит
+    владельцу ящика, и заваливать его можно было бы с десятка адресов. Превышение
+    отвечает **тем же текстом**: отдельный отказ выдал бы, что адрес существует.
+    """
+    if not mail_enabled():
+        # Отказ называет выход, а не изображает поломку: ручная дорога никуда не делась.
+        raise HTTPException(
+            status_code=409,
+            detail="Восстановление по почте в этой установке не настроено. Попросите "
+                   "администратора вашей организации выдать ссылку входа.")
+    user = crud.get_user_by_email(db, body.email)
+    if (user is not None and user.blocked_at is None
+            and allow("forgot-account", user.id, limit=3, window_seconds=3600)):
+        has_password = bool(user.hashed_password)
+        token = (create_reset_token(user.id, user.hashed_password) if has_password
+                 else create_invite_token(user.id))
+        # Отправка — в стороне от ответа: разговор с почтовым сервером занимает секунды,
+        # и **время ответа** выдало бы существование адреса не хуже разного текста.
+        background.add_task(send_and_log, db.get_bind(), user.id, user.email,
+                            reset_letter(token=token, has_password=has_password),
+                            "auth.password_reset_requested")
+    return ForgotPasswordOut(message=_FORGOT_ANSWER)
 
 
 @router.patch("/me", response_model=UserOut)

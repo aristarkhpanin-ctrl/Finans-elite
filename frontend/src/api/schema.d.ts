@@ -724,6 +724,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Capabilities
+         * @description Что умеет **эта установка** платформы (D1).
+         *
+         *     Экран входа обязан узнать про почту с сервера: «Забыли пароль?», нарисованная там,
+         *     где письма не уходят, ведёт человека в тупик — а тупик, который выглядит как выход,
+         *     хуже, чем честно названное его отсутствие.
+         */
+        get: operations["capabilities_api_v1_auth_capabilities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/delete": {
         parameters: {
             query?: never;
@@ -788,6 +812,40 @@ export interface paths {
         get: operations["export_my_data_api_v1_auth_export_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/forgot-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Forgot Password
+         * @description Забыли пароль: прислать ссылку на почту — **самому человеку**, а не через
+         *     администратора.
+         *
+         *     До появления почты этого маршрута не было и быть не могло: сброс по одному лишь
+         *     названному адресу — способ угнать чужую учётную запись. Теперь ссылка уходит **в
+         *     сам ящик**, то есть тому, кто им владеет, и запрос перестал что-либо доказывать:
+         *     просивший не получает ничего, кроме одинакового для всех ответа.
+         *
+         *     Это же закрывает дыру, названную в C2: **владельцу организации** администратор
+         *     ссылку не выдаёт (иначе он забрал бы организацию), и владелец был единственной
+         *     ролью без пути восстановления. Свой ящик его возвращает.
+         *
+         *     Ограничение — по **учётной записи**, а не только по адресу клиента: письмо уходит
+         *     владельцу ящика, и заваливать его можно было бы с десятка адресов. Превышение
+         *     отвечает **тем же текстом**: отдельный отказ выдал бы, что адрес существует.
+         */
+        post: operations["forgot_password_api_v1_auth_forgot_password_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2063,6 +2121,10 @@ export interface components {
          *     что участник увидит: ``invite`` — пароля ещё нет, ``reset`` — пароль есть, но
          *     забыт. Токен возвращается **только в ответе на выдачу**: в списке участников он
          *     был бы вечным пропуском в чужой аккаунт для всякого, кто видит состав организации.
+         *
+         *     ``mail`` говорит, ушло ли письмо со ссылкой. Ссылка возвращается **в любом случае**:
+         *     почта — добавление к «передайте лично», а не замена, и при неудачной отправке
+         *     администратор передаёт её сам (D1).
          */
         AccessLinkOut: {
             /** Email */
@@ -2072,6 +2134,14 @@ export interface components {
              * @enum {string}
              */
             kind: "invite" | "reset";
+            /**
+             * @default {
+             *       "attempted": false,
+             *       "error": "",
+             *       "ok": false
+             *     }
+             */
+            mail: components["schemas"]["MailReport"];
             /** Token */
             token: string;
             /** User Id */
@@ -2080,6 +2150,10 @@ export interface components {
         /**
          * ActivateRequest
          * @description Активация приглашения: по токену задать пароль и войти.
+         *
+         *     ``totp_code`` нужен, когда у учётной записи включён второй фактор: иначе ссылка
+         *     сброса обходила бы его целиком — доступ к почтовому ящику значил бы вход без кода
+         *     из приложения (D1). Как и на входе, код идёт **тем же запросом**.
          */
         ActivateRequest: {
             /**
@@ -2091,6 +2165,11 @@ export interface components {
             password: string;
             /** Token */
             token: string;
+            /**
+             * Totp Code
+             * @default
+             */
+            totp_code: string;
         };
         /**
          * Actualization
@@ -4438,6 +4517,21 @@ export interface components {
             /** Stages */
             stages?: components["schemas"]["Stage-Output"][];
         };
+        /**
+         * CapabilitiesOut
+         * @description Что платформа умеет **в этой установке** — для экранов, которые иначе обещали бы
+         *     несуществующее (D1).
+         *
+         *     Отправка писем включается на месте, и экран входа обязан знать о ней с сервера:
+         *     «Забыли пароль?», нарисованная там, где письма не уходят, ведёт человека в тупик.
+         */
+        CapabilitiesOut: {
+            /**
+             * Mail
+             * @default false
+             */
+            mail: boolean;
+        };
         /** CheckoutRequest */
         CheckoutRequest: {
             /** Plan Code */
@@ -5125,6 +5219,22 @@ export interface components {
              */
             payment_delay_months: number;
         };
+        /** ForgotPasswordIn */
+        ForgotPasswordIn: {
+            /** Email */
+            email: string;
+        };
+        /**
+         * ForgotPasswordOut
+         * @description Ответ на «забыли пароль» — **один и тот же** для любого адреса.
+         *
+         *     Разный ответ превратил бы форму в проверялку «есть ли у вас такой клиент»: адрес
+         *     сотрудника достаточно ввести, чтобы узнать, работает ли его компания с платформой.
+         */
+        ForgotPasswordOut: {
+            /** Message */
+            message: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -5508,6 +5618,32 @@ export interface components {
             totp_code: string;
         };
         /**
+         * MailReport
+         * @description Что стало с письмом — рядом с тем действием, ради которого его слали (D1).
+         *
+         *     Три состояния, и путать их нельзя: **не пытались** (почта не настроена — `attempted`
+         *     ложно), **ушло** и **не ушло с причиной**. «Не отправляли» и «отправили, не дошло» —
+         *     разные ответы человеку, и второй обязан быть виден, иначе ссылку никто не передаст
+         *     лично.
+         */
+        MailReport: {
+            /**
+             * Attempted
+             * @default false
+             */
+            attempted: boolean;
+            /**
+             * Error
+             * @default
+             */
+            error: string;
+            /**
+             * Ok
+             * @default false
+             */
+            ok: boolean;
+        };
+        /**
          * Material
          * @description Материал/комплектующая (справочник): цена единицы и условия закупки.
          *
@@ -5619,9 +5755,11 @@ export interface components {
          * @description Участник организации.
          *
          *     ``invite_token`` заполняется **только в ответе на приглашение** и только если
-         *     участник ещё не заводил пароль: это одноразовая ссылка активации, которую
-         *     пригласивший передаёт лично (почтовой отправки у платформы нет). В списке
+         *     участник ещё не заводил пароль: это одноразовая ссылка активации. В списке
          *     участников его нет — там он был бы вечно доступным пропуском в чужой аккаунт.
+         *
+         *     ``mail`` — что стало с письмом-приглашением (D1). ``None`` в списке участников:
+         *     там писем не слали, и «не отправлено» было бы неправдой о прошлом.
          */
         MemberOut: {
             /**
@@ -5649,6 +5787,7 @@ export interface components {
             invite_token?: string | null;
             /** Last Seen At */
             last_seen_at?: string | null;
+            mail?: components["schemas"]["MailReport"] | null;
             /** Role */
             role: string;
             /** User Id */
@@ -10556,6 +10695,26 @@ export interface operations {
             };
         };
     };
+    capabilities_api_v1_auth_capabilities_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CapabilitiesOut"];
+                };
+            };
+        };
+    };
     delete_my_account_api_v1_auth_delete_post: {
         parameters: {
             query?: never;
@@ -10625,6 +10784,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    forgot_password_api_v1_auth_forgot_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgotPasswordIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgotPasswordOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

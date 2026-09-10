@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { changePassword, deleteMyAccount, disableTotp, downloadMyData, enableTotp,
-         getDeletionPlan, getPasswordPolicy, getSessions, getTotpStatus,
+         getCapabilities, getDeletionPlan, getPasswordPolicy, getSessions, getTotpStatus,
          reissueRecoveryCodes, revokeAllSessions, revokeSession, startTotpSetup,
          updateProfile, type TotpSetup } from "../../api/auth";
 import { httpDetail, httpStatus } from "../../api/client";
@@ -15,8 +15,9 @@ import { Button, Chip, Field, Loading, Modal } from "../../components/ui";
  * Почта не меняется: она одновременно логин и адрес, по которому пришло приглашение.
  * Смена почты — это смена личности в системе, и делать её тихой правкой поля нельзя.
  *
- * Восстановления пароля здесь нет: честный сброс требует письма на подтверждённый
- * адрес, а почтовой отправки у платформы нет.
+ * Восстановления пароля здесь нет и не будет: этот экран открывают уже вошедшие, а
+ * забывшему пароль нужна дорога **до** входа — ссылка на почту (D1) или, где почта не
+ * настроена, ссылка от администратора организации.
  */
 export function ProfileTab() {
   const { user } = useAuth();
@@ -250,6 +251,8 @@ function SessionsBlock() {
   const qc = useQueryClient();
   const toast = useToast();
   const { data, isLoading } = useQuery({ queryKey: ["sessions"], queryFn: getSessions });
+  const { data: caps } = useQuery({ queryKey: ["capabilities"], queryFn: getCapabilities,
+                                    staleTime: Infinity });
   const refresh = () => qc.invalidateQueries({ queryKey: ["sessions"] });
 
   const revoke = useMutation({
@@ -275,6 +278,12 @@ function SessionsBlock() {
       <p className="page-sub" style={{ marginTop: 0 }}>
         Действующие входы. Устройство и адрес присылает сам браузер — их можно подделать,
         поэтому это подсказка, а не доказательство. История входов — в журнале организации.
+        {" "}
+        {/* Обещание даётся только там, где письма действительно уходят: «мы предупредим»
+            в установке без почты — обещание, которое никто не выполнит (D1). */}
+        {caps?.mail
+          ? "О входе с незнакомого устройства платформа пишет письмо."
+          : "Писем о новых входах платформа не шлёт — проверяйте этот список."}
       </p>
       {isLoading ? <Loading /> : (
         <div className="sess-list">
@@ -420,8 +429,9 @@ function TotpBlock() {
              actions={<Button onClick={() => setCodes(null)}>Я сохранил их</Button>}>
         <p className="page-sub" style={{ marginTop: 0 }}>
           Сохраните эти коды. Каждый работает один раз и заменяет код из приложения.
-          <b> Больше они не покажутся</b>: у платформы нет почты, и письма «восстановите
-          доступ» не будет — без кодов вернуть доступ сможет только поддержка.
+          <b> Больше они не покажутся.</b> Ссылка на почту восстанавливает <b>пароль</b>,
+          а не второй фактор: код из приложения спросят и после неё — без резервных кодов
+          вернуть доступ сможет только поддержка.
         </p>
         <div className="totp-codes">
           {(codes ?? []).map((c) => <div key={c}>{c}</div>)}

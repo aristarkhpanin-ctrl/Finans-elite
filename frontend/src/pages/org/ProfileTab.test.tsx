@@ -24,6 +24,7 @@ const revokeAllSessions = vi.fn();
 const getDeletionPlan = vi.fn();
 const deleteMyAccount = vi.fn();
 const downloadMyData = vi.fn();
+const getCapabilities = vi.fn();
 vi.mock("../../api/auth", async (orig) => ({
   ...(await orig<typeof import("../../api/auth")>()),
   getSessions: (...a: unknown[]) => getSessions(...a),
@@ -36,6 +37,7 @@ vi.mock("../../api/auth", async (orig) => ({
   getDeletionPlan: (...a: unknown[]) => getDeletionPlan(...a),
   deleteMyAccount: (...a: unknown[]) => deleteMyAccount(...a),
   downloadMyData: (...a: unknown[]) => downloadMyData(...a),
+  getCapabilities: (...a: unknown[]) => getCapabilities(...a),
 }));
 
 const toast = vi.fn();
@@ -75,6 +77,7 @@ beforeEach(() => {
     projects: 3, cases: 1, blockers: [],
     kept: ["Записи журнала в организациях, где вы работали."],
   });
+  getCapabilities.mockResolvedValue({ mail: false });
   deleteMyAccount.mockResolvedValue({ allowed: true, organizations_deleted: ["Орг"],
                                       organizations_left: [], projects: 3, cases: 1,
                                       blockers: [], kept: [] });
@@ -157,8 +160,9 @@ it("резервные коды показываются один раз и го
 
   expect(await screen.findByText("AAAAA-BBBBB-CCCCC-DDDDD")).toBeTruthy();
   expect(screen.getByText(/Больше они не покажутся/)).toBeTruthy();
-  // И названа причина: письма «восстановите доступ» у платформы нет.
-  expect(screen.getByText(/нет почты/)).toBeTruthy();
+  // И названа причина: письмо восстанавливает **пароль**, а не второй фактор — иначе
+  // доступ к ящику отменял бы второй фактор целиком (D1).
+  expect(screen.getByText(/а не второй фактор/)).toBeTruthy();
 });
 
 it("владельцу второй фактор рекомендуют, а не навязывают", async () => {
@@ -229,4 +233,19 @@ it("владельцу с коллегами отказывают и назыв�
   expect((dialog.getByRole("button", { name: "Удалить навсегда" }) as HTMLButtonElement)
     .disabled).toBe(true);
   expect(dialog.queryByLabelText("Ваш пароль")).toBeNull();
+});
+
+
+// --- D1: почта ---
+
+it("без почты экран не обещает писем о новых входах", async () => {
+  // «Мы предупредим» в установке без почты — обещание, которое некому выполнить.
+  show();
+  expect(await screen.findByText(/Писем о новых входах платформа не шлёт/)).toBeTruthy();
+});
+
+it("с почтой обещание даётся — и оно выполняется сервером", async () => {
+  getCapabilities.mockResolvedValue({ mail: true });
+  show();
+  expect(await screen.findByText(/О входе с незнакомого устройства/)).toBeTruthy();
 });

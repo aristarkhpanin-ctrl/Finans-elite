@@ -9,11 +9,12 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
-from .. import billing, crud
+from .. import billing, crud, mail
 from ..access import restriction_for
 from ..database import get_db
 from ..db_models import User
 from ..deps import current_user, require_membership, require_org_permission
+from ..mail import Sent, access_link_letter, invite_letter, mail_enabled
 from ..plans import PRODUCTS
 from ..rbac import Perm, is_valid_role
 from ..schemas import (
@@ -22,6 +23,7 @@ from ..schemas import (
     AuditLogPage,
     BenchmarkIn,
     BenchmarkOut,
+    MailReport,
     MemberBlockIn,
     MemberCreate,
     MemberOut,
@@ -100,13 +102,21 @@ def _log_entry_out(e) -> AuditLogEntryOut:
                             created_at=e.created_at)
 
 
-def _member_out(membership, user, *, invite_token: str | None = None) -> MemberOut:
+def _mail_report(sent: Sent) -> MailReport:
+    """Исход отправки — в ответ, а не только в лог: письмо, потерянное молча, хуже
+    неотправленного (D1)."""
+    return MailReport(attempted=sent.attempted, ok=sent.ok, error=sent.error)
+
+
+def _member_out(membership, user, *, invite_token: str | None = None,
+                mail: MailReport | None = None) -> MemberOut:
     """Ответ об участнике — из одного места: состояние блокировки нельзя забыть."""
     return MemberOut(
         user_id=user.id, email=user.email, full_name=user.full_name,
         role=membership.role, blocked=membership.blocked_at is not None,
         blocked_at=membership.blocked_at, blocked_by=membership.blocked_by,
         block_reason=membership.block_reason, last_seen_at=membership.last_seen_at,
+        mail=mail,
         **({"invite_token": invite_token} if invite_token is not None else {}),
     )
 
@@ -128,12 +138,22 @@ def add_member(body: MemberCreate,
     crud.log_action(db, org_id, actor, "member.add", entity_type="member",
                     entity_id=user.id, entity_name=user.email,
                     details=f"роль: {membership.role}")
-    # Приглашённому, у которого ещё нет пароля, нужен способ его завести. Почтовой
-    # отправки у платформы нет, поэтому ссылка активации возвращается пригласившему —
-    # он передаёт её лично. В списке участников токена нет: там он был бы вечным
-    # пропуском в чужой аккаунт для всякого, кто видит состав организации.
+    # Приглашённому, у которого ещё нет пароля, нужен способ его завести. Ссылка
+    # активации возвращается пригласившему **всегда**: письмо (D1) — добавление к
+    # «передайте лично», а не замена, и при неудачной отправке передавать её всё равно
+    # придётся ему. В списке участников токена нет: там он был бы вечным пропуском в
+    # чужой аккаунт для всякого, кто видит состав организации.
     invite = None if user.hashed_password else create_invite_token(user.id)
-    return _member_out(membership, user, invite_token=invite)
+    report = MailReport()
+    if invite is not None and mail_enabled():
+        org = crud.get_organization(db, org_id)
+        report = _mail_report(mail.send(user.email, invite_letter(
+            organization=org.name if org else "", inviter=actor.email, token=invite)))
+        crud.log_action(db, org_id, actor, "member.invite_mail", entity_type="member",
+                        entity_id=user.id, entity_name=user.email,
+                        details="письмо отправлено" if report.ok
+                                else f"письмо не ушло: {report.error}")
+    return _member_out(membership, user, invite_token=invite, mail=report)
 
 
 @router.get("/{org_id}/members", response_model=list[MemberOut])
@@ -308,7 +328,17 @@ def issue_access_link(user_id: str,
     crud.log_action(db, org_id, actor, "member.access_link", entity_type="member",
                     entity_id=user.id, entity_name=user.email,
                     details="сброс пароля" if kind == "reset" else "повторное приглашение")
-    return AccessLinkOut(user_id=user.id, email=user.email, kind=kind, token=token)
+    report = MailReport()
+    if mail_enabled():
+        org = crud.get_organization(db, org_id)
+        report = _mail_report(mail.send(user.email, access_link_letter(
+            kind=kind, organization=org.name if org else "", issued_by=actor.email,
+            token=token)))
+    # Ссылка возвращается **в любом случае** — и при неудачной отправке, и при
+    # успешной: письмо может не дойти молча (спам-фильтр, опечатка в адресе), и
+    # администратору нужно, чем его заменить.
+    return AccessLinkOut(user_id=user.id, email=user.email, kind=kind, token=token,
+                         mail=report)
 
 
 @router.delete("/{org_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)

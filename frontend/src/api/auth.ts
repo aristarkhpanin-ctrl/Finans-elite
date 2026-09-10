@@ -81,6 +81,31 @@ export async function revokeAllSessions(): Promise<number> {
 }
 
 /**
+ * Что умеет **эта установка** платформы (D1).
+ *
+ * Отправка писем включается на месте, и экран входа обязан узнать о ней с сервера:
+ * «Забыли пароль?», нарисованная там, где письма не уходят, ведёт человека в тупик — а
+ * тупик, который выглядит как выход, хуже честно названного его отсутствия.
+ */
+export type Capabilities = Schema<"CapabilitiesOut">;
+
+export async function getCapabilities(): Promise<Capabilities> {
+  const { data } = await api.get<Capabilities>("/api/v1/auth/capabilities");
+  return data;
+}
+
+/**
+ * «Забыли пароль»: попросить ссылку на почту. Ответ **один и тот же** для любого
+ * адреса — существующего, чужого, выдуманного: иначе форма превращается в проверялку
+ * «есть ли у вас такой клиент». Показываем именно его, своего текста не сочиняем.
+ */
+export async function requestPasswordReset(email: string): Promise<string> {
+  const { data } = await api.post<{ message: string }>(
+    "/api/v1/auth/forgot-password", { email });
+  return data.message;
+}
+
+/**
  * Требования к паролю — **с сервера**, а не своим текстом на каждом экране (C2).
  *
  * Перечисленные в интерфейсе отдельно, они однажды разойдутся с проверкой, и человек
