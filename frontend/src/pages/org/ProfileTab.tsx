@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { changePassword, getPasswordPolicy, getSessions, revokeAllSessions,
-         revokeSession, updateProfile } from "../../api/auth";
+import { changePassword, disableTotp, enableTotp, getPasswordPolicy, getSessions,
+         getTotpStatus, reissueRecoveryCodes, revokeAllSessions, revokeSession,
+         startTotpSetup, updateProfile, type TotpSetup } from "../../api/auth";
 import { httpDetail, httpStatus } from "../../api/client";
 import { useAuth } from "../../auth/AuthContext";
 import { useToast } from "../../components/Toast";
-import { Button, Chip, Field, Loading } from "../../components/ui";
+import { Button, Chip, Field, Loading, Modal } from "../../components/ui";
 
 /**
  * Профиль пользователя (макет «Экран 15»): имя и смена пароля.
@@ -73,6 +74,8 @@ export function ProfileTab() {
           Сохранить имя
         </Button>
       </div>
+
+      <TotpBlock />
 
       <SessionsBlock />
 
@@ -185,6 +188,155 @@ function SessionsBlock() {
               disabled={revokeAll.isPending}>
         Выйти на всех устройствах
       </Button>
+    </div>
+  );
+}
+
+/**
+ * Второй фактор: одноразовые коды из приложения (C2).
+ *
+ * **QR-кода платформа не рисует** — библиотеки для этого нет, и вместо картинки здесь
+ * ключ группами по четыре плюс ссылка `otpauth://`. Это неудобно, и об этом сказано
+ * прямо: спрятанное неудобство человек всё равно обнаружит, только позже и злее.
+ *
+ * Резервные коды показываются **один раз**. Почты у платформы нет, значит письма
+ * «восстановите доступ» не будет: без кодов потерянный телефон означал бы потерянную
+ * учётную запись — и последней инстанцией остаётся платформа, к которой придётся идти.
+ */
+function TotpBlock() {
+  const qc = useQueryClient();
+  const toast = useToast();
+  const [setup, setSetup] = useState<TotpSetup | null>(null);
+  const [code, setCode] = useState("");
+  const [codes, setCodes] = useState<string[] | null>(null);
+  const [password, setPassword] = useState("");
+  const [confirming, setConfirming] = useState<null | "disable" | "reissue">(null);
+
+  const { data: status } = useQuery({ queryKey: ["totp"], queryFn: getTotpStatus });
+  const refresh = () => qc.invalidateQueries({ queryKey: ["totp"] });
+
+  const begin = useMutation({
+    mutationFn: startTotpSetup,
+    onSuccess: (fresh) => { setSetup(fresh); setCode(""); },
+    onError: () => toast("Не удалось начать настройку", { kind: "error" }),
+  });
+  const enable = useMutation({
+    mutationFn: () => enableTotp(code.trim()),
+    onSuccess: (fresh) => {
+      setSetup(null);
+      setCodes(fresh);
+      refresh();
+      toast("Второй фактор включён", { kind: "success" });
+    },
+    onError: (e: unknown) =>
+      toast(httpDetail(e) ?? "Код не подошёл", { kind: "error" }),
+  });
+  const disable = useMutation({
+    mutationFn: () => disableTotp(password),
+    onSuccess: () => {
+      setConfirming(null); setPassword(""); refresh();
+      toast("Второй фактор выключен", { kind: "success" });
+    },
+    onError: (e: unknown) => toast(httpDetail(e) ?? "Не удалось выключить", { kind: "error" }),
+  });
+  const reissue = useMutation({
+    mutationFn: () => reissueRecoveryCodes(password),
+    onSuccess: (fresh) => {
+      setConfirming(null); setPassword(""); setCodes(fresh); refresh();
+    },
+    onError: (e: unknown) => toast(httpDetail(e) ?? "Не удалось перевыпустить", { kind: "error" }),
+  });
+
+  return (
+    <div className="audit-block">
+      <div className="audit-block__title">Второй фактор</div>
+
+      {status?.enabled ? (
+        <>
+          <p className="page-sub" style={{ marginTop: 0 }}>
+            Включён. При входе спрашивается код из приложения.
+            {" "}Резервных кодов осталось: {status.recovery_left}.
+          </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Button variant="ghost" onClick={() => { setConfirming("reissue"); setPassword(""); }}>
+              Перевыпустить резервные коды
+            </Button>
+            <Button variant="ghost" onClick={() => { setConfirming("disable"); setPassword(""); }}>
+              Выключить
+            </Button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="page-sub" style={{ marginTop: 0 }}>
+            {status?.recommended
+              ? "Вы владелец организации: второй фактор защищает не только вашу работу, "
+                + "но и тариф, участников и данные всей компании."
+              : "Одноразовый код из приложения-аутентификатора в дополнение к паролю."}
+            {" "}Пароль в паре с кодом бесполезен для того, кто его подсмотрел.
+          </p>
+          {!setup ? (
+            <Button onClick={() => begin.mutate()} loading={begin.isPending}>
+              Настроить
+            </Button>
+          ) : (
+            <>
+              <p className="page-sub">
+                Добавьте ключ в приложение (Яндекс.Ключ, Google Authenticator, 1Password и
+                другие) и введите код, который оно покажет.{" "}
+                <b>QR-кода здесь нет</b> — ключ вводится вручную или по ссылке ниже.
+              </p>
+              <div className="totp-key">{setup.secret_grouped}</div>
+              <a className="totp-link" href={setup.otpauth_uri}>
+                Открыть в приложении (если эта страница открыта на телефоне)
+              </a>
+              <Field label="Код из приложения" value={code} inputMode="numeric"
+                     placeholder="6 цифр"
+                     onChange={(e) => setCode(e.target.value)} />
+              <Button onClick={() => enable.mutate()} loading={enable.isPending}
+                      disabled={code.trim().length < 6}>
+                Включить
+              </Button>
+            </>
+          )}
+        </>
+      )}
+
+      {/* Коды показываются один раз: восстановить их нельзя, можно только перевыпустить. */}
+      <Modal open={codes !== null} title="Резервные коды" onClose={() => setCodes(null)}
+             actions={<Button onClick={() => setCodes(null)}>Я сохранил их</Button>}>
+        <p className="page-sub" style={{ marginTop: 0 }}>
+          Сохраните эти коды. Каждый работает один раз и заменяет код из приложения.
+          <b> Больше они не покажутся</b>: у платформы нет почты, и письма «восстановите
+          доступ» не будет — без кодов вернуть доступ сможет только поддержка.
+        </p>
+        <div className="totp-codes">
+          {(codes ?? []).map((c) => <div key={c}>{c}</div>)}
+        </div>
+      </Modal>
+
+      <Modal open={confirming !== null}
+             title={confirming === "disable" ? "Выключить второй фактор" : "Перевыпустить коды"}
+             onClose={() => setConfirming(null)}
+             actions={
+               <>
+                 <Button variant="ghost" onClick={() => setConfirming(null)}>Отмена</Button>
+                 <Button onClick={() => (confirming === "disable" ? disable : reissue).mutate()}
+                         disabled={!password || disable.isPending || reissue.isPending}>
+                   Подтвердить
+                 </Button>
+               </>
+             }>
+        {/* Пароль здесь — разница между «украли сессию» и «украли учётную запись»:
+            выключение второго фактора это ровно то, что сделает угонщик. */}
+        <p className="page-sub" style={{ marginTop: 0 }}>
+          {confirming === "disable"
+            ? "Вход снова будет защищён только паролем."
+            : "Прежние резервные коды перестанут работать сразу."}
+        </p>
+        <Field label="Ваш пароль" type="password" value={password} autoFocus
+               onChange={(e) => setPassword(e.target.value)} />
+      </Modal>
     </div>
   );
 }

@@ -261,6 +261,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/users/{user_id}/totp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Reset User Totp
+         * @description Сбросить второй фактор человеку — **последний способ вернуть доступ** (C2).
+         *
+         *     Почты у платформы нет, значит письма «восстановите доступ» не существует: потерянный
+         *     телефон **и** потерянные резервные коды означали бы навсегда потерянную учётную
+         *     запись. Кто-то обязан быть последней инстанцией, и это платформа.
+         *
+         *     Отсюда же и обязанность не молчать: сброс пишется в служебный журнал **и** в журналы
+         *     всех организаций человека. Оператор, снимающий второй фактор, делает ровно то, ради
+         *     чего второй фактор и ставили, — и это должно быть видно, а не спрятано в поддержке.
+         *     Личность обратившегося проверяет человек, а не код: платформа не умеет этого и не
+         *     делает вид, что умеет.
+         */
+        delete: operations["reset_user_totp_api_v1_admin_users__user_id__totp_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/analysis/jobs/{job_id}": {
         parameters: {
             query?: never;
@@ -871,6 +901,115 @@ export interface paths {
          *     отказывается по правам — знать о существовании чужих входов незачем.
          */
         delete: operations["revoke_session_api_v1_auth_sessions__session_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/totp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Totp Status */
+        get: operations["totp_status_api_v1_auth_totp_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/totp/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Totp Disable
+         * @description Выключить второй фактор — **по паролю**.
+         *
+         *     Выключение второго фактора это ровно то, что сделает угонщик, дорвавшийся до открытой
+         *     вкладки. Пароль здесь — разница между «украли сессию» и «украли учётную запись».
+         */
+        post: operations["totp_disable_api_v1_auth_totp_disable_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/totp/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Totp Enable
+         * @description Подтвердить настройку кодом и получить резервные коды.
+         *
+         *     Коды показываются **один раз** — как пароль: хранятся отпечатками, и восстановить их
+         *     нельзя, можно только перевыпустить.
+         */
+        post: operations["totp_enable_api_v1_auth_totp_enable_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/totp/recovery-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Totp New Recovery Codes
+         * @description Перевыпустить резервные коды. Прежние перестают работать сразу.
+         */
+        post: operations["totp_new_recovery_codes_api_v1_auth_totp_recovery_codes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/totp/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Totp Setup
+         * @description Завести секрет и показать его для настройки приложения.
+         *
+         *     Второй фактор при этом **не включается**: пока код не подтверждён, вход работает как
+         *     прежде. Иначе опечатки в приложении хватило бы, чтобы человек остался снаружи.
+         *
+         *     Повторный вызов выдаёт **новый** секрет: сюда приходят, когда настройка не задалась,
+         *     и подсовывать тот же секрет, который уже не сходится, незачем.
+         */
+        post: operations["totp_setup_api_v1_auth_totp_setup_post"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -5218,6 +5357,11 @@ export interface components {
              * @default false
              */
             remember: boolean;
+            /**
+             * Totp Code
+             * @default
+             */
+            totp_code: string;
         };
         /**
          * Material
@@ -5810,6 +5954,18 @@ export interface components {
             current_password: string;
             /** New Password */
             new_password: string;
+        };
+        /**
+         * PasswordConfirmIn
+         * @description Подтверждение паролем для чувствительных действий с учётной записью.
+         *
+         *     Выключение второго фактора и перевыпуск резервных кодов — ровно то, что сделает
+         *     угонщик, дорвавшийся до открытой вкладки. Пароль здесь — не формальность, а разница
+         *     между «украли сессию» и «украли учётную запись».
+         */
+        PasswordConfirmIn: {
+            /** Password */
+            password: string;
         };
         /**
          * PasswordPolicyOut
@@ -8505,10 +8661,77 @@ export interface components {
             /** Access Token */
             access_token: string;
             /**
+             * Notice
+             * @default
+             */
+            notice: string;
+            /**
              * Token Type
              * @default bearer
              */
             token_type: string;
+        };
+        /** TotpEnableIn */
+        TotpEnableIn: {
+            /** Code */
+            code: string;
+        };
+        /**
+         * TotpRecoveryOut
+         * @description Резервные коды — показываются **один раз**, как пароль.
+         *
+         *     Почты у платформы нет, значит письма «восстановите доступ» не будет: без этих кодов
+         *     потерянный телефон означал бы потерянную учётную запись. Поэтому они не «на всякий
+         *     случай», а единственный способ вернуться — кроме обращения к платформе.
+         */
+        TotpRecoveryOut: {
+            /**
+             * Codes
+             * @default []
+             */
+            codes: string[];
+        };
+        /**
+         * TotpSetupOut
+         * @description Начатая настройка второго фактора (C2).
+         *
+         *     ``secret`` показывается группами по четыре: его вводят руками — QR-кода платформа не
+         *     рисует, и это сказано на экране, а не скрыто. ``otpauth_uri`` читает приложение, если
+         *     страницу открыли на том же устройстве.
+         *
+         *     Второй фактор здесь ещё **не включён**: включение подтверждается кодом. Иначе
+         *     достаточно опечатки в приложении, чтобы человек остался снаружи своей учётной записи.
+         */
+        TotpSetupOut: {
+            /** Otpauth Uri */
+            otpauth_uri: string;
+            /** Secret */
+            secret: string;
+            /** Secret Grouped */
+            secret_grouped: string;
+        };
+        /** TotpStatusOut */
+        TotpStatusOut: {
+            /**
+             * Enabled
+             * @default false
+             */
+            enabled: boolean;
+            /**
+             * Pending
+             * @default false
+             */
+            pending: boolean;
+            /**
+             * Recommended
+             * @default false
+             */
+            recommended: boolean;
+            /**
+             * Recovery Left
+             * @default 0
+             */
+            recovery_left: number;
         };
         /**
          * UncertainAssumption
@@ -9244,6 +9467,37 @@ export interface operations {
         };
     };
     unblock_user_api_v1_admin_users__user_id__block_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffUserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reset_user_totp_api_v1_admin_users__user_id__totp_delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -10381,6 +10635,143 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    totp_status_api_v1_auth_totp_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TotpStatusOut"];
+                };
+            };
+        };
+    };
+    totp_disable_api_v1_auth_totp_disable_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordConfirmIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    totp_enable_api_v1_auth_totp_enable_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TotpEnableIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TotpRecoveryOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    totp_new_recovery_codes_api_v1_auth_totp_recovery_codes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordConfirmIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TotpRecoveryOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    totp_setup_api_v1_auth_totp_setup_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TotpSetupOut"];
                 };
             };
         };

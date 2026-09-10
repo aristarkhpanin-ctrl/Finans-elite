@@ -3899,3 +3899,17 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   display: flex; align-items: center; gap: 8px; cursor: pointer;
   font: 400 13px var(--font-ui); color: var(--muted); margin: -4px 0 4px;
 }
+
+/* Второй фактор (C2): ключ для ручного ввода и резервные коды. */
+.totp-key {
+  font: 600 15px/1.6 var(--font-mono, ui-monospace, monospace); letter-spacing: .06em;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px;
+  padding: 10px 12px; word-break: break-all; margin-bottom: 8px;
+}
+.totp-link { font: 400 12px var(--font-ui); color: var(--primary); display: inline-block; margin-bottom: 10px; }
+.totp-codes {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 6px;
+  font: 500 13px var(--font-mono, ui-monospace, monospace);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px;
+  padding: 12px;
+}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { httpStatus } from "../api/client";
+import { httpDetail, httpStatus } from "../api/client";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { IconLock, IconMail } from "../components/icons";
@@ -28,6 +28,9 @@ const LEAD: Record<string, string> = {
  */
 const NO_RESET = "Забыли пароль — ссылку на сброс выдаёт администратор организации.";
 
+/** Ключ, под которым вход передаёт своё примечание рабочей области. */
+export const LOGIN_NOTICE_KEY = "finans:login-notice";
+
 export function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -45,6 +48,13 @@ export function LoginPage() {
    * закрывает лишние. По умолчанию выключено: сутки — разумная цена за чужой ноутбук.
    */
   const [remember, setRemember] = useState(false);
+  /**
+   * Код второго фактора (C2). Поле появляется **после** того, как сервер попросил код
+   * (428): показывать его всем значило бы спрашивать код у тех, у кого второго фактора
+   * нет, — и пугать их на ровном месте.
+   */
+  const [totpCode, setTotpCode] = useState("");
+  const [needCode, setNeedCode] = useState(false);
   const [success, setSuccess] = useState(false);
   const timer = useRef<number>();
 
@@ -70,12 +80,30 @@ export function LoginPage() {
     }
     setBusy(true);
     try {
-      await login({ email, password, remember });
+      const notice = await login({ email, password, remember, totp_code: totpCode });
+      // Примечание входа («вошли по резервному коду, осталось N») показывается уже в
+      // рабочей области: здесь страница через мгновение сменится, и прочесть его не
+      // успеют. Молча съеденный резервный код кончится в самый неподходящий момент.
+      if (notice) sessionStorage.setItem(LOGIN_NOTICE_KEY, notice);
       setSuccess(true);
       timer.current = window.setTimeout(
         () => navigate(PRODUCTS[product].home), REDIRECT_DELAY_MS);
     } catch (err: unknown) {
       const status = httpStatus(err);
+      if (status === 428) {
+        // Пароль верен — нужен второй шаг. Не 401: тот отправил бы человека проверять
+        // пароль, которого он не путал.
+        setNeedCode(true);
+        setServerError(httpDetail(err) ?? "Введите код из приложения");
+        setBusy(false);
+        return;
+      }
+      if (needCode && (status === 401 || status === 429)) {
+        // Неверный код или пауза после подбора — причину сервер называет словами.
+        setServerError(httpDetail(err) ?? "Неверный код");
+        setBusy(false);
+        return;
+      }
       setServerError(
         status === 401
           ? "Неверный email или пароль"
@@ -132,6 +160,23 @@ export function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           onBlur={() => setTouched((t) => ({ ...t, password: true }))}
         />
+        {needCode && (
+          <AuthField
+            id="totp"
+            label="Код из приложения"
+            icon={<IconLock size={17} />}
+            type="text"
+            inputMode="numeric"
+            placeholder="6 цифр или резервный код"
+            autoComplete="one-time-code"
+            autoFocus
+            value={totpCode}
+            disabled={busy}
+            error=""
+            shakeKey={shakeKey}
+            onChange={(e) => setTotpCode(e.target.value)}
+          />
+        )}
         <label className="auth-remember">
           <input type="checkbox" checked={remember} disabled={busy}
                  onChange={(e) => setRemember(e.target.checked)} />

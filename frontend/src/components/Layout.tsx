@@ -4,6 +4,7 @@ import { createOrganization, roleLabel } from "../api/org";
 import { useAuth } from "../auth/AuthContext";
 import { CubeHero } from "./CubeHero";
 import { applyProduct, PRODUCTS, productFromPath } from "./product";
+import { LOGIN_NOTICE_KEY } from "../pages/LoginPage";
 import { RestrictionBanner } from "./RestrictionBanner";
 import { useToast } from "./Toast";
 import { getTheme, toggleTheme, type Theme } from "./theme";
@@ -62,6 +63,15 @@ export function Layout() {
     setOpen(null);
     setDrawerOrgList(false);
   }, [pathname]);
+
+  // Примечание входа (C2) — один раз и в рабочей области: на экране входа его прочесть
+  // не успевают, страница сменяется через мгновение.
+  useEffect(() => {
+    const notice = sessionStorage.getItem(LOGIN_NOTICE_KEY);
+    if (!notice) return;
+    sessionStorage.removeItem(LOGIN_NOTICE_KEY);
+    toast(notice, { kind: "warn" });
+  }, [toast]);
 
   useEffect(() => {
     if (!open) return;

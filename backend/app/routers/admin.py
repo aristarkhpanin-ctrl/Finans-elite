@@ -324,6 +324,33 @@ def unblock_user(user_id: str, staff: User = Depends(require_staff),
     return _user_out(db, user)
 
 
+@router.delete("/users/{user_id}/totp", response_model=StaffUserOut)
+def reset_user_totp(user_id: str, staff: User = Depends(require_staff),
+                    db: Session = Depends(get_db)) -> StaffUserOut:
+    """Сбросить второй фактор человеку — **последний способ вернуть доступ** (C2).
+
+    Почты у платформы нет, значит письма «восстановите доступ» не существует: потерянный
+    телефон **и** потерянные резервные коды означали бы навсегда потерянную учётную
+    запись. Кто-то обязан быть последней инстанцией, и это платформа.
+
+    Отсюда же и обязанность не молчать: сброс пишется в служебный журнал **и** в журналы
+    всех организаций человека. Оператор, снимающий второй фактор, делает ровно то, ради
+    чего второй фактор и ставили, — и это должно быть видно, а не спрятано в поддержке.
+    Личность обратившегося проверяет человек, а не код: платформа не умеет этого и не
+    делает вид, что умеет.
+    """
+    user = crud.get_user(db, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    if user.totp_enabled_at is None and not user.totp_secret:
+        raise HTTPException(status_code=409, detail="Второй фактор не настроен")
+    crud.disable_totp(db, user)
+    crud.log_user_action(db, user, "staff.totp_reset",
+                         details=f"сотрудник платформы: {staff.email}")
+    crud.log_staff_action(db, staff, "staff.totp_reset", details=user.email)
+    return _user_out(db, user)
+
+
 #: Сколько организаций обходить, собирая объёмы и выгрузки. Обхода изоляции у платформы
 #: нет (B1): в каждую организацию она входит по очереди, и на большом числе клиентов это
 #: становится дорого. Предел назван, а не подразумевается: усечённый свод **говорит о

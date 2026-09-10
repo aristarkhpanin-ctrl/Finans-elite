@@ -96,6 +96,27 @@ class User(Base):
     )
     blocked_by: Mapped[str] = mapped_column(String(255), default="", server_default="")
     block_reason: Mapped[str] = mapped_column(String(500), default="", server_default="")
+    #: Секрет второго фактора (base32). Пусто — второй фактор не настраивался.
+    #: Хранится как есть: это **общий** секрет, им проверяют код, и односторонний хэш
+    #: тут не годится по устройству TOTP. Защита у него та же, что у хэшей паролей и
+    #: моделей клиентов, — доступ к базе; притворяться, что она сильнее, не нужно.
+    totp_secret: Mapped[str] = mapped_column(String(64), default="", server_default="")
+    #: Когда второй фактор **включён**. Секрет есть, а это пусто — настройку начали и
+    #: не подтвердили кодом: такой секрет ничего не защищает и на вход не влияет.
+    totp_enabled_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    #: Отпечатки резервных кодов (SHA-256). Почты у платформы нет, значит письма
+    #: «восстановите доступ» не будет: без кодов потерянный телефон означал бы
+    #: потерянную учётную запись. Использованный код удаляется из списка.
+    totp_recovery: Mapped[list] = mapped_column(JSONType, default=list)
+    #: Подряд идущие неудачные коды и до какого времени вход по второму фактору закрыт.
+    #: Ограничение по адресу (`ratelimit`) от подбора шестизначного кода не спасает:
+    #: адреса меняются, а учётная запись одна.
+    totp_failures: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    totp_locked_until: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class Membership(Base):

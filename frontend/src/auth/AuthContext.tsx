@@ -8,7 +8,8 @@ interface AuthState {
   organizations: OrganizationMembership[];
   currentOrgId: string | null;
   loading: boolean;
-  login: (p: LoginPayload) => Promise<void>;
+  /** Возвращает примечание входа (например «вошли по резервному коду»), если оно есть. */
+  login: (p: LoginPayload) => Promise<string>;
   register: (p: RegisterPayload) => Promise<void>;
   logout: () => void;
   selectOrg: (orgId: string) => void;
@@ -37,10 +38,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loadProfile().catch(() => logout()).finally(() => setLoading(false));
   }, []);
 
-  async function login(p: LoginPayload) {
-    const { access_token } = await apiLogin(p);
+  async function login(p: LoginPayload): Promise<string> {
+    const { access_token, notice } = await apiLogin(p);
     setToken(access_token);
     await loadProfile();
+    return notice ?? "";
   }
 
   async function register(p: RegisterPayload) {

@@ -94,3 +94,42 @@ export async function getPasswordPolicy(): Promise<PasswordPolicy> {
   const { data } = await api.get<PasswordPolicy>("/api/v1/auth/password-policy");
   return data;
 }
+
+/**
+ * Второй фактор: одноразовые коды из приложения (C2).
+ *
+ * Настройка идёт в два шага и включается **только** после подтверждения кодом: иначе
+ * опечатки в приложении хватило бы, чтобы остаться снаружи своей учётной записи.
+ * Резервные коды показываются один раз — почты у платформы нет, и письма «восстановите
+ * доступ» не будет.
+ */
+export type TotpStatus = Schema<"TotpStatusOut">;
+export type TotpSetup = Schema<"TotpSetupOut">;
+
+export async function getTotpStatus(): Promise<TotpStatus> {
+  const { data } = await api.get<TotpStatus>("/api/v1/auth/totp");
+  return data;
+}
+
+export async function startTotpSetup(): Promise<TotpSetup> {
+  const { data } = await api.post<TotpSetup>("/api/v1/auth/totp/setup");
+  return data;
+}
+
+/** Подтвердить настройку кодом → резервные коды (показываются один раз). */
+export async function enableTotp(code: string): Promise<string[]> {
+  const { data } = await api.post<{ codes: string[] }>("/api/v1/auth/totp/enable", { code });
+  return data.codes;
+}
+
+/** Перевыпустить резервные коды. Прежние перестают работать сразу. */
+export async function reissueRecoveryCodes(password: string): Promise<string[]> {
+  const { data } = await api.post<{ codes: string[] }>(
+    "/api/v1/auth/totp/recovery-codes", { password });
+  return data.codes;
+}
+
+/** Выключить второй фактор — по паролю: сессию могли украсть, пароль знает владелец. */
+export async function disableTotp(password: string): Promise<void> {
+  await api.post("/api/v1/auth/totp/disable", { password });
+}

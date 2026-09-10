@@ -228,8 +228,15 @@ def test_no_anonymous_password_recovery(client, register):
     ссылку выдаёт администратор организации вручную (тесты ниже).
     """
     from app.main import app
-    auth_paths = [p for p in app.openapi()["paths"] if p.startswith("/api/v1/auth")]
-    assert not [p for p in auth_paths if "reset" in p or "forgot" in p or "recover" in p]
+    # Проверяется **свойство**, а не название: маршрут может называться как угодно, важно,
+    # что дверей восстановления **без входа** нет. Перевыпуск резервных кодов второго
+    # фактора (C2) называется «recovery», но требует и сеанса, и пароля — проверка по
+    # одной лишь подстроке зачислила бы его в анонимные и соврала бы.
+    anonymous = [path for path, ops in app.openapi()["paths"].items()
+                 if path.startswith("/api/v1/auth")
+                 and any(not op.get("security") for op in ops.values())]
+    assert not [p for p in anonymous
+                if "reset" in p or "forgot" in p or "recover" in p]
 
     owner = register(email="anon-own@e.ru", org="Орг А")
     uid = _member(client, owner, "anon-m@e.ru")

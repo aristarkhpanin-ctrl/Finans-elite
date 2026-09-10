@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
-from .. import crud
+from .. import crud, totp
 from ..database import get_db
 from ..db_models import User, UserSession
 from ..deps import account_blocked_detail, current_session, current_user
@@ -15,12 +15,17 @@ from ..schemas import (
     ActivateRequest,
     LoginRequest,
     PasswordChange,
+    PasswordConfirmIn,
     PasswordPolicyOut,
     ProfileUpdate,
     RegisterRequest,
     RevokeAllOut,
     SessionOut,
     TokenResponse,
+    TotpEnableIn,
+    TotpRecoveryOut,
+    TotpSetupOut,
+    TotpStatusOut,
     UserOut,
 )
 from ..security import (
@@ -44,7 +49,7 @@ _login_limit = rate_limit("login", limit=20, window_seconds=60)
 
 
 def _issue_token(db: Session, user: User, request: Request,
-                 remember: bool = False) -> TokenResponse:
+                 remember: bool = False, notice: str = "") -> TokenResponse:
     """Завести сеанс и выдать привязанный к нему токен (C1).
 
     Одна функция на все три двери входа — регистрацию, вход и активацию ссылки: три
@@ -58,7 +63,8 @@ def _issue_token(db: Session, user: User, request: Request,
         ip=client_ip(forwarded_for=request.headers.get("x-forwarded-for"),
                      remote=request.client.host if request.client else ""),
     )
-    return TokenResponse(access_token=create_access_token(user.id, session.id, ttl))
+    return TokenResponse(access_token=create_access_token(user.id, session.id, ttl),
+                         notice=notice)
 
 
 @router.post(
@@ -98,8 +104,52 @@ def login(body: LoginRequest, request: Request,
         # именно то, ради чего блокировку и ставили.
         crud.log_user_action(db, user, "auth.login_blocked", details=user.block_reason)
         raise HTTPException(status_code=403, detail=account_blocked_detail(user))
+    notice = _second_factor(db, user, body.totp_code)
     crud.log_user_action(db, user, "auth.login")
-    return _issue_token(db, user, request, remember=body.remember)
+    return _issue_token(db, user, request, remember=body.remember, notice=notice)
+
+
+#: Код нужен, но не прислан. Отдельный статус, а не 401: пароль **верен**, и человеку
+#: нужно не «войти заново», а сделать второй шаг. По 401 интерфейс отправил бы его
+#: проверять пароль, которого он не путал.
+STATUS_TOTP_REQUIRED = 428
+
+
+def _second_factor(db: Session, user: User, code: str) -> str:
+    """Проверить второй фактор. Возвращает примечание для ответа (или пустую строку).
+
+    Отдельного «половинного» токена между шагами нет: он был бы ещё одним пропуском,
+    который надо защищать наравне с настоящим, и жил бы ровно там, где его удобно
+    украсть. Код приходит тем же запросом, что и пароль.
+    """
+    if user.totp_enabled_at is None:
+        return ""
+    locked = crud.totp_locked_for(user)
+    if locked:
+        # Подбор шестизначного кода закрывается **по учётной записи**, а не по адресу:
+        # адреса меняются, а учётная запись одна.
+        raise HTTPException(
+            status_code=429,
+            detail=f"Слишком много неверных кодов. Попробуйте через {locked // 60 + 1} мин.")
+    if not code:
+        raise HTTPException(status_code=STATUS_TOTP_REQUIRED,
+                            detail="Введите код из приложения-аутентификатора")
+    if totp.verify(user.totp_secret, code):
+        crud.note_totp_success(db, user)
+        return ""
+    remaining = totp.take_recovery_code(list(user.totp_recovery or []), code)
+    if remaining is not None:
+        crud.set_recovery_codes(db, user, remaining)
+        crud.note_totp_success(db, user)
+        crud.log_user_action(db, user, "auth.totp_recovery_used",
+                             details=f"осталось кодов: {len(remaining)}")
+        # Человеку говорят, что он потратил резервный код и сколько их осталось: молча
+        # съеденный код кончится в самый неподходящий момент.
+        return (f"Вход по резервному коду. Осталось кодов: {len(remaining)}. "
+                "Перевыпустите их в профиле, когда вернёте доступ к приложению.")
+    crud.note_totp_failure(db, user)
+    crud.log_user_action(db, user, "auth.totp_failed")
+    raise HTTPException(status_code=401, detail="Неверный код второго фактора")
 
 
 @router.get("/me", response_model=UserOut)
@@ -274,3 +324,105 @@ def password_policy() -> PasswordPolicyOut:
     leak_check = leak_check_enabled()
     return PasswordPolicyOut(min_length=MIN_LENGTH, leak_check=leak_check,
                              rules=policy_rules(leak_check=leak_check))
+
+
+# --- Второй фактор (C2) ---
+
+def _totp_status(db: Session, user: User) -> TotpStatusOut:
+    """Состояние второго фактора у человека.
+
+    ``recommended`` — только рекомендация, и только владельцу. Принудительное включение
+    без второго канала восстановления (почты у платформы нет) заперло бы того, кто
+    потеряет и телефон, и резервные коды; решение «сделать обязательным» — за владельцем
+    платформы, а не за кодом. Причина записана в декомпозиции, а не подразумевается.
+    """
+    roles = {m.role for m in crud.list_user_memberships(db, user.id)}
+    return TotpStatusOut(
+        enabled=user.totp_enabled_at is not None,
+        pending=bool(user.totp_secret) and user.totp_enabled_at is None,
+        recovery_left=len(user.totp_recovery or []),
+        recommended="owner" in roles,
+    )
+
+
+@router.get("/totp", response_model=TotpStatusOut)
+def totp_status(user: User = Depends(current_user),
+                db: Session = Depends(get_db)) -> TotpStatusOut:
+    return _totp_status(db, user)
+
+
+@router.post("/totp/setup", response_model=TotpSetupOut)
+def totp_setup(user: User = Depends(current_user),
+               db: Session = Depends(get_db)) -> TotpSetupOut:
+    """Завести секрет и показать его для настройки приложения.
+
+    Второй фактор при этом **не включается**: пока код не подтверждён, вход работает как
+    прежде. Иначе опечатки в приложении хватило бы, чтобы человек остался снаружи.
+
+    Повторный вызов выдаёт **новый** секрет: сюда приходят, когда настройка не задалась,
+    и подсовывать тот же секрет, который уже не сходится, незачем.
+    """
+    if user.totp_enabled_at is not None:
+        raise HTTPException(status_code=409,
+                            detail="Второй фактор уже включён — сначала выключите его")
+    secret = totp.new_secret()
+    crud.start_totp(db, user, secret)
+    return TotpSetupOut(secret=secret, secret_grouped=totp.format_secret(secret),
+                        otpauth_uri=totp.otpauth_uri(secret, user.email))
+
+
+@router.post("/totp/enable", response_model=TotpRecoveryOut)
+def totp_enable(body: TotpEnableIn, user: User = Depends(current_user),
+                db: Session = Depends(get_db)) -> TotpRecoveryOut:
+    """Подтвердить настройку кодом и получить резервные коды.
+
+    Коды показываются **один раз** — как пароль: хранятся отпечатками, и восстановить их
+    нельзя, можно только перевыпустить.
+    """
+    if user.totp_enabled_at is not None:
+        raise HTTPException(status_code=409, detail="Второй фактор уже включён")
+    if not user.totp_secret:
+        raise HTTPException(status_code=409,
+                            detail="Настройка не начата — получите ключ и добавьте его "
+                                   "в приложение")
+    if not totp.verify(user.totp_secret, body.code):
+        raise HTTPException(status_code=400,
+                            detail="Код не подошёл. Проверьте, что в приложении добавлен "
+                                   "именно этот ключ и что время на устройстве точное")
+    codes = totp.new_recovery_codes()
+    crud.enable_totp(db, user, [totp.hash_code(c) for c in codes])
+    crud.log_user_action(db, user, "auth.totp_enabled")
+    return TotpRecoveryOut(codes=codes)
+
+
+@router.post("/totp/recovery-codes", response_model=TotpRecoveryOut)
+def totp_new_recovery_codes(body: PasswordConfirmIn, user: User = Depends(current_user),
+                            db: Session = Depends(get_db)) -> TotpRecoveryOut:
+    """Перевыпустить резервные коды. Прежние перестают работать сразу."""
+    _confirm_password(user, body.password)
+    if user.totp_enabled_at is None:
+        raise HTTPException(status_code=409, detail="Второй фактор не включён")
+    codes = totp.new_recovery_codes()
+    crud.set_recovery_codes(db, user, [totp.hash_code(c) for c in codes])
+    crud.log_user_action(db, user, "auth.totp_recovery_reissued")
+    return TotpRecoveryOut(codes=codes)
+
+
+@router.post("/totp/disable", status_code=status.HTTP_204_NO_CONTENT)
+def totp_disable(body: PasswordConfirmIn, user: User = Depends(current_user),
+                 db: Session = Depends(get_db)) -> None:
+    """Выключить второй фактор — **по паролю**.
+
+    Выключение второго фактора это ровно то, что сделает угонщик, дорвавшийся до открытой
+    вкладки. Пароль здесь — разница между «украли сессию» и «украли учётную запись».
+    """
+    _confirm_password(user, body.password)
+    if user.totp_enabled_at is None and not user.totp_secret:
+        raise HTTPException(status_code=409, detail="Второй фактор не настроен")
+    crud.disable_totp(db, user)
+    crud.log_user_action(db, user, "auth.totp_disabled")
+
+
+def _confirm_password(user: User, password: str) -> None:
+    if not verify_password(user.hashed_password, password):
+        raise HTTPException(status_code=400, detail="Пароль неверен")

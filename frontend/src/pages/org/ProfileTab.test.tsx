@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { SessionRow } from "../../api/auth";
 import { ProfileTab } from "./ProfileTab";
@@ -16,12 +16,18 @@ import { ProfileTab } from "./ProfileTab";
 
 const getSessions = vi.fn();
 const getPasswordPolicy = vi.fn();
+const getTotpStatus = vi.fn();
+const startTotpSetup = vi.fn();
+const enableTotp = vi.fn();
 const revokeSession = vi.fn();
 const revokeAllSessions = vi.fn();
 vi.mock("../../api/auth", async (orig) => ({
   ...(await orig<typeof import("../../api/auth")>()),
   getSessions: (...a: unknown[]) => getSessions(...a),
   getPasswordPolicy: (...a: unknown[]) => getPasswordPolicy(...a),
+  getTotpStatus: (...a: unknown[]) => getTotpStatus(...a),
+  startTotpSetup: (...a: unknown[]) => startTotpSetup(...a),
+  enableTotp: (...a: unknown[]) => enableTotp(...a),
   revokeSession: (...a: unknown[]) => revokeSession(...a),
   revokeAllSessions: (...a: unknown[]) => revokeAllSessions(...a),
 }));
@@ -51,6 +57,13 @@ beforeEach(() => {
     rules: ["Не короче 8 символов.", "Заглавные буквы и знаки препинания **не требуются**."],
   });
   revokeAllSessions.mockResolvedValue(2);
+  getTotpStatus.mockResolvedValue({ enabled: false, pending: false, recovery_left: 0,
+                                    recommended: true });
+  startTotpSetup.mockResolvedValue({
+    secret: "ABCDEFGHIJKLMNOP", secret_grouped: "ABCD EFGH IJKL MNOP",
+    otpauth_uri: "otpauth://totp/Финанс:o@e.ru?secret=ABCDEFGHIJKLMNOP",
+  });
+  enableTotp.mockResolvedValue(["AAAAA-BBBBB-CCCCC-DDDDD", "EEEEE-FFFFF-GGGGG-HHHHH"]);
 });
 
 function show() {
@@ -108,4 +121,46 @@ it("требования к паролю берёт с сервера, а не �
   // человек прочёл бы одно, а получил другое.
   expect(await screen.findByText(/Заглавные буквы и знаки препинания/)).toBeTruthy();
   expect(getPasswordPolicy).toHaveBeenCalled();
+});
+
+
+// --- C2: второй фактор ---
+
+it("настройка второго фактора честно говорит, что QR-кода нет", async () => {
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Настроить" }));
+  // Спрятанное неудобство человек всё равно обнаружит — только позже и злее.
+  expect(await screen.findByText(/QR-кода здесь нет/)).toBeTruthy();
+  expect(screen.getByText("ABCD EFGH IJKL MNOP")).toBeTruthy();
+});
+
+it("резервные коды показываются один раз и говорят об этом", async () => {
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Настроить" }));
+  fireEvent.change(await screen.findByLabelText("Код из приложения"),
+                   { target: { value: "123456" } });
+  fireEvent.click(screen.getByRole("button", { name: "Включить" }));
+
+  expect(await screen.findByText("AAAAA-BBBBB-CCCCC-DDDDD")).toBeTruthy();
+  expect(screen.getByText(/Больше они не покажутся/)).toBeTruthy();
+  // И названа причина: письма «восстановите доступ» у платформы нет.
+  expect(screen.getByText(/нет почты/)).toBeTruthy();
+});
+
+it("владельцу второй фактор рекомендуют, а не навязывают", async () => {
+  show();
+  expect(await screen.findByText(/Вы владелец организации/)).toBeTruthy();
+  // Кнопка «Настроить» — предложение; вход без второго фактора работает (тест бэкенда).
+  expect(screen.getByRole("button", { name: "Настроить" })).toBeTruthy();
+});
+
+it("выключение спрашивает пароль, а не только открытую вкладку", async () => {
+  getTotpStatus.mockResolvedValue({ enabled: true, pending: false, recovery_left: 7,
+                                    recommended: true });
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Выключить" }));
+  const dialog = within(screen.getByRole("dialog"));
+  expect(dialog.getByLabelText("Ваш пароль")).toBeTruthy();
+  expect((dialog.getByRole("button", { name: "Подтвердить" }) as HTMLButtonElement)
+    .disabled).toBe(true);
 });

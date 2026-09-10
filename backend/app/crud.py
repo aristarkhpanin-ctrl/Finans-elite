@@ -804,6 +804,78 @@ def _aware(value: datetime | None) -> datetime | None:
     return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
 
 
+# --- Второй фактор (C2) ---
+
+#: Сколько подряд неверных кодов до паузы и насколько. Пять попыток — запас на опечатку
+#: и на разошедшиеся часы; пятнадцать минут превращают подбор шестизначного кода в годы,
+#: но не запирают человека надолго, если он просто ошибся.
+TOTP_MAX_FAILURES = 5
+TOTP_LOCK = timedelta(minutes=15)
+
+
+def start_totp(db: Session, user: User, secret: str) -> User:
+    """Записать секрет **без включения**: настройку подтверждают кодом.
+
+    Включить второй фактор, не убедившись, что приложение выдаёт сходящийся код, значит
+    запереть человека снаружи собственной учётной записи.
+    """
+    user.totp_secret = secret
+    user.totp_enabled_at = None
+    db.commit()
+    return user
+
+
+def enable_totp(db: Session, user: User, recovery_hashes: list[str]) -> User:
+    user.totp_enabled_at = datetime.now(timezone.utc)
+    user.totp_recovery = list(recovery_hashes)
+    user.totp_failures = 0
+    user.totp_locked_until = None
+    db.commit()
+    return user
+
+
+def disable_totp(db: Session, user: User) -> User:
+    """Выключить и **стереть** секрет с кодами: оставленный секрет позволил бы включить
+    второй фактор чужими руками, не заводя новый."""
+    user.totp_secret = ""
+    user.totp_enabled_at = None
+    user.totp_recovery = []
+    user.totp_failures = 0
+    user.totp_locked_until = None
+    db.commit()
+    return user
+
+
+def set_recovery_codes(db: Session, user: User, recovery_hashes: list[str]) -> User:
+    user.totp_recovery = list(recovery_hashes)
+    db.commit()
+    return user
+
+
+def totp_locked_for(user: User) -> int:
+    """Сколько секунд ещё закрыт вход по коду; 0 — открыт."""
+    until = _aware(user.totp_locked_until)
+    if until is None:
+        return 0
+    left = (until - datetime.now(timezone.utc)).total_seconds()
+    return max(0, int(left))
+
+
+def note_totp_failure(db: Session, user: User) -> None:
+    user.totp_failures = (user.totp_failures or 0) + 1
+    if user.totp_failures >= TOTP_MAX_FAILURES:
+        user.totp_locked_until = datetime.now(timezone.utc) + TOTP_LOCK
+        user.totp_failures = 0
+    db.commit()
+
+
+def note_totp_success(db: Session, user: User) -> None:
+    if user.totp_failures or user.totp_locked_until:
+        user.totp_failures = 0
+        user.totp_locked_until = None
+        db.commit()
+
+
 # --- Журнал действий (152-ФЗ, ARCHITECTURE §4) ---
 
 def log_user_action(db: Session, user, action: str, *, details: str = "") -> None:
