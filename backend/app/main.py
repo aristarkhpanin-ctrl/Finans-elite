@@ -13,18 +13,19 @@ from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from calc_core import ENGINE_VERSION, ProjectModel, run
 from calc_core.engine import ModelError
 from calc_core.samples import TEMPLATES, build_sample_project
+from calc_core.templates import INDUSTRY_TEMPLATES, NOT_A_BENCHMARK
 
 from .database import get_db, init_db
 from .observability import setup_observability
 from .routers import (
     admin,
+    apikeys,
     audit,
     auth,
     billing,
@@ -35,7 +36,7 @@ from .routers import (
     organizations,
     projects,
 )
-from .schemas import CalcResponse, to_response
+from .schemas import CalcResponse, TemplateOut, to_response
 
 
 @asynccontextmanager
@@ -68,6 +69,7 @@ if _cors_origins:
     )
 
 app.include_router(admin.router)
+app.include_router(apikeys.router)
 app.include_router(audit.router)
 app.include_router(auth.router)
 app.include_router(billing.router)
@@ -112,21 +114,41 @@ def sample() -> ProjectModel:
     return build_sample_project()
 
 
-class TemplateInfo(BaseModel):
-    id: str
-    name: str
-    description: str
+#: Каталог шаблонов: демонстрационные (были с первых версий) и отраслевые (D4).
+#: Ключи не пересекаются — проверяется тестом: совпавший ключ молча спрятал бы один
+#: шаблон за другим.
+def _catalog() -> dict[str, TemplateOut]:
+    out = {
+        k: TemplateOut(id=k, name=v[0], description=v[1], industry="Демонстрация",
+                       shows="Базовый разбор: как устроена модель целиком.",
+                       assumptions=[NOT_A_BENCHMARK])
+        for k, v in TEMPLATES.items()
+    }
+    out.update({
+        t.id: TemplateOut(id=t.id, name=t.name, industry=t.industry,
+                          description=t.description, shows=t.shows,
+                          assumptions=list(t.assumptions))
+        for t in INDUSTRY_TEMPLATES.values()
+    })
+    return out
 
 
-@app.get("/api/v1/templates", response_model=list[TemplateInfo], tags=["calc"])
-def templates() -> list[TemplateInfo]:
-    """Список шаблонов проектов для быстрого старта (по типам бизнеса)."""
-    return [TemplateInfo(id=k, name=v[0], description=v[1]) for k, v in TEMPLATES.items()]
+@app.get("/api/v1/templates", response_model=list[TemplateOut], tags=["calc"])
+def templates() -> list[TemplateOut]:
+    """Шаблоны быстрого старта: демонстрационные и отраслевые (D4).
+
+    Каждый несёт **список допущений**: числа в шаблоне выдуманы автором и годятся ровно
+    на то, чтобы модель считалась. Базы отраслевых данных у платформы нет, и выдать
+    пример за статистику значило бы соврать самым дорогим способом — цифрой.
+    """
+    return list(_catalog().values())
 
 
 @app.get("/api/v1/templates/{template_id}", response_model=ProjectModel, tags=["calc"])
 def template(template_id: str) -> ProjectModel:
     """Готовая модель шаблона (для создания проекта на её основе)."""
+    if template_id in INDUSTRY_TEMPLATES:
+        return INDUSTRY_TEMPLATES[template_id].build()
     if template_id not in TEMPLATES:
         raise HTTPException(status_code=404, detail="Шаблон не найден")
     return TEMPLATES[template_id][2]()

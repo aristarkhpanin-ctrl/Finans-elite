@@ -23,6 +23,8 @@ from ..schemas import (
     AuditLogPage,
     BenchmarkIn,
     BenchmarkOut,
+    ChecklistIn,
+    ChecklistOut,
     MailReport,
     MemberBlockIn,
     MemberCreate,
@@ -389,6 +391,43 @@ def replace_benchmarks(body: list[BenchmarkIn],
     crud.log_action(db, org_id, actor, "benchmarks.replace", entity_type="organization",
                     entity_id=org_id, details=f"строк: {len(rows)}")
     return [_benchmark_out(b) for b in saved]
+
+
+def _checklist_out(c) -> ChecklistOut:
+    return ChecklistOut(id=c.id, name=c.name, scope=c.scope, items=list(c.items or []),
+                        author_email=c.author_email, updated_at=c.updated_at)
+
+
+@router.get("/{org_id}/checklists", response_model=list[ChecklistOut])
+def list_checklists(org_id: str = Depends(require_membership),
+                    db: Session = Depends(get_db)) -> list[ChecklistOut]:
+    """Свои чек-листы организации: наборы процедур, которые она применяет к делам.
+
+    **Отраслевого каталога у платформы нет** — он утверждал бы, что именно проверяют в
+    конкретной отрасли. Эти чек-листы написаны аналитиками самой организации, и
+    платформа их не выполняет: применённые к делу, они становятся процедурами аналитика.
+    """
+    return [_checklist_out(c) for c in crud.list_checklists(db, org_id)]
+
+
+@router.put("/{org_id}/checklists", response_model=list[ChecklistOut])
+def replace_checklists(body: list[ChecklistIn],
+                       org_id: str = Depends(require_org_permission(Perm.ORG_MANAGE)),
+                       actor: User = Depends(current_user),
+                       db: Session = Depends(get_db)) -> list[ChecklistOut]:
+    """Заменить чек-листы целиком — как и ориентиры: что на экране, то и в хранилище."""
+    names = {" ".join(c.name.split()).casefold() for c in body if c.name.strip()}
+    if len(names) != len([c for c in body if c.name.strip()]):
+        raise HTTPException(
+            status_code=422,
+            detail="Два чек-листа с одним именем: платформа не может выбрать между ними "
+                   "за вас.")
+    rows = [{"name": c.name.strip(), "scope": c.scope.strip(),
+             "items": [i.strip() for i in c.items if i.strip()]} for c in body]
+    saved = crud.replace_checklists(db, org_id, rows, author_email=actor.email)
+    crud.log_action(db, org_id, actor, "checklists.replace", entity_type="organization",
+                    entity_id=org_id, details=f"чек-листов: {len(rows)}")
+    return [_checklist_out(c) for c in saved]
 
 
 @router.get("/{org_id}/audit-log", response_model=AuditLogPage)

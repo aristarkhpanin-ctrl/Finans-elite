@@ -12,10 +12,10 @@ from fastapi import Depends, Header, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
-from . import crud
+from . import apikeys, crud
 from .access import WRITE_PERMS, restriction_for
 from .database import get_db, set_tenant
-from .db_models import Membership, User, UserSession
+from .db_models import ApiKey, Membership, User, UserSession
 from .rbac import Perm, has_permission
 from .security import decode_access
 
@@ -72,6 +72,38 @@ def account_blocked_detail(user: User) -> str:
     return f"Учётная запись заблокирована платформой: {reason}"
 
 
+#: Что ключу доступа позволено. Только чтение и расчёт — и это решение, а не недоделка:
+#: у записи в журнале есть автор, а «модель изменил ключ» не автор. Спрос при этом
+#: именно на чтение (выгрузка в BI, 1С, свод портфеля). Расчёт здесь потому же, почему
+#: он открыт неплательщику (B2): это способ **посмотреть** свои числа, а не изменить их.
+KEY_PERMS = frozenset({Perm.PROJECT_READ, Perm.PROJECT_CALCULATE})
+
+#: Отказ ключу, попросившему больше. Причина названа: «недостаточно прав» отправило бы
+#: интегратора выпрашивать роль, которой у ключа не бывает вовсе.
+KEY_READ_ONLY = ("Ключ доступа работает только на чтение и расчёт. Изменения делает "
+                 "человек: у записи в журнале должен быть автор.")
+
+
+def api_key_from(credentials: HTTPAuthorizationCredentials, db: Session) -> ApiKey | None:
+    """Ключ доступа за заголовком — или ``None``, если это не ключ (обычный вход).
+
+    Проверка идёт по отпечатку: самого ключа платформа не хранит. Отозванный ключ
+    отвергается **с названной причиной** — «недействительный токен» отправил бы
+    интегратора искать опечатку там, где ключ просто выключили.
+    """
+    token = credentials.credentials
+    if not apikeys.looks_like_key(token):
+        return None
+    prefix = apikeys.parse_prefix(token)
+    key = crud.find_api_key_by_prefix(db, prefix) if prefix else None
+    if key is None or key.fingerprint != apikeys.fingerprint(token):
+        raise HTTPException(status_code=401, detail="Ключ доступа недействителен")
+    if key.revoked_at is not None:
+        raise HTTPException(status_code=401,
+                            detail="Ключ доступа отозван — выпустите новый")
+    return key
+
+
 def current_session(
     credentials: HTTPAuthorizationCredentials = Depends(_bearer),
     db: Session = Depends(get_db),
@@ -85,6 +117,11 @@ def current_session(
     Отказ — **401, а не 403**: сеанс закрыт или истёк, и войти заново это и есть выход.
     403 сказал бы «вам сюда нельзя» о человеке, которому просто нужно войти.
     """
+    if apikeys.looks_like_key(credentials.credentials):
+        # Ключ действителен, но у него нет человека: маршрут, которому нужен автор,
+        # обязан сказать это словами, а не «недействительным токеном».
+        api_key_from(credentials, db)
+        raise HTTPException(status_code=403, detail=KEY_READ_ONLY)
     decoded = decode_access(credentials.credentials)
     if decoded is None:
         raise HTTPException(status_code=401, detail="Недействительный токен")
@@ -203,13 +240,31 @@ def require_permission(perm: Perm, product: str = "business"):
 
     ``product`` называет, чья подписка отвечает за маршрут: у продуктов она своя, и
     просроченный «Аудит» не имеет отношения к оплаченному «Элит».
+
+    Здесь же вторая дверь — **ключ доступа** (D5). Она не обходит первую, а идёт рядом:
+    ключ называет свою организацию сам (он ей и принадлежит), получает только чтение и
+    расчёт (:data:`KEY_PERMS`) и упирается в те же ограничения продукта. Держать её
+    именно тут — то же решение, что и с проверкой членства: через эту зависимость
+    проходит каждый запрос к данным организации, и забыть её нельзя.
     """
 
     def dependency(
-        org_id: str = Depends(current_org_id),
-        user: User = Depends(current_user),
+        credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+        x_organization_id: str | None = Header(default=None, alias="X-Organization-Id"),
         db: Session = Depends(get_db),
     ) -> str:
+        key = api_key_from(credentials, db)
+        if key is not None:
+            if perm not in KEY_PERMS:
+                raise HTTPException(status_code=403, detail=KEY_READ_ONLY)
+            crud.touch_api_key(db, key, SEEN_INTERVAL)
+            _ensure_not_restricted(db, key.organization_id, perm, product)
+            set_tenant(db, key.organization_id)
+            return key.organization_id
+        # Обычный вход человека: сеанс → пользователь → организация → членство.
+        session = current_session(credentials, db)
+        user = current_user(session, db)
+        org_id = current_org_id(user, x_organization_id, db)
         membership = _ensure_active(crud.get_membership(db, org_id, user.id), db)
         if not has_permission(membership.role if membership else None, perm):
             raise HTTPException(status_code=403, detail="Недостаточно прав")

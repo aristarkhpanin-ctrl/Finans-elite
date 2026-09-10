@@ -167,6 +167,112 @@
         "title": "AdditionalInvestment",
         "type": "object"
       },
+      "ApiKeyCreate": {
+        "description": "Имя ключа: «Выгрузка в 1С», «Дашборд финдиректора».\n\nОбязательно и не случайно: через год список безымянных ключей означает, что отозвать\nможно только все сразу.",
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "ApiKeyCreate",
+        "type": "object"
+      },
+      "ApiKeyCreated": {
+        "description": "Ответ на выпуск: сам ключ **один раз** и его строка в списке.\n\nПовторно секрет не покажет никто, включая платформу: хранится только отпечаток. Тот\nже приём, что у резервных кодов второго фактора.",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/ApiKeyOut"
+          },
+          "scope_note": {
+            "default": "",
+            "title": "Scope Note",
+            "type": "string"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "token"
+        ],
+        "title": "ApiKeyCreated",
+        "type": "object"
+      },
+      "ApiKeyOut": {
+        "description": "Ключ в списке. Секрета здесь нет и быть не может — платформа его не хранит.\n\n``last_used_at`` = ``None`` означает **ни разу**, а не «давно»: неиспользованный ключ\nобычно забыт, и это повод его отозвать, а не оставить.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "default": "",
+            "title": "Created By",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "last_used_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Used At"
+          },
+          "masked": {
+            "title": "Masked",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "revoked": {
+            "default": false,
+            "title": "Revoked",
+            "type": "boolean"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "revoked_by": {
+            "default": "",
+            "title": "Revoked By",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "masked",
+          "created_at"
+        ],
+        "title": "ApiKeyOut",
+        "type": "object"
+      },
       "Asset-Input": {
         "description": "Основное средство.",
         "properties": {
@@ -4456,6 +4562,75 @@
           }
         },
         "title": "CapabilitiesOut",
+        "type": "object"
+      },
+      "ChecklistIn": {
+        "description": "Свой чек-лист организации: имя, область применения и пункты.",
+        "properties": {
+          "items": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "scope": {
+            "default": "",
+            "title": "Scope",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "ChecklistIn",
+        "type": "object"
+      },
+      "ChecklistOut": {
+        "properties": {
+          "author_email": {
+            "default": "",
+            "title": "Author Email",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "items": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "scope": {
+            "default": "",
+            "title": "Scope",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "id",
+          "updated_at"
+        ],
+        "title": "ChecklistOut",
         "type": "object"
       },
       "CheckoutRequest": {
@@ -12633,9 +12808,19 @@
         "title": "Tax",
         "type": "object"
       },
-      "TemplateInfo": {
+      "TemplateOut": {
+        "description": "Шаблон быстрого старта: модель + **честный список допущений**.\n\nДопущения едут вместе с шаблоном, а не лежат где-то рядом: числа в нём выдуманы,\nи человек обязан узнать об этом там же, где увидит цифры. Базы отраслевых данных у\nплатформы нет — выдать пример за статистику значило бы соврать цифрой.",
         "properties": {
+          "assumptions": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Assumptions",
+            "type": "array"
+          },
           "description": {
+            "default": "",
             "title": "Description",
             "type": "string"
           },
@@ -12643,17 +12828,26 @@
             "title": "Id",
             "type": "string"
           },
+          "industry": {
+            "default": "",
+            "title": "Industry",
+            "type": "string"
+          },
           "name": {
             "title": "Name",
+            "type": "string"
+          },
+          "shows": {
+            "default": "",
+            "title": "Shows",
             "type": "string"
           }
         },
         "required": [
           "id",
-          "name",
-          "description"
+          "name"
         ],
-        "title": "TemplateInfo",
+        "title": "TemplateOut",
         "type": "object"
       },
       "TokenResponse": {
@@ -13535,7 +13729,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.39"
+    "version": "0.9.40"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -17803,6 +17997,223 @@
         ]
       }
     },
+    "/api/v1/organizations/{org_id}/api-keys": {
+      "get": {
+        "description": "Ключи организации, новые сверху. Отозванные остаются в списке: исчезнувший ключ\nчитался бы как никогда не существовавший, а он работал.",
+        "operationId": "list_keys_api_v1_organizations__org_id__api_keys_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ApiKeyOut"
+                  },
+                  "title": "Response List Keys Api V1 Organizations  Org Id  Api Keys Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Keys",
+        "tags": [
+          "api-keys"
+        ]
+      },
+      "post": {
+        "description": "Выпустить ключ. Секрет показывается **один раз** — платформа его не хранит.",
+        "operationId": "create_key_api_v1_organizations__org_id__api_keys_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiKeyCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyCreated"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Key",
+        "tags": [
+          "api-keys"
+        ]
+      }
+    },
+    "/api/v1/organizations/{org_id}/api-keys/scope": {
+      "get": {
+        "description": "Что ключ умеет — перечнем прав, а не обещанием на словах.",
+        "operationId": "key_scope_api_v1_organizations__org_id__api_keys_scope_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Response Key Scope Api V1 Organizations  Org Id  Api Keys Scope Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Key Scope",
+        "tags": [
+          "api-keys"
+        ]
+      }
+    },
+    "/api/v1/organizations/{org_id}/api-keys/{key_id}": {
+      "delete": {
+        "description": "Отозвать ключ. Мгновенно: состояние читается из базы на каждом запросе.",
+        "operationId": "revoke_key_api_v1_organizations__org_id__api_keys__key_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key_id",
+            "required": true,
+            "schema": {
+              "title": "Key Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Revoke Key",
+        "tags": [
+          "api-keys"
+        ]
+      }
+    },
     "/api/v1/organizations/{org_id}/audit-log": {
       "get": {
         "description": "Журнал действий организации (право org.manage): новые записи сверху.\n\nОтбор — по участнику, действию, виду сущности, диапазону дат и подстроке (имя\nсущности, почта актора, примечание). Без отбора журнал на десятки тысяч записей\nсуществует, но ответа из него не достать: пролистать двадцать тысяч строк никто не\nстанет. ``total`` считается **под теми же условиями**, иначе «50 из 12 000» врало бы.\n\nТолько чтение. Ни PUT, ни DELETE у журнала нет и не будет: журнал, который можно\nпоправить, не журнал. Срок хранения (5 лет, ARCHITECTURE §4) — политика эксплуатации,\nа не логика приложения: чистка кодом означала бы, что приложение умеет стирать\nсобственные следы.",
@@ -18243,6 +18654,122 @@
         "summary": "Checkout",
         "tags": [
           "billing"
+        ]
+      }
+    },
+    "/api/v1/organizations/{org_id}/checklists": {
+      "get": {
+        "description": "Свои чек-листы организации: наборы процедур, которые она применяет к делам.\n\n**Отраслевого каталога у платформы нет** — он утверждал бы, что именно проверяют в\nконкретной отрасли. Эти чек-листы написаны аналитиками самой организации, и\nплатформа их не выполняет: применённые к делу, они становятся процедурами аналитика.",
+        "operationId": "list_checklists_api_v1_organizations__org_id__checklists_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ChecklistOut"
+                  },
+                  "title": "Response List Checklists Api V1 Organizations  Org Id  Checklists Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Checklists",
+        "tags": [
+          "organizations"
+        ]
+      },
+      "put": {
+        "description": "Заменить чек-листы целиком — как и ориентиры: что на экране, то и в хранилище.",
+        "operationId": "replace_checklists_api_v1_organizations__org_id__checklists_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/ChecklistIn"
+                },
+                "title": "Body",
+                "type": "array"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ChecklistOut"
+                  },
+                  "title": "Response Replace Checklists Api V1 Organizations  Org Id  Checklists Put",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Replace Checklists",
+        "tags": [
+          "organizations"
         ]
       }
     },
@@ -20617,7 +21144,7 @@
     },
     "/api/v1/templates": {
       "get": {
-        "description": "Список шаблонов проектов для быстрого старта (по типам бизнеса).",
+        "description": "Шаблоны быстрого старта: демонстрационные и отраслевые (D4).\n\nКаждый несёт **список допущений**: числа в шаблоне выдуманы автором и годятся ровно\nна то, чтобы модель считалась. Базы отраслевых данных у платформы нет, и выдать\nпример за статистику значило бы соврать самым дорогим способом — цифрой.",
         "operationId": "templates_api_v1_templates_get",
         "responses": {
           "200": {
@@ -20625,7 +21152,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/TemplateInfo"
+                    "$ref": "#/components/schemas/TemplateOut"
                   },
                   "title": "Response Templates Api V1 Templates Get",
                   "type": "array"

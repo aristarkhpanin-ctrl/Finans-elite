@@ -8,6 +8,7 @@ import {
   duplicateProject,
   listProjects,
   listTemplates,
+  type TemplateInfo,
 } from "../api/projects";
 import type { ProjectSummary } from "../api/types";
 import { CubeHero } from "../components/CubeHero";
@@ -86,6 +87,8 @@ export function ProjectsPage() {
   const [view, setView] = useState<View>(() => (localStorage.getItem(VIEW_KEY) as View) || "cards");
   const [creatingTpl, setCreatingTpl] = useState<string | null>(null);
   const [created, setCreated] = useState<{ id: string; name: string } | null>(null);
+  /** Шаблон, который человек рассматривает: сначала оговорки, потом создание (D4). */
+  const [preview, setPreview] = useState<TemplateInfo | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const { data, isLoading, isError, refetch } = useQuery({ queryKey: ["projects"], queryFn: listProjects });
@@ -263,13 +266,17 @@ export function ProjectsPage() {
                         type="button"
                         className="tpl-card"
                         disabled={fromTemplate.isPending || create.isPending}
-                        onClick={() => fromTemplate.mutate({ id: tpl.id, name: tpl.name })}
+                        // Сначала показываем, что шаблон о себе говорит: числа в нём
+                        // выдуманы, и строить на них, не прочитав оговорку, — худший
+                        // способ начать (D4).
+                        onClick={() => setPreview(tpl)}
                       >
                         <div className="tpl-card__top">
                           <div className={`tpl-card__ico tpl-card__ico--${meta.n}`}>{meta.icon}</div>
                           {meta.badge && <span className="tpl-badge">{meta.badge}</span>}
                         </div>
                         <div className="tpl-card__name">{tpl.name}</div>
+                        {tpl.industry && <div className="tpl-card__ind">{tpl.industry}</div>}
                         <div className="tpl-card__desc">{tpl.description}</div>
                         <div className="tpl-card__foot">
                           {busy ? (
@@ -278,7 +285,7 @@ export function ProjectsPage() {
                               <span className="tpl-card__use">Создаём…</span>
                             </>
                           ) : (
-                            <span className="tpl-card__use">Использовать →</span>
+                            <span className="tpl-card__use">Посмотреть →</span>
                           )}
                         </div>
                       </button>
@@ -460,6 +467,41 @@ export function ProjectsPage() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* Что шаблон о себе говорит. Показывается **до** создания проекта: числа в нём
+          выдуманы, и человек обязан прочитать это там, где увидит цифры. */}
+      <Modal
+        open={preview !== null}
+        onClose={() => setPreview(null)}
+        title={preview?.name ?? ""}
+        sub={preview?.industry}
+        maxWidth={520}
+        actions={
+          <>
+            <Button variant="ghost" onClick={() => setPreview(null)}>Отмена</Button>
+            <Button
+              loading={fromTemplate.isPending}
+              onClick={() => {
+                if (preview) fromTemplate.mutate({ id: preview.id, name: preview.name });
+                setPreview(null);
+              }}
+            >
+              Создать проект
+            </Button>
+          </>
+        }
+      >
+        <div className="page-sub" style={{ marginTop: 0 }}>{preview?.description}</div>
+        {preview?.shows && (
+          <div className="field-note" style={{ marginBottom: 10 }}>
+            <b>Что показывает:</b> {preview.shows}
+          </div>
+        )}
+        <div className="tpl-assume__head">Допущения шаблона</div>
+        <ul className="mnotes">
+          {(preview?.assumptions ?? []).map((a: string) => <li key={a}>{a}</li>)}
+        </ul>
       </Modal>
 
       {created && (

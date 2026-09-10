@@ -6,11 +6,15 @@ import { AuditLogTab } from "./org/AuditLogTab";
 import { ProfileTab } from "./org/ProfileTab";
 import { MembersTab } from "./org/MembersTab";
 import { BenchmarksTab } from "./org/BenchmarksTab";
+import { ChecklistsTab } from "./org/ChecklistsTab";
+import { ApiKeysTab } from "./org/ApiKeysTab";
 
 const TABS = [
   ["members", "Участники"],
   ["profile", "Профиль"],
   ["benchmarks", "Ориентиры"],
+  ["checklists", "Чек-листы"],
+  ["apikeys", "Ключи API"],
   ["log", "Журнал доступа"],
   ["billing", "Тариф и оплата"],
 ] as const;
@@ -68,6 +72,13 @@ export function OrganizationPage() {
       {/* Ориентиры принадлежат организации, а не делу: одна и та же медиана фонда
           читается во всех делах, и вести её в каждом значило бы её размножить. */}
       {tab === "benchmarks" && <BenchmarksTab orgId={currentOrgId} canManage={canManageOrg} />}
+      {/* Чек-листы принадлежат организации, а не делу: один и тот же набор процедур
+          применяют ко всем делам, и вести его в каждом значило бы его размножить. */}
+      {tab === "checklists" && <ChecklistsTab orgId={currentOrgId} canManage={canManageOrg} />}
+      {/* Ключ — дверь в данные организации, поэтому заводит его тот же, кто заводит
+          участников. Видеть список может каждый участник: «кто ходит в наши данные» —
+          не секрет от тех, чьи это данные. */}
+      {tab === "apikeys" && <ApiKeysTab orgId={currentOrgId} canManage={canManageOrg} />}
       {tab === "log" && (canManageOrg
         ? <AuditLogTab orgId={currentOrgId} initialActor={logActor} />
         : <div className="tab-empty">

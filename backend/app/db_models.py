@@ -621,3 +621,79 @@ class Comment(Base):
         DateTime(timezone=True), nullable=True
     )
     deleted_by: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+
+
+class AuditChecklist(Base):
+    """Свой чек-лист организации: набор процедур, который она применяет к делам (D4).
+
+    **Отраслевого каталога у платформы по-прежнему нет** — он утверждал бы, что именно
+    проверяют в конкретной отрасли, а такой методики у платформы нет (см.
+    ``CustomProcedure``). Здесь другое: чек-лист принадлежит **организации** и написан её
+    аналитиками — тот же приём, что с отраслевыми ориентирами, где отказ от рыночных
+    медиан стал функцией «ваш ориентир, а не рынок».
+
+    Ценность простая: одни и те же пятнадцать процедур перестают перепечатываться в
+    каждое новое дело. Платформа их **не выполняет** — применённые к делу, они попадают в
+    ``custom_procedures`` со статусом «не начата», как и любая процедура аналитика.
+
+    Уникальна пара «организация + имя»: два чек-листа с одним названием означали бы, что
+    выбирать между ними будет платформа.
+    """
+
+    __tablename__ = "audit_checklists"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "name", name="uq_org_checklist_name"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    #: Для какой отрасли/случая — свободный текст: это подпись автора, а не классификатор.
+    scope: Mapped[str] = mapped_column(String(200), nullable=False, default="")
+    #: Пункты — список строк. Порядок сохраняется: чек-лист читают сверху вниз.
+    items: Mapped[list] = mapped_column(JSONType, nullable=False, default=list)
+    author_email: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now,
+                                                 onupdate=_now)
+
+
+class ApiKey(Base):
+    """Ключ доступа к API организации (D5).
+
+    Ключ принадлежит **организации**, а не человеку: он живёт в чужом сервере (BI, 1С,
+    скрипт выгрузки) и обязан пережить увольнение того, кто его завёл. Кто завёл — всё
+    равно записано: без имени в списке через год никто не скажет, что это за ключ.
+
+    Хранится только **отпечаток** секрета: украденная база не даёт ключей, и «покажите
+    ещё раз» невозможно ни для кого, включая платформу. Открытый префикс лежит рядом —
+    по нему ключ находят и узнают в списке.
+
+    Отзыв мгновенный по тому же устройству, что у сеансов (C1): состояние читается из
+    базы на каждом запросе, а не живёт в самом ключе.
+    """
+
+    __tablename__ = "api_keys"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    #: Человеческое имя: «Выгрузка в 1С», «Дашборд финдиректора».
+    name: Mapped[str] = mapped_column(String(200), nullable=False, default="")
+    #: Открытая часть — не секрет: по ней ищут строку и узнают ключ в списке.
+    prefix: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
+    #: SHA-256 полной строки ключа. Самого ключа платформа не хранит.
+    fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_by: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    #: Когда ключом пользовались последний раз. ``None`` — **ни разу**, и это другое
+    #: состояние, чем «давно»: неиспользованный ключ обычно забыт, а не бережём.
+    last_used_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    revoked_by: Mapped[str] = mapped_column(String(255), nullable=False, default="")

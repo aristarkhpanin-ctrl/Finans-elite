@@ -3989,3 +3989,9 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .cmt__foot { display: flex; align-items: center; justify-content: space-between; gap: 10px;
              margin-top: 8px; flex-wrap: wrap; }
 .cmt__hint { font: 500 11.5px var(--font-ui); color: var(--subtle); }
+
+/* Шаблоны быстрого старта (D4): отрасль под именем, оговорки — в предпросмотре. */
+.tpl-card__ind { font: 600 10.5px var(--font-ui); color: var(--primary); margin-top: 2px; }
+.tpl-assume__head {
+  font: 700 12px var(--font-ui); color: var(--text); margin: 12px 0 6px;
+}

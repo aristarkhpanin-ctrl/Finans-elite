@@ -34,6 +34,23 @@ def test_irr_none_when_no_sign_change():
     assert irr_annual([Decimal(10), Decimal(20)]) is None
 
 
+def test_irr_is_none_when_there_was_no_investment():
+    """IRR — норма доходности **на вложенное**. Поток, который начинается с прихода
+    (действующий бизнес на своём обороте), вложения не содержит, и числа у такой
+    доходности нет.
+
+    Найдено на отраслевом шаблоне «магазин у дома» (D4): бисекция возвращала границу
+    интервала — «−100% годовых» под прибыльным магазином. Неверное число хуже честного
+    «не определена»: его читают.
+    """
+    profitable_shop = [Decimal(4_265_733), Decimal(-4_742_662)] + [Decimal(1_100_000)] * 22
+    assert irr_annual(profitable_shop) is None
+
+    # А поток с вложением на старте по-прежнему считается.
+    with_investment = [Decimal(-1000)] + [Decimal(200)] * 12
+    assert irr_annual(with_investment) is not None
+
+
 def test_payback():
     # накопленный поток: -100, -60, -20, +20 → неотрицателен в 4-м периоде (1-индексация)
     assert payback_months([Decimal(-100), Decimal(40), Decimal(40), Decimal(40)]) == 4

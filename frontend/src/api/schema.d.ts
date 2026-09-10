@@ -1420,6 +1420,71 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizations/{org_id}/api-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Keys
+         * @description Ключи организации, новые сверху. Отозванные остаются в списке: исчезнувший ключ
+         *     читался бы как никогда не существовавший, а он работал.
+         */
+        get: operations["list_keys_api_v1_organizations__org_id__api_keys_get"];
+        put?: never;
+        /**
+         * Create Key
+         * @description Выпустить ключ. Секрет показывается **один раз** — платформа его не хранит.
+         */
+        post: operations["create_key_api_v1_organizations__org_id__api_keys_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{org_id}/api-keys/scope": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Key Scope
+         * @description Что ключ умеет — перечнем прав, а не обещанием на словах.
+         */
+        get: operations["key_scope_api_v1_organizations__org_id__api_keys_scope_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{org_id}/api-keys/{key_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke Key
+         * @description Отозвать ключ. Мгновенно: состояние читается из базы на каждом запросе.
+         */
+        delete: operations["revoke_key_api_v1_organizations__org_id__api_keys__key_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizations/{org_id}/audit-log": {
         parameters: {
             query?: never;
@@ -1518,6 +1583,34 @@ export interface paths {
          * @description Инициировать смену тарифа через провайдера (ЮKassa — ссылка оплаты; ручной — сразу).
          */
         post: operations["checkout_api_v1_organizations__org_id__billing_checkout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{org_id}/checklists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Checklists
+         * @description Свои чек-листы организации: наборы процедур, которые она применяет к делам.
+         *
+         *     **Отраслевого каталога у платформы нет** — он утверждал бы, что именно проверяют в
+         *     конкретной отрасли. Эти чек-листы написаны аналитиками самой организации, и
+         *     платформа их не выполняет: применённые к делу, они становятся процедурами аналитика.
+         */
+        get: operations["list_checklists_api_v1_organizations__org_id__checklists_get"];
+        /**
+         * Replace Checklists
+         * @description Заменить чек-листы целиком — как и ориентиры: что на экране, то и в хранилище.
+         */
+        put: operations["replace_checklists_api_v1_organizations__org_id__checklists_put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2169,7 +2262,11 @@ export interface paths {
         };
         /**
          * Templates
-         * @description Список шаблонов проектов для быстрого старта (по типам бизнеса).
+         * @description Шаблоны быстрого старта: демонстрационные и отраслевые (D4).
+         *
+         *     Каждый несёт **список допущений**: числа в шаблоне выдуманы автором и годятся ровно
+         *     на то, чтобы модель считалась. Базы отраслевых данных у платформы нет, и выдать
+         *     пример за статистику значило бы соврать самым дорогим способом — цифрой.
          */
         get: operations["templates_api_v1_templates_get"];
         put?: never;
@@ -2377,6 +2474,73 @@ export interface components {
              * @default 0
              */
             month: number;
+        };
+        /**
+         * ApiKeyCreate
+         * @description Имя ключа: «Выгрузка в 1С», «Дашборд финдиректора».
+         *
+         *     Обязательно и не случайно: через год список безымянных ключей означает, что отозвать
+         *     можно только все сразу.
+         */
+        ApiKeyCreate: {
+            /** Name */
+            name: string;
+        };
+        /**
+         * ApiKeyCreated
+         * @description Ответ на выпуск: сам ключ **один раз** и его строка в списке.
+         *
+         *     Повторно секрет не покажет никто, включая платформу: хранится только отпечаток. Тот
+         *     же приём, что у резервных кодов второго фактора.
+         */
+        ApiKeyCreated: {
+            key: components["schemas"]["ApiKeyOut"];
+            /**
+             * Scope Note
+             * @default
+             */
+            scope_note: string;
+            /** Token */
+            token: string;
+        };
+        /**
+         * ApiKeyOut
+         * @description Ключ в списке. Секрета здесь нет и быть не может — платформа его не хранит.
+         *
+         *     ``last_used_at`` = ``None`` означает **ни разу**, а не «давно»: неиспользованный ключ
+         *     обычно забыт, и это повод его отозвать, а не оставить.
+         */
+        ApiKeyOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By
+             * @default
+             */
+            created_by: string;
+            /** Id */
+            id: string;
+            /** Last Used At */
+            last_used_at?: string | null;
+            /** Masked */
+            masked: string;
+            /** Name */
+            name: string;
+            /**
+             * Revoked
+             * @default false
+             */
+            revoked: boolean;
+            /** Revoked At */
+            revoked_at?: string | null;
+            /**
+             * Revoked By
+             * @default
+             */
+            revoked_by: string;
         };
         /**
          * Asset
@@ -4662,6 +4826,51 @@ export interface components {
              * @default false
              */
             mail: boolean;
+        };
+        /**
+         * ChecklistIn
+         * @description Свой чек-лист организации: имя, область применения и пункты.
+         */
+        ChecklistIn: {
+            /**
+             * Items
+             * @default []
+             */
+            items: string[];
+            /** Name */
+            name: string;
+            /**
+             * Scope
+             * @default
+             */
+            scope: string;
+        };
+        /** ChecklistOut */
+        ChecklistOut: {
+            /**
+             * Author Email
+             * @default
+             */
+            author_email: string;
+            /** Id */
+            id: string;
+            /**
+             * Items
+             * @default []
+             */
+            items: string[];
+            /** Name */
+            name: string;
+            /**
+             * Scope
+             * @default
+             */
+            scope: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /** CheckoutRequest */
         CheckoutRequest: {
@@ -9247,14 +9456,39 @@ export interface components {
              */
             rate: string;
         };
-        /** TemplateInfo */
-        TemplateInfo: {
-            /** Description */
+        /**
+         * TemplateOut
+         * @description Шаблон быстрого старта: модель + **честный список допущений**.
+         *
+         *     Допущения едут вместе с шаблоном, а не лежат где-то рядом: числа в нём выдуманы,
+         *     и человек обязан узнать об этом там же, где увидит цифры. Базы отраслевых данных у
+         *     платформы нет — выдать пример за статистику значило бы соврать цифрой.
+         */
+        TemplateOut: {
+            /**
+             * Assumptions
+             * @default []
+             */
+            assumptions: string[];
+            /**
+             * Description
+             * @default
+             */
             description: string;
             /** Id */
             id: string;
+            /**
+             * Industry
+             * @default
+             */
+            industry: string;
             /** Name */
             name: string;
+            /**
+             * Shows
+             * @default
+             */
+            shows: string;
         };
         /** TokenResponse */
         TokenResponse: {
@@ -12131,6 +12365,135 @@ export interface operations {
             };
         };
     };
+    list_keys_api_v1_organizations__org_id__api_keys_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiKeyOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_key_api_v1_organizations__org_id__api_keys_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApiKeyCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiKeyCreated"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    key_scope_api_v1_organizations__org_id__api_keys_scope_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_key_api_v1_organizations__org_id__api_keys__key_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key_id: string;
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiKeyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     read_audit_log_api_v1_organizations__org_id__audit_log_get: {
         parameters: {
             query?: {
@@ -12297,6 +12660,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CheckoutResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_checklists_api_v1_organizations__org_id__checklists_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChecklistOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replace_checklists_api_v1_organizations__org_id__checklists_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChecklistIn"][];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChecklistOut"][];
                 };
             };
             /** @description Validation Error */
@@ -13572,7 +14001,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TemplateInfo"][];
+                    "application/json": components["schemas"]["TemplateOut"][];
                 };
             };
         };

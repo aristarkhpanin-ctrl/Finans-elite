@@ -180,3 +180,50 @@ export async function downloadAuditLogCsv(orgId: string, filter: AuditLogFilter 
   a.click();
   URL.revokeObjectURL(url);
 }
+
+/**
+ * Свои чек-листы организации (D4): наборы процедур, которые она применяет к делам.
+ *
+ * **Отраслевого каталога у платформы нет** — он утверждал бы, что именно проверяют в
+ * конкретной отрасли. Эти чек-листы пишут аналитики самой организации; применённые к
+ * делу, они становятся процедурами аналитика, которые платформа не выполняет.
+ */
+export type Checklist = Schema<"ChecklistOut">;
+export type ChecklistIn = Schema<"ChecklistIn">;
+
+export async function getChecklists(orgId: string): Promise<Checklist[]> {
+  const { data } = await api.get<Checklist[]>(`/api/v1/organizations/${orgId}/checklists`);
+  return data;
+}
+
+/** Записать чек-листы целиком: что на экране, то и в хранилище (как ориентиры). */
+export async function putChecklists(orgId: string, rows: ChecklistIn[]): Promise<Checklist[]> {
+  const { data } = await api.put<Checklist[]>(
+    `/api/v1/organizations/${orgId}/checklists`, rows);
+  return data;
+}
+
+/**
+ * Ключи доступа к API (D5). Ключ принадлежит организации и **читает** её данные:
+ * выгрузка в BI, отчёт в 1С. Секрет показывается один раз — платформа его не хранит.
+ */
+export type ApiKey = Schema<"ApiKeyOut">;
+export type ApiKeyCreated = Schema<"ApiKeyCreated">;
+
+export async function getApiKeys(orgId: string): Promise<ApiKey[]> {
+  const { data } = await api.get<ApiKey[]>(`/api/v1/organizations/${orgId}/api-keys`);
+  return data;
+}
+
+export async function createApiKey(orgId: string, name: string): Promise<ApiKeyCreated> {
+  const { data } = await api.post<ApiKeyCreated>(
+    `/api/v1/organizations/${orgId}/api-keys`, { name });
+  return data;
+}
+
+/** Отозвать ключ. Мгновенно: состояние читается из базы на каждом запросе. */
+export async function revokeApiKey(orgId: string, keyId: string): Promise<ApiKey> {
+  const { data } = await api.delete<ApiKey>(
+    `/api/v1/organizations/${orgId}/api-keys/${keyId}`);
+  return data;
+}

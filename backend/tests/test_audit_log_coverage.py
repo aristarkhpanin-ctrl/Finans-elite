@@ -16,6 +16,7 @@ import re
 
 from app.routers import (
     admin,
+    apikeys,
     audit,
     auth,
     billing,
@@ -29,9 +30,9 @@ from app.routers import (
 
 #: Роутеры продукта. Перечислены явно: авто-обход внутренностей приложения зависел бы от
 #: устройства фреймворка, а список роутеров — часть самого продукта.
-ROUTERS = [admin.router, audit.router, auth.router, billing.router, comments.router,
-           holdings.router, integrator.router, jobs.router, organizations.router,
-           projects.router]
+ROUTERS = [admin.router, apikeys.router, audit.router, auth.router, billing.router,
+           comments.router, holdings.router, integrator.router, jobs.router,
+           organizations.router, projects.router]
 
 #: Изменяющие маршруты, которые журнал **не** пишут — каждый с причиной.
 NOT_LOGGED: dict[str, str] = {
@@ -168,12 +169,17 @@ def test_the_roster_of_routers_is_not_stale():
     Найдено при добавлении обсуждения (D3): новый роутер не попал в этот список, и
     проверка покрытия журналом **молча его не увидела** — то есть перечень, заведённый
     ровно против таких пропаж, сам оказался местом, где пропажа возможна.
+
+    Живые маршруты берутся из **схемы OpenAPI**, а не из ``app.routes``: в этой версии
+    FastAPI включённые роутеры лежат там объектами без ``path``, и первая версия этой
+    проверки не видела вообще ничего — то есть была тестом, который всегда проходит.
+    Схема же описывает ровно то, что продукт наружу и показывает.
     """
     from app.main import app
 
     covered = {r.path for router in ROUTERS for r in router.routes} | set(APP_LEVEL)
-    live = {getattr(r, "path", "") for r in app.routes
-            if getattr(r, "path", "").startswith("/api/v1")}
+    live = {p for p in app.openapi()["paths"] if p.startswith("/api/v1")}
+    assert len(live) > 50, "живых маршрутов подозрительно мало — проверка снова слепа"
     missing = sorted(p for p in live if p not in covered)
     assert missing == [], (
         "эти маршруты приложения не покрыты перечнем ROUTERS — добавьте их роутер "
@@ -185,6 +191,6 @@ def test_the_app_level_exceptions_are_not_stale():
     """Исключение, пережившее свой маршрут, врёт о продукте — как и в NOT_LOGGED."""
     from app.main import app
 
-    live = {getattr(r, "path", "") for r in app.routes}
+    live = set(app.openapi()["paths"])
     stale = sorted(set(APP_LEVEL) - live)
     assert stale == [], f"маршрутов больше нет, уберите их из APP_LEVEL: {stale}"

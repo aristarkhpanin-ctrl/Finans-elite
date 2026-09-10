@@ -18,6 +18,8 @@ from calc_core import ProjectModel
 from .database import as_tenant
 from .db_models import (
     AnalysisJob,
+    ApiKey,
+    AuditChecklist,
     AuditGroup,
     AuditLogEntry,
     AuditSubject,
@@ -561,6 +563,31 @@ def replace_benchmarks(db: Session, org_id: str,
     db.add_all(saved)
     db.commit()
     return list_benchmarks(db, org_id)
+
+
+def list_checklists(db: Session, org_id: str) -> list[AuditChecklist]:
+    """Свои чек-листы организации, по имени."""
+    return list(db.scalars(
+        select(AuditChecklist).where(AuditChecklist.organization_id == org_id)
+        .order_by(AuditChecklist.name)))
+
+
+def replace_checklists(db: Session, org_id: str, rows: list[dict],
+                       author_email: str = "") -> list[AuditChecklist]:
+    """Заменить чек-листы организации целиком — по тому же доводу, что и ориентиры:
+    справочник правится как таблица, и что на экране, то и в хранилище."""
+    for row in db.scalars(
+        select(AuditChecklist).where(AuditChecklist.organization_id == org_id)
+    ):
+        db.delete(row)
+    saved = [AuditChecklist(organization_id=org_id, name=r["name"],
+                            scope=r.get("scope", ""),
+                            items=[i for i in r.get("items", []) if str(i).strip()],
+                            author_email=author_email)
+             for r in rows if str(r.get("name", "")).strip()]
+    db.add_all(saved)
+    db.commit()
+    return list_checklists(db, org_id)
 
 
 # --- Версии дела (Финанс-Аудит): снимки модели проверки ---
@@ -1285,3 +1312,59 @@ def count_open_comments(db: Session, org_id: str, subject_type: str,
                Comment.subject_id == subject_id,
                Comment.resolved_at.is_(None),
                Comment.deleted_at.is_(None))) or 0)
+
+
+# --- Ключи доступа к API (D5) ---
+
+def create_api_key(db: Session, org_id: str, *, name: str, prefix: str,
+                   fingerprint: str, created_by: str) -> ApiKey:
+    key = ApiKey(organization_id=org_id, name=name[:200], prefix=prefix,
+                 fingerprint=fingerprint, created_by=created_by[:255])
+    db.add(key)
+    db.commit()
+    db.refresh(key)
+    return key
+
+
+def list_api_keys(db: Session, org_id: str) -> list[ApiKey]:
+    """Ключи организации, новые сверху. Отозванные **остаются в списке**: исчезнувший
+    ключ читался бы как никогда не существовавший, а он работал и мог что-то забрать."""
+    return list(db.scalars(
+        select(ApiKey).where(ApiKey.organization_id == org_id)
+        .order_by(ApiKey.created_at.desc())))
+
+
+def count_active_api_keys(db: Session, org_id: str) -> int:
+    return int(db.scalar(
+        select(func.count()).select_from(ApiKey)
+        .where(ApiKey.organization_id == org_id, ApiKey.revoked_at.is_(None))) or 0)
+
+
+def get_api_key(db: Session, org_id: str, key_id: str) -> ApiKey | None:
+    return db.scalar(select(ApiKey).where(ApiKey.id == key_id,
+                                          ApiKey.organization_id == org_id))
+
+
+def find_api_key_by_prefix(db: Session, prefix: str) -> ApiKey | None:
+    """Ключ по открытому префиксу — до того, как арендатор известен: ключ его и называет."""
+    return db.scalar(select(ApiKey).where(ApiKey.prefix == prefix))
+
+
+def revoke_api_key(db: Session, key: ApiKey, by: str) -> ApiKey:
+    """Отозвать ключ. Мгновенно: состояние читается из базы на каждом запросе."""
+    if key.revoked_at is None:
+        key.revoked_at = datetime.now(timezone.utc)
+        key.revoked_by = by[:255]
+        db.commit()
+        db.refresh(key)
+    return key
+
+
+def touch_api_key(db: Session, key: ApiKey, interval: timedelta) -> None:
+    """Отметить использование — не чаще раза в интервал: иначе таблица ключей станет
+    счётчиком запросов и добавит запись к каждому чтению."""
+    now = datetime.now(timezone.utc)
+    seen = _aware(key.last_used_at)
+    if seen is None or now - seen >= interval:
+        key.last_used_at = now
+        db.commit()
