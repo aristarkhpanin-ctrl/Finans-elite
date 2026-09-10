@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, rmSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
 
 /**
@@ -16,6 +16,20 @@ import { defineConfig, devices } from "@playwright/test";
 const PORT = Number(process.env.E2E_PORT ?? 5273);
 const API_PORT = Number(process.env.E2E_API_PORT ?? 8123);
 const DB = process.env.E2E_DB ?? "/tmp/finans-e2e.db";
+
+// База пересоздаётся **на каждый прогон**. Схема поднимается через `create_all`, а он
+// не добавляет колонок в существующие таблицы: файл, переживший смену схемы, роняет
+// прогон невнятным «no such column» — и роняет не на том, что сломалось, а на первом же
+// входе. Сохранять тут нечего: дым заводит своих пользователей заново.
+//
+// Удаляем **только в процессе-раннере**: этот файл конфигурации Playwright выполняет
+// ещё и в каждом воркере, а там удаление приходится уже на середину прогона — сервер
+// остаётся с удалённым файлом и отвечает «attempt to write a readonly database», то
+// есть падением, в котором не виновато ничего из проверяемого. Признак воркера —
+// `TEST_WORKER_INDEX`.
+if (process.env.TEST_WORKER_INDEX === undefined) {
+  for (const suffix of ["", "-wal", "-shm"]) rmSync(DB + suffix, { force: true });
+}
 
 /** Предустановленный Chromium образа (если есть) — иначе браузер ставит Playwright. */
 const PREINSTALLED = [
@@ -51,7 +65,11 @@ export default defineConfig({
         `python -m uvicorn app.main:app --host 127.0.0.1 --port ${API_PORT} --log-level warning`,
       cwd: "../backend",
       url: `http://127.0.0.1:${API_PORT}/health`,
-      reuseExistingServer: !process.env.CI,
+      // Сервер API **не переиспользуется**, в отличие от vite. База пересоздаётся на
+      // каждый прогон, а уже запущенный сервер держит открытым старый файл — после
+      // удаления это «attempt to write a readonly database», то есть падение, в котором
+      // не виновато ничего из проверяемого. Лишние секунды на старт дешевле такого следа.
+      reuseExistingServer: false,
       timeout: 60_000,
       env: { DATABASE_URL: `sqlite:///${DB}`, APP_ENV: "development" },
       // Вывод сервера виден: молчащий сервер отлаживать нечем (по умолчанию

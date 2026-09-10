@@ -98,6 +98,27 @@ def test_mentions_are_matched_case_insensitively():
     assert parsed.known == ["Ivan@Company.ru"] and parsed.unknown == []
 
 
+def test_a_cyrillic_address_is_a_mention_too():
+    """Найдено ручным прогоном живого сервера: первая версия разбора знала только
+    латиницу, и `@иван@компания.рф` не считался упоминанием **вовсе** — ни письма, ни
+    даже оговорки «в организации нет такого». Автор звал, и никто не приходил: ровно то
+    молчание, против которого этот разбор и написан. Продукт русский, адреса участников
+    платформа принимает любые.
+    """
+    members = {"иван@компания.рф": "Иван@Компания.рф"}
+    assert parse_mentions("@иван@компания.рф глянь", members).known == ["Иван@Компания.рф"]
+    # И незнакомый кириллический адрес теперь **называется**, а не проглатывается.
+    assert parse_mentions("@нет@кого.рф", members).unknown == ["нет@кого.рф"]
+
+
+def test_punctuation_after_a_mention_is_not_part_of_the_address():
+    """«@ivan@company.ru, посмотри» — адрес заканчивается до запятой, иначе позванный
+    не найдётся, а автор будет уверен, что позвал."""
+    for text in ["@ivan@company.ru, посмотри", "спроси @ivan@company.ru.",
+                 "(@ivan@company.ru)"]:
+        assert parse_mentions(text, {}).unknown == ["ivan@company.ru"], text
+
+
 def test_a_name_without_a_domain_is_not_a_mention():
     """`@ivan` — не адрес, и угадывать, кого имели в виду, платформа не станет:
     в организации бывают тёзки."""
