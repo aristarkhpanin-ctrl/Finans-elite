@@ -34,3 +34,19 @@ export function finalizeBlockReview(e: unknown): ReviewResponse | undefined {
   }
   return undefined;
 }
+
+/**
+ * Карта методических трактовок расчёта (SPEC §22).
+ *
+ * Отвечает на вопрос, который до сих пор задавали спецификации движка: какие открытые
+ * методические развилки задействованы **в этом проекте** и что по ним выбрано. Карта
+ * ничего не подтверждает — подтверждение трактовок это профессиональное суждение
+ * человека, и `confirmed` всегда ложно.
+ */
+export type MethodologyChoice = Schema<"ChoiceOut">;
+export type MethodologyResponse = Schema<"MethodologyResponse">;
+
+export async function getMethodology(id: string): Promise<MethodologyResponse> {
+  const { data } = await api.get<MethodologyResponse>(`/api/v1/projects/${id}/methodology`);
+  return data;
+}

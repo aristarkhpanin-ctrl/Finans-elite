@@ -3293,6 +3293,43 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 }
 .rv-evi-chip b { color: var(--muted); font-weight: 700; }
 
+/* Методические трактовки расчёта (SPEC §22, фаза D2). Незадействованные развилки
+   приглушены, но не спрятаны: спрятанный пункт читается как несуществующий. */
+.mth-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 13px;
+  padding: 16px 18px;
+}
+.mth-head__title { font: 700 15px var(--font-ui); color: var(--text); }
+.mth-head__sub { font: 500 12.5px var(--font-ui); color: var(--muted); margin-top: 4px; }
+.mth-note { font: 400 12.5px/1.55 var(--font-ui); color: var(--muted); margin: 12px 2px 14px; }
+.mth-sep {
+  font: 600 11.5px var(--font-ui); color: var(--subtle); text-transform: uppercase;
+  letter-spacing: 0.04em; margin: 18px 2px 10px;
+}
+.mth-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  padding: 14px 16px; margin-bottom: 10px;
+}
+.mth-card--silent { opacity: 0.72; }
+.mth-card__head { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.mth-card__num {
+  font: 700 11px var(--font-mono); color: var(--primary-text, var(--primary));
+  background: var(--surface-2); border: 1px solid var(--grid-line); border-radius: 6px;
+  padding: 1px 7px;
+}
+.mth-card__title { font: 600 13.5px var(--font-ui); color: var(--text); }
+.mth-card__spec { font: 500 11px var(--font-mono); color: var(--subtle); }
+.mth-card__chosen { font: 400 12.5px/1.5 var(--font-ui); color: var(--muted); margin-top: 6px; }
+.mth-card__silent { font: 500 12.5px/1.5 var(--font-ui); color: var(--text); margin-top: 6px; }
+.mth-card__open { font: 400 12px/1.45 var(--font-ui); color: var(--subtle); margin-top: 7px; }
+.mth-card__open-l { font-weight: 600; }
+.mth-card__controls { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.mth-card__controls code {
+  font: 500 10.5px var(--font-mono); color: var(--subtle); background: var(--surface-2);
+  border: 1px solid var(--grid-line); border-radius: 6px; padding: 2px 7px;
+}
+
 /* Компактный баннер ревью на странице результатов */
 .rv-banner {
   display: flex; align-items: center; gap: 13px; width: 100%; text-align: left;

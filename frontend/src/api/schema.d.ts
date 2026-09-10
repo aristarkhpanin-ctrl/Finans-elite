@@ -1815,6 +1815,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/methodology": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Project Methodology
+         * @description Карта методических трактовок расчёта (SPEC §22) — по этой модели.
+         *
+         *     Отвечает на вопрос, который до сих пор задавали спецификации: **какие из открытых
+         *     методических развилок вообще задействованы в моём проекте и что по ним выбрано**.
+         *     Модель без валюты не задаёт вопроса о курсовой разнице, модель без НДС — вопроса о
+         *     моменте его признания, и гадать об этом по документу приходилось человеку.
+         *
+         *     Карта ничего не подтверждает: подтверждение трактовок — профессиональное суждение
+         *     бухгалтера или аудитора на реальных проектах, и до него версия ядра остаётся `0.x`.
+         */
+        get: operations["project_methodology_api_v1_projects__project_id__methodology_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/monte-carlo": {
         parameters: {
             query?: never;
@@ -4551,6 +4579,46 @@ export interface components {
             /** Payment Id */
             payment_id?: string | null;
         };
+        /**
+         * ChoiceOut
+         * @description Одна методическая развилка расчёта: что выбрано и живёт ли это в модели.
+         */
+        ChoiceOut: {
+            /** Chosen */
+            chosen: string;
+            /**
+             * Controls
+             * @default []
+             */
+            controls: string[];
+            /**
+             * Engaged
+             * @default false
+             */
+            engaged: boolean;
+            /** Evidence */
+            evidence?: {
+                [key: string]: unknown;
+            };
+            /** Id */
+            id: string;
+            /** Number */
+            number: number;
+            /**
+             * Open Question
+             * @default
+             */
+            open_question: string;
+            /**
+             * Silent Because
+             * @default
+             */
+            silent_because: string;
+            /** Spec */
+            spec: string;
+            /** Title */
+            title: string;
+        };
         /** Company */
         "Company-Input": {
             /** Divisions */
@@ -5797,6 +5865,38 @@ export interface components {
         MemberPatch: {
             /** Role */
             role: string;
+        };
+        /**
+         * MethodologyResponse
+         * @description Карта трактовок проекта.
+         *
+         *     ``confirmed`` всегда ложно: подтверждение трактовок — профессиональное суждение
+         *     человека на реальных проектах, и платформа не делает его за него. ``note`` называет
+         *     это словами, чтобы «предварительная версия» не читалась как техническая мелочь.
+         */
+        MethodologyResponse: {
+            /**
+             * Choices
+             * @default []
+             */
+            choices: components["schemas"]["ChoiceOut"][];
+            /**
+             * Confirmed
+             * @default false
+             */
+            confirmed: boolean;
+            /**
+             * Engaged Count
+             * @default 0
+             */
+            engaged_count: number;
+            /** Engine Version */
+            engine_version: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
         };
         /**
          * MetricChangeOut
@@ -12542,6 +12642,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FinalizeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    project_methodology_api_v1_projects__project_id__methodology_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MethodologyResponse"];
                 };
             };
             /** @description Validation Error */

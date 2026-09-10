@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from calc_core import ProjectModel, run
 from calc_core.engine import ModelError
 from calc_core.engine.calendar import compute_budget
+from calc_core.methodology import methodology_map
 from calc_core.montecarlo import run_monte_carlo
 from calc_core.review import ReviewContext, run_review
 from calc_core.review.opinion import build_opinion
@@ -35,6 +36,7 @@ from ..schemas import (
     FinalizeResponse,
     JobSubmitResponse,
     LastCalcOut,
+    MethodologyResponse,
     MetricChangeOut,
     ModelChangeOut,
     MonteCarloRequest,
@@ -55,6 +57,7 @@ from ..schemas import (
     WhatIfRequest,
     WhatIfResponse,
     budget_response,
+    methodology_response,
     monte_carlo_response,
     review_response,
     to_response,
@@ -230,6 +233,29 @@ def review_project(project_id: str, deep: bool = False,
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     review = run_review(ReviewContext(model=model, result=result), deep=deep)
     return review_response(review, deep=deep, opinion=build_opinion(review, result))
+
+
+@router.get("/{project_id}/methodology", response_model=MethodologyResponse)
+def project_methodology(project_id: str,
+                        org_id: str = Depends(require_permission(Perm.PROJECT_CALCULATE)),
+                        db: Session = Depends(get_db)) -> MethodologyResponse:
+    """Карта методических трактовок расчёта (SPEC §22) — по этой модели.
+
+    Отвечает на вопрос, который до сих пор задавали спецификации: **какие из открытых
+    методических развилок вообще задействованы в моём проекте и что по ним выбрано**.
+    Модель без валюты не задаёт вопроса о курсовой разнице, модель без НДС — вопроса о
+    моменте его признания, и гадать об этом по документу приходилось человеку.
+
+    Карта ничего не подтверждает: подтверждение трактовок — профессиональное суждение
+    бухгалтера или аудитора на реальных проектах, и до него версия ядра остаётся `0.x`.
+    """
+    project = _require(db, org_id, project_id)
+    model = crud.load_model(project)
+    try:
+        result = run(model)
+    except (ModelError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return methodology_response(methodology_map(model, result))
 
 
 @router.get("/{project_id}/business-plan.docx")

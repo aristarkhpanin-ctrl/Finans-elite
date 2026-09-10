@@ -253,6 +253,53 @@ class ReviewResponse(BaseModel):
     opinion: str = ""
 
 
+# --- Карта методических трактовок (SPEC §22) ---
+
+class ChoiceOut(BaseModel):
+    """Одна методическая развилка расчёта: что выбрано и живёт ли это в модели."""
+
+    id: str
+    number: int                # пункт SPEC §22 — чтобы читатель нашёл первоисточник
+    title: str
+    spec: str
+    chosen: str                # что выбрано **в этой модели**
+    controls: list[str] = []   # поля модели, которыми трактовка переключается
+    open_question: str = ""    # что осталось несогласованным
+    engaged: bool = False      # задействовано ли — по числам, а не по наличию поля
+    silent_because: str = ""   # почему не задействовано; молчание читалось бы как «всё ок»
+    evidence: dict = Field(default_factory=dict)
+
+
+class MethodologyResponse(BaseModel):
+    """Карта трактовок проекта.
+
+    ``confirmed`` всегда ложно: подтверждение трактовок — профессиональное суждение
+    человека на реальных проектах, и платформа не делает его за него. ``note`` называет
+    это словами, чтобы «предварительная версия» не читалась как техническая мелочь.
+    """
+
+    engine_version: str
+    confirmed: bool = False
+    note: str = ""
+    choices: list[ChoiceOut] = []
+    engaged_count: int = 0
+
+
+def methodology_response(report) -> "MethodologyResponse":
+    """Собрать ответ из карты ядра (``calc_core.methodology.MethodologyMap``)."""
+    return MethodologyResponse(
+        engine_version=report.engine_version,
+        confirmed=report.confirmed,
+        note=report.note,
+        choices=[ChoiceOut(
+            id=c.id, number=c.number, title=c.title, spec=c.spec, chosen=c.chosen,
+            controls=c.controls, open_question=c.open_question, engaged=c.engaged,
+            silent_because=c.silent_because, evidence=c.evidence,
+        ) for c in report.choices],
+        engaged_count=len(report.engaged),
+    )
+
+
 def review_response(review, *, deep: bool, opinion: str = "") -> "ReviewResponse":
     """Собрать ответ ревью из результата ядра (``calc_core.review.ReviewResult``)."""
     return ReviewResponse(

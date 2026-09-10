@@ -4511,6 +4511,68 @@
         "title": "CheckoutResponse",
         "type": "object"
       },
+      "ChoiceOut": {
+        "description": "Одна методическая развилка расчёта: что выбрано и живёт ли это в модели.",
+        "properties": {
+          "chosen": {
+            "title": "Chosen",
+            "type": "string"
+          },
+          "controls": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Controls",
+            "type": "array"
+          },
+          "engaged": {
+            "default": false,
+            "title": "Engaged",
+            "type": "boolean"
+          },
+          "evidence": {
+            "additionalProperties": true,
+            "title": "Evidence",
+            "type": "object"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "number": {
+            "title": "Number",
+            "type": "integer"
+          },
+          "open_question": {
+            "default": "",
+            "title": "Open Question",
+            "type": "string"
+          },
+          "silent_because": {
+            "default": "",
+            "title": "Silent Because",
+            "type": "string"
+          },
+          "spec": {
+            "title": "Spec",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "title",
+          "spec",
+          "chosen"
+        ],
+        "title": "ChoiceOut",
+        "type": "object"
+      },
       "Company-Input": {
         "properties": {
           "divisions": {
@@ -6764,6 +6826,43 @@
           "role"
         ],
         "title": "MemberPatch",
+        "type": "object"
+      },
+      "MethodologyResponse": {
+        "description": "Карта трактовок проекта.\n\n``confirmed`` всегда ложно: подтверждение трактовок — профессиональное суждение\nчеловека на реальных проектах, и платформа не делает его за него. ``note`` называет\nэто словами, чтобы «предварительная версия» не читалась как техническая мелочь.",
+        "properties": {
+          "choices": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ChoiceOut"
+            },
+            "title": "Choices",
+            "type": "array"
+          },
+          "confirmed": {
+            "default": false,
+            "title": "Confirmed",
+            "type": "boolean"
+          },
+          "engaged_count": {
+            "default": 0,
+            "title": "Engaged Count",
+            "type": "integer"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "engine_version"
+        ],
+        "title": "MethodologyResponse",
         "type": "object"
       },
       "MetricChangeOut": {
@@ -18969,6 +19068,70 @@
           }
         ],
         "summary": "Finalize Project",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/methodology": {
+      "get": {
+        "description": "Карта методических трактовок расчёта (SPEC §22) — по этой модели.\n\nОтвечает на вопрос, который до сих пор задавали спецификации: **какие из открытых\nметодических развилок вообще задействованы в моём проекте и что по ним выбрано**.\nМодель без валюты не задаёт вопроса о курсовой разнице, модель без НДС — вопроса о\nмоменте его признания, и гадать об этом по документу приходилось человеку.\n\nКарта ничего не подтверждает: подтверждение трактовок — профессиональное суждение\nбухгалтера или аудитора на реальных проектах, и до него версия ядра остаётся `0.x`.",
+        "operationId": "project_methodology_api_v1_projects__project_id__methodology_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MethodologyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Project Methodology",
         "tags": [
           "projects"
         ]

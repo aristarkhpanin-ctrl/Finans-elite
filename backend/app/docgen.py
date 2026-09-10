@@ -16,6 +16,7 @@ from docx import Document
 from docx.enum.section import WD_ORIENT, WD_SECTION
 from docx.shared import Pt
 
+from calc_core.methodology import methodology_map
 from calc_core.models import ProjectModel
 from calc_core.reports.result import CalcResult
 from calc_core.reports.statements import Statement
@@ -252,6 +253,42 @@ def _add_division_margins(doc: Document, result: CalcResult) -> None:
     )
 
 
+def _add_methodology(doc: Document, model: ProjectModel, result: CalcResult) -> None:
+    """Методические допущения расчёта (SPEC §22) — раздел для того, кто их подтверждает.
+
+    Бизнес-план читают бухгалтер, аудитор, банк; каждому из них важно не только число, но
+    и **по какой трактовке** оно получено. Раньше эти трактовки жили в спецификации
+    движка, до которой читатель документа не добирается вовсе.
+
+    Печатаются **задействованные** пункты: развилка, которой в модели не существует
+    (курсовая разница без валютных статей), в документе была бы шумом. Их число при этом
+    названо — «показаны 5 из 8», как и в заключении: усечённый список, не назвавший себя
+    усечённым, читается как полный.
+    """
+    report = methodology_map(model, result)
+    engaged = report.engaged
+    doc.add_heading("Методические допущения расчёта", level=1)
+    doc.add_paragraph(report.note)
+    if not engaged:
+        doc.add_paragraph(
+            "Ни одна из открытых методических развилок в этой модели не задействована: "
+            "расчёт идёт по базовым правилам методики.")
+        return
+    doc.add_paragraph(
+        f"Задействовано развилок: {len(engaged)} из {len(report.choices)} "
+        f"(остальные в этой модели не возникают — см. методику, §22).")
+    table = doc.add_table(rows=1 + len(engaged), cols=3)
+    table.style = "Table Grid"
+    for j, h in enumerate(["Вопрос методики", "Принятая трактовка", "Открыто к сверке"]):
+        table.rows[0].cells[j].text = h
+    for i, choice in enumerate(engaged):
+        row = table.rows[i + 1].cells
+        row[0].text = f"{choice.number}. {choice.title} ({choice.spec})"
+        row[1].text = choice.chosen
+        row[2].text = choice.open_question
+    _shrink_table(table, 8.5)
+
+
 def _add_budget(doc: Document, result: CalcResult) -> None:
     budget = result.budget
     if not budget.stages:
@@ -335,6 +372,9 @@ def build_business_plan_docx(model: ProjectModel, result: CalcResult, opinion: s
     _add_division_margins(doc, result)
     _add_budget(doc, result)
     _add_statements(doc, model, result)
+    # Допущения — после отчётов: их читает тот, кто уже посмотрел числа и
+    # спрашивает, по какой трактовке они получены.
+    _add_methodology(doc, model, result)
 
     buf = BytesIO()
     doc.save(buf)
