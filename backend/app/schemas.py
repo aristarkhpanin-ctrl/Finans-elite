@@ -1972,3 +1972,48 @@ class SuspendIn(BaseModel):
     """
 
     reason: str = Field(min_length=3, max_length=500)
+
+
+class MetricPointOut(BaseModel):
+    """Сколько появилось за месяц. Пустой месяц остаётся в ряду с нулём: выброшенный,
+    он превращает провал в графике в ровную линию."""
+
+    period: str
+    organizations: int = 0
+    users: int = 0
+
+
+class PlanSliceOut(BaseModel):
+    """Сколько организаций на тарифе. Считаются **оформленные** подписки: «выбрал
+    бесплатный» и «не выбирал ничего» — разные состояния."""
+
+    product: str
+    plan_code: str
+    plan_name: str
+    organizations: int = 0
+
+
+class PlatformMetricsOut(BaseModel):
+    """Сводка платформы (B3).
+
+    ``notes`` — не украшение и не примечание мелким шрифтом: там сказано, чего эти числа
+    **не** значат (счётчика расчётов нет, отметка присутствия ведётся не с первого дня,
+    журнал начинается с первой записи). Без них ноль за период, которого журнал не
+    застал, читается ровно как ноль событий.
+    """
+
+    generated_at: datetime
+    since_days: int = 30
+    organizations: int = 0
+    users: int = 0
+    #: Ключ — окно в днях («7», «30»); в JSON ключи объекта всегда строки.
+    active_users: dict[str, int] = {}
+    active_organizations: dict[str, int] = {}
+    members_without_mark: int = 0
+    projects: int = 0
+    cases: int = 0
+    projects_calculated: int = 0
+    exports: int = 0
+    growth: list[MetricPointOut] = []
+    plans: list[PlanSliceOut] = []
+    notes: list[str] = []

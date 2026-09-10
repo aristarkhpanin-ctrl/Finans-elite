@@ -2,7 +2,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import type { StaffOrg, StaffOrgDetail, StaffUser } from "../api/admin";
+import type { PlatformMetrics, StaffOrg, StaffOrgDetail, StaffUser } from "../api/admin";
 import { AdminPage } from "./AdminPage";
 
 /**
@@ -27,6 +27,8 @@ const suspendOrganization = vi.fn();
 const resumeOrganization = vi.fn();
 const blockUser = vi.fn();
 const unblockUser = vi.fn();
+const getPlatformMetrics = vi.fn();
+const downloadMetricsCsv = vi.fn();
 vi.mock("../api/admin", () => ({
   getStaffOrganizations: (...a: unknown[]) => getStaffOrganizations(...a),
   getStaffOrganization: (...a: unknown[]) => getStaffOrganization(...a),
@@ -37,6 +39,8 @@ vi.mock("../api/admin", () => ({
   resumeOrganization: (...a: unknown[]) => resumeOrganization(...a),
   blockUser: (...a: unknown[]) => blockUser(...a),
   unblockUser: (...a: unknown[]) => unblockUser(...a),
+  getPlatformMetrics: (...a: unknown[]) => getPlatformMetrics(...a),
+  downloadMetricsCsv: (...a: unknown[]) => downloadMetricsCsv(...a),
 }));
 
 const toast = vi.fn();
@@ -52,6 +56,19 @@ const person = (over: Partial<StaffUser> = {}): StaffUser => ({
   is_staff: false, has_password: true, blocked: false, blocked_at: null, blocked_by: "",
   block_reason: "", organizations: [], ...over,
 } as StaffUser);
+
+const metrics = (over: Partial<PlatformMetrics> = {}): PlatformMetrics => ({
+  generated_at: "2026-09-10T08:00:00Z", since_days: 30,
+  organizations: 12, users: 30,
+  active_users: { "7": 5, "30": 9 }, active_organizations: { "7": 3, "30": 7 },
+  members_without_mark: 4, projects: 40, cases: 6,
+  projects_calculated: 11, exports: 2,
+  growth: [{ period: "2026-08", organizations: 2, users: 5 },
+           { period: "2026-09", organizations: 0, users: 0 }],
+  plans: [{ product: "business", plan_code: "pro", plan_name: "Профи", organizations: 3 }],
+  notes: ["Журнал ведётся с 01.08.2026 — за более ранние даты выгрузок не видно."],
+  ...over,
+} as PlatformMetrics);
 
 const org = (over: Partial<StaffOrg> = {}): StaffOrg => ({
   id: "o1", name: "ООО «Клиент»", created_at: "2026-01-15T10:00:00Z",
@@ -86,6 +103,8 @@ beforeEach(() => {
   resumeOrganization.mockImplementation(async () => ({ ...org(), members_list: [] }));
   blockUser.mockImplementation(async () => ({}));
   unblockUser.mockImplementation(async () => ({}));
+  getPlatformMetrics.mockResolvedValue(metrics());
+  downloadMetricsCsv.mockResolvedValue(undefined);
 });
 
 function show() {
@@ -211,4 +230,45 @@ it("сотруднику платформы кнопки блокировки н
   fireEvent.click(await screen.findByRole("button", { name: "Пользователи" }));
   await screen.findByText("Коллега-оператор");
   expect(screen.queryByRole("button", { name: "Заблокировать" })).toBeNull();
+});
+
+
+// --- B3: сводка платформы ---
+
+it("сводка показывает числа вместе с тем, чего они не значат", async () => {
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Сводка" }));
+  expect(await screen.findByText("12")).toBeTruthy();               // организаций
+  expect(screen.getByText(/активны за 7 дн.: 5/)).toBeTruthy();
+  expect(screen.getByText(/проектов считали \/ выгрузок документов/)).toBeTruthy();
+  // Оговорка — на экране, а не в подсказке: без неё ноль читается как «не было».
+  expect(screen.getByText(/Журнал ведётся с 01.08.2026/)).toBeTruthy();
+});
+
+it("«без отметки» названо отдельно от «неактивны»", async () => {
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Сводка" }));
+  expect(await screen.findByText(/без отметки: 4/)).toBeTruthy();
+});
+
+it("пустой месяц остаётся в ряду роста", async () => {
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Сводка" }));
+  expect(await screen.findByText("2026-09")).toBeTruthy();
+  expect(screen.getByText("2026-08")).toBeTruthy();
+});
+
+it("смена окна перезапрашивает сводку тем же периодом", async () => {
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Сводка" }));
+  await waitFor(() => expect(getPlatformMetrics).toHaveBeenCalledWith(30));
+  fireEvent.change(await screen.findByLabelText("Период"), { target: { value: "7" } });
+  await waitFor(() => expect(getPlatformMetrics).toHaveBeenCalledWith(7));
+});
+
+it("без оформленных подписок разрез тарифов не показывает нулей", async () => {
+  getPlatformMetrics.mockResolvedValue(metrics({ plans: [] }));
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Сводка" }));
+  expect(await screen.findByText(/Оформленных подписок нет/)).toBeTruthy();
 });

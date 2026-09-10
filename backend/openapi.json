@@ -6661,6 +6661,30 @@
         "title": "MetricChangeOut",
         "type": "object"
       },
+      "MetricPointOut": {
+        "description": "Сколько появилось за месяц. Пустой месяц остаётся в ряду с нулём: выброшенный,\nон превращает провал в графике в ровную линию.",
+        "properties": {
+          "organizations": {
+            "default": 0,
+            "title": "Organizations",
+            "type": "integer"
+          },
+          "period": {
+            "title": "Period",
+            "type": "string"
+          },
+          "users": {
+            "default": 0,
+            "title": "Users",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "period"
+        ],
+        "title": "MetricPointOut",
+        "type": "object"
+      },
       "MetricsOut": {
         "properties": {
           "arr_annual": {
@@ -7770,6 +7794,130 @@
           }
         },
         "title": "PlanSection",
+        "type": "object"
+      },
+      "PlanSliceOut": {
+        "description": "Сколько организаций на тарифе. Считаются **оформленные** подписки: «выбрал\nбесплатный» и «не выбирал ничего» — разные состояния.",
+        "properties": {
+          "organizations": {
+            "default": 0,
+            "title": "Organizations",
+            "type": "integer"
+          },
+          "plan_code": {
+            "title": "Plan Code",
+            "type": "string"
+          },
+          "plan_name": {
+            "title": "Plan Name",
+            "type": "string"
+          },
+          "product": {
+            "title": "Product",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product",
+          "plan_code",
+          "plan_name"
+        ],
+        "title": "PlanSliceOut",
+        "type": "object"
+      },
+      "PlatformMetricsOut": {
+        "description": "Сводка платформы (B3).\n\n``notes`` — не украшение и не примечание мелким шрифтом: там сказано, чего эти числа\n**не** значат (счётчика расчётов нет, отметка присутствия ведётся не с первого дня,\nжурнал начинается с первой записи). Без них ноль за период, которого журнал не\nзастал, читается ровно как ноль событий.",
+        "properties": {
+          "active_organizations": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "default": {},
+            "title": "Active Organizations",
+            "type": "object"
+          },
+          "active_users": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "default": {},
+            "title": "Active Users",
+            "type": "object"
+          },
+          "cases": {
+            "default": 0,
+            "title": "Cases",
+            "type": "integer"
+          },
+          "exports": {
+            "default": 0,
+            "title": "Exports",
+            "type": "integer"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "growth": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MetricPointOut"
+            },
+            "title": "Growth",
+            "type": "array"
+          },
+          "members_without_mark": {
+            "default": 0,
+            "title": "Members Without Mark",
+            "type": "integer"
+          },
+          "notes": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "organizations": {
+            "default": 0,
+            "title": "Organizations",
+            "type": "integer"
+          },
+          "plans": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PlanSliceOut"
+            },
+            "title": "Plans",
+            "type": "array"
+          },
+          "projects": {
+            "default": 0,
+            "title": "Projects",
+            "type": "integer"
+          },
+          "projects_calculated": {
+            "default": 0,
+            "title": "Projects Calculated",
+            "type": "integer"
+          },
+          "since_days": {
+            "default": 30,
+            "title": "Since Days",
+            "type": "integer"
+          },
+          "users": {
+            "default": 0,
+            "title": "Users",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "generated_at"
+        ],
+        "title": "PlatformMetricsOut",
         "type": "object"
       },
       "ProcedureMark": {
@@ -12849,6 +12997,122 @@
           }
         ],
         "summary": "Read Staff Log",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/metrics": {
+      "get": {
+        "description": "Сводка платформы: сколько клиентов, кто из них жив и что они делают (B3).\n\n**Второй системы учёта под это не заводится**: числа собираются из организаций,\nпользователей, членства, подписок и журнала. Счётчик «под метрики» начал бы жить\nсвоей жизнью и расходиться с данными, и разбирать пришлось бы не бизнес, а\nрасхождение.\n\nОтвет несёт не только числа, но и **границы их применимости** (``notes``): чего\nплатформа не считает и с какого дня вообще может считать. Ноль за период, которого\nжурнал не застал, выглядит ровно как ноль событий — и без оговорки был бы им.",
+        "operationId": "read_metrics_api_v1_admin_metrics_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "months",
+            "required": false,
+            "schema": {
+              "default": 12,
+              "title": "Months",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 30,
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformMetricsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Metrics",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/metrics.csv": {
+      "get": {
+        "description": "Выгрузка сводки — теми же числами, что на экране, и **с теми же оговорками**.\n\nОговорки идут в файл строками, а не остаются на экране: таблица, доехавшая до чужой\nпрезентации без них, утверждает больше, чем платформа измеряла.\n\nРазделитель и BOM — как в выгрузке журнала: иначе Excel в русской локали разложит\nфайл в один столбец и испортит кириллицу.",
+        "operationId": "export_metrics_api_v1_admin_metrics_csv_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "months",
+            "required": false,
+            "schema": {
+              "default": 12,
+              "title": "Months",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 30,
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Export Metrics",
         "tags": [
           "admin"
         ]

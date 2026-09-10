@@ -21,20 +21,31 @@ PostgreSQL или политика с лазейкой дали бы конту�
 """
 from __future__ import annotations
 
+import csv
+import io
 from collections.abc import Iterator
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from .. import crud
 from ..database import clear_tenant, get_db, set_tenant
 from ..db_models import User
 from ..deps import require_staff
+from ..metrics import (
+    PlatformMetrics,
+    TenantTotals,
+    build_platform_metrics,
+    product_label,
+)
 from ..plans import PRODUCTS, get_plan
 from ..schemas import (
     AuditLogPage,
+    MetricPointOut,
+    PlanSliceOut,
+    PlatformMetricsOut,
     StaffLogEntryOut,
     StaffLogPage,
     StaffOrgDetail,
@@ -307,6 +318,132 @@ def unblock_user(user_id: str, staff: User = Depends(require_staff),
     crud.log_user_action(db, user, "staff.user_unblock")
     crud.log_staff_action(db, staff, "staff.user_unblock", details=user.email)
     return _user_out(db, user)
+
+
+#: Сколько организаций обходить, собирая объёмы и выгрузки. Обхода изоляции у платформы
+#: нет (B1): в каждую организацию она входит по очереди, и на большом числе клиентов это
+#: становится дорого. Предел назван, а не подразумевается: усечённый свод **говорит о
+#: своей неполноте** в `notes`, а не выдаёт частичную сумму за измеренную.
+MAX_METRIC_ORGS = 2_000
+
+
+def _tenant_totals(db: Session, since: datetime) -> TenantTotals:
+    """Пройти по арендаторам и сложить то, что лежит под RLS.
+
+    Проекты, дела и журнал видны только изнутри организации, поэтому свод собирается
+    обходом — той же дверью, что и всё остальное в служебном контуре.
+    """
+    total = int(crud.count_organizations(db))
+    orgs = crud.list_organizations(db, limit=MAX_METRIC_ORGS)
+    totals = TenantTotals(organizations_scanned=len(orgs), organizations_total=total)
+    for org in orgs:
+        with _as_tenant(db, org.id):
+            slice_ = crud.org_metric_slice(db, org.id, since)
+        totals.projects += slice_["projects"]
+        totals.cases += slice_["cases"]
+        totals.calculated += slice_["calculated"]
+        totals.exports += slice_["exports"]
+        first = slice_["first_log_at"]
+        if first is not None and (totals.first_log_at is None
+                                  or first < totals.first_log_at):
+            totals.first_log_at = first
+    return totals
+
+
+def _metrics(db: Session, *, months: int, days: int) -> PlatformMetrics:
+    now = datetime.now(timezone.utc)
+    totals = _tenant_totals(db, now - timedelta(days=days))
+    return build_platform_metrics(db, totals=totals, now=now, months=months,
+                                  since_days=days)
+
+
+@router.get("/metrics", response_model=PlatformMetricsOut)
+def read_metrics(months: int = 12, days: int = 30, staff: User = Depends(require_staff),
+                 db: Session = Depends(get_db)) -> PlatformMetricsOut:
+    """Сводка платформы: сколько клиентов, кто из них жив и что они делают (B3).
+
+    **Второй системы учёта под это не заводится**: числа собираются из организаций,
+    пользователей, членства, подписок и журнала. Счётчик «под метрики» начал бы жить
+    своей жизнью и расходиться с данными, и разбирать пришлось бы не бизнес, а
+    расхождение.
+
+    Ответ несёт не только числа, но и **границы их применимости** (``notes``): чего
+    платформа не считает и с какого дня вообще может считать. Ноль за период, которого
+    журнал не застал, выглядит ровно как ноль событий — и без оговорки был бы им.
+    """
+    months = max(1, min(months, 36))
+    days = max(1, min(days, 365))
+    m = _metrics(db, months=months, days=days)
+    crud.log_staff_action(db, staff, "staff.metrics",
+                          details=f"за {days} дн., {months} мес.")
+    return PlatformMetricsOut(
+        generated_at=m.generated_at, since_days=m.since_days,
+        organizations=m.organizations, users=m.users,
+        active_users={str(k): v for k, v in m.active_users.items()},
+        active_organizations={str(k): v for k, v in m.active_organizations.items()},
+        members_without_mark=m.members_without_mark, projects=m.projects, cases=m.cases,
+        projects_calculated=m.projects_calculated, exports=m.exports,
+        growth=[MetricPointOut(period=p.period, organizations=p.organizations,
+                               users=p.users) for p in m.growth],
+        plans=[PlanSliceOut(product=s.product, plan_code=s.plan_code,
+                            plan_name=s.plan_name, organizations=s.organizations)
+               for s in m.plans],
+        notes=list(m.notes),
+    )
+
+
+@router.get("/metrics.csv")
+def export_metrics(months: int = 12, days: int = 30, staff: User = Depends(require_staff),
+                   db: Session = Depends(get_db)) -> Response:
+    """Выгрузка сводки — теми же числами, что на экране, и **с теми же оговорками**.
+
+    Оговорки идут в файл строками, а не остаются на экране: таблица, доехавшая до чужой
+    презентации без них, утверждает больше, чем платформа измеряла.
+
+    Разделитель и BOM — как в выгрузке журнала: иначе Excel в русской локали разложит
+    файл в один столбец и испортит кириллицу.
+    """
+    months = max(1, min(months, 36))
+    days = max(1, min(days, 365))
+    m = _metrics(db, months=months, days=days)
+    buf = io.StringIO()
+    writer = csv.writer(buf, delimiter=";", lineterminator="\r\n")
+    writer.writerow(["Показатель", "Значение"])
+    writer.writerow(["Дата сводки", m.generated_at.strftime("%d.%m.%Y %H:%M")])
+    writer.writerow(["Организаций", m.organizations])
+    writer.writerow(["Пользователей", m.users])
+    for window in sorted(m.active_users):
+        writer.writerow([f"Активных пользователей за {window} дн.", m.active_users[window]])
+        writer.writerow([f"Активных организаций за {window} дн.",
+                         m.active_organizations[window]])
+    writer.writerow(["Участников без отметки присутствия", m.members_without_mark])
+    writer.writerow(["Проектов", m.projects])
+    writer.writerow(["Дел", m.cases])
+    writer.writerow([f"Проектов считали за {m.since_days} дн.", m.projects_calculated])
+    writer.writerow([f"Выгрузок документов за {m.since_days} дн.", m.exports])
+
+    writer.writerow([])
+    writer.writerow(["Месяц", "Новых организаций", "Новых пользователей"])
+    for point in m.growth:
+        writer.writerow([point.period, point.organizations, point.users])
+
+    writer.writerow([])
+    writer.writerow(["Продукт", "Тариф", "Организаций"])
+    for plan in m.plans:
+        writer.writerow([product_label(plan.product), plan.plan_name, plan.organizations])
+
+    writer.writerow([])
+    writer.writerow(["Чего эти числа не значат"])
+    for note in m.notes:
+        writer.writerow([note])
+
+    crud.log_staff_action(db, staff, "staff.metrics_export",
+                          details=f"за {days} дн., {months} мес.")
+    return Response(
+        content=buf.getvalue().encode("utf-8-sig"),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="platform-metrics.csv"'},
+    )
 
 
 @router.get("/log", response_model=StaffLogPage)

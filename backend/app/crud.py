@@ -831,6 +831,12 @@ def audit_log_actions(db: Session, org_id: str) -> list[str]:
     return list(rows)
 
 
+#: Что считается выгрузкой документа наружу. Журнал организации (``audit_log.export``)
+#: сюда не входит: это выгрузка следов, а не продукта, и смешивать их в одном числе
+#: значило бы отвечать на два вопроса одной цифрой.
+EXPORT_ACTIONS = ("project.export", "case.export")
+
+
 # --- Служебный контур платформы (ADMIN-DECOMPOSITION.md, B1) ---
 #
 # Функции ниже читают **метаданные**: организации, состав, подписки, объёмы. Содержимого
@@ -972,3 +978,35 @@ def list_staff_log(db: Session, limit: int = 200, *, actor: str = "",
         stmt = stmt.where(StaffLogEntry.organization_id == org_id)
     return list(db.execute(
         stmt.order_by(StaffLogEntry.created_at.desc()).limit(limit)).scalars())
+
+
+def org_metric_slice(db: Session, org_id: str, since: datetime) -> dict:
+    """Срез одной организации для сводки платформы (B3).
+
+    Зовётся из служебного контура **внутри арендатора**: журнал и проекты под RLS, и
+    обойти его платформа не умеет (B1) — оператор входит в организацию той же дверью,
+    что и её участники, по одной.
+
+    ``calculated`` — сколько проектов **считали хотя бы раз** за период, а не сколько
+    было расчётов: счётчика расчётов у платформы нет, и подменять одно другим значило бы
+    выдать удобное число за измеренное.
+    """
+    exports = db.scalar(
+        select(func.count()).select_from(AuditLogEntry)
+        .where(AuditLogEntry.organization_id == org_id,
+               AuditLogEntry.action.in_(EXPORT_ACTIONS),
+               AuditLogEntry.created_at >= since)
+    ) or 0
+    return {
+        "projects": count_projects(db, org_id),
+        "cases": count_audit_subjects(db, org_id),
+        "calculated": int(db.scalar(
+            select(func.count()).select_from(Project)
+            .where(Project.organization_id == org_id,
+                   Project.last_calculated_at.is_not(None),
+                   Project.last_calculated_at >= since)) or 0),
+        "exports": int(exports),
+        "first_log_at": db.scalar(
+            select(func.min(AuditLogEntry.created_at))
+            .where(AuditLogEntry.organization_id == org_id)),
+    }

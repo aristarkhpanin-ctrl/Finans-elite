@@ -87,3 +87,30 @@ export async function unblockUser(userId: string): Promise<StaffUser> {
   const { data } = await api.delete<StaffUser>(`/api/v1/admin/users/${userId}/block`);
   return data;
 }
+
+export type PlatformMetrics = Schema<"PlatformMetricsOut">;
+
+/**
+ * Сводка платформы (B3). Числа собираются из уже имеющихся данных — второй системы
+ * учёта под метрики не заводится.
+ *
+ * Ответ несёт `notes` — **чего эти числа не значат**. Показывать их обязательно: ноль за
+ * период, которого журнал не застал, выглядит ровно как ноль событий.
+ */
+export async function getPlatformMetrics(days = 30, months = 12): Promise<PlatformMetrics> {
+  const { data } = await api.get<PlatformMetrics>("/api/v1/admin/metrics",
+    { params: { days, months } });
+  return data;
+}
+
+/** Выгрузка сводки: те же числа и те же оговорки — таблица без них утверждает больше. */
+export async function downloadMetricsCsv(days = 30, months = 12): Promise<void> {
+  const { data } = await api.get<Blob>("/api/v1/admin/metrics.csv",
+    { params: { days, months }, responseType: "blob" });
+  const url = URL.createObjectURL(data);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "сводка-платформы.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}

@@ -28,6 +28,61 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Metrics
+         * @description Сводка платформы: сколько клиентов, кто из них жив и что они делают (B3).
+         *
+         *     **Второй системы учёта под это не заводится**: числа собираются из организаций,
+         *     пользователей, членства, подписок и журнала. Счётчик «под метрики» начал бы жить
+         *     своей жизнью и расходиться с данными, и разбирать пришлось бы не бизнес, а
+         *     расхождение.
+         *
+         *     Ответ несёт не только числа, но и **границы их применимости** (``notes``): чего
+         *     платформа не считает и с какого дня вообще может считать. Ноль за период, которого
+         *     журнал не застал, выглядит ровно как ноль событий — и без оговорки был бы им.
+         */
+        get: operations["read_metrics_api_v1_admin_metrics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/metrics.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Metrics
+         * @description Выгрузка сводки — теми же числами, что на экране, и **с теми же оговорками**.
+         *
+         *     Оговорки идут в файл строками, а не остаются на экране: таблица, доехавшая до чужой
+         *     презентации без них, утверждает больше, чем платформа измеряла.
+         *
+         *     Разделитель и BOM — как в выгрузке журнала: иначе Excel в русской локали разложит
+         *     файл в один столбец и испортит кириллицу.
+         */
+        get: operations["export_metrics_api_v1_admin_metrics_csv_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/organizations": {
         parameters: {
             query?: never;
@@ -5228,6 +5283,25 @@ export interface components {
             /** Old */
             old?: string | null;
         };
+        /**
+         * MetricPointOut
+         * @description Сколько появилось за месяц. Пустой месяц остаётся в ряду с нулём: выброшенный,
+         *     он превращает провал в графике в ровную линию.
+         */
+        MetricPointOut: {
+            /**
+             * Organizations
+             * @default 0
+             */
+            organizations: number;
+            /** Period */
+            period: string;
+            /**
+             * Users
+             * @default 0
+             */
+            users: number;
+        };
         /** MetricsOut */
         MetricsOut: {
             /** Arr Annual */
@@ -5804,6 +5878,109 @@ export interface components {
              * @default
              */
             title: string;
+        };
+        /**
+         * PlanSliceOut
+         * @description Сколько организаций на тарифе. Считаются **оформленные** подписки: «выбрал
+         *     бесплатный» и «не выбирал ничего» — разные состояния.
+         */
+        PlanSliceOut: {
+            /**
+             * Organizations
+             * @default 0
+             */
+            organizations: number;
+            /** Plan Code */
+            plan_code: string;
+            /** Plan Name */
+            plan_name: string;
+            /** Product */
+            product: string;
+        };
+        /**
+         * PlatformMetricsOut
+         * @description Сводка платформы (B3).
+         *
+         *     ``notes`` — не украшение и не примечание мелким шрифтом: там сказано, чего эти числа
+         *     **не** значат (счётчика расчётов нет, отметка присутствия ведётся не с первого дня,
+         *     журнал начинается с первой записи). Без них ноль за период, которого журнал не
+         *     застал, читается ровно как ноль событий.
+         */
+        PlatformMetricsOut: {
+            /**
+             * Active Organizations
+             * @default {}
+             */
+            active_organizations: {
+                [key: string]: number;
+            };
+            /**
+             * Active Users
+             * @default {}
+             */
+            active_users: {
+                [key: string]: number;
+            };
+            /**
+             * Cases
+             * @default 0
+             */
+            cases: number;
+            /**
+             * Exports
+             * @default 0
+             */
+            exports: number;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /**
+             * Growth
+             * @default []
+             */
+            growth: components["schemas"]["MetricPointOut"][];
+            /**
+             * Members Without Mark
+             * @default 0
+             */
+            members_without_mark: number;
+            /**
+             * Notes
+             * @default []
+             */
+            notes: string[];
+            /**
+             * Organizations
+             * @default 0
+             */
+            organizations: number;
+            /**
+             * Plans
+             * @default []
+             */
+            plans: components["schemas"]["PlanSliceOut"][];
+            /**
+             * Projects
+             * @default 0
+             */
+            projects: number;
+            /**
+             * Projects Calculated
+             * @default 0
+             */
+            projects_calculated: number;
+            /**
+             * Since Days
+             * @default 30
+             */
+            since_days: number;
+            /**
+             * Users
+             * @default 0
+             */
+            users: number;
         };
         /**
          * ProcedureMark
@@ -8543,6 +8720,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StaffLogPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_metrics_api_v1_admin_metrics_get: {
+        parameters: {
+            query?: {
+                months?: number;
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformMetricsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_metrics_api_v1_admin_metrics_csv_get: {
+        parameters: {
+            query?: {
+                months?: number;
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

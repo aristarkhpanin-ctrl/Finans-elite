@@ -6,6 +6,8 @@ import {
   getStaffOrgLog,
   getStaffOrganization,
   getStaffOrganizations,
+  getPlatformMetrics,
+  downloadMetricsCsv,
   resumeOrganization,
   searchStaffUsers,
   suspendOrganization,
@@ -45,6 +47,7 @@ import { plural } from "../format";
 const TABS = [
   ["orgs", "Организации"],
   ["users", "Пользователи"],
+  ["metrics", "Сводка"],
   ["log", "Журнал сотрудников"],
 ] as const;
 
@@ -117,6 +120,7 @@ export function AdminPage() {
 
       {tab === "orgs" && <OrgsTab onOpen={setOpenOrg} />}
       {tab === "users" && <UsersTab />}
+      {tab === "metrics" && <MetricsTab />}
       {tab === "log" && <StaffLogTab />}
     </div>
   );
@@ -557,6 +561,139 @@ function StaffLogTab() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Сводка платформы (B3): сколько клиентов, кто из них жив, чем пользуются.
+ *
+ * **Оговорки показываются всегда и рядом с числами**, а не прячутся в подсказку. Ноль
+ * выгрузок за период, которого журнал не застал, выглядит ровно как ноль выгрузок; «мы
+ * этого не считаем» и «этого не было» — разные утверждения, и различить их может только
+ * текст рядом.
+ */
+function MetricsTab() {
+  const toast = useToast();
+  const [days, setDays] = useState(30);
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["admin-metrics", days],
+    queryFn: () => getPlatformMetrics(days),
+    placeholderData: (prev) => prev,
+  });
+
+  if (isLoading && !data) return <Loading />;
+  if (isError || !data) {
+    return <ErrorState text="Не удалось собрать сводку" onRetry={() => refetch()} />;
+  }
+
+  const growth = data.growth ?? [];
+  const peak = Math.max(1, ...growth.map((p) => Math.max(p.organizations, p.users)));
+
+  return (
+    <div>
+      <div className="log-filter">
+        <select className="input" aria-label="Период" value={days}
+                onChange={(e) => setDays(Number(e.target.value))}>
+          <option value={7}>За 7 дней</option>
+          <option value={30}>За 30 дней</option>
+          <option value={90}>За 90 дней</option>
+        </select>
+        <Button variant="ghost"
+                onClick={async () => {
+                  try {
+                    await downloadMetricsCsv(days);
+                    toast("Сводка выгружена", { kind: "success" });
+                  } catch {
+                    toast("Не удалось выгрузить сводку", { kind: "error" });
+                  }
+                }}>CSV</Button>
+      </div>
+
+      <div className="adm-cards">
+        <div className="adm-card">
+          <div className="adm-card__label">Организации</div>
+          <div className="adm-card__value">{data.organizations}</div>
+          <div className="adm-sub">
+            активны за 7 дн.: {data.active_organizations?.["7"] ?? 0} ·
+            за 30: {data.active_organizations?.["30"] ?? 0}
+          </div>
+        </div>
+        <div className="adm-card">
+          <div className="adm-card__label">Пользователи</div>
+          <div className="adm-card__value">{data.users}</div>
+          <div className="adm-sub">
+            активны за 7 дн.: {data.active_users?.["7"] ?? 0} ·
+            за 30: {data.active_users?.["30"] ?? 0}
+          </div>
+          {/* «Без отметки» — не «неактивные»: отметка присутствия ведётся не с
+              первого дня, и молчание о человеке ничего о нём не говорит. */}
+          {!!data.members_without_mark && (
+            <div className="adm-sub">без отметки: {data.members_without_mark}</div>
+          )}
+        </div>
+        <div className="adm-card">
+          <div className="adm-card__label">Объёмы</div>
+          <div className="adm-card__value">{data.projects} / {data.cases}</div>
+          <div className="adm-sub">проектов / дел</div>
+        </div>
+        <div className="adm-card">
+          <div className="adm-card__label">За {data.since_days} дн.</div>
+          <div className="adm-card__value">{data.projects_calculated} / {data.exports}</div>
+          <div className="adm-sub">проектов считали / выгрузок документов</div>
+        </div>
+      </div>
+
+      <h2 className="adm-h2" style={{ marginTop: 24 }}>Появлялось по месяцам</h2>
+      <div className="mgrid" role="table" aria-label="Рост по месяцам">
+        <div className="mgrid__row mgrid__row--head" role="row">
+          <div role="columnheader">Месяц</div>
+          <div role="columnheader">Организаций</div>
+          <div role="columnheader">Пользователей</div>
+          <div role="columnheader" aria-hidden="true" />
+        </div>
+        {growth.map((p) => (
+          <div className="mgrid__row" role="row" key={p.period}>
+            <div role="rowheader">{p.period}</div>
+            <div role="cell">{p.organizations}</div>
+            <div role="cell">{p.users}</div>
+            {/* Пустой месяц остаётся в ряду с нулём: выброшенный, он превращает провал
+                в ровную линию — то есть врёт там, где смотреть интереснее всего. */}
+            <div role="cell" aria-hidden="true">
+              <span className="mbar" style={{ width: `${(p.users / peak) * 100}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <h2 className="adm-h2" style={{ marginTop: 24 }}>Тарифы</h2>
+      {(data.plans ?? []).length === 0 ? (
+        <div className="page-sub">
+          Оформленных подписок нет — все работают на тарифе по умолчанию.
+        </div>
+      ) : (
+        <div className="mgrid" role="table" aria-label="Организации по тарифам">
+          <div className="mgrid__row mgrid__row--head" role="row">
+            <div role="columnheader">Продукт</div>
+            <div role="columnheader">Тариф</div>
+            <div role="columnheader">Организаций</div>
+            <div role="columnheader" aria-hidden="true" />
+          </div>
+          {(data.plans ?? []).map((p) => (
+            <div className="mgrid__row" role="row" key={p.product + p.plan_code}>
+              <div role="rowheader">Финанс-{PRODUCT[p.product] ?? p.product}</div>
+              <div role="cell">{p.plan_name}</div>
+              <div role="cell">{p.organizations}</div>
+              <div role="cell" aria-hidden="true" />
+            </div>
+          ))}
+        </div>
+      )}
+
+      <h2 className="adm-h2" style={{ marginTop: 24 }}>Чего эти числа не значат</h2>
+      <ul className="mnotes">
+        {(data.notes ?? []).map((note) => <li key={note}>{note}</li>)}
+      </ul>
     </div>
   );
 }
