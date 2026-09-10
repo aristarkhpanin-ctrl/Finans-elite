@@ -29,6 +29,7 @@ from .db_models import (
     Payment,
     Project,
     ProjectVersion,
+    StaffLogEntry,
     Subscription,
     User,
 )
@@ -828,3 +829,115 @@ def audit_log_actions(db: Session, org_id: str) -> list[str]:
         .distinct().order_by(AuditLogEntry.action)
     ).scalars()
     return list(rows)
+
+
+# --- Служебный контур платформы (ADMIN-DECOMPOSITION.md, B1) ---
+#
+# Функции ниже читают **метаданные**: организации, состав, подписки, объёмы. Содержимого
+# проектов и дел здесь нет и быть не должно (правило 6 плана): владелец SaaS, читающий
+# финансовые модели клиентов, — ровно то, чего клиент опасается. Единственное, что
+# служебный контур знает о проекте, — что он существует и когда его последний раз считали.
+
+def list_organizations(db: Session, *, q: str = "", limit: int = 50,
+                       offset: int = 0) -> list[Organization]:
+    """Организации платформы, новые сверху; ``q`` — подстрока названия."""
+    stmt = select(Organization)
+    if q:
+        stmt = stmt.where(Organization.name.ilike(f"%{q}%"))
+    stmt = stmt.order_by(Organization.created_at.desc()).limit(limit).offset(offset)
+    return list(db.execute(stmt).scalars())
+
+
+def count_organizations(db: Session, *, q: str = "") -> int:
+    """Сколько организаций **под тем же условием**, что и в списке."""
+    stmt = select(func.count()).select_from(Organization)
+    if q:
+        stmt = stmt.where(Organization.name.ilike(f"%{q}%"))
+    return int(db.scalar(stmt) or 0)
+
+
+def org_volumes(db: Session, org_id: str) -> dict:
+    """Объёмы организации: сколько чего заведено и когда последний раз считали.
+
+    **Числа расчётов здесь нет.** Счётчика расчётов платформа не ведёт: расчёт зовётся
+    при каждом открытии результатов, это чтение, и в журнал он не пишется (правило 5).
+    Придумать число, глядя на журнал, значило бы выдать выгрузки за расчёты; вместо
+    этого возвращается дата последнего расчёта — она есть в самих проектах.
+    """
+    last_calc = db.scalar(
+        select(func.max(Project.last_calculated_at)).where(Project.organization_id == org_id)
+    )
+    last_seen = db.scalar(
+        select(func.max(Membership.last_seen_at)).where(Membership.organization_id == org_id)
+    )
+    return {
+        "projects": count_projects(db, org_id),
+        "cases": count_audit_subjects(db, org_id),
+        "groups": int(db.scalar(
+            select(func.count()).select_from(AuditGroup)
+            .where(AuditGroup.organization_id == org_id)) or 0),
+        "holdings": int(db.scalar(
+            select(func.count()).select_from(Holding)
+            .where(Holding.organization_id == org_id)) or 0),
+        "members": count_members(db, org_id),
+        "members_blocked": int(db.scalar(
+            select(func.count()).select_from(Membership)
+            .where(Membership.organization_id == org_id,
+                   Membership.blocked_at.is_not(None))) or 0),
+        "last_calculated_at": last_calc,
+        "last_seen_at": last_seen,
+    }
+
+
+def search_users(db: Session, *, q: str = "", limit: int = 50) -> list[User]:
+    """Поиск пользователя по адресу или имени — вход в разбор обращения в поддержку."""
+    stmt = select(User)
+    if q:
+        like = f"%{q}%"
+        stmt = stmt.where(User.email.ilike(like) | User.full_name.ilike(like))
+    return list(db.execute(stmt.order_by(User.created_at.desc()).limit(limit)).scalars())
+
+
+def set_staff(db: Session, user: User, *, is_staff: bool) -> User:
+    """Назначить или снять признак сотрудника платформы.
+
+    Вызывается **скриптом**, а не маршрутом API: эндпоинт, повышающий права, сам стал бы
+    главной мишенью, и защищать его пришлось бы сильнее всего остального вместе взятого.
+    """
+    user.is_staff = is_staff
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def log_staff_action(db: Session, user, action: str, *, org_id: str = "",
+                     org_name: str = "", details: str = "") -> StaffLogEntry:
+    """Записать действие сотрудника платформы в **служебный** журнал.
+
+    Визит к конкретному клиенту пишется дважды: сюда и в журнал самой организации
+    (``log_action``). Два журнала отвечают на разные вопросы — «где сегодня был наш
+    сотрудник» и «кто приходил ко мне», — и ни один из них не выводится из другого.
+    """
+    entry = StaffLogEntry(
+        user_id=getattr(user, "id", None),
+        actor_email=(getattr(user, "email", "") or "")[:255],
+        action=action[:64],
+        organization_id=org_id[:36],
+        organization_name=org_name[:255],
+        details=details[:500],
+    )
+    db.add(entry)
+    db.commit()
+    return entry
+
+
+def list_staff_log(db: Session, limit: int = 200, *, actor: str = "",
+                   org_id: str = "") -> list[StaffLogEntry]:
+    """Служебный журнал, новые сверху. Как и журнал организации — только чтение."""
+    stmt = select(StaffLogEntry)
+    if actor:
+        stmt = stmt.where(StaffLogEntry.actor_email == actor)
+    if org_id:
+        stmt = stmt.where(StaffLogEntry.organization_id == org_id)
+    return list(db.execute(
+        stmt.order_by(StaffLogEntry.created_at.desc()).limit(limit)).scalars())

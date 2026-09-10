@@ -302,6 +302,24 @@ export function Layout() {
                       {themeLabel}
                     </span>
                   </button>
+                  {/* Служебный раздел платформы (B1). Пункт показывается только
+                      сотруднику — но показ не даёт прав: их проверяет сервер на каждом
+                      служебном запросе. */}
+                  {user.is_staff && (
+                    <>
+                      <div className="menu__div" />
+                      <button
+                        type="button"
+                        className="menu__link"
+                        onClick={() => {
+                          setOpen(null);
+                          navigate("/admin");
+                        }}
+                      >
+                        <span className="menu__ico">◈</span>Платформа
+                      </button>
+                    </>
+                  )}
                   <div className="menu__div" />
                   <button type="button" className="menu__link menu__link--danger" onClick={doLogout}>
                     <span className="menu__ico">⇥</span>Выйти
@@ -423,6 +441,19 @@ export function Layout() {
                     {label}
                   </NavLink>
                 ))}
+              </>
+            )}
+
+            {/* Служебный раздел — и в узком окне: сотрудник платформы разбирает
+                обращения не только за большим экраном. */}
+            {user?.is_staff && (
+              <>
+                <div className="drawer__label">Платформа</div>
+                <button type="button" className="drawer__item"
+                        onClick={() => { setOpen(null); navigate("/admin"); }}>
+                  <span className="drawer__dot drawer__dot--off" />
+                  Клиенты и тарифы
+                </button>
               </>
             )}
 

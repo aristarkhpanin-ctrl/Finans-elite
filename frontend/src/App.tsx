@@ -30,6 +30,9 @@ const DevUiPage = import.meta.env.DEV
 const ProjectAnalysisPage = lazy(() =>
   import("./pages/ProjectAnalysisPage").then((m) => ({ default: m.ProjectAnalysisPage })),
 );
+// Служебный раздел платформы (B1) — отдельный чанк: у подавляющего большинства
+// пользователей признака сотрудника нет, и грузить им этот код незачем.
+const AdminPage = lazy(() => import("./pages/AdminPage").then((m) => ({ default: m.AdminPage })));
 
 export function App() {
   return (
@@ -64,6 +67,16 @@ function AppRoutes() {
         <Route path="/holdings" element={<HoldingsPage />} />
         <Route path="/holdings/:id" element={<HoldingDetailPage />} />
         <Route path="/organization" element={<OrganizationPage />} />
+        {/* Раздел сам отказывает тому, у кого нет признака сотрудника: маршрут не
+            прячется, а объясняет отказ — недоступное показывается, а не исчезает. */}
+        <Route
+          path="/admin"
+          element={
+            <Suspense fallback={<Splash />}>
+              <AdminPage />
+            </Suspense>
+          }
+        />
         <Route path="/projects/:id" element={<ProjectEditorPage />} />
         <Route
           path="/projects/:id/results"

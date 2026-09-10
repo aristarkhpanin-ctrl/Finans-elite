@@ -507,6 +507,10 @@ class UserOut(BaseModel):
     id: str
     email: str
     full_name: str
+    #: Сотрудник платформы (B1). Признак **только сообщается**: через него интерфейс
+    #: показывает служебный раздел, а не выдаёт права — права проверяет сервер на каждом
+    #: служебном маршруте. Ни один клиентский маршрут этим полем не управляется.
+    is_staff: bool = False
 
 
 class ActivateRequest(BaseModel):
@@ -1822,3 +1826,98 @@ def audit_analysis_response(result, opinion: str = "", issues=(),
         ) if result.diagnostics is not None else None),
         warnings=list(result.warnings),
     )
+
+
+# --- Служебный контур платформы (ADMIN-DECOMPOSITION.md, B1) ---
+#
+# Ответы ниже описывают клиента **снаружи**: как он называется, кто в нём состоит, за
+# что платит и сколько чего завёл. Имён проектов и дел здесь нет — не по недосмотру:
+# название проекта («Покупка завода в Твери») само по себе коммерческая тайна, и
+# показать его оператору значило бы нарушить правило 6 обходным путём.
+
+class StaffSubscriptionOut(BaseModel):
+    """Подписка организации на один продукт — взгляд оператора."""
+
+    product: str
+    plan_code: str
+    plan_name: str
+    status: str
+    current_period_end: Optional[datetime] = None
+
+
+class StaffOrgOut(BaseModel):
+    """Организация-клиент: метаданные и объёмы.
+
+    ``last_calculated_at`` — когда в организации последний раз считали модель. Числа
+    расчётов нет: счётчика платформа не ведёт, а придуманное число хуже отсутствующего.
+    ``last_seen_at`` — когда кто-нибудь из участников последний раз работал; ``None``
+    означает «неизвестно», а не «никогда» (отметка появилась в A3).
+    """
+
+    id: str
+    name: str
+    created_at: datetime
+    members: int = 0
+    members_blocked: int = 0
+    projects: int = 0
+    cases: int = 0
+    groups: int = 0
+    holdings: int = 0
+    last_calculated_at: Optional[datetime] = None
+    last_seen_at: Optional[datetime] = None
+    subscriptions: list[StaffSubscriptionOut] = []
+
+
+class StaffOrgPage(BaseModel):
+    organizations: list[StaffOrgOut] = []
+    total: int = 0
+
+
+class StaffOrgDetail(StaffOrgOut):
+    """Карточка организации: то же плюс состав. Содержимого моделей по-прежнему нет."""
+
+    members_list: list[MemberOut] = []
+
+
+class StaffUserOrgOut(BaseModel):
+    """Организация в карточке пользователя: роль и состояние доступа."""
+
+    id: str
+    name: str
+    role: str
+    blocked: bool = False
+    block_reason: str = ""
+    last_seen_at: Optional[datetime] = None
+
+
+class StaffUserOut(BaseModel):
+    """Пользователь платформы: где состоит и в каком состоянии.
+
+    ``has_password`` отвечает на самый частый вопрос поддержки — «человек не может
+    войти»: у приглашённого пароля может не быть вовсе, и это не то же самое, что
+    забытый пароль. Самого хэша здесь, разумеется, нет.
+    """
+
+    id: str
+    email: str
+    full_name: str
+    created_at: datetime
+    is_staff: bool = False
+    has_password: bool = False
+    organizations: list[StaffUserOrgOut] = []
+
+
+class StaffLogEntryOut(BaseModel):
+    """Запись служебного журнала: кто из сотрудников, что и у кого смотрел."""
+
+    id: str
+    actor_email: str
+    action: str
+    organization_id: str = ""
+    organization_name: str = ""
+    details: str = ""
+    created_at: datetime
+
+
+class StaffLogPage(BaseModel):
+    entries: list[StaffLogEntryOut] = []

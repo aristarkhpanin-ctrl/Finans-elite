@@ -11,11 +11,13 @@ from typing import Optional
 
 from sqlalchemy import (
     JSON,
+    Boolean,
     DateTime,
     ForeignKey,
     Integer,
     String,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -54,6 +56,16 @@ class User(Base):
     full_name: Mapped[str] = mapped_column(String(255), default="")
     hashed_password: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    #: Сотрудник платформы (ADMIN-DECOMPOSITION.md, B1). **Не роль организации**: это
+    #: другая ось власти. Роль отвечает на вопрос «что человеку можно в его компании»,
+    #: признак сотрудника — «что нам можно у клиентов»; смешать их значило бы выдать
+    #: владельцу организации доступ к чужим или наоборот.
+    #:
+    #: Признак не выдаётся через API — ни своим, ни чужим: маршрут, повышающий права,
+    #: сам становится главной мишенью. Ставится скриптом ``scripts/set_staff.py`` тем,
+    #: у кого есть доступ к базе.
+    is_staff: Mapped[bool] = mapped_column(Boolean, default=False,
+                                           server_default=text("false"), nullable=False)
 
 
 class Membership(Base):
@@ -398,6 +410,39 @@ class AuditLogEntry(Base):
     entity_id: Mapped[str] = mapped_column(String(36), nullable=False, default="")
     entity_name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
     #: Подробности, зависящие от действия (старая и новая роль, код тарифа и т. п.).
+    details: Mapped[str] = mapped_column(String(500), nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_now, index=True
+    )
+
+
+class StaffLogEntry(Base):
+    """Служебный журнал: что сотрудник платформы делал у клиентов (B1).
+
+    Второй журнал заведён не ради симметрии. Журнал организации отвечает клиенту на
+    вопрос «кто приходил ко мне», а этот — нам на вопрос «где сегодня был наш
+    сотрудник»; собрать второй ответ из первого нельзя, не обойдя журналы всех
+    организаций подряд.
+
+    Организация названа **текстом рядом со ссылкой** и без внешнего ключа. Ключ с
+    каскадом стирал бы след визита вместе с удалённой организацией — то есть ровно
+    тогда, когда след нужнее всего. Тот же приём, что у почты актора в журнале
+    организации.
+    """
+
+    __tablename__ = "staff_log"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    #: Кто из сотрудников. Ссылка обнуляется при удалении, почта остаётся.
+    user_id: Mapped[Optional[str]] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    actor_email: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    #: Что: «staff.orgs_list», «staff.org_view», «staff.audit_log_view», …
+    action: Mapped[str] = mapped_column(String(64), nullable=False)
+    #: К кому приходили. Пусто — действие платформенное, а не в конкретной организации.
+    organization_id: Mapped[str] = mapped_column(String(36), nullable=False, default="")
+    organization_name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
     details: Mapped[str] = mapped_column(String(500), nullable=False, default="")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_now, index=True

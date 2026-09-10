@@ -3811,3 +3811,38 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   .onb__content { padding: 24px 18px 30px; }
   .onb__title { font-size: 23px; }
 }
+
+/* ============================================================
+   23. СЛУЖЕБНЫЙ РАЗДЕЛ ПЛАТФОРМЫ (оператор: клиенты, тарифы, объёмы)
+   ============================================================ */
+
+/* Строка списка оператора: четыре колонки метаданных клиента. Содержимого моделей
+   здесь нет — ни отдельного столбца под него, ни места, куда его можно было бы
+   «временно» подставить. */
+.adm-row { grid-template-columns: minmax(160px, 1.4fr) 1.2fr 1fr 1.1fr; align-items: start; }
+.adm-row--log { grid-template-columns: 150px minmax(140px, 1fr) 1.4fr 1fr; }
+.adm-row--head { font: 600 11px var(--font-ui); letter-spacing: .04em; text-transform: uppercase; }
+.adm-sub { font: 400 12px/1.5 var(--font-ui); color: var(--muted); }
+.adm-link {
+  font: 600 13px var(--font-ui); color: var(--primary); background: none;
+  border: none; padding: 0; cursor: pointer; text-align: left;
+}
+.adm-link:hover { text-decoration: underline; }
+
+.adm-h2 { font: 600 15px var(--font-ui); color: var(--text); margin: 0 0 10px; }
+
+.adm-cards { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.adm-card {
+  border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px;
+  background: var(--surface-2);
+}
+.adm-card__label {
+  font: 600 11px var(--font-ui); letter-spacing: .04em; text-transform: uppercase;
+  color: var(--subtle); margin-bottom: 6px;
+}
+.adm-card__value { font: 600 18px var(--font-ui); color: var(--text); margin-bottom: 4px; }
+
+@media (max-width: 860px) {
+  .adm-row, .adm-row--log { grid-template-columns: 1fr; gap: 4px; }
+  .adm-row--head { display: none; }
+}

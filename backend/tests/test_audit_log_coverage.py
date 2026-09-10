@@ -15,6 +15,7 @@ import inspect
 import re
 
 from app.routers import (
+    admin,
     audit,
     auth,
     billing,
@@ -27,7 +28,7 @@ from app.routers import (
 
 #: Роутеры продукта. Перечислены явно: авто-обход внутренностей приложения зависел бы от
 #: устройства фреймворка, а список роутеров — часть самого продукта.
-ROUTERS = [audit.router, auth.router, billing.router, holdings.router, integrator.router,
+ROUTERS = [admin.router, audit.router, auth.router, billing.router, holdings.router, integrator.router,
            jobs.router, organizations.router, projects.router]
 
 #: Изменяющие маршруты, которые журнал **не** пишут — каждый с причиной.

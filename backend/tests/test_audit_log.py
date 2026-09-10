@@ -102,7 +102,10 @@ def test_log_has_no_write_endpoints():
     from app.main import app
     paths = app.openapi()["paths"]
     log = {p: set(ops) for p, ops in paths.items() if p.endswith("/audit-log")}
-    assert log == {"/api/v1/organizations/{org_id}/audit-log": {"get"}}
+    # Служебный контур (B1) читает тот же журнал и тоже **только читает**: своих следов
+    # платформа стирать не умеет ровно так же, как чужих.
+    assert log == {"/api/v1/organizations/{org_id}/audit-log": {"get"},
+                   "/api/v1/admin/organizations/{org_id}/audit-log": {"get"}}
 
 
 def test_log_pagination_caps_limit(client, register):

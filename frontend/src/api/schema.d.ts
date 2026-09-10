@@ -4,6 +4,143 @@
  */
 
 export interface paths {
+    "/api/v1/admin/log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Staff Log
+         * @description Служебный журнал: где были наши сотрудники.
+         *
+         *     Как и журнал организации — только чтение: ни PUT, ни DELETE. Журнал, который можно
+         *     поправить, не журнал, и для собственных следов это верно ровно в той же мере.
+         *     Собственное чтение журнала не пишется: оно никуда не приходит и ничего не выносит.
+         */
+        get: operations["read_staff_log_api_v1_admin_log_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/organizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Organizations
+         * @description Клиенты платформы: кто, с какого числа, на каком тарифе и сколько чего завёл.
+         *
+         *     Пишется **только в служебный журнал**: список — это платформенный взгляд, а не визит
+         *     к конкретному клиенту. Запись у каждого клиента при каждом обновлении экрана сделала
+         *     бы их журналы нечитаемыми.
+         */
+        get: operations["list_organizations_api_v1_admin_organizations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/organizations/{org_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Organization
+         * @description Карточка клиента: подписки, объёмы, состав.
+         *
+         *     Визит пишется **в оба журнала** — в служебный и в журнал самой организации. Клиент
+         *     обязан видеть, что к нему приходили, даже (и особенно) когда приходили мы.
+         */
+        get: operations["get_organization_api_v1_admin_organizations__org_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/organizations/{org_id}/audit-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Audit Log
+         * @description Журнал организации глазами оператора — тот же, что видит её администратор.
+         *
+         *     Второго представления журнала не заводим: расхождение двух ответов на один вопрос
+         *     («что у клиента происходило») пришлось бы разбирать в момент инцидента, то есть
+         *     тогда, когда времени на это меньше всего.
+         */
+        get: operations["read_audit_log_api_v1_admin_organizations__org_id__audit_log_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search Users
+         * @description Поиск человека по адресу или имени — вход в разбор обращения в поддержку.
+         *
+         *     Ответ говорит и то, о чём поддержку спрашивают чаще всего: заведён ли пароль вообще
+         *     (приглашённый его мог не задать) и не приостановлен ли доступ — и в какой именно
+         *     организации. Это метаданные человека, а не данные организации, поэтому запись идёт
+         *     в служебный журнал.
+         */
+        get: operations["search_users_api_v1_admin_users_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get User */
+        get: operations["get_user_api_v1_admin_users__user_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/analysis/jobs/{job_id}": {
         parameters: {
             query?: never;
@@ -7001,6 +7138,177 @@ export interface components {
             role: string;
         };
         /**
+         * StaffLogEntryOut
+         * @description Запись служебного журнала: кто из сотрудников, что и у кого смотрел.
+         */
+        StaffLogEntryOut: {
+            /** Action */
+            action: string;
+            /** Actor Email */
+            actor_email: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Details
+             * @default
+             */
+            details: string;
+            /** Id */
+            id: string;
+            /**
+             * Organization Id
+             * @default
+             */
+            organization_id: string;
+            /**
+             * Organization Name
+             * @default
+             */
+            organization_name: string;
+        };
+        /** StaffLogPage */
+        StaffLogPage: {
+            /**
+             * Entries
+             * @default []
+             */
+            entries: components["schemas"]["StaffLogEntryOut"][];
+        };
+        /**
+         * StaffOrgDetail
+         * @description Карточка организации: то же плюс состав. Содержимого моделей по-прежнему нет.
+         */
+        StaffOrgDetail: {
+            /**
+             * Cases
+             * @default 0
+             */
+            cases: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Groups
+             * @default 0
+             */
+            groups: number;
+            /**
+             * Holdings
+             * @default 0
+             */
+            holdings: number;
+            /** Id */
+            id: string;
+            /** Last Calculated At */
+            last_calculated_at?: string | null;
+            /** Last Seen At */
+            last_seen_at?: string | null;
+            /**
+             * Members
+             * @default 0
+             */
+            members: number;
+            /**
+             * Members Blocked
+             * @default 0
+             */
+            members_blocked: number;
+            /**
+             * Members List
+             * @default []
+             */
+            members_list: components["schemas"]["MemberOut"][];
+            /** Name */
+            name: string;
+            /**
+             * Projects
+             * @default 0
+             */
+            projects: number;
+            /**
+             * Subscriptions
+             * @default []
+             */
+            subscriptions: components["schemas"]["StaffSubscriptionOut"][];
+        };
+        /**
+         * StaffOrgOut
+         * @description Организация-клиент: метаданные и объёмы.
+         *
+         *     ``last_calculated_at`` — когда в организации последний раз считали модель. Числа
+         *     расчётов нет: счётчика платформа не ведёт, а придуманное число хуже отсутствующего.
+         *     ``last_seen_at`` — когда кто-нибудь из участников последний раз работал; ``None``
+         *     означает «неизвестно», а не «никогда» (отметка появилась в A3).
+         */
+        StaffOrgOut: {
+            /**
+             * Cases
+             * @default 0
+             */
+            cases: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Groups
+             * @default 0
+             */
+            groups: number;
+            /**
+             * Holdings
+             * @default 0
+             */
+            holdings: number;
+            /** Id */
+            id: string;
+            /** Last Calculated At */
+            last_calculated_at?: string | null;
+            /** Last Seen At */
+            last_seen_at?: string | null;
+            /**
+             * Members
+             * @default 0
+             */
+            members: number;
+            /**
+             * Members Blocked
+             * @default 0
+             */
+            members_blocked: number;
+            /** Name */
+            name: string;
+            /**
+             * Projects
+             * @default 0
+             */
+            projects: number;
+            /**
+             * Subscriptions
+             * @default []
+             */
+            subscriptions: components["schemas"]["StaffSubscriptionOut"][];
+        };
+        /** StaffOrgPage */
+        StaffOrgPage: {
+            /**
+             * Organizations
+             * @default []
+             */
+            organizations: components["schemas"]["StaffOrgOut"][];
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+        };
+        /**
          * StaffPosition
          * @description Штатная позиция: должность с окладом и численностью на период (SPEC §8).
          *
@@ -7073,6 +7381,82 @@ export interface components {
              * @default 0
              */
             start_month: number;
+        };
+        /**
+         * StaffSubscriptionOut
+         * @description Подписка организации на один продукт — взгляд оператора.
+         */
+        StaffSubscriptionOut: {
+            /** Current Period End */
+            current_period_end?: string | null;
+            /** Plan Code */
+            plan_code: string;
+            /** Plan Name */
+            plan_name: string;
+            /** Product */
+            product: string;
+            /** Status */
+            status: string;
+        };
+        /**
+         * StaffUserOrgOut
+         * @description Организация в карточке пользователя: роль и состояние доступа.
+         */
+        StaffUserOrgOut: {
+            /**
+             * Block Reason
+             * @default
+             */
+            block_reason: string;
+            /**
+             * Blocked
+             * @default false
+             */
+            blocked: boolean;
+            /** Id */
+            id: string;
+            /** Last Seen At */
+            last_seen_at?: string | null;
+            /** Name */
+            name: string;
+            /** Role */
+            role: string;
+        };
+        /**
+         * StaffUserOut
+         * @description Пользователь платформы: где состоит и в каком состоянии.
+         *
+         *     ``has_password`` отвечает на самый частый вопрос поддержки — «человек не может
+         *     войти»: у приглашённого пароля может не быть вовсе, и это не то же самое, что
+         *     забытый пароль. Самого хэша здесь, разумеется, нет.
+         */
+        StaffUserOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Email */
+            email: string;
+            /** Full Name */
+            full_name: string;
+            /**
+             * Has Password
+             * @default false
+             */
+            has_password: boolean;
+            /** Id */
+            id: string;
+            /**
+             * Is Staff
+             * @default false
+             */
+            is_staff: boolean;
+            /**
+             * Organizations
+             * @default []
+             */
+            organizations: components["schemas"]["StaffUserOrgOut"][];
         };
         /**
          * Stage
@@ -7666,6 +8050,11 @@ export interface components {
             full_name: string;
             /** Id */
             id: string;
+            /**
+             * Is Staff
+             * @default false
+             */
+            is_staff: boolean;
         };
         /**
          * UserRow
@@ -7971,6 +8360,204 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    read_staff_log_api_v1_admin_log_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                actor?: string;
+                org_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffLogPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_organizations_api_v1_admin_organizations_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffOrgPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_organization_api_v1_admin_organizations__org_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffOrgDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_audit_log_api_v1_admin_organizations__org_id__audit_log_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                actor?: string;
+                action?: string;
+                since?: string | null;
+                until?: string | null;
+                q?: string;
+            };
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_users_api_v1_admin_users_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffUserOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_user_api_v1_admin_users__user_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffUserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     job_status_api_v1_analysis_jobs__job_id__get: {
         parameters: {
             query?: never;

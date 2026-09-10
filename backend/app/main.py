@@ -24,6 +24,7 @@ from calc_core.samples import TEMPLATES, build_sample_project
 from .database import get_db, init_db
 from .observability import setup_observability
 from .routers import (
+    admin,
     audit,
     auth,
     billing,
@@ -65,6 +66,7 @@ if _cors_origins:
         allow_headers=["*"],
     )
 
+app.include_router(admin.router)
 app.include_router(audit.router)
 app.include_router(auth.router)
 app.include_router(billing.router)

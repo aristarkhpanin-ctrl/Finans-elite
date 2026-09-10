@@ -69,7 +69,8 @@ def login(body: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
 @router.get("/me", response_model=UserOut)
 def me(user: User = Depends(current_user)) -> UserOut:
     """Данные текущего пользователя."""
-    return UserOut(id=user.id, email=user.email, full_name=user.full_name)
+    return UserOut(id=user.id, email=user.email, full_name=user.full_name,
+                   is_staff=user.is_staff)
 
 
 #: Минимальная длина пароля. Одно правило на все три места, где пароль задаётся:
@@ -134,7 +135,8 @@ def update_me(body: ProfileUpdate, user: User = Depends(current_user),
               db: Session = Depends(get_db)) -> UserOut:
     """Профиль: имя. Почта не меняется — она же логин и адрес приглашений."""
     updated = crud.set_full_name(db, user, body.full_name)
-    return UserOut(id=updated.id, email=updated.email, full_name=updated.full_name)
+    return UserOut(id=updated.id, email=updated.email, full_name=updated.full_name,
+                   is_staff=updated.is_staff)
 
 
 @router.post("/password", status_code=status.HTTP_204_NO_CONTENT)
