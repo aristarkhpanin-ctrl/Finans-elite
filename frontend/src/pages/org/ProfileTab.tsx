@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { changePassword, disableTotp, enableTotp, getPasswordPolicy, getSessions,
-         getTotpStatus, reissueRecoveryCodes, revokeAllSessions, revokeSession,
-         startTotpSetup, updateProfile, type TotpSetup } from "../../api/auth";
+import { changePassword, deleteMyAccount, disableTotp, downloadMyData, enableTotp,
+         getDeletionPlan, getPasswordPolicy, getSessions, getTotpStatus,
+         reissueRecoveryCodes, revokeAllSessions, revokeSession, startTotpSetup,
+         updateProfile, type TotpSetup } from "../../api/auth";
 import { httpDetail, httpStatus } from "../../api/client";
 import { useAuth } from "../../auth/AuthContext";
 import { useToast } from "../../components/Toast";
@@ -107,6 +108,118 @@ export function ProfileTab() {
           Изменить пароль
         </Button>
       </div>
+
+      <MyDataBlock />
+    </div>
+  );
+}
+
+/**
+ * Свои данные: выгрузка и удаление учётной записи (C3, 152-ФЗ).
+ *
+ * Оба права человека здесь рядом, и оба названы честно. Выгрузка — файл **о человеке**:
+ * проектов и дел в нём нет, потому что они принадлежат организации, а не сотруднику, и
+ * сам файл первым делом это объясняет.
+ *
+ * Удаление показывает последствия **до** нажатия: вместе с учётной записью может
+ * исчезнуть организация со всеми моделями. Список исчезающего — не вежливость, а
+ * единственный способ дать согласие осознанно. Что останется (журнал), сказано там же:
+ * обещать «полное удаление», оставляя записи, было бы неправдой.
+ */
+function MyDataBlock() {
+  const toast = useToast();
+  const [confirming, setConfirming] = useState(false);
+  const [password, setPassword] = useState("");
+
+  // План запрашивается заново при открытии окна: между показом и нажатием состав
+  // организации мог измениться, и старый план обещал бы не то, что произойдёт.
+  const { data: plan, isLoading } = useQuery({ queryKey: ["deletion-plan"],
+                                               queryFn: getDeletionPlan });
+
+  const download = useMutation({
+    mutationFn: downloadMyData,
+    onError: () => toast("Не удалось выгрузить данные", { kind: "error" }),
+  });
+  const remove = useMutation({
+    mutationFn: () => deleteMyAccount(password),
+    onSuccess: () => {
+      toast("Учётная запись удалена", { kind: "success" });
+      window.setTimeout(() => window.location.assign("/"), 1200);
+    },
+    onError: (e: unknown) =>
+      toast(httpDetail(e) ?? (httpStatus(e) === 400 ? "Пароль неверен"
+                                                    : "Не удалось удалить"),
+            { kind: "error" }),
+  });
+
+  return (
+    <div className="audit-block">
+      <div className="audit-block__title">Мои данные</div>
+      <p className="page-sub" style={{ marginTop: 0 }}>
+        Выгрузка — то, что платформа хранит <b>о вас</b>: учётная запись, участие в
+        организациях, входы и ваши действия из журнала. Проектов и дел в ней нет: они
+        принадлежат организациям, а не вам лично, и выгружаются на своих экранах.
+      </p>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <Button variant="ghost" onClick={() => download.mutate()}
+                loading={download.isPending}>
+          Выгрузить мои данные
+        </Button>
+        <Button variant="ghost" onClick={() => { setConfirming(true); setPassword(""); }}>
+          Удалить учётную запись
+        </Button>
+      </div>
+
+      <Modal open={confirming} title="Удалить учётную запись"
+             onClose={() => setConfirming(false)}
+             actions={
+               <>
+                 <Button variant="ghost" onClick={() => setConfirming(false)}>Отмена</Button>
+                 <Button onClick={() => remove.mutate()}
+                         disabled={!password || !plan?.allowed || remove.isPending}>
+                   Удалить навсегда
+                 </Button>
+               </>
+             }>
+        {isLoading ? <Loading /> : (
+          <>
+            {!plan?.allowed && (
+              <div className="mnotes" style={{ marginTop: 0 }}>
+                {/* Отказ называет выход, а не просто запрещает: организация без
+                    владельца — компания без того, кто платит за тариф и управляет
+                    доступом. */}
+                {(plan?.blockers ?? []).map((b) => <div key={b}><b>{b}</b></div>)}
+              </div>
+            )}
+            {plan?.allowed && (
+              <p className="page-sub" style={{ marginTop: 0 }}>
+                Это необратимо. Войти по этому адресу больше будет нельзя.
+              </p>
+            )}
+            {(plan?.organizations_deleted ?? []).length > 0 && (
+              <p className="page-sub">
+                Вместе с вами исчезнут организации:{" "}
+                <b>{(plan?.organizations_deleted ?? []).join(", ")}</b> — со всеми
+                данными: проектов {plan?.projects ?? 0}, дел {plan?.cases ?? 0}.
+              </p>
+            )}
+            {(plan?.organizations_left ?? []).length > 0 && (
+              <p className="page-sub">
+                Вы выйдете из организаций:{" "}
+                {(plan?.organizations_left ?? []).join(", ")} — они продолжат работать.
+              </p>
+            )}
+            <ul className="mnotes">
+              {(plan?.kept ?? []).map((k) => <li key={k}>{k}</li>)}
+            </ul>
+            {plan?.allowed && (
+              <Field label="Ваш пароль" type="password" value={password} autoFocus
+                     note="Пароль здесь потому, что удаление — ровно то, что сделает дорвавшийся до открытой вкладки."
+                     onChange={(e) => setPassword(e.target.value)} />
+            )}
+          </>
+        )}
+      </Modal>
     </div>
   );
 }

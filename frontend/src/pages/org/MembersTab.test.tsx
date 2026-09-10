@@ -16,12 +16,14 @@ const getMembers = vi.fn();
 const issueAccessLink = vi.fn();
 const blockMember = vi.fn();
 const unblockMember = vi.fn();
+const transferOwnership = vi.fn();
 vi.mock("../../api/org", async (orig) => ({
   ...(await orig<typeof import("../../api/org")>()),
   getMembers: (...a: unknown[]) => getMembers(...a),
   issueAccessLink: (...a: unknown[]) => issueAccessLink(...a),
   blockMember: (...a: unknown[]) => blockMember(...a),
   unblockMember: (...a: unknown[]) => unblockMember(...a),
+  transferOwnership: (...a: unknown[]) => transferOwnership(...a),
 }));
 
 const toast = vi.fn();
@@ -220,5 +222,46 @@ describe("Ссылка входа участнику", () => {
   it("без права на управление организацией ссылки на журнал нет", async () => {
     await show("editor");
     expect(screen.queryByTitle(/Действия участника/)).toBeNull();
+  });
+});
+
+/**
+ * Передача владения (C3). Появилась вместе с правом удалить учётную запись: без неё
+ * владелец не мог им воспользоваться — организация осталась бы без того, кто платит за
+ * тариф и управляет доступом.
+ */
+describe("Передача владения организацией", () => {
+  const handButton = (name: string) =>
+    screen.queryByTitle(`Передать владение организацией: ${name}`);
+
+  it("предлагается только владельцу", async () => {
+    await show("admin");
+    expect(handButton("Коллега")).toBeNull();
+    cleanup();
+    await show("owner");
+    expect(handButton("Коллега")).toBeTruthy();
+    // Себе передать нельзя — своей строки в этом списке нет.
+    expect(handButton("Владелец")).toBeNull();
+  });
+
+  it("называет последствия до нажатия и передаёт одним действием", async () => {
+    transferOwnership.mockResolvedValue([member({ role: "owner" })]);
+    await show();
+    fireEvent.click(handButton("Коллега")!);
+    // «Вы станете администратором» — не мелочь: обратно передаст уже новый владелец.
+    expect(await screen.findByText(/станете администратором/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Передать владение" }));
+    await waitFor(() => expect(transferOwnership).toHaveBeenCalledWith("o1", "u2"));
+  });
+
+  it("не предлагается тому, у кого доступ приостановлен", async () => {
+    // Отдать организацию тому, кому сами же закрыли доступ, — это организация без
+    // работающего владельца. Сервер откажет; кнопку не показываем и здесь.
+    getMembers.mockResolvedValue([
+      member({ user_id: "u1", email: "own@e.ru", full_name: "Владелец", role: "owner" }),
+      member({ blocked: true, block_reason: "отпуск" }),
+    ]);
+    await show();
+    expect(handButton("Коллега")).toBeNull();
   });
 });

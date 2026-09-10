@@ -21,6 +21,9 @@ const startTotpSetup = vi.fn();
 const enableTotp = vi.fn();
 const revokeSession = vi.fn();
 const revokeAllSessions = vi.fn();
+const getDeletionPlan = vi.fn();
+const deleteMyAccount = vi.fn();
+const downloadMyData = vi.fn();
 vi.mock("../../api/auth", async (orig) => ({
   ...(await orig<typeof import("../../api/auth")>()),
   getSessions: (...a: unknown[]) => getSessions(...a),
@@ -30,6 +33,9 @@ vi.mock("../../api/auth", async (orig) => ({
   enableTotp: (...a: unknown[]) => enableTotp(...a),
   revokeSession: (...a: unknown[]) => revokeSession(...a),
   revokeAllSessions: (...a: unknown[]) => revokeAllSessions(...a),
+  getDeletionPlan: (...a: unknown[]) => getDeletionPlan(...a),
+  deleteMyAccount: (...a: unknown[]) => deleteMyAccount(...a),
+  downloadMyData: (...a: unknown[]) => downloadMyData(...a),
 }));
 
 const toast = vi.fn();
@@ -64,6 +70,14 @@ beforeEach(() => {
     otpauth_uri: "otpauth://totp/Финанс:o@e.ru?secret=ABCDEFGHIJKLMNOP",
   });
   enableTotp.mockResolvedValue(["AAAAA-BBBBB-CCCCC-DDDDD", "EEEEE-FFFFF-GGGGG-HHHHH"]);
+  getDeletionPlan.mockResolvedValue({
+    allowed: true, organizations_deleted: ["Орг"], organizations_left: [],
+    projects: 3, cases: 1, blockers: [],
+    kept: ["Записи журнала в организациях, где вы работали."],
+  });
+  deleteMyAccount.mockResolvedValue({ allowed: true, organizations_deleted: ["Орг"],
+                                      organizations_left: [], projects: 3, cases: 1,
+                                      blockers: [], kept: [] });
 });
 
 function show() {
@@ -163,4 +177,56 @@ it("выключение спрашивает пароль, а не только
   expect(dialog.getByLabelText("Ваш пароль")).toBeTruthy();
   expect((dialog.getByRole("button", { name: "Подтвердить" }) as HTMLButtonElement)
     .disabled).toBe(true);
+});
+
+
+// --- C3: свои данные ---
+
+it("выгрузка названа файлом о человеке, а не о компании", async () => {
+  show();
+  // Проекты и дела принадлежат организации: отдать их «по запросу субъекта
+  // персональных данных» значило бы выдать уходящему модели работодателя.
+  expect(await screen.findByText(/Проектов и дел в ней нет/)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Выгрузить мои данные" }));
+  await waitFor(() => expect(downloadMyData).toHaveBeenCalled());
+});
+
+it("удаление показывает последствия до нажатия", async () => {
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Удалить учётную запись" }));
+  const dialog = within(screen.getByRole("dialog"));
+  // Вместе с человеком исчезает организация со всеми моделями — это должно быть
+  // названо числом, а не общими словами: иначе согласие не осознанное.
+  expect(await dialog.findByText(/проектов 3, дел 1/)).toBeTruthy();
+  expect(dialog.getByText(/Записи журнала/)).toBeTruthy();
+});
+
+it("удаление требует пароль, а не только открытую вкладку", async () => {
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Удалить учётную запись" }));
+  const dialog = within(screen.getByRole("dialog"));
+  const submit = await dialog.findByRole("button", { name: "Удалить навсегда" });
+  expect((submit as HTMLButtonElement).disabled).toBe(true);
+
+  fireEvent.change(dialog.getByLabelText("Ваш пароль"), { target: { value: "parol" } });
+  fireEvent.click(submit);
+  await waitFor(() => expect(deleteMyAccount).toHaveBeenCalledWith("parol"));
+});
+
+it("владельцу с коллегами отказывают и называют выход", async () => {
+  getDeletionPlan.mockResolvedValue({
+    allowed: false, organizations_deleted: [], organizations_left: [],
+    projects: 0, cases: 0,
+    blockers: ["Вы владелец организации «Орг», в ней ещё 2 чел. Передайте владение "
+               + "другому участнику — или удалите их из организации."],
+    kept: [],
+  });
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Удалить учётную запись" }));
+  const dialog = within(screen.getByRole("dialog"));
+  expect(await dialog.findByText(/Передайте владение/)).toBeTruthy();
+  // Кнопка не прячется — отказ объяснён, а не изображён отсутствием возможности.
+  expect((dialog.getByRole("button", { name: "Удалить навсегда" }) as HTMLButtonElement)
+    .disabled).toBe(true);
+  expect(dialog.queryByLabelText("Ваш пароль")).toBeNull();
 });

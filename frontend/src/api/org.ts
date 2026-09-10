@@ -79,6 +79,19 @@ export async function removeMember(orgId: string, userId: string): Promise<void>
   await api.delete(`/api/v1/organizations/${orgId}/members/${userId}`);
 }
 
+/**
+ * Передать владение организацией другому участнику (C3).
+ *
+ * Одно действие, а не «понизить себя и повысить его»: между двумя запросами
+ * организация осталась бы без владельца. Прежний владелец становится администратором —
+ * человек, отдавший компанию, чаще всего продолжает в ней работать.
+ */
+export async function transferOwnership(orgId: string, userId: string): Promise<Member[]> {
+  const { data } = await api.post<Member[]>(
+    `/api/v1/organizations/${orgId}/transfer-ownership`, { user_id: userId });
+  return data;
+}
+
 /** Каталог тарифов продукта: у «Элит» и «Аудита» он свой — они продаются порознь. */
 export async function getPlans(product?: string): Promise<Plan[]> {
   const { data } = await api.get<Plan[]>("/api/v1/plans", { params: { product } });

@@ -724,6 +724,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Delete My Account
+         * @description Удалить свою учётную запись — **по паролю**.
+         *
+         *     Пароль здесь по тому же доводу, что и у второго фактора: удаление это ровно то, что
+         *     сделает дорвавшийся до открытой вкладки. Событие пишется в журналы организаций
+         *     **до** удаления — после писать будет уже некуда.
+         */
+        post: operations["delete_my_account_api_v1_auth_delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/delete-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview Deletion
+         * @description Что случится при удалении — до того, как оно случится.
+         */
+        get: operations["preview_deletion_api_v1_auth_delete_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export My Data
+         * @description Выгрузить всё, что платформа хранит **о вас** — одним файлом.
+         *
+         *     Проектов и дел здесь нет: они принадлежат организациям, а не сотруднику. Отдать их
+         *     «по запросу субъекта персональных данных» значило бы выдать уходящему модели
+         *     работодателя под видом личного права — выгрузка компании живёт на своих экранах.
+         *
+         *     Сама выгрузка пишется в журнал: вынос данных наружу — событие (правило 5 пакета).
+         */
+        get: operations["export_my_data_api_v1_auth_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -1469,6 +1539,35 @@ export interface paths {
         get: operations["get_subscriptions_api_v1_organizations__org_id__subscriptions_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{org_id}/transfer-ownership": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Transfer Ownership
+         * @description Передать владение организацией другому участнику (C3).
+         *
+         *     Появилось вместе с правом удалить учётную запись: без передачи владелец не мог им
+         *     воспользоваться — организация без владельца это компания без того, кто платит за
+         *     тариф и управляет доступом. Понизить владельца по отдельности по-прежнему нельзя
+         *     (иначе организация осталась бы вовсе без него); здесь это **одно действие**, в
+         *     котором новый владелец появляется раньше, чем прежний перестаёт им быть.
+         *
+         *     Прежний владелец становится администратором, а не выбывает: человек, отдавший
+         *     компанию, чаще всего продолжает в ней работать, и выкидывать его молча незачем.
+         */
+        post: operations["transfer_ownership_api_v1_organizations__org_id__transfer_ownership_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4537,6 +4636,51 @@ export interface components {
              * @default
              */
             title: string;
+        };
+        /**
+         * DeletionPlanOut
+         * @description Что произойдёт при удалении учётной записи — **до** нажатия (C3).
+         *
+         *     Удаление необратимо, а последствия выходят за пределы одного человека: вместе с ним
+         *     может исчезнуть организация со всеми моделями. Список — не вежливость, а единственный
+         *     способ дать согласие осознанно.
+         */
+        DeletionPlanOut: {
+            /**
+             * Allowed
+             * @default false
+             */
+            allowed: boolean;
+            /**
+             * Blockers
+             * @default []
+             */
+            blockers: string[];
+            /**
+             * Cases
+             * @default 0
+             */
+            cases: number;
+            /**
+             * Kept
+             * @default []
+             */
+            kept: string[];
+            /**
+             * Organizations Deleted
+             * @default []
+             */
+            organizations_deleted: string[];
+            /**
+             * Organizations Left
+             * @default []
+             */
+            organizations_left: string[];
+            /**
+             * Projects
+             * @default 0
+             */
+            projects: number;
         };
         /**
          * Deposit
@@ -8734,6 +8878,18 @@ export interface components {
             recovery_left: number;
         };
         /**
+         * TransferOwnershipIn
+         * @description Кому передать владение организацией.
+         *
+         *     Появилось вместе с удалением учётной записи (C3): без передачи владелец не мог
+         *     воспользоваться правом уйти — организация без владельца это компания без того, кто
+         *     платит за тариф и управляет доступом.
+         */
+        TransferOwnershipIn: {
+            /** User Id */
+            user_id: string;
+        };
+        /**
          * UncertainAssumption
          * @description Допущение, объявленное неопределённым, и распределение его коэффициента.
          */
@@ -10400,6 +10556,79 @@ export interface operations {
             };
         };
     };
+    delete_my_account_api_v1_auth_delete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordConfirmIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletionPlanOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_deletion_api_v1_auth_delete_preview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletionPlanOut"];
+                };
+            };
+        };
+    };
+    export_my_data_api_v1_auth_export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
     login_api_v1_auth_login_post: {
         parameters: {
             query?: never;
@@ -11719,6 +11948,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SubscriptionOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    transfer_ownership_api_v1_organizations__org_id__transfer_ownership_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferOwnershipIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberOut"][];
                 };
             };
             /** @description Validation Error */

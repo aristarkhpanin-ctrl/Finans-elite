@@ -133,3 +133,37 @@ export async function reissueRecoveryCodes(password: string): Promise<string[]> 
 export async function disableTotp(password: string): Promise<void> {
   await api.post("/api/v1/auth/totp/disable", { password });
 }
+
+/**
+ * Свои данные: выгрузка и удаление учётной записи (C3, 152-ФЗ).
+ *
+ * Выгрузка — файл о **человеке**, а не о компании: проектов и дел в нём нет, и он сам
+ * говорит, почему. Скачивание идёт через blob, а не ссылкой на адрес: запрос требует
+ * заголовка сессии, и открытая в новой вкладке ссылка ушла бы без него.
+ */
+export async function downloadMyData(): Promise<void> {
+  const { data } = await api.get("/api/v1/auth/export", { responseType: "blob" });
+  const url = URL.createObjectURL(data as Blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "my-data.json";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Что случится при удалении — **до** нажатия: какие организации исчезнут вместе с
+ * учётной записью, из каких человек просто выйдет, что останется и что мешает.
+ */
+export type DeletionPlan = Schema<"DeletionPlanOut">;
+
+export async function getDeletionPlan(): Promise<DeletionPlan> {
+  const { data } = await api.get<DeletionPlan>("/api/v1/auth/delete-preview");
+  return data;
+}
+
+/** Удалить свою учётную запись — по паролю. Необратимо. */
+export async function deleteMyAccount(password: string): Promise<DeletionPlan> {
+  const { data } = await api.post<DeletionPlan>("/api/v1/auth/delete", { password });
+  return data;
+}

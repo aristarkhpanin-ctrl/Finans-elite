@@ -8,7 +8,8 @@
 
 **Обхода изоляции арендатора здесь нет.** Служебные запросы к данным организации идут
 через тот же ``set_tenant``, что и клиентские: оператор входит в организацию по очереди,
-через ту же дверь, и выходит из неё явно (:func:`_as_tenant`). Отдельная роль в
+через ту же дверь, и выходит из неё явно (:func:`database.as_tenant` — дверь общая, своей
+у служебного контура нет). Отдельная роль в
 PostgreSQL или политика с лазейкой дали бы контур, в котором RLS не действует, — и он
 существовал бы ровно до первой ошибки в коде, которая направит туда клиентский запрос.
 
@@ -23,15 +24,13 @@ from __future__ import annotations
 
 import csv
 import io
-from collections.abc import Iterator
-from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from .. import crud
-from ..database import clear_tenant, get_db, set_tenant
+from ..database import as_tenant, get_db
 from ..db_models import User
 from ..deps import require_staff
 from ..metrics import (
@@ -61,21 +60,6 @@ from .organizations import _log_entry_out, _member_out
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
 
-@contextmanager
-def _as_tenant(db: Session, org_id: str) -> Iterator[None]:
-    """Войти в организацию как арендатор и выйти из неё.
-
-    Оставленный от предыдущей организации арендатор — открытая дверь в чужие данные,
-    которую никто не заметит: следующий запрос той же сессии прочитал бы не то, что
-    просил. Выход обязателен и потому оформлен контекстом, а не парой вызовов.
-    """
-    set_tenant(db, org_id)
-    try:
-        yield
-    finally:
-        clear_tenant(db)
-
-
 def _subscriptions_out(db: Session, org_id: str) -> list[StaffSubscriptionOut]:
     """Оба продукта платформы, а не только оформленные подписки.
 
@@ -98,7 +82,7 @@ def _subscriptions_out(db: Session, org_id: str) -> list[StaffSubscriptionOut]:
 
 def _org_out(db: Session, org) -> StaffOrgOut:
     """Метаданные организации. Объёмы считаются, стоя в её же дверях (RLS)."""
-    with _as_tenant(db, org.id):
+    with as_tenant(db, org.id):
         volumes = crud.org_volumes(db, org.id)
     return StaffOrgOut(id=org.id, name=org.name, created_at=org.created_at,
                        subscriptions=_subscriptions_out(db, org.id),
@@ -145,7 +129,7 @@ def get_organization(org_id: str, staff: User = Depends(require_staff),
     if org is None:
         raise HTTPException(status_code=404, detail="Организация не найдена")
     detail = _org_detail(db, org)
-    with _as_tenant(db, org_id):
+    with as_tenant(db, org_id):
         crud.log_action(db, org_id, staff, "staff.org_view", entity_type="organization",
                         entity_id=org_id, entity_name=org.name,
                         details="просмотр сотрудником платформы")
@@ -169,7 +153,7 @@ def read_audit_log(org_id: str, limit: int = 200, actor: str = "", action: str =
         raise HTTPException(status_code=404, detail="Организация не найдена")
     limit = max(1, min(limit, 500))
     f = {"actor": actor, "action": action, "since": since, "until": until, "q": q}
-    with _as_tenant(db, org_id):
+    with as_tenant(db, org_id):
         entries = crud.list_audit_log(db, org_id, limit=limit, **f)
         page = AuditLogPage(entries=[_log_entry_out(e) for e in entries],
                             total=crud.count_audit_log(db, org_id, **f),
@@ -246,7 +230,7 @@ def suspend_organization(org_id: str, body: SuspendIn,
     if org is None:
         raise HTTPException(status_code=404, detail="Организация не найдена")
     crud.set_org_suspension(db, org, suspended=True, by=staff.email, reason=body.reason)
-    with _as_tenant(db, org_id):
+    with as_tenant(db, org_id):
         crud.log_action(db, org_id, staff, "staff.org_suspend", entity_type="organization",
                         entity_id=org_id, entity_name=org.name, details=body.reason)
     crud.log_staff_action(db, staff, "staff.org_suspend", org_id=org_id,
@@ -262,7 +246,7 @@ def resume_organization(org_id: str, staff: User = Depends(require_staff),
     if org is None:
         raise HTTPException(status_code=404, detail="Организация не найдена")
     crud.set_org_suspension(db, org, suspended=False)
-    with _as_tenant(db, org_id):
+    with as_tenant(db, org_id):
         crud.log_action(db, org_id, staff, "staff.org_resume", entity_type="organization",
                         entity_id=org_id, entity_name=org.name)
     crud.log_staff_action(db, staff, "staff.org_resume", org_id=org_id, org_name=org.name)
@@ -368,7 +352,7 @@ def _tenant_totals(db: Session, since: datetime) -> TenantTotals:
     orgs = crud.list_organizations(db, limit=MAX_METRIC_ORGS)
     totals = TenantTotals(organizations_scanned=len(orgs), organizations_total=total)
     for org in orgs:
-        with _as_tenant(db, org.id):
+        with as_tenant(db, org.id):
             slice_ = crud.org_metric_slice(db, org.id, since)
         totals.projects += slice_["projects"]
         totals.cases += slice_["cases"]

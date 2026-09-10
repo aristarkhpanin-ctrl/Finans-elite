@@ -1,7 +1,9 @@
 """Аутентификация: регистрация, вход, активация приглашения, профиль (6.3)."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+import json
+
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
 from .. import crud, totp
@@ -9,10 +11,12 @@ from ..database import get_db
 from ..db_models import User, UserSession
 from ..deps import account_blocked_detail, current_session, current_user
 from ..password_policy import MIN_LENGTH, check_password, policy_rules
+from ..personal_data import build_export, delete_account, deletion_plan
 from ..pwned import leak_check_enabled, leaked_count
 from ..ratelimit import rate_limit
 from ..schemas import (
     ActivateRequest,
+    DeletionPlanOut,
     LoginRequest,
     PasswordChange,
     PasswordConfirmIn,
@@ -426,3 +430,60 @@ def totp_disable(body: PasswordConfirmIn, user: User = Depends(current_user),
 def _confirm_password(user: User, password: str) -> None:
     if not verify_password(user.hashed_password, password):
         raise HTTPException(status_code=400, detail="Пароль неверен")
+
+
+# --- Свои данные: выгрузка и удаление (152-ФЗ, C3) ---
+
+@router.get("/export")
+def export_my_data(user: User = Depends(current_user),
+                   db: Session = Depends(get_db)) -> Response:
+    """Выгрузить всё, что платформа хранит **о вас** — одним файлом.
+
+    Проектов и дел здесь нет: они принадлежат организациям, а не сотруднику. Отдать их
+    «по запросу субъекта персональных данных» значило бы выдать уходящему модели
+    работодателя под видом личного права — выгрузка компании живёт на своих экранах.
+
+    Сама выгрузка пишется в журнал: вынос данных наружу — событие (правило 5 пакета).
+    """
+    payload = build_export(db, user)
+    crud.log_user_action(db, user, "user.data_export",
+                         details=f"записей журнала: {len(payload['мои_действия'])}")
+    body = json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
+    return Response(
+        content=body, media_type="application/json; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="my-data.json"'},
+    )
+
+
+@router.get("/delete-preview", response_model=DeletionPlanOut)
+def preview_deletion(user: User = Depends(current_user),
+                     db: Session = Depends(get_db)) -> DeletionPlanOut:
+    """Что случится при удалении — до того, как оно случится."""
+    plan = deletion_plan(db, user)
+    return DeletionPlanOut(
+        allowed=plan.allowed, organizations_deleted=plan.organizations_deleted,
+        organizations_left=plan.organizations_left, projects=plan.projects,
+        cases=plan.cases, blockers=plan.blockers, kept=plan.kept)
+
+
+@router.post("/delete", response_model=DeletionPlanOut)
+def delete_my_account(body: PasswordConfirmIn, user: User = Depends(current_user),
+                      db: Session = Depends(get_db)) -> DeletionPlanOut:
+    """Удалить свою учётную запись — **по паролю**.
+
+    Пароль здесь по тому же доводу, что и у второго фактора: удаление это ровно то, что
+    сделает дорвавшийся до открытой вкладки. Событие пишется в журналы организаций
+    **до** удаления — после писать будет уже некуда.
+    """
+    _confirm_password(user, body.password)
+    plan = deletion_plan(db, user)
+    if not plan.allowed:
+        raise HTTPException(status_code=409, detail=" ".join(plan.blockers))
+    crud.log_user_action(db, user, "user.delete",
+                         details=(f"организаций удалено: {len(plan.organizations_deleted)}, "
+                                  f"покинуто: {len(plan.organizations_left)}"))
+    delete_account(db, user)
+    return DeletionPlanOut(
+        allowed=True, organizations_deleted=plan.organizations_deleted,
+        organizations_left=plan.organizations_left, projects=plan.projects,
+        cases=plan.cases, kept=plan.kept)

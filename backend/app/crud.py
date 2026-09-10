@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from audit_core import AuditSubjectModel
 from calc_core import ProjectModel
 
+from .database import as_tenant
 from .db_models import (
     AnalysisJob,
     AuditGroup,
@@ -804,6 +805,37 @@ def _aware(value: datetime | None) -> datetime | None:
     return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
 
 
+def list_all_sessions(db: Session, user_id: str) -> list[UserSession]:
+    """**Все** сеансы человека, включая закрытые и истёкшие — для выгрузки своих данных
+    и для полного стирания при удалении учётной записи (C3). На экране показываются
+    только действующие (`list_sessions`): там вопрос другой — «кто сейчас внутри»."""
+    return list(db.execute(
+        select(UserSession).where(UserSession.user_id == user_id)
+        .order_by(UserSession.created_at.desc())).scalars())
+
+
+def list_user_log_entries(db: Session, org_id: str, user_id: str,
+                          limit: int) -> list[AuditLogEntry]:
+    """Записи журнала **одной организации**, оставленные человеком, новые сверху (C3).
+
+    По организации, а не по всему журналу разом: журнал под RLS, и запрос без арендатора
+    вернул бы на PostgreSQL пустоту — молча, без ошибки.
+    """
+    return list(db.execute(
+        select(AuditLogEntry)
+        .where(AuditLogEntry.organization_id == org_id, AuditLogEntry.user_id == user_id)
+        .order_by(AuditLogEntry.created_at.desc()).limit(limit)).scalars())
+
+
+def count_user_log_entries(db: Session, org_id: str, user_id: str) -> int:
+    """Сколько записей человек оставил в этой организации — чтобы выгрузка могла назвать
+    свою неполноту, а не молча обрезаться."""
+    return int(db.scalar(
+        select(func.count()).select_from(AuditLogEntry)
+        .where(AuditLogEntry.organization_id == org_id,
+               AuditLogEntry.user_id == user_id)) or 0)
+
+
 # --- Второй фактор (C2) ---
 
 #: Сколько подряд неверных кодов до паузы и насколько. Пять попыток — запас на опечатку
@@ -887,12 +919,17 @@ def log_user_action(db: Session, user, action: str, *, details: str = "") -> Non
 
     Для **несуществующего** адреса не пишется ничего: журнала у него нет, а запись
     превратила бы систему в подсказчик «такой адрес у нас есть».
+
+    Запись идёт **внутри арендатора**: у журнала RLS-политика с ``WITH CHECK``, и вход,
+    который организации не назвал, PostgreSQL просто не принял бы — на SQLite такая
+    запись проходит, и расхождение вылезло бы уже на живых данных.
     """
     if user is None:
         return
     for membership in list_user_memberships(db, user.id):
-        log_action(db, membership.organization_id, user, action, entity_type="user",
-                   entity_id=user.id, entity_name=user.email, details=details)
+        with as_tenant(db, membership.organization_id):
+            log_action(db, membership.organization_id, user, action, entity_type="user",
+                       entity_id=user.id, entity_name=user.email, details=details)
 
 
 def log_action(db: Session, org_id: str, user, action: str, *, entity_type: str = "",

@@ -30,6 +30,7 @@ from ..schemas import (
     OrganizationMembershipOut,
     OrganizationOut,
     RestrictionOut,
+    TransferOwnershipIn,
 )
 from ..security import create_invite_token, create_reset_token
 
@@ -166,6 +167,42 @@ def patch_member_role(user_id: str, body: MemberPatch,
                     entity_id=user.id, entity_name=user.email,
                     details=f"{was} → {updated.role}")
     return _member_out(updated, user)
+
+
+@router.post("/{org_id}/transfer-ownership", response_model=list[MemberOut])
+def transfer_ownership(body: TransferOwnershipIn,
+                       org_id: str = Depends(require_org_permission(Perm.ORG_MANAGE)),
+                       actor: User = Depends(current_user),
+                       db: Session = Depends(get_db)) -> list[MemberOut]:
+    """Передать владение организацией другому участнику (C3).
+
+    Появилось вместе с правом удалить учётную запись: без передачи владелец не мог им
+    воспользоваться — организация без владельца это компания без того, кто платит за
+    тариф и управляет доступом. Понизить владельца по отдельности по-прежнему нельзя
+    (иначе организация осталась бы вовсе без него); здесь это **одно действие**, в
+    котором новый владелец появляется раньше, чем прежний перестаёт им быть.
+
+    Прежний владелец становится администратором, а не выбывает: человек, отдавший
+    компанию, чаще всего продолжает в ней работать, и выкидывать его молча незачем.
+    """
+    if body.user_id == actor.id:
+        raise HTTPException(status_code=400, detail="Вы уже владелец организации")
+    target = _member_or_404(db, org_id, body.user_id)
+    mine = _member_or_404(db, org_id, actor.id)
+    if mine.role != "owner":
+        raise HTTPException(status_code=403, detail="Передать владение может только владелец")
+    if target.blocked_at is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="У этого участника приостановлен доступ: сначала верните ему доступ")
+
+    crud.set_membership_role(db, target, "owner")
+    crud.set_membership_role(db, mine, "admin")
+    new_owner = crud.get_user(db, body.user_id)
+    crud.log_action(db, org_id, actor, "org.transfer_ownership", entity_type="member",
+                    entity_id=new_owner.id, entity_name=new_owner.email,
+                    details=f"владение передано: {actor.email} → {new_owner.email}")
+    return [_member_out(target, new_owner), _member_out(mine, actor)]
 
 
 @router.post("/{org_id}/members/{user_id}/block", response_model=MemberOut)

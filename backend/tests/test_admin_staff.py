@@ -15,7 +15,7 @@ from __future__ import annotations
 import inspect
 from pathlib import Path
 
-from app import crud
+from app import crud, database
 from app.db_models import Organization
 from app.routers import admin
 
@@ -265,31 +265,42 @@ def test_trace_of_the_visit_outlives_the_organization(client, db_session, regist
 
 # --- Изоляция арендатора ---
 
-def test_tenant_is_entered_only_in_two_named_places():
-    """Дверь арендатора — в двух местах, и оба названы.
+def test_tenant_is_entered_only_in_named_places():
+    """Дверь арендатора — в перечисленных местах, и каждое названо.
 
     План допускал служебный обход RLS «осознанно и в одном месте». Обхода не понадобилось:
     оператор входит в организацию тем же ``set_tenant``, что и её участники. Тест следит,
-    чтобы третьего места не появилось: контур, в котором RLS не действует, живёт ровно до
+    чтобы места не заводились молча: контур, в котором RLS не действует, живёт ровно до
     первой ошибки, направившей туда клиентский запрос.
+
+    Кто здесь и почему:
+    ``deps.py`` — запрос участника (арендатор из маршрута);
+    ``routers/admin.py`` — служебный контур, обходит организации по одной (B1, B3);
+    ``crud.py`` — событие человека пишется в журналы **его** организаций (вход, удаление);
+    ``personal_data.py`` — свои данные и удаление учётной записи ходят по тем же
+    организациям (C3).
     """
     app_dir = Path(__file__).resolve().parents[1] / "app"
     callers = sorted(
         str(path.relative_to(app_dir))
         for path in app_dir.rglob("*.py")
-        if path.name not in {"database.py"}
-        and ("set_tenant(" in path.read_text() or "clear_tenant(" in path.read_text())
+        if path.name not in {"database.py"} and "_tenant(" in path.read_text()
     )
-    assert callers == ["deps.py", "routers/admin.py"], (
+    assert callers == ["crud.py", "deps.py", "personal_data.py", "routers/admin.py"], (
         "арендатор выставляется где-то ещё; это либо новая дверь в чужие данные, "
         f"либо забытый выход из неё: {callers}")
 
 
 def test_operator_leaves_the_tenant_behind(client, db_session, register):
-    """После служебного запроса арендатор снят: оставленный от предыдущей организации,
-    он открыл бы следующему запросу той же сессии не те данные."""
-    source = inspect.getsource(admin._as_tenant)
-    assert "finally" in source and "clear_tenant" in source
+    """После служебного запроса арендатор возвращён к прежнему: оставленный от предыдущей
+    организации, он открыл бы следующему запросу той же сессии не те данные.
+
+    Дверь возвращает **прежнего** арендатора, а не пустоту: её зовут и изнутри запроса, у
+    которого арендатор уже выставлен, и выход в никуда оставил бы остаток такого запроса
+    без единой видимой строки.
+    """
+    source = inspect.getsource(database.as_tenant)
+    assert "finally" in source and "set_tenant(db, previous)" in source
     staff = _staff(client, db_session, register)
     assert client.get("/api/v1/admin/organizations", headers=staff).status_code == 200
 

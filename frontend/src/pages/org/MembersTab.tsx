@@ -2,9 +2,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { httpDetail, httpStatus } from "../../api/client";
 import { useState } from "react";
 import { addMember, blockMember, getMembers, issueAccessLink, patchMemberRole, removeMember,
-         roleLabel, ROLES, unblockMember, type AccessLink, type Member } from "../../api/org";
+         roleLabel, ROLES, transferOwnership, unblockMember, type AccessLink,
+         type Member } from "../../api/org";
 import { ESelect } from "../../components/EditorField";
-import { IconKey, IconRows, IconTrash, IconWarning } from "../../components/icons";
+import { IconArrowRight, IconKey, IconRows, IconTrash, IconWarning } from "../../components/icons";
 import { useToast } from "../../components/Toast";
 import { Button, Modal, Skeleton } from "../../components/ui";
 
@@ -73,6 +74,8 @@ export function MembersTab({ orgId, myRole, myUserId, onShowActions }: {
   /** Кого приостанавливаем: причина обязательна — блокировка без неё читается как ошибка. */
   const [blockTarget, setBlockTarget] = useState<Member | null>(null);
   const [blockReason, setBlockReason] = useState("");
+  /** Кому передаём владение организацией (C3). Только владелец и только вручную. */
+  const [transferTarget, setTransferTarget] = useState<Member | null>(null);
 
   const { data, isLoading } = useQuery({ queryKey: ["members", orgId], queryFn: () => getMembers(orgId) });
   const invalidate = () => qc.invalidateQueries({ queryKey: ["members", orgId] });
@@ -137,6 +140,24 @@ export function MembersTab({ orgId, myRole, myUserId, onShowActions }: {
                                    { kind: "error" }),
   });
 
+  /**
+   * Передача владения (C3). Одно действие вместо «понизить себя и повысить его»: между
+   * двумя запросами организация осталась бы без владельца. Появилась вместе с правом
+   * удалить учётную запись — без неё владелец не мог им воспользоваться.
+   */
+  const transfer = useMutation({
+    mutationFn: () => transferOwnership(orgId, transferTarget!.user_id),
+    onSuccess: (rows) => {
+      invalidate();
+      setTransferTarget(null);
+      toast(`Владелец организации теперь ${rows[0]?.email ?? "другой участник"}`,
+            { kind: "success" });
+    },
+    // Отказ сервера содержательный (приостановленный участник) — его текст и показываем.
+    onError: (e: unknown) => toast(httpDetail(e) ?? "Не удалось передать владение",
+                                   { kind: "error" }),
+  });
+
   const remove = useMutation({
     mutationFn: (uid: string) => removeMember(orgId, uid),
     onSuccess: () => {
@@ -184,6 +205,9 @@ export function MembersTab({ orgId, myRole, myUserId, onShowActions }: {
             const isMe = m.user_id === myUserId;
             const editable = canManage && !isOwner;
             const deletable = canManage && !isOwner && !isMe;
+            // Передать владение может только сам владелец и только тому, у кого доступ
+            // не приостановлен: организация без работающего владельца — та же беда.
+            const handOver = myRole === "owner" && !isOwner && !m.blocked;
             return (
               <div className="org-row" key={m.user_id}>
                 <div className="org-col-user">
@@ -284,6 +308,16 @@ export function MembersTab({ orgId, myRole, myUserId, onShowActions }: {
                       <IconWarning size={15} />
                     </button>
                   ))}
+                  {handOver && (
+                    <button
+                      type="button"
+                      className="icon-action"
+                      title={`Передать владение организацией: ${m.full_name || m.email}`}
+                      onClick={() => setTransferTarget(m)}
+                    >
+                      <IconArrowRight size={15} />
+                    </button>
+                  )}
                   {deletable && (
                     <button
                       type="button"
@@ -408,6 +442,35 @@ export function MembersTab({ orgId, myRole, myUserId, onShowActions }: {
         <div className="field-note" style={{ marginTop: 8 }}>
           Причину увидит сам участник в отказе и любой, кто откроет журнал. Она остаётся
           в журнале навсегда — даже после того, как доступ вернут.
+        </div>
+      </Modal>
+
+      {/* Передача владения: последствия названы до нажатия — обратно её делает уже
+          новый владелец, и без него вернуть организацию будет некому. */}
+      <Modal open={!!transferTarget}
+             onClose={() => !transfer.isPending && setTransferTarget(null)}
+             title="Передать владение организацией"
+             sub={transferTarget
+               ? `${transferTarget.full_name || transferTarget.email} · ${roleLabel(transferTarget.role)}`
+               : undefined}
+             maxWidth={460}
+             actions={
+               <>
+                 <Button variant="ghost" disabled={transfer.isPending}
+                         onClick={() => setTransferTarget(null)}>Отмена</Button>
+                 <Button variant="danger" loading={transfer.isPending}
+                         onClick={() => transfer.mutate()}>Передать владение</Button>
+               </>
+             }>
+        <div className="page-sub" style={{ marginBottom: 10 }}>
+          Участник станет владельцем: к нему перейдут тариф, оплата и управление
+          доступом. <b>Вы станете администратором</b> — работать в организации
+          продолжите, но вернуть владение сможет только он сам.
+        </div>
+        <div className="field-note">
+          Владение передают, когда уходят из компании: удалить свою учётную запись
+          владелец не может, пока в организации есть кто-то ещё, — иначе она осталась бы
+          без того, кто платит за тариф и управляет доступом.
         </div>
       </Modal>
 

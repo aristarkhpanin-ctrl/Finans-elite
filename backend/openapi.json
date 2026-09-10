@@ -4793,6 +4793,60 @@
         "title": "CustomProcedure",
         "type": "object"
       },
+      "DeletionPlanOut": {
+        "description": "Что произойдёт при удалении учётной записи — **до** нажатия (C3).\n\nУдаление необратимо, а последствия выходят за пределы одного человека: вместе с ним\nможет исчезнуть организация со всеми моделями. Список — не вежливость, а единственный\nспособ дать согласие осознанно.",
+        "properties": {
+          "allowed": {
+            "default": false,
+            "title": "Allowed",
+            "type": "boolean"
+          },
+          "blockers": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Blockers",
+            "type": "array"
+          },
+          "cases": {
+            "default": 0,
+            "title": "Cases",
+            "type": "integer"
+          },
+          "kept": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Kept",
+            "type": "array"
+          },
+          "organizations_deleted": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Organizations Deleted",
+            "type": "array"
+          },
+          "organizations_left": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Organizations Left",
+            "type": "array"
+          },
+          "projects": {
+            "default": 0,
+            "title": "Projects",
+            "type": "integer"
+          }
+        },
+        "title": "DeletionPlanOut",
+        "type": "object"
+      },
       "Deposit-Input": {
         "description": "Размещение свободных средств: вложение C8, доход C9, тело в B6 (SPEC §10).",
         "properties": {
@@ -12371,6 +12425,20 @@
         "title": "TotpStatusOut",
         "type": "object"
       },
+      "TransferOwnershipIn": {
+        "description": "Кому передать владение организацией.\n\nПоявилось вместе с удалением учётной записи (C3): без передачи владелец не мог\nвоспользоваться правом уйти — организация без владельца это компания без того, кто\nплатит за тариф и управляет доступом.",
+        "properties": {
+          "user_id": {
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id"
+        ],
+        "title": "TransferOwnershipIn",
+        "type": "object"
+      },
       "UncertainAssumption-Input": {
         "description": "Допущение, объявленное неопределённым, и распределение его коэффициента.",
         "properties": {
@@ -15595,6 +15663,105 @@
         ]
       }
     },
+    "/api/v1/auth/delete": {
+      "post": {
+        "description": "Удалить свою учётную запись — **по паролю**.\n\nПароль здесь по тому же доводу, что и у второго фактора: удаление это ровно то, что\nсделает дорвавшийся до открытой вкладки. Событие пишется в журналы организаций\n**до** удаления — после писать будет уже некуда.",
+        "operationId": "delete_my_account_api_v1_auth_delete_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordConfirmIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletionPlanOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete My Account",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/delete-preview": {
+      "get": {
+        "description": "Что случится при удалении — до того, как оно случится.",
+        "operationId": "preview_deletion_api_v1_auth_delete_preview_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletionPlanOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Preview Deletion",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/export": {
+      "get": {
+        "description": "Выгрузить всё, что платформа хранит **о вас** — одним файлом.\n\nПроектов и дел здесь нет: они принадлежат организациям, а не сотруднику. Отдать их\n«по запросу субъекта персональных данных» значило бы выдать уходящему модели\nработодателя под видом личного права — выгрузка компании живёт на своих экранах.\n\nСама выгрузка пишется в журнал: вынос данных наружу — событие (правило 5 пакета).",
+        "operationId": "export_my_data_api_v1_auth_export_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Export My Data",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
         "description": "Вход по email и паролю → токен доступа.",
@@ -17899,6 +18066,68 @@
         "summary": "Get Subscriptions",
         "tags": [
           "billing"
+        ]
+      }
+    },
+    "/api/v1/organizations/{org_id}/transfer-ownership": {
+      "post": {
+        "description": "Передать владение организацией другому участнику (C3).\n\nПоявилось вместе с правом удалить учётную запись: без передачи владелец не мог им\nвоспользоваться — организация без владельца это компания без того, кто платит за\nтариф и управляет доступом. Понизить владельца по отдельности по-прежнему нельзя\n(иначе организация осталась бы вовсе без него); здесь это **одно действие**, в\nкотором новый владелец появляется раньше, чем прежний перестаёт им быть.\n\nПрежний владелец становится администратором, а не выбывает: человек, отдавший\nкомпанию, чаще всего продолжает в ней работать, и выкидывать его молча незачем.",
+        "operationId": "transfer_ownership_api_v1_organizations__org_id__transfer_ownership_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferOwnershipIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MemberOut"
+                  },
+                  "title": "Response Transfer Ownership Api V1 Organizations  Org Id  Transfer Ownership Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Transfer Ownership",
+        "tags": [
+          "organizations"
         ]
       }
     },
