@@ -8,11 +8,14 @@ from .. import crud
 from ..database import get_db
 from ..db_models import User, UserSession
 from ..deps import account_blocked_detail, current_session, current_user
+from ..password_policy import MIN_LENGTH, check_password, policy_rules
+from ..pwned import leak_check_enabled, leaked_count
 from ..ratelimit import rate_limit
 from ..schemas import (
     ActivateRequest,
     LoginRequest,
     PasswordChange,
+    PasswordPolicyOut,
     ProfileUpdate,
     RegisterRequest,
     RevokeAllOut,
@@ -67,7 +70,7 @@ def _issue_token(db: Session, user: User, request: Request,
 def register(body: RegisterRequest, request: Request,
              db: Session = Depends(get_db)) -> TokenResponse:
     """Регистрация: создаёт пользователя, его организацию и членство (owner)."""
-    _check_password(body.password)
+    _check_password(body.password, body.email)
     if crud.get_user_by_email(db, body.email) is not None:
         raise HTTPException(status_code=409, detail="Email уже зарегистрирован")
     user = crud.create_user(db, body.email, body.full_name, hash_password(body.password))
@@ -106,17 +109,24 @@ def me(user: User = Depends(current_user)) -> UserOut:
                    is_staff=user.is_staff)
 
 
-#: Минимальная длина пароля. Одно правило на все три места, где пароль задаётся:
-#: регистрация, активация приглашения и смена. Разные пороги в разных дверях —
-#: это не строгость, а иллюзия строгости.
-MIN_PASSWORD_LEN = 8
+def _check_password(password: str, email: str = "") -> None:
+    """Одна проверка на все три двери, где пароль задаётся: регистрация, активация
+    ссылки и смена. Разные требования в разных дверях — не строгость, а её иллюзия.
 
-
-def _check_password(password: str) -> None:
-    if len(password) < MIN_PASSWORD_LEN:
+    Сначала правила, которые работают всегда (:mod:`app.password_policy`), затем — если
+    включена — проверка по утечкам. Порядок именно такой: сетевой запрос ради пароля,
+    который и так не годится, лишний, а недоступность чужого сервиса не должна решать,
+    примем мы `qwerty1234` или нет.
+    """
+    problem = check_password(password, email=email)
+    if problem:
+        raise HTTPException(status_code=422, detail=problem)
+    count = leaked_count(password)
+    if count:
         raise HTTPException(
             status_code=422,
-            detail=f"Пароль должен быть не короче {MIN_PASSWORD_LEN} символов",
+            detail=(f"Этот пароль встречается в известных утечках ({count:,} раз(а)) — "
+                    "его подберут по словарю. Придумайте другой").replace(",", " "),
         )
 
 
@@ -139,7 +149,6 @@ def activate(body: ActivateRequest, request: Request,
     отклоняется — иначе ссылка-приглашение осталась бы вечным способом сбросить
     чужой пароль, минуя знание текущего.
     """
-    _check_password(body.password)
     user_id = decode_token(body.token, expect="invite")
     reset = None if user_id else decode_reset_token(body.token)
     if user_id is None and reset is None:
@@ -156,6 +165,10 @@ def activate(body: ActivateRequest, request: Request,
         # либо самим пользователем. Одноразовость сброса держится на этом.
         raise HTTPException(status_code=409, detail="Ссылка уже использована — "
                                                     "попросите выдать новую")
+    # Проверка пароля **после** разбора ссылки: адрес человека известен только отсюда, а
+    # без него не работает правило «пароль не повторяет вашу почту». Недействительная
+    # ссылка при этом называется первой — это более крупная беда, чем слабый пароль.
+    _check_password(body.password, user.email)
     crud.set_password(db, user, hash_password(body.password))
     if body.full_name:
         crud.set_full_name(db, user, body.full_name)
@@ -187,7 +200,7 @@ def change_password(body: PasswordChange, user: User = Depends(current_user),
         crud.log_user_action(db, user, "auth.password_change_failed",
                              details="текущий пароль неверен")
         raise HTTPException(status_code=400, detail="Текущий пароль неверен")
-    _check_password(body.new_password)
+    _check_password(body.new_password, user.email)
     crud.set_password(db, user, hash_password(body.new_password))
     # Смена пароля закрывает **остальные** входы, а текущий оставляет: пароль меняют в
     # том числе потому, что подозревают чужой доступ, и оставить его живым значило бы
@@ -248,3 +261,16 @@ def revoke_all_sessions(user: User = Depends(current_user),
     crud.log_user_action(db, user, "auth.sessions_revoke_all",
                          details=f"закрыто входов: {closed}")
     return RevokeAllOut(closed=closed)
+
+
+@router.get("/password-policy", response_model=PasswordPolicyOut)
+def password_policy() -> PasswordPolicyOut:
+    """Что требуется от пароля — **из тех же правил**, что и проверяют.
+
+    Экран, перечисляющий требования своим текстом, однажды разойдётся с сервером: человек
+    прочтёт одно, а получит другое. Открыт без токена: правила нужны на регистрации и на
+    активации ссылки, то есть до входа.
+    """
+    leak_check = leak_check_enabled()
+    return PasswordPolicyOut(min_length=MIN_LENGTH, leak_check=leak_check,
+                             rules=policy_rules(leak_check=leak_check))

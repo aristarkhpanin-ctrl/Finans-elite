@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { changePassword, getSessions, revokeAllSessions, revokeSession,
-         updateProfile } from "../../api/auth";
-import { httpStatus } from "../../api/client";
+import { changePassword, getPasswordPolicy, getSessions, revokeAllSessions,
+         revokeSession, updateProfile } from "../../api/auth";
+import { httpDetail, httpStatus } from "../../api/client";
 import { useAuth } from "../../auth/AuthContext";
 import { useToast } from "../../components/Toast";
 import { Button, Chip, Field, Loading } from "../../components/ui";
@@ -37,11 +37,23 @@ export function ProfileTab() {
       setCurrent(""); setNext(""); setRepeat("");
       toast("Пароль изменён", { kind: "success" });
     },
+    // Отказ по новому паролю сервер называет словами — показываем их, а не своё
+    // предположение о причине: список требований шире длины, и «короче 8 символов»
+    // сбивало бы с толку там, где дело в «qwerty» или в собственном адресе.
     onError: (e: unknown) =>
       toast(httpStatus(e) === 400 ? "Текущий пароль неверен"
-        : httpStatus(e) === 422 ? "Новый пароль короче 8 символов"
-          : "Не удалось изменить пароль", { kind: "error" }),
+        : (httpStatus(e) === 422 && httpDetail(e)) || "Не удалось изменить пароль",
+        { kind: "error" }),
   });
+
+  /**
+   * Требования к паролю берутся **с сервера**: перечисленные здесь своим текстом, они
+   * однажды разойдутся с проверкой, и человек прочтёт одно, а получит другое. Пока
+   * список не пришёл — не обещаем ничего.
+   */
+  const { data: policy } = useQuery({ queryKey: ["password-policy"],
+                                      queryFn: getPasswordPolicy });
+  const policyRules = policy?.rules ?? [];
 
   const mismatch = repeat.length > 0 && next !== repeat;
   const canChange = current.length > 0 && next.length >= 8 && next === repeat
@@ -70,9 +82,18 @@ export function ProfileTab() {
                disabled={savePassword.isPending}
                note="Текущий пароль обязателен: без него любую открытую сессию можно было бы использовать, чтобы запереть владельца снаружи."
                onChange={(e) => setCurrent(e.target.value)} />
-        <Field label="Новый пароль" type="password" value={next} hint="Не короче 8 символов."
+        <Field label="Новый пароль" type="password" value={next}
                disabled={savePassword.isPending}
                onChange={(e) => setNext(e.target.value)} />
+        {/* Требования — видимым списком, а не подсказкой под знаком вопроса: правило,
+            которое надо навести курсором, чтобы прочесть, — это правило, которое
+            нарушают. Текст приходит с сервера: перечисленный здесь своими словами, он
+            однажды разошёлся бы с проверкой. */}
+        {policyRules.length > 0 && (
+          <ul className="mnotes" style={{ marginTop: -4 }}>
+            {policyRules.map((rule) => <li key={rule}>{rule}</li>)}
+          </ul>
+        )}
         <Field label="Новый пароль ещё раз" type="password" value={repeat}
                disabled={savePassword.isPending}
                error={mismatch ? "Пароли не совпадают" : undefined}

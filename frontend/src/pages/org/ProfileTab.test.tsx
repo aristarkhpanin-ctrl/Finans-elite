@@ -15,11 +15,13 @@ import { ProfileTab } from "./ProfileTab";
  */
 
 const getSessions = vi.fn();
+const getPasswordPolicy = vi.fn();
 const revokeSession = vi.fn();
 const revokeAllSessions = vi.fn();
 vi.mock("../../api/auth", async (orig) => ({
   ...(await orig<typeof import("../../api/auth")>()),
   getSessions: (...a: unknown[]) => getSessions(...a),
+  getPasswordPolicy: (...a: unknown[]) => getPasswordPolicy(...a),
   revokeSession: (...a: unknown[]) => revokeSession(...a),
   revokeAllSessions: (...a: unknown[]) => revokeAllSessions(...a),
 }));
@@ -44,6 +46,10 @@ beforeEach(() => {
     session({ id: "s2", device: "Safari · iPhone", ip: "198.51.100.4", current: false }),
   ]);
   revokeSession.mockResolvedValue(undefined);
+  getPasswordPolicy.mockResolvedValue({
+    min_length: 8, leak_check: false,
+    rules: ["Не короче 8 символов.", "Заглавные буквы и знаки препинания **не требуются**."],
+  });
   revokeAllSessions.mockResolvedValue(2);
 });
 
@@ -93,4 +99,13 @@ it("«выйти на всех устройствах» говорит, скол
 it("смена пароля предупреждает, что закроет остальные входы", async () => {
   show();
   expect(await screen.findByText(/закроет остальные входы/)).toBeTruthy();
+});
+
+
+it("требования к паролю берёт с сервера, а не пишет свои", async () => {
+  show();
+  // Список, перечисленный в интерфейсе своим текстом, однажды разошёлся бы с проверкой:
+  // человек прочёл бы одно, а получил другое.
+  expect(await screen.findByText(/Заглавные буквы и знаки препинания/)).toBeTruthy();
+  expect(getPasswordPolicy).toHaveBeenCalled();
 });

@@ -129,15 +129,15 @@ def test_activation_is_single_use(client, register):
     owner = register(email="own4@e.ru", org="Орг П4")
     token = _invite(client, owner, email="n4@e.ru")
     assert client.post("/api/v1/auth/activate",
-                       json={"token": token, "password": "first1234"}).status_code == 200
+                       json={"token": token, "password": "pervyi-parol7"}).status_code == 200
     r = client.post("/api/v1/auth/activate",
-                    json={"token": token, "password": "second1234"})
+                    json={"token": token, "password": "vtoroy-parol7"})
     assert r.status_code == 409
     # старый пароль в силе, новый не сработал
     assert client.post("/api/v1/auth/login",
-                       json={"email": "n4@e.ru", "password": "first1234"}).status_code == 200
+                       json={"email": "n4@e.ru", "password": "pervyi-parol7"}).status_code == 200
     assert client.post("/api/v1/auth/login",
-                       json={"email": "n4@e.ru", "password": "second1234"}).status_code == 401
+                       json={"email": "n4@e.ru", "password": "vtoroy-parol7"}).status_code == 401
 
 
 def test_invite_token_absent_for_existing_user(client, register):
@@ -206,7 +206,7 @@ def test_short_password_rejected_everywhere(client, register):
 def _member(client, owner, email: str, role: str = "analyst") -> str:
     """Завести участника с паролем; вернуть его user_id."""
     token = _invite(client, owner, email=email, role=role)
-    r = client.post("/api/v1/auth/activate", json={"token": token, "password": "first1234"})
+    r = client.post("/api/v1/auth/activate", json={"token": token, "password": "pervyi-parol7"})
     assert r.status_code == 200
     me = client.get("/api/v1/auth/me",
                     headers={"Authorization": f"Bearer {r.json()['access_token']}"})
@@ -248,13 +248,13 @@ def test_admin_issues_reset_link_and_member_regains_access(client, register):
     assert r.status_code == 200 and r.json()["kind"] == "reset"
 
     a = client.post("/api/v1/auth/activate",
-                    json={"token": r.json()["token"], "password": "second1234"})
+                    json={"token": r.json()["token"], "password": "vtoroy-parol7"})
     assert a.status_code == 200
     assert client.post("/api/v1/auth/login",
-                       json={"email": "res-m@e.ru", "password": "second1234"}).status_code == 200
+                       json={"email": "res-m@e.ru", "password": "vtoroy-parol7"}).status_code == 200
     # прежний пароль больше не работает
     assert client.post("/api/v1/auth/login",
-                       json={"email": "res-m@e.ru", "password": "first1234"}).status_code == 401
+                       json={"email": "res-m@e.ru", "password": "pervyi-parol7"}).status_code == 401
 
 
 def test_reset_link_is_single_use(client, register):
@@ -263,12 +263,12 @@ def test_reset_link_is_single_use(client, register):
     uid = _member(client, owner, "once-m@e.ru")
     token = _link(client, owner, uid).json()["token"]
     assert client.post("/api/v1/auth/activate",
-                       json={"token": token, "password": "second1234"}).status_code == 200
+                       json={"token": token, "password": "vtoroy-parol7"}).status_code == 200
     r = client.post("/api/v1/auth/activate",
-                    json={"token": token, "password": "third12345"})
+                    json={"token": token, "password": "tretiy-parol7"})
     assert r.status_code == 409
     assert client.post("/api/v1/auth/login",
-                       json={"email": "once-m@e.ru", "password": "second1234"}).status_code == 200
+                       json={"email": "once-m@e.ru", "password": "vtoroy-parol7"}).status_code == 200
 
 
 def test_reset_link_dies_when_the_user_changes_password_himself(client, register):
@@ -278,14 +278,14 @@ def test_reset_link_dies_when_the_user_changes_password_himself(client, register
     token = _link(client, owner, uid).json()["token"]
 
     login = client.post("/api/v1/auth/login",
-                        json={"email": "self-m@e.ru", "password": "first1234"}).json()
+                        json={"email": "self-m@e.ru", "password": "pervyi-parol7"}).json()
     headers = {"Authorization": f"Bearer {login['access_token']}"}
     assert client.post("/api/v1/auth/password",
-                       json={"current_password": "first1234", "new_password": "own12345"},
+                       json={"current_password": "pervyi-parol7", "new_password": "vladelec-parol7"},
                        headers=headers).status_code == 204
 
     r = client.post("/api/v1/auth/activate",
-                    json={"token": token, "password": "hijack1234"})
+                    json={"token": token, "password": "perehvat-parol7"})
     assert r.status_code == 409
 
 
@@ -324,7 +324,7 @@ def test_access_link_reissues_an_invitation_when_there_is_no_password(client, re
     r = _link(client, owner, uid)
     assert r.status_code == 200 and r.json()["kind"] == "invite"
     assert client.post("/api/v1/auth/activate",
-                       json={"token": r.json()["token"], "password": "fresh12345"}
+                       json={"token": r.json()["token"], "password": "svezhiy-parol7"}
                        ).status_code == 200
 
 
@@ -334,7 +334,7 @@ def test_access_link_requires_member_manage(client, register):
     uid = _member(client, owner, "perm-m@e.ru", role="viewer")
     token = _invite(client, owner, email="perm-v@e.ru", role="viewer")
     viewer = client.post("/api/v1/auth/activate",
-                         json={"token": token, "password": "viewer1234"}).json()
+                         json={"token": token, "password": "nabludatel7"}).json()
     headers = {"Authorization": f"Bearer {viewer['access_token']}"}
     r = client.post(
         f"/api/v1/organizations/{_org(client, owner)}/members/{uid}/access-link",

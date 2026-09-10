@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { activateInvite } from "../api/auth";
-import { httpStatus, setToken } from "../api/client";
+import { httpDetail, httpStatus, setToken } from "../api/client";
 import { Button, Field } from "../components/ui";
 
 /**
@@ -48,7 +48,10 @@ export function ActivatePage() {
           ? "Приглашение уже активировано — войдите по паролю."
           : code === 400
             ? "Ссылка недействительна или устарела. Попросите пригласить вас заново."
-            : "Не удалось активировать приглашение.",
+            // Требования к паролю сервер называет словами — показываем их как есть.
+            : code === 422 && httpDetail(err)
+              ? httpDetail(err)!
+              : "Не удалось активировать приглашение.",
       );
       setBusy(false);
     }

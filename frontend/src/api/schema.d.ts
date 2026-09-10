@@ -759,6 +759,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/password-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Password Policy
+         * @description Что требуется от пароля — **из тех же правил**, что и проверяют.
+         *
+         *     Экран, перечисляющий требования своим текстом, однажды разойдётся с сервером: человек
+         *     прочтёт одно, а получит другое. Открыт без токена: правила нужны на регистрации и на
+         *     активации ссылки, то есть до входа.
+         */
+        get: operations["password_policy_api_v1_auth_password_policy_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/register": {
         parameters: {
             query?: never;
@@ -5788,6 +5812,30 @@ export interface components {
             new_password: string;
         };
         /**
+         * PasswordPolicyOut
+         * @description Требования к паролю — собранные из тех же правил, что и проверяют (C2).
+         *
+         *     ``leak_check`` говорит, включена ли сейчас проверка по базе утечек: обещать её при
+         *     выключенной значило бы утверждать, что платформа делает то, чего не делает.
+         */
+        PasswordPolicyOut: {
+            /**
+             * Leak Check
+             * @default false
+             */
+            leak_check: boolean;
+            /**
+             * Min Length
+             * @default 8
+             */
+            min_length: number;
+            /**
+             * Rules
+             * @default []
+             */
+            rules: string[];
+        };
+        /**
          * PaymentPart
          * @description Часть графика оплаты: доля выручки со сдвигом относительно месяца отгрузки.
          *
@@ -10211,6 +10259,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    password_policy_api_v1_auth_password_policy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasswordPolicyOut"];
                 };
             };
         };

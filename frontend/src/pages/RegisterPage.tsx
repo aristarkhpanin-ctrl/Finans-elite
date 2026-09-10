@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { httpStatus } from "../api/client";
+import { httpDetail, httpStatus } from "../api/client";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { IconBuilding, IconLock, IconMail, IconUser } from "../components/icons";
@@ -88,7 +88,12 @@ export function RegisterPage() {
       setServerError(
         httpStatus(err) === 409
           ? "Этот email уже зарегистрирован"
-          : "Не удалось создать аккаунт. Попробуйте ещё раз.",
+          // Отказ по паролю сервер называет словами («слишком известен», «подряд идущие
+          // клавиши», «повторяет ваш адрес»). Заменять их общим «не удалось» значило бы
+          // отправить человека перебирать варианты вслепую — и он придёт к «Parol1234!».
+          : httpStatus(err) === 422 && httpDetail(err)
+            ? httpDetail(err)!
+            : "Не удалось создать аккаунт. Попробуйте ещё раз.",
       );
       setBusy(false);
     }

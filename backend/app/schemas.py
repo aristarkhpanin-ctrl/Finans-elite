@@ -2050,3 +2050,15 @@ class RevokeAllOut(BaseModel):
     что именно с ним произошло."""
 
     closed: int = 0
+
+
+class PasswordPolicyOut(BaseModel):
+    """Требования к паролю — собранные из тех же правил, что и проверяют (C2).
+
+    ``leak_check`` говорит, включена ли сейчас проверка по базе утечек: обещать её при
+    выключенной значило бы утверждать, что платформа делает то, чего не делает.
+    """
+
+    min_length: int = 8
+    leak_check: bool = False
+    rules: list[str] = []

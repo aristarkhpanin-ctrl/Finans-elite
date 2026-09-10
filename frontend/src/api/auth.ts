@@ -79,3 +79,18 @@ export async function revokeAllSessions(): Promise<number> {
   const { data } = await api.post<{ closed: number }>("/api/v1/auth/sessions/revoke-all");
   return data.closed;
 }
+
+/**
+ * Требования к паролю — **с сервера**, а не своим текстом на каждом экране (C2).
+ *
+ * Перечисленные в интерфейсе отдельно, они однажды разойдутся с проверкой, и человек
+ * прочтёт одно, а получит другое. `leak_check` говорит, включена ли сейчас проверка по
+ * базе утечек: обещать её при выключенной значило бы утверждать, что платформа делает
+ * то, чего не делает.
+ */
+export type PasswordPolicy = Schema<"PasswordPolicyOut">;
+
+export async function getPasswordPolicy(): Promise<PasswordPolicy> {
+  const { data } = await api.get<PasswordPolicy>("/api/v1/auth/password-policy");
+  return data;
+}

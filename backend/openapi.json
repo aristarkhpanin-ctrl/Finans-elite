@@ -7549,6 +7549,31 @@
         "title": "PasswordChange",
         "type": "object"
       },
+      "PasswordPolicyOut": {
+        "description": "Требования к паролю — собранные из тех же правил, что и проверяют (C2).\n\n``leak_check`` говорит, включена ли сейчас проверка по базе утечек: обещать её при\nвыключенной значило бы утверждать, что платформа делает то, чего не делает.",
+        "properties": {
+          "leak_check": {
+            "default": false,
+            "title": "Leak Check",
+            "type": "boolean"
+          },
+          "min_length": {
+            "default": 8,
+            "title": "Min Length",
+            "type": "integer"
+          },
+          "rules": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Rules",
+            "type": "array"
+          }
+        },
+        "title": "PasswordPolicyOut",
+        "type": "object"
+      },
       "PaymentPart-Input": {
         "description": "Часть графика оплаты: доля выручки со сдвигом относительно месяца отгрузки.\n\n``offset_months`` < 0 — предоплата (за |offset| мес. до отгрузки → авансы B24);\n> 0 — рассрочка (через offset мес. после отгрузки → дебиторка B2); 0 — при отгрузке.",
         "properties": {
@@ -15567,6 +15592,28 @@
           }
         ],
         "summary": "Change Password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/password-policy": {
+      "get": {
+        "description": "Что требуется от пароля — **из тех же правил**, что и проверяют.\n\nЭкран, перечисляющий требования своим текстом, однажды разойдётся с сервером: человек\nпрочтёт одно, а получит другое. Открыт без токена: правила нужны на регистрации и на\nактивации ссылки, то есть до входа.",
+        "operationId": "password_policy_api_v1_auth_password_policy_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasswordPolicyOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Password Policy",
         "tags": [
           "auth"
         ]
