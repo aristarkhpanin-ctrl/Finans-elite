@@ -37,13 +37,33 @@ def _now() -> datetime:
 
 
 class Organization(Base):
-    """Арендатор (компания-клиент)."""
+    """Арендатор (компания-клиент).
+
+    **Приостановка организации — не конфискация данных** (ADMIN-DECOMPOSITION.md, B2).
+    Приостановленная организация переходит в режим чтения и выгрузки: свои модели видны
+    и выгружаются, новые не заводятся и старые не правятся. Отрезать клиента от
+    собственных чисел за неоплату или разбирательство означало бы держать их в
+    заложниках.
+    """
 
     __tablename__ = "organizations"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    #: Когда организацию приостановил **оператор платформы** (нарушение, запрос,
+    #: разбирательство). ``None`` — обычная работа. Это отдельное решение человека, а не
+    #: следствие статуса подписки: неоплата ограничивает сама по себе и снимается
+    #: оплатой, ручная приостановка — только тем, кто её поставил.
+    suspended_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    #: Кто приостановил — текстом, без ссылки: сотрудника могут удалить, а ответ на
+    #: вопрос «кто закрыл нам работу» обязан пережить его уход.
+    suspended_by: Mapped[str] = mapped_column(String(255), default="", server_default="")
+    #: Причина. Показывается **самой организации**: приостановка без объяснения
+    #: неотличима от поломки, и клиент пойдёт не в поддержку, а в отзывы.
+    suspend_reason: Mapped[str] = mapped_column(String(500), default="", server_default="")
 
 
 class User(Base):
@@ -66,6 +86,16 @@ class User(Base):
     #: у кого есть доступ к базе.
     is_staff: Mapped[bool] = mapped_column(Boolean, default=False,
                                            server_default=text("false"), nullable=False)
+    #: Учётная запись заблокирована **оператором платформы** (B2). В отличие от
+    #: приостановки членства (A1) действует сразу на все организации: это про человека,
+    #: а не про его место в одной компании, — поэтому право только у оператора.
+    #: Администратор организации такого сделать не может и не должен: человек состоит и
+    #: в чужих организациях, которые ему не подчиняются.
+    blocked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    blocked_by: Mapped[str] = mapped_column(String(255), default="", server_default="")
+    block_reason: Mapped[str] = mapped_column(String(500), default="", server_default="")
 
 
 class Membership(Base):

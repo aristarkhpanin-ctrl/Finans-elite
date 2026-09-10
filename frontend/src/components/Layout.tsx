@@ -4,6 +4,7 @@ import { createOrganization, roleLabel } from "../api/org";
 import { useAuth } from "../auth/AuthContext";
 import { CubeHero } from "./CubeHero";
 import { applyProduct, PRODUCTS, productFromPath } from "./product";
+import { RestrictionBanner } from "./RestrictionBanner";
 import { useToast } from "./Toast";
 import { getTheme, toggleTheme, type Theme } from "./theme";
 import { Button, Field, Modal } from "./ui";
@@ -539,6 +540,10 @@ export function Layout() {
           </aside>
         )}
         <main className="content">
+          {/* Режим чтения и выгрузки — над содержимым и на каждом экране: отказ,
+              объяснённый один раз на странице тарифа, до того, кто нажимает
+              «Сохранить» на третьей вкладке редактора, не доходит. */}
+          <RestrictionBanner org={currentOrg} product={product.id} />
           <Outlet />
         </main>
       </div>

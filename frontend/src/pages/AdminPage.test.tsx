@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { StaffOrg, StaffOrgDetail, StaffUser } from "../api/admin";
 import { AdminPage } from "./AdminPage";
@@ -23,18 +23,35 @@ const getStaffOrganization = vi.fn();
 const getStaffOrgLog = vi.fn();
 const searchStaffUsers = vi.fn();
 const getStaffLog = vi.fn();
+const suspendOrganization = vi.fn();
+const resumeOrganization = vi.fn();
+const blockUser = vi.fn();
+const unblockUser = vi.fn();
 vi.mock("../api/admin", () => ({
   getStaffOrganizations: (...a: unknown[]) => getStaffOrganizations(...a),
   getStaffOrganization: (...a: unknown[]) => getStaffOrganization(...a),
   getStaffOrgLog: (...a: unknown[]) => getStaffOrgLog(...a),
   searchStaffUsers: (...a: unknown[]) => searchStaffUsers(...a),
   getStaffLog: (...a: unknown[]) => getStaffLog(...a),
+  suspendOrganization: (...a: unknown[]) => suspendOrganization(...a),
+  resumeOrganization: (...a: unknown[]) => resumeOrganization(...a),
+  blockUser: (...a: unknown[]) => blockUser(...a),
+  unblockUser: (...a: unknown[]) => unblockUser(...a),
 }));
+
+const toast = vi.fn();
+vi.mock("../components/Toast", () => ({ useToast: () => toast }));
 
 let staff = true;
 vi.mock("../auth/AuthContext", () => ({
   useAuth: () => ({ user: { id: "u1", email: "s@e.ru", full_name: "С", is_staff: staff } }),
 }));
+
+const person = (over: Partial<StaffUser> = {}): StaffUser => ({
+  id: "u9", email: "k@e.ru", full_name: "Коллега", created_at: "2026-02-01T00:00:00Z",
+  is_staff: false, has_password: true, blocked: false, blocked_at: null, blocked_by: "",
+  block_reason: "", organizations: [], ...over,
+} as StaffUser);
 
 const org = (over: Partial<StaffOrg> = {}): StaffOrg => ({
   id: "o1", name: "ООО «Клиент»", created_at: "2026-01-15T10:00:00Z",
@@ -62,6 +79,13 @@ beforeEach(() => {
   getStaffOrgLog.mockResolvedValue({ entries: [], total: 0, actors: [], actions: [] });
   searchStaffUsers.mockResolvedValue([]);
   getStaffLog.mockResolvedValue({ entries: [] });
+  suspendOrganization.mockImplementation(async () => ({
+    ...org(), suspended: true, suspend_reason: "жалоба", suspended_by: "s@e.ru",
+    suspended_at: "2026-09-10T08:00:00Z", members_list: [],
+  }));
+  resumeOrganization.mockImplementation(async () => ({ ...org(), members_list: [] }));
+  blockUser.mockImplementation(async () => ({}));
+  unblockUser.mockImplementation(async () => ({}));
 });
 
 function show() {
@@ -112,16 +136,15 @@ it("вместо числа расчётов называет, что счётч
 });
 
 it("поиск человека различает «пароль не заводился» и «доступ приостановлен»", async () => {
-  searchStaffUsers.mockResolvedValue([{
-    id: "u9", email: "k@e.ru", full_name: "Коллега", created_at: "2026-02-01T00:00:00Z",
-    is_staff: false, has_password: false,
+  searchStaffUsers.mockResolvedValue([person({
+    has_password: false,
     organizations: [{ id: "o1", name: "ООО «Клиент»", role: "analyst", blocked: true,
                       block_reason: "увольнение", last_seen_at: null }],
-  } as StaffUser]);
+  })]);
   show();
   fireEvent.click(await screen.findByRole("button", { name: "Пользователи" }));
   expect(await screen.findByText("Коллега")).toBeTruthy();
-  expect(screen.getByText("не заводился")).toBeTruthy();
+  expect(screen.getByText("пароль не заводился")).toBeTruthy();
   expect(screen.getByText(/приостановлен: увольнение/)).toBeTruthy();
 });
 
@@ -134,4 +157,58 @@ it("служебный журнал показывает, где были сот
   fireEvent.click(await screen.findByRole("button", { name: "Журнал сотрудников" }));
   expect(await screen.findByText("staff.org_view")).toBeTruthy();
   expect(screen.getByText("ООО «Клиент»")).toBeTruthy();
+});
+
+
+// --- B2: власть оператора над клиентом ---
+
+it("приостановка требует причины и обещает клиенту его же данные", async () => {
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "ООО «Клиент»" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Приостановить" }));
+
+  // Кнопка в диалоге неактивна, пока причина не названа: ограничение без причины
+  // неотличимо от поломки для того, кому его покажут.
+  const dialog = within(screen.getByRole("dialog"));
+  expect((dialog.getByRole("button", { name: "Приостановить" }) as HTMLButtonElement)
+    .disabled).toBe(true);
+  expect(dialog.getByText(/Данные не отбираются/)).toBeTruthy();
+
+  fireEvent.change(dialog.getByLabelText("Причина"), { target: { value: "жалоба" } });
+  fireEvent.click(dialog.getByRole("button", { name: "Приостановить" }));
+  await waitFor(() => expect(suspendOrganization).toHaveBeenCalledWith("o1", "жалоба"));
+  expect(await screen.findByText(/жалоба · s@e.ru/)).toBeTruthy();
+});
+
+it("приостановленную организацию видно в списке, не открывая карточку", async () => {
+  getStaffOrganizations.mockResolvedValue({
+    organizations: [org({ suspended: true } as Partial<StaffOrg>)], total: 1,
+  });
+  show();
+  expect(await screen.findByText("приостановлена")).toBeTruthy();
+});
+
+it("блокировка учётной записи названа как «во всех организациях сразу»", async () => {
+  searchStaffUsers.mockResolvedValue([person()]);
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Пользователи" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Заблокировать" }));
+
+  // Отличие от приостановки участия (A1) сказано прямо: путать их — значит однажды
+  // отключить человека у всех клиентов вместо одного.
+  const dialog = within(screen.getByRole("dialog"));
+  expect(dialog.getByText(/во все организации сразу/)).toBeTruthy();
+  fireEvent.change(dialog.getByLabelText("Причина"), { target: { value: "мошенничество" } });
+  fireEvent.click(dialog.getByRole("button", { name: "Заблокировать" }));
+  await waitFor(() => expect(blockUser).toHaveBeenCalledWith("u9", "мошенничество"));
+});
+
+it("сотруднику платформы кнопки блокировки не даёт", async () => {
+  searchStaffUsers.mockResolvedValue([
+    person({ id: "u2", email: "s2@e.ru", full_name: "Коллега-оператор", is_staff: true }),
+  ]);
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Пользователи" }));
+  await screen.findByText("Коллега-оператор");
+  expect(screen.queryByRole("button", { name: "Заблокировать" })).toBeNull();
 });

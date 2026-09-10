@@ -10,9 +10,11 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from .. import billing, crud
+from ..access import restriction_for
 from ..database import get_db
 from ..db_models import User
 from ..deps import current_user, require_membership, require_org_permission
+from ..plans import PRODUCTS
 from ..rbac import Perm, is_valid_role
 from ..schemas import (
     AccessLinkOut,
@@ -27,6 +29,7 @@ from ..schemas import (
     OrganizationCreate,
     OrganizationMembershipOut,
     OrganizationOut,
+    RestrictionOut,
 )
 from ..security import create_invite_token, create_reset_token
 
@@ -54,12 +57,30 @@ def create_organization(body: OrganizationCreate, user: User = Depends(current_u
     return OrganizationOut(id=org.id, name=org.name, created_at=org.created_at)
 
 
+def _restrictions_out(db: Session, org_id: str) -> list[RestrictionOut]:
+    """Режим доступа организации по каждому продукту (B2).
+
+    Считается **тем же** :func:`access.restriction_for`, что и отказывает на записи:
+    второй источник этой правды однажды разошёлся бы с первым, и клиент видел бы
+    спокойный экран, на котором ничего не сохраняется.
+    """
+    out = []
+    for product in PRODUCTS:
+        restriction = restriction_for(db, org_id, product)
+        if restriction is not None:
+            out.append(RestrictionOut(product=product, kind=restriction.kind,
+                                      reason=restriction.reason, remedy=restriction.remedy))
+    return out
+
+
 @router.get("", response_model=list[OrganizationMembershipOut])
 def my_organizations(user: User = Depends(current_user),
                      db: Session = Depends(get_db)) -> list[OrganizationMembershipOut]:
-    """Организации текущего пользователя (с его ролью в каждой)."""
+    """Организации текущего пользователя (с его ролью и режимом доступа в каждой)."""
     return [
-        OrganizationMembershipOut(id=org.id, name=org.name, role=role, created_at=org.created_at)
+        OrganizationMembershipOut(id=org.id, name=org.name, role=role,
+                                  created_at=org.created_at,
+                                  restrictions=_restrictions_out(db, org.id))
         for org, role in crud.list_user_organizations(db, user.id)
     ]
 

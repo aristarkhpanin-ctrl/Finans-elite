@@ -53,3 +53,37 @@ export async function getStaffLog(limit = 100): Promise<StaffLogPage> {
   const { data } = await api.get<StaffLogPage>("/api/v1/admin/log", { params: { limit } });
   return data;
 }
+
+/**
+ * Приостановить организацию (B2). **Не конфискация данных**: клиент продолжает видеть,
+ * считать и выгружать свои модели — закрыты только правки. Причина обязательна и
+ * показывается самой организации; оплата приостановку не снимает.
+ */
+export async function suspendOrganization(orgId: string, reason: string): Promise<StaffOrgDetail> {
+  const { data } = await api.post<StaffOrgDetail>(
+    `/api/v1/admin/organizations/${orgId}/suspend`, { reason });
+  return data;
+}
+
+export async function resumeOrganization(orgId: string): Promise<StaffOrgDetail> {
+  const { data } = await api.delete<StaffOrgDetail>(
+    `/api/v1/admin/organizations/${orgId}/suspend`);
+  return data;
+}
+
+/**
+ * Заблокировать учётную запись платформы — сразу во всех организациях (B2).
+ *
+ * Не путать с приостановкой членства (A1): та закрывает человеку одно рабочее
+ * пространство и делается его же администратором. Эта — про саму учётную запись,
+ * поэтому право только у платформы.
+ */
+export async function blockUser(userId: string, reason: string): Promise<StaffUser> {
+  const { data } = await api.post<StaffUser>(`/api/v1/admin/users/${userId}/block`, { reason });
+  return data;
+}
+
+export async function unblockUser(userId: string): Promise<StaffUser> {
+  const { data } = await api.delete<StaffUser>(`/api/v1/admin/users/${userId}/block`);
+  return data;
+}

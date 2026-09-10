@@ -1,15 +1,21 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
+  blockUser,
   getStaffLog,
   getStaffOrgLog,
   getStaffOrganization,
   getStaffOrganizations,
+  resumeOrganization,
   searchStaffUsers,
+  suspendOrganization,
+  unblockUser,
+  type StaffUser,
 } from "../api/admin";
 import { roleLabel } from "../api/org";
 import { useAuth } from "../auth/AuthContext";
-import { Button, Chip, ErrorState, Loading } from "../components/ui";
+import { useToast } from "../components/Toast";
+import { Button, Chip, ErrorState, Field, Loading, Modal } from "../components/ui";
 import { plural } from "../format";
 
 /**
@@ -28,6 +34,12 @@ import { plural } from "../format";
  * собственных просмотров участников; приход постороннего — событие, которого клиент
  * иначе не увидел бы вовсе, и оговорка об этом стоит прямо на экране: оператор должен
  * знать, что его визит подписан.
+ *
+ * **Власть оператора над клиентом — два действия** (B2): приостановить организацию и
+ * заблокировать учётную запись, у каждого своё снятие. Оба требуют причины, потому что
+ * причину увидит тот, кого ограничили. Приостановка **не отбирает данные**: клиент
+ * продолжает видеть, считать и выгружать свои модели — это написано и в диалоге, чтобы
+ * оператор не думал, будто выключает клиента целиком.
  */
 
 const TABS = [
@@ -159,6 +171,7 @@ function OrgsTab({ onOpen }: { onOpen: (id: string) => void }) {
                   {o.name}
                 </button>
                 <div className="adm-sub">с {day(o.created_at)}</div>
+                {o.suspended && <Chip kind="problem">приостановлена</Chip>}
               </div>
               <div role="cell">
                 {(o.subscriptions ?? []).map((s) => (
@@ -193,6 +206,10 @@ function OrgsTab({ onOpen }: { onOpen: (id: string) => void }) {
  * карточка не грузится «заодно» со списком, а открывается явным действием.
  */
 function OrgCard({ orgId, onBack }: { orgId: string; onBack: () => void }) {
+  const qc = useQueryClient();
+  const toast = useToast();
+  const [suspendOpen, setSuspendOpen] = useState(false);
+  const [reason, setReason] = useState("");
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["admin-org", orgId],
     queryFn: () => getStaffOrganization(orgId),
@@ -200,6 +217,27 @@ function OrgCard({ orgId, onBack }: { orgId: string; onBack: () => void }) {
   const log = useQuery({
     queryKey: ["admin-org-log", orgId],
     queryFn: () => getStaffOrgLog(orgId),
+  });
+
+  const suspend = useMutation({
+    mutationFn: () => suspendOrganization(orgId, reason.trim()),
+    onSuccess: (fresh) => {
+      qc.setQueryData(["admin-org", orgId], fresh);
+      qc.invalidateQueries({ queryKey: ["admin-orgs"] });
+      setSuspendOpen(false);
+      setReason("");
+      toast("Организация приостановлена", { kind: "success" });
+    },
+    onError: () => toast("Не удалось приостановить", { kind: "error" }),
+  });
+  const resume = useMutation({
+    mutationFn: () => resumeOrganization(orgId),
+    onSuccess: (fresh) => {
+      qc.setQueryData(["admin-org", orgId], fresh);
+      qc.invalidateQueries({ queryKey: ["admin-orgs"] });
+      toast("Приостановка снята", { kind: "success" });
+    },
+    onError: () => toast("Не удалось снять приостановку", { kind: "error" }),
   });
 
   if (isLoading) return <Loading />;
@@ -217,7 +255,56 @@ function OrgCard({ orgId, onBack }: { orgId: string; onBack: () => void }) {
             Клиент с {day(data.created_at)}. Ваш визит записан в журнал этой организации.
           </div>
         </div>
+        <div style={{ display: "flex", gap: 8, flex: "none" }}>
+          {data.suspended
+            ? <Button onClick={() => resume.mutate()} disabled={resume.isPending}>
+                Снять приостановку
+              </Button>
+            : <Button variant="ghost" onClick={() => setSuspendOpen(true)}>
+                Приостановить
+              </Button>}
+        </div>
       </div>
+
+      {/* Состояние приостановки — на самом видном месте карточки, с автором и причиной:
+          оператор, снимающий её через месяц, должен видеть, за что она стоит, а не
+          восстанавливать это по журналу. */}
+      {data.suspended && (
+        <div className="restr restr--suspended" role="status">
+          <span className="restr__ico" aria-hidden="true">⏸</span>
+          <div>
+            <div className="restr__title">Организация приостановлена</div>
+            <div className="restr__text">
+              {data.suspend_reason || "причина не указана"} · {data.suspended_by || "—"},
+              {" "}{day(data.suspended_at)}. Клиент видит и выгружает свои данные, править
+              их не может.
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Modal
+        open={suspendOpen}
+        title="Приостановить организацию"
+        onClose={() => setSuspendOpen(false)}
+        actions={
+          <>
+            <Button variant="ghost" onClick={() => setSuspendOpen(false)}>Отмена</Button>
+            <Button onClick={() => suspend.mutate()}
+                    disabled={reason.trim().length < 3 || suspend.isPending}>
+              Приостановить
+            </Button>
+          </>
+        }
+      >
+        <p className="page-sub" style={{ marginTop: 0 }}>
+          Организация перейдёт в режим чтения и выгрузки: свои модели она видит, считает и
+          выгружает, но не заводит и не правит. Данные не отбираются.
+        </p>
+        <Field label="Причина" value={reason} autoFocus
+               onChange={(e) => setReason(e.target.value)}
+               note="Причину увидит сама организация — и тот, кто будет снимать приостановку." />
+      </Modal>
 
       <div className="adm-cards">
         {(data.subscriptions ?? []).map((s) => (
@@ -292,11 +379,36 @@ function OrgCard({ orgId, onBack }: { orgId: string; onBack: () => void }) {
 }
 
 function UsersTab() {
+  const qc = useQueryClient();
+  const toast = useToast();
   const [q, setQ] = useState("");
+  /** Кого блокируем: диалог требует причину — она уйдёт и человеку, и его организациям. */
+  const [blocking, setBlocking] = useState<StaffUser | null>(null);
+  const [reason, setReason] = useState("");
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["admin-users", q],
     queryFn: () => searchStaffUsers(q),
     placeholderData: (prev) => prev,
+  });
+
+  const refresh = () => qc.invalidateQueries({ queryKey: ["admin-users"] });
+  const block = useMutation({
+    mutationFn: () => blockUser(blocking!.id, reason.trim()),
+    onSuccess: () => {
+      refresh();
+      setBlocking(null);
+      setReason("");
+      toast("Учётная запись заблокирована", { kind: "success" });
+    },
+    onError: () => toast("Не удалось заблокировать", { kind: "error" }),
+  });
+  const unblock = useMutation({
+    mutationFn: (id: string) => unblockUser(id),
+    onSuccess: () => {
+      refresh();
+      toast("Блокировка снята", { kind: "success" });
+    },
+    onError: () => toast("Не удалось снять блокировку", { kind: "error" }),
   });
 
   if (isLoading && !data) return <Loading />;
@@ -312,9 +424,33 @@ function UsersTab() {
                value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
       <div className="page-sub" style={{ marginBottom: 12 }}>
-        «Не могу войти» — это два разных случая: пароль не заводился (приглашение не
-        активировано) или доступ приостановлен. Ответ различает их.
+        «Не могу войти» — это три разных случая: пароль не заводился (приглашение не
+        активировано), доступ приостановлен в организации или заблокирована сама учётная
+        запись. Ответ различает их.
       </div>
+
+      <Modal
+        open={blocking !== null}
+        title="Заблокировать учётную запись"
+        onClose={() => setBlocking(null)}
+        actions={
+          <>
+            <Button variant="ghost" onClick={() => setBlocking(null)}>Отмена</Button>
+            <Button onClick={() => block.mutate()}
+                    disabled={reason.trim().length < 3 || block.isPending}>
+              Заблокировать
+            </Button>
+          </>
+        }
+      >
+        <p className="page-sub" style={{ marginTop: 0 }}>
+          {blocking?.email} перестанет входить <b>во все организации сразу</b> — это не то
+          же, что приостановка участия в одной из них, которую делает её администратор.
+          Причину увидит и сам человек, и журналы его организаций.
+        </p>
+        <Field label="Причина" value={reason} autoFocus
+               onChange={(e) => setReason(e.target.value)} />
+      </Modal>
 
       {users.length === 0 ? (
         <div className="tab-empty">
@@ -325,9 +461,9 @@ function UsersTab() {
         <div className="log-list" role="table" aria-label="Пользователи платформы">
           <div className="log-row adm-row adm-row--head" role="row">
             <div role="columnheader">Пользователь</div>
-            <div role="columnheader">Пароль</div>
+            <div role="columnheader">Учётная запись</div>
             <div role="columnheader">Организации</div>
-            <div role="columnheader">С какого числа</div>
+            <div role="columnheader">Действия</div>
           </div>
           {users.map((u) => (
             <div className="log-row adm-row" role="row" key={u.id}>
@@ -337,9 +473,14 @@ function UsersTab() {
                 {u.is_staff && <Chip kind="info">сотрудник платформы</Chip>}
               </div>
               <div role="cell">
-                {u.has_password
-                  ? <span className="adm-sub">задан</span>
-                  : <Chip kind="warn">не заводился</Chip>}
+                {u.blocked
+                  ? <Chip kind="problem">
+                      заблокирована{u.block_reason ? `: ${u.block_reason}` : ""}
+                    </Chip>
+                  : u.has_password
+                    ? <span className="adm-sub">пароль задан</span>
+                    : <Chip kind="warn">пароль не заводился</Chip>}
+                <div className="adm-sub">с {day(u.created_at)}</div>
               </div>
               <div role="cell">
                 {(u.organizations ?? []).length === 0
@@ -351,7 +492,18 @@ function UsersTab() {
                       </div>
                     ))}
               </div>
-              <div role="cell">{day(u.created_at)}</div>
+              <div role="cell">
+                {/* Сотруднику платформы кнопки нет: снимать признак — не отсюда, иначе
+                    служебный контур решал бы свои споры блокировками. */}
+                {u.is_staff ? <span className="adm-sub">—</span>
+                  : u.blocked
+                    ? <Button variant="ghost" onClick={() => unblock.mutate(u.id)}
+                              disabled={unblock.isPending}>Снять блокировку</Button>
+                    : <Button variant="ghost"
+                              onClick={() => { setBlocking(u); setReason(""); }}>
+                        Заблокировать
+                      </Button>}
+              </div>
             </div>
           ))}
         </div>

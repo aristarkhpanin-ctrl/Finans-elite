@@ -99,6 +99,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/organizations/{org_id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspend Organization
+         * @description Приостановить организацию (нарушение, запрос, разбирательство) — B2.
+         *
+         *     **Приостановка не конфискует данные** (правило 7): организация переходит в режим
+         *     чтения и выгрузки — свои модели видны, считаются и выгружаются, новые не заводятся
+         *     и старые не правятся. Отрезать клиента от собственных чисел значило бы держать их в
+         *     заложниках, чем бы это ни было вызвано.
+         *
+         *     Причина обязательна и показывается **самой организации**: ограничение без объяснения
+         *     неотличимо от поломки. Оплата приостановку не снимает — снимает только платформа, и
+         *     в тексте отказа это сказано прямо.
+         */
+        post: operations["suspend_organization_api_v1_admin_organizations__org_id__suspend_post"];
+        /**
+         * Resume Organization
+         * @description Снять приостановку. Автор и причина стираются — историю хранит журнал.
+         */
+        delete: operations["resume_organization_api_v1_admin_organizations__org_id__suspend_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/users": {
         parameters: {
             query?: never;
@@ -136,6 +169,38 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}/block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Block User
+         * @description Заблокировать учётную запись платформы — сразу во всех организациях (B2).
+         *
+         *     Отличается от приостановки членства (A1) осью: там администратор закрывает человеку
+         *     **своё** рабочее пространство, здесь платформа закрывает саму учётную запись. Право
+         *     только у оператора именно поэтому: человек состоит и в чужих организациях, которые
+         *     администратору одной не подчиняются.
+         *
+         *     Пишется в журнал **каждой** организации, где человек состоит: администратор обязан
+         *     понимать, почему его сотрудник перестал работать, — иначе он будет искать поломку.
+         */
+        post: operations["block_user_api_v1_admin_users__user_id__block_post"];
+        /**
+         * Unblock User
+         * @description Снять блокировку учётной записи.
+         */
+        delete: operations["unblock_user_api_v1_admin_users__user_id__block_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -825,7 +890,7 @@ export interface paths {
         };
         /**
          * My Organizations
-         * @description Организации текущего пользователя (с его ролью в каждой).
+         * @description Организации текущего пользователя (с его ролью и режимом доступа в каждой).
          */
         get: operations["my_organizations_api_v1_organizations_get"];
         put?: never;
@@ -5439,7 +5504,19 @@ export interface components {
             /** Name */
             name: string;
         };
-        /** OrganizationMembershipOut */
+        /**
+         * OrganizationMembershipOut
+         * @description Организация пользователя с его ролью и **режимом доступа** (B2).
+         *
+         *     Пустой ``restrictions`` — обычная работа. Непустой означает режим чтения и выгрузки
+         *     по названным продуктам: свои данные видны, считаются и выгружаются, новые не
+         *     заводятся и старые не правятся. Причина идёт рядом и всегда: интерфейс, который
+         *     просто перестал сохранять, читается как поломка, и клиент пойдёт не в поддержку, а
+         *     в отзывы.
+         *
+         *     Список **не даёт и не отнимает прав** — он объясняет отказ, который в любом случае
+         *     вынесет сервер: спрятанная кнопка не защита.
+         */
         OrganizationMembershipOut: {
             /**
              * Created At
@@ -5450,6 +5527,11 @@ export interface components {
             id: string;
             /** Name */
             name: string;
+            /**
+             * Restrictions
+             * @default []
+             */
+            restrictions: components["schemas"]["RestrictionOut"][];
             /** Role */
             role: string;
         };
@@ -6831,6 +6913,25 @@ export interface components {
             unit_price: string;
         };
         /**
+         * RestrictionOut
+         * @description Почему продукт в режиме чтения и выгрузки — и что с этим делать (B2).
+         *
+         *     ``kind`` различает два случая, потому что различается **выход** из них: неоплата
+         *     снимается оплатой, ручная приостановка — только платформой. Показать неплательщику
+         *     «обратитесь в поддержку», а приостановленному «оплатите тариф» значило бы отправить
+         *     обоих не туда.
+         */
+        RestrictionOut: {
+            /** Kind */
+            kind: string;
+            /** Product */
+            product: string;
+            /** Reason */
+            reason: string;
+            /** Remedy */
+            remedy: string;
+        };
+        /**
          * Revaluation
          * @description Поправка к статье баланса (v2): экспертная переоценка по периодам.
          *
@@ -7235,6 +7336,23 @@ export interface components {
              * @default []
              */
             subscriptions: components["schemas"]["StaffSubscriptionOut"][];
+            /**
+             * Suspend Reason
+             * @default
+             */
+            suspend_reason: string;
+            /**
+             * Suspended
+             * @default false
+             */
+            suspended: boolean;
+            /** Suspended At */
+            suspended_at?: string | null;
+            /**
+             * Suspended By
+             * @default
+             */
+            suspended_by: string;
         };
         /**
          * StaffOrgOut
@@ -7294,6 +7412,23 @@ export interface components {
              * @default []
              */
             subscriptions: components["schemas"]["StaffSubscriptionOut"][];
+            /**
+             * Suspend Reason
+             * @default
+             */
+            suspend_reason: string;
+            /**
+             * Suspended
+             * @default false
+             */
+            suspended: boolean;
+            /** Suspended At */
+            suspended_at?: string | null;
+            /**
+             * Suspended By
+             * @default
+             */
+            suspended_by: string;
         };
         /** StaffOrgPage */
         StaffOrgPage: {
@@ -7431,6 +7566,23 @@ export interface components {
          *     забытый пароль. Самого хэша здесь, разумеется, нет.
          */
         StaffUserOut: {
+            /**
+             * Block Reason
+             * @default
+             */
+            block_reason: string;
+            /**
+             * Blocked
+             * @default false
+             */
+            blocked: boolean;
+            /** Blocked At */
+            blocked_at?: string | null;
+            /**
+             * Blocked By
+             * @default
+             */
+            blocked_by: string;
             /**
              * Created At
              * Format: date-time
@@ -7890,6 +8042,17 @@ export interface components {
         SubscriptionUpdate: {
             /** Plan Code */
             plan_code: string;
+        };
+        /**
+         * SuspendIn
+         * @description Причина приостановки организации или блокировки учётной записи.
+         *
+         *     Обязательна и показывается тому, кого ограничили: ограничение без причины
+         *     неотличимо от поломки — и для клиента, и для того, кто будет его снимать.
+         */
+        SuspendIn: {
+            /** Reason */
+            reason: string;
         };
         /**
          * Tax
@@ -8495,6 +8658,72 @@ export interface operations {
             };
         };
     };
+    suspend_organization_api_v1_admin_organizations__org_id__suspend_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SuspendIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffOrgDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resume_organization_api_v1_admin_organizations__org_id__suspend_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffOrgDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     search_users_api_v1_admin_users_get: {
         parameters: {
             query?: {
@@ -8528,6 +8757,72 @@ export interface operations {
         };
     };
     get_user_api_v1_admin_users__user_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffUserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    block_user_api_v1_admin_users__user_id__block_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SuspendIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffUserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unblock_user_api_v1_admin_users__user_id__block_delete: {
         parameters: {
             query?: never;
             header?: never;

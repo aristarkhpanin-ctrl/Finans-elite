@@ -62,6 +62,10 @@ from ..schemas import (
 )
 from ..versioning import diff_case_metrics, diff_models
 
+#: У каждого маршрута названа **своя подписка**: продукты продаются порознь, и
+#: просроченный «Аудит» не имеет отношения к оплаченному «Элит» (B2, режим чтения и
+#: выгрузки). Без явного `product` маршрут спрашивал бы про подписку чужого продукта —
+#: молча и в пользу нарушителя.
 router = APIRouter(prefix="/api/v1/audit", tags=["audit"])
 
 
@@ -94,7 +98,7 @@ def _require(db: Session, org_id: str, subject_id: str) -> AuditSubject:
 
 @router.post("/subjects", response_model=AuditSubjectOut, status_code=status.HTTP_201_CREATED)
 def create_subject(body: AuditSubjectCreate,
-                   org_id: str = Depends(require_permission(Perm.PROJECT_CREATE)),
+                   org_id: str = Depends(require_permission(Perm.PROJECT_CREATE, product="audit")),
                    actor: User = Depends(current_user),
                    db: Session = Depends(get_db)) -> AuditSubjectOut:
     """Создать субъект анализа в текущей организации."""
@@ -106,7 +110,7 @@ def create_subject(body: AuditSubjectCreate,
 
 
 @router.get("/subjects", response_model=list[AuditSubjectSummary])
-def list_subjects(org_id: str = Depends(require_permission(Perm.PROJECT_READ)),
+def list_subjects(org_id: str = Depends(require_permission(Perm.PROJECT_READ, product="audit")),
                   db: Session = Depends(get_db)) -> list[AuditSubjectSummary]:
     """Список субъектов анализа организации (метаданные)."""
     return [_summary(s) for s in crud.list_audit_subjects(db, org_id)]
@@ -114,7 +118,7 @@ def list_subjects(org_id: str = Depends(require_permission(Perm.PROJECT_READ)),
 
 @router.get("/subjects/{subject_id}", response_model=AuditSubjectOut)
 def get_subject(subject_id: str,
-                org_id: str = Depends(require_permission(Perm.PROJECT_READ)),
+                org_id: str = Depends(require_permission(Perm.PROJECT_READ, product="audit")),
                 db: Session = Depends(get_db)) -> AuditSubjectOut:
     """Получить субъект с моделью и сходимостью баланса по периодам."""
     return _out(_require(db, org_id, subject_id))
@@ -122,7 +126,7 @@ def get_subject(subject_id: str,
 
 @router.put("/subjects/{subject_id}", response_model=AuditSubjectOut)
 def update_subject(subject_id: str, body: AuditSubjectUpdate,
-                   org_id: str = Depends(require_permission(Perm.PROJECT_UPDATE)),
+                   org_id: str = Depends(require_permission(Perm.PROJECT_UPDATE, product="audit")),
                    actor: User = Depends(current_user),
                    db: Session = Depends(get_db)) -> AuditSubjectOut:
     """Обновить имя и/или модель субъекта."""
@@ -143,7 +147,7 @@ DEMO_NAME = "Демо-дело: ООО «Торговый дом» (вымышл
 
 @router.post("/subjects/demo", response_model=AuditSubjectOut,
              status_code=status.HTTP_201_CREATED)
-def create_demo_subject(org_id: str = Depends(require_permission(Perm.PROJECT_CREATE)),
+def create_demo_subject(org_id: str = Depends(require_permission(Perm.PROJECT_CREATE, product="audit")),
                         actor: User = Depends(current_user),
                         db: Session = Depends(get_db)) -> AuditSubjectOut:
     """Завести демо-дело из эталонного семпла («Экран 18»).
@@ -163,7 +167,7 @@ def create_demo_subject(org_id: str = Depends(require_permission(Perm.PROJECT_CR
 @router.post("/subjects/{subject_id}/duplicate", response_model=AuditSubjectOut,
              status_code=status.HTTP_201_CREATED)
 def duplicate_subject(subject_id: str,
-                      org_id: str = Depends(require_permission(Perm.PROJECT_CREATE)),
+                      org_id: str = Depends(require_permission(Perm.PROJECT_CREATE, product="audit")),
                       actor: User = Depends(current_user),
                       db: Session = Depends(get_db)) -> AuditSubjectOut:
     """Дублировать дело: модель целиком, имя «{name} (копия)»."""
@@ -186,7 +190,7 @@ def _benchmarks(db: Session, org_id: str) -> list[Benchmark]:
 
 @router.post("/subjects/{subject_id}/analyze", response_model=AuditAnalysisOut)
 def analyze_subject(subject_id: str,
-                    org_id: str = Depends(require_permission(Perm.PROJECT_CALCULATE)),
+                    org_id: str = Depends(require_permission(Perm.PROJECT_CALCULATE, product="audit")),
                     db: Session = Depends(get_db)) -> AuditAnalysisOut:
     """Проанализировать отчётность субъекта: аналитическая форма, тренды, коэффициенты.
 
@@ -208,7 +212,7 @@ def analyze_subject(subject_id: str,
 
 @router.post("/subjects/{subject_id}/risk", response_model=AuditRiskOut)
 def analyze_subject_risk(subject_id: str,
-                         org_id: str = Depends(require_permission(Perm.PROJECT_CALCULATE)),
+                         org_id: str = Depends(require_permission(Perm.PROJECT_CALCULATE, product="audit")),
                          db: Session = Depends(get_db)) -> AuditRiskOut:
     """Анализ рисков оценки: торнадо и Монте-Карло (SPEC, Прил. Р).
 
@@ -264,7 +268,7 @@ def _consolidate(members: list[tuple[str, AuditSubjectModel]], name: str,
 
 @router.post("/compare", response_model=AuditCompareResponse)
 def compare(body: AuditCompareRequest,
-            org_id: str = Depends(require_permission(Perm.PROJECT_CALCULATE)),
+            org_id: str = Depends(require_permission(Perm.PROJECT_CALCULATE, product="audit")),
             db: Session = Depends(get_db)) -> AuditCompareResponse:
     """Сравнить дела организации (SPEC, Приложение С).
 
@@ -294,7 +298,7 @@ def compare(body: AuditCompareRequest,
 
 @router.post("/consolidate", response_model=AuditConsolidateResponse)
 def consolidate(body: AuditConsolidateRequest,
-                org_id: str = Depends(require_permission(Perm.PROJECT_CALCULATE)),
+                org_id: str = Depends(require_permission(Perm.PROJECT_CALCULATE, product="audit")),
                 db: Session = Depends(get_db)) -> AuditConsolidateResponse:
     """Свод отчётности группы субъектов и анализ группы как единого предприятия.
 
@@ -349,7 +353,7 @@ def _case_summary(model: AuditSubjectModel) -> tuple[str | None, int | None, str
 @router.post("/subjects/{subject_id}/versions", response_model=AuditVersionSummary,
              status_code=status.HTTP_201_CREATED)
 def create_version(subject_id: str, body: VersionCreate,
-                   org_id: str = Depends(require_permission(Perm.PROJECT_UPDATE)),
+                   org_id: str = Depends(require_permission(Perm.PROJECT_UPDATE, product="audit")),
                    actor: User = Depends(current_user),
                    db: Session = Depends(get_db)) -> AuditVersionSummary:
     """Снимок текущей модели дела как именованная версия (со сводкой на этот момент)."""
@@ -370,7 +374,7 @@ def create_version(subject_id: str, body: VersionCreate,
 
 @router.get("/subjects/{subject_id}/versions", response_model=list[AuditVersionSummary])
 def list_versions(subject_id: str,
-                  org_id: str = Depends(require_permission(Perm.PROJECT_READ)),
+                  org_id: str = Depends(require_permission(Perm.PROJECT_READ, product="audit")),
                   db: Session = Depends(get_db)) -> list[AuditVersionSummary]:
     """Версии дела (метаданные, новейшие сверху)."""
     _require(db, org_id, subject_id)
@@ -379,7 +383,7 @@ def list_versions(subject_id: str,
 
 @router.get("/subjects/{subject_id}/versions/{version_id}", response_model=AuditVersionOut)
 def get_version(subject_id: str, version_id: str,
-                org_id: str = Depends(require_permission(Perm.PROJECT_READ)),
+                org_id: str = Depends(require_permission(Perm.PROJECT_READ, product="audit")),
                 db: Session = Depends(get_db)) -> AuditVersionOut:
     """Версия с полной моделью снимка."""
     _require(db, org_id, subject_id)
@@ -389,7 +393,7 @@ def get_version(subject_id: str, version_id: str,
 @router.delete("/subjects/{subject_id}/versions/{version_id}",
                status_code=status.HTTP_204_NO_CONTENT)
 def delete_version(subject_id: str, version_id: str,
-                   org_id: str = Depends(require_permission(Perm.PROJECT_UPDATE)),
+                   org_id: str = Depends(require_permission(Perm.PROJECT_UPDATE, product="audit")),
                    actor: User = Depends(current_user),
                    db: Session = Depends(get_db)) -> None:
     """Удалить версию."""
@@ -404,7 +408,7 @@ def delete_version(subject_id: str, version_id: str,
 @router.get("/subjects/{subject_id}/versions/{version_id}/diff",
             response_model=AuditVersionDiffOut)
 def diff_version(subject_id: str, version_id: str, against: str = "current",
-                 org_id: str = Depends(require_permission(Perm.PROJECT_READ)),
+                 org_id: str = Depends(require_permission(Perm.PROJECT_READ, product="audit")),
                  db: Session = Depends(get_db)) -> AuditVersionDiffOut:
     """Что изменилось от снимка к другой версии или к текущему состоянию дела.
 
@@ -442,7 +446,7 @@ def diff_version(subject_id: str, version_id: str, against: str = "current",
 @router.post("/subjects/{subject_id}/versions/{version_id}/restore",
              response_model=AuditSubjectOut)
 def restore_version(subject_id: str, version_id: str,
-                    org_id: str = Depends(require_permission(Perm.PROJECT_UPDATE)),
+                    org_id: str = Depends(require_permission(Perm.PROJECT_UPDATE, product="audit")),
                     actor: User = Depends(current_user),
                     db: Session = Depends(get_db)) -> AuditSubjectOut:
     """Вернуть модель версии в рабочее дело."""
@@ -457,7 +461,7 @@ def restore_version(subject_id: str, version_id: str,
 
 @router.get("/subjects/{subject_id}/report.docx")
 def download_report(subject_id: str,
-                    org_id: str = Depends(require_permission(Perm.PROJECT_READ)),
+                    org_id: str = Depends(require_permission(Perm.PROJECT_READ, product="audit")),
                     actor: User = Depends(current_user),
                     db: Session = Depends(get_db)) -> Response:
     """Документ заключения по анализу (DOCX): заключение, отчёты, коэффициенты, диагностика."""
@@ -479,7 +483,7 @@ def download_report(subject_id: str,
 
 @router.delete("/subjects/{subject_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_subject(subject_id: str,
-                   org_id: str = Depends(require_permission(Perm.PROJECT_DELETE)),
+                   org_id: str = Depends(require_permission(Perm.PROJECT_DELETE, product="audit")),
                    actor: User = Depends(current_user),
                    db: Session = Depends(get_db)) -> None:
     """Удалить субъект анализа."""
@@ -529,7 +533,7 @@ def _require_group(db: Session, org_id: str, group_id: str) -> AuditGroup:
 
 @router.post("/groups", response_model=AuditGroupOut, status_code=status.HTTP_201_CREATED)
 def create_group(body: AuditGroupCreate,
-                 org_id: str = Depends(require_permission(Perm.PROJECT_CREATE)),
+                 org_id: str = Depends(require_permission(Perm.PROJECT_CREATE, product="audit")),
                  actor: User = Depends(current_user),
                  db: Session = Depends(get_db)) -> AuditGroupOut:
     """Сохранить состав группы предприятий (участники + внутригрупповые обороты)."""
@@ -540,7 +544,7 @@ def create_group(body: AuditGroupCreate,
 
 
 @router.get("/groups", response_model=list[AuditGroupSummary])
-def list_groups(org_id: str = Depends(require_permission(Perm.PROJECT_READ)),
+def list_groups(org_id: str = Depends(require_permission(Perm.PROJECT_READ, product="audit")),
                 db: Session = Depends(get_db)) -> list[AuditGroupSummary]:
     """Список сохранённых групп (с числом участников и числом выбывших)."""
     return [_group_out(db, org_id, g) for g in crud.list_audit_groups(db, org_id)]
@@ -548,7 +552,7 @@ def list_groups(org_id: str = Depends(require_permission(Perm.PROJECT_READ)),
 
 @router.get("/groups/{group_id}", response_model=AuditGroupOut)
 def get_group(group_id: str,
-              org_id: str = Depends(require_permission(Perm.PROJECT_READ)),
+              org_id: str = Depends(require_permission(Perm.PROJECT_READ, product="audit")),
               db: Session = Depends(get_db)) -> AuditGroupOut:
     """Получить сохранённую группу с составом."""
     return _group_out(db, org_id, _require_group(db, org_id, group_id))
@@ -556,7 +560,7 @@ def get_group(group_id: str,
 
 @router.put("/groups/{group_id}", response_model=AuditGroupOut)
 def update_group(group_id: str, body: AuditGroupUpdate,
-                 org_id: str = Depends(require_permission(Perm.PROJECT_UPDATE)),
+                 org_id: str = Depends(require_permission(Perm.PROJECT_UPDATE, product="audit")),
                  actor: User = Depends(current_user),
                  db: Session = Depends(get_db)) -> AuditGroupOut:
     """Обновить имя и/или состав сохранённой группы."""
@@ -570,7 +574,7 @@ def update_group(group_id: str, body: AuditGroupUpdate,
 
 @router.post("/groups/{group_id}/analyze", response_model=AuditConsolidateResponse)
 def analyze_group(group_id: str,
-                  org_id: str = Depends(require_permission(Perm.PROJECT_CALCULATE)),
+                  org_id: str = Depends(require_permission(Perm.PROJECT_CALCULATE, product="audit")),
                   db: Session = Depends(get_db)) -> AuditConsolidateResponse:
     """Свод сохранённой группы по **текущей** отчётности участников.
 
@@ -585,7 +589,7 @@ def analyze_group(group_id: str,
 
 @router.delete("/groups/{group_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_group(group_id: str,
-                 org_id: str = Depends(require_permission(Perm.PROJECT_DELETE)),
+                 org_id: str = Depends(require_permission(Perm.PROJECT_DELETE, product="audit")),
                  actor: User = Depends(current_user),
                  db: Session = Depends(get_db)) -> None:
     """Удалить сохранённую группу (субъекты-участники не затрагиваются)."""

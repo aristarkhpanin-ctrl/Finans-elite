@@ -390,11 +390,42 @@ class OrganizationOut(BaseModel):
     created_at: datetime
 
 
+class RestrictionOut(BaseModel):
+    """Почему продукт в режиме чтения и выгрузки — и что с этим делать (B2).
+
+    ``kind`` различает два случая, потому что различается **выход** из них: неоплата
+    снимается оплатой, ручная приостановка — только платформой. Показать неплательщику
+    «обратитесь в поддержку», а приостановленному «оплатите тариф» значило бы отправить
+    обоих не туда.
+    """
+
+    #: Чей это режим: подписка своя у каждого продукта, и просроченный «Аудит» не имеет
+    #: отношения к оплаченному «Элит». Ручная приостановка приходит по обоим продуктам —
+    #: она про организацию целиком.
+    product: str
+    kind: str          # "suspended" | "unpaid"
+    reason: str
+    remedy: str
+
+
 class OrganizationMembershipOut(BaseModel):
+    """Организация пользователя с его ролью и **режимом доступа** (B2).
+
+    Пустой ``restrictions`` — обычная работа. Непустой означает режим чтения и выгрузки
+    по названным продуктам: свои данные видны, считаются и выгружаются, новые не
+    заводятся и старые не правятся. Причина идёт рядом и всегда: интерфейс, который
+    просто перестал сохранять, читается как поломка, и клиент пойдёт не в поддержку, а
+    в отзывы.
+
+    Список **не даёт и не отнимает прав** — он объясняет отказ, который в любом случае
+    вынесет сервер: спрятанная кнопка не защита.
+    """
+
     id: str
     name: str
     role: str
     created_at: datetime
+    restrictions: list[RestrictionOut] = []
 
 
 class MemberCreate(BaseModel):
@@ -1866,6 +1897,11 @@ class StaffOrgOut(BaseModel):
     last_calculated_at: Optional[datetime] = None
     last_seen_at: Optional[datetime] = None
     subscriptions: list[StaffSubscriptionOut] = []
+    #: Приостановлена оператором (B2) — с автором, временем и причиной.
+    suspended: bool = False
+    suspended_at: Optional[datetime] = None
+    suspended_by: str = ""
+    suspend_reason: str = ""
 
 
 class StaffOrgPage(BaseModel):
@@ -1904,6 +1940,11 @@ class StaffUserOut(BaseModel):
     created_at: datetime
     is_staff: bool = False
     has_password: bool = False
+    #: Учётная запись заблокирована платформой (B2) — действует на все организации.
+    blocked: bool = False
+    blocked_at: Optional[datetime] = None
+    blocked_by: str = ""
+    block_reason: str = ""
     organizations: list[StaffUserOrgOut] = []
 
 
@@ -1921,3 +1962,13 @@ class StaffLogEntryOut(BaseModel):
 
 class StaffLogPage(BaseModel):
     entries: list[StaffLogEntryOut] = []
+
+
+class SuspendIn(BaseModel):
+    """Причина приостановки организации или блокировки учётной записи.
+
+    Обязательна и показывается тому, кого ограничили: ограничение без причины
+    неотличимо от поломки — и для клиента, и для того, кто будет его снимать.
+    """
+
+    reason: str = Field(min_length=3, max_length=500)

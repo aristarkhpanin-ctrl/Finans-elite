@@ -47,12 +47,6 @@ NOT_LOGGED: dict[str, str] = {
     "POST /api/v1/audit/groups/{group_id}/analyze": "анализ без записи",
     "POST /api/v1/holdings/{holding_id}/consolidate": "анализ без записи",
     "POST /api/v1/integrator/consolidate": "анализ без записи",
-    # Вход в систему пишется через журналы организаций пользователя (log_user_action),
-    # а не привязан к организации из пути.
-    "POST /api/v1/auth/login": "пишется через log_user_action",
-    "POST /api/v1/auth/register": "организация ещё не существует; пишется org.create",
-    "POST /api/v1/auth/activate": "пишется через log_user_action",
-    "POST /api/v1/auth/password": "пишется через log_user_action",
     "PATCH /api/v1/auth/me": "профиль пользователя, а не данные организации",
     # Биллинг: подтверждение провайдера приходит без пользователя-актора.
     "POST /api/v1/billing/webhook/yookassa": "внешнее уведомление провайдера, актора нет",
@@ -80,6 +74,18 @@ def _source_of(endpoint) -> str:
     return inspect.getsource(endpoint)
 
 
+#: Чем маршрут может писать журнал. Событие человека (вход, смена пароля, блокировка
+#: учётной записи) не привязано к организации из пути и уходит в журналы **всех** его
+#: организаций через `log_user_action` — но это ровно такая же запись, и считать её
+#: «исключением из журнала» значило бы держать в списке исключений то, что пишется.
+_LOGGERS = ("crud.log_action", "crud.log_user_action")
+
+
+def _logs(endpoint) -> bool:
+    source = _source_of(endpoint)
+    return any(call in source for call in _LOGGERS)
+
+
 def test_every_mutating_endpoint_either_logs_or_is_listed():
     """Новый изменяющий маршрут не может выпасть из журнала незаметно.
 
@@ -91,11 +97,25 @@ def test_every_mutating_endpoint_either_logs_or_is_listed():
         key = f"{method} {path}"
         if key in NOT_LOGGED:
             continue
-        if "log_action" not in _source_of(endpoint):
+        if not _logs(endpoint):
             missing.append(key)
     assert missing == [], (
         "эти маршруты меняют данные и не пишут журнал; добавьте запись или внесите их "
         "в NOT_LOGGED с причиной: " + ", ".join(missing))
+
+
+def test_exceptions_list_does_not_cover_routes_that_do_log():
+    """Исключение, которое на самом деле пишет журнал, — ложь о продукте.
+
+    Без этой проверки список исключений однажды перестал бы означать «журнал не
+    пишется»: маршрут научился писать, а строка о нём осталась — и следующий, кто её
+    прочтёт, будет искать пропажу там, где всё на месте.
+    """
+    logging_but_listed = [f"{m} {p}" for m, p, e in _mutating_routes()
+                          if f"{m} {p}" in NOT_LOGGED and _logs(e)]
+    assert logging_but_listed == [], (
+        "эти маршруты пишут журнал — уберите их из NOT_LOGGED: "
+        + ", ".join(logging_but_listed))
 
 
 def test_exceptions_list_has_no_stale_entries():

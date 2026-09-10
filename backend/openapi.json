@@ -7280,6 +7280,7 @@
         "type": "object"
       },
       "OrganizationMembershipOut": {
+        "description": "Организация пользователя с его ролью и **режимом доступа** (B2).\n\nПустой ``restrictions`` — обычная работа. Непустой означает режим чтения и выгрузки\nпо названным продуктам: свои данные видны, считаются и выгружаются, новые не\nзаводятся и старые не правятся. Причина идёт рядом и всегда: интерфейс, который\nпросто перестал сохранять, читается как поломка, и клиент пойдёт не в поддержку, а\nв отзывы.\n\nСписок **не даёт и не отнимает прав** — он объясняет отказ, который в любом случае\nвынесет сервер: спрятанная кнопка не защита.",
         "properties": {
           "created_at": {
             "format": "date-time",
@@ -7293,6 +7294,14 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "restrictions": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/RestrictionOut"
+            },
+            "title": "Restrictions",
+            "type": "array"
           },
           "role": {
             "title": "Role",
@@ -9605,6 +9614,35 @@
         "title": "Resource",
         "type": "object"
       },
+      "RestrictionOut": {
+        "description": "Почему продукт в режиме чтения и выгрузки — и что с этим делать (B2).\n\n``kind`` различает два случая, потому что различается **выход** из них: неоплата\nснимается оплатой, ручная приостановка — только платформой. Показать неплательщику\n«обратитесь в поддержку», а приостановленному «оплатите тариф» значило бы отправить\nобоих не туда.",
+        "properties": {
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "product": {
+            "title": "Product",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "remedy": {
+            "title": "Remedy",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product",
+          "kind",
+          "reason",
+          "remedy"
+        ],
+        "title": "RestrictionOut",
+        "type": "object"
+      },
       "Revaluation-Input": {
         "description": "Поправка к статье баланса (v2): экспертная переоценка по периодам.\n\n``code`` — статья баланса (кроме капитала: он служит корреспонденцией любой поправки),\n``label`` — причина («безнадёжная дебиторка», «дооценка ОС»), ``amounts`` — поправки по\nпериодам (со знаком). Актив ``+Δ`` увеличивает капитал, обязательство ``+Δ`` уменьшает —\nпоэтому равенство «актив = пассив» сохраняется.",
         "properties": {
@@ -10450,6 +10488,33 @@
             },
             "title": "Subscriptions",
             "type": "array"
+          },
+          "suspend_reason": {
+            "default": "",
+            "title": "Suspend Reason",
+            "type": "string"
+          },
+          "suspended": {
+            "default": false,
+            "title": "Suspended",
+            "type": "boolean"
+          },
+          "suspended_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suspended At"
+          },
+          "suspended_by": {
+            "default": "",
+            "title": "Suspended By",
+            "type": "string"
           }
         },
         "required": [
@@ -10537,6 +10602,33 @@
             },
             "title": "Subscriptions",
             "type": "array"
+          },
+          "suspend_reason": {
+            "default": "",
+            "title": "Suspend Reason",
+            "type": "string"
+          },
+          "suspended": {
+            "default": false,
+            "title": "Suspended",
+            "type": "boolean"
+          },
+          "suspended_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suspended At"
+          },
+          "suspended_by": {
+            "default": "",
+            "title": "Suspended By",
+            "type": "string"
           }
         },
         "required": [
@@ -10776,6 +10868,33 @@
       "StaffUserOut": {
         "description": "Пользователь платформы: где состоит и в каком состоянии.\n\n``has_password`` отвечает на самый частый вопрос поддержки — «человек не может\nвойти»: у приглашённого пароля может не быть вовсе, и это не то же самое, что\nзабытый пароль. Самого хэша здесь, разумеется, нет.",
         "properties": {
+          "block_reason": {
+            "default": "",
+            "title": "Block Reason",
+            "type": "string"
+          },
+          "blocked": {
+            "default": false,
+            "title": "Blocked",
+            "type": "boolean"
+          },
+          "blocked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blocked At"
+          },
+          "blocked_by": {
+            "default": "",
+            "title": "Blocked By",
+            "type": "string"
+          },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
@@ -11722,6 +11841,22 @@
           "plan_code"
         ],
         "title": "SubscriptionUpdate",
+        "type": "object"
+      },
+      "SuspendIn": {
+        "description": "Причина приостановки организации или блокировки учётной записи.\n\nОбязательна и показывается тому, кого ограничили: ограничение без причины\nнеотличимо от поломки — и для клиента, и для того, кто будет его снимать.",
+        "properties": {
+          "reason": {
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "SuspendIn",
         "type": "object"
       },
       "Tax-Input": {
@@ -12958,6 +13093,110 @@
         ]
       }
     },
+    "/api/v1/admin/organizations/{org_id}/suspend": {
+      "delete": {
+        "description": "Снять приостановку. Автор и причина стираются — историю хранит журнал.",
+        "operationId": "resume_organization_api_v1_admin_organizations__org_id__suspend_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOrgDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Resume Organization",
+        "tags": [
+          "admin"
+        ]
+      },
+      "post": {
+        "description": "Приостановить организацию (нарушение, запрос, разбирательство) — B2.\n\n**Приостановка не конфискует данные** (правило 7): организация переходит в режим\nчтения и выгрузки — свои модели видны, считаются и выгружаются, новые не заводятся\nи старые не правятся. Отрезать клиента от собственных чисел значило бы держать их в\nзаложниках, чем бы это ни было вызвано.\n\nПричина обязательна и показывается **самой организации**: ограничение без объяснения\nнеотличимо от поломки. Оплата приостановку не снимает — снимает только платформа, и\nв тексте отказа это сказано прямо.",
+        "operationId": "suspend_organization_api_v1_admin_organizations__org_id__suspend_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuspendIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOrgDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Suspend Organization",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/admin/users": {
       "get": {
         "description": "Поиск человека по адресу или имени — вход в разбор обращения в поддержку.\n\nОтвет говорит и то, о чём поддержку спрашивают чаще всего: заведён ли пароль вообще\n(приглашённый его мог не задать) и не приостановлен ли доступ — и в какой именно\nорганизации. Это метаданные человека, а не данные организации, поэтому запись идёт\nв служебный журнал.",
@@ -13063,6 +13302,110 @@
           }
         ],
         "summary": "Get User",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users/{user_id}/block": {
+      "delete": {
+        "description": "Снять блокировку учётной записи.",
+        "operationId": "unblock_user_api_v1_admin_users__user_id__block_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffUserOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Unblock User",
+        "tags": [
+          "admin"
+        ]
+      },
+      "post": {
+        "description": "Заблокировать учётную запись платформы — сразу во всех организациях (B2).\n\nОтличается от приостановки членства (A1) осью: там администратор закрывает человеку\n**своё** рабочее пространство, здесь платформа закрывает саму учётную запись. Право\nтолько у оператора именно поэтому: человек состоит и в чужих организациях, которые\nадминистратору одной не подчиняются.\n\nПишется в журнал **каждой** организации, где человек состоит: администратор обязан\nпонимать, почему его сотрудник перестал работать, — иначе он будет искать поломку.",
+        "operationId": "block_user_api_v1_admin_users__user_id__block_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuspendIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffUserOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Block User",
         "tags": [
           "admin"
         ]
@@ -15604,7 +15947,7 @@
     },
     "/api/v1/organizations": {
       "get": {
-        "description": "Организации текущего пользователя (с его ролью в каждой).",
+        "description": "Организации текущего пользователя (с его ролью и режимом доступа в каждой).",
         "operationId": "my_organizations_api_v1_organizations_get",
         "responses": {
           "200": {

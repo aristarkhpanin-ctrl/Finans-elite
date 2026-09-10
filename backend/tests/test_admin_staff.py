@@ -66,15 +66,22 @@ def test_every_admin_route_requires_the_staff_mark():
     assert unguarded == [], f"маршруты без require_staff: {unguarded}"
 
 
-def test_staff_area_is_read_only():
-    """Ни одного изменяющего маршрута: B1 — это наблюдение, а не управление клиентом.
+def test_staff_can_change_exactly_four_things():
+    """Перечень власти оператора над клиентом — в одном месте и целиком.
 
-    Приостановка организации и блокировка учётной записи придут в B2 — отдельным
-    решением и с причиной, а не побочным эффектом экрана наблюдения.
+    В B1 изменяющих маршрутов не было вовсе. B2 добавил ровно два действия (приостановка
+    организации и блокировка учётной записи) со снятием у каждого — и список закрыт:
+    новый служебный маршрут, меняющий что-то у клиента, обязан пройти здесь, а не
+    появиться тихо между экранами наблюдения.
     """
-    mutating = [f"{sorted(r.methods)} {r.path}" for r in admin.router.routes
-                if (r.methods or set()) & {"POST", "PUT", "PATCH", "DELETE"}]
-    assert mutating == []
+    mutating = sorted(f"{sorted(r.methods)[0]} {r.path}" for r in admin.router.routes
+                      if (r.methods or set()) & {"POST", "PUT", "PATCH", "DELETE"})
+    assert mutating == [
+        "DELETE /api/v1/admin/organizations/{org_id}/suspend",
+        "DELETE /api/v1/admin/users/{user_id}/block",
+        "POST /api/v1/admin/organizations/{org_id}/suspend",
+        "POST /api/v1/admin/users/{user_id}/block",
+    ]
 
 
 def test_staff_mark_grants_nothing_in_client_organizations(client, db_session, register):

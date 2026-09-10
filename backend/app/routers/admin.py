@@ -43,6 +43,7 @@ from ..schemas import (
     StaffSubscriptionOut,
     StaffUserOrgOut,
     StaffUserOut,
+    SuspendIn,
 )
 from .organizations import _log_entry_out, _member_out
 
@@ -89,7 +90,18 @@ def _org_out(db: Session, org) -> StaffOrgOut:
     with _as_tenant(db, org.id):
         volumes = crud.org_volumes(db, org.id)
     return StaffOrgOut(id=org.id, name=org.name, created_at=org.created_at,
-                       subscriptions=_subscriptions_out(db, org.id), **volumes)
+                       subscriptions=_subscriptions_out(db, org.id),
+                       suspended=org.suspended_at is not None,
+                       suspended_at=org.suspended_at, suspended_by=org.suspended_by,
+                       suspend_reason=org.suspend_reason, **volumes)
+
+
+def _org_detail(db: Session, org) -> StaffOrgDetail:
+    """Карточка клиента: метаданные плюс состав. Собирается из одного места, чтобы
+    приостановка и снятие возвращали ровно то же, что показывает сама карточка."""
+    base = _org_out(db, org)
+    members = [_member_out(m, u) for m, u in crud.list_members(db, org.id)]
+    return StaffOrgDetail(**base.model_dump(), members_list=members)
 
 
 @router.get("/organizations", response_model=StaffOrgPage)
@@ -121,14 +133,13 @@ def get_organization(org_id: str, staff: User = Depends(require_staff),
     org = crud.get_organization(db, org_id)
     if org is None:
         raise HTTPException(status_code=404, detail="Организация не найдена")
-    base = _org_out(db, org)
-    members = [_member_out(m, u) for m, u in crud.list_members(db, org_id)]
+    detail = _org_detail(db, org)
     with _as_tenant(db, org_id):
         crud.log_action(db, org_id, staff, "staff.org_view", entity_type="organization",
                         entity_id=org_id, entity_name=org.name,
                         details="просмотр сотрудником платформы")
     crud.log_staff_action(db, staff, "staff.org_view", org_id=org_id, org_name=org.name)
-    return StaffOrgDetail(**base.model_dump(), members_list=members)
+    return detail
 
 
 @router.get("/organizations/{org_id}/audit-log", response_model=AuditLogPage)
@@ -172,7 +183,10 @@ def _user_out(db: Session, user: User) -> StaffUserOut:
             last_seen_at=membership.last_seen_at if membership else None))
     return StaffUserOut(id=user.id, email=user.email, full_name=user.full_name,
                         created_at=user.created_at, is_staff=user.is_staff,
-                        has_password=user.hashed_password is not None, organizations=orgs)
+                        has_password=user.hashed_password is not None,
+                        blocked=user.blocked_at is not None, blocked_at=user.blocked_at,
+                        blocked_by=user.blocked_by, block_reason=user.block_reason,
+                        organizations=orgs)
 
 
 @router.get("/users", response_model=list[StaffUserOut])
@@ -199,6 +213,99 @@ def get_user(user_id: str, staff: User = Depends(require_staff),
     if user is None:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     crud.log_staff_action(db, staff, "staff.user_view", details=user.email)
+    return _user_out(db, user)
+
+
+@router.post("/organizations/{org_id}/suspend", response_model=StaffOrgDetail)
+def suspend_organization(org_id: str, body: SuspendIn,
+                         staff: User = Depends(require_staff),
+                         db: Session = Depends(get_db)) -> StaffOrgDetail:
+    """Приостановить организацию (нарушение, запрос, разбирательство) — B2.
+
+    **Приостановка не конфискует данные** (правило 7): организация переходит в режим
+    чтения и выгрузки — свои модели видны, считаются и выгружаются, новые не заводятся
+    и старые не правятся. Отрезать клиента от собственных чисел значило бы держать их в
+    заложниках, чем бы это ни было вызвано.
+
+    Причина обязательна и показывается **самой организации**: ограничение без объяснения
+    неотличимо от поломки. Оплата приостановку не снимает — снимает только платформа, и
+    в тексте отказа это сказано прямо.
+    """
+    org = crud.get_organization(db, org_id)
+    if org is None:
+        raise HTTPException(status_code=404, detail="Организация не найдена")
+    crud.set_org_suspension(db, org, suspended=True, by=staff.email, reason=body.reason)
+    with _as_tenant(db, org_id):
+        crud.log_action(db, org_id, staff, "staff.org_suspend", entity_type="organization",
+                        entity_id=org_id, entity_name=org.name, details=body.reason)
+    crud.log_staff_action(db, staff, "staff.org_suspend", org_id=org_id,
+                          org_name=org.name, details=body.reason)
+    return _org_detail(db, org)
+
+
+@router.delete("/organizations/{org_id}/suspend", response_model=StaffOrgDetail)
+def resume_organization(org_id: str, staff: User = Depends(require_staff),
+                        db: Session = Depends(get_db)) -> StaffOrgDetail:
+    """Снять приостановку. Автор и причина стираются — историю хранит журнал."""
+    org = crud.get_organization(db, org_id)
+    if org is None:
+        raise HTTPException(status_code=404, detail="Организация не найдена")
+    crud.set_org_suspension(db, org, suspended=False)
+    with _as_tenant(db, org_id):
+        crud.log_action(db, org_id, staff, "staff.org_resume", entity_type="organization",
+                        entity_id=org_id, entity_name=org.name)
+    crud.log_staff_action(db, staff, "staff.org_resume", org_id=org_id, org_name=org.name)
+    return _org_detail(db, org)
+
+
+def _blockable(db: Session, user_id: str, staff: User) -> User:
+    """Кого оператору блокировать нельзя — и почему (оба отказа названы в ответе)."""
+    user = crud.get_user(db, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    if user.id == staff.id:
+        raise HTTPException(status_code=400,
+                            detail="Себя заблокировать нельзя: выйдете и не вернётесь")
+    if user.is_staff:
+        # Тот же довод, что и запрет блокировать владельца организации (A1): иначе один
+        # оператор отключает другого, и служебный контур решает свои споры блокировками.
+        raise HTTPException(
+            status_code=400,
+            detail="Учётная запись сотрудника платформы блокируется не отсюда: снимите "
+                   "признак сотрудника у того, у кого есть доступ к базе")
+    return user
+
+
+@router.post("/users/{user_id}/block", response_model=StaffUserOut)
+def block_user(user_id: str, body: SuspendIn, staff: User = Depends(require_staff),
+               db: Session = Depends(get_db)) -> StaffUserOut:
+    """Заблокировать учётную запись платформы — сразу во всех организациях (B2).
+
+    Отличается от приостановки членства (A1) осью: там администратор закрывает человеку
+    **своё** рабочее пространство, здесь платформа закрывает саму учётную запись. Право
+    только у оператора именно поэтому: человек состоит и в чужих организациях, которые
+    администратору одной не подчиняются.
+
+    Пишется в журнал **каждой** организации, где человек состоит: администратор обязан
+    понимать, почему его сотрудник перестал работать, — иначе он будет искать поломку.
+    """
+    user = _blockable(db, user_id, staff)
+    crud.set_user_block(db, user, blocked=True, by=staff.email, reason=body.reason)
+    crud.log_user_action(db, user, "staff.user_block", details=body.reason)
+    crud.log_staff_action(db, staff, "staff.user_block", details=f"{user.email}: {body.reason}")
+    return _user_out(db, user)
+
+
+@router.delete("/users/{user_id}/block", response_model=StaffUserOut)
+def unblock_user(user_id: str, staff: User = Depends(require_staff),
+                 db: Session = Depends(get_db)) -> StaffUserOut:
+    """Снять блокировку учётной записи."""
+    user = crud.get_user(db, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    crud.set_user_block(db, user, blocked=False)
+    crud.log_user_action(db, user, "staff.user_unblock")
+    crud.log_staff_action(db, staff, "staff.user_unblock", details=user.email)
     return _user_out(db, user)
 
 

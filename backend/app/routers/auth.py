@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from .. import crud
 from ..database import get_db
 from ..db_models import User
-from ..deps import current_user
+from ..deps import account_blocked_detail, current_user
 from ..ratelimit import rate_limit
 from ..schemas import (
     ActivateRequest,
@@ -62,6 +62,13 @@ def login(body: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
         # виден только так. Неизвестный адрес не пишется никуда (см. log_user_action).
         crud.log_user_action(db, user, "auth.login_failed", details="неверный пароль")
         raise HTTPException(status_code=401, detail="Неверный email или пароль")
+    if user.blocked_at is not None:
+        # Пароль верен — значит человек тот самый, и молчать о причине незачем: выдать
+        # ему рабочий на вид токен, который отвергнет первый же запрос, хуже, чем сразу
+        # сказать, что случилось. Событие пишется: попытка входа заблокированного —
+        # именно то, ради чего блокировку и ставили.
+        crud.log_user_action(db, user, "auth.login_blocked", details=user.block_reason)
+        raise HTTPException(status_code=403, detail=account_blocked_detail(user))
     crud.log_user_action(db, user, "auth.login")
     return TokenResponse(access_token=create_access_token(user.id))
 

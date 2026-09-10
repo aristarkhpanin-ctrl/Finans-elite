@@ -910,6 +910,37 @@ def set_staff(db: Session, user: User, *, is_staff: bool) -> User:
     return user
 
 
+def set_org_suspension(db: Session, org: Organization, *, suspended: bool,
+                       by: str = "", reason: str = "") -> Organization:
+    """Приостановить организацию или вернуть её к работе (B2).
+
+    Снятие **стирает** автора и причину: оставленная причина у работающей организации
+    читалась бы как действующее ограничение, и следующий, кто откроет карточку, решит,
+    что клиент до сих пор наказан. Историю хранит журнал — он для этого и есть.
+    """
+    org.suspended_at = datetime.now(timezone.utc) if suspended else None
+    org.suspended_by = by if suspended else ""
+    org.suspend_reason = reason if suspended else ""
+    db.commit()
+    db.refresh(org)
+    return org
+
+
+def set_user_block(db: Session, user: User, *, blocked: bool, by: str = "",
+                   reason: str = "") -> User:
+    """Заблокировать учётную запись платформы или снять блокировку (B2).
+
+    Действует на все организации сразу — в отличие от приостановки членства (A1),
+    которая касается одной. Поэтому право только у оператора платформы.
+    """
+    user.blocked_at = datetime.now(timezone.utc) if blocked else None
+    user.blocked_by = by if blocked else ""
+    user.block_reason = reason if blocked else ""
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 def log_staff_action(db: Session, user, action: str, *, org_id: str = "",
                      org_name: str = "", details: str = "") -> StaffLogEntry:
     """Записать действие сотрудника платформы в **служебный** журнал.

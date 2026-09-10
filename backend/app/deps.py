@@ -13,6 +13,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from . import crud
+from .access import WRITE_PERMS, restriction_for
 from .database import get_db, set_tenant
 from .db_models import Membership, User
 from .rbac import Perm, has_permission
@@ -58,6 +59,19 @@ def _ensure_active(membership: Membership | None,
     return membership
 
 
+def account_blocked_detail(user: User) -> str:
+    """Текст отказа заблокированной учётной записи — один на все двери (B2).
+
+    Блокировка учётной записи действует **на все организации сразу**, в отличие от
+    приостановки членства (A1): она про человека, а не про его место в одной компании.
+    Причина называется, чтобы человек знал, к кому идти; отказ — 403, а не 401, по тому
+    же доводу, что и в A1: токен действителен, и экран входа отправил бы его искать
+    ошибку в пароле.
+    """
+    reason = user.block_reason or "причина не указана"
+    return f"Учётная запись заблокирована платформой: {reason}"
+
+
 def current_user(
     credentials: HTTPAuthorizationCredentials = Depends(_bearer),
     db: Session = Depends(get_db),
@@ -69,6 +83,11 @@ def current_user(
     user = crud.get_user(db, user_id)
     if user is None:
         raise HTTPException(status_code=401, detail="Пользователь не найден")
+    if user.blocked_at is not None:
+        # Проверка здесь, а не в каждом маршруте: через эту зависимость проходит любой
+        # запрос платформы, включая служебный контур. Отзыв мгновенный по той же причине,
+        # что и в A1 — учётная запись читается из базы на каждом запросе.
+        raise HTTPException(status_code=403, detail=account_blocked_detail(user))
     return user
 
 
@@ -129,10 +148,27 @@ def require_membership(
     return org_id
 
 
-def require_permission(perm: Perm):
+def _ensure_not_restricted(db: Session, org_id: str, perm: Perm, product: str) -> None:
+    """Режим чтения и выгрузки: закрыть правку, оставив просмотр (B2).
+
+    Проверка живёт рядом с проверкой права — в одном месте на все маршруты — и опирается
+    на **множество прав**, а не на список эндпоинтов: список пришлось бы дополнять при
+    каждом новом маршруте, и однажды его забыли бы дополнить.
+    """
+    if perm not in WRITE_PERMS:
+        return
+    restriction = restriction_for(db, org_id, product)
+    if restriction is not None:
+        raise HTTPException(status_code=403, detail=restriction.detail)
+
+
+def require_permission(perm: Perm, product: str = "business"):
     """Фабрика зависимостей: требовать право ``perm`` в текущей организации (из членства).
 
     Для проектов: организация выводится из ``current_org_id``. Отдаёт ``organization_id``.
+
+    ``product`` называет, чья подписка отвечает за маршрут: у продуктов она своя, и
+    просроченный «Аудит» не имеет отношения к оплаченному «Элит».
     """
 
     def dependency(
@@ -143,12 +179,13 @@ def require_permission(perm: Perm):
         membership = _ensure_active(crud.get_membership(db, org_id, user.id), db)
         if not has_permission(membership.role if membership else None, perm):
             raise HTTPException(status_code=403, detail="Недостаточно прав")
+        _ensure_not_restricted(db, org_id, perm, product)
         return org_id
 
     return dependency
 
 
-def require_org_permission(perm: Perm):
+def require_org_permission(perm: Perm, product: str = "business"):
     """Фабрика зависимостей: требовать право ``perm`` в организации **из пути** (``org_id``)."""
 
     def dependency(
@@ -159,6 +196,7 @@ def require_org_permission(perm: Perm):
         membership = _ensure_active(crud.get_membership(db, org_id, user.id), db)
         if not has_permission(membership.role if membership else None, perm):
             raise HTTPException(status_code=403, detail="Недостаточно прав")
+        _ensure_not_restricted(db, org_id, perm, product)
         return org_id
 
     return dependency
