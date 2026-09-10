@@ -15,9 +15,9 @@ from sqlalchemy.orm import Session
 from . import crud
 from .access import WRITE_PERMS, restriction_for
 from .database import get_db, set_tenant
-from .db_models import Membership, User
+from .db_models import Membership, User, UserSession
 from .rbac import Perm, has_permission
-from .security import decode_token
+from .security import decode_access
 
 _bearer = HTTPBearer(auto_error=True)
 
@@ -72,15 +72,49 @@ def account_blocked_detail(user: User) -> str:
     return f"Учётная запись заблокирована платформой: {reason}"
 
 
-def current_user(
+def current_session(
     credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+    db: Session = Depends(get_db),
+) -> UserSession:
+    """Сеанс входа за токеном (C1) — проходная точка доступа к учётной записи.
+
+    Отзыв мгновенный по тому же устройству, что и в A1: состояние читается из базы на
+    каждом запросе, а не хранится в токене. Отдельного списка отозванных токенов нет —
+    есть **реестр входов**, который человек видит и которым управляет сам.
+
+    Отказ — **401, а не 403**: сеанс закрыт или истёк, и войти заново это и есть выход.
+    403 сказал бы «вам сюда нельзя» о человеке, которому просто нужно войти.
+    """
+    decoded = decode_access(credentials.credentials)
+    if decoded is None:
+        raise HTTPException(status_code=401, detail="Недействительный токен")
+    _, session_id = decoded
+    session = crud.get_session(db, session_id)
+    if session is None:
+        raise HTTPException(status_code=401, detail="Сеанс завершён — войдите снова")
+    expires = session.expires_at
+    if expires.tzinfo is None:                       # SQLite отдаёт наивное время
+        expires = expires.replace(tzinfo=timezone.utc)
+    if session.revoked_at is not None or expires <= datetime.now(timezone.utc):
+        # Блокировка учётной записи (B2) закрывает и сеансы, поэтому без этой проверки
+        # заблокированный получал бы «сеанс завершён» вместо названной причины — то
+        # есть шёл бы входить заново и упирался в ту же стену, не понимая, во что.
+        # Причина обязана пережить механизм, появившийся позже неё.
+        blocked = crud.get_user(db, session.user_id)
+        if blocked is not None and blocked.blocked_at is not None:
+            raise HTTPException(status_code=403, detail=account_blocked_detail(blocked))
+        closed = "Сеанс завершён" if session.revoked_at is not None else "Сеанс истёк"
+        raise HTTPException(status_code=401, detail=f"{closed} — войдите снова")
+    crud.touch_session(db, session, SEEN_INTERVAL)
+    return session
+
+
+def current_user(
+    session: UserSession = Depends(current_session),
     db: Session = Depends(get_db),
 ) -> User:
     """Текущий пользователь по токену доступа."""
-    user_id = decode_token(credentials.credentials)
-    if user_id is None:
-        raise HTTPException(status_code=401, detail="Недействительный токен")
-    user = crud.get_user(db, user_id)
+    user = crud.get_user(db, session.user_id)
     if user is None:
         raise HTTPException(status_code=401, detail="Пользователь не найден")
     if user.blocked_at is not None:

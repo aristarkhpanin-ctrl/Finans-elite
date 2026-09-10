@@ -1,4 +1,5 @@
 import { api } from "./client";
+import type { Schema } from "./gen";
 import type {
   LoginPayload,
   OrganizationMembership,
@@ -49,4 +50,32 @@ export async function updateProfile(full_name: string): Promise<User> {
 export async function changePassword(current_password: string,
                                      new_password: string): Promise<void> {
   await api.post("/api/v1/auth/password", { current_password, new_password });
+}
+
+/**
+ * Действующие входы в свою учётную запись (C1).
+ *
+ * Устройство и адрес приходят от самого клиента и подделываются кем угодно: это
+ * подсказка владельцу («это точно был я?»), а не удостоверение устройства — и на экране
+ * это сказано, чтобы список не читался как доказательство.
+ */
+export type SessionRow = Schema<"SessionOut">;
+
+export async function getSessions(): Promise<SessionRow[]> {
+  const { data } = await api.get<SessionRow[]>("/api/v1/auth/sessions");
+  return data;
+}
+
+/** Закрыть конкретный вход. Отзыв мгновенный: сеанс читается из базы на каждом запросе. */
+export async function revokeSession(id: string): Promise<void> {
+  await api.delete(`/api/v1/auth/sessions/${id}`);
+}
+
+/**
+ * «Выйти на всех устройствах» — включая текущее. Возвращает, сколько входов закрыто:
+ * человеку говорят, что именно с ним произошло, а не безличное «готово».
+ */
+export async function revokeAllSessions(): Promise<number> {
+  const { data } = await api.post<{ closed: number }>("/api/v1/auth/sessions/revoke-all");
+  return data.closed;
 }

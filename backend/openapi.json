@@ -6377,6 +6377,11 @@
           "password": {
             "title": "Password",
             "type": "string"
+          },
+          "remember": {
+            "default": false,
+            "title": "Remember",
+            "type": "boolean"
           }
         },
         "required": [
@@ -9891,6 +9896,18 @@
         "title": "ReviewResponse",
         "type": "object"
       },
+      "RevokeAllOut": {
+        "description": "Сколько входов закрыто. Число, а не безличное «готово»: человек должен понимать,\nчто именно с ним произошло.",
+        "properties": {
+          "closed": {
+            "default": 0,
+            "title": "Closed",
+            "type": "integer"
+          }
+        },
+        "title": "RevokeAllOut",
+        "type": "object"
+      },
       "RiskAnalysis-Input": {
         "description": "Настройки анализа рисков оценки (SPEC, Приложение Р).\n\n``seed`` фиксирован: без него медиана менялась бы при каждом обновлении страницы,\nи назвать её за столом переговоров было бы нельзя.",
         "properties": {
@@ -10471,6 +10488,64 @@
           "points"
         ],
         "title": "SensitivityResponse",
+        "type": "object"
+      },
+      "SessionOut": {
+        "description": "Действующий вход в учётную запись (C1).\n\n``device`` и ``ip`` приходят от самого клиента и подделываются кем угодно: это\n**подсказка владельцу** («это точно был я?»), а не удостоверение устройства. Сырая\nстрока браузера отдаётся рядом (``user_agent``) — грубая подпись может ошибиться, и\nпрятать источник, по которому её можно перепроверить, было бы нечестно.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "current": {
+            "default": false,
+            "title": "Current",
+            "type": "boolean"
+          },
+          "device": {
+            "title": "Device",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "ip": {
+            "default": "",
+            "title": "Ip",
+            "type": "string"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "user_agent": {
+            "default": "",
+            "title": "User Agent",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "device",
+          "created_at",
+          "expires_at"
+        ],
+        "title": "SessionOut",
         "type": "object"
       },
       "SignatureOut": {
@@ -15534,6 +15609,105 @@
           }
         },
         "summary": "Register",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/sessions": {
+      "get": {
+        "description": "Действующие входы в свою учётную запись (C1).\n\nПоказываются только живые: список закрытых не отвечает на вопрос, ради которого его\nоткрывают («кто сейчас внутри?»). История входов есть в журнале организации — второй\nеё копии здесь не заводим, разошлись бы.\n\nУстройство и адрес приходят от самого клиента и подделываются кем угодно, поэтому\nони **подсказка владельцу**, а не удостоверение: ни один отказ платформы на них не\nопирается, и на экране это сказано.",
+        "operationId": "list_sessions_api_v1_auth_sessions_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SessionOut"
+                  },
+                  "title": "Response List Sessions Api V1 Auth Sessions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Sessions",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/sessions/revoke-all": {
+      "post": {
+        "description": "«Выйти на всех устройствах» — включая текущее.\n\nТекущее тоже закрывается намеренно: человек нажимает эту кнопку, когда не уверен,\nчто контролирует учётную запись, и оставленный «свой» вход в такой ситуации — это\nровно тот вход, из-за которого всё и началось.",
+        "operationId": "revoke_all_sessions_api_v1_auth_sessions_revoke_all_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevokeAllOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Revoke All Sessions",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/sessions/{session_id}": {
+      "delete": {
+        "description": "Закрыть конкретный вход. **Только свой**: чужой сеанс не находится, а не\nотказывается по правам — знать о существовании чужих входов незачем.",
+        "operationId": "revoke_session_api_v1_auth_sessions__session_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Revoke Session",
         "tags": [
           "auth"
         ]

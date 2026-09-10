@@ -302,6 +302,10 @@ def block_user(user_id: str, body: SuspendIn, staff: User = Depends(require_staf
     """
     user = _blockable(db, user_id, staff)
     crud.set_user_block(db, user, blocked=True, by=staff.email, reason=body.reason)
+    # Блокировка закрывает и сеансы (C1). Отказ на входе даёт `blocked_at` и так, но
+    # снятие блокировки не должно воскрешать входы, которые были живы в момент запрета:
+    # заблокированного разблокируют, а его старый токен на чужом устройстве — нет.
+    crud.revoke_user_sessions(db, user.id)
     crud.log_user_action(db, user, "staff.user_block", details=body.reason)
     crud.log_staff_action(db, staff, "staff.user_block", details=f"{user.email}: {body.reason}")
     return _user_out(db, user)

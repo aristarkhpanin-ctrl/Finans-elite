@@ -39,6 +39,12 @@ export function LoginPage() {
   const [shakeKey, setShakeKey] = useState(0);
   const [serverError, setServerError] = useState("");
   const [busy, setBusy] = useState(false);
+  /**
+   * «Запомнить меня»: вход живёт 30 дней вместо суток. Длинный срок перестал быть
+   * опасным, когда появился реестр входов (C1) — человек видит свои сеансы в профиле и
+   * закрывает лишние. По умолчанию выключено: сутки — разумная цена за чужой ноутбук.
+   */
+  const [remember, setRemember] = useState(false);
   const [success, setSuccess] = useState(false);
   const timer = useRef<number>();
 
@@ -64,7 +70,7 @@ export function LoginPage() {
     }
     setBusy(true);
     try {
-      await login({ email, password });
+      await login({ email, password, remember });
       setSuccess(true);
       timer.current = window.setTimeout(
         () => navigate(PRODUCTS[product].home), REDIRECT_DELAY_MS);
@@ -126,6 +132,11 @@ export function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           onBlur={() => setTouched((t) => ({ ...t, password: true }))}
         />
+        <label className="auth-remember">
+          <input type="checkbox" checked={remember} disabled={busy}
+                 onChange={(e) => setRemember(e.target.checked)} />
+          <span>Запомнить меня на 30 дней</span>
+        </label>
         <AuthSubmit busy={busy} idleText="Войти" busyText="Входим…" />
       </form>
     </AuthLayout>

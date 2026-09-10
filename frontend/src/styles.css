@@ -3880,3 +3880,22 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   .mgrid__row { grid-template-columns: 1fr 1fr; }
   .mgrid__row > :last-child { display: none; }
 }
+
+/* Входы в учётную запись (C1): список действующих сеансов в профиле. */
+.sess-list { display: flex; flex-direction: column; gap: 2px; margin-bottom: 12px; }
+.sess-row {
+  display: flex; align-items: center; gap: 12px; justify-content: space-between;
+  padding: 10px 0; border-top: 1px solid var(--border);
+}
+.sess-row:first-child { border-top: none; }
+.sess-row__device {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font: 600 13px var(--font-ui); color: var(--text);
+}
+.sess-row__meta { font: 400 12px var(--font-ui); color: var(--muted); margin-top: 3px; }
+
+/* «Запомнить меня» на экране входа. */
+.auth-remember {
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
+  font: 400 13px var(--font-ui); color: var(--muted); margin: -4px 0 4px;
+}

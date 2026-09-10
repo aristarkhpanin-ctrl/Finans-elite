@@ -1,13 +1,13 @@
 """Аутентификация: регистрация, вход, активация приглашения, профиль (6.3)."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from .. import crud
 from ..database import get_db
-from ..db_models import User
-from ..deps import account_blocked_detail, current_user
+from ..db_models import User, UserSession
+from ..deps import account_blocked_detail, current_session, current_user
 from ..ratelimit import rate_limit
 from ..schemas import (
     ActivateRequest,
@@ -15,10 +15,13 @@ from ..schemas import (
     PasswordChange,
     ProfileUpdate,
     RegisterRequest,
+    RevokeAllOut,
+    SessionOut,
     TokenResponse,
     UserOut,
 )
 from ..security import (
+    access_ttl,
     create_access_token,
     decode_reset_token,
     decode_token,
@@ -26,6 +29,7 @@ from ..security import (
     password_stamp,
     verify_password,
 )
+from ..sessions import client_ip, device_label
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
@@ -34,13 +38,34 @@ _register_limit = rate_limit("register", limit=10, window_seconds=60)
 _login_limit = rate_limit("login", limit=20, window_seconds=60)
 
 
+
+
+def _issue_token(db: Session, user: User, request: Request,
+                 remember: bool = False) -> TokenResponse:
+    """Завести сеанс и выдать привязанный к нему токен (C1).
+
+    Одна функция на все три двери входа — регистрацию, вход и активацию ссылки: три
+    копии этой пары («создать сеанс» + «подписать токен») однажды разошлись бы, и одна
+    из дверей начала бы выдавать токен без сеанса, то есть неотзываемый.
+    """
+    ttl = access_ttl(remember)
+    session = crud.create_session(
+        db, user.id, ttl_seconds=ttl,
+        user_agent=request.headers.get("user-agent", ""),
+        ip=client_ip(forwarded_for=request.headers.get("x-forwarded-for"),
+                     remote=request.client.host if request.client else ""),
+    )
+    return TokenResponse(access_token=create_access_token(user.id, session.id, ttl))
+
+
 @router.post(
     "/register",
     response_model=TokenResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(_register_limit)],
 )
-def register(body: RegisterRequest, db: Session = Depends(get_db)) -> TokenResponse:
+def register(body: RegisterRequest, request: Request,
+             db: Session = Depends(get_db)) -> TokenResponse:
     """Регистрация: создаёт пользователя, его организацию и членство (owner)."""
     _check_password(body.password)
     if crud.get_user_by_email(db, body.email) is not None:
@@ -50,11 +75,12 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)) -> TokenRespo
     crud.add_membership(db, org.id, user.id, role="owner")
     crud.log_action(db, org.id, user, "org.create", entity_type="organization",
                     entity_id=org.id, entity_name=org.name)
-    return TokenResponse(access_token=create_access_token(user.id))
+    return _issue_token(db, user, request)
 
 
 @router.post("/login", response_model=TokenResponse, dependencies=[Depends(_login_limit)])
-def login(body: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
+def login(body: LoginRequest, request: Request,
+          db: Session = Depends(get_db)) -> TokenResponse:
     """Вход по email и паролю → токен доступа."""
     user = crud.get_user_by_email(db, body.email)
     if user is None or not verify_password(user.hashed_password, body.password):
@@ -70,7 +96,7 @@ def login(body: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
         crud.log_user_action(db, user, "auth.login_blocked", details=user.block_reason)
         raise HTTPException(status_code=403, detail=account_blocked_detail(user))
     crud.log_user_action(db, user, "auth.login")
-    return TokenResponse(access_token=create_access_token(user.id))
+    return _issue_token(db, user, request, remember=body.remember)
 
 
 @router.get("/me", response_model=UserOut)
@@ -95,7 +121,8 @@ def _check_password(password: str) -> None:
 
 
 @router.post("/activate", response_model=TokenResponse)
-def activate(body: ActivateRequest, db: Session = Depends(get_db)) -> TokenResponse:
+def activate(body: ActivateRequest, request: Request,
+             db: Session = Depends(get_db)) -> TokenResponse:
     """Задать пароль по ссылке и сразу войти — приглашение или сброс.
 
     Дорога одна на оба случая намеренно: для пользователя это один и тот же шаг
@@ -134,7 +161,11 @@ def activate(body: ActivateRequest, db: Session = Depends(get_db)) -> TokenRespo
         crud.set_full_name(db, user, body.full_name)
     crud.log_user_action(db, user, "auth.activate",
                          details="сброс пароля" if reset is not None else "приглашение")
-    return TokenResponse(access_token=create_access_token(user.id))
+    # Сброс пароля закрывает прежние входы: ссылку и выдают тогда, когда доступ к
+    # учётной записи под вопросом, — оставить чужой сеанс живым значило бы отдать
+    # аккаунт тому, из-за кого сброс и понадобился.
+    crud.revoke_user_sessions(db, user.id)
+    return _issue_token(db, user, request)
 
 
 @router.patch("/me", response_model=UserOut)
@@ -148,6 +179,7 @@ def update_me(body: ProfileUpdate, user: User = Depends(current_user),
 
 @router.post("/password", status_code=status.HTTP_204_NO_CONTENT)
 def change_password(body: PasswordChange, user: User = Depends(current_user),
+                    session: UserSession = Depends(current_session),
                     db: Session = Depends(get_db)) -> None:
     """Смена своего пароля. Текущий обязателен: иначе украденная сессия меняет пароль
     и запирает владельца снаружи."""
@@ -157,4 +189,62 @@ def change_password(body: PasswordChange, user: User = Depends(current_user),
         raise HTTPException(status_code=400, detail="Текущий пароль неверен")
     _check_password(body.new_password)
     crud.set_password(db, user, hash_password(body.new_password))
-    crud.log_user_action(db, user, "auth.password_change")
+    # Смена пароля закрывает **остальные** входы, а текущий оставляет: пароль меняют в
+    # том числе потому, что подозревают чужой доступ, и оставить его живым значило бы
+    # сделать смену бессмысленной. Выкидывать при этом самого себя — тоже плохо: человек
+    # только что подтвердил, что он это он.
+    closed = crud.revoke_user_sessions(db, user.id, keep=session.id)
+    crud.log_user_action(db, user, "auth.password_change",
+                         details=f"закрыто входов: {closed}" if closed else "")
+
+
+@router.get("/sessions", response_model=list[SessionOut])
+def list_sessions(user: User = Depends(current_user),
+                  session: UserSession = Depends(current_session),
+                  db: Session = Depends(get_db)) -> list[SessionOut]:
+    """Действующие входы в свою учётную запись (C1).
+
+    Показываются только живые: список закрытых не отвечает на вопрос, ради которого его
+    открывают («кто сейчас внутри?»). История входов есть в журнале организации — второй
+    её копии здесь не заводим, разошлись бы.
+
+    Устройство и адрес приходят от самого клиента и подделываются кем угодно, поэтому
+    они **подсказка владельцу**, а не удостоверение: ни один отказ платформы на них не
+    опирается, и на экране это сказано.
+    """
+    return [
+        SessionOut(
+            id=s.id, device=device_label(s.user_agent), user_agent=s.user_agent,
+            ip=s.ip, created_at=s.created_at, last_seen_at=s.last_seen_at,
+            expires_at=s.expires_at, current=s.id == session.id,
+        )
+        for s in crud.list_sessions(db, user.id)
+    ]
+
+
+@router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
+def revoke_session(session_id: str, user: User = Depends(current_user),
+                   db: Session = Depends(get_db)) -> None:
+    """Закрыть конкретный вход. **Только свой**: чужой сеанс не находится, а не
+    отказывается по правам — знать о существовании чужих входов незачем."""
+    target = crud.get_session(db, session_id)
+    if target is None or target.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Вход не найден")
+    crud.revoke_session(db, target)
+    crud.log_user_action(db, user, "auth.session_revoke",
+                         details=device_label(target.user_agent))
+
+
+@router.post("/sessions/revoke-all", response_model=RevokeAllOut)
+def revoke_all_sessions(user: User = Depends(current_user),
+                        db: Session = Depends(get_db)) -> RevokeAllOut:
+    """«Выйти на всех устройствах» — включая текущее.
+
+    Текущее тоже закрывается намеренно: человек нажимает эту кнопку, когда не уверен,
+    что контролирует учётную запись, и оставленный «свой» вход в такой ситуации — это
+    ровно тот вход, из-за которого всё и началось.
+    """
+    closed = crud.revoke_user_sessions(db, user.id)
+    crud.log_user_action(db, user, "auth.sessions_revoke_all",
+                         details=f"закрыто входов: {closed}")
+    return RevokeAllOut(closed=closed)

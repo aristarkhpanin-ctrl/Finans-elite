@@ -779,6 +779,79 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Sessions
+         * @description Действующие входы в свою учётную запись (C1).
+         *
+         *     Показываются только живые: список закрытых не отвечает на вопрос, ради которого его
+         *     открывают («кто сейчас внутри?»). История входов есть в журнале организации — второй
+         *     её копии здесь не заводим, разошлись бы.
+         *
+         *     Устройство и адрес приходят от самого клиента и подделываются кем угодно, поэтому
+         *     они **подсказка владельцу**, а не удостоверение: ни один отказ платформы на них не
+         *     опирается, и на экране это сказано.
+         */
+        get: operations["list_sessions_api_v1_auth_sessions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/sessions/revoke-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke All Sessions
+         * @description «Выйти на всех устройствах» — включая текущее.
+         *
+         *     Текущее тоже закрывается намеренно: человек нажимает эту кнопку, когда не уверен,
+         *     что контролирует учётную запись, и оставленный «свой» вход в такой ситуации — это
+         *     ровно тот вход, из-за которого всё и началось.
+         */
+        post: operations["revoke_all_sessions_api_v1_auth_sessions_revoke_all_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke Session
+         * @description Закрыть конкретный вход. **Только свой**: чужой сеанс не находится, а не
+         *     отказывается по правам — знать о существовании чужих входов незачем.
+         */
+        delete: operations["revoke_session_api_v1_auth_sessions__session_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/billing/webhook/yookassa": {
         parameters: {
             query?: never;
@@ -5116,6 +5189,11 @@ export interface components {
             email: string;
             /** Password */
             password: string;
+            /**
+             * Remember
+             * @default false
+             */
+            remember: boolean;
         };
         /**
          * Material
@@ -7179,6 +7257,18 @@ export interface components {
             opinion: string;
         };
         /**
+         * RevokeAllOut
+         * @description Сколько входов закрыто. Число, а не безличное «готово»: человек должен понимать,
+         *     что именно с ним произошло.
+         */
+        RevokeAllOut: {
+            /**
+             * Closed
+             * @default 0
+             */
+            closed: number;
+        };
+        /**
          * RiskAnalysis
          * @description Настройки анализа рисков оценки (SPEC, Приложение Р).
          *
@@ -7401,6 +7491,48 @@ export interface components {
             param: string;
             /** Points */
             points: components["schemas"]["SensitivityPointOut"][];
+        };
+        /**
+         * SessionOut
+         * @description Действующий вход в учётную запись (C1).
+         *
+         *     ``device`` и ``ip`` приходят от самого клиента и подделываются кем угодно: это
+         *     **подсказка владельцу** («это точно был я?»), а не удостоверение устройства. Сырая
+         *     строка браузера отдаётся рядом (``user_agent``) — грубая подпись может ошибиться, и
+         *     прятать источник, по которому её можно перепроверить, было бы нечестно.
+         */
+        SessionOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Current
+             * @default false
+             */
+            current: boolean;
+            /** Device */
+            device: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Id */
+            id: string;
+            /**
+             * Ip
+             * @default
+             */
+            ip: string;
+            /** Last Seen At */
+            last_seen_at?: string | null;
+            /**
+             * User Agent
+             * @default
+             */
+            user_agent: string;
         };
         /**
          * SignatureOut
@@ -10104,6 +10236,75 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["TokenResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_sessions_api_v1_auth_sessions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionOut"][];
+                };
+            };
+        };
+    };
+    revoke_all_sessions_api_v1_auth_sessions_revoke_all_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevokeAllOut"];
+                };
+            };
+        };
+    };
+    revoke_session_api_v1_auth_sessions__session_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

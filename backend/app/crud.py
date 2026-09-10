@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 from sqlalchemy import func, select, update
@@ -32,6 +32,7 @@ from .db_models import (
     StaffLogEntry,
     Subscription,
     User,
+    UserSession,
 )
 from .plans import DEFAULT_PLAN
 from .schemas import AuditGroupModel
@@ -716,6 +717,92 @@ def save_holding_consolidation(db: Session, holding: Holding, *, npv: Decimal,
     holding.last_consolidation_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(holding)
+
+# --- Сеансы входа (C1) ---
+
+def create_session(db: Session, user_id: str, *, ttl_seconds: int, user_agent: str = "",
+                   ip: str = "") -> UserSession:
+    """Завести сеанс входа. Его идентификатор уходит в токен как ``jti``."""
+    session = UserSession(
+        user_id=user_id,
+        expires_at=datetime.now(timezone.utc) + timedelta(seconds=ttl_seconds),
+        user_agent=(user_agent or "")[:255],
+        ip=(ip or "")[:45],
+    )
+    db.add(session)
+    db.commit()
+    db.refresh(session)
+    return session
+
+
+def get_session(db: Session, session_id: str) -> UserSession | None:
+    return db.get(UserSession, session_id)
+
+
+def list_sessions(db: Session, user_id: str) -> list[UserSession]:
+    """**Действующие** входы пользователя, свежие сверху.
+
+    Закрытые и истёкшие не показываются: список мёртвых сеансов не отвечает ни на один
+    вопрос, ради которого его открывают («кто сейчас в моей учётной записи?»). История
+    входов есть в журнале организации — второй её копии здесь не заводим.
+    """
+    now = datetime.now(timezone.utc)
+    rows = db.execute(
+        select(UserSession)
+        .where(UserSession.user_id == user_id, UserSession.revoked_at.is_(None))
+        .order_by(UserSession.created_at.desc())
+    ).scalars()
+    return [s for s in rows if _aware(s.expires_at) > now]
+
+
+def revoke_session(db: Session, session: UserSession) -> UserSession:
+    """Закрыть сеанс. Запись **остаётся**: отзыв — это состояние, а не удаление строки,
+    и стёртый сеанс невозможно отличить от никогда не существовавшего."""
+    if session.revoked_at is None:
+        session.revoked_at = datetime.now(timezone.utc)
+        db.commit()
+    return session
+
+
+def revoke_user_sessions(db: Session, user_id: str, *, keep: str = "") -> int:
+    """Закрыть все сеансы пользователя, кроме ``keep``. Возвращает, сколько закрыто.
+
+    Число возвращается, чтобы человеку сказали «закрыто 3 входа», а не безличное
+    «готово»: он должен понимать, что именно с ним произошло.
+    """
+    now = datetime.now(timezone.utc)
+    stmt = select(UserSession).where(UserSession.user_id == user_id,
+                                     UserSession.revoked_at.is_(None))
+    if keep:
+        stmt = stmt.where(UserSession.id != keep)
+    closed = 0
+    for session in db.execute(stmt).scalars():
+        session.revoked_at = now
+        closed += 1
+    if closed:
+        db.commit()
+    return closed
+
+
+def touch_session(db: Session, session: UserSession, interval: timedelta) -> None:
+    """Отметить обращение — не чаще, чем раз в ``interval``.
+
+    Тот же довод, что и у отметки присутствия участника (A3): запись на каждый запрос
+    превратила бы таблицу сеансов в счётчик обращений.
+    """
+    now = datetime.now(timezone.utc)
+    seen = _aware(session.last_seen_at)
+    if seen is None or now - seen >= interval:
+        session.last_seen_at = now
+        db.commit()
+
+
+def _aware(value: datetime | None) -> datetime | None:
+    """SQLite отдаёт наивное время; сравнение с осведомлённым — ошибка выполнения."""
+    if value is None:
+        return None
+    return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+
 
 # --- Журнал действий (152-ФЗ, ARCHITECTURE §4) ---
 

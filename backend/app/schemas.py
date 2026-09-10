@@ -527,6 +527,12 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     password: str
+    #: «Запомнить меня» — вход живёт 30 дней вместо суток (C1). Длинный срок перестал
+    #: быть опасным, когда появился реестр входов: человек видит свои сеансы и закрывает
+    #: лишние. Обновляемых токенов (refresh) при этом не заводим: без ротации они не
+    #: добавляют безопасности, а с ротацией — машинерию, которую отзыв сеанса уже
+    #: покрывает.
+    remember: bool = False
 
 
 class TokenResponse(BaseModel):
@@ -2017,3 +2023,30 @@ class PlatformMetricsOut(BaseModel):
     growth: list[MetricPointOut] = []
     plans: list[PlanSliceOut] = []
     notes: list[str] = []
+
+
+class SessionOut(BaseModel):
+    """Действующий вход в учётную запись (C1).
+
+    ``device`` и ``ip`` приходят от самого клиента и подделываются кем угодно: это
+    **подсказка владельцу** («это точно был я?»), а не удостоверение устройства. Сырая
+    строка браузера отдаётся рядом (``user_agent``) — грубая подпись может ошибиться, и
+    прятать источник, по которому её можно перепроверить, было бы нечестно.
+    """
+
+    id: str
+    device: str
+    user_agent: str = ""
+    ip: str = ""
+    created_at: datetime
+    last_seen_at: Optional[datetime] = None
+    expires_at: datetime
+    #: Тот самый вход, из которого сделан запрос. Без пометки человек закрыл бы себя.
+    current: bool = False
+
+
+class RevokeAllOut(BaseModel):
+    """Сколько входов закрыто. Число, а не безличное «готово»: человек должен понимать,
+    что именно с ним произошло."""
+
+    closed: int = 0
