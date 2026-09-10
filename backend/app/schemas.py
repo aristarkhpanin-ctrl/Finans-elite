@@ -478,6 +478,9 @@ class MemberOut(BaseModel):
     blocked_at: Optional[datetime] = None
     blocked_by: str = ""
     block_reason: str = ""
+    #: Когда участник последний раз работал в этой организации (A3). ``None`` —
+    #: **неизвестно**, а не «никогда»: до появления отметки присутствие не писалось.
+    last_seen_at: Optional[datetime] = None
     invite_token: Optional[str] = None
 
 

@@ -4,11 +4,31 @@ import { useState } from "react";
 import { addMember, blockMember, getMembers, issueAccessLink, patchMemberRole, removeMember,
          roleLabel, ROLES, unblockMember, type AccessLink, type Member } from "../../api/org";
 import { ESelect } from "../../components/EditorField";
-import { IconKey, IconTrash, IconWarning } from "../../components/icons";
+import { IconKey, IconRows, IconTrash, IconWarning } from "../../components/icons";
 import { useToast } from "../../components/Toast";
 import { Button, Modal, Skeleton } from "../../components/ui";
 
 const AVATAR_BG = ["#5E93FF", "#C77DFF", "var(--primary)", "#E0A23A", "#5FD9A6"];
+
+/** С какого молчания участник считается неактивным — кандидатом на отзыв доступа. */
+const INACTIVE_DAYS = 30;
+
+/**
+ * Когда участник последний раз работал в организации.
+ *
+ * `null` — **«неизвестно»**, а не «никогда»: до появления отметки присутствие не
+ * записывалось, и выдавать молчание за отсутствие было бы враньём о живом человеке.
+ */
+function lastSeen(iso: string | null | undefined): { text: string; stale: boolean } {
+  if (!iso) return { text: "нет данных", stale: false };
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  const text = days === 0 ? "сегодня"
+    : days === 1 ? "вчера"
+      : days < 30 ? `${days} дн. назад`
+        : new Date(iso).toLocaleDateString("ru-RU",
+            { day: "numeric", month: "short", year: "numeric" });
+  return { text, stale: days >= INACTIVE_DAYS };
+}
 
 const ROLE_DESC: Record<string, string> = {
   owner: "Полный доступ, управление тарифом и участниками. Один на организацию.",
@@ -26,7 +46,17 @@ function initials(name: string, fallback: string): string {
   return words.slice(0, 2).map((w) => w[0]!.toUpperCase()).join("") || "•";
 }
 
-export function MembersTab({ orgId, myRole, myUserId }: { orgId: string; myRole: string; myUserId: string }) {
+export function MembersTab({ orgId, myRole, myUserId, onShowActions }: {
+  orgId: string;
+  myRole: string;
+  myUserId: string;
+  /**
+   * Показать действия участника. Ведёт в **журнал** с отбором по нему, а не заводит
+   * второй список действий: два источника одних и тех же событий разошлись бы, и
+   * пришлось бы гадать, какой из них правда.
+   */
+  onShowActions?: (email: string) => void;
+}) {
   const qc = useQueryClient();
   const toast = useToast();
   const canManage = myRole === "owner" || myRole === "admin";
@@ -145,6 +175,7 @@ export function MembersTab({ orgId, myRole, myUserId }: { orgId: string; myRole:
           <div className="org-row org-row--head">
             <div className="org-col-user">Участник</div>
             <div className="org-col-role">Роль</div>
+            <div className="org-col-seen">Заходил</div>
             <div className="org-col-status">Статус</div>
             <div className="org-col-act" />
           </div>
@@ -181,6 +212,22 @@ export function MembersTab({ orgId, myRole, myUserId }: { orgId: string; myRole:
                     </span>
                   )}
                 </div>
+                {/* Кто пользуется организацией — это и есть управление лицензиями:
+                    место в тарифе занимает тот, кто полгода не появлялся. */}
+                <div className="org-col-seen">
+                  {(() => {
+                    const seen = lastSeen(m.last_seen_at);
+                    return (
+                      <span className={seen.stale ? "seen-stale" : "seen-fresh"}
+                            title={m.last_seen_at
+                              ? new Date(m.last_seen_at).toLocaleString("ru-RU")
+                              : "Присутствие не отмечалось"}>
+                        {seen.text}
+                        {seen.stale && <span className="seen-note">не активен</span>}
+                      </span>
+                    );
+                  })()}
+                </div>
                 <div className="org-col-status">
                   {/* Приостановленный **остаётся в списке**: исчезнувший читался бы как
                       удалённый, а это другое состояние — и другая дорога назад. */}
@@ -196,6 +243,16 @@ export function MembersTab({ orgId, myRole, myUserId }: { orgId: string; myRole:
                   )}
                 </div>
                 <div className="org-col-act">
+                  {onShowActions && (
+                    <button
+                      type="button"
+                      className="icon-action"
+                      title={`Действия участника: ${m.full_name || m.email}`}
+                      onClick={() => onShowActions(m.email)}
+                    >
+                      <IconRows size={15} />
+                    </button>
+                  )}
                   {editable && (
                     <button
                       type="button"

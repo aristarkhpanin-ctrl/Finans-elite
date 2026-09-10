@@ -6,6 +6,8 @@
 """
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 from fastapi import Depends, Header, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
@@ -19,8 +21,15 @@ from .security import decode_token
 _bearer = HTTPBearer(auto_error=True)
 
 
-def _ensure_active(membership: Membership | None) -> Membership | None:
-    """Приостановленное членство — отказ с названной причиной (A1).
+#: Как часто отмечается присутствие участника. Отметка на каждый запрос превратила бы
+#: таблицу членства в счётчик обращений и добавила бы запись к каждому чтению; для
+#: вопроса «работает ли человек в организации» часа более чем достаточно.
+SEEN_INTERVAL = timedelta(hours=1)
+
+
+def _ensure_active(membership: Membership | None,
+                   db: Session | None = None) -> Membership | None:
+    """Проходная точка членства: отказать приостановленному и отметить присутствие.
 
     Отказ **403, а не 401**: токен действителен и человек тот самый, а 401 отправил бы
     его на экран входа — и он решил бы, что ошибся паролем. Причина идёт в ответе, чтобы
@@ -29,11 +38,23 @@ def _ensure_active(membership: Membership | None) -> Membership | None:
     Проверка живёт здесь, а не в каждом эндпоинте: через эти зависимости проходит **любой**
     запрос к данным организации, поэтому забыть её нельзя. Отсюда же и мгновенность отзыва
     — членство читается из базы на каждом запросе, и выданный ранее токен не помогает.
+
+    По той же причине здесь и отметка присутствия (A3): другого места, через которое
+    гарантированно проходит работа с организацией, нет — а собранная в стороне отметка
+    рано или поздно разошлась бы с тем, кто на самом деле работал.
     """
     if membership is not None and membership.blocked_at is not None:
         reason = membership.block_reason or "причина не указана"
         raise HTTPException(status_code=403,
                             detail=f"Доступ в организацию приостановлен: {reason}")
+    if membership is not None and db is not None:
+        now = datetime.now(timezone.utc)
+        seen = membership.last_seen_at
+        if seen is not None and seen.tzinfo is None:      # SQLite отдаёт наивное время
+            seen = seen.replace(tzinfo=timezone.utc)
+        if seen is None or now - seen >= SEEN_INTERVAL:
+            membership.last_seen_at = now
+            db.commit()
     return membership
 
 
@@ -64,14 +85,14 @@ def current_org_id(
     if x_organization_id is not None:
         if x_organization_id not in by_org:
             raise HTTPException(status_code=403, detail="Нет доступа к организации")
-        _ensure_active(by_org[x_organization_id])
+        _ensure_active(by_org[x_organization_id], db)
         org_id = x_organization_id
     else:
         # Организация по умолчанию — первая **действующая**: приостановка в одной
         # организации не должна запирать человека в остальных, где он работает.
         active = [m for m in memberships if m.blocked_at is None]
         if not active:
-            _ensure_active(memberships[0])   # все приостановлены — назвать причину
+            _ensure_active(memberships[0], db)   # все приостановлены — назвать причину
         org_id = active[0].organization_id
     set_tenant(db, org_id)  # RLS: изоляция арендатора на уровне БД (PostgreSQL)
     return org_id
@@ -86,7 +107,7 @@ def require_membership(
     membership = crud.get_membership(db, org_id, user.id)
     if membership is None:
         raise HTTPException(status_code=403, detail="Нет доступа к организации")
-    _ensure_active(membership)
+    _ensure_active(membership, db)
     return org_id
 
 
@@ -101,7 +122,7 @@ def require_permission(perm: Perm):
         user: User = Depends(current_user),
         db: Session = Depends(get_db),
     ) -> str:
-        membership = _ensure_active(crud.get_membership(db, org_id, user.id))
+        membership = _ensure_active(crud.get_membership(db, org_id, user.id), db)
         if not has_permission(membership.role if membership else None, perm):
             raise HTTPException(status_code=403, detail="Недостаточно прав")
         return org_id
@@ -117,7 +138,7 @@ def require_org_permission(perm: Perm):
         user: User = Depends(current_user),
         db: Session = Depends(get_db),
     ) -> str:
-        membership = _ensure_active(crud.get_membership(db, org_id, user.id))
+        membership = _ensure_active(crud.get_membership(db, org_id, user.id), db)
         if not has_permission(membership.role if membership else None, perm):
             raise HTTPException(status_code=403, detail="Недостаточно прав")
         return org_id

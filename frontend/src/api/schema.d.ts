@@ -5000,6 +5000,8 @@ export interface components {
             full_name: string;
             /** Invite Token */
             invite_token?: string | null;
+            /** Last Seen At */
+            last_seen_at?: string | null;
             /** Role */
             role: string;
             /** User Id */

@@ -82,10 +82,15 @@ function when(iso: string): string {
     { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-export function AuditLogTab({ orgId }: { orgId: string }) {
+export function AuditLogTab({ orgId, initialActor = "" }: {
+  orgId: string;
+  /** С кого начать отбор — приходит с экрана участников («действия участника»). */
+  initialActor?: string;
+}) {
   const toast = useToast();
   /** Отбор — в состоянии страницы: он же уходит и в выгрузку, чтобы файл совпал с экраном. */
-  const [filter, setFilter] = useState<AuditLogFilter>({});
+  const [filter, setFilter] = useState<AuditLogFilter>(
+    initialActor ? { actor: initialActor } : {});
   const set = (patch: AuditLogFilter) => setFilter({ ...filter, ...patch });
 
   const { data, isLoading, isFetching, isError, refetch } = useQuery({

@@ -172,4 +172,53 @@ describe("Ссылка входа участнику", () => {
     await waitFor(() => expect(toast)
       .toHaveBeenCalledWith("Нельзя приостановить себя", { kind: "error" }));
   });
+
+  /** Видимость активности (A3): кто пользуется организацией и кто молчит. */
+
+  it("«не заходил» показывается словами, а не датой месячной давности", async () => {
+    const today = new Date().toISOString();
+    getMembers.mockResolvedValue([
+      member({ user_id: "u1", email: "own@e.ru", full_name: "Владелец", role: "owner",
+               last_seen_at: today }),
+      member({ last_seen_at: null }),
+    ]);
+    await show();
+    expect(screen.getByText("сегодня")).toBeTruthy();
+    // Пустая отметка — «нет данных», а не «никогда»: до её появления присутствие не
+    // писалось, и выдавать молчание за отсутствие было бы враньём о живом человеке.
+    expect(screen.getByText("нет данных")).toBeTruthy();
+  });
+
+  it("молчащий дольше месяца помечен как кандидат на отзыв доступа", async () => {
+    const long = new Date(Date.now() - 45 * 86_400_000).toISOString();
+    getMembers.mockResolvedValue([
+      member({ user_id: "u1", email: "own@e.ru", full_name: "Владелец", role: "owner" }),
+      member({ last_seen_at: long }),
+    ]);
+    await show();
+    expect(screen.getByText("не активен")).toBeTruthy();
+  });
+
+  it("«действия участника» ведут в журнал с отбором по нему", async () => {
+    // Второго списка действий рядом не заводим: два источника одних событий разошлись
+    // бы, и пришлось бы гадать, какой из них правда.
+    const onShowActions = vi.fn();
+    render(
+      <QueryClientProvider client={new QueryClient({
+        defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      })}>
+        <MembersTab orgId="o1" myRole="owner" myUserId="u1"
+                    onShowActions={onShowActions} />
+      </QueryClientProvider>,
+    );
+    await screen.findByText("Коллега");
+    // Кнопка есть у каждого участника — берём строку коллеги.
+    fireEvent.click(screen.getByTitle("Действия участника: Коллега"));
+    expect(onShowActions).toHaveBeenCalledWith("k@e.ru");
+  });
+
+  it("без права на управление организацией ссылки на журнал нет", async () => {
+    await show("editor");
+    expect(screen.queryByTitle(/Действия участника/)).toBeNull();
+  });
 });

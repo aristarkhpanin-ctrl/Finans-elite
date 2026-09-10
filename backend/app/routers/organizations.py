@@ -84,7 +84,7 @@ def _member_out(membership, user, *, invite_token: str | None = None) -> MemberO
         user_id=user.id, email=user.email, full_name=user.full_name,
         role=membership.role, blocked=membership.blocked_at is not None,
         blocked_at=membership.blocked_at, blocked_by=membership.blocked_by,
-        block_reason=membership.block_reason,
+        block_reason=membership.block_reason, last_seen_at=membership.last_seen_at,
         **({"invite_token": invite_token} if invite_token is not None else {}),
     )
 
