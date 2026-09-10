@@ -28,6 +28,7 @@ from .routers import (
     audit,
     auth,
     billing,
+    comments,
     holdings,
     integrator,
     jobs,
@@ -70,6 +71,7 @@ app.include_router(admin.router)
 app.include_router(audit.router)
 app.include_router(auth.router)
 app.include_router(billing.router)
+app.include_router(comments.router)
 app.include_router(holdings.router)
 app.include_router(integrator.router)
 app.include_router(jobs.router)

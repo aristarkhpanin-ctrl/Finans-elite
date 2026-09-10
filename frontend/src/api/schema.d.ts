@@ -535,6 +535,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/audit/subjects/{subject_id}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Case Comments
+         * @description Обсуждение дела, старые сверху.
+         */
+        get: operations["list_case_comments_api_v1_audit_subjects__subject_id__comments_get"];
+        put?: never;
+        /**
+         * Add Case Comment
+         * @description Написать реплику в обсуждении дела.
+         */
+        post: operations["add_case_comment_api_v1_audit_subjects__subject_id__comments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit/subjects/{subject_id}/duplicate": {
         parameters: {
             query?: never;
@@ -1183,6 +1207,61 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/comments/{comment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete
+         * @description Удалить реплику — свою или, если вы администратор, чужую.
+         *
+         *     Текст стирается, но **«надгробие» остаётся**: пропавшая без следа строка читается как
+         *     не сказанная никогда, а на неё уже могли ответить. Своё удаление и административное
+         *     названы по-разному — «удалена автором» под чужим решением приписало бы его человеку.
+         *
+         *     Правки текста нет вовсе: отредактированная реплика, на которую ответили, переписывает
+         *     историю — спор становится непонятным, а согласие приписанным.
+         */
+        delete: operations["delete_api_v1_comments__comment_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/comments/{comment_id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve
+         * @description Закрыть обсуждение: вопрос снят.
+         *
+         *     Закрыть может **любой участник**, а не только автор: снимает вопрос обычно тот, кто
+         *     на него ответил. Кто именно — записано: «вопрос снят» без имени снявшего это не
+         *     ответ, а тишина.
+         */
+        post: operations["resolve_api_v1_comments__comment_id__resolve_post"];
+        /**
+         * Reopen
+         * @description Открыть обсуждение заново: вопрос сняли рано.
+         */
+        delete: operations["reopen_api_v1_comments__comment_id__resolve_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/holdings": {
         parameters: {
             query?: never;
@@ -1764,6 +1843,30 @@ export interface paths {
          * @description Рассчитать сохранённый проект (право project.calculate); сводка — на проект (B1).
          */
         post: operations["calculate_project_api_v1_projects__project_id__calculate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Project Comments
+         * @description Обсуждение проекта, старые сверху. ``anchor`` сужает до одного места.
+         */
+        get: operations["list_project_comments_api_v1_projects__project_id__comments_get"];
+        put?: never;
+        /**
+         * Add Project Comment
+         * @description Написать реплику в обсуждении проекта.
+         */
+        post: operations["add_project_comment_api_v1_projects__project_id__comments_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4618,6 +4721,120 @@ export interface components {
             spec: string;
             /** Title */
             title: string;
+        };
+        /**
+         * CommentCreate
+         * @description Новая реплика. ``anchor`` — место внутри проекта или дела, ``anchor_label`` — его
+         *     подпись **на момент написания**: объект переименуют, а разговор обязан остаться
+         *     понятным.
+         */
+        CommentCreate: {
+            /**
+             * Anchor
+             * @default
+             */
+            anchor: string;
+            /**
+             * Anchor Label
+             * @default
+             */
+            anchor_label: string;
+            /** Body */
+            body: string;
+        };
+        /**
+         * CommentCreated
+         * @description Ответ на созданную реплику: сама реплика и **что стало с приглашениями**.
+         *
+         *     Три ответа, и они не сводимы: позвали и письмо ушло, позвали и письма не будет
+         *     (почта не настроена — сказано словами), назвали адрес, которого в организации нет.
+         *     Проглоченное упоминание — худший вид тишины: автор ждёт, а никто не придёт.
+         */
+        CommentCreated: {
+            comment: components["schemas"]["CommentOut"];
+            /**
+             * @default {
+             *       "attempted": false,
+             *       "error": "",
+             *       "ok": false
+             *     }
+             */
+            mail: components["schemas"]["MailReport"];
+            /**
+             * Notified
+             * @default []
+             */
+            notified: string[];
+            /**
+             * Unknown Mentions
+             * @default []
+             */
+            unknown_mentions: string[];
+        };
+        /**
+         * CommentOut
+         * @description Реплика обсуждения.
+         *
+         *     ``body`` удалённой реплики заменён «надгробием» (`deleted` истинно): пропавшая без
+         *     следа строка читается как не сказанная никогда. ``mentions`` — кого позвали;
+         *     упоминание **не даёт прав**, только зовёт посмотреть.
+         */
+        CommentOut: {
+            /**
+             * Anchor
+             * @default
+             */
+            anchor: string;
+            /**
+             * Anchor Label
+             * @default
+             */
+            anchor_label: string;
+            /**
+             * Author Email
+             * @default
+             */
+            author_email: string;
+            /**
+             * Author Name
+             * @default
+             */
+            author_name: string;
+            /** Body */
+            body: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Deleted
+             * @default false
+             */
+            deleted: boolean;
+            /** Id */
+            id: string;
+            /**
+             * Mentions
+             * @default []
+             */
+            mentions: string[];
+            /**
+             * Resolved
+             * @default false
+             */
+            resolved: boolean;
+            /** Resolved At */
+            resolved_at?: string | null;
+            /**
+             * Resolved By
+             * @default
+             */
+            resolved_by: string;
+            /** Subject Id */
+            subject_id: string;
+            /** Subject Type */
+            subject_type: string;
         };
         /** Company */
         "Company-Input": {
@@ -10457,6 +10674,78 @@ export interface operations {
             };
         };
     };
+    list_case_comments_api_v1_audit_subjects__subject_id__comments_get: {
+        parameters: {
+            query?: {
+                anchor?: string | null;
+            };
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommentOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_case_comment_api_v1_audit_subjects__subject_id__comments_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommentCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommentCreated"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     duplicate_subject_api_v1_audit_subjects__subject_id__duplicate_post: {
         parameters: {
             query?: never;
@@ -11339,6 +11628,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CalcResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_api_v1_comments__comment_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                comment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_api_v1_comments__comment_id__resolve_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                comment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reopen_api_v1_comments__comment_id__resolve_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                comment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommentOut"];
                 };
             };
             /** @description Validation Error */
@@ -12572,6 +12960,78 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CalcResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_project_comments_api_v1_projects__project_id__comments_get: {
+        parameters: {
+            query?: {
+                anchor?: string | null;
+            };
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommentOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_project_comment_api_v1_projects__project_id__comments_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommentCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommentCreated"];
                 };
             };
             /** @description Validation Error */

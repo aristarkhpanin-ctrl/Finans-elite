@@ -34,7 +34,10 @@ from .rbac import Perm
 
 #: Права, закрытые в режиме чтения и выгрузки: всё, что **меняет** содержимое.
 #: Чтение, расчёт, участники, тариф и оплата остаются доступными.
-WRITE_PERMS = frozenset({Perm.PROJECT_CREATE, Perm.PROJECT_UPDATE, Perm.PROJECT_DELETE})
+WRITE_PERMS = frozenset({Perm.PROJECT_CREATE, Perm.PROJECT_UPDATE, Perm.PROJECT_DELETE,
+                         # Реплика обсуждения (D3) — тоже содержимое организации: она
+                         # хранится, цитируется в документах и переживает автора.
+                         Perm.COMMENT_WRITE})
 
 #: Статусы подписки, переводящие продукт в режим чтения и выгрузки.
 UNPAID_STATUSES = frozenset({"past_due", "canceled"})

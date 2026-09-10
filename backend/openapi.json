@@ -4573,6 +4573,157 @@
         "title": "ChoiceOut",
         "type": "object"
       },
+      "CommentCreate": {
+        "description": "Новая реплика. ``anchor`` — место внутри проекта или дела, ``anchor_label`` — его\nподпись **на момент написания**: объект переименуют, а разговор обязан остаться\nпонятным.",
+        "properties": {
+          "anchor": {
+            "default": "",
+            "title": "Anchor",
+            "type": "string"
+          },
+          "anchor_label": {
+            "default": "",
+            "title": "Anchor Label",
+            "type": "string"
+          },
+          "body": {
+            "title": "Body",
+            "type": "string"
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "title": "CommentCreate",
+        "type": "object"
+      },
+      "CommentCreated": {
+        "description": "Ответ на созданную реплику: сама реплика и **что стало с приглашениями**.\n\nТри ответа, и они не сводимы: позвали и письмо ушло, позвали и письма не будет\n(почта не настроена — сказано словами), назвали адрес, которого в организации нет.\nПроглоченное упоминание — худший вид тишины: автор ждёт, а никто не придёт.",
+        "properties": {
+          "comment": {
+            "$ref": "#/components/schemas/CommentOut"
+          },
+          "mail": {
+            "$ref": "#/components/schemas/MailReport",
+            "default": {
+              "attempted": false,
+              "error": "",
+              "ok": false
+            }
+          },
+          "notified": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Notified",
+            "type": "array"
+          },
+          "unknown_mentions": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Unknown Mentions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "comment"
+        ],
+        "title": "CommentCreated",
+        "type": "object"
+      },
+      "CommentOut": {
+        "description": "Реплика обсуждения.\n\n``body`` удалённой реплики заменён «надгробием» (`deleted` истинно): пропавшая без\nследа строка читается как не сказанная никогда. ``mentions`` — кого позвали;\nупоминание **не даёт прав**, только зовёт посмотреть.",
+        "properties": {
+          "anchor": {
+            "default": "",
+            "title": "Anchor",
+            "type": "string"
+          },
+          "anchor_label": {
+            "default": "",
+            "title": "Anchor Label",
+            "type": "string"
+          },
+          "author_email": {
+            "default": "",
+            "title": "Author Email",
+            "type": "string"
+          },
+          "author_name": {
+            "default": "",
+            "title": "Author Name",
+            "type": "string"
+          },
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "deleted": {
+            "default": false,
+            "title": "Deleted",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "mentions": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Mentions",
+            "type": "array"
+          },
+          "resolved": {
+            "default": false,
+            "title": "Resolved",
+            "type": "boolean"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          },
+          "resolved_by": {
+            "default": "",
+            "title": "Resolved By",
+            "type": "string"
+          },
+          "subject_id": {
+            "title": "Subject Id",
+            "type": "string"
+          },
+          "subject_type": {
+            "title": "Subject Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "subject_type",
+          "subject_id",
+          "body",
+          "created_at"
+        ],
+        "title": "CommentOut",
+        "type": "object"
+      },
       "Company-Input": {
         "properties": {
           "divisions": {
@@ -15181,6 +15332,162 @@
         ]
       }
     },
+    "/api/v1/audit/subjects/{subject_id}/comments": {
+      "get": {
+        "description": "Обсуждение дела, старые сверху.",
+        "operationId": "list_case_comments_api_v1_audit_subjects__subject_id__comments_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "title": "Subject Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "anchor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Anchor"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CommentOut"
+                  },
+                  "title": "Response List Case Comments Api V1 Audit Subjects  Subject Id  Comments Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Case Comments",
+        "tags": [
+          "comments"
+        ]
+      },
+      "post": {
+        "description": "Написать реплику в обсуждении дела.",
+        "operationId": "add_case_comment_api_v1_audit_subjects__subject_id__comments_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "title": "Subject Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentCreated"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Add Case Comment",
+        "tags": [
+          "comments"
+        ]
+      }
+    },
     "/api/v1/audit/subjects/{subject_id}/duplicate": {
       "post": {
         "description": "Дублировать дело: модель целиком, имя «{name} (копия)».",
@@ -16576,6 +16883,196 @@
         "summary": "Calculate",
         "tags": [
           "calc"
+        ]
+      }
+    },
+    "/api/v1/comments/{comment_id}": {
+      "delete": {
+        "description": "Удалить реплику — свою или, если вы администратор, чужую.\n\nТекст стирается, но **«надгробие» остаётся**: пропавшая без следа строка читается как\nне сказанная никогда, а на неё уже могли ответить. Своё удаление и административное\nназваны по-разному — «удалена автором» под чужим решением приписало бы его человеку.\n\nПравки текста нет вовсе: отредактированная реплика, на которую ответили, переписывает\nисторию — спор становится непонятным, а согласие приписанным.",
+        "operationId": "delete_api_v1_comments__comment_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "comment_id",
+            "required": true,
+            "schema": {
+              "title": "Comment Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete",
+        "tags": [
+          "comments"
+        ]
+      }
+    },
+    "/api/v1/comments/{comment_id}/resolve": {
+      "delete": {
+        "description": "Открыть обсуждение заново: вопрос сняли рано.",
+        "operationId": "reopen_api_v1_comments__comment_id__resolve_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "comment_id",
+            "required": true,
+            "schema": {
+              "title": "Comment Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reopen",
+        "tags": [
+          "comments"
+        ]
+      },
+      "post": {
+        "description": "Закрыть обсуждение: вопрос снят.\n\nЗакрыть может **любой участник**, а не только автор: снимает вопрос обычно тот, кто\nна него ответил. Кто именно — записано: «вопрос снят» без имени снявшего это не\nответ, а тишина.",
+        "operationId": "resolve_api_v1_comments__comment_id__resolve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "comment_id",
+            "required": true,
+            "schema": {
+              "title": "Comment Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Resolve",
+        "tags": [
+          "comments"
         ]
       }
     },
@@ -18932,6 +19429,162 @@
         "summary": "Calculate Project",
         "tags": [
           "projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/comments": {
+      "get": {
+        "description": "Обсуждение проекта, старые сверху. ``anchor`` сужает до одного места.",
+        "operationId": "list_project_comments_api_v1_projects__project_id__comments_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "anchor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Anchor"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CommentOut"
+                  },
+                  "title": "Response List Project Comments Api V1 Projects  Project Id  Comments Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Project Comments",
+        "tags": [
+          "comments"
+        ]
+      },
+      "post": {
+        "description": "Написать реплику в обсуждении проекта.",
+        "operationId": "add_project_comment_api_v1_projects__project_id__comments_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentCreated"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Add Project Comment",
+        "tags": [
+          "comments"
         ]
       }
     },

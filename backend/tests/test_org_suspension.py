@@ -47,8 +47,12 @@ def test_write_permissions_are_exactly_the_content_ones():
     результатов зовёт его при каждом открытии, DOCX собирается тем же движком). Оплата и
     участники — тоже: иначе ограничение за неоплату превращается в ловушку, из которой
     нельзя ни выйти, ни отозвать доступ у уволенного.
+
+    Реплика обсуждения (D3) закрыта наравне с моделью: она хранится в организации,
+    цитируется в документах и переживает автора — это её содержимое, а не просмотр.
     """
-    assert WRITE_PERMS == {Perm.PROJECT_CREATE, Perm.PROJECT_UPDATE, Perm.PROJECT_DELETE}
+    assert WRITE_PERMS == {Perm.PROJECT_CREATE, Perm.PROJECT_UPDATE, Perm.PROJECT_DELETE,
+                           Perm.COMMENT_WRITE}
     for open_perm in (Perm.PROJECT_READ, Perm.PROJECT_CALCULATE, Perm.MEMBER_READ,
                       Perm.MEMBER_MANAGE, Perm.ORG_MANAGE, Perm.BILLING_MANAGE):
         assert open_perm not in WRITE_PERMS

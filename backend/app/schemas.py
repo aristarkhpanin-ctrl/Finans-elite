@@ -2254,3 +2254,56 @@ class ForgotPasswordOut(BaseModel):
     """
 
     message: str
+
+
+# --- Обсуждение рядом с числами (D3) ---
+
+class CommentCreate(BaseModel):
+    """Новая реплика. ``anchor`` — место внутри проекта или дела, ``anchor_label`` — его
+    подпись **на момент написания**: объект переименуют, а разговор обязан остаться
+    понятным."""
+
+    body: str
+    anchor: str = ""
+    anchor_label: str = ""
+
+
+class CommentOut(BaseModel):
+    """Реплика обсуждения.
+
+    ``body`` удалённой реплики заменён «надгробием» (`deleted` истинно): пропавшая без
+    следа строка читается как не сказанная никогда. ``mentions`` — кого позвали;
+    упоминание **не даёт прав**, только зовёт посмотреть.
+    """
+
+    id: str
+    subject_type: str
+    subject_id: str
+    anchor: str = ""
+    anchor_label: str = ""
+    author_email: str = ""
+    author_name: str = ""
+    body: str
+    mentions: list[str] = []
+    created_at: datetime
+    resolved: bool = False
+    resolved_at: Optional[datetime] = None
+    resolved_by: str = ""
+    deleted: bool = False
+
+
+class CommentCreated(BaseModel):
+    """Ответ на созданную реплику: сама реплика и **что стало с приглашениями**.
+
+    Три ответа, и они не сводимы: позвали и письмо ушло, позвали и письма не будет
+    (почта не настроена — сказано словами), назвали адрес, которого в организации нет.
+    Проглоченное упоминание — худший вид тишины: автор ждёт, а никто не придёт.
+    """
+
+    comment: CommentOut
+    #: Кого позвали и кому ушло письмо.
+    notified: list[str] = []
+    #: Упомянутые, которых в организации нет — названы, а не проглочены.
+    unknown_mentions: list[str] = []
+    #: Что стало с письмами (общее на все упоминания в реплике).
+    mail: MailReport = MailReport()

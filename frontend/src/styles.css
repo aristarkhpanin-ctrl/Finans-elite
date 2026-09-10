@@ -3957,3 +3957,35 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px;
   padding: 12px;
 }
+
+/* Обсуждение рядом с числами (D3). Одна панель на оба продукта: цвета берутся из
+   токенов темы, поэтому в «Аудите» она фиолетовая, а в «Элит» — зелёная. */
+.cmt {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 13px;
+  padding: 14px 16px;
+}
+.cmt__head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.cmt__title { font: 700 14px var(--font-ui); color: var(--text); }
+.cmt__count { font: 500 11.5px var(--font-ui); color: var(--subtle); }
+.cmt__anchor { font: 500 11.5px var(--font-mono); color: var(--primary); margin-top: 3px; }
+.cmt__list { display: flex; flex-direction: column; gap: 10px; margin: 12px 0; }
+.cmt-row { border-left: 3px solid var(--primary); padding: 2px 0 2px 10px; }
+.cmt-row--done { border-left-color: var(--good); opacity: 0.8; }
+.cmt-row--gone { border-left-color: var(--grid-line); opacity: 0.6; font-style: italic; }
+.cmt-row__head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.cmt-row__who { font: 600 12.5px var(--font-ui); color: var(--text); }
+.cmt-row__when { font: 500 11px var(--font-ui); color: var(--subtle); }
+.cmt-row__where { font: 500 10.5px var(--font-mono); color: var(--subtle); }
+.cmt-row__body { font: 400 12.5px/1.5 var(--font-ui); color: var(--muted); margin-top: 3px;
+                 white-space: pre-wrap; }
+.cmt-row__acts { display: flex; gap: 10px; margin-top: 5px; }
+.cmt-act {
+  appearance: none; background: none; border: none; padding: 0; cursor: pointer;
+  font: 600 11.5px var(--font-ui); color: var(--primary);
+}
+.cmt-act--danger { color: var(--danger); }
+.cmt-act:hover { text-decoration: underline; }
+.cmt__input { width: 100%; height: auto; padding: 9px 11px; font: 400 12.5px var(--font-ui); }
+.cmt__foot { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+             margin-top: 8px; flex-wrap: wrap; }
+.cmt__hint { font: 500 11.5px var(--font-ui); color: var(--subtle); }

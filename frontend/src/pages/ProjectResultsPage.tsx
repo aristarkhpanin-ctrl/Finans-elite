@@ -18,6 +18,7 @@ import { SummaryView } from "../components/SummaryView";
 import { useToast } from "../components/Toast";
 import { Button, Skeleton } from "../components/ui";
 import { downloadBusinessPlanDocx, downloadCsv, downloadPdf, downloadXlsx, statementsToCsv } from "../export";
+import { Comments } from "../components/Comments";
 import { fmtMillions, percent } from "../format";
 
 const STATEMENTS = [
@@ -542,6 +543,15 @@ export function ProjectResultsPage() {
             factUntil={projectQuery.data?.model.actualization.actual_until ?? data.n - 1}
           />
         )}
+
+        {/* Обсуждение — **рядом с числами** и привязано к тому разделу, который сейчас
+            открыт: вопрос «откуда такая себестоимость» без места через месяц не
+            прочитать. Подпись раздела уходит вместе с репликой (D3). */}
+        <div style={{ marginTop: 20 }}>
+          <Comments subject={{ kind: "project", id }} anchor={`report:${tab}`}
+                    anchorLabel={TAB_LABELS[tab] ?? tab}
+                    title={`Обсуждение: ${TAB_LABELS[tab] ?? tab}`} />
+        </div>
       </div>
 
       <PrintReport data={data} title={title || "Результаты"} model={projectQuery.data?.model} />

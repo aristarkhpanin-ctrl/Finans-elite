@@ -22,6 +22,7 @@ from .db_models import (
     AuditLogEntry,
     AuditSubject,
     AuditSubjectVersion,
+    Comment,
     Holding,
     HoldingMember,
     IndustryBenchmark,
@@ -1206,3 +1207,81 @@ def org_metric_slice(db: Session, org_id: str, since: datetime) -> dict:
             select(func.min(AuditLogEntry.created_at))
             .where(AuditLogEntry.organization_id == org_id)),
     }
+
+
+# --- Обсуждение (комментарии к проекту и к делу, D3) ---
+
+def create_comment(db: Session, org_id: str, *, subject_type: str, subject_id: str,
+                   author: User, body: str, anchor: str = "", anchor_label: str = "",
+                   mentions: list[str] | None = None) -> Comment:
+    """Записать реплику. Почта и имя автора дублируются текстом: участника удалят, а
+    разговор обязан отвечать «кто это сказал» и через год."""
+    comment = Comment(
+        organization_id=org_id, subject_type=subject_type, subject_id=subject_id,
+        anchor=anchor[:128], anchor_label=anchor_label[:255],
+        author_id=author.id, author_email=(author.email or "")[:255],
+        author_name=(author.full_name or "")[:255],
+        body=body, mentions=",".join(mentions or "")[:1000],
+    )
+    db.add(comment)
+    db.commit()
+    db.refresh(comment)
+    return comment
+
+
+def list_comments(db: Session, org_id: str, subject_type: str, subject_id: str,
+                  *, anchor: str | None = None) -> list[Comment]:
+    """Реплики по сущности, старые сверху — разговор читают сверху вниз.
+
+    ``anchor`` сужает до одного места. Удалённые реплики **остаются в выдаче**: их
+    «надгробие» рисует интерфейс, а пропавшая без следа строка читается как не сказанная.
+    """
+    stmt = select(Comment).where(Comment.organization_id == org_id,
+                                 Comment.subject_type == subject_type,
+                                 Comment.subject_id == subject_id)
+    if anchor is not None:
+        stmt = stmt.where(Comment.anchor == anchor)
+    return list(db.execute(stmt.order_by(Comment.created_at)).scalars())
+
+
+def get_comment(db: Session, org_id: str, comment_id: str) -> Comment | None:
+    return db.scalar(select(Comment).where(Comment.id == comment_id,
+                                           Comment.organization_id == org_id))
+
+
+def resolve_comment(db: Session, comment: Comment, *, by: str,
+                    resolved: bool = True) -> Comment:
+    """Закрыть обсуждение или открыть заново. Кто закрыл — записано: «вопрос снят» без
+    имени снявшего это не ответ, а тишина."""
+    comment.resolved_at = datetime.now(timezone.utc) if resolved else None
+    comment.resolved_by = by if resolved else ""
+    db.commit()
+    db.refresh(comment)
+    return comment
+
+
+def delete_comment(db: Session, comment: Comment, *, by: str) -> Comment:
+    """Стереть текст реплики, оставив «надгробие»: удалённая строка говорит о себе.
+
+    ``by`` — кто убрал: «надгробие» отличает своё удаление от административного, иначе
+    оно приписало бы автору чужое решение.
+    """
+    comment.body = ""
+    comment.mentions = ""
+    comment.deleted_at = datetime.now(timezone.utc)
+    comment.deleted_by = by[:255]
+    db.commit()
+    db.refresh(comment)
+    return comment
+
+
+def count_open_comments(db: Session, org_id: str, subject_type: str,
+                        subject_id: str) -> int:
+    """Сколько обсуждений не закрыто — счётчик для списка проектов и дел."""
+    return int(db.scalar(
+        select(func.count()).select_from(Comment)
+        .where(Comment.organization_id == org_id,
+               Comment.subject_type == subject_type,
+               Comment.subject_id == subject_id,
+               Comment.resolved_at.is_(None),
+               Comment.deleted_at.is_(None))) or 0)

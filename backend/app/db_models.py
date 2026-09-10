@@ -562,3 +562,62 @@ class AnalysisJob(Base):
     project_id: Mapped[str] = mapped_column(String(36), nullable=False)
     kind: Mapped[str] = mapped_column(String(32), nullable=False)  # "monte_carlo"
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class Comment(Base):
+    """Обсуждение рядом с числами: комментарий к проекту или к делу (D3).
+
+    **Комментарий привязан к месту, а не к сущности целиком.** «Обсуждение проекта» —
+    это чат, из которого через месяц не понять, о какой строке шла речь. ``anchor`` —
+    стабильный ключ места (вкладка, строка отчёта, продукт, этап), ``anchor_label`` —
+    его подпись **на момент написания**: продукт переименуют или удалят, а разговор
+    обязан остаться понятным. Молча перевесить обсуждение на другой объект нельзя, и
+    «надгробие» подписи — та же машинерия, что у почты в журнале.
+
+    **Одна таблица на оба продукта.** У проекта и у дела обсуждение устроено одинаково;
+    вторая таблица разошлась бы с первой ровно так же, как разошлись бы два конвейера
+    разбора. Продукт выводится из ``subject_type`` — отдельным полем он мог бы с ним
+    поспорить.
+
+    **Текст не правится.** Отредактированная реплика, на которую уже ответили,
+    переписывает историю: спор становится непонятным, а согласие — приписанным. Удалить
+    свою реплику можно, но на её месте остаётся «надгробие» (``deleted_at``): пропавшая
+    без следа строка читается как не сказанная никогда.
+    """
+
+    __tablename__ = "comments"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    #: "project" | "case" — из него же выводится продукт (тариф у них разный).
+    subject_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    subject_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
+    #: Место внутри сущности: "tab:sales", "line:income:I5", "product:<id>", "" — общее.
+    anchor: Mapped[str] = mapped_column(String(128), nullable=False, default="")
+    #: Подпись места на момент написания — чтобы разговор остался понятным после правок.
+    anchor_label: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    author_id: Mapped[Optional[str]] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    #: Почта автора текстом: участника удалят, а разговор обязан отвечать «кто это сказал».
+    author_email: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    author_name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    body: Mapped[str] = mapped_column(String(4000), nullable=False)
+    #: Кого упомянули (почты через запятую). Упоминание **не даёт прав** — только зовёт.
+    mentions: Mapped[str] = mapped_column(String(1000), nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_now, index=True
+    )
+    #: Обсуждение закрыто: кем и когда. NULL — открыто.
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    resolved_by: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    #: Реплика удалена: текст стёрт, «надгробие» осталось. ``deleted_by`` — почта того,
+    #: кто её убрал: «удалена автором» под чужим удалением было бы неправдой.
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    deleted_by: Mapped[str] = mapped_column(String(255), nullable=False, default="")

@@ -34,6 +34,7 @@ import { AuditObligations } from "../components/AuditObligations";
 import { AuditProcedures } from "../components/AuditProcedures";
 import { AuditSummary } from "../components/AuditSummary";
 import { AuditRequisites } from "../components/AuditRequisites";
+import { Comments } from "../components/Comments";
 import { UnsavedLeaveModal, useUnsavedGuard } from "../components/UnsavedGuard";
 import { AuditValuation } from "../components/AuditValuation";
 
@@ -1087,6 +1088,14 @@ export function AuditSubjectPage() {
           </div>
         </>
       )}
+
+      {/* Обсуждение — рядом с числами того раздела, который сейчас открыт: вопрос
+          «откуда эта дебиторка» без места через месяц не прочитать (D3). */}
+      <div style={{ marginTop: 20 }}>
+        <Comments subject={{ kind: "case", id }} anchor={`tab:${tab}`}
+                  anchorLabel={TAB_LABEL[tab]}
+                  title={`Обсуждение: ${TAB_LABEL[tab]}`} />
+      </div>
 
       {/* Вопрос перед уходом: введённую отчётность восстанавливать по памяти нечем. */}
       <UnsavedLeaveModal pending={pendingLeave} saving={save.isPending} onCancel={cancelLeave}

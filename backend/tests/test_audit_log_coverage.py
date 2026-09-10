@@ -19,6 +19,7 @@ from app.routers import (
     audit,
     auth,
     billing,
+    comments,
     holdings,
     integrator,
     jobs,
@@ -28,8 +29,9 @@ from app.routers import (
 
 #: Роутеры продукта. Перечислены явно: авто-обход внутренностей приложения зависел бы от
 #: устройства фреймворка, а список роутеров — часть самого продукта.
-ROUTERS = [admin.router, audit.router, auth.router, billing.router, holdings.router, integrator.router,
-           jobs.router, organizations.router, projects.router]
+ROUTERS = [admin.router, audit.router, auth.router, billing.router, comments.router,
+           holdings.router, integrator.router, jobs.router, organizations.router,
+           projects.router]
 
 #: Изменяющие маршруты, которые журнал **не** пишут — каждый с причиной.
 NOT_LOGGED: dict[str, str] = {
@@ -54,6 +56,14 @@ NOT_LOGGED: dict[str, str] = {
     "POST /api/v1/auth/totp/setup": "секрет заведён, но второй фактор ещё не действует",
     # Биллинг: подтверждение провайдера приходит без пользователя-актора.
     "POST /api/v1/billing/webhook/yookassa": "внешнее уведомление провайдера, актора нет",
+    # Реплика обсуждения (D3) сама себя журналирует: у неё есть автор, время, текст и
+    # «надгробие» после удаления — вторая копия в журнале утопила бы его в разговоре.
+    # Правки текста нет вовсе, поэтому «кто и когда изменил» здесь не возникает.
+    "POST /api/v1/projects/{project_id}/comments": "реплика — сама себе запись",
+    "POST /api/v1/audit/subjects/{subject_id}/comments": "реплика — сама себе запись",
+    "POST /api/v1/comments/{comment_id}/resolve": "закрывший назван в самой реплике",
+    "DELETE /api/v1/comments/{comment_id}/resolve": "открывший назван в самой реплике",
+    "DELETE /api/v1/comments/{comment_id}": "«надгробие» остаётся в самой реплике",
     # Состав холдинга — детали одной сущности; событие пишет сам холдинг.
     "POST /api/v1/holdings/{holding_id}/members": "состав холдинга",
     "PATCH /api/v1/holdings/{holding_id}/members/{project_id}": "состав холдинга",
@@ -140,3 +150,41 @@ def test_both_products_are_covered():
     assert any(re.search(r"/api/v1/projects", k) for k in logged)
     assert any(re.search(r"/api/v1/audit/subjects", k) for k in logged)
     assert any(re.search(r"/api/v1/holdings", k) for k in logged)
+
+
+#: Маршруты, объявленные прямо на приложении, а не в роутере. Каждый — с причиной:
+#: они не трогают данных организации вовсе, и журналу писать о них нечего.
+APP_LEVEL: dict[str, str] = {
+    "/api/v1/calculate": "расчёт без сохранения: ничего не принадлежит организации",
+    "/api/v1/sample": "образец модели — константа продукта",
+    "/api/v1/templates": "каталог шаблонов — константа продукта",
+    "/api/v1/templates/{template_id}": "шаблон — константа продукта",
+}
+
+
+def test_the_roster_of_routers_is_not_stale():
+    """Перечень роутеров обязан покрывать всё, что приложение действительно включило.
+
+    Найдено при добавлении обсуждения (D3): новый роутер не попал в этот список, и
+    проверка покрытия журналом **молча его не увидела** — то есть перечень, заведённый
+    ровно против таких пропаж, сам оказался местом, где пропажа возможна.
+    """
+    from app.main import app
+
+    covered = {r.path for router in ROUTERS for r in router.routes} | set(APP_LEVEL)
+    live = {getattr(r, "path", "") for r in app.routes
+            if getattr(r, "path", "").startswith("/api/v1")}
+    missing = sorted(p for p in live if p not in covered)
+    assert missing == [], (
+        "эти маршруты приложения не покрыты перечнем ROUTERS — добавьте их роутер "
+        "(или, если они не трогают данных организации, внесите в APP_LEVEL с причиной): "
+        + ", ".join(missing))
+
+
+def test_the_app_level_exceptions_are_not_stale():
+    """Исключение, пережившее свой маршрут, врёт о продукте — как и в NOT_LOGGED."""
+    from app.main import app
+
+    live = {getattr(r, "path", "") for r in app.routes}
+    stale = sorted(set(APP_LEVEL) - live)
+    assert stale == [], f"маршрутов больше нет, уберите их из APP_LEVEL: {stale}"
