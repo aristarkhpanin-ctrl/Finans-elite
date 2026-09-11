@@ -11,7 +11,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from calc_core import ENGINE_VERSION, run
-from calc_core.methodology import methodology_map
+from calc_core.methodology import RESOLUTIONS, methodology_map
 from calc_core.samples import build_sample_project, build_showcase_project
 
 SPEC = Path(__file__).resolve().parents[2] / "docs" / "CALC-ENGINE-SPEC.md"
@@ -191,3 +191,124 @@ def test_the_document_prints_the_assumptions_and_names_the_omitted(client, regis
     assert "не подтверждены" in text
     # Усечённый список называет свою неполноту — как и в заключении.
     assert "из 8" in text
+
+
+# --- Классификация открытых вопросов (как каждый закрывается) ---
+
+def test_every_open_question_says_how_it_closes():
+    """Восемь пунктов весили одинаково — и это была неправда.
+
+    «Какие строки усреднять в коэффициентах» и «начисляется ли НДС с аванса» стояли рядом
+    как равные, хотя у второго есть норма, а у первого её нет и быть не может. Из-за
+    этого работа человека выглядела как восемь открытых вопросов вместо четырёх.
+    """
+    report = _map(build_showcase_project())
+    for choice in report.choices:
+        assert choice.resolution in RESOLUTIONS, f"{choice.id}: неизвестный способ закрытия"
+    # Каждое состояние кем-то занято: свободное «на будущее» обещает работу, которой нет.
+    assert {c.resolution for c in report.choices} == set(RESOLUTIONS)
+
+
+def test_a_citable_question_carries_the_norm_and_a_judgement_one_does_not():
+    """Смысл класса — в том, что он несёт с собой. «Закрывается ссылкой» без ссылки —
+    то же самое обещание, что и раньше, только с новым словом."""
+    for choice in _map(build_showcase_project()).choices:
+        if choice.resolution == "citable":
+            assert choice.proposed_basis, f"{choice.id}: норма не названа"
+            assert "ст." in choice.proposed_basis or "ПБУ" in choice.proposed_basis
+        else:
+            assert not choice.proposed_basis, (
+                f"{choice.id}: основание названо там, где нормы нет — "
+                "это выдало бы суждение за норму")
+
+
+def test_the_classification_confirms_nothing():
+    """Ровно та ложь, ради которой версия и держится предварительной: «предложена норма»
+    читается как «уже согласовано», если рядом не написано обратное."""
+    report = _map(build_sample_project())
+    assert report.confirmed is False
+    assert "предложение" in report.classification_note
+    assert ENGINE_VERSION.startswith("0.")
+
+
+def test_fewer_questions_wait_for_a_human_than_the_list_suggested():
+    """Число, ради которого классификация и затевалась."""
+    report = _map(build_showcase_project())
+    assert 0 < len(report.needs_human) < len(report.choices)
+    assert all(c.resolution == "judgement" for c in report.needs_human)
+
+
+# --- Расхождения с нормой: отдельно от «ещё обсуждается» ---
+
+def test_the_loss_carryforward_divergence_is_named_where_it_bites():
+    """Пул убытков покрывает базу целиком, а п. 2.1 ст. 283 НК разрешает не больше
+    половины. Это не трактовка: у вопроса есть ответ, и он другой."""
+    from calc_core.templates import INDUSTRY_TEMPLATES
+
+    losing = _by_id(_map(INDUSTRY_TEMPLATES["cafe"].build()), "tax.loss_carryforward")
+    assert losing.divergence and "50%" in losing.divergence
+    assert "283" in losing.proposed_basis
+
+    # У модели без переноса убытков расхождения нет — и предупреждения тоже.
+    profitable = _by_id(_map(INDUSTRY_TEMPLATES["retail"].build()), "tax.loss_carryforward")
+    assert profitable.divergence == ""
+
+
+def test_the_advance_vat_divergence_needs_all_three_conditions():
+    """НДС с аванса расходится с п. 1 ст. 167 НК только там, где есть что начислять:
+    НДС включён, режим «по отгрузке» и в сбыте действительно есть предоплата."""
+    from calc_core.models.common import VatBasis
+    from calc_core.templates import INDUSTRY_TEMPLATES
+
+    prepaid = INDUSTRY_TEMPLATES["saas"].build()             # предоплата 100%
+    assert _by_id(_map(prepaid), "vat.basis").divergence
+
+    # «По оплате» — НДС и так идёт за деньгами, расхождения нет.
+    by_payment = INDUSTRY_TEMPLATES["saas"].build()
+    by_payment.settings.vat_basis = VatBasis.PAYMENT
+    assert _by_id(_map(by_payment), "vat.basis").divergence == ""
+
+    # Без НДС начислять нечего.
+    no_vat = INDUSTRY_TEMPLATES["saas"].build()
+    no_vat.settings.vat_rate = Decimal(0)
+    assert _by_id(_map(no_vat), "vat.basis").divergence == ""
+
+    # Без предоплаты — тоже: у кофейни деньги в момент отгрузки.
+    assert _by_id(_map(INDUSTRY_TEMPLATES["cafe"].build()), "vat.basis").divergence == ""
+
+
+def test_a_divergence_is_named_not_fixed():
+    """Правка расхождения меняет числа и требует своего бампа версии с ревью
+    golden-диффа. Карта — читающий слой: она о нём только рассказывает."""
+    from calc_core.templates import INDUSTRY_TEMPLATES
+
+    model = INDUSTRY_TEMPLATES["cafe"].build()
+    before = run(model)
+    _map(model)                                   # разбор ничего не меняет
+    after = run(model)
+    assert before.income["I22"] == after.income["I22"]
+    assert before.income["I27"] == after.income["I27"]
+
+
+def test_the_document_prints_the_divergence_under_its_own_heading():
+    """В общем списке «открыто к сверке» расхождение читается как «ещё обсуждается».
+    Читателю бизнес-плана — банку, аудитору — важно именно оно."""
+    from datetime import date as _date
+    from io import BytesIO
+
+    from docx import Document
+
+    from app.docgen import build_business_plan_docx
+    from calc_core.review import ReviewContext, run_review
+    from calc_core.review.opinion import build_opinion
+    from calc_core.templates import INDUSTRY_TEMPLATES
+
+    model = INDUSTRY_TEMPLATES["cafe"].build()
+    result = run(model)
+    opinion = build_opinion(run_review(ReviewContext(model=model, result=result)), result)
+    doc = Document(BytesIO(build_business_plan_docx(
+        model, result, opinion, project_name="Кофейня", today=_date(2026, 7, 1))))
+    text = "\n".join(p.text for p in doc.paragraphs)
+    assert "Где расчёт расходится с нормой" in text
+    assert "283" in text and "50%" in text
+    assert "предложение" in text                  # и оговорка едет рядом

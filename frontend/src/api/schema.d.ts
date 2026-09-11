@@ -5024,6 +5024,11 @@ export interface components {
              */
             controls: string[];
             /**
+             * Divergence
+             * @default
+             */
+            divergence: string;
+            /**
              * Engaged
              * @default false
              */
@@ -5041,6 +5046,16 @@ export interface components {
              * @default
              */
             open_question: string;
+            /**
+             * Proposed Basis
+             * @default
+             */
+            proposed_basis: string;
+            /**
+             * Resolution
+             * @default judgement
+             */
+            resolution: string;
             /**
              * Silent Because
              * @default
@@ -6508,10 +6523,20 @@ export interface components {
              */
             choices: components["schemas"]["ChoiceOut"][];
             /**
+             * Classification Note
+             * @default
+             */
+            classification_note: string;
+            /**
              * Confirmed
              * @default false
              */
             confirmed: boolean;
+            /**
+             * Divergence Count
+             * @default 0
+             */
+            divergence_count: number;
             /**
              * Engaged Count
              * @default 0
@@ -6519,6 +6544,11 @@ export interface components {
             engaged_count: number;
             /** Engine Version */
             engine_version: string;
+            /**
+             * Needs Human Count
+             * @default 0
+             */
+            needs_human_count: number;
             /**
              * Note
              * @default

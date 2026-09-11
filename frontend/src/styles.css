@@ -3326,6 +3326,29 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .mth-card__silent { font: 500 12.5px/1.5 var(--font-ui); color: var(--text); margin-top: 6px; }
 .mth-card__open { font: 400 12px/1.45 var(--font-ui); color: var(--subtle); margin-top: 7px; }
 .mth-card__open-l { font-weight: 600; }
+.mth-card__basis { font: 400 12px/1.45 var(--font-ui); color: var(--subtle); margin-top: 5px; }
+/* Способ закрытия открытого вопроса: «нужно суждение» и «есть норма» — разный объём
+   работы для читателя, и чип говорит это до того, как он начнёт искать. */
+.mth-res {
+  display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 999px;
+  font: 600 10.5px var(--font-ui); border: 1px solid var(--line); color: var(--subtle);
+  white-space: nowrap;
+}
+.mth-res--citable { border-color: var(--accent); color: var(--accent); }
+.mth-res--judgement { border-color: var(--warn, var(--line)); }
+/* Расхождение с нормой — не оттенок открытого вопроса, а другое утверждение, и блок
+   у него свой: у него есть ответ, и он другой. */
+.mth-diverge {
+  border: 1px solid var(--bad, var(--line)); border-radius: 12px;
+  padding: 14px 16px; margin: 14px 0; background: var(--surface-2);
+}
+.mth-diverge__title { font: 700 13px var(--font-ui); color: var(--ink); margin-bottom: 8px; }
+.mth-diverge__item { font: 400 12.5px/1.5 var(--font-ui); color: var(--ink); margin-top: 8px; }
+.mth-diverge__basis { font: 400 12px/1.45 var(--font-ui); color: var(--subtle); margin-top: 4px; }
+.mth-diverge__note {
+  font: 400 11.5px/1.45 var(--font-ui); color: var(--subtle);
+  margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--line);
+}
 .mth-card__controls { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .mth-card__controls code {
   font: 500 10.5px var(--font-mono); color: var(--subtle); background: var(--surface-2);

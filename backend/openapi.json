@@ -4750,6 +4750,11 @@
             "title": "Controls",
             "type": "array"
           },
+          "divergence": {
+            "default": "",
+            "title": "Divergence",
+            "type": "string"
+          },
           "engaged": {
             "default": false,
             "title": "Engaged",
@@ -4771,6 +4776,16 @@
           "open_question": {
             "default": "",
             "title": "Open Question",
+            "type": "string"
+          },
+          "proposed_basis": {
+            "default": "",
+            "title": "Proposed Basis",
+            "type": "string"
+          },
+          "resolution": {
+            "default": "judgement",
+            "title": "Resolution",
             "type": "string"
           },
           "silent_because": {
@@ -7366,10 +7381,20 @@
             "title": "Choices",
             "type": "array"
           },
+          "classification_note": {
+            "default": "",
+            "title": "Classification Note",
+            "type": "string"
+          },
           "confirmed": {
             "default": false,
             "title": "Confirmed",
             "type": "boolean"
+          },
+          "divergence_count": {
+            "default": 0,
+            "title": "Divergence Count",
+            "type": "integer"
           },
           "engaged_count": {
             "default": 0,
@@ -7379,6 +7404,11 @@
           "engine_version": {
             "title": "Engine Version",
             "type": "string"
+          },
+          "needs_human_count": {
+            "default": 0,
+            "title": "Needs Human Count",
+            "type": "integer"
           },
           "note": {
             "default": "",

@@ -282,6 +282,12 @@ class ChoiceOut(BaseModel):
     engaged: bool = False      # задействовано ли — по числам, а не по наличию поля
     silent_because: str = ""   # почему не задействовано; молчание читалось бы как «всё ок»
     evidence: dict = Field(default_factory=dict)
+    # Как закрывается открытый вопрос: citable | judgement | presentation (предложение).
+    resolution: str = "judgement"
+    proposed_basis: str = ""   # предлагаемая норма — для citable
+    # Где движок считает **не так**, как требует предлагаемая норма. Отдельно от
+    # open_question: «ещё не договорились» и «считаем иначе» — разные утверждения.
+    divergence: str = ""
 
 
 class MethodologyResponse(BaseModel):
@@ -295,8 +301,15 @@ class MethodologyResponse(BaseModel):
     engine_version: str
     confirmed: bool = False
     note: str = ""
+    # Что означает разбиение по способу закрытия — и чего оно не означает.
+    classification_note: str = ""
     choices: list[ChoiceOut] = []
     engaged_count: int = 0
+    # Сколько пунктов действительно ждут человека (остальные закрываются нормой или
+    # вообще не о числах). Ради этого числа классификация и затевалась.
+    needs_human_count: int = 0
+    # Сколько пунктов расходятся с предлагаемой нормой **в этой модели**.
+    divergence_count: int = 0
 
 
 def methodology_response(report) -> "MethodologyResponse":
@@ -305,12 +318,17 @@ def methodology_response(report) -> "MethodologyResponse":
         engine_version=report.engine_version,
         confirmed=report.confirmed,
         note=report.note,
+        classification_note=report.classification_note,
         choices=[ChoiceOut(
             id=c.id, number=c.number, title=c.title, spec=c.spec, chosen=c.chosen,
             controls=c.controls, open_question=c.open_question, engaged=c.engaged,
             silent_because=c.silent_because, evidence=c.evidence,
+            resolution=c.resolution, proposed_basis=c.proposed_basis,
+            divergence=c.divergence,
         ) for c in report.choices],
         engaged_count=len(report.engaged),
+        needs_human_count=len(report.needs_human),
+        divergence_count=len(report.divergences),
     )
 
 

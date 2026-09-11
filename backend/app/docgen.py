@@ -327,6 +327,19 @@ def _add_methodology(doc: Document, model: ProjectModel, result: CalcResult) -> 
         row[2].text = choice.open_question
     _shrink_table(table, 8.5)
 
+    # Расхождения — **отдельным заголовком, а не колонкой в таблице выше**: «мы ещё не
+    # договорились, как считать» и «мы считаем не так, как требует норма» читаются
+    # по-разному, и второе в общем списке теряется. Читателю бизнес-плана — банку,
+    # аудитору — важно именно оно.
+    diverging = [c for c in engaged if c.divergence]
+    if diverging:
+        doc.add_heading("Где расчёт расходится с нормой", level=2)
+        doc.add_paragraph(report.classification_note)
+        for choice in diverging:
+            doc.add_paragraph(f"{choice.number}. {choice.title}. {choice.divergence}")
+            if choice.proposed_basis:
+                doc.add_paragraph(f"Основание: {choice.proposed_basis}")
+
 
 def _add_budget(doc: Document, result: CalcResult) -> None:
     budget = result.budget
