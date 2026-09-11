@@ -19,8 +19,14 @@ export interface MonthlyRow {
   onChange?: (values: string[]) => void;
   /** Вычисляемый readonly-ряд (число за месяц i). */
   compute?: (i: number) => number;
-  /** Агрегат в чипе: сумма (Σ) или среднее («ср.»). */
-  agg?: "sum" | "avg";
+  /**
+   * Агрегат в чипе: сумма (Σ), среднее («ср.») или последнее значение («на конец»).
+   *
+   * «На конец» — для рядов-остатков (абонентская база): сложить базу двенадцати месяцев
+   * так же бессмысленно, как сложить остатки на счёте, а показанная сумма читалась бы
+   * как достижение.
+   */
+  agg?: "sum" | "avg" | "last";
   /** Юнит после агрегата: ₽, $, шт… */
   unit?: string;
 }
@@ -55,11 +61,13 @@ export function MonthlyGrid({ n, rows, hint = true }: { n: number; rows: Monthly
   const aggChip = (row: MonthlyRow): string => {
     const unit = row.unit ? NBSP + row.unit : "";
     if (row.compute) {
+      if (row.agg === "last") return `на конец ${fmtInt(row.compute(n - 1))}${unit}`;
       let sum = 0;
       for (let i = 0; i < n; i++) sum += row.compute(i);
       return `Σ ${fmtAgg(sum)}${unit}`;
     }
     const vals = Array.from({ length: n }, (_, i) => num(get(row, i)));
+    if (row.agg === "last") return `на конец ${fmtInt(vals[n - 1] ?? 0)}${unit}`;
     if (row.agg === "avg") {
       const nz = vals.filter((x) => x !== 0);
       const avg = nz.length ? nz.reduce((a, c) => a + c, 0) / nz.length : 0;

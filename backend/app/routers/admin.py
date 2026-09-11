@@ -1,0 +1,495 @@
+"""Служебный контур платформы: что мы видим о своих клиентах (ADMIN-DECOMPOSITION.md, B1).
+
+Отдельный роутер, отдельная зависимость (:func:`deps.require_staff`), отдельный журнал.
+Ни один клиентский маршрут прав оператора не получает, и ни один служебный не выдаёт
+содержимого моделей: оператору видны метаданные — организации, состав, подписки, объёмы —
+и не видно ни одного числа из проекта или дела (правило 6 плана). Иначе владелец SaaS
+читает финансовые модели своих клиентов, то есть ровно то, чего клиент и опасается.
+
+**Обхода изоляции арендатора здесь нет.** Служебные запросы к данным организации идут
+через тот же ``set_tenant``, что и клиентские: оператор входит в организацию по очереди,
+через ту же дверь, и выходит из неё явно (:func:`database.as_tenant` — дверь общая, своей
+у служебного контура нет). Отдельная роль в
+PostgreSQL или политика с лазейкой дали бы контур, в котором RLS не действует, — и он
+существовал бы ровно до первой ошибки в коде, которая направит туда клиентский запрос.
+
+**Правило «журнал не пишет чтение» здесь имеет названное исключение.** Оно защищает
+журнал от потока собственных просмотров участников; приход **постороннего** — событие,
+которого клиент иначе не увидит вовсе. Поэтому визит в конкретную организацию пишется в
+её журнал, а платформенные списки (все организации, поиск человека) — только в служебный:
+иначе одно обновление экрана оператора оставило бы запись у каждого клиента сразу, и
+сигнал «к нам приходили» утонул бы в шуме, который сам же и создаёт.
+"""
+from __future__ import annotations
+
+import csv
+import io
+from datetime import datetime, timedelta, timezone
+
+from fastapi import APIRouter, Depends, HTTPException, Response
+from sqlalchemy.orm import Session
+
+from .. import crud
+from ..database import as_tenant, get_db
+from ..db_models import User
+from ..deps import require_staff
+from ..metrics import (
+    PlatformMetrics,
+    TenantTotals,
+    build_platform_metrics,
+    product_label,
+)
+from ..plans import PRODUCTS, get_plan
+from ..schemas import (
+    AuditLogPage,
+    FunnelStepOut,
+    MetricPointOut,
+    PlanSliceOut,
+    PlatformMetricsOut,
+    RetentionPointOut,
+    StaffLogEntryOut,
+    StaffLogPage,
+    StaffOrgDetail,
+    StaffOrgOut,
+    StaffOrgPage,
+    StaffSubscriptionOut,
+    StaffUserOrgOut,
+    StaffUserOut,
+    SuspendIn,
+)
+from .organizations import _log_entry_out, _member_out
+
+router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
+
+
+def _subscriptions_out(db: Session, org_id: str) -> list[StaffSubscriptionOut]:
+    """Оба продукта платформы, а не только оформленные подписки.
+
+    Организация пользуется продуктом и на тарифе по умолчанию, подписки при этом нет
+    вовсе. Показать только оформленные значило бы, что клиент с тремя делами выглядит
+    не пользующимся «Аудитом»; статус ``none`` отличает «не оформлял» от «оформил
+    бесплатный», и это разные разговоры с клиентом.
+    """
+    subs = {s.product: s for s in crud.list_subscriptions(db, org_id)}
+    out = []
+    for product in PRODUCTS:
+        sub = subs.get(product)
+        plan = get_plan(sub.plan_code if sub else None, product)
+        out.append(StaffSubscriptionOut(
+            product=product, plan_code=plan.code, plan_name=plan.name,
+            status=sub.status if sub else "none",
+            current_period_end=sub.current_period_end if sub else None))
+    return out
+
+
+def _org_out(db: Session, org) -> StaffOrgOut:
+    """Метаданные организации. Объёмы считаются, стоя в её же дверях (RLS)."""
+    with as_tenant(db, org.id):
+        volumes = crud.org_volumes(db, org.id)
+    return StaffOrgOut(id=org.id, name=org.name, created_at=org.created_at,
+                       subscriptions=_subscriptions_out(db, org.id),
+                       suspended=org.suspended_at is not None,
+                       suspended_at=org.suspended_at, suspended_by=org.suspended_by,
+                       suspend_reason=org.suspend_reason, **volumes)
+
+
+def _org_detail(db: Session, org) -> StaffOrgDetail:
+    """Карточка клиента: метаданные плюс состав. Собирается из одного места, чтобы
+    приостановка и снятие возвращали ровно то же, что показывает сама карточка."""
+    base = _org_out(db, org)
+    members = [_member_out(m, u) for m, u in crud.list_members(db, org.id)]
+    return StaffOrgDetail(**base.model_dump(), members_list=members)
+
+
+@router.get("/organizations", response_model=StaffOrgPage)
+def list_organizations(q: str = "", limit: int = 50, offset: int = 0,
+                       staff: User = Depends(require_staff),
+                       db: Session = Depends(get_db)) -> StaffOrgPage:
+    """Клиенты платформы: кто, с какого числа, на каком тарифе и сколько чего завёл.
+
+    Пишется **только в служебный журнал**: список — это платформенный взгляд, а не визит
+    к конкретному клиенту. Запись у каждого клиента при каждом обновлении экрана сделала
+    бы их журналы нечитаемыми.
+    """
+    limit = max(1, min(limit, 200))
+    orgs = crud.list_organizations(db, q=q, limit=limit, offset=offset)
+    crud.log_staff_action(db, staff, "staff.orgs_list",
+                          details=f"найдено: {len(orgs)}" + (f", отбор: {q}" if q else ""))
+    return StaffOrgPage(organizations=[_org_out(db, o) for o in orgs],
+                        total=crud.count_organizations(db, q=q))
+
+
+@router.get("/organizations/{org_id}", response_model=StaffOrgDetail)
+def get_organization(org_id: str, staff: User = Depends(require_staff),
+                     db: Session = Depends(get_db)) -> StaffOrgDetail:
+    """Карточка клиента: подписки, объёмы, состав.
+
+    Визит пишется **в оба журнала** — в служебный и в журнал самой организации. Клиент
+    обязан видеть, что к нему приходили, даже (и особенно) когда приходили мы.
+    """
+    org = crud.get_organization(db, org_id)
+    if org is None:
+        raise HTTPException(status_code=404, detail="Организация не найдена")
+    detail = _org_detail(db, org)
+    with as_tenant(db, org_id):
+        crud.log_action(db, org_id, staff, "staff.org_view", entity_type="organization",
+                        entity_id=org_id, entity_name=org.name,
+                        details="просмотр сотрудником платформы")
+    crud.log_staff_action(db, staff, "staff.org_view", org_id=org_id, org_name=org.name)
+    return detail
+
+
+@router.get("/organizations/{org_id}/audit-log", response_model=AuditLogPage)
+def read_audit_log(org_id: str, limit: int = 200, actor: str = "", action: str = "",
+                   since: datetime | None = None, until: datetime | None = None,
+                   q: str = "", staff: User = Depends(require_staff),
+                   db: Session = Depends(get_db)) -> AuditLogPage:
+    """Журнал организации глазами оператора — тот же, что видит её администратор.
+
+    Второго представления журнала не заводим: расхождение двух ответов на один вопрос
+    («что у клиента происходило») пришлось бы разбирать в момент инцидента, то есть
+    тогда, когда времени на это меньше всего.
+    """
+    org = crud.get_organization(db, org_id)
+    if org is None:
+        raise HTTPException(status_code=404, detail="Организация не найдена")
+    limit = max(1, min(limit, 500))
+    f = {"actor": actor, "action": action, "since": since, "until": until, "q": q}
+    with as_tenant(db, org_id):
+        entries = crud.list_audit_log(db, org_id, limit=limit, **f)
+        page = AuditLogPage(entries=[_log_entry_out(e) for e in entries],
+                            total=crud.count_audit_log(db, org_id, **f),
+                            actors=crud.audit_log_actors(db, org_id),
+                            actions=crud.audit_log_actions(db, org_id))
+        crud.log_action(db, org_id, staff, "staff.audit_log_view",
+                        entity_type="organization", entity_id=org_id, entity_name=org.name,
+                        details="журнал прочитан сотрудником платформы")
+    crud.log_staff_action(db, staff, "staff.audit_log_view", org_id=org_id,
+                          org_name=org.name, details=f"строк: {len(entries)}")
+    return page
+
+
+def _user_out(db: Session, user: User) -> StaffUserOut:
+    orgs = []
+    for org, role in crud.list_user_organizations(db, user.id):
+        membership = crud.get_membership(db, org.id, user.id)
+        orgs.append(StaffUserOrgOut(
+            id=org.id, name=org.name, role=role,
+            blocked=membership is not None and membership.blocked_at is not None,
+            block_reason=membership.block_reason if membership else "",
+            last_seen_at=membership.last_seen_at if membership else None))
+    return StaffUserOut(id=user.id, email=user.email, full_name=user.full_name,
+                        created_at=user.created_at, is_staff=user.is_staff,
+                        has_password=user.hashed_password is not None,
+                        blocked=user.blocked_at is not None, blocked_at=user.blocked_at,
+                        blocked_by=user.blocked_by, block_reason=user.block_reason,
+                        organizations=orgs)
+
+
+@router.get("/users", response_model=list[StaffUserOut])
+def search_users(q: str = "", limit: int = 50, staff: User = Depends(require_staff),
+                 db: Session = Depends(get_db)) -> list[StaffUserOut]:
+    """Поиск человека по адресу или имени — вход в разбор обращения в поддержку.
+
+    Ответ говорит и то, о чём поддержку спрашивают чаще всего: заведён ли пароль вообще
+    (приглашённый его мог не задать) и не приостановлен ли доступ — и в какой именно
+    организации. Это метаданные человека, а не данные организации, поэтому запись идёт
+    в служебный журнал.
+    """
+    limit = max(1, min(limit, 200))
+    users = crud.search_users(db, q=q, limit=limit)
+    crud.log_staff_action(db, staff, "staff.users_search",
+                          details=f"найдено: {len(users)}" + (f", отбор: {q}" if q else ""))
+    return [_user_out(db, u) for u in users]
+
+
+@router.get("/users/{user_id}", response_model=StaffUserOut)
+def get_user(user_id: str, staff: User = Depends(require_staff),
+             db: Session = Depends(get_db)) -> StaffUserOut:
+    user = crud.get_user(db, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    crud.log_staff_action(db, staff, "staff.user_view", details=user.email)
+    return _user_out(db, user)
+
+
+@router.post("/organizations/{org_id}/suspend", response_model=StaffOrgDetail)
+def suspend_organization(org_id: str, body: SuspendIn,
+                         staff: User = Depends(require_staff),
+                         db: Session = Depends(get_db)) -> StaffOrgDetail:
+    """Приостановить организацию (нарушение, запрос, разбирательство) — B2.
+
+    **Приостановка не конфискует данные** (правило 7): организация переходит в режим
+    чтения и выгрузки — свои модели видны, считаются и выгружаются, новые не заводятся
+    и старые не правятся. Отрезать клиента от собственных чисел значило бы держать их в
+    заложниках, чем бы это ни было вызвано.
+
+    Причина обязательна и показывается **самой организации**: ограничение без объяснения
+    неотличимо от поломки. Оплата приостановку не снимает — снимает только платформа, и
+    в тексте отказа это сказано прямо.
+    """
+    org = crud.get_organization(db, org_id)
+    if org is None:
+        raise HTTPException(status_code=404, detail="Организация не найдена")
+    crud.set_org_suspension(db, org, suspended=True, by=staff.email, reason=body.reason)
+    with as_tenant(db, org_id):
+        crud.log_action(db, org_id, staff, "staff.org_suspend", entity_type="organization",
+                        entity_id=org_id, entity_name=org.name, details=body.reason)
+    crud.log_staff_action(db, staff, "staff.org_suspend", org_id=org_id,
+                          org_name=org.name, details=body.reason)
+    return _org_detail(db, org)
+
+
+@router.delete("/organizations/{org_id}/suspend", response_model=StaffOrgDetail)
+def resume_organization(org_id: str, staff: User = Depends(require_staff),
+                        db: Session = Depends(get_db)) -> StaffOrgDetail:
+    """Снять приостановку. Автор и причина стираются — историю хранит журнал."""
+    org = crud.get_organization(db, org_id)
+    if org is None:
+        raise HTTPException(status_code=404, detail="Организация не найдена")
+    crud.set_org_suspension(db, org, suspended=False)
+    with as_tenant(db, org_id):
+        crud.log_action(db, org_id, staff, "staff.org_resume", entity_type="organization",
+                        entity_id=org_id, entity_name=org.name)
+    crud.log_staff_action(db, staff, "staff.org_resume", org_id=org_id, org_name=org.name)
+    return _org_detail(db, org)
+
+
+def _blockable(db: Session, user_id: str, staff: User) -> User:
+    """Кого оператору блокировать нельзя — и почему (оба отказа названы в ответе)."""
+    user = crud.get_user(db, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    if user.id == staff.id:
+        raise HTTPException(status_code=400,
+                            detail="Себя заблокировать нельзя: выйдете и не вернётесь")
+    if user.is_staff:
+        # Тот же довод, что и запрет блокировать владельца организации (A1): иначе один
+        # оператор отключает другого, и служебный контур решает свои споры блокировками.
+        raise HTTPException(
+            status_code=400,
+            detail="Учётная запись сотрудника платформы блокируется не отсюда: снимите "
+                   "признак сотрудника у того, у кого есть доступ к базе")
+    return user
+
+
+@router.post("/users/{user_id}/block", response_model=StaffUserOut)
+def block_user(user_id: str, body: SuspendIn, staff: User = Depends(require_staff),
+               db: Session = Depends(get_db)) -> StaffUserOut:
+    """Заблокировать учётную запись платформы — сразу во всех организациях (B2).
+
+    Отличается от приостановки членства (A1) осью: там администратор закрывает человеку
+    **своё** рабочее пространство, здесь платформа закрывает саму учётную запись. Право
+    только у оператора именно поэтому: человек состоит и в чужих организациях, которые
+    администратору одной не подчиняются.
+
+    Пишется в журнал **каждой** организации, где человек состоит: администратор обязан
+    понимать, почему его сотрудник перестал работать, — иначе он будет искать поломку.
+    """
+    user = _blockable(db, user_id, staff)
+    crud.set_user_block(db, user, blocked=True, by=staff.email, reason=body.reason)
+    # Блокировка закрывает и сеансы (C1). Отказ на входе даёт `blocked_at` и так, но
+    # снятие блокировки не должно воскрешать входы, которые были живы в момент запрета:
+    # заблокированного разблокируют, а его старый токен на чужом устройстве — нет.
+    crud.revoke_user_sessions(db, user.id)
+    crud.log_user_action(db, user, "staff.user_block", details=body.reason)
+    crud.log_staff_action(db, staff, "staff.user_block", details=f"{user.email}: {body.reason}")
+    return _user_out(db, user)
+
+
+@router.delete("/users/{user_id}/block", response_model=StaffUserOut)
+def unblock_user(user_id: str, staff: User = Depends(require_staff),
+                 db: Session = Depends(get_db)) -> StaffUserOut:
+    """Снять блокировку учётной записи."""
+    user = crud.get_user(db, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    crud.set_user_block(db, user, blocked=False)
+    crud.log_user_action(db, user, "staff.user_unblock")
+    crud.log_staff_action(db, staff, "staff.user_unblock", details=user.email)
+    return _user_out(db, user)
+
+
+@router.delete("/users/{user_id}/totp", response_model=StaffUserOut)
+def reset_user_totp(user_id: str, staff: User = Depends(require_staff),
+                    db: Session = Depends(get_db)) -> StaffUserOut:
+    """Сбросить второй фактор человеку — **последний способ вернуть доступ** (C2).
+
+    Почты у платформы нет, значит письма «восстановите доступ» не существует: потерянный
+    телефон **и** потерянные резервные коды означали бы навсегда потерянную учётную
+    запись. Кто-то обязан быть последней инстанцией, и это платформа.
+
+    Отсюда же и обязанность не молчать: сброс пишется в служебный журнал **и** в журналы
+    всех организаций человека. Оператор, снимающий второй фактор, делает ровно то, ради
+    чего второй фактор и ставили, — и это должно быть видно, а не спрятано в поддержке.
+    Личность обратившегося проверяет человек, а не код: платформа не умеет этого и не
+    делает вид, что умеет.
+    """
+    user = crud.get_user(db, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    if user.totp_enabled_at is None and not user.totp_secret:
+        raise HTTPException(status_code=409, detail="Второй фактор не настроен")
+    crud.disable_totp(db, user)
+    crud.log_user_action(db, user, "staff.totp_reset",
+                         details=f"сотрудник платформы: {staff.email}")
+    crud.log_staff_action(db, staff, "staff.totp_reset", details=user.email)
+    return _user_out(db, user)
+
+
+#: Сколько организаций обходить, собирая объёмы и выгрузки. Обхода изоляции у платформы
+#: нет (B1): в каждую организацию она входит по очереди, и на большом числе клиентов это
+#: становится дорого. Предел назван, а не подразумевается: усечённый свод **говорит о
+#: своей неполноте** в `notes`, а не выдаёт частичную сумму за измеренную.
+MAX_METRIC_ORGS = 2_000
+
+
+def _tenant_totals(db: Session, since: datetime) -> TenantTotals:
+    """Пройти по арендаторам и сложить то, что лежит под RLS.
+
+    Проекты, дела и журнал видны только изнутри организации, поэтому свод собирается
+    обходом — той же дверью, что и всё остальное в служебном контуре.
+    """
+    total = int(crud.count_organizations(db))
+    orgs = crud.list_organizations(db, limit=MAX_METRIC_ORGS)
+    totals = TenantTotals(organizations_scanned=len(orgs), organizations_total=total)
+    for org in orgs:
+        with as_tenant(db, org.id):
+            slice_ = crud.org_metric_slice(db, org.id, since)
+        totals.projects += slice_["projects"]
+        totals.cases += slice_["cases"]
+        totals.calculated += slice_["calculated"]
+        totals.exports += slice_["exports"]
+        # Воронка считается тем же обходом: второй проход ради тех же чисел был бы вдвое
+        # дороже и однажды разошёлся бы с первым.
+        if slice_["projects"] or slice_["cases"]:
+            totals.with_entities += 1
+        if slice_["ever_calculated"]:
+            totals.with_calculation += 1
+        if slice_["ever_exported"]:
+            totals.with_export += 1
+        first = slice_["first_log_at"]
+        if first is not None and (totals.first_log_at is None
+                                  or first < totals.first_log_at):
+            totals.first_log_at = first
+    return totals
+
+
+def _metrics(db: Session, *, months: int, days: int) -> PlatformMetrics:
+    now = datetime.now(timezone.utc)
+    totals = _tenant_totals(db, now - timedelta(days=days))
+    return build_platform_metrics(db, totals=totals, now=now, months=months,
+                                  since_days=days)
+
+
+@router.get("/metrics", response_model=PlatformMetricsOut)
+def read_metrics(months: int = 12, days: int = 30, staff: User = Depends(require_staff),
+                 db: Session = Depends(get_db)) -> PlatformMetricsOut:
+    """Сводка платформы: сколько клиентов, кто из них жив и что они делают (B3).
+
+    **Второй системы учёта под это не заводится**: числа собираются из организаций,
+    пользователей, членства, подписок и журнала. Счётчик «под метрики» начал бы жить
+    своей жизнью и расходиться с данными, и разбирать пришлось бы не бизнес, а
+    расхождение.
+
+    Ответ несёт не только числа, но и **границы их применимости** (``notes``): чего
+    платформа не считает и с какого дня вообще может считать. Ноль за период, которого
+    журнал не застал, выглядит ровно как ноль событий — и без оговорки был бы им.
+    """
+    months = max(1, min(months, 36))
+    days = max(1, min(days, 365))
+    m = _metrics(db, months=months, days=days)
+    crud.log_staff_action(db, staff, "staff.metrics",
+                          details=f"за {days} дн., {months} мес.")
+    return PlatformMetricsOut(
+        generated_at=m.generated_at, since_days=m.since_days,
+        organizations=m.organizations, users=m.users,
+        active_users={str(k): v for k, v in m.active_users.items()},
+        active_organizations={str(k): v for k, v in m.active_organizations.items()},
+        members_without_mark=m.members_without_mark, projects=m.projects, cases=m.cases,
+        projects_calculated=m.projects_calculated, exports=m.exports,
+        growth=[MetricPointOut(period=p.period, organizations=p.organizations,
+                               users=p.users) for p in m.growth],
+        plans=[PlanSliceOut(product=s.product, plan_code=s.plan_code,
+                            plan_name=s.plan_name, organizations=s.organizations)
+               for s in m.plans],
+        funnel=[FunnelStepOut(key=f.key, label=f.label, organizations=f.organizations,
+                              share=f.share) for f in m.funnel],
+        retention=[RetentionPointOut(month=r.month, arrived=r.arrived,
+                                     returned=r.returned) for r in m.retention],
+        usage_collected=m.usage_collected,
+        notes=list(m.notes),
+    )
+
+
+@router.get("/metrics.csv")
+def export_metrics(months: int = 12, days: int = 30, staff: User = Depends(require_staff),
+                   db: Session = Depends(get_db)) -> Response:
+    """Выгрузка сводки — теми же числами, что на экране, и **с теми же оговорками**.
+
+    Оговорки идут в файл строками, а не остаются на экране: таблица, доехавшая до чужой
+    презентации без них, утверждает больше, чем платформа измеряла.
+
+    Разделитель и BOM — как в выгрузке журнала: иначе Excel в русской локали разложит
+    файл в один столбец и испортит кириллицу.
+    """
+    months = max(1, min(months, 36))
+    days = max(1, min(days, 365))
+    m = _metrics(db, months=months, days=days)
+    buf = io.StringIO()
+    writer = csv.writer(buf, delimiter=";", lineterminator="\r\n")
+    writer.writerow(["Показатель", "Значение"])
+    writer.writerow(["Дата сводки", m.generated_at.strftime("%d.%m.%Y %H:%M")])
+    writer.writerow(["Организаций", m.organizations])
+    writer.writerow(["Пользователей", m.users])
+    for window in sorted(m.active_users):
+        writer.writerow([f"Активных пользователей за {window} дн.", m.active_users[window]])
+        writer.writerow([f"Активных организаций за {window} дн.",
+                         m.active_organizations[window]])
+    writer.writerow(["Участников без отметки присутствия", m.members_without_mark])
+    writer.writerow(["Проектов", m.projects])
+    writer.writerow(["Дел", m.cases])
+    writer.writerow([f"Проектов считали за {m.since_days} дн.", m.projects_calculated])
+    writer.writerow([f"Выгрузок документов за {m.since_days} дн.", m.exports])
+
+    writer.writerow([])
+    writer.writerow(["Месяц", "Новых организаций", "Новых пользователей"])
+    for point in m.growth:
+        writer.writerow([point.period, point.organizations, point.users])
+
+    writer.writerow([])
+    writer.writerow(["Продукт", "Тариф", "Организаций"])
+    for plan in m.plans:
+        writer.writerow([product_label(plan.product), plan.plan_name, plan.organizations])
+
+    writer.writerow([])
+    writer.writerow(["Чего эти числа не значат"])
+    for note in m.notes:
+        writer.writerow([note])
+
+    crud.log_staff_action(db, staff, "staff.metrics_export",
+                          details=f"за {days} дн., {months} мес.")
+    return Response(
+        content=buf.getvalue().encode("utf-8-sig"),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="platform-metrics.csv"'},
+    )
+
+
+@router.get("/log", response_model=StaffLogPage)
+def read_staff_log(limit: int = 200, actor: str = "", org_id: str = "",
+                   staff: User = Depends(require_staff),
+                   db: Session = Depends(get_db)) -> StaffLogPage:
+    """Служебный журнал: где были наши сотрудники.
+
+    Как и журнал организации — только чтение: ни PUT, ни DELETE. Журнал, который можно
+    поправить, не журнал, и для собственных следов это верно ровно в той же мере.
+    Собственное чтение журнала не пишется: оно никуда не приходит и ничего не выносит.
+    """
+    limit = max(1, min(limit, 500))
+    entries = crud.list_staff_log(db, limit=limit, actor=actor, org_id=org_id)
+    return StaffLogPage(entries=[
+        StaffLogEntryOut(id=e.id, actor_email=e.actor_email, action=e.action,
+                         organization_id=e.organization_id,
+                         organization_name=e.organization_name, details=e.details,
+                         created_at=e.created_at) for e in entries])

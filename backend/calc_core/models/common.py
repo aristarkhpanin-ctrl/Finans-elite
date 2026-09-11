@@ -23,10 +23,11 @@ class DirectCostKind(str, Enum):
 
 
 class RepaymentType(str, Enum):
-    """Схема погашения тела займа."""
+    """Схема погашения тела займа (SPEC §10)."""
 
     EQUAL_PRINCIPAL = "equal_principal"  # равными долями тела
     BULLET = "bullet"                    # весь возврат в конце срока
+    ANNUITY = "annuity"                  # равный платёж «проценты + тело»
 
 
 class VatBasis(str, Enum):
@@ -44,8 +45,9 @@ class InventoryMethod(str, Enum):
 
 
 class AssetCategory(str, Enum):
-    """Группа основных средств (разнос остаточной стоимости по балансу B12–B14, SPEC §9)."""
+    """Группа активов (разнос остаточной стоимости по балансу B12–B14, B16, SPEC §9)."""
 
     EQUIPMENT = "equipment"   # оборудование (B14) — по умолчанию
     BUILDINGS = "buildings"   # здания и сооружения (B13)
     LAND = "land"             # земля (B12): не амортизируется, вне базы налога на имущество
+    INTANGIBLE = "intangible"  # НМА (B16 «Другие активы»): амортизируется, вне налога на имущество

@@ -28,10 +28,10 @@ def _balanced(r) -> bool:
 
 
 def test_inflation_index_base_one_and_compounds_to_annual():
-    idx = _inflation_index(D("0.12"), 13)
+    idx = _inflation_index([D("0.12")], 13)
     assert idx[0] == D(1)                              # период 0 — база
     assert abs(idx[12] - D("1.12")) < D("1e-9")        # 12 месяцев → годовая ставка
-    assert _inflation_index(D("0"), 3) == [D(1), D(1), D(1)]  # ноль → без индексации
+    assert _inflation_index([D("0")], 3) == [D(1), D(1), D(1)]  # ноль → без индексации
 
 
 def _sales_model(infl: str, n: int = 12) -> ProjectModel:
@@ -51,7 +51,7 @@ def test_sales_inflation_grows_revenue_by_index():
     """Выручка периода = базовая × индекс инфляции; период 0 — без индексации."""
     n = 12
     r = run(_sales_model("0.12", n))
-    idx = _inflation_index(D("0.12"), n)
+    idx = _inflation_index([D("0.12")], n)
     assert r.income["I1"][0] == D(1000)               # база 10×100
     for t in range(n):
         assert abs(r.income["I1"][t] - D(1000) * idx[t]) < D("0.01")
@@ -80,8 +80,8 @@ def test_cost_inflation_indexes_direct_and_general():
         ),
     )
     r = run(m)
-    idx_d = _inflation_index(D("0.12"), n)
-    idx_g = _inflation_index(D("0.24"), n)
+    idx_d = _inflation_index([D("0.12")], n)
+    idx_g = _inflation_index([D("0.24")], n)
     # I5 (материалы в себестоимости) и I10 (административные) растут по своим индексам
     assert abs(r.income["I10"][n - 1] - D(50) * idx_g[n - 1]) < D("0.01")
     assert abs(r.income["I5"][n - 1] - D(200) * idx_d[n - 1]) < D("0.01")

@@ -5,14 +5,21 @@
 # и CORS не требуется. Тяжёлый анализ (Монте-Карло) считает Celery-воркер через Redis.
 # Для разработки только ядра есть backend/docker-compose.yml.
 #
-#   cp backend/.env.example .env   # заполнить JWT_SECRET и прочие секреты
+# Запуск всего одной командой (без предварительной настройки, режим разработки):
+#
 #   docker compose up --build      # http://localhost:8080
+#
+# Для продакшена задайте секреты (например, в .env рядом с этим файлом) и режим:
+#   APP_ENV=production, JWT_SECRET=<случайный>, POSTGRES_PASSWORD=<...>
+# В production бэкенд fail-fast требует настоящий JWT_SECRET (см. app/security.py).
 
 # Общее окружение backend-процессов (api и worker — один образ).
+# По умолчанию — режим разработки с безопасными для локального запуска заглушками;
+# переопределяются переменными окружения / файлом .env.
 x-backend-env: &backend-env
-  APP_ENV: production
+  APP_ENV: ${APP_ENV:-development}
   DATABASE_URL: postgresql+psycopg://finans:${POSTGRES_PASSWORD:-finans}@db:5432/finans
-  JWT_SECRET: ${JWT_SECRET:?JWT_SECRET обязателен (см. backend/.env.example)}
+  JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
   JWT_TTL_SECONDS: ${JWT_TTL_SECONDS:-86400}
   CORS_ORIGINS: ${CORS_ORIGINS:-}
   RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
@@ -48,6 +55,13 @@ services:
   api:
     build: ./backend
     environment: *backend-env
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 25s        # запас на сборку/миграции перед первой проверкой
     depends_on:
       db:
         condition: service_healthy
@@ -69,7 +83,8 @@ services:
     ports:
       - "8080:80"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
 
 volumes:
   pgdata:

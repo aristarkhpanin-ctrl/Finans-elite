@@ -4,13 +4,16 @@ Decimal сериализуется в JSON как строка (точность
 """
 from __future__ import annotations
 
-from datetime import datetime
+import datetime as dt
+from datetime import date, datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
+from audit_core import AuditSubjectModel
 from calc_core import ProjectModel
+from calc_core.decimals import MoneyModel
 from calc_core.reports.result import CalcResult
 from calc_core.reports.statements import Statement
 
@@ -28,11 +31,15 @@ class StatementOut(BaseModel):
 class MetricsOut(BaseModel):
     npv: Decimal
     irr_annual: Optional[Decimal] = None
+    mirr_annual: Optional[Decimal] = None
+    arr_annual: Optional[Decimal] = None
     pi: Optional[Decimal] = None
     pb_months: Optional[int] = None
     dpb_months: Optional[int] = None
     pv_investments: Optional[Decimal] = None
     peak_financing_need: Optional[Decimal] = None
+    # Почему пусты сразу четыре нормы доходности (SPEC §17); None — когда они посчитаны.
+    no_return_metrics_note: Optional[str] = None
 
 
 class RatiosOut(BaseModel):
@@ -56,6 +63,156 @@ class ValuationOut(BaseModel):
     liquidation_value: Optional[Decimal] = None
 
 
+class StageBudgetOut(BaseModel):
+    id: str
+    name: str
+    kind: str
+    start_month: int
+    finish_month: int
+    cost: Decimal
+    # Актуализация (план-факт, gap 4.6); None — этап не актуализирован.
+    actual_start_month: Optional[int] = None
+    actual_finish_month: Optional[int] = None
+    actual_cost: Optional[Decimal] = None
+    cost_variance: Optional[Decimal] = None
+    schedule_variance_months: Optional[int] = None
+    # Финансовый разрез этапа: освоение и оплата по месяцам + трактовка в отчётах.
+    monthly: list[Decimal] = []
+    monthly_cash: list[Decimal] = []
+    treatment: str = "none"        # expense | deferred | asset | mixed | none
+
+
+class BudgetOut(BaseModel):
+    """Смета по этапам календарного плана + помесячные графики и итоги.
+
+    Финансовый разрез: освоение (``monthly``) и оплата (``monthly_cash``) — разные ряды,
+    их накопленный разрыв (``payables``) равен кредиторке B23; итоги по трактовке
+    показывают, куда стоимость попадёт в отчётах.
+    """
+
+    stages: list[StageBudgetOut] = []
+    monthly: list[Decimal] = []
+    total: Decimal = Decimal(0)
+    actual_total: Optional[Decimal] = None
+    monthly_cash: list[Decimal] = []
+    cumulative: list[Decimal] = []
+    cumulative_cash: list[Decimal] = []
+    payables: list[Decimal] = []
+    expense_total: Decimal = Decimal(0)
+    deferred_total: Decimal = Decimal(0)
+    asset_total: Decimal = Decimal(0)
+
+
+def budget_response(budget) -> "BudgetOut":
+    """Собрать смету-ответ из ``calc_core.reports.result.Budget``."""
+    return BudgetOut(
+        stages=[StageBudgetOut(
+            id=s.id, name=s.name, kind=s.kind, start_month=s.start_month,
+            finish_month=s.finish_month, cost=s.cost,
+            actual_start_month=s.actual_start_month, actual_finish_month=s.actual_finish_month,
+            actual_cost=s.actual_cost, cost_variance=s.cost_variance,
+            schedule_variance_months=s.schedule_variance_months,
+            monthly=list(s.monthly), monthly_cash=list(s.monthly_cash),
+            treatment=s.treatment)
+            for s in budget.stages],
+        monthly=list(budget.monthly),
+        total=budget.total,
+        actual_total=budget.actual_total,
+        monthly_cash=list(budget.monthly_cash),
+        cumulative=list(budget.cumulative),
+        cumulative_cash=list(budget.cumulative_cash),
+        payables=list(budget.payables),
+        expense_total=budget.expense_total,
+        deferred_total=budget.deferred_total,
+        asset_total=budget.asset_total,
+    )
+
+
+class ProductMarginOut(BaseModel):
+    """Маржа продукта по рецептуре (BOM): выручка − материалы − сдельная ЗП проданного."""
+
+    product_id: str
+    name: str
+    revenue: Decimal
+    bom_cost: Decimal
+    piece_wages: Decimal
+    margin: Decimal
+    margin_share: Optional[Decimal] = None
+
+
+class ProductMarginsOut(BaseModel):
+    products: list[ProductMarginOut] = []
+    # Суммовые (глобальные) прямые издержки — не распределяются по продуктам.
+    unallocated_direct: Decimal = Decimal(0)
+
+
+class DivisionMarginOut(BaseModel):
+    """Маржа подразделения (gap 4.5): свёртка маржи продуктов бизнес-единицы."""
+
+    division_id: str
+    name: str
+    revenue: Decimal
+    bom_cost: Decimal
+    piece_wages: Decimal
+    margin: Decimal
+    margin_share: Optional[Decimal] = None
+    product_count: int
+
+
+class SubscriptionBaseOut(BaseModel):
+    """Абонентская база продукта по месяцам (SPEC §5): что вышло из притока и оттока."""
+
+    product_id: str
+    name: str
+    base: list[Decimal]
+    new: list[Decimal]
+    churned: list[Decimal]
+
+
+class UserRowOut(BaseModel):
+    """Вычисленная строка таблицы пользователя (при ошибке формулы — error + нули)."""
+
+    name: str
+    values: list[Decimal] = []
+    error: Optional[str] = None
+
+
+class UserTableOut(BaseModel):
+    id: str
+    name: str
+    rows: list[UserRowOut] = []
+
+
+class ParticipantOut(BaseModel):
+    """Доходы участника финансирования: поток, вложено/получено, NPV/IRR (± терминальная)."""
+
+    id: str
+    name: str
+    kind: str                                   # equity | lender
+    flow: list[Decimal] = []
+    invested: Decimal = Decimal(0)
+    withdrawn: Decimal = Decimal(0)
+    npv: Decimal = Decimal(0)
+    irr_annual: Optional[Decimal] = None
+    terminal_value: Optional[Decimal] = None
+    npv_with_terminal: Optional[Decimal] = None
+    irr_with_terminal_annual: Optional[Decimal] = None
+
+
+class LineDetailItemOut(BaseModel):
+    """Слагаемое строки отчёта (drill-down): источник и его помесячный ряд."""
+
+    name: str
+    values: list[Decimal] = []
+
+
+class LineDetailOut(BaseModel):
+    """Детализация строки отчёта по источникам (Σ слагаемых = строка отчёта)."""
+
+    code: str
+    items: list[LineDetailItemOut] = []
+
+
 class CalcResponse(BaseModel):
     engine_version: str
     n: int
@@ -64,12 +221,130 @@ class CalcResponse(BaseModel):
     balance: StatementOut
     profit_use: StatementOut
     metrics: MetricsOut
+    # Показатели во второй валюте (SPEC §17); None, если ставка по валюте не задана.
+    metrics_foreign: Optional[MetricsOut] = None
     ratios: RatiosOut
     break_even: BreakEvenOut
     valuation: ValuationOut
+    budget: BudgetOut = BudgetOut()
+    product_margins: ProductMarginsOut = ProductMarginsOut()
+    # Маржа по подразделениям (gap 4.5); пусто без подразделений.
+    division_margins: list[DivisionMarginOut] = []
+    # Абонентская база подписочных строк сбыта (SPEC §5); пусто без подписок.
+    subscription_base: list[SubscriptionBaseOut] = []
+    user_tables: list[UserTableOut] = []
+    # Детализация ключевых строк отчётов (drill-down, пакет №6); пустая без данных.
+    details: list[LineDetailOut] = []
+    # Доходы участников финансирования (пакет №7); пусто без финансирования.
+    participants: list[ParticipantOut] = []
     actualized_cashflow: Optional[StatementOut] = None
     cashflow_variance: Optional[StatementOut] = None
     warnings: list[str]
+
+
+# --- Ревью бизнес-плана (Ф10) ---
+
+class FindingOut(BaseModel):
+    """Одна находка ревью: severity + человекочитаемый текст + числовое обоснование."""
+
+    id: str
+    category: str          # viability | liquidity | structure | assumptions | divergence
+    severity: str          # info | warning | risk
+    title: str
+    detail: str
+    recommendation: str
+    confidence: str = "high"   # high | medium | low
+    evidence: dict = Field(default_factory=dict)
+
+
+class ReviewResponse(BaseModel):
+    light: str                        # ok | info | warning | risk («светофор»)
+    counts: dict[str, int]            # число находок по severity
+    findings: list[FindingOut] = []
+    # Прогонялась ли стохастика (Монте-Карло + чувствительность) для категории divergence.
+    deep: bool = False
+    # Экспертное заключение — связный автотекст из находок и показателей (пакет №5).
+    opinion: str = ""
+
+
+# --- Карта методических трактовок (SPEC §22) ---
+
+class ChoiceOut(BaseModel):
+    """Одна методическая развилка расчёта: что выбрано и живёт ли это в модели."""
+
+    id: str
+    number: int                # пункт SPEC §22 — чтобы читатель нашёл первоисточник
+    title: str
+    spec: str
+    chosen: str                # что выбрано **в этой модели**
+    controls: list[str] = []   # поля модели, которыми трактовка переключается
+    open_question: str = ""    # что осталось несогласованным
+    engaged: bool = False      # задействовано ли — по числам, а не по наличию поля
+    silent_because: str = ""   # почему не задействовано; молчание читалось бы как «всё ок»
+    evidence: dict = Field(default_factory=dict)
+    # Как закрывается открытый вопрос: citable | judgement | presentation (предложение).
+    resolution: str = "judgement"
+    proposed_basis: str = ""   # предлагаемая норма — для citable
+    # Где движок считает **не так**, как требует предлагаемая норма. Отдельно от
+    # open_question: «ещё не договорились» и «считаем иначе» — разные утверждения.
+    divergence: str = ""
+
+
+class MethodologyResponse(BaseModel):
+    """Карта трактовок проекта.
+
+    ``confirmed`` всегда ложно: подтверждение трактовок — профессиональное суждение
+    человека на реальных проектах, и платформа не делает его за него. ``note`` называет
+    это словами, чтобы «предварительная версия» не читалась как техническая мелочь.
+    """
+
+    engine_version: str
+    confirmed: bool = False
+    note: str = ""
+    # Что означает разбиение по способу закрытия — и чего оно не означает.
+    classification_note: str = ""
+    choices: list[ChoiceOut] = []
+    engaged_count: int = 0
+    # Сколько пунктов действительно ждут человека (остальные закрываются нормой или
+    # вообще не о числах). Ради этого числа классификация и затевалась.
+    needs_human_count: int = 0
+    # Сколько пунктов расходятся с предлагаемой нормой **в этой модели**.
+    divergence_count: int = 0
+
+
+def methodology_response(report) -> "MethodologyResponse":
+    """Собрать ответ из карты ядра (``calc_core.methodology.MethodologyMap``)."""
+    return MethodologyResponse(
+        engine_version=report.engine_version,
+        confirmed=report.confirmed,
+        note=report.note,
+        classification_note=report.classification_note,
+        choices=[ChoiceOut(
+            id=c.id, number=c.number, title=c.title, spec=c.spec, chosen=c.chosen,
+            controls=c.controls, open_question=c.open_question, engaged=c.engaged,
+            silent_because=c.silent_because, evidence=c.evidence,
+            resolution=c.resolution, proposed_basis=c.proposed_basis,
+            divergence=c.divergence,
+        ) for c in report.choices],
+        engaged_count=len(report.engaged),
+        needs_human_count=len(report.needs_human),
+        divergence_count=len(report.divergences),
+    )
+
+
+def review_response(review, *, deep: bool, opinion: str = "") -> "ReviewResponse":
+    """Собрать ответ ревью из результата ядра (``calc_core.review.ReviewResult``)."""
+    return ReviewResponse(
+        light=review.light,
+        counts=review.counts,
+        findings=[FindingOut(
+            id=f.id, category=f.category, severity=f.severity, title=f.title,
+            detail=f.detail, recommendation=f.recommendation, confidence=f.confidence,
+            evidence=f.evidence,
+        ) for f in review.findings],
+        deep=deep,
+        opinion=opinion,
+    )
 
 
 # --- Проекты (персистентность, 6.1) ---
@@ -102,10 +377,84 @@ class ProjectSummary(BaseModel):
     last_calc: Optional[LastCalcOut] = None
     # Модель менялась после последнего расчёта (или расчёта не было) → «Черновик».
     is_stale: bool = True
+    # Гейт финализации (Ф10): "draft" | "finalized"; момент финализации.
+    status: str = "draft"
+    finalized_at: Optional[datetime] = None
 
 
 class ProjectOut(ProjectSummary):
     model: ProjectModel
+    # Снимок ревью, которым план был подтверждён при финализации (NULL — не финализирован).
+    finalized_review: Optional[ReviewResponse] = None
+    # Модель изменилась после финализации (отпечаток не совпадает) — снимок устарел.
+    finalized_drift: bool = False
+
+
+class FinalizeRequest(BaseModel):
+    """Запрос финализации: acknowledge подтверждает осознание risk-находок (снятие гейта)."""
+
+    acknowledge: bool = False
+
+
+class FinalizeResponse(BaseModel):
+    """Результат финализации: статус проекта + ревью, которым план подтверждён."""
+
+    status: str
+    finalized_at: datetime
+    review: ReviewResponse
+
+
+# --- Версии проекта (пакет №8, gap 4.4) ---
+
+class VersionCreate(BaseModel):
+    """Запрос снимка текущей модели как именованной версии."""
+
+    label: str = ""
+
+
+class VersionSummary(BaseModel):
+    """Метаданные версии (без модели): для списка версий проекта."""
+
+    id: str
+    label: str
+    created_at: datetime
+    npv: Optional[Decimal] = None
+    irr_annual: Optional[Decimal] = None
+    engine_version: Optional[str] = None
+
+
+class VersionOut(VersionSummary):
+    """Версия с полной моделью снимка."""
+
+    model: ProjectModel
+
+
+class ModelChangeOut(BaseModel):
+    """Изменение листового значения модели между версиями."""
+
+    path: str
+    kind: str                     # added | removed | changed
+    old: object = None
+    new: object = None
+
+
+class MetricChangeOut(BaseModel):
+    """Изменение показателя эффективности между версиями."""
+
+    key: str
+    label: str
+    old: Optional[Decimal] = None
+    new: Optional[Decimal] = None
+
+
+class VersionDiffOut(BaseModel):
+    """Анализ изменений: диф модели (листовые пути) + диф заголовочных показателей."""
+
+    base_id: str                  # с чего сравниваем (id версии)
+    against: str                  # с чем: id версии или "current"
+    model_changes: list[ModelChangeOut] = []
+    model_changes_truncated: bool = False
+    metric_changes: list[MetricChangeOut] = []
 
 
 # --- Организации, пользователи, членство (мультиарендность, 6.2) ---
@@ -120,11 +469,42 @@ class OrganizationOut(BaseModel):
     created_at: datetime
 
 
+class RestrictionOut(BaseModel):
+    """Почему продукт в режиме чтения и выгрузки — и что с этим делать (B2).
+
+    ``kind`` различает два случая, потому что различается **выход** из них: неоплата
+    снимается оплатой, ручная приостановка — только платформой. Показать неплательщику
+    «обратитесь в поддержку», а приостановленному «оплатите тариф» значило бы отправить
+    обоих не туда.
+    """
+
+    #: Чей это режим: подписка своя у каждого продукта, и просроченный «Аудит» не имеет
+    #: отношения к оплаченному «Элит». Ручная приостановка приходит по обоим продуктам —
+    #: она про организацию целиком.
+    product: str
+    kind: str          # "suspended" | "unpaid"
+    reason: str
+    remedy: str
+
+
 class OrganizationMembershipOut(BaseModel):
+    """Организация пользователя с его ролью и **режимом доступа** (B2).
+
+    Пустой ``restrictions`` — обычная работа. Непустой означает режим чтения и выгрузки
+    по названным продуктам: свои данные видны, считаются и выгружаются, новые не
+    заводятся и старые не правятся. Причина идёт рядом и всегда: интерфейс, который
+    просто перестал сохранять, читается как поломка, и клиент пойдёт не в поддержку, а
+    в отзывы.
+
+    Список **не даёт и не отнимает прав** — он объясняет отказ, который в любом случае
+    вынесет сервер: спрятанная кнопка не защита.
+    """
+
     id: str
     name: str
     role: str
     created_at: datetime
+    restrictions: list[RestrictionOut] = []
 
 
 class MemberCreate(BaseModel):
@@ -133,15 +513,107 @@ class MemberCreate(BaseModel):
     role: str = "viewer"
 
 
+class MemberBlockIn(BaseModel):
+    """Причина приостановки. Обязательна: блокировка без причины неотличима от ошибки."""
+
+    reason: str = Field(min_length=3, max_length=500)
+
+
 class MemberPatch(BaseModel):
     role: str
 
 
+class AuditLogEntryOut(BaseModel):
+    """Запись журнала действий: кто, что, над чем и когда.
+
+    ``actor_email`` берётся из журнала, а не из таблицы пользователей: участника могли
+    удалить, а журнал обязан отвечать «кто это сделал» и после его ухода.
+    """
+
+    id: str
+    actor_email: str
+    action: str
+    entity_type: str = ""
+    entity_id: str = ""
+    entity_name: str = ""
+    details: str = ""
+    created_at: datetime
+
+
+class AuditLogPage(BaseModel):
+    """Страница журнала: записи (новые сверху) и сколько их **под текущим отбором**.
+
+    ``actors`` и ``actions`` — то, что в журнале действительно встречалось: фильтр
+    предлагает существующее, а не весь каталог кодов и не список текущих участников
+    (удалённый сотрудник из участников исчез, а из журнала — нет).
+    """
+
+    entries: list[AuditLogEntryOut] = []
+    total: int = 0
+    actors: list[str] = []
+    actions: list[str] = []
+
+
+class MailReport(BaseModel):
+    """Что стало с письмом — рядом с тем действием, ради которого его слали (D1).
+
+    Три состояния, и путать их нельзя: **не пытались** (почта не настроена — `attempted`
+    ложно), **ушло** и **не ушло с причиной**. «Не отправляли» и «отправили, не дошло» —
+    разные ответы человеку, и второй обязан быть виден, иначе ссылку никто не передаст
+    лично.
+    """
+
+    attempted: bool = False
+    ok: bool = False
+    error: str = ""
+
+
+class AccessLinkOut(BaseModel):
+    """Одноразовая ссылка входа для участника: приглашение или сброс пароля.
+
+    ``kind`` различает два случая, потому что различаются они и по смыслу, и по тому,
+    что участник увидит: ``invite`` — пароля ещё нет, ``reset`` — пароль есть, но
+    забыт. Токен возвращается **только в ответе на выдачу**: в списке участников он
+    был бы вечным пропуском в чужой аккаунт для всякого, кто видит состав организации.
+
+    ``mail`` говорит, ушло ли письмо со ссылкой. Ссылка возвращается **в любом случае**:
+    почта — добавление к «передайте лично», а не замена, и при неудачной отправке
+    администратор передаёт её сам (D1).
+    """
+
+    user_id: str
+    email: str
+    kind: Literal["invite", "reset"]
+    token: str
+    mail: MailReport = MailReport()
+
+
 class MemberOut(BaseModel):
+    """Участник организации.
+
+    ``invite_token`` заполняется **только в ответе на приглашение** и только если
+    участник ещё не заводил пароль: это одноразовая ссылка активации. В списке
+    участников его нет — там он был бы вечно доступным пропуском в чужой аккаунт.
+
+    ``mail`` — что стало с письмом-приглашением (D1). ``None`` в списке участников:
+    там писем не слали, и «не отправлено» было бы неправдой о прошлом.
+    """
+
     user_id: str
     email: str
     full_name: str
     role: str
+    #: Доступ приостановлен (A1). Заблокированный участник **остаётся в списке**:
+    #: исчезнувший читался бы как удалённый, а это другое состояние.
+    blocked: bool = False
+    blocked_at: Optional[datetime] = None
+    blocked_by: str = ""
+    block_reason: str = ""
+    #: Когда участник последний раз работал в этой организации (A3). ``None`` —
+    #: **неизвестно**, а не «никогда»: до появления отметки присутствие не писалось.
+    last_seen_at: Optional[datetime] = None
+    invite_token: Optional[str] = None
+    mail: Optional[MailReport] = None
 
 
 # --- Аутентификация (6.3) ---
@@ -156,10 +628,24 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     password: str
+    #: Код второго фактора (C2). Пустой — если второй фактор включён, сервер ответит
+    #: 428 и попросит код: отдельной «страницы второго шага» с промежуточным токеном нет,
+    #: и лишнего пропуска, который надо защищать наравне с настоящим, тоже.
+    totp_code: str = ""
+    #: «Запомнить меня» — вход живёт 30 дней вместо суток (C1). Длинный срок перестал
+    #: быть опасным, когда появился реестр входов: человек видит свои сеансы и закрывает
+    #: лишние. Обновляемых токенов (refresh) при этом не заводим: без ротации они не
+    #: добавляют безопасности, а с ротацией — машинерию, которую отзыв сеанса уже
+    #: покрывает.
+    remember: bool = False
 
 
 class TokenResponse(BaseModel):
     access_token: str
+    #: Сообщение, которое нужно показать сразу после входа. Сейчас единственное — «вошли
+    #: по резервному коду, осталось N»: молча съеденный код кончится в самый неподходящий
+    #: момент, а отдельного экрана под такое сообщение заводить не за чем.
+    notice: str = ""
     token_type: str = "bearer"
 
 
@@ -167,26 +653,72 @@ class UserOut(BaseModel):
     id: str
     email: str
     full_name: str
+    #: Сотрудник платформы (B1). Признак **только сообщается**: через него интерфейс
+    #: показывает служебный раздел, а не выдаёт права — права проверяет сервер на каждом
+    #: служебном маршруте. Ни один клиентский маршрут этим полем не управляется.
+    is_staff: bool = False
+
+
+class ActivateRequest(BaseModel):
+    """Активация приглашения: по токену задать пароль и войти.
+
+    ``totp_code`` нужен, когда у учётной записи включён второй фактор: иначе ссылка
+    сброса обходила бы его целиком — доступ к почтовому ящику значил бы вход без кода
+    из приложения (D1). Как и на входе, код идёт **тем же запросом**.
+    """
+
+    token: str
+    password: str
+    full_name: str = ""
+    totp_code: str = ""
+
+
+class ProfileUpdate(BaseModel):
+    full_name: str = Field(default="", max_length=255)
+
+
+class PasswordChange(BaseModel):
+    """Смена своего пароля. Текущий обязателен — иначе украденная сессия меняет пароль."""
+
+    current_password: str
+    new_password: str
 
 
 # --- Тарифы и подписка (биллинг, 6.5) ---
 
 class PlanOut(BaseModel):
+    """Тариф каталога. Единица квоты зависит от продукта: проект у «Элит», дело у «Аудита».
+
+    Поэтому поле называется ``max_units``, а не ``max_projects``: имя, верное лишь для
+    половины каталога, однажды прочитают буквально. ``unit_name`` даёт подпись для экрана.
+    """
+
     code: str
+    product: str                        # business | audit
     name: str
     price_rub: int
-    max_projects: Optional[int] = None
+    #: Цена «по запросу»: корпоративные условия не выражаются числом, и ноль вместо них
+    #: выглядел бы как бесплатный тариф.
+    price_on_request: bool = False
+    max_units: Optional[int] = None
+    unit_name: str = "проектов"
     max_members: Optional[int] = None
 
 
 class SubscriptionOut(BaseModel):
+    """Подписка организации на один продукт: тариф, статус и использование квот."""
+
+    product: str = "business"
     plan_code: str
     plan_name: str
     status: str
     current_period_end: Optional[datetime] = None
-    max_projects: Optional[int] = None
+    price_rub: int = 0
+    price_on_request: bool = False
+    max_units: Optional[int] = None
+    unit_name: str = "проектов"
     max_members: Optional[int] = None
-    used_projects: int
+    used_units: int = 0
     used_members: int
 
 
@@ -207,7 +739,7 @@ class CheckoutResponse(BaseModel):
 
 # --- Анализ чувствительности (7.3) ---
 
-class SensitivityRequest(BaseModel):
+class SensitivityRequest(MoneyModel):
     param: str
     factors: list[Decimal] = [Decimal("0.8"), Decimal("0.9"), Decimal("1.0"),
                               Decimal("1.1"), Decimal("1.2")]
@@ -226,7 +758,7 @@ class SensitivityResponse(BaseModel):
 
 # --- Монте-Карло (7.4) ---
 
-class DistributionIn(BaseModel):
+class DistributionIn(MoneyModel):
     kind: str  # uniform | normal | triangular
     low: Optional[Decimal] = None
     high: Optional[Decimal] = None
@@ -301,7 +833,7 @@ class JobStatusResponse(BaseModel):
 
 # --- What-If (9.1) ---
 
-class ScenarioAdjustmentIn(BaseModel):
+class ScenarioAdjustmentIn(MoneyModel):
     param: str
     factor: Decimal
 
@@ -395,6 +927,29 @@ def _statement_out(s: Statement) -> StatementOut:
     )
 
 
+def _metrics_out(m) -> Optional[MetricsOut]:
+    """Показатели ядра → схема ответа. ``None`` на входе — ``None`` на выходе.
+
+    Один перенос на оба блока показателей (основной и валютный). Раньше их было два, и
+    новое поле попадало в первый, а во втором молча отсутствовало — блок во второй валюте
+    отставал бы от основного ровно настолько, насколько об этом забыли.
+    """
+    if m is None:
+        return None
+    return MetricsOut(
+        npv=m.npv,
+        irr_annual=m.irr_annual,
+        mirr_annual=m.mirr_annual,
+        arr_annual=m.arr_annual,
+        pi=m.pi,
+        pb_months=m.pb_months,
+        dpb_months=m.dpb_months,
+        pv_investments=m.pv_investments,
+        peak_financing_need=m.peak_financing_need,
+        no_return_metrics_note=m.no_return_metrics_note,
+    )
+
+
 def to_response(r: CalcResult) -> CalcResponse:
     """Преобразовать результат ядра в схему ответа API."""
     return CalcResponse(
@@ -404,15 +959,8 @@ def to_response(r: CalcResult) -> CalcResponse:
         cashflow=_statement_out(r.cashflow),
         balance=_statement_out(r.balance),
         profit_use=_statement_out(r.profit_use),
-        metrics=MetricsOut(
-            npv=r.metrics.npv,
-            irr_annual=r.metrics.irr_annual,
-            pi=r.metrics.pi,
-            pb_months=r.metrics.pb_months,
-            dpb_months=r.metrics.dpb_months,
-            pv_investments=r.metrics.pv_investments,
-            peak_financing_need=r.metrics.peak_financing_need,
-        ),
+        metrics=_metrics_out(r.metrics),
+        metrics_foreign=_metrics_out(r.metrics_foreign),
         ratios=RatiosOut(
             liquidity=r.ratios.liquidity,
             activity=r.ratios.activity,
@@ -431,7 +979,1596 @@ def to_response(r: CalcResult) -> CalcResponse:
             earnings_multiple_value=r.valuation.earnings_multiple_value,
             liquidation_value=r.valuation.liquidation_value,
         ),
+        budget=budget_response(r.budget),
+        user_tables=[UserTableOut(
+            id=t.id, name=t.name,
+            rows=[UserRowOut(name=row.name, values=list(row.values), error=row.error)
+                  for row in t.rows],
+        ) for t in r.user_tables],
+        product_margins=ProductMarginsOut(
+            products=[ProductMarginOut(
+                product_id=p.product_id, name=p.name, revenue=p.revenue, bom_cost=p.bom_cost,
+                piece_wages=p.piece_wages, margin=p.margin, margin_share=p.margin_share,
+            ) for p in r.product_margins.products],
+            unallocated_direct=r.product_margins.unallocated_direct,
+        ),
+        division_margins=[DivisionMarginOut(
+            division_id=d.division_id, name=d.name, revenue=d.revenue, bom_cost=d.bom_cost,
+            piece_wages=d.piece_wages, margin=d.margin, margin_share=d.margin_share,
+            product_count=d.product_count,
+        ) for d in r.division_margins],
+        subscription_base=[SubscriptionBaseOut(
+            product_id=s.product_id, name=s.name, base=list(s.base),
+            new=list(s.new), churned=list(s.churned),
+        ) for s in r.subscription_base],
+        details=[LineDetailOut(
+            code=d.code,
+            items=[LineDetailItemOut(name=i.name, values=list(i.values)) for i in d.items],
+        ) for d in r.details],
+        participants=[ParticipantOut(
+            id=p.id, name=p.name, kind=p.kind, flow=list(p.flow),
+            invested=p.invested, withdrawn=p.withdrawn, npv=p.npv,
+            irr_annual=p.irr_annual, terminal_value=p.terminal_value,
+            npv_with_terminal=p.npv_with_terminal,
+            irr_with_terminal_annual=p.irr_with_terminal_annual,
+        ) for p in r.participants],
         actualized_cashflow=_statement_out(r.actualized_cashflow) if r.actualized_cashflow else None,
         cashflow_variance=_statement_out(r.cashflow_variance) if r.cashflow_variance else None,
         warnings=r.warnings,
     )
+
+
+# --- Субъекты анализа (Финанс-Аудит, продукт №2) ---
+
+class AuditSubjectCreate(BaseModel):
+    name: str
+    model: AuditSubjectModel
+
+
+class AuditSubjectUpdate(BaseModel):
+    name: Optional[str] = None
+    model: Optional[AuditSubjectModel] = None
+
+
+class BenchmarkIn(MoneyModel):
+    """Строка справочника ориентиров: чьё это число — обязательная часть, а не примечание."""
+
+    industry: str = Field(min_length=1, max_length=120)
+    metric: Literal["ev_ebitda", "ev_ebit", "ev_revenue"]
+    value: Decimal
+    source: str = Field(default="", max_length=255)
+
+
+class BenchmarkOut(BenchmarkIn):
+    id: str
+    updated_at: datetime
+
+
+class BenchmarkViewOut(BaseModel):
+    """Сопоставление дела с ориентиром организации (SPEC, Прил. Ф).
+
+    ``available=False`` — сравнивать не с чем или не с тем, и причина названа в
+    ``blockers``. Оговорка «это ваш ориентир, а не рынок» выводится **всегда**.
+    """
+
+    available: bool = False
+    blockers: list[str] = []
+    industry: str = ""
+    metric: str = ""
+    metric_label: str = ""
+    benchmark: Optional[Decimal] = None
+    case_multiple: Optional[Decimal] = None
+    deviation: Optional[Decimal] = None
+    source: str = ""
+    updated_at: Optional[date] = None
+    caveats: list[str] = []
+    not_computed: list[str] = []
+
+
+class SignatureOut(BaseModel):
+    """Подписант документа. Существует только вместе с именем (Прил. Х)."""
+
+    name: str
+    role: str = ""
+
+
+class RequisitesOut(BaseModel):
+    """Реквизиты документа и подписи (SPEC, Прил. Х).
+
+    ``signed=False`` — документ не подписан, и первая же оговорка это называет:
+    неподписанный бланк с гербовой строгостью читается как заключение.
+    """
+
+    filled: bool = False
+    signed: bool = False
+    number: str = ""
+    # Тип берётся через модуль: поле называется ``date`` и затенило бы имя типа.
+    date: Optional[dt.date] = None
+    addressee: str = ""
+    subject_full_name: str = ""
+    subject_inn: str = ""
+    subject_ogrn: str = ""
+    subject_address: str = ""
+    signatures: list[SignatureOut] = []
+    caveats: list[str] = []
+    not_computed: list[str] = []
+
+
+class AuditVersionSummary(BaseModel):
+    """Метаданные версии дела (без модели): для списка.
+
+    Сводка — та, что была на момент снимка, а не пересчитанная сейчас: версия и есть
+    слепок прошлого. ``None`` — тогда не считалось (отчётность ещё не введена).
+    """
+
+    id: str
+    label: str
+    created_at: datetime
+    verdict: Optional[str] = None
+    risk_flags: Optional[int] = None
+    equity_value: Optional[Decimal] = None
+
+
+class AuditVersionOut(AuditVersionSummary):
+    """Версия дела с полной моделью снимка."""
+
+    model: AuditSubjectModel
+
+
+class AuditMetricChangeOut(BaseModel):
+    """Изменение заголовочной величины дела между версиями.
+
+    Значения — строки, а не числа: среди величин есть вердикт («risk», «warning»),
+    и приводить его к нулю ради общего типа значило бы потерять сам вердикт.
+    """
+
+    key: str
+    label: str
+    old: Optional[str] = None
+    new: Optional[str] = None
+
+
+class AuditVersionDiffOut(BaseModel):
+    """Анализ изменений дела: диф модели + диф заголовочных величин."""
+
+    base_id: str
+    against: str
+    model_changes: list[ModelChangeOut] = []
+    model_changes_truncated: bool = False
+    metric_changes: list[AuditMetricChangeOut] = []
+
+
+class AuditSubjectSummary(BaseModel):
+    """Метаданные субъекта: число периодов и сходимость баланса (актив = пассив)."""
+
+    id: str
+    name: str
+    created_at: datetime
+    updated_at: datetime
+    n_periods: int = 0
+    balanced: bool = True
+    industry: str = ""
+    #: Сводный «светофор» диагностики последнего периода: ok | warning | risk.
+    #: ``None`` — отчётности нет, диагностика не считалась. Это разные факты, и
+    #: подставлять вместо «не считалось» зелёный «ok» нельзя: список дел показывал бы
+    #: благополучие там, где данных просто не вводили.
+    light: Optional[str] = None
+
+
+class AuditSubjectOut(AuditSubjectSummary):
+    model: AuditSubjectModel
+    # Актив − пассив по периодам (0 — сходится); строки-Decimal (точность без float).
+    balance_gap: list[Decimal] = []
+
+
+class AuditLineOut(BaseModel):
+    """Строка аналитической формы (подытоги помечены ``subtotal``)."""
+
+    code: str
+    label: str
+    values: list[Decimal] = []
+    subtotal: bool = False
+
+
+class AuditTrendOut(BaseModel):
+    """Горизонтальный анализ строки: Δ и темп к предыдущему периоду (первый — база)."""
+
+    code: str
+    label: str
+    delta: list[Optional[Decimal]] = []
+    rate: list[Optional[Decimal]] = []
+
+
+class AuditShareOut(BaseModel):
+    """Вертикальный анализ: доля строки в базе периода (актив / выручка)."""
+
+    code: str
+    label: str
+    share: list[Optional[Decimal]] = []
+
+
+class AuditScoreOut(BaseModel):
+    """Скоринговая модель банкротства: балл и зона по периодам (None — нет данных)."""
+
+    id: str
+    name: str
+    values: list[Optional[Decimal]] = []
+    zones: list[Optional[str]] = []       # safe | grey | distress
+    note: str = ""
+
+
+class AuditAssessmentOut(BaseModel):
+    """Оценка показателя по нормативам: статус по периодам (good | warn | risk)."""
+
+    group: str
+    name: str
+    status: list[Optional[str]] = []
+
+
+class AuditDiagnosticsOut(BaseModel):
+    """Диагностика: скоринги, оценка нормативов и сводный «светофор»."""
+
+    light: str = "ok"                      # ok | warning | risk
+    summary: str = ""
+    scores: list[AuditScoreOut] = []
+    assessments: list[AuditAssessmentOut] = []
+
+
+class AuditUserMetricOut(BaseModel):
+    """Пользовательский показатель: ряд по периодам (при ошибке формулы — error + нули)."""
+
+    name: str
+    values: list[Decimal] = []
+    error: Optional[str] = None
+
+
+class AuditAnalysisOut(BaseModel):
+    """Результат анализа фактической отчётности (Финанс-Аудит)."""
+
+    n: int
+    periods: list[str] = []
+    balance: list[AuditLineOut] = []
+    income: list[AuditLineOut] = []
+    horizontal: list[AuditTrendOut] = []
+    vertical: list[AuditShareOut] = []
+    ratios: dict[str, dict[str, list[Optional[Decimal]]]] = {}
+    balance_gap: list[Decimal] = []
+    balanced: bool = True
+    # Диагностика (фаза D); None при пустой модели.
+    diagnostics: Optional[AuditDiagnosticsOut] = None
+    # Пользовательские показатели (фаза G); пусто без методик.
+    user_metrics: list[AuditUserMetricOut] = []
+    # Числа получены после переоценки статей (v2) — не «как в отчётности».
+    revalued: bool = False
+    # Экспертное заключение — связный автотекст по результату анализа (фаза E).
+    opinion: str = ""
+    warnings: list[str] = []
+    # Качество ввода («Экран 19»): находки о самих данных, а не о финансовом состоянии.
+    # В AuditResult не входят — анализ и высказывание о его входе это разные вещи.
+    input_issues: list["AuditInputIssueOut"] = []
+    # Реестр красных флагов («Экран 9»); в AuditResult не входит — см. SPEC, Прил. И.
+    flags: "AuditFlagsOut" = None  # type: ignore[assignment]
+    # Качество прибыли («Экран 7»); в AuditResult не входит — см. SPEC, Прил. К.
+    earnings: "AuditEarningsOut" = None  # type: ignore[assignment]
+    # Реестр обязательств и залогов («Экран 10»); в AuditResult не входит — SPEC, Прил. Л.
+    obligations: "AuditObligationsOut" = None  # type: ignore[assignment]
+    # Чек-лист процедур («Экран 21»); в AuditResult не входит — SPEC, Прил. М.
+    procedures: "AuditProceduresOut" = None  # type: ignore[assignment]
+    # Сводка дела и вердикт («Экран 1»); в AuditResult не входит — SPEC, Прил. Н.
+    summary: "AuditSummaryOut" = None  # type: ignore[assignment]
+    # Оценка стоимости («Экран 4»); в AuditResult не входит — SPEC, Прил. П.
+    valuation: "AuditValuationOut" = None  # type: ignore[assignment]
+    # Анализ рисков оценки («Экран 13»); в AuditResult не входит — SPEC, Прил. Р.
+    risk: "AuditRiskOut" = None  # type: ignore[assignment]
+    # План-факт после сделки («Экран 17»); в AuditResult не входит — SPEC, Прил. Т.
+    plan_fact: "AuditPlanFactOut" = None  # type: ignore[assignment]
+    # Сопоставление с ориентирами организации (SPEC, Прил. Ф) — её числа, не рынок.
+    benchmark: "BenchmarkViewOut" = BenchmarkViewOut()
+    # Реквизиты документа и подписи (SPEC, Прил. Х); в AuditResult не входят.
+    requisites: "RequisitesOut" = None  # type: ignore[assignment]
+
+
+class AuditAdjustmentOut(BaseModel):
+    """Применённая поправка нормализации: что, почему и на сколько."""
+
+    label: str
+    kind: str
+    kind_label: str
+    amounts: list[Decimal] = []
+    total: Decimal = Decimal(0)
+
+
+class AuditEarningsOut(BaseModel):
+    """Нормализация показателя прибыли.
+
+    ``base_code`` — что именно нормализовано: EBITDA (введена амортизация) или EBIT.
+    Показывать это имя обязательно: два показателя различаются на всю амортизацию, и
+    мультипликатор, применённый не к тому, ошибётся ровно на неё.
+    """
+
+    base_code: str = "EBIT"
+    reported: list[Decimal] = []
+    normalized: list[Decimal] = []
+    adjustments: list[AuditAdjustmentOut] = []
+    grade: Optional[str] = None            # A | B | C; None — сравнивать не с чем
+    grade_note: str = ""
+    deviation: Optional[Decimal] = None
+
+
+class AuditFlagOut(BaseModel):
+    """Красный флаг: что настораживает, в каких периодах и на сколько рублей."""
+
+    code: str
+    severity: str                      # risk | warning
+    title: str
+    detail: str
+    periods: list[int] = []
+    #: Денежная мера. ``None`` — её не существует, а не «ноль рублей».
+    impact: Optional[Decimal] = None
+    evidence: dict[str, Decimal] = {}
+
+
+class AuditFlagsOut(BaseModel):
+    """Реестр флагов с честным итогом: сумма оценённых + число неоценённых.
+
+    Без ``unpriced`` итог выглядел бы полной ценой рисков, хотя часть рисков в него
+    не вошла — денежной меры у них нет вовсе.
+    """
+
+    flags: list[AuditFlagOut] = []
+    priced_total: Decimal = Decimal(0)
+    unpriced: int = 0
+
+
+class AuditObligationRowOut(BaseModel):
+    """Строка реестра обязательств: введённое + то, что следует из вида обязательства."""
+
+    creditor: str
+    contract: str
+    kind: str
+    kind_label: str
+    off_balance: bool
+    amount: Decimal
+    rate: Optional[Decimal] = None       # None — ставка не указана (≠ беспроцентный)
+    maturity: str                        # «2029» | «по требованию» | «срок не указан»
+    on_demand: bool = False
+    collateral: str = ""
+    pledged_amount: Decimal = Decimal(0)
+    covenant: str = ""
+    covenant_status: str = "unknown"     # ok | breached | unknown
+    covenant_note: str = ""
+
+
+class AuditMaturityBucketOut(BaseModel):
+    """Сколько долга упирается в год погашения (не платёж года — график не вводится)."""
+
+    label: str
+    amount: Decimal
+    kind: str = "year"                   # year | on_demand | unknown
+
+
+class AuditObligationsOut(BaseModel):
+    """Реестр обязательств: два несводимых итога + сверка с балансом (SPEC, Прил. Л).
+
+    ``balance_debt`` и ``off_balance`` намеренно не имеют общей суммы: условное
+    обязательство ещё не наступило, и сложение утверждало бы обратное.
+    """
+
+    rows: list[AuditObligationRowOut] = []
+    balance_debt: Decimal = Decimal(0)
+    off_balance: Decimal = Decimal(0)
+    reported_debt: Decimal = Decimal(0)  # P_LONG + P_SHORT последнего периода
+    discrepancy: Decimal = Decimal(0)    # отчётность − реестр
+    reconciled: bool = True
+    buckets: list[AuditMaturityBucketOut] = []
+    pledged_total: Decimal = Decimal(0)
+    free_assets: Optional[Decimal] = None    # None — активов нет, сравнивать не с чем
+    pledged_share: Optional[Decimal] = None
+    covenants_breached: int = 0
+    covenants_unknown: int = 0
+
+
+class AuditPlanFactRowOut(BaseModel):
+    """Строка план-факта. ``verdict`` учитывает направление: себестоимость ниже плана —
+    успех, а не недобор."""
+
+    code: str
+    label: str
+    direction: str                       # higher | lower
+    plan: Decimal = Decimal(0)
+    fact: Decimal = Decimal(0)
+    delta: Decimal = Decimal(0)
+    delta_share: Optional[Decimal] = None
+    verdict: str = "on_plan"             # better | worse | on_plan
+    note: str = ""
+
+
+class AuditRealizedFlagOut(BaseModel):
+    """Сопоставление флага: предсказанное посчитано платформой, фактическое введено."""
+
+    code: str
+    title: str
+    severity: str = ""
+    predicted: Optional[Decimal] = None  # None — денежной меры у флага нет
+    realized: bool = False
+    actual_cost: Optional[Decimal] = None  # None — факт ещё не оценён, а не «ноль»
+    note: str = ""
+
+
+class AuditPlanFactOut(BaseModel):
+    """План-факт после сделки (SPEC, Прил. Т). ``available=False`` — плана нет,
+    сравнивать не с чем; это не «всё сошлось»."""
+
+    available: bool = False
+    periods: list[str] = []
+    rows: list[AuditPlanFactRowOut] = []
+    flags: list[AuditRealizedFlagOut] = []
+    predicted_total: Decimal = Decimal(0)
+    realized_total: Decimal = Decimal(0)
+    unpriced_realized: int = 0
+    orphan_marks: list[str] = []
+    caveats: list[str] = []
+    not_computed: list[str] = []
+
+
+class AuditTornadoBarOut(BaseModel):
+    """Столбец торнадо: цена при смещении одного допущения вниз и вверх.
+
+    ``span=None`` — одной из сторон не существует (смещение уводит туда, где оценка
+    не считается); это факт, а не «цена не изменилась».
+    """
+
+    param: str
+    label: str
+    step: Decimal
+    low_price: Optional[Decimal] = None
+    high_price: Optional[Decimal] = None
+    low_delta: Optional[Decimal] = None
+    high_delta: Optional[Decimal] = None
+    span: Optional[Decimal] = None
+    note: str = ""
+
+
+class AuditHistogramBinOut(BaseModel):
+    """Столбец гистограммы цены; ``from_`` сериализуется как ``from`` — как в первом
+    продукте: ключ `from` в JSON, а имя поля не может быть ключевым словом Python."""
+
+    from_: Decimal = Field(serialization_alias="from")
+    to: Decimal
+    count: int
+
+
+class AuditMonteCarloOut(BaseModel):
+    """Распределение цены по прогонам. ``unvalued`` — прогоны, в которых оценки нет.
+
+    Их не заменяют нулём и не выбрасывают молча: ноль занизил бы медиану, а тихое
+    выбрасывание скрыло бы, что в части сценариев бизнес не оценивается вовсе.
+    """
+
+    iterations: int = 0
+    valued: int = 0
+    unvalued: int = 0
+    median: Optional[Decimal] = None
+    mean: Optional[Decimal] = None
+    p10: Optional[Decimal] = None
+    p25: Optional[Decimal] = None
+    p75: Optional[Decimal] = None
+    p90: Optional[Decimal] = None
+    minimum: Optional[Decimal] = None
+    maximum: Optional[Decimal] = None
+    histogram: list[AuditHistogramBinOut] = []
+    below_asking: Optional[Decimal] = None      # None — цены продавца нет (Р.4)
+    median_drift: Optional[Decimal] = None
+
+
+class AuditRiskOut(BaseModel):
+    """Анализ рисков оценки (SPEC, Прил. Р): торнадо, Монте-Карло и оговорки."""
+
+    available: bool = False
+    blockers: list[str] = []
+    base_price: Optional[Decimal] = None
+    step: Decimal = Decimal("0.10")
+    tornado: list[AuditTornadoBarOut] = []
+    monte_carlo: Optional[AuditMonteCarloOut] = None
+    warnings: list[str] = []
+    not_computed: list[str] = []
+
+
+class AuditForecastYearOut(BaseModel):
+    """Год прогноза: показатель, поток и его приведённая стоимость."""
+
+    year: int
+    ebit: Decimal
+    depreciation: Decimal
+    capex: Decimal
+    nwc_change: Decimal
+    fcff: Decimal
+    discount_factor: Decimal
+    present_value: Decimal
+
+
+class AuditBridgeItemOut(BaseModel):
+    """Слагаемое моста EV → цена: подпись, знак и величина."""
+
+    label: str
+    amount: Decimal
+    kind: str                            # add | subtract | total
+    note: str = ""
+
+
+class AuditValuationOut(BaseModel):
+    """Оценка стоимости (SPEC, Прил. П).
+
+    Непустой ``blockers`` означает, что оценка **не посчитана**, а не «стоит 0»:
+    величины, для которой не хватает входных данных, не существует. Забалансовые
+    обязательства из моста исключены намеренно (Л.1) и названы в ``warnings``.
+    """
+
+    enabled: bool = False
+    blockers: list[str] = []
+    base_code: str = "EBIT"
+    base_ebit: Decimal = Decimal(0)
+    wacc: Decimal = Decimal(0)
+    terminal_growth: Decimal = Decimal(0)
+    years: list[AuditForecastYearOut] = []
+    pv_forecast: Decimal = Decimal(0)
+    terminal_value: Optional[Decimal] = None
+    pv_terminal: Optional[Decimal] = None
+    enterprise_value: Optional[Decimal] = None
+    terminal_share: Optional[Decimal] = None
+    bridge: list[AuditBridgeItemOut] = []
+    equity_value: Optional[Decimal] = None
+    implied_multiple: Optional[Decimal] = None
+    asking_price: Optional[Decimal] = None
+    discount: Optional[Decimal] = None
+    sensitivity: list[list[Optional[Decimal]]] = []
+    sensitivity_wacc: list[Decimal] = []
+    sensitivity_growth: list[Decimal] = []
+    equity_min: Optional[Decimal] = None
+    equity_max: Optional[Decimal] = None
+    warnings: list[str] = []
+    not_computed: list[str] = []
+
+
+class AuditHeadMetricOut(BaseModel):
+    """Показатель шапки сводки. ``value=None`` — величина не считается, а не равна нулю."""
+
+    key: str
+    label: str
+    value: Optional[Decimal] = None
+    unit: str                            # money | ratio | grade
+    note: str = ""
+    tone: str = "neutral"                # ok | warn | risk | neutral
+    text: str = ""                       # буквенное значение (качество прибыли)
+
+
+class AuditSummaryOut(BaseModel):
+    """Сводка дела и вердикт (SPEC, Прил. Н).
+
+    Оценки сделки здесь нет намеренно: запрошенной цены в модели не существует, DCF не
+    построен, бенчмарков нет. ``priced_total`` — оценённое влияние флагов, **не скидка
+    к цене**. Всё, чего сводка не считает, перечислено в ``not_computed``.
+    """
+
+    state: str = "empty"                 # empty | ready
+    verdict: str = "ok"                  # unreliable | risk | warning | ok
+    headline: str = ""
+    detail: str = ""
+    coverage: Optional[Decimal] = None
+    open_procedures: int = 0
+    metrics: list[AuditHeadMetricOut] = []
+    risk_flags: int = 0
+    warning_flags: int = 0
+    priced_total: Decimal = Decimal(0)
+    unpriced: int = 0
+    input_errors: int = 0
+    # Оценка (Прил. П); None — оценки нет, и дисконта не существует.
+    equity_value: Optional[Decimal] = None
+    asking_price: Optional[Decimal] = None
+    discount: Optional[Decimal] = None
+    not_computed: list[str] = []
+
+
+class AuditProcedureOut(BaseModel):
+    """Процедура чек-листа: что проверяется, кем и с каким итогом."""
+
+    code: str
+    group: str
+    title: str
+    source: str                          # system | analyst
+    method: str                          # чем выполняется (или почему нужен человек)
+    #: pass | finding | no_data — выводится из прогона; done | skipped | pending — отметка.
+    status: str
+    detail: str = ""
+    findings: list[str] = []             # коды сработавших находок
+
+
+class AuditProceduresOut(BaseModel):
+    """Чек-лист целиком: итоги, охват и границы проверки (SPEC, Прил. М).
+
+    ``coverage`` честен только вместе с ``limits``: «охват 70%» без перечня тех 30%
+    читается как «почти всё проверено», а не как «треть не проверялась».
+    """
+
+    items: list[AuditProcedureOut] = []
+    total: int = 0
+    closed: int = 0
+    passed: int = 0
+    findings: int = 0
+    no_data: int = 0
+    done: int = 0
+    skipped: int = 0
+    pending: int = 0
+    coverage: Optional[Decimal] = None   # None — каталога нет, делить не на что
+    limits: list[str] = []
+
+
+class AuditInputIssueOut(BaseModel):
+    """Находка проверки ввода: что не так с данными и в каких периодах."""
+
+    code: str
+    severity: str                      # error | warning | info
+    title: str
+    detail: str
+    periods: list[int] = []            # индексы периодов (пусто — вся модель)
+    evidence: dict[str, Decimal] = {}
+
+
+class AuditCaseColumnOut(BaseModel):
+    """Столбец сравнения: дело и признаки, от которых зависит сопоставимость."""
+
+    subject_id: str
+    name: str
+    industry: str = ""
+    currency: str = ""
+    reporting_standard: str = ""
+    last_period: str = ""
+    n_periods: int = 0
+    verdict: str = ""
+    base_code: str = ""
+
+
+class AuditCompareRowOut(BaseModel):
+    """Строка сравнения. ``winner=None`` — либо «лучше» не определено (размер не
+    качество), либо значение есть не у всех; оба случая объяснены в ``note``."""
+
+    key: str
+    label: str
+    unit: str                            # money | ratio | percent | count | text
+    direction: Optional[str] = None      # higher | lower | None
+    values: list[Optional[Decimal]] = []
+    texts: list[str] = []
+    winner: Optional[int] = None
+    note: str = ""
+
+
+class AuditCompareRequest(BaseModel):
+    """Запрос сравнения: дела организации, до четырёх (макет «Экран 20»)."""
+
+    subject_ids: list[str] = Field(default_factory=list, min_length=1, max_length=4)
+
+
+class AuditCompareResponse(BaseModel):
+    """Сравнение дел: столбцы, строки, счёт побед и оговорки сопоставимости.
+
+    Сводного балла с весами и рекомендации по сделке здесь нет намеренно (SPEC, Прил.
+    С.2 и С.3) — причины перечислены в ``not_computed``.
+    """
+
+    cases: list[AuditCaseColumnOut] = []
+    rows: list[AuditCompareRowOut] = []
+    wins: list[int] = []
+    comparable: int = 0
+    caveats: list[str] = []
+    excluded: list[str] = []
+    not_computed: list[str] = []
+
+
+class AuditEliminationIn(MoneyModel):
+    """Внутригрупповые величины к исключению из свода (по периодам).
+
+    Каждая вычитается парно по обе стороны баланса, поэтому «актив = пассив» сохраняется:
+    задолженность — из дебиторки и кредиторки, выручка — из выручки и себестоимости,
+    вложения — из внеоборотных активов и капитала, нереализованная прибыль — из запасов
+    и капитала (плюс восстановление себестоимости в ОПУ).
+    """
+
+    receivables: list[Decimal] = []
+    revenue: list[Decimal] = []
+    investments: list[Decimal] = []
+    unrealized_profit: list[Decimal] = []
+
+
+class AuditConsolidateRequest(BaseModel):
+    """Запрос консолидации: список субъектов группы + имя свода + исключения (v2)."""
+
+    subject_ids: list[str] = Field(default_factory=list, min_length=1, max_length=50)
+    name: str = "Группа предприятий"
+    elimination: Optional[AuditEliminationIn] = None
+
+
+class AuditConsolidateResponse(BaseModel):
+    """Свод группы: анализ консолидированной отчётности + состав и оговорки."""
+
+    analysis: AuditAnalysisOut
+    members: list[str] = []            # имена вошедших субъектов
+    periods_used: list[str] = []
+    warnings: list[str] = []
+    # Участники сохранённой группы, которых больше нет (субъект удалён). Свод считается по
+    # оставшимся, но состав изменился — молчать об этом нельзя. Для разового свода пусто.
+    missing_members: list[str] = []
+
+
+# --- Сохранённые группы предприятий (Финанс-Аудит, v2) ---
+
+class AuditGroupMember(BaseModel):
+    """Участник сохранённой группы: ссылка на субъект + имя на момент сохранения.
+
+    Имя — только «надгробие»: если субъект удалён, по нему называют выбывшего участника.
+    У живого участника имя всегда берётся из самого субъекта (переименование не теряется).
+    """
+
+    subject_id: str
+    name: str = Field(default="", max_length=255)
+
+
+class AuditGroupModel(BaseModel):
+    """Состав группы: участники + внутригрупповые обороты к исключению.
+
+    Хранится именно состав, а не результат: свод пересчитывается по текущей отчётности
+    участников при каждом анализе.
+    """
+
+    members: list[AuditGroupMember] = Field(default_factory=list, max_length=50)
+    elimination: Optional[AuditEliminationIn] = None
+
+
+class AuditGroupCreate(BaseModel):
+    name: str = "Группа предприятий"
+    model: AuditGroupModel = Field(default_factory=AuditGroupModel)
+
+
+class AuditGroupUpdate(BaseModel):
+    name: Optional[str] = None
+    model: Optional[AuditGroupModel] = None
+
+
+class AuditGroupSummary(BaseModel):
+    """Метаданные группы: сколько участников сохранено и сколько из них ещё существует."""
+
+    id: str
+    name: str
+    created_at: datetime
+    updated_at: datetime
+    n_members: int = 0
+    n_missing: int = 0
+
+
+class AuditGroupOut(AuditGroupSummary):
+    model: AuditGroupModel
+
+
+def requisites_response(view) -> "RequisitesOut":
+    """Собрать реквизиты документа (Прил. Х); ``None`` — слой не считался.
+
+    Пустой блок — не «нет данных», а неподписанный документ: оговорка об этом приходит
+    из ядра и здесь не сочиняется.
+    """
+    if view is None:
+        return RequisitesOut()
+    return RequisitesOut(
+        filled=view.filled, signed=view.signed, number=view.number, date=view.date,
+        addressee=view.addressee, subject_full_name=view.subject_full_name,
+        subject_inn=view.subject_inn, subject_ogrn=view.subject_ogrn,
+        subject_address=view.subject_address,
+        signatures=[SignatureOut(name=s.name, role=s.role) for s in view.signatures],
+        caveats=list(view.caveats), not_computed=list(view.not_computed))
+
+
+def benchmark_view_response(view) -> "BenchmarkViewOut":
+    """Собрать сопоставление с ориентиром (Прил. Ф); ``None`` — слой не считался."""
+    if view is None:
+        return BenchmarkViewOut()
+    return BenchmarkViewOut(
+        available=view.available, blockers=list(view.blockers), industry=view.industry,
+        metric=view.metric, metric_label=view.metric_label, benchmark=view.benchmark,
+        case_multiple=view.case_multiple, deviation=view.deviation, source=view.source,
+        updated_at=view.updated_at, caveats=list(view.caveats),
+        not_computed=list(view.not_computed))
+
+
+def audit_risk_response(risk) -> "AuditRiskOut":
+    """Собрать ответ анализа рисков (SPEC, Прил. Р).
+
+    Вынесено отдельно, потому что риски отдаются **двумя дорогами**: в составе разбора
+    (документ, выгрузка) и отдельным эндпоинтом для вкладки. Второй маппинг тех же
+    полей однажды разошёлся бы с первым, как разошлись копии конвейера.
+    """
+    return AuditRiskOut(
+        available=risk.available if risk else False,
+        blockers=list(risk.blockers) if risk else [],
+        base_price=risk.base_price if risk else None,
+        step=risk.step if risk else Decimal("0.10"),
+        tornado=[AuditTornadoBarOut(
+            param=b.param, label=b.label, step=b.step, low_price=b.low_price,
+            high_price=b.high_price, low_delta=b.low_delta,
+            high_delta=b.high_delta, span=b.span, note=b.note)
+            for b in (risk.tornado if risk else [])],
+        monte_carlo=(AuditMonteCarloOut(
+            iterations=risk.monte_carlo.iterations,
+            valued=risk.monte_carlo.valued, unvalued=risk.monte_carlo.unvalued,
+            median=risk.monte_carlo.median, mean=risk.monte_carlo.mean,
+            p10=risk.monte_carlo.p10, p25=risk.monte_carlo.p25,
+            p75=risk.monte_carlo.p75, p90=risk.monte_carlo.p90,
+            minimum=risk.monte_carlo.minimum, maximum=risk.monte_carlo.maximum,
+            histogram=[AuditHistogramBinOut(from_=h.from_, to=h.to, count=h.count)
+                       for h in risk.monte_carlo.histogram],
+            below_asking=risk.monte_carlo.below_asking,
+            median_drift=risk.monte_carlo.median_drift)
+            if risk and risk.monte_carlo else None),
+        warnings=list(risk.warnings) if risk else [],
+        not_computed=list(risk.not_computed) if risk else [],
+    )
+
+
+def audit_analysis_response(result, opinion: str = "", issues=(),
+                            flags=None, earnings=None, obligations=None,
+                            procedures=None, summary=None,
+                            valuation=None, risk=None,
+                            plan_fact=None, benchmark=None,
+                            requisites=None) -> "AuditAnalysisOut":
+    """Собрать ответ анализа из ``audit_core.AuditResult`` (+ заключение, ввод, флаги)."""
+    return AuditAnalysisOut(
+        opinion=opinion,
+        summary=AuditSummaryOut(
+            state=summary.state if summary else "empty",
+            verdict=summary.verdict if summary else "ok",
+            headline=summary.headline if summary else "",
+            detail=summary.detail if summary else "",
+            coverage=summary.coverage if summary else None,
+            open_procedures=summary.open_procedures if summary else 0,
+            metrics=[AuditHeadMetricOut(key=m.key, label=m.label, value=m.value,
+                                        unit=m.unit, note=m.note, tone=m.tone,
+                                        text=m.text)
+                     for m in (summary.metrics if summary else [])],
+            risk_flags=summary.risk_flags if summary else 0,
+            warning_flags=summary.warning_flags if summary else 0,
+            priced_total=summary.priced_total if summary else Decimal(0),
+            unpriced=summary.unpriced if summary else 0,
+            input_errors=summary.input_errors if summary else 0,
+            equity_value=summary.equity_value if summary else None,
+            asking_price=summary.asking_price if summary else None,
+            discount=summary.discount if summary else None,
+            not_computed=list(summary.not_computed) if summary else [],
+        ),
+        valuation=AuditValuationOut(
+            enabled=valuation.enabled if valuation else False,
+            blockers=list(valuation.blockers) if valuation else [],
+            base_code=valuation.base_code if valuation else "EBIT",
+            base_ebit=valuation.base_ebit if valuation else Decimal(0),
+            wacc=valuation.wacc if valuation else Decimal(0),
+            terminal_growth=valuation.terminal_growth if valuation else Decimal(0),
+            years=[AuditForecastYearOut(
+                year=y.year, ebit=y.ebit, depreciation=y.depreciation, capex=y.capex,
+                nwc_change=y.nwc_change, fcff=y.fcff,
+                discount_factor=y.discount_factor, present_value=y.present_value)
+                for y in (valuation.years if valuation else [])],
+            pv_forecast=valuation.pv_forecast if valuation else Decimal(0),
+            terminal_value=valuation.terminal_value if valuation else None,
+            pv_terminal=valuation.pv_terminal if valuation else None,
+            enterprise_value=valuation.enterprise_value if valuation else None,
+            terminal_share=valuation.terminal_share if valuation else None,
+            bridge=[AuditBridgeItemOut(label=b.label, amount=b.amount, kind=b.kind,
+                                       note=b.note)
+                    for b in (valuation.bridge if valuation else [])],
+            equity_value=valuation.equity_value if valuation else None,
+            implied_multiple=valuation.implied_multiple if valuation else None,
+            asking_price=valuation.asking_price if valuation else None,
+            discount=valuation.discount if valuation else None,
+            sensitivity=[list(r) for r in (valuation.sensitivity if valuation else [])],
+            sensitivity_wacc=list(valuation.sensitivity_wacc) if valuation else [],
+            sensitivity_growth=list(valuation.sensitivity_growth) if valuation else [],
+            equity_min=valuation.equity_min if valuation else None,
+            equity_max=valuation.equity_max if valuation else None,
+            warnings=list(valuation.warnings) if valuation else [],
+            not_computed=list(valuation.not_computed) if valuation else [],
+        ),
+        risk=audit_risk_response(risk),
+        benchmark=benchmark_view_response(benchmark),
+        requisites=requisites_response(requisites),
+        plan_fact=AuditPlanFactOut(
+            available=plan_fact.available if plan_fact else False,
+            periods=list(plan_fact.periods) if plan_fact else [],
+            rows=[AuditPlanFactRowOut(
+                code=r.code, label=r.label, direction=r.direction, plan=r.plan,
+                fact=r.fact, delta=r.delta, delta_share=r.delta_share,
+                verdict=r.verdict, note=r.note)
+                for r in (plan_fact.rows if plan_fact else [])],
+            flags=[AuditRealizedFlagOut(
+                code=f.code, title=f.title, severity=f.severity, predicted=f.predicted,
+                realized=f.realized, actual_cost=f.actual_cost, note=f.note)
+                for f in (plan_fact.flags if plan_fact else [])],
+            predicted_total=plan_fact.predicted_total if plan_fact else Decimal(0),
+            realized_total=plan_fact.realized_total if plan_fact else Decimal(0),
+            unpriced_realized=plan_fact.unpriced_realized if plan_fact else 0,
+            orphan_marks=list(plan_fact.orphan_marks) if plan_fact else [],
+            caveats=list(plan_fact.caveats) if plan_fact else [],
+            not_computed=list(plan_fact.not_computed) if plan_fact else [],
+        ),
+        procedures=AuditProceduresOut(
+            items=[AuditProcedureOut(
+                code=i.code, group=i.group, title=i.title, source=i.source,
+                method=i.method, status=i.status, detail=i.detail,
+                findings=list(i.findings),
+            ) for i in (procedures.items if procedures else [])],
+            total=procedures.total if procedures else 0,
+            closed=procedures.closed if procedures else 0,
+            passed=procedures.passed if procedures else 0,
+            findings=procedures.findings if procedures else 0,
+            no_data=procedures.no_data if procedures else 0,
+            done=procedures.done if procedures else 0,
+            skipped=procedures.skipped if procedures else 0,
+            pending=procedures.pending if procedures else 0,
+            coverage=procedures.coverage if procedures else None,
+            limits=list(procedures.limits) if procedures else [],
+        ),
+        obligations=AuditObligationsOut(
+            rows=[AuditObligationRowOut(
+                creditor=r.creditor, contract=r.contract, kind=r.kind,
+                kind_label=r.kind_label, off_balance=r.off_balance, amount=r.amount,
+                rate=r.rate, maturity=r.maturity, on_demand=r.on_demand,
+                collateral=r.collateral, pledged_amount=r.pledged_amount,
+                covenant=r.covenant, covenant_status=r.covenant_status,
+                covenant_note=r.covenant_note,
+            ) for r in (obligations.rows if obligations else [])],
+            balance_debt=obligations.balance_debt if obligations else Decimal(0),
+            off_balance=obligations.off_balance if obligations else Decimal(0),
+            reported_debt=obligations.reported_debt if obligations else Decimal(0),
+            discrepancy=obligations.discrepancy if obligations else Decimal(0),
+            reconciled=obligations.reconciled if obligations else True,
+            buckets=[AuditMaturityBucketOut(label=b.label, amount=b.amount, kind=b.kind)
+                     for b in (obligations.buckets if obligations else [])],
+            pledged_total=obligations.pledged_total if obligations else Decimal(0),
+            free_assets=obligations.free_assets if obligations else None,
+            pledged_share=obligations.pledged_share if obligations else None,
+            covenants_breached=obligations.covenants_breached if obligations else 0,
+            covenants_unknown=obligations.covenants_unknown if obligations else 0,
+        ),
+        earnings=AuditEarningsOut(
+            base_code=earnings.base_code if earnings else "EBIT",
+            reported=list(earnings.reported) if earnings else [],
+            normalized=list(earnings.normalized) if earnings else [],
+            adjustments=[AuditAdjustmentOut(label=a.label, kind=a.kind,
+                                            kind_label=a.kind_label,
+                                            amounts=list(a.amounts), total=a.total)
+                         for a in (earnings.adjustments if earnings else [])],
+            grade=earnings.grade if earnings else None,
+            grade_note=earnings.grade_note if earnings else "",
+            deviation=earnings.deviation if earnings else None,
+        ),
+        flags=AuditFlagsOut(
+            flags=[AuditFlagOut(code=f.code, severity=f.severity, title=f.title,
+                                detail=f.detail, periods=list(f.periods),
+                                impact=f.impact, evidence=dict(f.evidence))
+                   for f in (flags.flags if flags else [])],
+            priced_total=flags.priced_total if flags else Decimal(0),
+            unpriced=flags.unpriced if flags else 0,
+        ),
+        input_issues=[AuditInputIssueOut(code=i.code, severity=i.severity, title=i.title,
+                                         detail=i.detail, periods=list(i.periods),
+                                         evidence=dict(i.evidence)) for i in issues],
+        n=result.n,
+        periods=list(result.periods),
+        balance=[AuditLineOut(code=ln.code, label=ln.label, values=list(ln.values),
+                              subtotal=ln.subtotal) for ln in result.balance],
+        income=[AuditLineOut(code=ln.code, label=ln.label, values=list(ln.values),
+                             subtotal=ln.subtotal) for ln in result.income],
+        horizontal=[AuditTrendOut(code=t.code, label=t.label, delta=list(t.delta),
+                                  rate=list(t.rate)) for t in result.horizontal],
+        vertical=[AuditShareOut(code=s.code, label=s.label, share=list(s.share))
+                  for s in result.vertical],
+        ratios={g: {k: list(v) for k, v in series.items()}
+                for g, series in result.ratios.items()},
+        balance_gap=list(result.balance_gap),
+        balanced=result.balanced,
+        revalued=result.revalued,
+        user_metrics=[AuditUserMetricOut(name=u.name, values=list(u.values), error=u.error)
+                      for u in result.user_metrics],
+        diagnostics=(AuditDiagnosticsOut(
+            light=result.diagnostics.light,
+            summary=result.diagnostics.summary,
+            scores=[AuditScoreOut(id=s.id, name=s.name, values=list(s.values),
+                                  zones=list(s.zones), note=s.note)
+                    for s in result.diagnostics.scores],
+            assessments=[AuditAssessmentOut(group=a.group, name=a.name, status=list(a.status))
+                         for a in result.diagnostics.assessments],
+        ) if result.diagnostics is not None else None),
+        warnings=list(result.warnings),
+    )
+
+
+# --- Служебный контур платформы (ADMIN-DECOMPOSITION.md, B1) ---
+#
+# Ответы ниже описывают клиента **снаружи**: как он называется, кто в нём состоит, за
+# что платит и сколько чего завёл. Имён проектов и дел здесь нет — не по недосмотру:
+# название проекта («Покупка завода в Твери») само по себе коммерческая тайна, и
+# показать его оператору значило бы нарушить правило 6 обходным путём.
+
+class StaffSubscriptionOut(BaseModel):
+    """Подписка организации на один продукт — взгляд оператора."""
+
+    product: str
+    plan_code: str
+    plan_name: str
+    status: str
+    current_period_end: Optional[datetime] = None
+
+
+class StaffOrgOut(BaseModel):
+    """Организация-клиент: метаданные и объёмы.
+
+    ``last_calculated_at`` — когда в организации последний раз считали модель. Числа
+    расчётов нет: счётчика платформа не ведёт, а придуманное число хуже отсутствующего.
+    ``last_seen_at`` — когда кто-нибудь из участников последний раз работал; ``None``
+    означает «неизвестно», а не «никогда» (отметка появилась в A3).
+    """
+
+    id: str
+    name: str
+    created_at: datetime
+    members: int = 0
+    members_blocked: int = 0
+    projects: int = 0
+    cases: int = 0
+    groups: int = 0
+    holdings: int = 0
+    last_calculated_at: Optional[datetime] = None
+    last_seen_at: Optional[datetime] = None
+    subscriptions: list[StaffSubscriptionOut] = []
+    #: Приостановлена оператором (B2) — с автором, временем и причиной.
+    suspended: bool = False
+    suspended_at: Optional[datetime] = None
+    suspended_by: str = ""
+    suspend_reason: str = ""
+
+
+class StaffOrgPage(BaseModel):
+    organizations: list[StaffOrgOut] = []
+    total: int = 0
+
+
+class StaffOrgDetail(StaffOrgOut):
+    """Карточка организации: то же плюс состав. Содержимого моделей по-прежнему нет."""
+
+    members_list: list[MemberOut] = []
+
+
+class StaffUserOrgOut(BaseModel):
+    """Организация в карточке пользователя: роль и состояние доступа."""
+
+    id: str
+    name: str
+    role: str
+    blocked: bool = False
+    block_reason: str = ""
+    last_seen_at: Optional[datetime] = None
+
+
+class StaffUserOut(BaseModel):
+    """Пользователь платформы: где состоит и в каком состоянии.
+
+    ``has_password`` отвечает на самый частый вопрос поддержки — «человек не может
+    войти»: у приглашённого пароля может не быть вовсе, и это не то же самое, что
+    забытый пароль. Самого хэша здесь, разумеется, нет.
+    """
+
+    id: str
+    email: str
+    full_name: str
+    created_at: datetime
+    is_staff: bool = False
+    has_password: bool = False
+    #: Учётная запись заблокирована платформой (B2) — действует на все организации.
+    blocked: bool = False
+    blocked_at: Optional[datetime] = None
+    blocked_by: str = ""
+    block_reason: str = ""
+    organizations: list[StaffUserOrgOut] = []
+
+
+class StaffLogEntryOut(BaseModel):
+    """Запись служебного журнала: кто из сотрудников, что и у кого смотрел."""
+
+    id: str
+    actor_email: str
+    action: str
+    organization_id: str = ""
+    organization_name: str = ""
+    details: str = ""
+    created_at: datetime
+
+
+class StaffLogPage(BaseModel):
+    entries: list[StaffLogEntryOut] = []
+
+
+class SuspendIn(BaseModel):
+    """Причина приостановки организации или блокировки учётной записи.
+
+    Обязательна и показывается тому, кого ограничили: ограничение без причины
+    неотличимо от поломки — и для клиента, и для того, кто будет его снимать.
+    """
+
+    reason: str = Field(min_length=3, max_length=500)
+
+
+class MetricPointOut(BaseModel):
+    """Сколько появилось за месяц. Пустой месяц остаётся в ряду с нулём: выброшенный,
+    он превращает провал в графике в ровную линию."""
+
+    period: str
+    organizations: int = 0
+    users: int = 0
+
+
+class PlanSliceOut(BaseModel):
+    """Сколько организаций на тарифе. Считаются **оформленные** подписки: «выбрал
+    бесплатный» и «не выбирал ничего» — разные состояния."""
+
+    product: str
+    plan_code: str
+    plan_name: str
+    organizations: int = 0
+
+
+class FunnelStepOut(BaseModel):
+    """Шаг воронки активации. ``share = None`` — считать не от чего (нет организаций)."""
+
+    key: str
+    label: str
+    organizations: int = 0
+    share: Optional[float] = None
+
+
+class RetentionPointOut(BaseModel):
+    """Когорта месяца. ``returned = None`` — **не измеряется**, а не ноль.
+
+    Ноль читался бы как «все ушли»; на деле в этот месяц событий не собирали, и знать
+    удержание неоткуда.
+    """
+
+    month: str
+    arrived: int = 0
+    returned: Optional[int] = None
+
+
+class PlatformMetricsOut(BaseModel):
+    """Сводка платформы (B3).
+
+    ``notes`` — не украшение и не примечание мелким шрифтом: там сказано, чего эти числа
+    **не** значат (счётчика расчётов нет, отметка присутствия ведётся не с первого дня,
+    журнал начинается с первой записи). Без них ноль за период, которого журнал не
+    застал, читается ровно как ноль событий.
+    """
+
+    generated_at: datetime
+    since_days: int = 30
+    organizations: int = 0
+    users: int = 0
+    #: Ключ — окно в днях («7», «30»); в JSON ключи объекта всегда строки.
+    active_users: dict[str, int] = {}
+    active_organizations: dict[str, int] = {}
+    members_without_mark: int = 0
+    projects: int = 0
+    cases: int = 0
+    projects_calculated: int = 0
+    exports: int = 0
+    growth: list[MetricPointOut] = []
+    plans: list[PlanSliceOut] = []
+    funnel: list[FunnelStepOut] = []
+    retention: list[RetentionPointOut] = []
+    #: Собираются ли события пользования (E2) — чтобы экран не гадал, почему пусто.
+    usage_collected: bool = False
+    notes: list[str] = []
+
+
+class SessionOut(BaseModel):
+    """Действующий вход в учётную запись (C1).
+
+    ``device`` и ``ip`` приходят от самого клиента и подделываются кем угодно: это
+    **подсказка владельцу** («это точно был я?»), а не удостоверение устройства. Сырая
+    строка браузера отдаётся рядом (``user_agent``) — грубая подпись может ошибиться, и
+    прятать источник, по которому её можно перепроверить, было бы нечестно.
+    """
+
+    id: str
+    device: str
+    user_agent: str = ""
+    ip: str = ""
+    created_at: datetime
+    last_seen_at: Optional[datetime] = None
+    expires_at: datetime
+    #: Тот самый вход, из которого сделан запрос. Без пометки человек закрыл бы себя.
+    current: bool = False
+
+
+class RevokeAllOut(BaseModel):
+    """Сколько входов закрыто. Число, а не безличное «готово»: человек должен понимать,
+    что именно с ним произошло."""
+
+    closed: int = 0
+
+
+class PasswordPolicyOut(BaseModel):
+    """Требования к паролю — собранные из тех же правил, что и проверяют (C2).
+
+    ``leak_check`` говорит, включена ли сейчас проверка по базе утечек: обещать её при
+    выключенной значило бы утверждать, что платформа делает то, чего не делает.
+    """
+
+    min_length: int = 8
+    leak_check: bool = False
+    rules: list[str] = []
+
+
+class TotpSetupOut(BaseModel):
+    """Начатая настройка второго фактора (C2).
+
+    ``secret`` показывается группами по четыре: его вводят руками — QR-кода платформа не
+    рисует, и это сказано на экране, а не скрыто. ``otpauth_uri`` читает приложение, если
+    страницу открыли на том же устройстве.
+
+    Второй фактор здесь ещё **не включён**: включение подтверждается кодом. Иначе
+    достаточно опечатки в приложении, чтобы человек остался снаружи своей учётной записи.
+    """
+
+    secret: str
+    secret_grouped: str
+    otpauth_uri: str
+
+
+class TotpEnableIn(BaseModel):
+    code: str = Field(min_length=6, max_length=10)
+
+
+class TotpRecoveryOut(BaseModel):
+    """Резервные коды — показываются **один раз**, как пароль.
+
+    Почты у платформы нет, значит письма «восстановите доступ» не будет: без этих кодов
+    потерянный телефон означал бы потерянную учётную запись. Поэтому они не «на всякий
+    случай», а единственный способ вернуться — кроме обращения к платформе.
+    """
+
+    codes: list[str] = []
+
+
+class TotpStatusOut(BaseModel):
+    enabled: bool = False
+    #: Настройка начата, но не подтверждена кодом — второй фактор ещё не действует.
+    pending: bool = False
+    recovery_left: int = 0
+    #: Владельцу второй фактор **рекомендуется**, но не навязывается (см. декомпозицию):
+    #: принудительное включение без второго канала восстановления заперло бы тех, кто
+    #: потеряет и телефон, и коды.
+    recommended: bool = False
+
+
+class PasswordConfirmIn(BaseModel):
+    """Подтверждение паролем для чувствительных действий с учётной записью.
+
+    Выключение второго фактора и перевыпуск резервных кодов — ровно то, что сделает
+    угонщик, дорвавшийся до открытой вкладки. Пароль здесь — не формальность, а разница
+    между «украли сессию» и «украли учётную запись».
+    """
+
+    password: str
+
+
+class DeletionPlanOut(BaseModel):
+    """Что произойдёт при удалении учётной записи — **до** нажатия (C3).
+
+    Удаление необратимо, а последствия выходят за пределы одного человека: вместе с ним
+    может исчезнуть организация со всеми моделями. Список — не вежливость, а единственный
+    способ дать согласие осознанно.
+    """
+
+    allowed: bool = False
+    organizations_deleted: list[str] = []
+    organizations_left: list[str] = []
+    projects: int = 0
+    cases: int = 0
+    #: Что мешает удалиться и что с этим делать. Непустой список — отказ с выходом.
+    blockers: list[str] = []
+    #: Что останется и почему. Обещать «полное удаление», оставляя журнал, было бы неправдой.
+    kept: list[str] = []
+
+
+class TransferOwnershipIn(BaseModel):
+    """Кому передать владение организацией.
+
+    Появилось вместе с удалением учётной записи (C3): без передачи владелец не мог
+    воспользоваться правом уйти — организация без владельца это компания без того, кто
+    платит за тариф и управляет доступом.
+    """
+
+    user_id: str
+
+
+class CapabilitiesOut(BaseModel):
+    """Что платформа умеет **в этой установке** — для экранов, которые иначе обещали бы
+    несуществующее (D1).
+
+    Отправка писем включается на месте, и экран входа обязан знать о ней с сервера:
+    «Забыли пароль?», нарисованная там, где письма не уходят, ведёт человека в тупик.
+    """
+
+    #: Настроена ли отправка писем. `False` — платформа писем не шлёт вовсе.
+    mail: bool = False
+
+
+class ForgotPasswordIn(BaseModel):
+    email: str
+
+
+class ForgotPasswordOut(BaseModel):
+    """Ответ на «забыли пароль» — **один и тот же** для любого адреса.
+
+    Разный ответ превратил бы форму в проверялку «есть ли у вас такой клиент»: адрес
+    сотрудника достаточно ввести, чтобы узнать, работает ли его компания с платформой.
+    """
+
+    message: str
+
+
+# --- Обсуждение рядом с числами (D3) ---
+
+class CommentCreate(BaseModel):
+    """Новая реплика. ``anchor`` — место внутри проекта или дела, ``anchor_label`` — его
+    подпись **на момент написания**: объект переименуют, а разговор обязан остаться
+    понятным."""
+
+    body: str
+    anchor: str = ""
+    anchor_label: str = ""
+
+
+class CommentOut(BaseModel):
+    """Реплика обсуждения.
+
+    ``body`` удалённой реплики заменён «надгробием» (`deleted` истинно): пропавшая без
+    следа строка читается как не сказанная никогда. ``mentions`` — кого позвали;
+    упоминание **не даёт прав**, только зовёт посмотреть.
+    """
+
+    id: str
+    subject_type: str
+    subject_id: str
+    anchor: str = ""
+    anchor_label: str = ""
+    author_email: str = ""
+    author_name: str = ""
+    body: str
+    mentions: list[str] = []
+    created_at: datetime
+    resolved: bool = False
+    resolved_at: Optional[datetime] = None
+    resolved_by: str = ""
+    deleted: bool = False
+
+
+class CommentCreated(BaseModel):
+    """Ответ на созданную реплику: сама реплика и **что стало с приглашениями**.
+
+    Три ответа, и они не сводимы: позвали и письмо ушло, позвали и письма не будет
+    (почта не настроена — сказано словами), назвали адрес, которого в организации нет.
+    Проглоченное упоминание — худший вид тишины: автор ждёт, а никто не придёт.
+    """
+
+    comment: CommentOut
+    #: Кого позвали и кому ушло письмо.
+    notified: list[str] = []
+    #: Упомянутые, которых в организации нет — названы, а не проглочены.
+    unknown_mentions: list[str] = []
+    #: Что стало с письмами (общее на все упоминания в реплике).
+    mail: MailReport = MailReport()
+
+
+# --- Отраслевые шаблоны и чек-листы (D4) ---
+
+class TemplateOut(BaseModel):
+    """Шаблон быстрого старта: модель + **честный список допущений**.
+
+    Допущения едут вместе с шаблоном, а не лежат где-то рядом: числа в нём выдуманы,
+    и человек обязан узнать об этом там же, где увидит цифры. Базы отраслевых данных у
+    платформы нет — выдать пример за статистику значило бы соврать цифрой.
+    """
+
+    id: str
+    name: str
+    industry: str = ""
+    description: str = ""
+    #: Какую машинерию модели шаблон показывает (зачем он, кроме чисел).
+    shows: str = ""
+    assumptions: list[str] = []
+
+
+class ChecklistIn(BaseModel):
+    """Свой чек-лист организации: имя, область применения и пункты."""
+
+    name: str
+    scope: str = ""
+    items: list[str] = []
+
+
+class ChecklistOut(ChecklistIn):
+    id: str
+    author_email: str = ""
+    updated_at: datetime
+
+
+# --- Ключи доступа к API (D5) ---
+
+class ApiKeyCreate(BaseModel):
+    """Имя ключа: «Выгрузка в 1С», «Дашборд финдиректора».
+
+    Обязательно и не случайно: через год список безымянных ключей означает, что отозвать
+    можно только все сразу.
+    """
+
+    name: str
+
+
+class ApiKeyOut(BaseModel):
+    """Ключ в списке. Секрета здесь нет и быть не может — платформа его не хранит.
+
+    ``last_used_at`` = ``None`` означает **ни разу**, а не «давно»: неиспользованный ключ
+    обычно забыт, и это повод его отозвать, а не оставить.
+    """
+
+    id: str
+    name: str
+    #: Как ключ выглядит: `fe_1a2b3c4d_…`. По нему его узнают в списке.
+    masked: str
+    created_by: str = ""
+    created_at: datetime
+    last_used_at: Optional[datetime] = None
+    revoked: bool = False
+    revoked_at: Optional[datetime] = None
+    revoked_by: str = ""
+
+
+class ApiKeyCreated(BaseModel):
+    """Ответ на выпуск: сам ключ **один раз** и его строка в списке.
+
+    Повторно секрет не покажет никто, включая платформу: хранится только отпечаток. Тот
+    же приём, что у резервных кодов второго фактора.
+    """
+
+    key: ApiKeyOut
+    #: Полная строка ключа. Больше она нигде не появится.
+    token: str
+    #: Что ключ умеет — рядом с ним, а не в документации, которую не откроют.
+    scope_note: str = ""
+
+
+# --- Активность организации (E1) ---
+
+class MemberActivityOut(BaseModel):
+    """Участник в сводке активности.
+
+    ``last_seen_at = None`` — **неизвестно**, а не «никогда»: отметка присутствия ведётся
+    не с первого дня платформы. ``actions`` — записи журнала за окно; ноль означает
+    «ничего не менял», потому что чтение журнал не пишет.
+    """
+
+    user_id: str
+    email: str
+    full_name: str = ""
+    role: str
+    blocked: bool = False
+    last_seen_at: Optional[datetime] = None
+    actions: int = 0
+
+
+class EntityActivityOut(BaseModel):
+    """Проект или дело: когда правили, когда считали, сколько вопросов открыто."""
+
+    id: str
+    name: str
+    kind: str                      # project | case
+    updated_at: Optional[datetime] = None
+    last_calculated_at: Optional[datetime] = None
+    stale: bool = False
+    open_comments: int = 0
+
+
+class ActivityOut(BaseModel):
+    """Сводка активности организации. ``notes`` едут вместе с числами.
+
+    Без них сводка читается как отчёт о людях: «заходил — пусто» превращается в «не
+    работает», а «действий 0» — в «бездельничает». Ни того, ни другого платформа не знает.
+    """
+
+    members: list[MemberActivityOut] = []
+    entities: list[EntityActivityOut] = []
+    window_days: int = 30
+    stale_days: int = 90
+    notes: list[str] = []
+
+
+def activity_response(report) -> "ActivityOut":
+    """Собрать ответ из сводки (``app.activity.ActivityReport``)."""
+    return ActivityOut(
+        members=[MemberActivityOut(
+            user_id=m.user_id, email=m.email, full_name=m.full_name, role=m.role,
+            blocked=m.blocked, last_seen_at=m.last_seen_at, actions=m.actions,
+        ) for m in report.members],
+        entities=[EntityActivityOut(
+            id=e.id, name=e.name, kind=e.kind, updated_at=e.updated_at,
+            last_calculated_at=e.last_calculated_at, stale=e.stale,
+            open_comments=e.open_comments,
+        ) for e in report.entities],
+        window_days=report.window_days, stale_days=report.stale_days,
+        notes=report.notes,
+    )
+
+
+# --- Что платформа знает о пользовании (E2) и портфель одним запросом (E4) ---
+
+class UsagePolicyOut(BaseModel):
+    """Что платформа собирает о пользовании — человеку, а не в документации.
+
+    Скрытая аналитика в продукте, который печатает свои отказы, была бы двойным
+    стандартом: тот же экран, где человек забирает свои данные и удаляет учётную запись,
+    обязан отвечать и на вопрос «что вы обо мне знаете».
+    """
+
+    #: Собираются ли события вообще. `False` — список ниже описывает то, чего нет.
+    collecting: bool = False
+    #: Что записывается: код события → человеческая подпись.
+    events: dict[str, str] = {}
+    #: Чего в событиях нет — списком, а не общими словами.
+    excluded: list[str] = []
+    #: Кто это читает и зачем.
+    note: str = ""
+
+
+class PortfolioProjectOut(BaseModel):
+    """Проект в портфеле: метаданные и **сохранённая** сводка последнего расчёта."""
+
+    id: str
+    name: str
+    updated_at: datetime
+    last_calc: Optional[LastCalcOut] = None
+    #: Модель менялась после последнего расчёта — числа устарели.
+    is_stale: bool = False
+    status: str = "draft"
+
+
+class PortfolioCaseOut(BaseModel):
+    """Дело в портфеле: метаданные. Вердикта здесь нет — см. `verdicts_note`."""
+
+    id: str
+    name: str
+    updated_at: datetime
+
+
+class PortfolioOut(BaseModel):
+    """Портфель организации одним запросом (E4): проекты и дела для внешней сводки.
+
+    Числа проектов берутся **сохранёнными** (последний расчёт), а не считаются на лету:
+    иначе один запрос за портфелем превращался бы в десятки расчётов.
+
+    **Вердиктов дел здесь нет, и это названо**, а не обойдено молчанием: вердикт дела
+    всегда считается по текущей отчётности и нигде не хранится — выдать за него что-то
+    сохранённое значило бы показать позавчерашнее заключение как сегодняшнее.
+    """
+
+    projects: list[PortfolioProjectOut] = []
+    cases: list[PortfolioCaseOut] = []
+    projects_total: int = 0
+    cases_total: int = 0
+    #: Почему у дел нет вердикта и где его взять.
+    verdicts_note: str = ""
+    #: Сколько проектов не считали ни разу — у них `last_calc` пуст.
+    projects_never_calculated: int = 0

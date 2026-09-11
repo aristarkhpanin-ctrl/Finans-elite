@@ -5,3 +5,9 @@ dist-ssr/
 .env
 .vite/
 *.tsbuildinfo
+
+# Сквозные тесты (Playwright): артефакты прогона — скриншоты, трассы, отчёт.
+/test-results/
+/playwright-report/
+/blob-report/
+/.playwright/

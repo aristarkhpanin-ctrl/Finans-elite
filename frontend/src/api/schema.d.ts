@@ -4,6 +4,293 @@
  */
 
 export interface paths {
+    "/api/v1/admin/log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Staff Log
+         * @description Служебный журнал: где были наши сотрудники.
+         *
+         *     Как и журнал организации — только чтение: ни PUT, ни DELETE. Журнал, который можно
+         *     поправить, не журнал, и для собственных следов это верно ровно в той же мере.
+         *     Собственное чтение журнала не пишется: оно никуда не приходит и ничего не выносит.
+         */
+        get: operations["read_staff_log_api_v1_admin_log_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Metrics
+         * @description Сводка платформы: сколько клиентов, кто из них жив и что они делают (B3).
+         *
+         *     **Второй системы учёта под это не заводится**: числа собираются из организаций,
+         *     пользователей, членства, подписок и журнала. Счётчик «под метрики» начал бы жить
+         *     своей жизнью и расходиться с данными, и разбирать пришлось бы не бизнес, а
+         *     расхождение.
+         *
+         *     Ответ несёт не только числа, но и **границы их применимости** (``notes``): чего
+         *     платформа не считает и с какого дня вообще может считать. Ноль за период, которого
+         *     журнал не застал, выглядит ровно как ноль событий — и без оговорки был бы им.
+         */
+        get: operations["read_metrics_api_v1_admin_metrics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/metrics.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Metrics
+         * @description Выгрузка сводки — теми же числами, что на экране, и **с теми же оговорками**.
+         *
+         *     Оговорки идут в файл строками, а не остаются на экране: таблица, доехавшая до чужой
+         *     презентации без них, утверждает больше, чем платформа измеряла.
+         *
+         *     Разделитель и BOM — как в выгрузке журнала: иначе Excel в русской локали разложит
+         *     файл в один столбец и испортит кириллицу.
+         */
+        get: operations["export_metrics_api_v1_admin_metrics_csv_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/organizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Organizations
+         * @description Клиенты платформы: кто, с какого числа, на каком тарифе и сколько чего завёл.
+         *
+         *     Пишется **только в служебный журнал**: список — это платформенный взгляд, а не визит
+         *     к конкретному клиенту. Запись у каждого клиента при каждом обновлении экрана сделала
+         *     бы их журналы нечитаемыми.
+         */
+        get: operations["list_organizations_api_v1_admin_organizations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/organizations/{org_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Organization
+         * @description Карточка клиента: подписки, объёмы, состав.
+         *
+         *     Визит пишется **в оба журнала** — в служебный и в журнал самой организации. Клиент
+         *     обязан видеть, что к нему приходили, даже (и особенно) когда приходили мы.
+         */
+        get: operations["get_organization_api_v1_admin_organizations__org_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/organizations/{org_id}/audit-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Audit Log
+         * @description Журнал организации глазами оператора — тот же, что видит её администратор.
+         *
+         *     Второго представления журнала не заводим: расхождение двух ответов на один вопрос
+         *     («что у клиента происходило») пришлось бы разбирать в момент инцидента, то есть
+         *     тогда, когда времени на это меньше всего.
+         */
+        get: operations["read_audit_log_api_v1_admin_organizations__org_id__audit_log_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/organizations/{org_id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspend Organization
+         * @description Приостановить организацию (нарушение, запрос, разбирательство) — B2.
+         *
+         *     **Приостановка не конфискует данные** (правило 7): организация переходит в режим
+         *     чтения и выгрузки — свои модели видны, считаются и выгружаются, новые не заводятся
+         *     и старые не правятся. Отрезать клиента от собственных чисел значило бы держать их в
+         *     заложниках, чем бы это ни было вызвано.
+         *
+         *     Причина обязательна и показывается **самой организации**: ограничение без объяснения
+         *     неотличимо от поломки. Оплата приостановку не снимает — снимает только платформа, и
+         *     в тексте отказа это сказано прямо.
+         */
+        post: operations["suspend_organization_api_v1_admin_organizations__org_id__suspend_post"];
+        /**
+         * Resume Organization
+         * @description Снять приостановку. Автор и причина стираются — историю хранит журнал.
+         */
+        delete: operations["resume_organization_api_v1_admin_organizations__org_id__suspend_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search Users
+         * @description Поиск человека по адресу или имени — вход в разбор обращения в поддержку.
+         *
+         *     Ответ говорит и то, о чём поддержку спрашивают чаще всего: заведён ли пароль вообще
+         *     (приглашённый его мог не задать) и не приостановлен ли доступ — и в какой именно
+         *     организации. Это метаданные человека, а не данные организации, поэтому запись идёт
+         *     в служебный журнал.
+         */
+        get: operations["search_users_api_v1_admin_users_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get User */
+        get: operations["get_user_api_v1_admin_users__user_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}/block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Block User
+         * @description Заблокировать учётную запись платформы — сразу во всех организациях (B2).
+         *
+         *     Отличается от приостановки членства (A1) осью: там администратор закрывает человеку
+         *     **своё** рабочее пространство, здесь платформа закрывает саму учётную запись. Право
+         *     только у оператора именно поэтому: человек состоит и в чужих организациях, которые
+         *     администратору одной не подчиняются.
+         *
+         *     Пишется в журнал **каждой** организации, где человек состоит: администратор обязан
+         *     понимать, почему его сотрудник перестал работать, — иначе он будет искать поломку.
+         */
+        post: operations["block_user_api_v1_admin_users__user_id__block_post"];
+        /**
+         * Unblock User
+         * @description Снять блокировку учётной записи.
+         */
+        delete: operations["unblock_user_api_v1_admin_users__user_id__block_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}/totp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Reset User Totp
+         * @description Сбросить второй фактор человеку — **последний способ вернуть доступ** (C2).
+         *
+         *     Почты у платформы нет, значит письма «восстановите доступ» не существует: потерянный
+         *     телефон **и** потерянные резервные коды означали бы навсегда потерянную учётную
+         *     запись. Кто-то обязан быть последней инстанцией, и это платформа.
+         *
+         *     Отсюда же и обязанность не молчать: сброс пишется в служебный журнал **и** в журналы
+         *     всех организаций человека. Оператор, снимающий второй фактор, делает ровно то, ради
+         *     чего второй фактор и ставили, — и это должно быть видно, а не спрятано в поддержке.
+         *     Личность обратившегося проверяет человек, а не код: платформа не умеет этого и не
+         *     делает вид, что умеет.
+         */
+        delete: operations["reset_user_totp_api_v1_admin_users__user_id__totp_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/analysis/jobs/{job_id}": {
         parameters: {
             query?: never;
@@ -18,6 +305,571 @@ export interface paths {
         get: operations["job_status_api_v1_analysis_jobs__job_id__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/compare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Compare
+         * @description Сравнить дела организации (SPEC, Приложение С).
+         *
+         *     Сравнение разовое, как свод группы: хранится запрос, а не результат — числа всегда
+         *     по текущей отчётности дел.
+         */
+        post: operations["compare_api_v1_audit_compare_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/consolidate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Consolidate
+         * @description Свод отчётности группы субъектов и анализ группы как единого предприятия.
+         *
+         *     Внутригрупповые обороты исключаются, только если переданы явно (``elimination``);
+         *     иначе свод их не вычитает — это отражено в предупреждениях ответа.
+         */
+        post: operations["consolidate_api_v1_audit_consolidate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Groups
+         * @description Список сохранённых групп (с числом участников и числом выбывших).
+         */
+        get: operations["list_groups_api_v1_audit_groups_get"];
+        put?: never;
+        /**
+         * Create Group
+         * @description Сохранить состав группы предприятий (участники + внутригрупповые обороты).
+         */
+        post: operations["create_group_api_v1_audit_groups_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/groups/{group_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Group
+         * @description Получить сохранённую группу с составом.
+         */
+        get: operations["get_group_api_v1_audit_groups__group_id__get"];
+        /**
+         * Update Group
+         * @description Обновить имя и/или состав сохранённой группы.
+         */
+        put: operations["update_group_api_v1_audit_groups__group_id__put"];
+        post?: never;
+        /**
+         * Delete Group
+         * @description Удалить сохранённую группу (субъекты-участники не затрагиваются).
+         */
+        delete: operations["delete_group_api_v1_audit_groups__group_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/groups/{group_id}/analyze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Analyze Group
+         * @description Свод сохранённой группы по **текущей** отчётности участников.
+         *
+         *     Группа хранит состав, а не результат: числа всегда пересчитываются. Если участника
+         *     удалили, свод считается по оставшимся, а выбывшие названы в оговорках ответа.
+         */
+        post: operations["analyze_group_api_v1_audit_groups__group_id__analyze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/subjects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Subjects
+         * @description Список субъектов анализа организации (метаданные).
+         */
+        get: operations["list_subjects_api_v1_audit_subjects_get"];
+        put?: never;
+        /**
+         * Create Subject
+         * @description Создать субъект анализа в текущей организации.
+         */
+        post: operations["create_subject_api_v1_audit_subjects_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/subjects/demo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Demo Subject
+         * @description Завести демо-дело из эталонного семпла («Экран 18»).
+         *
+         *     Обычное дело, а не особый режим: его можно править, дублировать и удалить теми же
+         *     кнопками. Так у нового пользователя сразу есть на чём увидеть работающий продукт —
+         *     аналитическую форму, коэффициенты, диагностику и заключение, — и ему не нужно
+         *     сперва вводить чужую отчётность, чтобы понять, что он покупает.
+         */
+        post: operations["create_demo_subject_api_v1_audit_subjects_demo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/subjects/{subject_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Subject
+         * @description Получить субъект с моделью и сходимостью баланса по периодам.
+         */
+        get: operations["get_subject_api_v1_audit_subjects__subject_id__get"];
+        /**
+         * Update Subject
+         * @description Обновить имя и/или модель субъекта.
+         */
+        put: operations["update_subject_api_v1_audit_subjects__subject_id__put"];
+        post?: never;
+        /**
+         * Delete Subject
+         * @description Удалить субъект анализа.
+         */
+        delete: operations["delete_subject_api_v1_audit_subjects__subject_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/subjects/{subject_id}/analyze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Analyze Subject
+         * @description Проанализировать отчётность субъекта: аналитическая форма, тренды, коэффициенты.
+         *
+         *     **Без стохастики** (`deep=False`). Анализ дёргается при каждом открытии дела и после
+         *     каждой правки модели, а Монте-Карло — единственный дорогой слой: на объявленных
+         *     неопределённых допущениях разбор шёл 0,9 с при 2 000 прогонов и 8,7 с при 20 000
+         *     вместо 6 мс, и платил за это тот, кто пользуется самой продвинутой функцией. Риски
+         *     считаются там, где их показывают: `…/risk`, документ, выгрузка.
+         */
+        post: operations["analyze_subject_api_v1_audit_subjects__subject_id__analyze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/subjects/{subject_id}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Case Comments
+         * @description Обсуждение дела, старые сверху.
+         */
+        get: operations["list_case_comments_api_v1_audit_subjects__subject_id__comments_get"];
+        put?: never;
+        /**
+         * Add Case Comment
+         * @description Написать реплику в обсуждении дела.
+         */
+        post: operations["add_case_comment_api_v1_audit_subjects__subject_id__comments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/subjects/{subject_id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Duplicate Subject
+         * @description Дублировать дело: модель целиком, имя «{name} (копия)».
+         */
+        post: operations["duplicate_subject_api_v1_audit_subjects__subject_id__duplicate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/subjects/{subject_id}/report.docx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Report
+         * @description Документ заключения по анализу (DOCX): заключение, отчёты, коэффициенты, диагностика.
+         */
+        get: operations["download_report_api_v1_audit_subjects__subject_id__report_docx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/subjects/{subject_id}/risk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Analyze Subject Risk
+         * @description Анализ рисков оценки: торнадо и Монте-Карло (SPEC, Прил. Р).
+         *
+         *     Отдельный вызов, потому что это единственный дорогой слой: его просят, открывая
+         *     вкладку рисков или скачивая документ, а не каждым открытием дела. Разбор идёт тем
+         *     же конвейером — числа те же, что в остальных разделах.
+         */
+        post: operations["analyze_subject_risk_api_v1_audit_subjects__subject_id__risk_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/subjects/{subject_id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Versions
+         * @description Версии дела (метаданные, новейшие сверху).
+         */
+        get: operations["list_versions_api_v1_audit_subjects__subject_id__versions_get"];
+        put?: never;
+        /**
+         * Create Version
+         * @description Снимок текущей модели дела как именованная версия (со сводкой на этот момент).
+         */
+        post: operations["create_version_api_v1_audit_subjects__subject_id__versions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/subjects/{subject_id}/versions/{version_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Version
+         * @description Версия с полной моделью снимка.
+         */
+        get: operations["get_version_api_v1_audit_subjects__subject_id__versions__version_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Version
+         * @description Удалить версию.
+         */
+        delete: operations["delete_version_api_v1_audit_subjects__subject_id__versions__version_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/subjects/{subject_id}/versions/{version_id}/diff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Diff Version
+         * @description Что изменилось от снимка к другой версии или к текущему состоянию дела.
+         *
+         *     ``against`` — id другой версии либо ``current``. old = эта версия, new = сравниваемое
+         *     состояние: диф отвечает на вопрос «что стало с делом с тех пор».
+         */
+        get: operations["diff_version_api_v1_audit_subjects__subject_id__versions__version_id__diff_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/subjects/{subject_id}/versions/{version_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore Version
+         * @description Вернуть модель версии в рабочее дело.
+         */
+        post: operations["restore_version_api_v1_audit_subjects__subject_id__versions__version_id__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate
+         * @description Задать пароль по ссылке и сразу войти — приглашение или сброс.
+         *
+         *     Дорога одна на оба случая намеренно: для пользователя это один и тот же шаг
+         *     («откройте ссылку, придумайте пароль»), и вторая страница с той же формой
+         *     отличалась бы только словом в заголовке. Правила при этом разные и строгие —
+         *     приглашение срабатывает, пока пароля нет; сброс — пока не сменился отпечаток.
+         *
+         *     До этого приглашённый участник существовал, но войти не мог никогда:
+         *     ``crud.add_member`` заводит пользователя без пароля, а других путей его задать
+         *     не было — приглашение вело в никуда.
+         *
+         *     Токен приглашения **не является токеном входа** (см. ``decode_token``): им можно
+         *     только завести пароль. И только один раз: если пароль уже есть, активация
+         *     отклоняется — иначе ссылка-приглашение осталась бы вечным способом сбросить
+         *     чужой пароль, минуя знание текущего.
+         */
+        post: operations["activate_api_v1_auth_activate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Capabilities
+         * @description Что умеет **эта установка** платформы (D1).
+         *
+         *     Экран входа обязан узнать про почту с сервера: «Забыли пароль?», нарисованная там,
+         *     где письма не уходят, ведёт человека в тупик — а тупик, который выглядит как выход,
+         *     хуже, чем честно названное его отсутствие.
+         */
+        get: operations["capabilities_api_v1_auth_capabilities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Delete My Account
+         * @description Удалить свою учётную запись — **по паролю**.
+         *
+         *     Пароль здесь по тому же доводу, что и у второго фактора: удаление это ровно то, что
+         *     сделает дорвавшийся до открытой вкладки. Событие пишется в журналы организаций
+         *     **до** удаления — после писать будет уже некуда.
+         */
+        post: operations["delete_my_account_api_v1_auth_delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/delete-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview Deletion
+         * @description Что случится при удалении — до того, как оно случится.
+         */
+        get: operations["preview_deletion_api_v1_auth_delete_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export My Data
+         * @description Выгрузить всё, что платформа хранит **о вас** — одним файлом.
+         *
+         *     Проектов и дел здесь нет: они принадлежат организациям, а не сотруднику. Отдать их
+         *     «по запросу субъекта персональных данных» значило бы выдать уходящему модели
+         *     работодателя под видом личного права — выгрузка компании живёт на своих экранах.
+         *
+         *     Сама выгрузка пишется в журнал: вынос данных наружу — событие (правило 5 пакета).
+         */
+        get: operations["export_my_data_api_v1_auth_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/forgot-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Forgot Password
+         * @description Забыли пароль: прислать ссылку на почту — **самому человеку**, а не через
+         *     администратора.
+         *
+         *     До появления почты этого маршрута не было и быть не могло: сброс по одному лишь
+         *     названному адресу — способ угнать чужую учётную запись. Теперь ссылка уходит **в
+         *     сам ящик**, то есть тому, кто им владеет, и запрос перестал что-либо доказывать:
+         *     просивший не получает ничего, кроме одинакового для всех ответа.
+         *
+         *     Это же закрывает дыру, названную в C2: **владельцу организации** администратор
+         *     ссылку не выдаёт (иначе он забрал бы организацию), и владелец был единственной
+         *     ролью без пути восстановления. Свой ящик его возвращает.
+         *
+         *     Ограничение — по **учётной записи**, а не только по адресу клиента: письмо уходит
+         *     владельцу ящика, и заваливать его можно было бы с десятка адресов. Превышение
+         *     отвечает **тем же текстом**: отдельный отказ выдал бы, что адрес существует.
+         */
+        post: operations["forgot_password_api_v1_auth_forgot_password_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -61,6 +913,55 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
+        /**
+         * Update Me
+         * @description Профиль: имя. Почта не меняется — она же логин и адрес приглашений.
+         */
+        patch: operations["update_me_api_v1_auth_me_patch"];
+        trace?: never;
+    };
+    "/api/v1/auth/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change Password
+         * @description Смена своего пароля. Текущий обязателен: иначе украденная сессия меняет пароль
+         *     и запирает владельца снаружи.
+         */
+        post: operations["change_password_api_v1_auth_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/password-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Password Policy
+         * @description Что требуется от пароля — **из тех же правил**, что и проверяют.
+         *
+         *     Экран, перечисляющий требования своим текстом, однажды разойдётся с сервером: человек
+         *     прочтёт одно, а получит другое. Открыт без токена: правила нужны на регистрации и на
+         *     активации ссылки, то есть до входа.
+         */
+        get: operations["password_policy_api_v1_auth_password_policy_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
         patch?: never;
         trace?: never;
     };
@@ -78,6 +979,213 @@ export interface paths {
          * @description Регистрация: создаёт пользователя, его организацию и членство (owner).
          */
         post: operations["register_api_v1_auth_register_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Sessions
+         * @description Действующие входы в свою учётную запись (C1).
+         *
+         *     Показываются только живые: список закрытых не отвечает на вопрос, ради которого его
+         *     открывают («кто сейчас внутри?»). История входов есть в журнале организации — второй
+         *     её копии здесь не заводим, разошлись бы.
+         *
+         *     Устройство и адрес приходят от самого клиента и подделываются кем угодно, поэтому
+         *     они **подсказка владельцу**, а не удостоверение: ни один отказ платформы на них не
+         *     опирается, и на экране это сказано.
+         */
+        get: operations["list_sessions_api_v1_auth_sessions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/sessions/revoke-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke All Sessions
+         * @description «Выйти на всех устройствах» — включая текущее.
+         *
+         *     Текущее тоже закрывается намеренно: человек нажимает эту кнопку, когда не уверен,
+         *     что контролирует учётную запись, и оставленный «свой» вход в такой ситуации — это
+         *     ровно тот вход, из-за которого всё и началось.
+         */
+        post: operations["revoke_all_sessions_api_v1_auth_sessions_revoke_all_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke Session
+         * @description Закрыть конкретный вход. **Только свой**: чужой сеанс не находится, а не
+         *     отказывается по правам — знать о существовании чужих входов незачем.
+         */
+        delete: operations["revoke_session_api_v1_auth_sessions__session_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/totp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Totp Status */
+        get: operations["totp_status_api_v1_auth_totp_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/totp/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Totp Disable
+         * @description Выключить второй фактор — **по паролю**.
+         *
+         *     Выключение второго фактора это ровно то, что сделает угонщик, дорвавшийся до открытой
+         *     вкладки. Пароль здесь — разница между «украли сессию» и «украли учётную запись».
+         */
+        post: operations["totp_disable_api_v1_auth_totp_disable_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/totp/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Totp Enable
+         * @description Подтвердить настройку кодом и получить резервные коды.
+         *
+         *     Коды показываются **один раз** — как пароль: хранятся отпечатками, и восстановить их
+         *     нельзя, можно только перевыпустить.
+         */
+        post: operations["totp_enable_api_v1_auth_totp_enable_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/totp/recovery-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Totp New Recovery Codes
+         * @description Перевыпустить резервные коды. Прежние перестают работать сразу.
+         */
+        post: operations["totp_new_recovery_codes_api_v1_auth_totp_recovery_codes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/totp/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Totp Setup
+         * @description Завести секрет и показать его для настройки приложения.
+         *
+         *     Второй фактор при этом **не включается**: пока код не подтверждён, вход работает как
+         *     прежде. Иначе опечатки в приложении хватило бы, чтобы человек остался снаружи.
+         *
+         *     Повторный вызов выдаёт **новый** секрет: сюда приходят, когда настройка не задалась,
+         *     и подсовывать тот же секрет, который уже не сходится, незачем.
+         */
+        post: operations["totp_setup_api_v1_auth_totp_setup_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/usage-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Usage Policy
+         * @description Что платформа собирает о пользовании (E2) — там же, где человек забирает свои
+         *     данные.
+         *
+         *     Скрытая аналитика в продукте, который печатает свои отказы, была бы двойным
+         *     стандартом. Список событий — тот же, по которому идёт запись (`usage.EVENTS`):
+         *     второй его копии, которая однажды отстанет, здесь нет.
+         */
+        get: operations["usage_policy_api_v1_auth_usage_policy_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -119,6 +1227,61 @@ export interface paths {
          */
         post: operations["calculate_api_v1_calculate_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/comments/{comment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete
+         * @description Удалить реплику — свою или, если вы администратор, чужую.
+         *
+         *     Текст стирается, но **«надгробие» остаётся**: пропавшая без следа строка читается как
+         *     не сказанная никогда, а на неё уже могли ответить. Своё удаление и административное
+         *     названы по-разному — «удалена автором» под чужим решением приписало бы его человеку.
+         *
+         *     Правки текста нет вовсе: отредактированная реплика, на которую ответили, переписывает
+         *     историю — спор становится непонятным, а согласие приписанным.
+         */
+        delete: operations["delete_api_v1_comments__comment_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/comments/{comment_id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve
+         * @description Закрыть обсуждение: вопрос снят.
+         *
+         *     Закрыть может **любой участник**, а не только автор: снимает вопрос обычно тот, кто
+         *     на него ответил. Кто именно — записано: «вопрос снят» без имени снявшего это не
+         *     ответ, а тишина.
+         */
+        post: operations["resolve_api_v1_comments__comment_id__resolve_post"];
+        /**
+         * Reopen
+         * @description Открыть обсуждение заново: вопрос сняли рано.
+         */
+        delete: operations["reopen_api_v1_comments__comment_id__resolve_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -250,7 +1413,7 @@ export interface paths {
         };
         /**
          * My Organizations
-         * @description Организации текущего пользователя (с его ролью в каждой).
+         * @description Организации текущего пользователя (с его ролью и режимом доступа в каждой).
          */
         get: operations["my_organizations_api_v1_organizations_get"];
         put?: never;
@@ -282,6 +1445,183 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizations/{org_id}/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Activity
+         * @description Кто работает и что живо (E1): участники, проекты, дела, открытые обсуждения.
+         *
+         *     Право `org.manage` — то же, что у журнала: сводка отвечает на вопрос об **остальных**
+         *     участниках, и видеть его должен тот, кто за организацию отвечает.
+         *
+         *     Новых счётчиков под этот экран не заводилось: всё собрано из отметок присутствия,
+         *     журнала и дат последнего расчёта. Поэтому сводка не может разойтись с тем, что
+         *     показывают другие экраны, — а границы того, чего платформа не знает, едут вместе с
+         *     числами в `notes`.
+         */
+        get: operations["read_activity_api_v1_organizations__org_id__activity_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{org_id}/api-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Keys
+         * @description Ключи организации, новые сверху. Отозванные остаются в списке: исчезнувший ключ
+         *     читался бы как никогда не существовавший, а он работал.
+         */
+        get: operations["list_keys_api_v1_organizations__org_id__api_keys_get"];
+        put?: never;
+        /**
+         * Create Key
+         * @description Выпустить ключ. Секрет показывается **один раз** — платформа его не хранит.
+         */
+        post: operations["create_key_api_v1_organizations__org_id__api_keys_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{org_id}/api-keys/scope": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Key Scope
+         * @description Что ключ умеет — перечнем прав, а не обещанием на словах.
+         */
+        get: operations["key_scope_api_v1_organizations__org_id__api_keys_scope_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{org_id}/api-keys/{key_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke Key
+         * @description Отозвать ключ. Мгновенно: состояние читается из базы на каждом запросе.
+         */
+        delete: operations["revoke_key_api_v1_organizations__org_id__api_keys__key_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{org_id}/audit-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Audit Log
+         * @description Журнал действий организации (право org.manage): новые записи сверху.
+         *
+         *     Отбор — по участнику, действию, виду сущности, диапазону дат и подстроке (имя
+         *     сущности, почта актора, примечание). Без отбора журнал на десятки тысяч записей
+         *     существует, но ответа из него не достать: пролистать двадцать тысяч строк никто не
+         *     станет. ``total`` считается **под теми же условиями**, иначе «50 из 12 000» врало бы.
+         *
+         *     Только чтение. Ни PUT, ни DELETE у журнала нет и не будет: журнал, который можно
+         *     поправить, не журнал. Срок хранения (5 лет, ARCHITECTURE §4) — политика эксплуатации,
+         *     а не логика приложения: чистка кодом означала бы, что приложение умеет стирать
+         *     собственные следы.
+         */
+        get: operations["read_audit_log_api_v1_organizations__org_id__audit_log_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{org_id}/audit-log.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Audit Log
+         * @description Выгрузка журнала в CSV — под теми же условиями отбора, что и на экране.
+         *
+         *     **Сама выгрузка пишется в журнал**: вынос следов наружу — тоже событие, и оно
+         *     единственное, о котором журнал иначе умолчал бы.
+         *
+         *     Разделитель — точка с запятой, кодировка с BOM: иначе Excel в русской локали
+         *     раскладывает файл в один столбец и портит кириллицу, и выгрузка становится
+         *     бесполезной ровно для тех, кому она нужна.
+         */
+        get: operations["export_audit_log_api_v1_organizations__org_id__audit_log_csv_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{org_id}/benchmarks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Benchmarks
+         * @description Отраслевые ориентиры организации — её собственные числа, а не рынок.
+         */
+        get: operations["list_benchmarks_api_v1_organizations__org_id__benchmarks_get"];
+        /**
+         * Replace Benchmarks
+         * @description Заменить справочник целиком (правится как таблица — сохраняется как таблица).
+         *
+         *     Право `org.manage`: ориентиры — общая память организации, по которой оценивают
+         *     сделки; правит их тот же, кто отвечает за организацию.
+         */
+        put: operations["replace_benchmarks_api_v1_organizations__org_id__benchmarks_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizations/{org_id}/billing/checkout": {
         parameters: {
             query?: never;
@@ -296,6 +1636,34 @@ export interface paths {
          * @description Инициировать смену тарифа через провайдера (ЮKassa — ссылка оплаты; ручной — сразу).
          */
         post: operations["checkout_api_v1_organizations__org_id__billing_checkout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{org_id}/checklists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Checklists
+         * @description Свои чек-листы организации: наборы процедур, которые она применяет к делам.
+         *
+         *     **Отраслевого каталога у платформы нет** — он утверждал бы, что именно проверяют в
+         *     конкретной отрасли. Эти чек-листы написаны аналитиками самой организации, и
+         *     платформа их не выполняет: применённые к делу, они становятся процедурами аналитика.
+         */
+        get: operations["list_checklists_api_v1_organizations__org_id__checklists_get"];
+        /**
+         * Replace Checklists
+         * @description Заменить чек-листы целиком — как и ориентиры: что на экране, то и в хранилище.
+         */
+        put: operations["replace_checklists_api_v1_organizations__org_id__checklists_put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -347,6 +1715,75 @@ export interface paths {
         patch: operations["patch_member_role_api_v1_organizations__org_id__members__user_id__patch"];
         trace?: never;
     };
+    "/api/v1/organizations/{org_id}/members/{user_id}/access-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Issue Access Link
+         * @description Выдать участнику одноразовую ссылку входа: приглашение или сброс пароля.
+         *
+         *     Закрывает дыру доступности: до этого забытый пароль было не сбросить **никому** —
+         *     ни пользователю, ни администратору, — и учётная запись терялась насовсем. Ссылка
+         *     передаётся лично: почтовой отправки у платформы нет.
+         *
+         *     Два запрета, без которых это была бы не функция, а эскалация прав:
+         *
+         *     * **Владельцу ссылка не выдаётся.** Иначе администратор сбрасывает пароль владельцу
+         *       и забирает организацию вместе с тарифом и биллингом. Владелец — единственная роль
+         *       без пути восстановления, и это осознанный размен: захват организации хуже.
+         *     * **Участнику, состоящему и в других организациях, — тоже.** Пароль один на
+         *       платформу, и администратор одной организации, сбросив его, получил бы доступ во
+         *       все остальные. Здесь администратор распоряжается не своим.
+         *
+         *     Обе причины называются в ответе, а не превращаются в молчаливый отказ.
+         */
+        post: operations["issue_access_link_api_v1_organizations__org_id__members__user_id__access_link_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{org_id}/members/{user_id}/block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Block Member
+         * @description Приостановить доступ участника в этой организации (право member.manage).
+         *
+         *     **Приостановка — не удаление.** Участник остаётся в списке со своей ролью и историей;
+         *     доступ возвращается одним действием. Удаление стирает связь, и восстановить его можно
+         *     только заведением заново — с потерей того, кем человек был.
+         *
+         *     Отзыв **мгновенный**: членство читается из базы на каждом запросе, поэтому выданный
+         *     ранее токен доступа не даёт (см. `deps._ensure_active`). Блокируется членство, а не
+         *     учётная запись: в других организациях человек продолжает работать — там свои
+         *     администраторы, и распоряжаться чужим доступом эти не вправе.
+         */
+        post: operations["block_member_api_v1_organizations__org_id__members__user_id__block_post"];
+        /**
+         * Unblock Member
+         * @description Вернуть доступ участнику. Причина прошлой блокировки стирается, след в журнале —
+         *     остаётся: журнал и есть то, что помнит.
+         */
+        delete: operations["unblock_member_api_v1_organizations__org_id__members__user_id__block_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizations/{org_id}/subscription": {
         parameters: {
             query?: never;
@@ -356,7 +1793,7 @@ export interface paths {
         };
         /**
          * Get Subscription
-         * @description Текущая подписка организации (с использованием квот).
+         * @description Подписка организации на продукт (с использованием квот).
          */
         get: operations["get_subscription_api_v1_organizations__org_id__subscription_get"];
         put?: never;
@@ -365,6 +1802,55 @@ export interface paths {
          * @description Прямая смена тарифа без платежа (право billing.manage; ручной/админский путь).
          */
         post: operations["change_subscription_api_v1_organizations__org_id__subscription_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{org_id}/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Subscriptions
+         * @description Подписки организации по всем продуктам — их столько же, сколько продуктов.
+         */
+        get: operations["get_subscriptions_api_v1_organizations__org_id__subscriptions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{org_id}/transfer-ownership": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Transfer Ownership
+         * @description Передать владение организацией другому участнику (C3).
+         *
+         *     Появилось вместе с правом удалить учётную запись: без передачи владелец не мог им
+         *     воспользоваться — организация без владельца это компания без того, кто платит за
+         *     тариф и управляет доступом. Понизить владельца по отдельности по-прежнему нельзя
+         *     (иначе организация осталась бы вовсе без него); здесь это **одно действие**, в
+         *     котором новый владелец появляется раньше, чем прежний перестаёт им быть.
+         *
+         *     Прежний владелец становится администратором, а не выбывает: человек, отдавший
+         *     компанию, чаще всего продолжает в ней работать, и выкидывать его молча незачем.
+         */
+        post: operations["transfer_ownership_api_v1_organizations__org_id__transfer_ownership_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -380,7 +1866,7 @@ export interface paths {
         };
         /**
          * List Plans
-         * @description Каталог доступных тарифов (публично).
+         * @description Каталог тарифов (публично); ``product`` — только тарифы одного продукта.
          */
         get: operations["list_plans_api_v1_plans_get"];
         put?: never;
@@ -415,6 +1901,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/portfolio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Portfolio
+         * @description Портфель организации одним запросом (E4): проекты и дела для внешней сводки.
+         *
+         *     Ради этого и заводились ключи доступа (D5): дашборд финдиректора собирается на
+         *     стороне клиента, а не у нас. Числа берутся **сохранёнными** — иначе один запрос за
+         *     портфелем превращался бы в десятки расчётов.
+         *
+         *     Вердиктов дел здесь нет, и это **сказано в ответе**: вердикт всегда считается по
+         *     текущей отчётности и нигде не хранится. Показать вместо него что-то сохранённое
+         *     значило бы выдать позавчерашнее заключение за сегодняшнее.
+         */
+        get: operations["portfolio_api_v1_projects_portfolio_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}": {
         parameters: {
             query?: never;
@@ -443,6 +1957,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/budget": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Project Budget
+         * @description Смета по этапам календарного плана: строки, помесячный график, итог.
+         *
+         *     Считается прямо из модели (без полного расчёта отчётов) — для быстрого предпросмотра
+         *     сметы в редакторе календарного плана.
+         */
+        get: operations["project_budget_api_v1_projects__project_id__budget_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/business-plan.docx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Business Plan Docx
+         * @description DOCX-бизнес-план (пакет №5, Q5): титул, заключение, показатели, разделы, отчёты.
+         *
+         *     Считает проект на лету (как /calculate, но без записи сводки); заключение — быстрое
+         *     ревью без стохастики. Право ``project.read`` — документ лишь отражает модель.
+         */
+        get: operations["business_plan_docx_api_v1_projects__project_id__business_plan_docx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/calculate": {
         parameters: {
             query?: never;
@@ -463,6 +2023,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Project Comments
+         * @description Обсуждение проекта, старые сверху. ``anchor`` сужает до одного места.
+         */
+        get: operations["list_project_comments_api_v1_projects__project_id__comments_get"];
+        put?: never;
+        /**
+         * Add Project Comment
+         * @description Написать реплику в обсуждении проекта.
+         */
+        post: operations["add_project_comment_api_v1_projects__project_id__comments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/duplicate": {
         parameters: {
             query?: never;
@@ -477,6 +2061,59 @@ export interface paths {
          * @description Дублировать проект (B2): модель целиком, имя «{name} (копия)», квота как в create.
          */
         post: operations["duplicate_project_api_v1_projects__project_id__duplicate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/finalize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Finalize Project
+         * @description Финализировать план — гейт ревью (Ф10, решение Q4: ревью перед финализацией).
+         *
+         *     Прогоняет глубокое ревью. Если есть risk-находки и ``acknowledge=false`` — 409 (гейт
+         *     не пройден), ревью возвращается в ``detail``. При ``acknowledge=true`` (или без risk)
+         *     проект помечается ``finalized`` со снимком ревью и отпечатком модели. Warning/info
+         *     финализации не мешают.
+         */
+        post: operations["finalize_project_api_v1_projects__project_id__finalize_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/methodology": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Project Methodology
+         * @description Карта методических трактовок расчёта (SPEC §22) — по этой модели.
+         *
+         *     Отвечает на вопрос, который до сих пор задавали спецификации: **какие из открытых
+         *     методических развилок вообще задействованы в моём проекте и что по ним выбрано**.
+         *     Модель без валюты не задаёт вопроса о курсовой разнице, модель без НДС — вопроса о
+         *     моменте его признания, и гадать об этом по документу приходилось человеку.
+         *
+         *     Карта ничего не подтверждает: подтверждение трактовок — профессиональное суждение
+         *     бухгалтера или аудитора на реальных проектах, и до него версия ядра остаётся `0.x`.
+         */
+        get: operations["project_methodology_api_v1_projects__project_id__methodology_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -523,6 +2160,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Review Project
+         * @description Ревью бизнес-плана (Ф10): детерминированные находки и рекомендации по итогам расчёта.
+         *
+         *     ``deep=true`` дополнительно прогоняет стохастику (Монте-Карло + чувствительность) для
+         *     категории «дивергенция» (план ↔ вероятное будущее) — дороже, но полнее.
+         */
+        get: operations["review_project_api_v1_projects__project_id__review_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/sensitivity": {
         parameters: {
             query?: never;
@@ -537,6 +2197,97 @@ export interface paths {
          * @description Анализ чувствительности: варьировать параметр и наблюдать NPV/IRR.
          */
         post: operations["sensitivity_api_v1_projects__project_id__sensitivity_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Versions
+         * @description Список версий проекта (метаданные, новейшие сверху).
+         */
+        get: operations["list_versions_api_v1_projects__project_id__versions_get"];
+        put?: never;
+        /**
+         * Create Version
+         * @description Снимок текущей модели как именованная версия (со сводкой расчёта).
+         */
+        post: operations["create_version_api_v1_projects__project_id__versions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/versions/{version_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Version
+         * @description Версия с полной моделью снимка.
+         */
+        get: operations["get_version_api_v1_projects__project_id__versions__version_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Version
+         * @description Удалить версию.
+         */
+        delete: operations["delete_version_api_v1_projects__project_id__versions__version_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/versions/{version_id}/diff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Diff Version
+         * @description Анализ изменений версии относительно другой версии или текущей модели.
+         *
+         *     ``against`` — id другой версии либо ``current`` (рабочая модель проекта). old = эта
+         *     версия, new = ``against``: «что изменилось от снимка к сравниваемому состоянию».
+         */
+        get: operations["diff_version_api_v1_projects__project_id__versions__version_id__diff_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/versions/{version_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore Version
+         * @description Восстановить модель версии в рабочий проект (статус → draft, гейт сбрасывается).
+         */
+        post: operations["restore_version_api_v1_projects__project_id__versions__version_id__restore_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -592,7 +2343,11 @@ export interface paths {
         };
         /**
          * Templates
-         * @description Список шаблонов проектов для быстрого старта (по типам бизнеса).
+         * @description Шаблоны быстрого старта: демонстрационные и отраслевые (D4).
+         *
+         *     Каждый несёт **список допущений**: числа в шаблоне выдуманы автором и годятся ровно
+         *     на то, чтобы модель считалась. Базы отраслевых данных у платформы нет, и выдать
+         *     пример за статистику значило бы соврать самым дорогим способом — цифрой.
          */
         get: operations["templates_api_v1_templates_get"];
         put?: never;
@@ -668,6 +2423,98 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
+         * AccessLinkOut
+         * @description Одноразовая ссылка входа для участника: приглашение или сброс пароля.
+         *
+         *     ``kind`` различает два случая, потому что различаются они и по смыслу, и по тому,
+         *     что участник увидит: ``invite`` — пароля ещё нет, ``reset`` — пароль есть, но
+         *     забыт. Токен возвращается **только в ответе на выдачу**: в списке участников он
+         *     был бы вечным пропуском в чужой аккаунт для всякого, кто видит состав организации.
+         *
+         *     ``mail`` говорит, ушло ли письмо со ссылкой. Ссылка возвращается **в любом случае**:
+         *     почта — добавление к «передайте лично», а не замена, и при неудачной отправке
+         *     администратор передаёт её сам (D1).
+         */
+        AccessLinkOut: {
+            /** Email */
+            email: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "invite" | "reset";
+            /**
+             * @default {
+             *       "attempted": false,
+             *       "error": "",
+             *       "ok": false
+             *     }
+             */
+            mail: components["schemas"]["MailReport"];
+            /** Token */
+            token: string;
+            /** User Id */
+            user_id: string;
+        };
+        /**
+         * ActivateRequest
+         * @description Активация приглашения: по токену задать пароль и войти.
+         *
+         *     ``totp_code`` нужен, когда у учётной записи включён второй фактор: иначе ссылка
+         *     сброса обходила бы его целиком — доступ к почтовому ящику значил бы вход без кода
+         *     из приложения (D1). Как и на входе, код идёт **тем же запросом**.
+         */
+        ActivateRequest: {
+            /**
+             * Full Name
+             * @default
+             */
+            full_name: string;
+            /** Password */
+            password: string;
+            /** Token */
+            token: string;
+            /**
+             * Totp Code
+             * @default
+             */
+            totp_code: string;
+        };
+        /**
+         * ActivityOut
+         * @description Сводка активности организации. ``notes`` едут вместе с числами.
+         *
+         *     Без них сводка читается как отчёт о людях: «заходил — пусто» превращается в «не
+         *     работает», а «действий 0» — в «бездельничает». Ни того, ни другого платформа не знает.
+         */
+        ActivityOut: {
+            /**
+             * Entities
+             * @default []
+             */
+            entities: components["schemas"]["EntityActivityOut"][];
+            /**
+             * Members
+             * @default []
+             */
+            members: components["schemas"]["MemberActivityOut"][];
+            /**
+             * Notes
+             * @default []
+             */
+            notes: string[];
+            /**
+             * Stale Days
+             * @default 90
+             */
+            stale_days: number;
+            /**
+             * Window Days
+             * @default 30
+             */
+            window_days: number;
+        };
+        /**
          * Actualization
          * @description Фактические значения строк Кэш-фло по месяцам.
          *
@@ -706,10 +2553,117 @@ export interface components {
             };
         };
         /**
+         * AdditionalInvestment
+         * @description Доинвестирование в актив (модернизация, SPEC §9): вложение в месяц ``month``.
+         *
+         *     Капитализируется (→ capex/C14) и амортизируется линейно за **остаточный срок** актива
+         *     (``purchase_month + life_months − month``), заканчиваясь вместе с базовой стоимостью.
+         */
+        "AdditionalInvestment-Input": {
+            /**
+             * Amount
+             * @default 0
+             */
+            amount: number | string;
+            /**
+             * Month
+             * @default 0
+             */
+            month: number;
+        };
+        /**
+         * AdditionalInvestment
+         * @description Доинвестирование в актив (модернизация, SPEC §9): вложение в месяц ``month``.
+         *
+         *     Капитализируется (→ capex/C14) и амортизируется линейно за **остаточный срок** актива
+         *     (``purchase_month + life_months − month``), заканчиваясь вместе с базовой стоимостью.
+         */
+        "AdditionalInvestment-Output": {
+            /**
+             * Amount
+             * @default 0
+             */
+            amount: string;
+            /**
+             * Month
+             * @default 0
+             */
+            month: number;
+        };
+        /**
+         * ApiKeyCreate
+         * @description Имя ключа: «Выгрузка в 1С», «Дашборд финдиректора».
+         *
+         *     Обязательно и не случайно: через год список безымянных ключей означает, что отозвать
+         *     можно только все сразу.
+         */
+        ApiKeyCreate: {
+            /** Name */
+            name: string;
+        };
+        /**
+         * ApiKeyCreated
+         * @description Ответ на выпуск: сам ключ **один раз** и его строка в списке.
+         *
+         *     Повторно секрет не покажет никто, включая платформу: хранится только отпечаток. Тот
+         *     же приём, что у резервных кодов второго фактора.
+         */
+        ApiKeyCreated: {
+            key: components["schemas"]["ApiKeyOut"];
+            /**
+             * Scope Note
+             * @default
+             */
+            scope_note: string;
+            /** Token */
+            token: string;
+        };
+        /**
+         * ApiKeyOut
+         * @description Ключ в списке. Секрета здесь нет и быть не может — платформа его не хранит.
+         *
+         *     ``last_used_at`` = ``None`` означает **ни разу**, а не «давно»: неиспользованный ключ
+         *     обычно забыт, и это повод его отозвать, а не оставить.
+         */
+        ApiKeyOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By
+             * @default
+             */
+            created_by: string;
+            /** Id */
+            id: string;
+            /** Last Used At */
+            last_used_at?: string | null;
+            /** Masked */
+            masked: string;
+            /** Name */
+            name: string;
+            /**
+             * Revoked
+             * @default false
+             */
+            revoked: boolean;
+            /** Revoked At */
+            revoked_at?: string | null;
+            /**
+             * Revoked By
+             * @default
+             */
+            revoked_by: string;
+        };
+        /**
          * Asset
          * @description Основное средство.
          */
         "Asset-Input": {
+            /** Additional Investments */
+            additional_investments?: components["schemas"]["AdditionalInvestment-Input"][];
             /** @default equipment */
             category: components["schemas"]["AssetCategory"];
             /** Cost */
@@ -746,6 +2700,8 @@ export interface components {
          * @description Основное средство.
          */
         "Asset-Output": {
+            /** Additional Investments */
+            additional_investments?: components["schemas"]["AdditionalInvestment-Output"][];
             /** @default equipment */
             category: components["schemas"]["AssetCategory"];
             /** Cost */
@@ -779,17 +2735,1855 @@ export interface components {
         };
         /**
          * AssetCategory
-         * @description Группа основных средств (разнос остаточной стоимости по балансу B12–B14, SPEC §9).
+         * @description Группа активов (разнос остаточной стоимости по балансу B12–B14, B16, SPEC §9).
          * @enum {string}
          */
-        AssetCategory: "equipment" | "buildings" | "land";
+        AssetCategory: "equipment" | "buildings" | "land" | "intangible";
+        /**
+         * AuditAdjustmentOut
+         * @description Применённая поправка нормализации: что, почему и на сколько.
+         */
+        AuditAdjustmentOut: {
+            /**
+             * Amounts
+             * @default []
+             */
+            amounts: string[];
+            /** Kind */
+            kind: string;
+            /** Kind Label */
+            kind_label: string;
+            /** Label */
+            label: string;
+            /**
+             * Total
+             * @default 0
+             */
+            total: string;
+        };
+        /**
+         * AuditAnalysisOut
+         * @description Результат анализа фактической отчётности (Финанс-Аудит).
+         */
+        AuditAnalysisOut: {
+            /**
+             * Balance
+             * @default []
+             */
+            balance: components["schemas"]["AuditLineOut"][];
+            /**
+             * Balance Gap
+             * @default []
+             */
+            balance_gap: string[];
+            /**
+             * Balanced
+             * @default true
+             */
+            balanced: boolean;
+            /**
+             * @default {
+             *       "available": false,
+             *       "blockers": [],
+             *       "caveats": [],
+             *       "industry": "",
+             *       "metric": "",
+             *       "metric_label": "",
+             *       "not_computed": [],
+             *       "source": ""
+             *     }
+             */
+            benchmark: components["schemas"]["BenchmarkViewOut"];
+            diagnostics?: components["schemas"]["AuditDiagnosticsOut"] | null;
+            earnings?: components["schemas"]["AuditEarningsOut"];
+            flags?: components["schemas"]["AuditFlagsOut"];
+            /**
+             * Horizontal
+             * @default []
+             */
+            horizontal: components["schemas"]["AuditTrendOut"][];
+            /**
+             * Income
+             * @default []
+             */
+            income: components["schemas"]["AuditLineOut"][];
+            /**
+             * Input Issues
+             * @default []
+             */
+            input_issues: components["schemas"]["AuditInputIssueOut"][];
+            /** N */
+            n: number;
+            obligations?: components["schemas"]["AuditObligationsOut"];
+            /**
+             * Opinion
+             * @default
+             */
+            opinion: string;
+            /**
+             * Periods
+             * @default []
+             */
+            periods: string[];
+            plan_fact?: components["schemas"]["AuditPlanFactOut"];
+            procedures?: components["schemas"]["AuditProceduresOut"];
+            /**
+             * Ratios
+             * @default {}
+             */
+            ratios: {
+                [key: string]: {
+                    [key: string]: (string | null)[];
+                };
+            };
+            requisites?: components["schemas"]["RequisitesOut"];
+            /**
+             * Revalued
+             * @default false
+             */
+            revalued: boolean;
+            risk?: components["schemas"]["AuditRiskOut"];
+            summary?: components["schemas"]["AuditSummaryOut"];
+            /**
+             * User Metrics
+             * @default []
+             */
+            user_metrics: components["schemas"]["AuditUserMetricOut"][];
+            valuation?: components["schemas"]["AuditValuationOut"];
+            /**
+             * Vertical
+             * @default []
+             */
+            vertical: components["schemas"]["AuditShareOut"][];
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /**
+         * AuditAssessmentOut
+         * @description Оценка показателя по нормативам: статус по периодам (good | warn | risk).
+         */
+        AuditAssessmentOut: {
+            /** Group */
+            group: string;
+            /** Name */
+            name: string;
+            /**
+             * Status
+             * @default []
+             */
+            status: (string | null)[];
+        };
+        /**
+         * AuditBridgeItemOut
+         * @description Слагаемое моста EV → цена: подпись, знак и величина.
+         */
+        AuditBridgeItemOut: {
+            /** Amount */
+            amount: string;
+            /** Kind */
+            kind: string;
+            /** Label */
+            label: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /**
+         * AuditCaseColumnOut
+         * @description Столбец сравнения: дело и признаки, от которых зависит сопоставимость.
+         */
+        AuditCaseColumnOut: {
+            /**
+             * Base Code
+             * @default
+             */
+            base_code: string;
+            /**
+             * Currency
+             * @default
+             */
+            currency: string;
+            /**
+             * Industry
+             * @default
+             */
+            industry: string;
+            /**
+             * Last Period
+             * @default
+             */
+            last_period: string;
+            /**
+             * N Periods
+             * @default 0
+             */
+            n_periods: number;
+            /** Name */
+            name: string;
+            /**
+             * Reporting Standard
+             * @default
+             */
+            reporting_standard: string;
+            /** Subject Id */
+            subject_id: string;
+            /**
+             * Verdict
+             * @default
+             */
+            verdict: string;
+        };
+        /**
+         * AuditCompareRequest
+         * @description Запрос сравнения: дела организации, до четырёх (макет «Экран 20»).
+         */
+        AuditCompareRequest: {
+            /** Subject Ids */
+            subject_ids?: string[];
+        };
+        /**
+         * AuditCompareResponse
+         * @description Сравнение дел: столбцы, строки, счёт побед и оговорки сопоставимости.
+         *
+         *     Сводного балла с весами и рекомендации по сделке здесь нет намеренно (SPEC, Прил.
+         *     С.2 и С.3) — причины перечислены в ``not_computed``.
+         */
+        AuditCompareResponse: {
+            /**
+             * Cases
+             * @default []
+             */
+            cases: components["schemas"]["AuditCaseColumnOut"][];
+            /**
+             * Caveats
+             * @default []
+             */
+            caveats: string[];
+            /**
+             * Comparable
+             * @default 0
+             */
+            comparable: number;
+            /**
+             * Excluded
+             * @default []
+             */
+            excluded: string[];
+            /**
+             * Not Computed
+             * @default []
+             */
+            not_computed: string[];
+            /**
+             * Rows
+             * @default []
+             */
+            rows: components["schemas"]["AuditCompareRowOut"][];
+            /**
+             * Wins
+             * @default []
+             */
+            wins: number[];
+        };
+        /**
+         * AuditCompareRowOut
+         * @description Строка сравнения. ``winner=None`` — либо «лучше» не определено (размер не
+         *     качество), либо значение есть не у всех; оба случая объяснены в ``note``.
+         */
+        AuditCompareRowOut: {
+            /** Direction */
+            direction?: string | null;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Texts
+             * @default []
+             */
+            texts: string[];
+            /** Unit */
+            unit: string;
+            /**
+             * Values
+             * @default []
+             */
+            values: (string | null)[];
+            /** Winner */
+            winner?: number | null;
+        };
+        /**
+         * AuditConsolidateRequest
+         * @description Запрос консолидации: список субъектов группы + имя свода + исключения (v2).
+         */
+        AuditConsolidateRequest: {
+            elimination?: components["schemas"]["AuditEliminationIn-Input"] | null;
+            /**
+             * Name
+             * @default Группа предприятий
+             */
+            name: string;
+            /** Subject Ids */
+            subject_ids?: string[];
+        };
+        /**
+         * AuditConsolidateResponse
+         * @description Свод группы: анализ консолидированной отчётности + состав и оговорки.
+         */
+        AuditConsolidateResponse: {
+            analysis: components["schemas"]["AuditAnalysisOut"];
+            /**
+             * Members
+             * @default []
+             */
+            members: string[];
+            /**
+             * Missing Members
+             * @default []
+             */
+            missing_members: string[];
+            /**
+             * Periods Used
+             * @default []
+             */
+            periods_used: string[];
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /**
+         * AuditDiagnosticsOut
+         * @description Диагностика: скоринги, оценка нормативов и сводный «светофор».
+         */
+        AuditDiagnosticsOut: {
+            /**
+             * Assessments
+             * @default []
+             */
+            assessments: components["schemas"]["AuditAssessmentOut"][];
+            /**
+             * Light
+             * @default ok
+             */
+            light: string;
+            /**
+             * Scores
+             * @default []
+             */
+            scores: components["schemas"]["AuditScoreOut"][];
+            /**
+             * Summary
+             * @default
+             */
+            summary: string;
+        };
+        /**
+         * AuditEarningsOut
+         * @description Нормализация показателя прибыли.
+         *
+         *     ``base_code`` — что именно нормализовано: EBITDA (введена амортизация) или EBIT.
+         *     Показывать это имя обязательно: два показателя различаются на всю амортизацию, и
+         *     мультипликатор, применённый не к тому, ошибётся ровно на неё.
+         */
+        AuditEarningsOut: {
+            /**
+             * Adjustments
+             * @default []
+             */
+            adjustments: components["schemas"]["AuditAdjustmentOut"][];
+            /**
+             * Base Code
+             * @default EBIT
+             */
+            base_code: string;
+            /** Deviation */
+            deviation?: string | null;
+            /** Grade */
+            grade?: string | null;
+            /**
+             * Grade Note
+             * @default
+             */
+            grade_note: string;
+            /**
+             * Normalized
+             * @default []
+             */
+            normalized: string[];
+            /**
+             * Reported
+             * @default []
+             */
+            reported: string[];
+        };
+        /**
+         * AuditEliminationIn
+         * @description Внутригрупповые величины к исключению из свода (по периодам).
+         *
+         *     Каждая вычитается парно по обе стороны баланса, поэтому «актив = пассив» сохраняется:
+         *     задолженность — из дебиторки и кредиторки, выручка — из выручки и себестоимости,
+         *     вложения — из внеоборотных активов и капитала, нереализованная прибыль — из запасов
+         *     и капитала (плюс восстановление себестоимости в ОПУ).
+         */
+        "AuditEliminationIn-Input": {
+            /**
+             * Investments
+             * @default []
+             */
+            investments: (number | string)[];
+            /**
+             * Receivables
+             * @default []
+             */
+            receivables: (number | string)[];
+            /**
+             * Revenue
+             * @default []
+             */
+            revenue: (number | string)[];
+            /**
+             * Unrealized Profit
+             * @default []
+             */
+            unrealized_profit: (number | string)[];
+        };
+        /**
+         * AuditEliminationIn
+         * @description Внутригрупповые величины к исключению из свода (по периодам).
+         *
+         *     Каждая вычитается парно по обе стороны баланса, поэтому «актив = пассив» сохраняется:
+         *     задолженность — из дебиторки и кредиторки, выручка — из выручки и себестоимости,
+         *     вложения — из внеоборотных активов и капитала, нереализованная прибыль — из запасов
+         *     и капитала (плюс восстановление себестоимости в ОПУ).
+         */
+        "AuditEliminationIn-Output": {
+            /**
+             * Investments
+             * @default []
+             */
+            investments: string[];
+            /**
+             * Receivables
+             * @default []
+             */
+            receivables: string[];
+            /**
+             * Revenue
+             * @default []
+             */
+            revenue: string[];
+            /**
+             * Unrealized Profit
+             * @default []
+             */
+            unrealized_profit: string[];
+        };
+        /**
+         * AuditFlagOut
+         * @description Красный флаг: что настораживает, в каких периодах и на сколько рублей.
+         */
+        AuditFlagOut: {
+            /** Code */
+            code: string;
+            /** Detail */
+            detail: string;
+            /**
+             * Evidence
+             * @default {}
+             */
+            evidence: {
+                [key: string]: string;
+            };
+            /** Impact */
+            impact?: string | null;
+            /**
+             * Periods
+             * @default []
+             */
+            periods: number[];
+            /** Severity */
+            severity: string;
+            /** Title */
+            title: string;
+        };
+        /**
+         * AuditFlagsOut
+         * @description Реестр флагов с честным итогом: сумма оценённых + число неоценённых.
+         *
+         *     Без ``unpriced`` итог выглядел бы полной ценой рисков, хотя часть рисков в него
+         *     не вошла — денежной меры у них нет вовсе.
+         */
+        AuditFlagsOut: {
+            /**
+             * Flags
+             * @default []
+             */
+            flags: components["schemas"]["AuditFlagOut"][];
+            /**
+             * Priced Total
+             * @default 0
+             */
+            priced_total: string;
+            /**
+             * Unpriced
+             * @default 0
+             */
+            unpriced: number;
+        };
+        /**
+         * AuditForecastYearOut
+         * @description Год прогноза: показатель, поток и его приведённая стоимость.
+         */
+        AuditForecastYearOut: {
+            /** Capex */
+            capex: string;
+            /** Depreciation */
+            depreciation: string;
+            /** Discount Factor */
+            discount_factor: string;
+            /** Ebit */
+            ebit: string;
+            /** Fcff */
+            fcff: string;
+            /** Nwc Change */
+            nwc_change: string;
+            /** Present Value */
+            present_value: string;
+            /** Year */
+            year: number;
+        };
+        /** AuditGroupCreate */
+        AuditGroupCreate: {
+            model?: components["schemas"]["AuditGroupModel-Input"];
+            /**
+             * Name
+             * @default Группа предприятий
+             */
+            name: string;
+        };
+        /**
+         * AuditGroupMember
+         * @description Участник сохранённой группы: ссылка на субъект + имя на момент сохранения.
+         *
+         *     Имя — только «надгробие»: если субъект удалён, по нему называют выбывшего участника.
+         *     У живого участника имя всегда берётся из самого субъекта (переименование не теряется).
+         */
+        AuditGroupMember: {
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /** Subject Id */
+            subject_id: string;
+        };
+        /**
+         * AuditGroupModel
+         * @description Состав группы: участники + внутригрупповые обороты к исключению.
+         *
+         *     Хранится именно состав, а не результат: свод пересчитывается по текущей отчётности
+         *     участников при каждом анализе.
+         */
+        "AuditGroupModel-Input": {
+            elimination?: components["schemas"]["AuditEliminationIn-Input"] | null;
+            /** Members */
+            members?: components["schemas"]["AuditGroupMember"][];
+        };
+        /**
+         * AuditGroupModel
+         * @description Состав группы: участники + внутригрупповые обороты к исключению.
+         *
+         *     Хранится именно состав, а не результат: свод пересчитывается по текущей отчётности
+         *     участников при каждом анализе.
+         */
+        "AuditGroupModel-Output": {
+            elimination?: components["schemas"]["AuditEliminationIn-Output"] | null;
+            /** Members */
+            members?: components["schemas"]["AuditGroupMember"][];
+        };
+        /** AuditGroupOut */
+        AuditGroupOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            model: components["schemas"]["AuditGroupModel-Output"];
+            /**
+             * N Members
+             * @default 0
+             */
+            n_members: number;
+            /**
+             * N Missing
+             * @default 0
+             */
+            n_missing: number;
+            /** Name */
+            name: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * AuditGroupSummary
+         * @description Метаданные группы: сколько участников сохранено и сколько из них ещё существует.
+         */
+        AuditGroupSummary: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            /**
+             * N Members
+             * @default 0
+             */
+            n_members: number;
+            /**
+             * N Missing
+             * @default 0
+             */
+            n_missing: number;
+            /** Name */
+            name: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** AuditGroupUpdate */
+        AuditGroupUpdate: {
+            model?: components["schemas"]["AuditGroupModel-Input"] | null;
+            /** Name */
+            name?: string | null;
+        };
+        /**
+         * AuditHeadMetricOut
+         * @description Показатель шапки сводки. ``value=None`` — величина не считается, а не равна нулю.
+         */
+        AuditHeadMetricOut: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Text
+             * @default
+             */
+            text: string;
+            /**
+             * Tone
+             * @default neutral
+             */
+            tone: string;
+            /** Unit */
+            unit: string;
+            /** Value */
+            value?: string | null;
+        };
+        /**
+         * AuditHistogramBinOut
+         * @description Столбец гистограммы цены; ``from_`` сериализуется как ``from`` — как в первом
+         *     продукте: ключ `from` в JSON, а имя поля не может быть ключевым словом Python.
+         */
+        AuditHistogramBinOut: {
+            /** Count */
+            count: number;
+            /** From */
+            from: string;
+            /** To */
+            to: string;
+        };
+        /**
+         * AuditInputIssueOut
+         * @description Находка проверки ввода: что не так с данными и в каких периодах.
+         */
+        AuditInputIssueOut: {
+            /** Code */
+            code: string;
+            /** Detail */
+            detail: string;
+            /**
+             * Evidence
+             * @default {}
+             */
+            evidence: {
+                [key: string]: string;
+            };
+            /**
+             * Periods
+             * @default []
+             */
+            periods: number[];
+            /** Severity */
+            severity: string;
+            /** Title */
+            title: string;
+        };
+        /**
+         * AuditLineOut
+         * @description Строка аналитической формы (подытоги помечены ``subtotal``).
+         */
+        AuditLineOut: {
+            /** Code */
+            code: string;
+            /** Label */
+            label: string;
+            /**
+             * Subtotal
+             * @default false
+             */
+            subtotal: boolean;
+            /**
+             * Values
+             * @default []
+             */
+            values: string[];
+        };
+        /**
+         * AuditLogEntryOut
+         * @description Запись журнала действий: кто, что, над чем и когда.
+         *
+         *     ``actor_email`` берётся из журнала, а не из таблицы пользователей: участника могли
+         *     удалить, а журнал обязан отвечать «кто это сделал» и после его ухода.
+         */
+        AuditLogEntryOut: {
+            /** Action */
+            action: string;
+            /** Actor Email */
+            actor_email: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Details
+             * @default
+             */
+            details: string;
+            /**
+             * Entity Id
+             * @default
+             */
+            entity_id: string;
+            /**
+             * Entity Name
+             * @default
+             */
+            entity_name: string;
+            /**
+             * Entity Type
+             * @default
+             */
+            entity_type: string;
+            /** Id */
+            id: string;
+        };
+        /**
+         * AuditLogPage
+         * @description Страница журнала: записи (новые сверху) и сколько их **под текущим отбором**.
+         *
+         *     ``actors`` и ``actions`` — то, что в журнале действительно встречалось: фильтр
+         *     предлагает существующее, а не весь каталог кодов и не список текущих участников
+         *     (удалённый сотрудник из участников исчез, а из журнала — нет).
+         */
+        AuditLogPage: {
+            /**
+             * Actions
+             * @default []
+             */
+            actions: string[];
+            /**
+             * Actors
+             * @default []
+             */
+            actors: string[];
+            /**
+             * Entries
+             * @default []
+             */
+            entries: components["schemas"]["AuditLogEntryOut"][];
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+        };
+        /**
+         * AuditMaturityBucketOut
+         * @description Сколько долга упирается в год погашения (не платёж года — график не вводится).
+         */
+        AuditMaturityBucketOut: {
+            /** Amount */
+            amount: string;
+            /**
+             * Kind
+             * @default year
+             */
+            kind: string;
+            /** Label */
+            label: string;
+        };
+        /**
+         * AuditMetricChangeOut
+         * @description Изменение заголовочной величины дела между версиями.
+         *
+         *     Значения — строки, а не числа: среди величин есть вердикт («risk», «warning»),
+         *     и приводить его к нулю ради общего типа значило бы потерять сам вердикт.
+         */
+        AuditMetricChangeOut: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** New */
+            new?: string | null;
+            /** Old */
+            old?: string | null;
+        };
+        /**
+         * AuditMonteCarloOut
+         * @description Распределение цены по прогонам. ``unvalued`` — прогоны, в которых оценки нет.
+         *
+         *     Их не заменяют нулём и не выбрасывают молча: ноль занизил бы медиану, а тихое
+         *     выбрасывание скрыло бы, что в части сценариев бизнес не оценивается вовсе.
+         */
+        AuditMonteCarloOut: {
+            /** Below Asking */
+            below_asking?: string | null;
+            /**
+             * Histogram
+             * @default []
+             */
+            histogram: components["schemas"]["AuditHistogramBinOut"][];
+            /**
+             * Iterations
+             * @default 0
+             */
+            iterations: number;
+            /** Maximum */
+            maximum?: string | null;
+            /** Mean */
+            mean?: string | null;
+            /** Median */
+            median?: string | null;
+            /** Median Drift */
+            median_drift?: string | null;
+            /** Minimum */
+            minimum?: string | null;
+            /** P10 */
+            p10?: string | null;
+            /** P25 */
+            p25?: string | null;
+            /** P75 */
+            p75?: string | null;
+            /** P90 */
+            p90?: string | null;
+            /**
+             * Unvalued
+             * @default 0
+             */
+            unvalued: number;
+            /**
+             * Valued
+             * @default 0
+             */
+            valued: number;
+        };
+        /**
+         * AuditObligationRowOut
+         * @description Строка реестра обязательств: введённое + то, что следует из вида обязательства.
+         */
+        AuditObligationRowOut: {
+            /** Amount */
+            amount: string;
+            /**
+             * Collateral
+             * @default
+             */
+            collateral: string;
+            /** Contract */
+            contract: string;
+            /**
+             * Covenant
+             * @default
+             */
+            covenant: string;
+            /**
+             * Covenant Note
+             * @default
+             */
+            covenant_note: string;
+            /**
+             * Covenant Status
+             * @default unknown
+             */
+            covenant_status: string;
+            /** Creditor */
+            creditor: string;
+            /** Kind */
+            kind: string;
+            /** Kind Label */
+            kind_label: string;
+            /** Maturity */
+            maturity: string;
+            /** Off Balance */
+            off_balance: boolean;
+            /**
+             * On Demand
+             * @default false
+             */
+            on_demand: boolean;
+            /**
+             * Pledged Amount
+             * @default 0
+             */
+            pledged_amount: string;
+            /** Rate */
+            rate?: string | null;
+        };
+        /**
+         * AuditObligationsOut
+         * @description Реестр обязательств: два несводимых итога + сверка с балансом (SPEC, Прил. Л).
+         *
+         *     ``balance_debt`` и ``off_balance`` намеренно не имеют общей суммы: условное
+         *     обязательство ещё не наступило, и сложение утверждало бы обратное.
+         */
+        AuditObligationsOut: {
+            /**
+             * Balance Debt
+             * @default 0
+             */
+            balance_debt: string;
+            /**
+             * Buckets
+             * @default []
+             */
+            buckets: components["schemas"]["AuditMaturityBucketOut"][];
+            /**
+             * Covenants Breached
+             * @default 0
+             */
+            covenants_breached: number;
+            /**
+             * Covenants Unknown
+             * @default 0
+             */
+            covenants_unknown: number;
+            /**
+             * Discrepancy
+             * @default 0
+             */
+            discrepancy: string;
+            /** Free Assets */
+            free_assets?: string | null;
+            /**
+             * Off Balance
+             * @default 0
+             */
+            off_balance: string;
+            /** Pledged Share */
+            pledged_share?: string | null;
+            /**
+             * Pledged Total
+             * @default 0
+             */
+            pledged_total: string;
+            /**
+             * Reconciled
+             * @default true
+             */
+            reconciled: boolean;
+            /**
+             * Reported Debt
+             * @default 0
+             */
+            reported_debt: string;
+            /**
+             * Rows
+             * @default []
+             */
+            rows: components["schemas"]["AuditObligationRowOut"][];
+        };
+        /**
+         * AuditPeriod
+         * @description Отчётный период: подпись (например «2024», «2024 Q1», «01.2024») и тип.
+         *
+         *     Тип задаёт длину периода: показатели «в днях» считаются по ней, а потоковые
+         *     показатели приводятся к году (квартал ×4, месяц ×12) — иначе периоды разной
+         *     длины были бы несопоставимы.
+         */
+        AuditPeriod: {
+            /**
+             * Kind
+             * @default year
+             * @enum {string}
+             */
+            kind: "year" | "quarter" | "month";
+            /**
+             * Label
+             * @default
+             */
+            label: string;
+        };
+        /**
+         * AuditPlanFactOut
+         * @description План-факт после сделки (SPEC, Прил. Т). ``available=False`` — плана нет,
+         *     сравнивать не с чем; это не «всё сошлось».
+         */
+        AuditPlanFactOut: {
+            /**
+             * Available
+             * @default false
+             */
+            available: boolean;
+            /**
+             * Caveats
+             * @default []
+             */
+            caveats: string[];
+            /**
+             * Flags
+             * @default []
+             */
+            flags: components["schemas"]["AuditRealizedFlagOut"][];
+            /**
+             * Not Computed
+             * @default []
+             */
+            not_computed: string[];
+            /**
+             * Orphan Marks
+             * @default []
+             */
+            orphan_marks: string[];
+            /**
+             * Periods
+             * @default []
+             */
+            periods: string[];
+            /**
+             * Predicted Total
+             * @default 0
+             */
+            predicted_total: string;
+            /**
+             * Realized Total
+             * @default 0
+             */
+            realized_total: string;
+            /**
+             * Rows
+             * @default []
+             */
+            rows: components["schemas"]["AuditPlanFactRowOut"][];
+            /**
+             * Unpriced Realized
+             * @default 0
+             */
+            unpriced_realized: number;
+        };
+        /**
+         * AuditPlanFactRowOut
+         * @description Строка план-факта. ``verdict`` учитывает направление: себестоимость ниже плана —
+         *     успех, а не недобор.
+         */
+        AuditPlanFactRowOut: {
+            /** Code */
+            code: string;
+            /**
+             * Delta
+             * @default 0
+             */
+            delta: string;
+            /** Delta Share */
+            delta_share?: string | null;
+            /** Direction */
+            direction: string;
+            /**
+             * Fact
+             * @default 0
+             */
+            fact: string;
+            /** Label */
+            label: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Plan
+             * @default 0
+             */
+            plan: string;
+            /**
+             * Verdict
+             * @default on_plan
+             */
+            verdict: string;
+        };
+        /**
+         * AuditProcedureOut
+         * @description Процедура чек-листа: что проверяется, кем и с каким итогом.
+         */
+        AuditProcedureOut: {
+            /** Code */
+            code: string;
+            /**
+             * Detail
+             * @default
+             */
+            detail: string;
+            /**
+             * Findings
+             * @default []
+             */
+            findings: string[];
+            /** Group */
+            group: string;
+            /** Method */
+            method: string;
+            /** Source */
+            source: string;
+            /** Status */
+            status: string;
+            /** Title */
+            title: string;
+        };
+        /**
+         * AuditProceduresOut
+         * @description Чек-лист целиком: итоги, охват и границы проверки (SPEC, Прил. М).
+         *
+         *     ``coverage`` честен только вместе с ``limits``: «охват 70%» без перечня тех 30%
+         *     читается как «почти всё проверено», а не как «треть не проверялась».
+         */
+        AuditProceduresOut: {
+            /**
+             * Closed
+             * @default 0
+             */
+            closed: number;
+            /** Coverage */
+            coverage?: string | null;
+            /**
+             * Done
+             * @default 0
+             */
+            done: number;
+            /**
+             * Findings
+             * @default 0
+             */
+            findings: number;
+            /**
+             * Items
+             * @default []
+             */
+            items: components["schemas"]["AuditProcedureOut"][];
+            /**
+             * Limits
+             * @default []
+             */
+            limits: string[];
+            /**
+             * No Data
+             * @default 0
+             */
+            no_data: number;
+            /**
+             * Passed
+             * @default 0
+             */
+            passed: number;
+            /**
+             * Pending
+             * @default 0
+             */
+            pending: number;
+            /**
+             * Skipped
+             * @default 0
+             */
+            skipped: number;
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+        };
+        /**
+         * AuditRealizedFlagOut
+         * @description Сопоставление флага: предсказанное посчитано платформой, фактическое введено.
+         */
+        AuditRealizedFlagOut: {
+            /** Actual Cost */
+            actual_cost?: string | null;
+            /** Code */
+            code: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /** Predicted */
+            predicted?: string | null;
+            /**
+             * Realized
+             * @default false
+             */
+            realized: boolean;
+            /**
+             * Severity
+             * @default
+             */
+            severity: string;
+            /** Title */
+            title: string;
+        };
+        /**
+         * AuditRiskOut
+         * @description Анализ рисков оценки (SPEC, Прил. Р): торнадо, Монте-Карло и оговорки.
+         */
+        AuditRiskOut: {
+            /**
+             * Available
+             * @default false
+             */
+            available: boolean;
+            /** Base Price */
+            base_price?: string | null;
+            /**
+             * Blockers
+             * @default []
+             */
+            blockers: string[];
+            monte_carlo?: components["schemas"]["AuditMonteCarloOut"] | null;
+            /**
+             * Not Computed
+             * @default []
+             */
+            not_computed: string[];
+            /**
+             * Step
+             * @default 0.10
+             */
+            step: string;
+            /**
+             * Tornado
+             * @default []
+             */
+            tornado: components["schemas"]["AuditTornadoBarOut"][];
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /**
+         * AuditScoreOut
+         * @description Скоринговая модель банкротства: балл и зона по периодам (None — нет данных).
+         */
+        AuditScoreOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Values
+             * @default []
+             */
+            values: (string | null)[];
+            /**
+             * Zones
+             * @default []
+             */
+            zones: (string | null)[];
+        };
+        /**
+         * AuditShareOut
+         * @description Вертикальный анализ: доля строки в базе периода (актив / выручка).
+         */
+        AuditShareOut: {
+            /** Code */
+            code: string;
+            /** Label */
+            label: string;
+            /**
+             * Share
+             * @default []
+             */
+            share: (string | null)[];
+        };
+        /** AuditSubjectCreate */
+        AuditSubjectCreate: {
+            model: components["schemas"]["AuditSubjectModel-Input"];
+            /** Name */
+            name: string;
+        };
+        /**
+         * AuditSubjectModel
+         * @description Субъект анализа с фактической отчётностью по периодам.
+         *
+         *     ``balance``/``income`` — ``{код строки: [значения по периодам]}`` (длина ряда = числу
+         *     периодов; недостающие/лишние приводятся к ``n`` при чтении). Пустая модель инертна.
+         */
+        "AuditSubjectModel-Input": {
+            /** Balance */
+            balance?: {
+                [key: string]: (number | string)[];
+            };
+            /**
+             * Currency
+             * @default RUB
+             */
+            currency: string;
+            /** Custom Procedures */
+            custom_procedures?: components["schemas"]["CustomProcedure"][];
+            /** Earnings Adjustments */
+            earnings_adjustments?: components["schemas"]["EarningsAdjustment-Input"][];
+            /** Income */
+            income?: {
+                [key: string]: (number | string)[];
+            };
+            /**
+             * Industry
+             * @default
+             */
+            industry: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /** Obligations */
+            obligations?: components["schemas"]["Obligation-Input"][];
+            /** Periods */
+            periods?: components["schemas"]["AuditPeriod"][];
+            /** Procedure Marks */
+            procedure_marks?: components["schemas"]["ProcedureMark"][];
+            /** Realized Flags */
+            realized_flags?: components["schemas"]["RealizedFlag-Input"][];
+            report?: components["schemas"]["ReportRequisites"];
+            /**
+             * Reporting Standard
+             * @default rsbu
+             * @enum {string}
+             */
+            reporting_standard: "rsbu" | "ifrs" | "management";
+            /** Revaluations */
+            revaluations?: components["schemas"]["Revaluation-Input"][];
+            risk?: components["schemas"]["RiskAnalysis-Input"];
+            /** Seller Plan */
+            seller_plan?: {
+                [key: string]: (number | string)[];
+            };
+            /** Thresholds */
+            thresholds?: components["schemas"]["RatioThreshold-Input"][];
+            /** User Metrics */
+            user_metrics?: components["schemas"]["UserMetric"][];
+            valuation?: components["schemas"]["ValuationAssumptions-Input"];
+        };
+        /**
+         * AuditSubjectModel
+         * @description Субъект анализа с фактической отчётностью по периодам.
+         *
+         *     ``balance``/``income`` — ``{код строки: [значения по периодам]}`` (длина ряда = числу
+         *     периодов; недостающие/лишние приводятся к ``n`` при чтении). Пустая модель инертна.
+         */
+        "AuditSubjectModel-Output": {
+            /** Balance */
+            balance?: {
+                [key: string]: string[];
+            };
+            /**
+             * Currency
+             * @default RUB
+             */
+            currency: string;
+            /** Custom Procedures */
+            custom_procedures?: components["schemas"]["CustomProcedure"][];
+            /** Earnings Adjustments */
+            earnings_adjustments?: components["schemas"]["EarningsAdjustment-Output"][];
+            /** Income */
+            income?: {
+                [key: string]: string[];
+            };
+            /**
+             * Industry
+             * @default
+             */
+            industry: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /** Obligations */
+            obligations?: components["schemas"]["Obligation-Output"][];
+            /** Periods */
+            periods?: components["schemas"]["AuditPeriod"][];
+            /** Procedure Marks */
+            procedure_marks?: components["schemas"]["ProcedureMark"][];
+            /** Realized Flags */
+            realized_flags?: components["schemas"]["RealizedFlag-Output"][];
+            report?: components["schemas"]["ReportRequisites"];
+            /**
+             * Reporting Standard
+             * @default rsbu
+             * @enum {string}
+             */
+            reporting_standard: "rsbu" | "ifrs" | "management";
+            /** Revaluations */
+            revaluations?: components["schemas"]["Revaluation-Output"][];
+            risk?: components["schemas"]["RiskAnalysis-Output"];
+            /** Seller Plan */
+            seller_plan?: {
+                [key: string]: string[];
+            };
+            /** Thresholds */
+            thresholds?: components["schemas"]["RatioThreshold-Output"][];
+            /** User Metrics */
+            user_metrics?: components["schemas"]["UserMetric"][];
+            valuation?: components["schemas"]["ValuationAssumptions-Output"];
+        };
+        /** AuditSubjectOut */
+        AuditSubjectOut: {
+            /**
+             * Balance Gap
+             * @default []
+             */
+            balance_gap: string[];
+            /**
+             * Balanced
+             * @default true
+             */
+            balanced: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            /**
+             * Industry
+             * @default
+             */
+            industry: string;
+            /** Light */
+            light?: string | null;
+            model: components["schemas"]["AuditSubjectModel-Output"];
+            /**
+             * N Periods
+             * @default 0
+             */
+            n_periods: number;
+            /** Name */
+            name: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * AuditSubjectSummary
+         * @description Метаданные субъекта: число периодов и сходимость баланса (актив = пассив).
+         */
+        AuditSubjectSummary: {
+            /**
+             * Balanced
+             * @default true
+             */
+            balanced: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            /**
+             * Industry
+             * @default
+             */
+            industry: string;
+            /** Light */
+            light?: string | null;
+            /**
+             * N Periods
+             * @default 0
+             */
+            n_periods: number;
+            /** Name */
+            name: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** AuditSubjectUpdate */
+        AuditSubjectUpdate: {
+            model?: components["schemas"]["AuditSubjectModel-Input"] | null;
+            /** Name */
+            name?: string | null;
+        };
+        /**
+         * AuditSummaryOut
+         * @description Сводка дела и вердикт (SPEC, Прил. Н).
+         *
+         *     Оценки сделки здесь нет намеренно: запрошенной цены в модели не существует, DCF не
+         *     построен, бенчмарков нет. ``priced_total`` — оценённое влияние флагов, **не скидка
+         *     к цене**. Всё, чего сводка не считает, перечислено в ``not_computed``.
+         */
+        AuditSummaryOut: {
+            /** Asking Price */
+            asking_price?: string | null;
+            /** Coverage */
+            coverage?: string | null;
+            /**
+             * Detail
+             * @default
+             */
+            detail: string;
+            /** Discount */
+            discount?: string | null;
+            /** Equity Value */
+            equity_value?: string | null;
+            /**
+             * Headline
+             * @default
+             */
+            headline: string;
+            /**
+             * Input Errors
+             * @default 0
+             */
+            input_errors: number;
+            /**
+             * Metrics
+             * @default []
+             */
+            metrics: components["schemas"]["AuditHeadMetricOut"][];
+            /**
+             * Not Computed
+             * @default []
+             */
+            not_computed: string[];
+            /**
+             * Open Procedures
+             * @default 0
+             */
+            open_procedures: number;
+            /**
+             * Priced Total
+             * @default 0
+             */
+            priced_total: string;
+            /**
+             * Risk Flags
+             * @default 0
+             */
+            risk_flags: number;
+            /**
+             * State
+             * @default empty
+             */
+            state: string;
+            /**
+             * Unpriced
+             * @default 0
+             */
+            unpriced: number;
+            /**
+             * Verdict
+             * @default ok
+             */
+            verdict: string;
+            /**
+             * Warning Flags
+             * @default 0
+             */
+            warning_flags: number;
+        };
+        /**
+         * AuditTornadoBarOut
+         * @description Столбец торнадо: цена при смещении одного допущения вниз и вверх.
+         *
+         *     ``span=None`` — одной из сторон не существует (смещение уводит туда, где оценка
+         *     не считается); это факт, а не «цена не изменилась».
+         */
+        AuditTornadoBarOut: {
+            /** High Delta */
+            high_delta?: string | null;
+            /** High Price */
+            high_price?: string | null;
+            /** Label */
+            label: string;
+            /** Low Delta */
+            low_delta?: string | null;
+            /** Low Price */
+            low_price?: string | null;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /** Param */
+            param: string;
+            /** Span */
+            span?: string | null;
+            /** Step */
+            step: string;
+        };
+        /**
+         * AuditTrendOut
+         * @description Горизонтальный анализ строки: Δ и темп к предыдущему периоду (первый — база).
+         */
+        AuditTrendOut: {
+            /** Code */
+            code: string;
+            /**
+             * Delta
+             * @default []
+             */
+            delta: (string | null)[];
+            /** Label */
+            label: string;
+            /**
+             * Rate
+             * @default []
+             */
+            rate: (string | null)[];
+        };
+        /**
+         * AuditUserMetricOut
+         * @description Пользовательский показатель: ряд по периодам (при ошибке формулы — error + нули).
+         */
+        AuditUserMetricOut: {
+            /** Error */
+            error?: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Values
+             * @default []
+             */
+            values: string[];
+        };
+        /**
+         * AuditValuationOut
+         * @description Оценка стоимости (SPEC, Прил. П).
+         *
+         *     Непустой ``blockers`` означает, что оценка **не посчитана**, а не «стоит 0»:
+         *     величины, для которой не хватает входных данных, не существует. Забалансовые
+         *     обязательства из моста исключены намеренно (Л.1) и названы в ``warnings``.
+         */
+        AuditValuationOut: {
+            /** Asking Price */
+            asking_price?: string | null;
+            /**
+             * Base Code
+             * @default EBIT
+             */
+            base_code: string;
+            /**
+             * Base Ebit
+             * @default 0
+             */
+            base_ebit: string;
+            /**
+             * Blockers
+             * @default []
+             */
+            blockers: string[];
+            /**
+             * Bridge
+             * @default []
+             */
+            bridge: components["schemas"]["AuditBridgeItemOut"][];
+            /** Discount */
+            discount?: string | null;
+            /**
+             * Enabled
+             * @default false
+             */
+            enabled: boolean;
+            /** Enterprise Value */
+            enterprise_value?: string | null;
+            /** Equity Max */
+            equity_max?: string | null;
+            /** Equity Min */
+            equity_min?: string | null;
+            /** Equity Value */
+            equity_value?: string | null;
+            /** Implied Multiple */
+            implied_multiple?: string | null;
+            /**
+             * Not Computed
+             * @default []
+             */
+            not_computed: string[];
+            /**
+             * Pv Forecast
+             * @default 0
+             */
+            pv_forecast: string;
+            /** Pv Terminal */
+            pv_terminal?: string | null;
+            /**
+             * Sensitivity
+             * @default []
+             */
+            sensitivity: (string | null)[][];
+            /**
+             * Sensitivity Growth
+             * @default []
+             */
+            sensitivity_growth: string[];
+            /**
+             * Sensitivity Wacc
+             * @default []
+             */
+            sensitivity_wacc: string[];
+            /**
+             * Terminal Growth
+             * @default 0
+             */
+            terminal_growth: string;
+            /** Terminal Share */
+            terminal_share?: string | null;
+            /** Terminal Value */
+            terminal_value?: string | null;
+            /**
+             * Wacc
+             * @default 0
+             */
+            wacc: string;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+            /**
+             * Years
+             * @default []
+             */
+            years: components["schemas"]["AuditForecastYearOut"][];
+        };
+        /**
+         * AuditVersionDiffOut
+         * @description Анализ изменений дела: диф модели + диф заголовочных величин.
+         */
+        AuditVersionDiffOut: {
+            /** Against */
+            against: string;
+            /** Base Id */
+            base_id: string;
+            /**
+             * Metric Changes
+             * @default []
+             */
+            metric_changes: components["schemas"]["AuditMetricChangeOut"][];
+            /**
+             * Model Changes
+             * @default []
+             */
+            model_changes: components["schemas"]["ModelChangeOut"][];
+            /**
+             * Model Changes Truncated
+             * @default false
+             */
+            model_changes_truncated: boolean;
+        };
+        /**
+         * AuditVersionOut
+         * @description Версия дела с полной моделью снимка.
+         */
+        AuditVersionOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Equity Value */
+            equity_value?: string | null;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            model: components["schemas"]["AuditSubjectModel-Output"];
+            /** Risk Flags */
+            risk_flags?: number | null;
+            /** Verdict */
+            verdict?: string | null;
+        };
+        /**
+         * AuditVersionSummary
+         * @description Метаданные версии дела (без модели): для списка.
+         *
+         *     Сводка — та, что была на момент снимка, а не пересчитанная сейчас: версия и есть
+         *     слепок прошлого. ``None`` — тогда не считалось (отчётность ещё не введена).
+         */
+        AuditVersionSummary: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Equity Value */
+            equity_value?: string | null;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Risk Flags */
+            risk_flags?: number | null;
+            /** Verdict */
+            verdict?: string | null;
+        };
         /**
          * AutoFinancing
-         * @description Автоподбор финансирования: покрытие дефицита наличности кредитной линией.
+         * @description Автоподбор финансирования: покрытие дефицита кредитом + размещение излишков (SPEC §19).
          *
          *     Каждый период, если денег меньше ``min_balance``, привлекается заём до этого уровня;
-         *     при профиците задолженность гасится. Проценты влияют на прибыль и налог, поэтому
-         *     расчёт итеративный (см. SPEC §19).
+         *     при профиците задолженность гасится. При включённом ``invest_surplus`` касса выше
+         *     ``min_balance`` размещается в депозит (симметрично автокредиту): доход по депозиту
+         *     растит прибыль и налог, при дефиците депозит изымается раньше привлечения кредита.
+         *     Проценты/доход влияют на прибыль и налог, поэтому расчёт итеративный.
          */
         "AutoFinancing-Input": {
             /**
@@ -803,6 +4597,16 @@ export interface components {
              */
             enabled: boolean;
             /**
+             * Invest Annual Rate
+             * @default 0.05
+             */
+            invest_annual_rate: number | string;
+            /**
+             * Invest Surplus
+             * @default false
+             */
+            invest_surplus: boolean;
+            /**
              * Min Balance
              * @default 0
              */
@@ -810,11 +4614,13 @@ export interface components {
         };
         /**
          * AutoFinancing
-         * @description Автоподбор финансирования: покрытие дефицита наличности кредитной линией.
+         * @description Автоподбор финансирования: покрытие дефицита кредитом + размещение излишков (SPEC §19).
          *
          *     Каждый период, если денег меньше ``min_balance``, привлекается заём до этого уровня;
-         *     при профиците задолженность гасится. Проценты влияют на прибыль и налог, поэтому
-         *     расчёт итеративный (см. SPEC §19).
+         *     при профиците задолженность гасится. При включённом ``invest_surplus`` касса выше
+         *     ``min_balance`` размещается в депозит (симметрично автокредиту): доход по депозиту
+         *     растит прибыль и налог, при дефиците депозит изымается раньше привлечения кредита.
+         *     Проценты/доход влияют на прибыль и налог, поэтому расчёт итеративный.
          */
         "AutoFinancing-Output": {
             /**
@@ -828,10 +4634,147 @@ export interface components {
              */
             enabled: boolean;
             /**
+             * Invest Annual Rate
+             * @default 0.05
+             */
+            invest_annual_rate: string;
+            /**
+             * Invest Surplus
+             * @default false
+             */
+            invest_surplus: boolean;
+            /**
              * Min Balance
              * @default 0
              */
             min_balance: string;
+        };
+        /**
+         * BenchmarkIn
+         * @description Строка справочника ориентиров: чьё это число — обязательная часть, а не примечание.
+         */
+        BenchmarkIn: {
+            /** Industry */
+            industry: string;
+            /**
+             * Metric
+             * @enum {string}
+             */
+            metric: "ev_ebitda" | "ev_ebit" | "ev_revenue";
+            /**
+             * Source
+             * @default
+             */
+            source: string;
+            /** Value */
+            value: number | string;
+        };
+        /** BenchmarkOut */
+        BenchmarkOut: {
+            /** Id */
+            id: string;
+            /** Industry */
+            industry: string;
+            /**
+             * Metric
+             * @enum {string}
+             */
+            metric: "ev_ebitda" | "ev_ebit" | "ev_revenue";
+            /**
+             * Source
+             * @default
+             */
+            source: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Value */
+            value: string;
+        };
+        /**
+         * BenchmarkViewOut
+         * @description Сопоставление дела с ориентиром организации (SPEC, Прил. Ф).
+         *
+         *     ``available=False`` — сравнивать не с чем или не с тем, и причина названа в
+         *     ``blockers``. Оговорка «это ваш ориентир, а не рынок» выводится **всегда**.
+         */
+        BenchmarkViewOut: {
+            /**
+             * Available
+             * @default false
+             */
+            available: boolean;
+            /** Benchmark */
+            benchmark?: string | null;
+            /**
+             * Blockers
+             * @default []
+             */
+            blockers: string[];
+            /** Case Multiple */
+            case_multiple?: string | null;
+            /**
+             * Caveats
+             * @default []
+             */
+            caveats: string[];
+            /** Deviation */
+            deviation?: string | null;
+            /**
+             * Industry
+             * @default
+             */
+            industry: string;
+            /**
+             * Metric
+             * @default
+             */
+            metric: string;
+            /**
+             * Metric Label
+             * @default
+             */
+            metric_label: string;
+            /**
+             * Not Computed
+             * @default []
+             */
+            not_computed: string[];
+            /**
+             * Source
+             * @default
+             */
+            source: string;
+            /** Updated At */
+            updated_at?: string | null;
+        };
+        /**
+         * BomLine
+         * @description Строка рецептуры: норма расхода материала на единицу продукта.
+         */
+        "BomLine-Input": {
+            /** Material Id */
+            material_id: string;
+            /**
+             * Qty Per Unit
+             * @default 0
+             */
+            qty_per_unit: number | string;
+        };
+        /**
+         * BomLine
+         * @description Строка рецептуры: норма расхода материала на единицу продукта.
+         */
+        "BomLine-Output": {
+            /** Material Id */
+            material_id: string;
+            /**
+             * Qty Per Unit
+             * @default 0
+             */
+            qty_per_unit: string;
         };
         /** BreakEvenOut */
         BreakEvenOut: {
@@ -840,24 +4783,214 @@ export interface components {
             /** Margin Of Safety */
             margin_of_safety: (string | null)[];
         };
+        /**
+         * BudgetOut
+         * @description Смета по этапам календарного плана + помесячные графики и итоги.
+         *
+         *     Финансовый разрез: освоение (``monthly``) и оплата (``monthly_cash``) — разные ряды,
+         *     их накопленный разрыв (``payables``) равен кредиторке B23; итоги по трактовке
+         *     показывают, куда стоимость попадёт в отчётах.
+         */
+        BudgetOut: {
+            /** Actual Total */
+            actual_total?: string | null;
+            /**
+             * Asset Total
+             * @default 0
+             */
+            asset_total: string;
+            /**
+             * Cumulative
+             * @default []
+             */
+            cumulative: string[];
+            /**
+             * Cumulative Cash
+             * @default []
+             */
+            cumulative_cash: string[];
+            /**
+             * Deferred Total
+             * @default 0
+             */
+            deferred_total: string;
+            /**
+             * Expense Total
+             * @default 0
+             */
+            expense_total: string;
+            /**
+             * Monthly
+             * @default []
+             */
+            monthly: string[];
+            /**
+             * Monthly Cash
+             * @default []
+             */
+            monthly_cash: string[];
+            /**
+             * Payables
+             * @default []
+             */
+            payables: string[];
+            /**
+             * Stages
+             * @default []
+             */
+            stages: components["schemas"]["StageBudgetOut"][];
+            /**
+             * Total
+             * @default 0
+             */
+            total: string;
+        };
         /** CalcResponse */
         CalcResponse: {
             actualized_cashflow?: components["schemas"]["StatementOut"] | null;
             balance: components["schemas"]["StatementOut"];
             break_even: components["schemas"]["BreakEvenOut"];
+            /**
+             * @default {
+             *       "asset_total": "0",
+             *       "cumulative": [],
+             *       "cumulative_cash": [],
+             *       "deferred_total": "0",
+             *       "expense_total": "0",
+             *       "monthly": [],
+             *       "monthly_cash": [],
+             *       "payables": [],
+             *       "stages": [],
+             *       "total": "0"
+             *     }
+             */
+            budget: components["schemas"]["BudgetOut"];
             cashflow: components["schemas"]["StatementOut"];
             cashflow_variance?: components["schemas"]["StatementOut"] | null;
+            /**
+             * Details
+             * @default []
+             */
+            details: components["schemas"]["LineDetailOut"][];
+            /**
+             * Division Margins
+             * @default []
+             */
+            division_margins: components["schemas"]["DivisionMarginOut"][];
             /** Engine Version */
             engine_version: string;
             income: components["schemas"]["StatementOut"];
             metrics: components["schemas"]["MetricsOut"];
+            metrics_foreign?: components["schemas"]["MetricsOut"] | null;
             /** N */
             n: number;
+            /**
+             * Participants
+             * @default []
+             */
+            participants: components["schemas"]["ParticipantOut"][];
+            /**
+             * @default {
+             *       "products": [],
+             *       "unallocated_direct": "0"
+             *     }
+             */
+            product_margins: components["schemas"]["ProductMarginsOut"];
             profit_use: components["schemas"]["StatementOut"];
             ratios: components["schemas"]["RatiosOut"];
+            /**
+             * Subscription Base
+             * @default []
+             */
+            subscription_base: components["schemas"]["SubscriptionBaseOut"][];
+            /**
+             * User Tables
+             * @default []
+             */
+            user_tables: components["schemas"]["UserTableOut"][];
             valuation: components["schemas"]["ValuationOut"];
             /** Warnings */
             warnings: string[];
+        };
+        /**
+         * CalendarPlan
+         * @description Календарный план: этапы + библиотека ресурсов.
+         */
+        "CalendarPlan-Input": {
+            /** Resources */
+            resources?: components["schemas"]["Resource-Input"][];
+            /** Stages */
+            stages?: components["schemas"]["Stage-Input"][];
+        };
+        /**
+         * CalendarPlan
+         * @description Календарный план: этапы + библиотека ресурсов.
+         */
+        "CalendarPlan-Output": {
+            /** Resources */
+            resources?: components["schemas"]["Resource-Output"][];
+            /** Stages */
+            stages?: components["schemas"]["Stage-Output"][];
+        };
+        /**
+         * CapabilitiesOut
+         * @description Что платформа умеет **в этой установке** — для экранов, которые иначе обещали бы
+         *     несуществующее (D1).
+         *
+         *     Отправка писем включается на месте, и экран входа обязан знать о ней с сервера:
+         *     «Забыли пароль?», нарисованная там, где письма не уходят, ведёт человека в тупик.
+         */
+        CapabilitiesOut: {
+            /**
+             * Mail
+             * @default false
+             */
+            mail: boolean;
+        };
+        /**
+         * ChecklistIn
+         * @description Свой чек-лист организации: имя, область применения и пункты.
+         */
+        ChecklistIn: {
+            /**
+             * Items
+             * @default []
+             */
+            items: string[];
+            /** Name */
+            name: string;
+            /**
+             * Scope
+             * @default
+             */
+            scope: string;
+        };
+        /** ChecklistOut */
+        ChecklistOut: {
+            /**
+             * Author Email
+             * @default
+             */
+            author_email: string;
+            /** Id */
+            id: string;
+            /**
+             * Items
+             * @default []
+             */
+            items: string[];
+            /** Name */
+            name: string;
+            /**
+             * Scope
+             * @default
+             */
+            scope: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /** CheckoutRequest */
         CheckoutRequest: {
@@ -878,10 +5011,183 @@ export interface components {
             /** Payment Id */
             payment_id?: string | null;
         };
-        /** Company */
-        "Company-Input": {
+        /**
+         * ChoiceOut
+         * @description Одна методическая развилка расчёта: что выбрано и живёт ли это в модели.
+         */
+        ChoiceOut: {
+            /** Chosen */
+            chosen: string;
+            /**
+             * Controls
+             * @default []
+             */
+            controls: string[];
+            /**
+             * Divergence
+             * @default
+             */
+            divergence: string;
+            /**
+             * Engaged
+             * @default false
+             */
+            engaged: boolean;
+            /** Evidence */
+            evidence?: {
+                [key: string]: unknown;
+            };
+            /** Id */
+            id: string;
+            /** Number */
+            number: number;
+            /**
+             * Open Question
+             * @default
+             */
+            open_question: string;
+            /**
+             * Proposed Basis
+             * @default
+             */
+            proposed_basis: string;
+            /**
+             * Resolution
+             * @default judgement
+             */
+            resolution: string;
+            /**
+             * Silent Because
+             * @default
+             */
+            silent_because: string;
+            /** Spec */
+            spec: string;
+            /** Title */
+            title: string;
+        };
+        /**
+         * CommentCreate
+         * @description Новая реплика. ``anchor`` — место внутри проекта или дела, ``anchor_label`` — его
+         *     подпись **на момент написания**: объект переименуют, а разговор обязан остаться
+         *     понятным.
+         */
+        CommentCreate: {
+            /**
+             * Anchor
+             * @default
+             */
+            anchor: string;
+            /**
+             * Anchor Label
+             * @default
+             */
+            anchor_label: string;
+            /** Body */
+            body: string;
+        };
+        /**
+         * CommentCreated
+         * @description Ответ на созданную реплику: сама реплика и **что стало с приглашениями**.
+         *
+         *     Три ответа, и они не сводимы: позвали и письмо ушло, позвали и письма не будет
+         *     (почта не настроена — сказано словами), назвали адрес, которого в организации нет.
+         *     Проглоченное упоминание — худший вид тишины: автор ждёт, а никто не придёт.
+         */
+        CommentCreated: {
+            comment: components["schemas"]["CommentOut"];
             /**
              * @default {
+             *       "attempted": false,
+             *       "error": "",
+             *       "ok": false
+             *     }
+             */
+            mail: components["schemas"]["MailReport"];
+            /**
+             * Notified
+             * @default []
+             */
+            notified: string[];
+            /**
+             * Unknown Mentions
+             * @default []
+             */
+            unknown_mentions: string[];
+        };
+        /**
+         * CommentOut
+         * @description Реплика обсуждения.
+         *
+         *     ``body`` удалённой реплики заменён «надгробием» (`deleted` истинно): пропавшая без
+         *     следа строка читается как не сказанная никогда. ``mentions`` — кого позвали;
+         *     упоминание **не даёт прав**, только зовёт посмотреть.
+         */
+        CommentOut: {
+            /**
+             * Anchor
+             * @default
+             */
+            anchor: string;
+            /**
+             * Anchor Label
+             * @default
+             */
+            anchor_label: string;
+            /**
+             * Author Email
+             * @default
+             */
+            author_email: string;
+            /**
+             * Author Name
+             * @default
+             */
+            author_name: string;
+            /** Body */
+            body: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Deleted
+             * @default false
+             */
+            deleted: boolean;
+            /** Id */
+            id: string;
+            /**
+             * Mentions
+             * @default []
+             */
+            mentions: string[];
+            /**
+             * Resolved
+             * @default false
+             */
+            resolved: boolean;
+            /** Resolved At */
+            resolved_at?: string | null;
+            /**
+             * Resolved By
+             * @default
+             */
+            resolved_by: string;
+            /** Subject Id */
+            subject_id: string;
+            /** Subject Type */
+            subject_type: string;
+        };
+        /** Company */
+        "Company-Input": {
+            /** Divisions */
+            divisions?: components["schemas"]["Division"][];
+            /**
+             * @default {
+             *       "additional_capital": "0",
+             *       "advances_received": "0",
              *       "cash": "0",
              *       "debt": "0",
              *       "finished_goods": "0",
@@ -889,17 +5195,25 @@ export interface components {
              *       "foreign_monetary": "0",
              *       "paid_in_capital": "0",
              *       "payables": "0",
+             *       "preferred_capital": "0",
+             *       "prepaid_expenses": "0",
              *       "raw_materials": "0",
              *       "receivables": "0",
-             *       "retained_earnings": "0"
+             *       "reserves": "0",
+             *       "retained_earnings": "0",
+             *       "short_term_debt": "0"
              *     }
              */
             starting_balance: components["schemas"]["StartingBalance-Input"];
         };
         /** Company */
         "Company-Output": {
+            /** Divisions */
+            divisions?: components["schemas"]["Division"][];
             /**
              * @default {
+             *       "additional_capital": "0",
+             *       "advances_received": "0",
              *       "cash": "0",
              *       "debt": "0",
              *       "finished_goods": "0",
@@ -907,9 +5221,13 @@ export interface components {
              *       "foreign_monetary": "0",
              *       "paid_in_capital": "0",
              *       "payables": "0",
+             *       "preferred_capital": "0",
+             *       "prepaid_expenses": "0",
              *       "raw_materials": "0",
              *       "receivables": "0",
-             *       "retained_earnings": "0"
+             *       "reserves": "0",
+             *       "retained_earnings": "0",
+             *       "short_term_debt": "0"
              *     }
              */
             starting_balance: components["schemas"]["StartingBalance-Output"];
@@ -932,21 +5250,69 @@ export interface components {
             actualized_cashflow?: components["schemas"]["StatementOut"] | null;
             balance: components["schemas"]["StatementOut"];
             break_even: components["schemas"]["BreakEvenOut"];
+            /**
+             * @default {
+             *       "asset_total": "0",
+             *       "cumulative": [],
+             *       "cumulative_cash": [],
+             *       "deferred_total": "0",
+             *       "expense_total": "0",
+             *       "monthly": [],
+             *       "monthly_cash": [],
+             *       "payables": [],
+             *       "stages": [],
+             *       "total": "0"
+             *     }
+             */
+            budget: components["schemas"]["BudgetOut"];
             cashflow: components["schemas"]["StatementOut"];
             cashflow_variance?: components["schemas"]["StatementOut"] | null;
+            /**
+             * Details
+             * @default []
+             */
+            details: components["schemas"]["LineDetailOut"][];
+            /**
+             * Division Margins
+             * @default []
+             */
+            division_margins: components["schemas"]["DivisionMarginOut"][];
             /** Engine Version */
             engine_version: string;
             income: components["schemas"]["StatementOut"];
             metrics: components["schemas"]["MetricsOut"];
+            metrics_foreign?: components["schemas"]["MetricsOut"] | null;
             /** N */
             n: number;
+            /**
+             * Participants
+             * @default []
+             */
+            participants: components["schemas"]["ParticipantOut"][];
             /**
              * Per Project
              * @default []
              */
             per_project: components["schemas"]["PerProjectOut"][];
+            /**
+             * @default {
+             *       "products": [],
+             *       "unallocated_direct": "0"
+             *     }
+             */
+            product_margins: components["schemas"]["ProductMarginsOut"];
             profit_use: components["schemas"]["StatementOut"];
             ratios: components["schemas"]["RatiosOut"];
+            /**
+             * Subscription Base
+             * @default []
+             */
+            subscription_base: components["schemas"]["SubscriptionBaseOut"][];
+            /**
+             * User Tables
+             * @default []
+             */
+            user_tables: components["schemas"]["UserTableOut"][];
             valuation: components["schemas"]["ValuationOut"];
             /** Warnings */
             warnings: string[];
@@ -972,6 +5338,77 @@ export interface components {
              * @default Российский рубль
              */
             name: string;
+        };
+        /**
+         * CustomProcedure
+         * @description Своя процедура аналитика (SPEC, Приложение М.5).
+         *
+         *     Отраслевого каталога у платформы нет — он утверждал бы, что именно проверяют в
+         *     конкретной отрасли, а такой методики у неё нет. Процедуру, которой платформа не
+         *     знает, пишет тот, кто знает отрасль; ведёт её аналитик.
+         */
+        CustomProcedure: {
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Status
+             * @default pending
+             * @enum {string}
+             */
+            status: "pending" | "done" | "skipped";
+            /**
+             * Title
+             * @default
+             */
+            title: string;
+        };
+        /**
+         * DeletionPlanOut
+         * @description Что произойдёт при удалении учётной записи — **до** нажатия (C3).
+         *
+         *     Удаление необратимо, а последствия выходят за пределы одного человека: вместе с ним
+         *     может исчезнуть организация со всеми моделями. Список — не вежливость, а единственный
+         *     способ дать согласие осознанно.
+         */
+        DeletionPlanOut: {
+            /**
+             * Allowed
+             * @default false
+             */
+            allowed: boolean;
+            /**
+             * Blockers
+             * @default []
+             */
+            blockers: string[];
+            /**
+             * Cases
+             * @default 0
+             */
+            cases: number;
+            /**
+             * Kept
+             * @default []
+             */
+            kept: string[];
+            /**
+             * Organizations Deleted
+             * @default []
+             */
+            organizations_deleted: string[];
+            /**
+             * Organizations Left
+             * @default []
+             */
+            organizations_left: string[];
+            /**
+             * Projects
+             * @default 0
+             */
+            projects: number;
         };
         /**
          * Deposit
@@ -1104,6 +5541,124 @@ export interface components {
             /** Std */
             std?: number | string | null;
         };
+        /**
+         * Division
+         * @description Подразделение (бизнес-единица) — справочник имён для аналитики (gap 4.5).
+         *
+         *     Отнесение продукта — через ``Product.division_id``; к расчёту отчётов отношения не
+         *     имеет (пустой список инертен). Маржа по подразделениям — свёртка маржи продуктов.
+         */
+        Division: {
+            /** Id */
+            id: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+        };
+        /**
+         * DivisionMarginOut
+         * @description Маржа подразделения (gap 4.5): свёртка маржи продуктов бизнес-единицы.
+         */
+        DivisionMarginOut: {
+            /** Bom Cost */
+            bom_cost: string;
+            /** Division Id */
+            division_id: string;
+            /** Margin */
+            margin: string;
+            /** Margin Share */
+            margin_share?: string | null;
+            /** Name */
+            name: string;
+            /** Piece Wages */
+            piece_wages: string;
+            /** Product Count */
+            product_count: number;
+            /** Revenue */
+            revenue: string;
+        };
+        /**
+         * EarningsAdjustment
+         * @description Поправка к показателю прибыли при нормализации (SPEC, Приложение К.2).
+         *
+         *     Нормализация — суждение, а не расчёт: что считать разовым доходом и какое
+         *     вознаграждение собственника избыточно, знает проверяющий, а не формула. Поэтому
+         *     поправку задаёт пользователь, и у неё **обязательна причина** (``label``): без неё
+         *     нормализованный показатель нельзя объяснить, а значит нельзя и защитить в переговорах.
+         *
+         *     ``amounts`` — со знаком: «+» возвращает прибыль (убрали лишний расход), «−» убирает
+         *     (разовый доход не повторится).
+         */
+        "EarningsAdjustment-Input": {
+            /** Amounts */
+            amounts?: (number | string)[];
+            /**
+             * Kind
+             * @default one_off
+             * @enum {string}
+             */
+            kind: "one_off" | "owner" | "related_party" | "non_operating" | "accounting";
+            /**
+             * Label
+             * @default
+             */
+            label: string;
+        };
+        /**
+         * EarningsAdjustment
+         * @description Поправка к показателю прибыли при нормализации (SPEC, Приложение К.2).
+         *
+         *     Нормализация — суждение, а не расчёт: что считать разовым доходом и какое
+         *     вознаграждение собственника избыточно, знает проверяющий, а не формула. Поэтому
+         *     поправку задаёт пользователь, и у неё **обязательна причина** (``label``): без неё
+         *     нормализованный показатель нельзя объяснить, а значит нельзя и защитить в переговорах.
+         *
+         *     ``amounts`` — со знаком: «+» возвращает прибыль (убрали лишний расход), «−» убирает
+         *     (разовый доход не повторится).
+         */
+        "EarningsAdjustment-Output": {
+            /** Amounts */
+            amounts?: string[];
+            /**
+             * Kind
+             * @default one_off
+             * @enum {string}
+             */
+            kind: "one_off" | "owner" | "related_party" | "non_operating" | "accounting";
+            /**
+             * Label
+             * @default
+             */
+            label: string;
+        };
+        /**
+         * EntityActivityOut
+         * @description Проект или дело: когда правили, когда считали, сколько вопросов открыто.
+         */
+        EntityActivityOut: {
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Last Calculated At */
+            last_calculated_at?: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Open Comments
+             * @default 0
+             */
+            open_comments: number;
+            /**
+             * Stale
+             * @default false
+             */
+            stale: boolean;
+            /** Updated At */
+            updated_at?: string | null;
+        };
         /** Environment */
         "Environment-Input": {
             /** Currencies */
@@ -1162,12 +5717,39 @@ export interface components {
              */
             month: number;
         };
+        /**
+         * FinalizeRequest
+         * @description Запрос финализации: acknowledge подтверждает осознание risk-находок (снятие гейта).
+         */
+        FinalizeRequest: {
+            /**
+             * Acknowledge
+             * @default false
+             */
+            acknowledge: boolean;
+        };
+        /**
+         * FinalizeResponse
+         * @description Результат финализации: статус проекта + ревью, которым план подтверждён.
+         */
+        FinalizeResponse: {
+            /**
+             * Finalized At
+             * Format: date-time
+             */
+            finalized_at: string;
+            review: components["schemas"]["ReviewResponse"];
+            /** Status */
+            status: string;
+        };
         /** Financing */
         "Financing-Input": {
             /**
              * @default {
              *       "annual_rate": "0.18",
              *       "enabled": false,
+             *       "invest_annual_rate": "0.05",
+             *       "invest_surplus": false,
              *       "min_balance": "0"
              *     }
              */
@@ -1194,6 +5776,8 @@ export interface components {
              * @default {
              *       "annual_rate": "0.18",
              *       "enabled": false,
+             *       "invest_annual_rate": "0.05",
+             *       "invest_surplus": false,
              *       "min_balance": "0"
              *     }
              */
@@ -1213,6 +5797,33 @@ export interface components {
             leases?: components["schemas"]["Lease-Output"][];
             /** Loans */
             loans?: components["schemas"]["Loan-Output"][];
+        };
+        /**
+         * FindingOut
+         * @description Одна находка ревью: severity + человекочитаемый текст + числовое обоснование.
+         */
+        FindingOut: {
+            /** Category */
+            category: string;
+            /**
+             * Confidence
+             * @default high
+             */
+            confidence: string;
+            /** Detail */
+            detail: string;
+            /** Evidence */
+            evidence?: {
+                [key: string]: unknown;
+            };
+            /** Id */
+            id: string;
+            /** Recommendation */
+            recommendation: string;
+            /** Severity */
+            severity: string;
+            /** Title */
+            title: string;
         };
         /**
          * FixedCostLine
@@ -1267,6 +5878,39 @@ export interface components {
              * @default 0
              */
             payment_delay_months: number;
+        };
+        /** ForgotPasswordIn */
+        ForgotPasswordIn: {
+            /** Email */
+            email: string;
+        };
+        /**
+         * ForgotPasswordOut
+         * @description Ответ на «забыли пароль» — **один и тот же** для любого адреса.
+         *
+         *     Разный ответ превратил бы форму в проверялку «есть ли у вас такой клиент»: адрес
+         *     сотрудника достаточно ввести, чтобы узнать, работает ли его компания с платформой.
+         */
+        ForgotPasswordOut: {
+            /** Message */
+            message: string;
+        };
+        /**
+         * FunnelStepOut
+         * @description Шаг воронки активации. ``share = None`` — считать не от чего (нет организаций).
+         */
+        FunnelStepOut: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /**
+             * Organizations
+             * @default 0
+             */
+            organizations: number;
+            /** Share */
+            share?: number | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1375,11 +6019,13 @@ export interface components {
         "InvestmentPlan-Input": {
             /** Assets */
             assets?: components["schemas"]["Asset-Input"][];
+            calendar?: components["schemas"]["CalendarPlan-Input"];
         };
         /** InvestmentPlan */
         "InvestmentPlan-Output": {
             /** Assets */
             assets?: components["schemas"]["Asset-Output"][];
+            calendar?: components["schemas"]["CalendarPlan-Output"];
         };
         /** JobStatusResponse */
         JobStatusResponse: {
@@ -1437,10 +6083,25 @@ export interface components {
              */
             annual_rate: number | string;
             /**
+             * Buyout Life Months
+             * @default 0
+             */
+            buyout_life_months: number;
+            /**
+             * Buyout Price
+             * @default 0
+             */
+            buyout_price: number | string;
+            /**
              * Finance
              * @default false
              */
             finance: boolean;
+            /**
+             * Insurance Monthly
+             * @default 0
+             */
+            insurance_monthly: number | string;
             /** Monthly Payment */
             monthly_payment: number | string;
             /** Name */
@@ -1473,10 +6134,25 @@ export interface components {
              */
             annual_rate: string;
             /**
+             * Buyout Life Months
+             * @default 0
+             */
+            buyout_life_months: number;
+            /**
+             * Buyout Price
+             * @default 0
+             */
+            buyout_price: string;
+            /**
              * Finance
              * @default false
              */
             finance: boolean;
+            /**
+             * Insurance Monthly
+             * @default 0
+             */
+            insurance_monthly: string;
             /** Monthly Payment */
             monthly_payment: string;
             /** Name */
@@ -1491,6 +6167,32 @@ export interface components {
              * @default 12
              */
             term_months: number;
+        };
+        /**
+         * LineDetailItemOut
+         * @description Слагаемое строки отчёта (drill-down): источник и его помесячный ряд.
+         */
+        LineDetailItemOut: {
+            /** Name */
+            name: string;
+            /**
+             * Values
+             * @default []
+             */
+            values: string[];
+        };
+        /**
+         * LineDetailOut
+         * @description Детализация строки отчёта по источникам (Σ слагаемых = строка отчёта).
+         */
+        LineDetailOut: {
+            /** Code */
+            code: string;
+            /**
+             * Items
+             * @default []
+             */
+            items: components["schemas"]["LineDetailItemOut"][];
         };
         /** LineOut */
         LineOut: {
@@ -1581,6 +6283,167 @@ export interface components {
             email: string;
             /** Password */
             password: string;
+            /**
+             * Remember
+             * @default false
+             */
+            remember: boolean;
+            /**
+             * Totp Code
+             * @default
+             */
+            totp_code: string;
+        };
+        /**
+         * MailReport
+         * @description Что стало с письмом — рядом с тем действием, ради которого его слали (D1).
+         *
+         *     Три состояния, и путать их нельзя: **не пытались** (почта не настроена — `attempted`
+         *     ложно), **ушло** и **не ушло с причиной**. «Не отправляли» и «отправили, не дошло» —
+         *     разные ответы человеку, и второй обязан быть виден, иначе ссылку никто не передаст
+         *     лично.
+         */
+        MailReport: {
+            /**
+             * Attempted
+             * @default false
+             */
+            attempted: boolean;
+            /**
+             * Error
+             * @default
+             */
+            error: string;
+            /**
+             * Ok
+             * @default false
+             */
+            ok: boolean;
+        };
+        /**
+         * Material
+         * @description Материал/комплектующая (справочник): цена единицы и условия закупки.
+         *
+         *     Потребление задаёт рецептура продукта (``Product.bom``); движок разворачивает её в
+         *     прямые издержки с этими условиями (отсрочка → B23, опережающая закупка → B3,
+         *     ``foreign`` — импорт по курсу закупки с импортным НДС).
+         */
+        "Material-Input": {
+            /**
+             * Foreign
+             * @default false
+             */
+            foreign: boolean;
+            /** Id */
+            id: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Payment Delay Months
+             * @default 0
+             */
+            payment_delay_months: number;
+            /**
+             * Stock Lead Months
+             * @default 0
+             */
+            stock_lead_months: number;
+            /**
+             * Unit
+             * @default
+             */
+            unit: string;
+            /**
+             * Unit Price
+             * @default 0
+             */
+            unit_price: number | string;
+        };
+        /**
+         * Material
+         * @description Материал/комплектующая (справочник): цена единицы и условия закупки.
+         *
+         *     Потребление задаёт рецептура продукта (``Product.bom``); движок разворачивает её в
+         *     прямые издержки с этими условиями (отсрочка → B23, опережающая закупка → B3,
+         *     ``foreign`` — импорт по курсу закупки с импортным НДС).
+         */
+        "Material-Output": {
+            /**
+             * Foreign
+             * @default false
+             */
+            foreign: boolean;
+            /** Id */
+            id: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Payment Delay Months
+             * @default 0
+             */
+            payment_delay_months: number;
+            /**
+             * Stock Lead Months
+             * @default 0
+             */
+            stock_lead_months: number;
+            /**
+             * Unit
+             * @default
+             */
+            unit: string;
+            /**
+             * Unit Price
+             * @default 0
+             */
+            unit_price: string;
+        };
+        /**
+         * MemberActivityOut
+         * @description Участник в сводке активности.
+         *
+         *     ``last_seen_at = None`` — **неизвестно**, а не «никогда»: отметка присутствия ведётся
+         *     не с первого дня платформы. ``actions`` — записи журнала за окно; ноль означает
+         *     «ничего не менял», потому что чтение журнал не пишет.
+         */
+        MemberActivityOut: {
+            /**
+             * Actions
+             * @default 0
+             */
+            actions: number;
+            /**
+             * Blocked
+             * @default false
+             */
+            blocked: boolean;
+            /** Email */
+            email: string;
+            /**
+             * Full Name
+             * @default
+             */
+            full_name: string;
+            /** Last Seen At */
+            last_seen_at?: string | null;
+            /** Role */
+            role: string;
+            /** User Id */
+            user_id: string;
+        };
+        /**
+         * MemberBlockIn
+         * @description Причина приостановки. Обязательна: блокировка без причины неотличима от ошибки.
+         */
+        MemberBlockIn: {
+            /** Reason */
+            reason: string;
         };
         /** MemberCreate */
         MemberCreate: {
@@ -1597,12 +6460,44 @@ export interface components {
              */
             role: string;
         };
-        /** MemberOut */
+        /**
+         * MemberOut
+         * @description Участник организации.
+         *
+         *     ``invite_token`` заполняется **только в ответе на приглашение** и только если
+         *     участник ещё не заводил пароль: это одноразовая ссылка активации. В списке
+         *     участников его нет — там он был бы вечно доступным пропуском в чужой аккаунт.
+         *
+         *     ``mail`` — что стало с письмом-приглашением (D1). ``None`` в списке участников:
+         *     там писем не слали, и «не отправлено» было бы неправдой о прошлом.
+         */
         MemberOut: {
+            /**
+             * Block Reason
+             * @default
+             */
+            block_reason: string;
+            /**
+             * Blocked
+             * @default false
+             */
+            blocked: boolean;
+            /** Blocked At */
+            blocked_at?: string | null;
+            /**
+             * Blocked By
+             * @default
+             */
+            blocked_by: string;
             /** Email */
             email: string;
             /** Full Name */
             full_name: string;
+            /** Invite Token */
+            invite_token?: string | null;
+            /** Last Seen At */
+            last_seen_at?: string | null;
+            mail?: components["schemas"]["MailReport"] | null;
             /** Role */
             role: string;
             /** User Id */
@@ -1613,12 +6508,98 @@ export interface components {
             /** Role */
             role: string;
         };
+        /**
+         * MethodologyResponse
+         * @description Карта трактовок проекта.
+         *
+         *     ``confirmed`` всегда ложно: подтверждение трактовок — профессиональное суждение
+         *     человека на реальных проектах, и платформа не делает его за него. ``note`` называет
+         *     это словами, чтобы «предварительная версия» не читалась как техническая мелочь.
+         */
+        MethodologyResponse: {
+            /**
+             * Choices
+             * @default []
+             */
+            choices: components["schemas"]["ChoiceOut"][];
+            /**
+             * Classification Note
+             * @default
+             */
+            classification_note: string;
+            /**
+             * Confirmed
+             * @default false
+             */
+            confirmed: boolean;
+            /**
+             * Divergence Count
+             * @default 0
+             */
+            divergence_count: number;
+            /**
+             * Engaged Count
+             * @default 0
+             */
+            engaged_count: number;
+            /** Engine Version */
+            engine_version: string;
+            /**
+             * Needs Human Count
+             * @default 0
+             */
+            needs_human_count: number;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /**
+         * MetricChangeOut
+         * @description Изменение показателя эффективности между версиями.
+         */
+        MetricChangeOut: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** New */
+            new?: string | null;
+            /** Old */
+            old?: string | null;
+        };
+        /**
+         * MetricPointOut
+         * @description Сколько появилось за месяц. Пустой месяц остаётся в ряду с нулём: выброшенный,
+         *     он превращает провал в графике в ровную линию.
+         */
+        MetricPointOut: {
+            /**
+             * Organizations
+             * @default 0
+             */
+            organizations: number;
+            /** Period */
+            period: string;
+            /**
+             * Users
+             * @default 0
+             */
+            users: number;
+        };
         /** MetricsOut */
         MetricsOut: {
+            /** Arr Annual */
+            arr_annual?: string | null;
             /** Dpb Months */
             dpb_months?: number | null;
             /** Irr Annual */
             irr_annual?: string | null;
+            /** Mirr Annual */
+            mirr_annual?: string | null;
+            /** No Return Metrics Note */
+            no_return_metrics_note?: string | null;
             /** Npv */
             npv: string;
             /** Pb Months */
@@ -1629,6 +6610,20 @@ export interface components {
             pi?: string | null;
             /** Pv Investments */
             pv_investments?: string | null;
+        };
+        /**
+         * ModelChangeOut
+         * @description Изменение листового значения модели между версиями.
+         */
+        ModelChangeOut: {
+            /** Kind */
+            kind: string;
+            /** New */
+            new?: unknown;
+            /** Old */
+            old?: unknown;
+            /** Path */
+            path: string;
         };
         /** MonteCarloRequest */
         MonteCarloRequest: {
@@ -1682,18 +6677,168 @@ export interface components {
             /** Probability Npv Positive */
             probability_npv_positive: string;
         };
+        /**
+         * Obligation
+         * @description Обязательство реестра (SPEC, Приложение Л): кредит, лизинг или условное.
+         *
+         *     Долг в балансе — две строки-агрегата. Из них не видно ни кому должны, ни под какой
+         *     залог, ни что будет при нарушении ковенанта, — поэтому реестр **вводится**, а не
+         *     выводится из отчётности.
+         *
+         *     ``rate`` и ``maturity_year`` — ``None``, когда не указаны: беспроцентный займ (0%) и
+         *     заём без указанной ставки — разные факты, как и «погашение в 2029» против «срок в
+         *     реестре не заполнен». ``on_demand`` — заём «по требованию»: срока нет не потому, что
+         *     его забыли ввести, а потому, что его нет в договоре.
+         */
+        "Obligation-Input": {
+            /**
+             * Amount
+             * @default 0
+             */
+            amount: number | string;
+            /**
+             * Collateral
+             * @default
+             */
+            collateral: string;
+            /**
+             * Contract
+             * @default
+             */
+            contract: string;
+            /**
+             * Covenant
+             * @default
+             */
+            covenant: string;
+            /**
+             * Covenant Note
+             * @default
+             */
+            covenant_note: string;
+            /**
+             * Covenant Status
+             * @default unknown
+             * @enum {string}
+             */
+            covenant_status: "ok" | "breached" | "unknown";
+            /**
+             * Creditor
+             * @default
+             */
+            creditor: string;
+            /**
+             * Kind
+             * @default credit
+             * @enum {string}
+             */
+            kind: "credit" | "lease" | "loan" | "other" | "guarantee" | "pledge_third_party";
+            /** Maturity Year */
+            maturity_year?: number | null;
+            /**
+             * On Demand
+             * @default false
+             */
+            on_demand: boolean;
+            /**
+             * Pledged Amount
+             * @default 0
+             */
+            pledged_amount: number | string;
+            /** Rate */
+            rate?: number | string | null;
+        };
+        /**
+         * Obligation
+         * @description Обязательство реестра (SPEC, Приложение Л): кредит, лизинг или условное.
+         *
+         *     Долг в балансе — две строки-агрегата. Из них не видно ни кому должны, ни под какой
+         *     залог, ни что будет при нарушении ковенанта, — поэтому реестр **вводится**, а не
+         *     выводится из отчётности.
+         *
+         *     ``rate`` и ``maturity_year`` — ``None``, когда не указаны: беспроцентный займ (0%) и
+         *     заём без указанной ставки — разные факты, как и «погашение в 2029» против «срок в
+         *     реестре не заполнен». ``on_demand`` — заём «по требованию»: срока нет не потому, что
+         *     его забыли ввести, а потому, что его нет в договоре.
+         */
+        "Obligation-Output": {
+            /**
+             * Amount
+             * @default 0
+             */
+            amount: string;
+            /**
+             * Collateral
+             * @default
+             */
+            collateral: string;
+            /**
+             * Contract
+             * @default
+             */
+            contract: string;
+            /**
+             * Covenant
+             * @default
+             */
+            covenant: string;
+            /**
+             * Covenant Note
+             * @default
+             */
+            covenant_note: string;
+            /**
+             * Covenant Status
+             * @default unknown
+             * @enum {string}
+             */
+            covenant_status: "ok" | "breached" | "unknown";
+            /**
+             * Creditor
+             * @default
+             */
+            creditor: string;
+            /**
+             * Kind
+             * @default credit
+             * @enum {string}
+             */
+            kind: "credit" | "lease" | "loan" | "other" | "guarantee" | "pledge_third_party";
+            /** Maturity Year */
+            maturity_year?: number | null;
+            /**
+             * On Demand
+             * @default false
+             */
+            on_demand: boolean;
+            /**
+             * Pledged Amount
+             * @default 0
+             */
+            pledged_amount: string;
+            /** Rate */
+            rate?: string | null;
+        };
         /** OperatingPlan */
         "OperatingPlan-Input": {
             /** Direct Costs */
             direct_costs?: components["schemas"]["DirectCostLine-Input"][];
             /** Fixed Costs */
             fixed_costs?: components["schemas"]["FixedCostLine-Input"][];
+            /** Materials */
+            materials?: components["schemas"]["Material-Input"][];
+            /** Other Expenses */
+            other_expenses?: components["schemas"]["OtherFlow-Input"][];
+            /** Other Income */
+            other_income?: components["schemas"]["OtherFlow-Input"][];
             /** Production */
             production?: components["schemas"]["ProductionLine-Input"][];
             /** Products */
-            products?: components["schemas"]["Product"][];
+            products?: components["schemas"]["Product-Input"][];
             /** Sales */
             sales?: components["schemas"]["SalesLine-Input"][];
+            /** Staff */
+            staff?: components["schemas"]["StaffPosition-Input"][];
         };
         /** OperatingPlan */
         "OperatingPlan-Output": {
@@ -1701,19 +6846,39 @@ export interface components {
             direct_costs?: components["schemas"]["DirectCostLine-Output"][];
             /** Fixed Costs */
             fixed_costs?: components["schemas"]["FixedCostLine-Output"][];
+            /** Materials */
+            materials?: components["schemas"]["Material-Output"][];
+            /** Other Expenses */
+            other_expenses?: components["schemas"]["OtherFlow-Output"][];
+            /** Other Income */
+            other_income?: components["schemas"]["OtherFlow-Output"][];
             /** Production */
             production?: components["schemas"]["ProductionLine-Output"][];
             /** Products */
-            products?: components["schemas"]["Product"][];
+            products?: components["schemas"]["Product-Output"][];
             /** Sales */
             sales?: components["schemas"]["SalesLine-Output"][];
+            /** Staff */
+            staff?: components["schemas"]["StaffPosition-Output"][];
         };
         /** OrganizationCreate */
         OrganizationCreate: {
             /** Name */
             name: string;
         };
-        /** OrganizationMembershipOut */
+        /**
+         * OrganizationMembershipOut
+         * @description Организация пользователя с его ролью и **режимом доступа** (B2).
+         *
+         *     Пустой ``restrictions`` — обычная работа. Непустой означает режим чтения и выгрузки
+         *     по названным продуктам: свои данные видны, считаются и выгружаются, новые не
+         *     заводятся и старые не правятся. Причина идёт рядом и всегда: интерфейс, который
+         *     просто перестал сохранять, читается как поломка, и клиент пойдёт не в поддержку, а
+         *     в отзывы.
+         *
+         *     Список **не даёт и не отнимает прав** — он объясняет отказ, который в любом случае
+         *     вынесет сервер: спрятанная кнопка не защита.
+         */
         OrganizationMembershipOut: {
             /**
              * Created At
@@ -1724,6 +6889,11 @@ export interface components {
             id: string;
             /** Name */
             name: string;
+            /**
+             * Restrictions
+             * @default []
+             */
+            restrictions: components["schemas"]["RestrictionOut"][];
             /** Role */
             role: string;
         };
@@ -1740,12 +6910,178 @@ export interface components {
             name: string;
         };
         /**
+         * OtherFlow
+         * @description Прочее поступление/выплата (вне основной деятельности), помесячно.
+         *
+         *     Начисление = оплата (в месяце ряда): доход → I20 + C10; выплата → I21 + C11 (вычитаемая)
+         *     либо, при ``from_profit=True``, → I24 + C11 (за счёт прибыли, не уменьшает налоговую базу).
+         *     Инфляцией не индексируется (суммы произвольные).
+         */
+        "OtherFlow-Input": {
+            /** Amount */
+            amount?: (number | string)[];
+            /**
+             * From Profit
+             * @default false
+             */
+            from_profit: boolean;
+            /** Name */
+            name: string;
+        };
+        /**
+         * OtherFlow
+         * @description Прочее поступление/выплата (вне основной деятельности), помесячно.
+         *
+         *     Начисление = оплата (в месяце ряда): доход → I20 + C10; выплата → I21 + C11 (вычитаемая)
+         *     либо, при ``from_profit=True``, → I24 + C11 (за счёт прибыли, не уменьшает налоговую базу).
+         *     Инфляцией не индексируется (суммы произвольные).
+         */
+        "OtherFlow-Output": {
+            /** Amount */
+            amount?: string[];
+            /**
+             * From Profit
+             * @default false
+             */
+            from_profit: boolean;
+            /** Name */
+            name: string;
+        };
+        /**
+         * ParticipantOut
+         * @description Доходы участника финансирования: поток, вложено/получено, NPV/IRR (± терминальная).
+         */
+        ParticipantOut: {
+            /**
+             * Flow
+             * @default []
+             */
+            flow: string[];
+            /** Id */
+            id: string;
+            /**
+             * Invested
+             * @default 0
+             */
+            invested: string;
+            /** Irr Annual */
+            irr_annual?: string | null;
+            /** Irr With Terminal Annual */
+            irr_with_terminal_annual?: string | null;
+            /** Kind */
+            kind: string;
+            /** Name */
+            name: string;
+            /**
+             * Npv
+             * @default 0
+             */
+            npv: string;
+            /** Npv With Terminal */
+            npv_with_terminal?: string | null;
+            /** Terminal Value */
+            terminal_value?: string | null;
+            /**
+             * Withdrawn
+             * @default 0
+             */
+            withdrawn: string;
+        };
+        /**
+         * PasswordChange
+         * @description Смена своего пароля. Текущий обязателен — иначе украденная сессия меняет пароль.
+         */
+        PasswordChange: {
+            /** Current Password */
+            current_password: string;
+            /** New Password */
+            new_password: string;
+        };
+        /**
+         * PasswordConfirmIn
+         * @description Подтверждение паролем для чувствительных действий с учётной записью.
+         *
+         *     Выключение второго фактора и перевыпуск резервных кодов — ровно то, что сделает
+         *     угонщик, дорвавшийся до открытой вкладки. Пароль здесь — не формальность, а разница
+         *     между «украли сессию» и «украли учётную запись».
+         */
+        PasswordConfirmIn: {
+            /** Password */
+            password: string;
+        };
+        /**
+         * PasswordPolicyOut
+         * @description Требования к паролю — собранные из тех же правил, что и проверяют (C2).
+         *
+         *     ``leak_check`` говорит, включена ли сейчас проверка по базе утечек: обещать её при
+         *     выключенной значило бы утверждать, что платформа делает то, чего не делает.
+         */
+        PasswordPolicyOut: {
+            /**
+             * Leak Check
+             * @default false
+             */
+            leak_check: boolean;
+            /**
+             * Min Length
+             * @default 8
+             */
+            min_length: number;
+            /**
+             * Rules
+             * @default []
+             */
+            rules: string[];
+        };
+        /**
+         * PaymentPart
+         * @description Часть графика оплаты: доля выручки со сдвигом относительно месяца отгрузки.
+         *
+         *     ``offset_months`` < 0 — предоплата (за |offset| мес. до отгрузки → авансы B24);
+         *     > 0 — рассрочка (через offset мес. после отгрузки → дебиторка B2); 0 — при отгрузке.
+         */
+        "PaymentPart-Input": {
+            /**
+             * Offset Months
+             * @default 0
+             */
+            offset_months: number;
+            /**
+             * Share
+             * @default 0
+             */
+            share: number | string;
+        };
+        /**
+         * PaymentPart
+         * @description Часть графика оплаты: доля выручки со сдвигом относительно месяца отгрузки.
+         *
+         *     ``offset_months`` < 0 — предоплата (за |offset| мес. до отгрузки → авансы B24);
+         *     > 0 — рассрочка (через offset мес. после отгрузки → дебиторка B2); 0 — при отгрузке.
+         */
+        "PaymentPart-Output": {
+            /**
+             * Offset Months
+             * @default 0
+             */
+            offset_months: number;
+            /**
+             * Share
+             * @default 0
+             */
+            share: string;
+        };
+        /**
          * PaymentTerms
          * @description Условия оплаты продаж (SPEC §5).
          *
-         *     Доля ``prepayment_share`` поступает предоплатой за ``advance_lead_months`` до поставки
-         *     (формирует авансы, B24). Остаток поступает через ``payment_delay_months`` после
-         *     поставки (формирует дебиторку, B2).
+         *     Простая схема: доля ``prepayment_share`` поступает предоплатой за
+         *     ``advance_lead_months`` до поставки (формирует авансы, B24); остаток — через
+         *     ``payment_delay_months`` после поставки (формирует дебиторку, B2).
+         *
+         *     Сложная схема: непустой ``schedule`` (список долей со сдвигами) **заменяет** простые
+         *     поля. Σ долей должна быть 1; остаток (1 − Σ) балансируется в месяце отгрузки — так
+         *     сумма оплат всегда равна выручке (иначе дебиторка/авансы не разворачиваются).
          */
         "PaymentTerms-Input": {
             /**
@@ -1763,14 +7099,20 @@ export interface components {
              * @default 0
              */
             prepayment_share: number | string;
+            /** Schedule */
+            schedule?: components["schemas"]["PaymentPart-Input"][];
         };
         /**
          * PaymentTerms
          * @description Условия оплаты продаж (SPEC §5).
          *
-         *     Доля ``prepayment_share`` поступает предоплатой за ``advance_lead_months`` до поставки
-         *     (формирует авансы, B24). Остаток поступает через ``payment_delay_months`` после
-         *     поставки (формирует дебиторку, B2).
+         *     Простая схема: доля ``prepayment_share`` поступает предоплатой за
+         *     ``advance_lead_months`` до поставки (формирует авансы, B24); остаток — через
+         *     ``payment_delay_months`` после поставки (формирует дебиторку, B2).
+         *
+         *     Сложная схема: непустой ``schedule`` (список долей со сдвигами) **заменяет** простые
+         *     поля. Σ долей должна быть 1; остаток (1 − Σ) балансируется в месяце отгрузки — так
+         *     сумма оплат всегда равна выручке (иначе дебиторка/авансы не разворачиваются).
          */
         "PaymentTerms-Output": {
             /**
@@ -1788,6 +7130,8 @@ export interface components {
              * @default 0
              */
             prepayment_share: string;
+            /** Schedule */
+            schedule?: components["schemas"]["PaymentPart-Output"][];
         };
         /**
          * PerProjectOut
@@ -1809,25 +7153,350 @@ export interface components {
             /** Role */
             role: string;
         };
-        /** PlanOut */
+        /**
+         * PlanOut
+         * @description Тариф каталога. Единица квоты зависит от продукта: проект у «Элит», дело у «Аудита».
+         *
+         *     Поэтому поле называется ``max_units``, а не ``max_projects``: имя, верное лишь для
+         *     половины каталога, однажды прочитают буквально. ``unit_name`` даёт подпись для экрана.
+         */
         PlanOut: {
             /** Code */
             code: string;
             /** Max Members */
             max_members?: number | null;
-            /** Max Projects */
-            max_projects?: number | null;
+            /** Max Units */
+            max_units?: number | null;
             /** Name */
             name: string;
+            /**
+             * Price On Request
+             * @default false
+             */
+            price_on_request: boolean;
             /** Price Rub */
             price_rub: number;
+            /** Product */
+            product: string;
+            /**
+             * Unit Name
+             * @default проектов
+             */
+            unit_name: string;
         };
-        /** Product */
-        Product: {
+        /**
+         * PlanSection
+         * @description Текстовый раздел бизнес-плана (резюме, рынок, команда…) для DOCX-документа.
+         *
+         *     Текст пользователя: к расчёту отношения не имеет (модель без разделов инертна).
+         *     Границы длины — защита хранилища/генератора документа от абсурдных входов.
+         */
+        PlanSection: {
+            /**
+             * Text
+             * @default
+             */
+            text: string;
+            /**
+             * Title
+             * @default
+             */
+            title: string;
+        };
+        /**
+         * PlanSliceOut
+         * @description Сколько организаций на тарифе. Считаются **оформленные** подписки: «выбрал
+         *     бесплатный» и «не выбирал ничего» — разные состояния.
+         */
+        PlanSliceOut: {
+            /**
+             * Organizations
+             * @default 0
+             */
+            organizations: number;
+            /** Plan Code */
+            plan_code: string;
+            /** Plan Name */
+            plan_name: string;
+            /** Product */
+            product: string;
+        };
+        /**
+         * PlatformMetricsOut
+         * @description Сводка платформы (B3).
+         *
+         *     ``notes`` — не украшение и не примечание мелким шрифтом: там сказано, чего эти числа
+         *     **не** значат (счётчика расчётов нет, отметка присутствия ведётся не с первого дня,
+         *     журнал начинается с первой записи). Без них ноль за период, которого журнал не
+         *     застал, читается ровно как ноль событий.
+         */
+        PlatformMetricsOut: {
+            /**
+             * Active Organizations
+             * @default {}
+             */
+            active_organizations: {
+                [key: string]: number;
+            };
+            /**
+             * Active Users
+             * @default {}
+             */
+            active_users: {
+                [key: string]: number;
+            };
+            /**
+             * Cases
+             * @default 0
+             */
+            cases: number;
+            /**
+             * Exports
+             * @default 0
+             */
+            exports: number;
+            /**
+             * Funnel
+             * @default []
+             */
+            funnel: components["schemas"]["FunnelStepOut"][];
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /**
+             * Growth
+             * @default []
+             */
+            growth: components["schemas"]["MetricPointOut"][];
+            /**
+             * Members Without Mark
+             * @default 0
+             */
+            members_without_mark: number;
+            /**
+             * Notes
+             * @default []
+             */
+            notes: string[];
+            /**
+             * Organizations
+             * @default 0
+             */
+            organizations: number;
+            /**
+             * Plans
+             * @default []
+             */
+            plans: components["schemas"]["PlanSliceOut"][];
+            /**
+             * Projects
+             * @default 0
+             */
+            projects: number;
+            /**
+             * Projects Calculated
+             * @default 0
+             */
+            projects_calculated: number;
+            /**
+             * Retention
+             * @default []
+             */
+            retention: components["schemas"]["RetentionPointOut"][];
+            /**
+             * Since Days
+             * @default 30
+             */
+            since_days: number;
+            /**
+             * Usage Collected
+             * @default false
+             */
+            usage_collected: boolean;
+            /**
+             * Users
+             * @default 0
+             */
+            users: number;
+        };
+        /**
+         * PortfolioCaseOut
+         * @description Дело в портфеле: метаданные. Вердикта здесь нет — см. `verdicts_note`.
+         */
+        PortfolioCaseOut: {
             /** Id */
             id: string;
             /** Name */
             name: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * PortfolioOut
+         * @description Портфель организации одним запросом (E4): проекты и дела для внешней сводки.
+         *
+         *     Числа проектов берутся **сохранёнными** (последний расчёт), а не считаются на лету:
+         *     иначе один запрос за портфелем превращался бы в десятки расчётов.
+         *
+         *     **Вердиктов дел здесь нет, и это названо**, а не обойдено молчанием: вердикт дела
+         *     всегда считается по текущей отчётности и нигде не хранится — выдать за него что-то
+         *     сохранённое значило бы показать позавчерашнее заключение как сегодняшнее.
+         */
+        PortfolioOut: {
+            /**
+             * Cases
+             * @default []
+             */
+            cases: components["schemas"]["PortfolioCaseOut"][];
+            /**
+             * Cases Total
+             * @default 0
+             */
+            cases_total: number;
+            /**
+             * Projects
+             * @default []
+             */
+            projects: components["schemas"]["PortfolioProjectOut"][];
+            /**
+             * Projects Never Calculated
+             * @default 0
+             */
+            projects_never_calculated: number;
+            /**
+             * Projects Total
+             * @default 0
+             */
+            projects_total: number;
+            /**
+             * Verdicts Note
+             * @default
+             */
+            verdicts_note: string;
+        };
+        /**
+         * PortfolioProjectOut
+         * @description Проект в портфеле: метаданные и **сохранённая** сводка последнего расчёта.
+         */
+        PortfolioProjectOut: {
+            /** Id */
+            id: string;
+            /**
+             * Is Stale
+             * @default false
+             */
+            is_stale: boolean;
+            last_calc?: components["schemas"]["LastCalcOut"] | null;
+            /** Name */
+            name: string;
+            /**
+             * Status
+             * @default draft
+             */
+            status: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * ProcedureMark
+         * @description Отметка аналитика по процедуре каталога (SPEC, Приложение М.3).
+         *
+         *     Ставится **только** у процедур с исполнителем «аналитик»: итог системной процедуры
+         *     выводится из фактического прогона, и объявить его вручную нельзя.
+         *
+         *     ``note`` при снятии обязателен: процедура, снятая без причины, неотличима от
+         *     забытой, а в «Границах проверки» она обязана быть названа с объяснением.
+         */
+        ProcedureMark: {
+            /**
+             * Code
+             * @default
+             */
+            code: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Status
+             * @default pending
+             * @enum {string}
+             */
+            status: "pending" | "done" | "skipped";
+        };
+        /** Product */
+        "Product-Input": {
+            /** Bom */
+            bom?: components["schemas"]["BomLine-Input"][];
+            /** Division Id */
+            division_id?: string | null;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Piece Wage Per Unit
+             * @default 0
+             */
+            piece_wage_per_unit: number | string;
+        };
+        /** Product */
+        "Product-Output": {
+            /** Bom */
+            bom?: components["schemas"]["BomLine-Output"][];
+            /** Division Id */
+            division_id?: string | null;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Piece Wage Per Unit
+             * @default 0
+             */
+            piece_wage_per_unit: string;
+        };
+        /**
+         * ProductMarginOut
+         * @description Маржа продукта по рецептуре (BOM): выручка − материалы − сдельная ЗП проданного.
+         */
+        ProductMarginOut: {
+            /** Bom Cost */
+            bom_cost: string;
+            /** Margin */
+            margin: string;
+            /** Margin Share */
+            margin_share?: string | null;
+            /** Name */
+            name: string;
+            /** Piece Wages */
+            piece_wages: string;
+            /** Product Id */
+            product_id: string;
+            /** Revenue */
+            revenue: string;
+        };
+        /** ProductMarginsOut */
+        ProductMarginsOut: {
+            /**
+             * Products
+             * @default []
+             */
+            products: components["schemas"]["ProductMarginOut"][];
+            /**
+             * Unallocated Direct
+             * @default 0
+             */
+            unallocated_direct: string;
         };
         /**
          * ProductionLine
@@ -1839,6 +7508,8 @@ export interface components {
         "ProductionLine-Input": {
             /** Product Id */
             product_id: string;
+            /** Start Month */
+            start_month?: number | null;
             /** Volume */
             volume?: (number | string)[];
         };
@@ -1852,8 +7523,18 @@ export interface components {
         "ProductionLine-Output": {
             /** Product Id */
             product_id: string;
+            /** Start Month */
+            start_month?: number | null;
             /** Volume */
             volume?: string[];
+        };
+        /** ProfileUpdate */
+        ProfileUpdate: {
+            /**
+             * Full Name
+             * @default
+             */
+            full_name: string;
         };
         /** ProjectCreate */
         ProjectCreate: {
@@ -1895,9 +7576,14 @@ export interface components {
              *     }
              */
             actualization: components["schemas"]["Actualization-Input"];
+            /** Business Plan */
+            business_plan?: components["schemas"]["PlanSection"][];
             /**
              * @default {
+             *       "divisions": [],
              *       "starting_balance": {
+             *         "additional_capital": "0",
+             *         "advances_received": "0",
              *         "cash": "0",
              *         "debt": "0",
              *         "finished_goods": "0",
@@ -1905,9 +7591,13 @@ export interface components {
              *         "foreign_monetary": "0",
              *         "paid_in_capital": "0",
              *         "payables": "0",
+             *         "preferred_capital": "0",
+             *         "prepaid_expenses": "0",
              *         "raw_materials": "0",
              *         "receivables": "0",
-             *         "retained_earnings": "0"
+             *         "reserves": "0",
+             *         "retained_earnings": "0",
+             *         "short_term_debt": "0"
              *       }
              *     }
              */
@@ -1932,6 +7622,8 @@ export interface components {
              *       "auto_financing": {
              *         "annual_rate": "0.18",
              *         "enabled": false,
+             *         "invest_annual_rate": "0.05",
+             *         "invest_surplus": false,
              *         "min_balance": "0"
              *       },
              *       "common_shares": "0",
@@ -1953,7 +7645,11 @@ export interface components {
             header: components["schemas"]["ProjectHeader"];
             /**
              * @default {
-             *       "assets": []
+             *       "assets": [],
+             *       "calendar": {
+             *         "resources": [],
+             *         "stages": []
+             *       }
              *     }
              */
             investment_plan: components["schemas"]["InvestmentPlan-Input"];
@@ -1961,35 +7657,50 @@ export interface components {
              * @default {
              *       "direct_costs": [],
              *       "fixed_costs": [],
+             *       "materials": [],
+             *       "other_expenses": [],
+             *       "other_income": [],
              *       "production": [],
              *       "products": [],
-             *       "sales": []
+             *       "sales": [],
+             *       "staff": []
              *     }
              */
             operating_plan: components["schemas"]["OperatingPlan-Input"];
             /**
              * @default {
+             *       "cb_refinancing_rate": "0",
              *       "discount_rate_annual": "0.15",
+             *       "discount_rate_annual_foreign": "0",
              *       "inflation_direct": "0",
+             *       "inflation_direct_series": [],
              *       "inflation_general": "0",
+             *       "inflation_general_series": [],
              *       "inflation_sales": "0",
+             *       "inflation_sales_series": [],
              *       "inflation_wages": "0",
+             *       "inflation_wages_series": [],
+             *       "interest_norm_multiple": "1",
              *       "inventory_method": "average",
              *       "liquidation_recovery_rate": "0",
              *       "min_cash_balance": "0",
              *       "payroll_contribution_rate": "0",
              *       "production_cycle_months": 0,
              *       "profit_tax_benefit_share": "0",
+             *       "profit_tax_periodicity": "month",
              *       "profit_tax_rate": "0.20",
              *       "property_tax_rate": "0",
              *       "sales_tax_rate": "0",
              *       "terminal_growth_rate": "0",
              *       "valuation_earnings_multiple": "0",
              *       "vat_basis": "shipment",
+             *       "vat_periodicity": "month",
              *       "vat_rate": "0"
              *     }
              */
             settings: components["schemas"]["ProjectSettings-Input"];
+            /** User Tables */
+            user_tables?: components["schemas"]["UserTable"][];
         };
         /**
          * ProjectModel
@@ -2003,9 +7714,14 @@ export interface components {
              *     }
              */
             actualization: components["schemas"]["Actualization-Output"];
+            /** Business Plan */
+            business_plan?: components["schemas"]["PlanSection"][];
             /**
              * @default {
+             *       "divisions": [],
              *       "starting_balance": {
+             *         "additional_capital": "0",
+             *         "advances_received": "0",
              *         "cash": "0",
              *         "debt": "0",
              *         "finished_goods": "0",
@@ -2013,9 +7729,13 @@ export interface components {
              *         "foreign_monetary": "0",
              *         "paid_in_capital": "0",
              *         "payables": "0",
+             *         "preferred_capital": "0",
+             *         "prepaid_expenses": "0",
              *         "raw_materials": "0",
              *         "receivables": "0",
-             *         "retained_earnings": "0"
+             *         "reserves": "0",
+             *         "retained_earnings": "0",
+             *         "short_term_debt": "0"
              *       }
              *     }
              */
@@ -2040,6 +7760,8 @@ export interface components {
              *       "auto_financing": {
              *         "annual_rate": "0.18",
              *         "enabled": false,
+             *         "invest_annual_rate": "0.05",
+             *         "invest_surplus": false,
              *         "min_balance": "0"
              *       },
              *       "common_shares": "0",
@@ -2061,7 +7783,11 @@ export interface components {
             header: components["schemas"]["ProjectHeader"];
             /**
              * @default {
-             *       "assets": []
+             *       "assets": [],
+             *       "calendar": {
+             *         "resources": [],
+             *         "stages": []
+             *       }
              *     }
              */
             investment_plan: components["schemas"]["InvestmentPlan-Output"];
@@ -2069,35 +7795,50 @@ export interface components {
              * @default {
              *       "direct_costs": [],
              *       "fixed_costs": [],
+             *       "materials": [],
+             *       "other_expenses": [],
+             *       "other_income": [],
              *       "production": [],
              *       "products": [],
-             *       "sales": []
+             *       "sales": [],
+             *       "staff": []
              *     }
              */
             operating_plan: components["schemas"]["OperatingPlan-Output"];
             /**
              * @default {
+             *       "cb_refinancing_rate": "0",
              *       "discount_rate_annual": "0.15",
+             *       "discount_rate_annual_foreign": "0",
              *       "inflation_direct": "0",
+             *       "inflation_direct_series": [],
              *       "inflation_general": "0",
+             *       "inflation_general_series": [],
              *       "inflation_sales": "0",
+             *       "inflation_sales_series": [],
              *       "inflation_wages": "0",
+             *       "inflation_wages_series": [],
+             *       "interest_norm_multiple": "1",
              *       "inventory_method": "average",
              *       "liquidation_recovery_rate": "0",
              *       "min_cash_balance": "0",
              *       "payroll_contribution_rate": "0",
              *       "production_cycle_months": 0,
              *       "profit_tax_benefit_share": "0",
+             *       "profit_tax_periodicity": "month",
              *       "profit_tax_rate": "0.20",
              *       "property_tax_rate": "0",
              *       "sales_tax_rate": "0",
              *       "terminal_growth_rate": "0",
              *       "valuation_earnings_multiple": "0",
              *       "vat_basis": "shipment",
+             *       "vat_periodicity": "month",
              *       "vat_rate": "0"
              *     }
              */
             settings: components["schemas"]["ProjectSettings-Output"];
+            /** User Tables */
+            user_tables?: components["schemas"]["UserTable"][];
         };
         /** ProjectOut */
         ProjectOut: {
@@ -2106,6 +7847,14 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Finalized At */
+            finalized_at?: string | null;
+            /**
+             * Finalized Drift
+             * @default false
+             */
+            finalized_drift: boolean;
+            finalized_review?: components["schemas"]["ReviewResponse"] | null;
             /** Id */
             id: string;
             /**
@@ -2118,6 +7867,11 @@ export interface components {
             /** Name */
             name: string;
             /**
+             * Status
+             * @default draft
+             */
+            status: string;
+            /**
              * Updated At
              * Format: date-time
              */
@@ -2129,30 +7883,53 @@ export interface components {
          */
         "ProjectSettings-Input": {
             /**
+             * Cb Refinancing Rate
+             * @default 0
+             */
+            cb_refinancing_rate: number | string;
+            /**
              * Discount Rate Annual
              * @default 0.15
              */
             discount_rate_annual: number | string;
             /**
+             * Discount Rate Annual Foreign
+             * @default 0
+             */
+            discount_rate_annual_foreign: number | string;
+            /**
              * Inflation Direct
              * @default 0
              */
             inflation_direct: number | string;
+            /** Inflation Direct Series */
+            inflation_direct_series?: (number | string)[];
             /**
              * Inflation General
              * @default 0
              */
             inflation_general: number | string;
+            /** Inflation General Series */
+            inflation_general_series?: (number | string)[];
             /**
              * Inflation Sales
              * @default 0
              */
             inflation_sales: number | string;
+            /** Inflation Sales Series */
+            inflation_sales_series?: (number | string)[];
             /**
              * Inflation Wages
              * @default 0
              */
             inflation_wages: number | string;
+            /** Inflation Wages Series */
+            inflation_wages_series?: (number | string)[];
+            /**
+             * Interest Norm Multiple
+             * @default 1
+             */
+            interest_norm_multiple: number | string;
             /** @default average */
             inventory_method: components["schemas"]["InventoryMethod"];
             /**
@@ -2181,6 +7958,12 @@ export interface components {
              */
             profit_tax_benefit_share: number | string;
             /**
+             * Profit Tax Periodicity
+             * @default month
+             * @enum {string}
+             */
+            profit_tax_periodicity: "month" | "quarter" | "year";
+            /**
              * Profit Tax Rate
              * @default 0.20
              */
@@ -2208,6 +7991,12 @@ export interface components {
             /** @default shipment */
             vat_basis: components["schemas"]["VatBasis"];
             /**
+             * Vat Periodicity
+             * @default month
+             * @enum {string}
+             */
+            vat_periodicity: "month" | "quarter" | "year";
+            /**
              * Vat Rate
              * @default 0
              */
@@ -2219,30 +8008,53 @@ export interface components {
          */
         "ProjectSettings-Output": {
             /**
+             * Cb Refinancing Rate
+             * @default 0
+             */
+            cb_refinancing_rate: string;
+            /**
              * Discount Rate Annual
              * @default 0.15
              */
             discount_rate_annual: string;
             /**
+             * Discount Rate Annual Foreign
+             * @default 0
+             */
+            discount_rate_annual_foreign: string;
+            /**
              * Inflation Direct
              * @default 0
              */
             inflation_direct: string;
+            /** Inflation Direct Series */
+            inflation_direct_series?: string[];
             /**
              * Inflation General
              * @default 0
              */
             inflation_general: string;
+            /** Inflation General Series */
+            inflation_general_series?: string[];
             /**
              * Inflation Sales
              * @default 0
              */
             inflation_sales: string;
+            /** Inflation Sales Series */
+            inflation_sales_series?: string[];
             /**
              * Inflation Wages
              * @default 0
              */
             inflation_wages: string;
+            /** Inflation Wages Series */
+            inflation_wages_series?: string[];
+            /**
+             * Interest Norm Multiple
+             * @default 1
+             */
+            interest_norm_multiple: string;
             /** @default average */
             inventory_method: components["schemas"]["InventoryMethod"];
             /**
@@ -2271,6 +8083,12 @@ export interface components {
              */
             profit_tax_benefit_share: string;
             /**
+             * Profit Tax Periodicity
+             * @default month
+             * @enum {string}
+             */
+            profit_tax_periodicity: "month" | "quarter" | "year";
+            /**
              * Profit Tax Rate
              * @default 0.20
              */
@@ -2298,6 +8116,12 @@ export interface components {
             /** @default shipment */
             vat_basis: components["schemas"]["VatBasis"];
             /**
+             * Vat Periodicity
+             * @default month
+             * @enum {string}
+             */
+            vat_periodicity: "month" | "quarter" | "year";
+            /**
              * Vat Rate
              * @default 0
              */
@@ -2310,6 +8134,8 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Finalized At */
+            finalized_at?: string | null;
             /** Id */
             id: string;
             /**
@@ -2321,6 +8147,11 @@ export interface components {
             /** Name */
             name: string;
             /**
+             * Status
+             * @default draft
+             */
+            status: string;
+            /**
              * Updated At
              * Format: date-time
              */
@@ -2331,6 +8162,70 @@ export interface components {
             model?: components["schemas"]["ProjectModel-Input"] | null;
             /** Name */
             name?: string | null;
+        };
+        /**
+         * RatioThreshold
+         * @description Свой норматив для показателя (v2): переопределяет универсальный порог.
+         *
+         *     ``direction`` — «чем больше, тем лучше» (``higher``) или наоборот (``lower``).
+         *     ``risk_edge`` — граница зоны риска, ``good_edge`` — граница нормы; между ними «внимание».
+         *     Для ``higher`` ожидается ``risk_edge <= good_edge``, для ``lower`` — наоборот;
+         *     несогласованный порог игнорируется с предупреждением (молча подменять оценку нельзя).
+         */
+        "RatioThreshold-Input": {
+            /**
+             * Direction
+             * @default higher
+             * @enum {string}
+             */
+            direction: "higher" | "lower";
+            /**
+             * Good Edge
+             * @default 0
+             */
+            good_edge: number | string;
+            /**
+             * Ratio
+             * @default
+             */
+            ratio: string;
+            /**
+             * Risk Edge
+             * @default 0
+             */
+            risk_edge: number | string;
+        };
+        /**
+         * RatioThreshold
+         * @description Свой норматив для показателя (v2): переопределяет универсальный порог.
+         *
+         *     ``direction`` — «чем больше, тем лучше» (``higher``) или наоборот (``lower``).
+         *     ``risk_edge`` — граница зоны риска, ``good_edge`` — граница нормы; между ними «внимание».
+         *     Для ``higher`` ожидается ``risk_edge <= good_edge``, для ``lower`` — наоборот;
+         *     несогласованный порог игнорируется с предупреждением (молча подменять оценку нельзя).
+         */
+        "RatioThreshold-Output": {
+            /**
+             * Direction
+             * @default higher
+             * @enum {string}
+             */
+            direction: "higher" | "lower";
+            /**
+             * Good Edge
+             * @default 0
+             */
+            good_edge: string;
+            /**
+             * Ratio
+             * @default
+             */
+            ratio: string;
+            /**
+             * Risk Edge
+             * @default 0
+             */
+            risk_edge: string;
         };
         /** RatiosOut */
         RatiosOut: {
@@ -2355,6 +8250,66 @@ export interface components {
                 [key: string]: (string | null)[];
             };
         };
+        /**
+         * RealizedFlag
+         * @description Отметка аналитика: сработал ли флаг после сделки и во что обошёлся (Прил. Т.4).
+         *
+         *     Реализовался ли риск, платформа не знает — она видит отчётность, а не причины.
+         *     Предсказанное влияние берётся из реестра флагов (посчитано платформой), фактическая
+         *     потеря **вводится**; обе половины подписаны, и «дисконт окупился» — сравнение
+         *     введённого с посчитанным, а не одного вычисления с другим.
+         *
+         *     ``actual_cost`` — ``None``, когда факт ещё не оценён: это не «обошёлся в ноль».
+         */
+        "RealizedFlag-Input": {
+            /** Actual Cost */
+            actual_cost?: number | string | null;
+            /**
+             * Code
+             * @default
+             */
+            code: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Realized
+             * @default false
+             */
+            realized: boolean;
+        };
+        /**
+         * RealizedFlag
+         * @description Отметка аналитика: сработал ли флаг после сделки и во что обошёлся (Прил. Т.4).
+         *
+         *     Реализовался ли риск, платформа не знает — она видит отчётность, а не причины.
+         *     Предсказанное влияние берётся из реестра флагов (посчитано платформой), фактическая
+         *     потеря **вводится**; обе половины подписаны, и «дисконт окупился» — сравнение
+         *     введённого с посчитанным, а не одного вычисления с другим.
+         *
+         *     ``actual_cost`` — ``None``, когда факт ещё не оценён: это не «обошёлся в ноль».
+         */
+        "RealizedFlag-Output": {
+            /** Actual Cost */
+            actual_cost?: string | null;
+            /**
+             * Code
+             * @default
+             */
+            code: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Realized
+             * @default false
+             */
+            realized: boolean;
+        };
         /** RegisterRequest */
         RegisterRequest: {
             /** Email */
@@ -2371,10 +8326,413 @@ export interface components {
         };
         /**
          * RepaymentType
-         * @description Схема погашения тела займа.
+         * @description Схема погашения тела займа (SPEC §10).
          * @enum {string}
          */
-        RepaymentType: "equal_principal" | "bullet";
+        RepaymentType: "equal_principal" | "bullet" | "annuity";
+        /**
+         * ReportRequisites
+         * @description Реквизиты документа и подписи (SPEC, Прил. Х).
+         *
+         *     До этого печатный бланк был отчётом о проверке, но не документом сделки: у него не
+         *     было ни адресата, ни номера, ни того, кто под ним подписался. Пустые линии под
+         *     выдуманными должностями печатать было нельзя (Прил. У.4), а настоящих подписантов
+         *     в модели не существовало — теперь они здесь.
+         *
+         *     Всё поля необязательны, и пустой блок **инертен**: документ печатается ровно как
+         *     прежде, только с прямо названной оговоркой, что он не подписан.
+         *
+         *     Реквизиты фирмы-цели вводятся человеком и **не сверяются с реестром**: доступа к
+         *     ЕГРЮЛ у платформы нет. Проверяется только внутренняя согласованность ИНН и ОГРН
+         *     (контрольные цифры) — опечатка называется, а не печатается молча.
+         */
+        ReportRequisites: {
+            /**
+             * Addressee
+             * @default
+             */
+            addressee: string;
+            /**
+             * Approver Name
+             * @default
+             */
+            approver_name: string;
+            /**
+             * Approver Role
+             * @default
+             */
+            approver_role: string;
+            /** Date */
+            date?: string | null;
+            /**
+             * Executor Name
+             * @default
+             */
+            executor_name: string;
+            /**
+             * Executor Role
+             * @default
+             */
+            executor_role: string;
+            /**
+             * Number
+             * @default
+             */
+            number: string;
+            /**
+             * Subject Address
+             * @default
+             */
+            subject_address: string;
+            /**
+             * Subject Full Name
+             * @default
+             */
+            subject_full_name: string;
+            /**
+             * Subject Inn
+             * @default
+             */
+            subject_inn: string;
+            /**
+             * Subject Ogrn
+             * @default
+             */
+            subject_ogrn: string;
+        };
+        /**
+         * RequisitesOut
+         * @description Реквизиты документа и подписи (SPEC, Прил. Х).
+         *
+         *     ``signed=False`` — документ не подписан, и первая же оговорка это называет:
+         *     неподписанный бланк с гербовой строгостью читается как заключение.
+         */
+        RequisitesOut: {
+            /**
+             * Addressee
+             * @default
+             */
+            addressee: string;
+            /**
+             * Caveats
+             * @default []
+             */
+            caveats: string[];
+            /** Date */
+            date?: string | null;
+            /**
+             * Filled
+             * @default false
+             */
+            filled: boolean;
+            /**
+             * Not Computed
+             * @default []
+             */
+            not_computed: string[];
+            /**
+             * Number
+             * @default
+             */
+            number: string;
+            /**
+             * Signatures
+             * @default []
+             */
+            signatures: components["schemas"]["SignatureOut"][];
+            /**
+             * Signed
+             * @default false
+             */
+            signed: boolean;
+            /**
+             * Subject Address
+             * @default
+             */
+            subject_address: string;
+            /**
+             * Subject Full Name
+             * @default
+             */
+            subject_full_name: string;
+            /**
+             * Subject Inn
+             * @default
+             */
+            subject_inn: string;
+            /**
+             * Subject Ogrn
+             * @default
+             */
+            subject_ogrn: string;
+        };
+        /**
+         * Resource
+         * @description Ресурс (материал/оборудование/труд/услуга) с ценой единицы и условиями оплаты.
+         */
+        "Resource-Input": {
+            /** Id */
+            id: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Payment Delay Months
+             * @default 0
+             */
+            payment_delay_months: number;
+            /**
+             * Unit Price
+             * @default 0
+             */
+            unit_price: number | string;
+        };
+        /**
+         * Resource
+         * @description Ресурс (материал/оборудование/труд/услуга) с ценой единицы и условиями оплаты.
+         */
+        "Resource-Output": {
+            /** Id */
+            id: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Payment Delay Months
+             * @default 0
+             */
+            payment_delay_months: number;
+            /**
+             * Unit Price
+             * @default 0
+             */
+            unit_price: string;
+        };
+        /**
+         * RestrictionOut
+         * @description Почему продукт в режиме чтения и выгрузки — и что с этим делать (B2).
+         *
+         *     ``kind`` различает два случая, потому что различается **выход** из них: неоплата
+         *     снимается оплатой, ручная приостановка — только платформой. Показать неплательщику
+         *     «обратитесь в поддержку», а приостановленному «оплатите тариф» значило бы отправить
+         *     обоих не туда.
+         */
+        RestrictionOut: {
+            /** Kind */
+            kind: string;
+            /** Product */
+            product: string;
+            /** Reason */
+            reason: string;
+            /** Remedy */
+            remedy: string;
+        };
+        /**
+         * RetentionPointOut
+         * @description Когорта месяца. ``returned = None`` — **не измеряется**, а не ноль.
+         *
+         *     Ноль читался бы как «все ушли»; на деле в этот месяц событий не собирали, и знать
+         *     удержание неоткуда.
+         */
+        RetentionPointOut: {
+            /**
+             * Arrived
+             * @default 0
+             */
+            arrived: number;
+            /** Month */
+            month: string;
+            /** Returned */
+            returned?: number | null;
+        };
+        /**
+         * Revaluation
+         * @description Поправка к статье баланса (v2): экспертная переоценка по периодам.
+         *
+         *     ``code`` — статья баланса (кроме капитала: он служит корреспонденцией любой поправки),
+         *     ``label`` — причина («безнадёжная дебиторка», «дооценка ОС»), ``amounts`` — поправки по
+         *     периодам (со знаком). Актив ``+Δ`` увеличивает капитал, обязательство ``+Δ`` уменьшает —
+         *     поэтому равенство «актив = пассив» сохраняется.
+         */
+        "Revaluation-Input": {
+            /** Amounts */
+            amounts?: (number | string)[];
+            /**
+             * Code
+             * @default
+             */
+            code: string;
+            /**
+             * Label
+             * @default
+             */
+            label: string;
+        };
+        /**
+         * Revaluation
+         * @description Поправка к статье баланса (v2): экспертная переоценка по периодам.
+         *
+         *     ``code`` — статья баланса (кроме капитала: он служит корреспонденцией любой поправки),
+         *     ``label`` — причина («безнадёжная дебиторка», «дооценка ОС»), ``amounts`` — поправки по
+         *     периодам (со знаком). Актив ``+Δ`` увеличивает капитал, обязательство ``+Δ`` уменьшает —
+         *     поэтому равенство «актив = пассив» сохраняется.
+         */
+        "Revaluation-Output": {
+            /** Amounts */
+            amounts?: string[];
+            /**
+             * Code
+             * @default
+             */
+            code: string;
+            /**
+             * Label
+             * @default
+             */
+            label: string;
+        };
+        /** ReviewResponse */
+        ReviewResponse: {
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
+            /**
+             * Deep
+             * @default false
+             */
+            deep: boolean;
+            /**
+             * Findings
+             * @default []
+             */
+            findings: components["schemas"]["FindingOut"][];
+            /** Light */
+            light: string;
+            /**
+             * Opinion
+             * @default
+             */
+            opinion: string;
+        };
+        /**
+         * RevokeAllOut
+         * @description Сколько входов закрыто. Число, а не безличное «готово»: человек должен понимать,
+         *     что именно с ним произошло.
+         */
+        RevokeAllOut: {
+            /**
+             * Closed
+             * @default 0
+             */
+            closed: number;
+        };
+        /**
+         * RiskAnalysis
+         * @description Настройки анализа рисков оценки (SPEC, Приложение Р).
+         *
+         *     ``seed`` фиксирован: без него медиана менялась бы при каждом обновлении страницы,
+         *     и назвать её за столом переговоров было бы нельзя.
+         */
+        "RiskAnalysis-Input": {
+            /**
+             * Iterations
+             * @default 2000
+             */
+            iterations: number;
+            /**
+             * Seed
+             * @default 42
+             */
+            seed: number;
+            /**
+             * Tornado Step
+             * @default 0.10
+             */
+            tornado_step: number | string;
+            /** Uncertain */
+            uncertain?: components["schemas"]["UncertainAssumption-Input"][];
+        };
+        /**
+         * RiskAnalysis
+         * @description Настройки анализа рисков оценки (SPEC, Приложение Р).
+         *
+         *     ``seed`` фиксирован: без него медиана менялась бы при каждом обновлении страницы,
+         *     и назвать её за столом переговоров было бы нельзя.
+         */
+        "RiskAnalysis-Output": {
+            /**
+             * Iterations
+             * @default 2000
+             */
+            iterations: number;
+            /**
+             * Seed
+             * @default 42
+             */
+            seed: number;
+            /**
+             * Tornado Step
+             * @default 0.10
+             */
+            tornado_step: string;
+            /** Uncertain */
+            uncertain?: components["schemas"]["UncertainAssumption-Output"][];
+        };
+        /**
+         * RiskDistribution
+         * @description Распределение **коэффициента** допущения (не самого значения).
+         *
+         *     То же соглашение, что в анализе рисков первого продукта: выборка даёт множитель
+         *     к базовому значению, поэтому одно распределение годится и для ставки, и для суммы.
+         */
+        "RiskDistribution-Input": {
+            /** High */
+            high?: number | string | null;
+            /**
+             * Kind
+             * @default uniform
+             * @enum {string}
+             */
+            kind: "uniform" | "normal" | "triangular";
+            /** Low */
+            low?: number | string | null;
+            /** Mean */
+            mean?: number | string | null;
+            /** Mode */
+            mode?: number | string | null;
+            /** Std */
+            std?: number | string | null;
+        };
+        /**
+         * RiskDistribution
+         * @description Распределение **коэффициента** допущения (не самого значения).
+         *
+         *     То же соглашение, что в анализе рисков первого продукта: выборка даёт множитель
+         *     к базовому значению, поэтому одно распределение годится и для ставки, и для суммы.
+         */
+        "RiskDistribution-Output": {
+            /** High */
+            high?: string | null;
+            /**
+             * Kind
+             * @default uniform
+             * @enum {string}
+             */
+            kind: "uniform" | "normal" | "triangular";
+            /** Low */
+            low?: string | null;
+            /** Mean */
+            mean?: string | null;
+            /** Mode */
+            mode?: string | null;
+            /** Std */
+            std?: string | null;
+        };
         /**
          * SalesLine
          * @description Продажи одного продукта: помесячные объём и цена (без НДС).
@@ -2389,7 +8747,8 @@ export interface components {
              * @default {
              *       "advance_lead_months": 0,
              *       "payment_delay_months": 0,
-             *       "prepayment_share": "0"
+             *       "prepayment_share": "0",
+             *       "schedule": []
              *     }
              */
             payment: components["schemas"]["PaymentTerms-Input"];
@@ -2397,6 +8756,11 @@ export interface components {
             price?: (number | string)[];
             /** Product Id */
             product_id: string;
+            /** Start Month */
+            start_month?: number | null;
+            subscription?: components["schemas"]["Subscription-Input"] | null;
+            /** Vat Rate */
+            vat_rate?: number | string | null;
             /** Volume */
             volume?: (number | string)[];
         };
@@ -2414,7 +8778,8 @@ export interface components {
              * @default {
              *       "advance_lead_months": 0,
              *       "payment_delay_months": 0,
-             *       "prepayment_share": "0"
+             *       "prepayment_share": "0",
+             *       "schedule": []
              *     }
              */
             payment: components["schemas"]["PaymentTerms-Output"];
@@ -2422,6 +8787,11 @@ export interface components {
             price?: string[];
             /** Product Id */
             product_id: string;
+            /** Start Month */
+            start_month?: number | null;
+            subscription?: components["schemas"]["Subscription-Output"] | null;
+            /** Vat Rate */
+            vat_rate?: string | null;
             /** Volume */
             volume?: string[];
         };
@@ -2488,10 +8858,653 @@ export interface components {
             points: components["schemas"]["SensitivityPointOut"][];
         };
         /**
+         * SessionOut
+         * @description Действующий вход в учётную запись (C1).
+         *
+         *     ``device`` и ``ip`` приходят от самого клиента и подделываются кем угодно: это
+         *     **подсказка владельцу** («это точно был я?»), а не удостоверение устройства. Сырая
+         *     строка браузера отдаётся рядом (``user_agent``) — грубая подпись может ошибиться, и
+         *     прятать источник, по которому её можно перепроверить, было бы нечестно.
+         */
+        SessionOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Current
+             * @default false
+             */
+            current: boolean;
+            /** Device */
+            device: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Id */
+            id: string;
+            /**
+             * Ip
+             * @default
+             */
+            ip: string;
+            /** Last Seen At */
+            last_seen_at?: string | null;
+            /**
+             * User Agent
+             * @default
+             */
+            user_agent: string;
+        };
+        /**
+         * SignatureOut
+         * @description Подписант документа. Существует только вместе с именем (Прил. Х).
+         */
+        SignatureOut: {
+            /** Name */
+            name: string;
+            /**
+             * Role
+             * @default
+             */
+            role: string;
+        };
+        /**
+         * StaffLogEntryOut
+         * @description Запись служебного журнала: кто из сотрудников, что и у кого смотрел.
+         */
+        StaffLogEntryOut: {
+            /** Action */
+            action: string;
+            /** Actor Email */
+            actor_email: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Details
+             * @default
+             */
+            details: string;
+            /** Id */
+            id: string;
+            /**
+             * Organization Id
+             * @default
+             */
+            organization_id: string;
+            /**
+             * Organization Name
+             * @default
+             */
+            organization_name: string;
+        };
+        /** StaffLogPage */
+        StaffLogPage: {
+            /**
+             * Entries
+             * @default []
+             */
+            entries: components["schemas"]["StaffLogEntryOut"][];
+        };
+        /**
+         * StaffOrgDetail
+         * @description Карточка организации: то же плюс состав. Содержимого моделей по-прежнему нет.
+         */
+        StaffOrgDetail: {
+            /**
+             * Cases
+             * @default 0
+             */
+            cases: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Groups
+             * @default 0
+             */
+            groups: number;
+            /**
+             * Holdings
+             * @default 0
+             */
+            holdings: number;
+            /** Id */
+            id: string;
+            /** Last Calculated At */
+            last_calculated_at?: string | null;
+            /** Last Seen At */
+            last_seen_at?: string | null;
+            /**
+             * Members
+             * @default 0
+             */
+            members: number;
+            /**
+             * Members Blocked
+             * @default 0
+             */
+            members_blocked: number;
+            /**
+             * Members List
+             * @default []
+             */
+            members_list: components["schemas"]["MemberOut"][];
+            /** Name */
+            name: string;
+            /**
+             * Projects
+             * @default 0
+             */
+            projects: number;
+            /**
+             * Subscriptions
+             * @default []
+             */
+            subscriptions: components["schemas"]["StaffSubscriptionOut"][];
+            /**
+             * Suspend Reason
+             * @default
+             */
+            suspend_reason: string;
+            /**
+             * Suspended
+             * @default false
+             */
+            suspended: boolean;
+            /** Suspended At */
+            suspended_at?: string | null;
+            /**
+             * Suspended By
+             * @default
+             */
+            suspended_by: string;
+        };
+        /**
+         * StaffOrgOut
+         * @description Организация-клиент: метаданные и объёмы.
+         *
+         *     ``last_calculated_at`` — когда в организации последний раз считали модель. Числа
+         *     расчётов нет: счётчика платформа не ведёт, а придуманное число хуже отсутствующего.
+         *     ``last_seen_at`` — когда кто-нибудь из участников последний раз работал; ``None``
+         *     означает «неизвестно», а не «никогда» (отметка появилась в A3).
+         */
+        StaffOrgOut: {
+            /**
+             * Cases
+             * @default 0
+             */
+            cases: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Groups
+             * @default 0
+             */
+            groups: number;
+            /**
+             * Holdings
+             * @default 0
+             */
+            holdings: number;
+            /** Id */
+            id: string;
+            /** Last Calculated At */
+            last_calculated_at?: string | null;
+            /** Last Seen At */
+            last_seen_at?: string | null;
+            /**
+             * Members
+             * @default 0
+             */
+            members: number;
+            /**
+             * Members Blocked
+             * @default 0
+             */
+            members_blocked: number;
+            /** Name */
+            name: string;
+            /**
+             * Projects
+             * @default 0
+             */
+            projects: number;
+            /**
+             * Subscriptions
+             * @default []
+             */
+            subscriptions: components["schemas"]["StaffSubscriptionOut"][];
+            /**
+             * Suspend Reason
+             * @default
+             */
+            suspend_reason: string;
+            /**
+             * Suspended
+             * @default false
+             */
+            suspended: boolean;
+            /** Suspended At */
+            suspended_at?: string | null;
+            /**
+             * Suspended By
+             * @default
+             */
+            suspended_by: string;
+        };
+        /** StaffOrgPage */
+        StaffOrgPage: {
+            /**
+             * Organizations
+             * @default []
+             */
+            organizations: components["schemas"]["StaffOrgOut"][];
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+        };
+        /**
+         * StaffPosition
+         * @description Штатная позиция: должность с окладом и численностью на период (SPEC §8).
+         *
+         *     Разворачивается движком в постоянную издержку персонала (I13–I15 по ``function``):
+         *     начисление = оклад × численность в месяцах ``[start_month, end_month)``
+         *     (``end_month=None`` → до конца горизонта). Взносы с ФОТ и индексация инфляцией
+         *     зарплаты применяются той же машинерией, что и к суммовым статьям персонала.
+         */
+        "StaffPosition-Input": {
+            /** End Month */
+            end_month?: number | null;
+            /** @default staff_admin */
+            function: components["schemas"]["CostFunction"];
+            /**
+             * Headcount
+             * @default 1
+             */
+            headcount: number | string;
+            /**
+             * Monthly Salary
+             * @default 0
+             */
+            monthly_salary: number | string;
+            /** Name */
+            name: string;
+            /**
+             * Payment Delay Months
+             * @default 0
+             */
+            payment_delay_months: number;
+            /**
+             * Start Month
+             * @default 0
+             */
+            start_month: number;
+        };
+        /**
+         * StaffPosition
+         * @description Штатная позиция: должность с окладом и численностью на период (SPEC §8).
+         *
+         *     Разворачивается движком в постоянную издержку персонала (I13–I15 по ``function``):
+         *     начисление = оклад × численность в месяцах ``[start_month, end_month)``
+         *     (``end_month=None`` → до конца горизонта). Взносы с ФОТ и индексация инфляцией
+         *     зарплаты применяются той же машинерией, что и к суммовым статьям персонала.
+         */
+        "StaffPosition-Output": {
+            /** End Month */
+            end_month?: number | null;
+            /** @default staff_admin */
+            function: components["schemas"]["CostFunction"];
+            /**
+             * Headcount
+             * @default 1
+             */
+            headcount: string;
+            /**
+             * Monthly Salary
+             * @default 0
+             */
+            monthly_salary: string;
+            /** Name */
+            name: string;
+            /**
+             * Payment Delay Months
+             * @default 0
+             */
+            payment_delay_months: number;
+            /**
+             * Start Month
+             * @default 0
+             */
+            start_month: number;
+        };
+        /**
+         * StaffSubscriptionOut
+         * @description Подписка организации на один продукт — взгляд оператора.
+         */
+        StaffSubscriptionOut: {
+            /** Current Period End */
+            current_period_end?: string | null;
+            /** Plan Code */
+            plan_code: string;
+            /** Plan Name */
+            plan_name: string;
+            /** Product */
+            product: string;
+            /** Status */
+            status: string;
+        };
+        /**
+         * StaffUserOrgOut
+         * @description Организация в карточке пользователя: роль и состояние доступа.
+         */
+        StaffUserOrgOut: {
+            /**
+             * Block Reason
+             * @default
+             */
+            block_reason: string;
+            /**
+             * Blocked
+             * @default false
+             */
+            blocked: boolean;
+            /** Id */
+            id: string;
+            /** Last Seen At */
+            last_seen_at?: string | null;
+            /** Name */
+            name: string;
+            /** Role */
+            role: string;
+        };
+        /**
+         * StaffUserOut
+         * @description Пользователь платформы: где состоит и в каком состоянии.
+         *
+         *     ``has_password`` отвечает на самый частый вопрос поддержки — «человек не может
+         *     войти»: у приглашённого пароля может не быть вовсе, и это не то же самое, что
+         *     забытый пароль. Самого хэша здесь, разумеется, нет.
+         */
+        StaffUserOut: {
+            /**
+             * Block Reason
+             * @default
+             */
+            block_reason: string;
+            /**
+             * Blocked
+             * @default false
+             */
+            blocked: boolean;
+            /** Blocked At */
+            blocked_at?: string | null;
+            /**
+             * Blocked By
+             * @default
+             */
+            blocked_by: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Email */
+            email: string;
+            /** Full Name */
+            full_name: string;
+            /**
+             * Has Password
+             * @default false
+             */
+            has_password: boolean;
+            /** Id */
+            id: string;
+            /**
+             * Is Staff
+             * @default false
+             */
+            is_staff: boolean;
+            /**
+             * Organizations
+             * @default []
+             */
+            organizations: components["schemas"]["StaffUserOrgOut"][];
+        };
+        /**
+         * Stage
+         * @description Этап календарного плана.
+         *
+         *     Стоимость = Σ(ресурс.quantity × Resource.unit_price), либо прямая ``cost`` при отсутствии
+         *     ресурсов. Занимает месяцы ``[start, start+duration)``; завершение = ``start+duration``.
+         *     ``predecessor_id`` (финиш→старт) и ``parent_id`` (иерархия) разрешаются в движке.
+         */
+        "Stage-Input": {
+            /** Actual Cost */
+            actual_cost?: number | string | null;
+            /** Actual Finish Month */
+            actual_finish_month?: number | null;
+            /** Actual Start Month */
+            actual_start_month?: number | null;
+            /**
+             * Amortize Months
+             * @default 0
+             */
+            amortize_months: number;
+            /** @default equipment */
+            asset_category: components["schemas"]["AssetCategory"];
+            /**
+             * Asset Life Months
+             * @default 12
+             */
+            asset_life_months: number;
+            /**
+             * Cost
+             * @default 0
+             */
+            cost: number | string;
+            /**
+             * Cost Timing
+             * @default uniform
+             * @enum {string}
+             */
+            cost_timing: "uniform" | "on_finish";
+            /**
+             * Duration Months
+             * @default 1
+             */
+            duration_months: number;
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @default expense
+             * @enum {string}
+             */
+            kind: "expense" | "asset" | "production";
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /** Parent Id */
+            parent_id?: string | null;
+            /** Predecessor Id */
+            predecessor_id?: string | null;
+            /** Product Id */
+            product_id?: string | null;
+            /** Resources */
+            resources?: components["schemas"]["StageResource-Input"][];
+            /**
+             * Start Month
+             * @default 0
+             */
+            start_month: number;
+        };
+        /**
+         * Stage
+         * @description Этап календарного плана.
+         *
+         *     Стоимость = Σ(ресурс.quantity × Resource.unit_price), либо прямая ``cost`` при отсутствии
+         *     ресурсов. Занимает месяцы ``[start, start+duration)``; завершение = ``start+duration``.
+         *     ``predecessor_id`` (финиш→старт) и ``parent_id`` (иерархия) разрешаются в движке.
+         */
+        "Stage-Output": {
+            /** Actual Cost */
+            actual_cost?: string | null;
+            /** Actual Finish Month */
+            actual_finish_month?: number | null;
+            /** Actual Start Month */
+            actual_start_month?: number | null;
+            /**
+             * Amortize Months
+             * @default 0
+             */
+            amortize_months: number;
+            /** @default equipment */
+            asset_category: components["schemas"]["AssetCategory"];
+            /**
+             * Asset Life Months
+             * @default 12
+             */
+            asset_life_months: number;
+            /**
+             * Cost
+             * @default 0
+             */
+            cost: string;
+            /**
+             * Cost Timing
+             * @default uniform
+             * @enum {string}
+             */
+            cost_timing: "uniform" | "on_finish";
+            /**
+             * Duration Months
+             * @default 1
+             */
+            duration_months: number;
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @default expense
+             * @enum {string}
+             */
+            kind: "expense" | "asset" | "production";
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /** Parent Id */
+            parent_id?: string | null;
+            /** Predecessor Id */
+            predecessor_id?: string | null;
+            /** Product Id */
+            product_id?: string | null;
+            /** Resources */
+            resources?: components["schemas"]["StageResource-Output"][];
+            /**
+             * Start Month
+             * @default 0
+             */
+            start_month: number;
+        };
+        /** StageBudgetOut */
+        StageBudgetOut: {
+            /** Actual Cost */
+            actual_cost?: string | null;
+            /** Actual Finish Month */
+            actual_finish_month?: number | null;
+            /** Actual Start Month */
+            actual_start_month?: number | null;
+            /** Cost */
+            cost: string;
+            /** Cost Variance */
+            cost_variance?: string | null;
+            /** Finish Month */
+            finish_month: number;
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /**
+             * Monthly
+             * @default []
+             */
+            monthly: string[];
+            /**
+             * Monthly Cash
+             * @default []
+             */
+            monthly_cash: string[];
+            /** Name */
+            name: string;
+            /** Schedule Variance Months */
+            schedule_variance_months?: number | null;
+            /** Start Month */
+            start_month: number;
+            /**
+             * Treatment
+             * @default none
+             */
+            treatment: string;
+        };
+        /**
+         * StageResource
+         * @description Потребление ресурса этапом: ссылка на ресурс и количество.
+         */
+        "StageResource-Input": {
+            /**
+             * Quantity
+             * @default 0
+             */
+            quantity: number | string;
+            /** Resource Id */
+            resource_id: string;
+        };
+        /**
+         * StageResource
+         * @description Потребление ресурса этапом: ссылка на ресурс и количество.
+         */
+        "StageResource-Output": {
+            /**
+             * Quantity
+             * @default 0
+             */
+            quantity: string;
+            /** Resource Id */
+            resource_id: string;
+        };
+        /**
          * StartingBalance
          * @description Начальное состояние действующего предприятия (на конец периода t = -1).
          */
         "StartingBalance-Input": {
+            /**
+             * Additional Capital
+             * @default 0
+             */
+            additional_capital: number | string;
+            /**
+             * Advances Received
+             * @default 0
+             */
+            advances_received: number | string;
             /**
              * Cash
              * @default 0
@@ -2528,6 +9541,16 @@ export interface components {
              */
             payables: number | string;
             /**
+             * Preferred Capital
+             * @default 0
+             */
+            preferred_capital: number | string;
+            /**
+             * Prepaid Expenses
+             * @default 0
+             */
+            prepaid_expenses: number | string;
+            /**
              * Raw Materials
              * @default 0
              */
@@ -2538,16 +9561,36 @@ export interface components {
              */
             receivables: number | string;
             /**
+             * Reserves
+             * @default 0
+             */
+            reserves: number | string;
+            /**
              * Retained Earnings
              * @default 0
              */
             retained_earnings: number | string;
+            /**
+             * Short Term Debt
+             * @default 0
+             */
+            short_term_debt: number | string;
         };
         /**
          * StartingBalance
          * @description Начальное состояние действующего предприятия (на конец периода t = -1).
          */
         "StartingBalance-Output": {
+            /**
+             * Additional Capital
+             * @default 0
+             */
+            additional_capital: string;
+            /**
+             * Advances Received
+             * @default 0
+             */
+            advances_received: string;
             /**
              * Cash
              * @default 0
@@ -2584,6 +9627,16 @@ export interface components {
              */
             payables: string;
             /**
+             * Preferred Capital
+             * @default 0
+             */
+            preferred_capital: string;
+            /**
+             * Prepaid Expenses
+             * @default 0
+             */
+            prepaid_expenses: string;
+            /**
              * Raw Materials
              * @default 0
              */
@@ -2594,34 +9647,150 @@ export interface components {
              */
             receivables: string;
             /**
+             * Reserves
+             * @default 0
+             */
+            reserves: string;
+            /**
              * Retained Earnings
              * @default 0
              */
             retained_earnings: string;
+            /**
+             * Short Term Debt
+             * @default 0
+             */
+            short_term_debt: string;
         };
         /** StatementOut */
         StatementOut: {
             /** Lines */
             lines: components["schemas"]["LineOut"][];
         };
-        /** SubscriptionOut */
+        /**
+         * Subscription
+         * @description Абонентская база: приток новых, отток действующих (SPEC §5).
+         *
+         *     Подписку планируют не объёмом продаж, а **базой**: сколько абонентов есть, сколько
+         *     приходит, сколько уходит. Объём месяца — это действующая база:
+         *
+         *         ``база[t] = база[t−1] · (1 − отток) + новые[t]``,   ``база[−1] = starting_base``
+         *
+         *     Отток задан **долей базы за месяц**: 0,03 — уходит 3% действующих. Ноль — допустимое
+         *     значение, но **не безобидное**: без оттока подписная модель красива всегда, потому что
+         *     база только растёт. Ревью плана говорит об этом отдельным предупреждением, а не
+         *     оставляет пользователя наедине с красивым графиком.
+         *
+         *     Выбытие считается **от базы начала месяца, до притока**: пришедший в этом месяце
+         *     абонент в этом же месяце не уходит. Обратный порядок дал бы отток с тех, кто ещё не
+         *     успел подписаться, — и занижал бы базу тем сильнее, чем быстрее рост.
+         */
+        "Subscription-Input": {
+            /**
+             * Churn Monthly
+             * @default 0
+             */
+            churn_monthly: number | string;
+            /** New Per Month */
+            new_per_month?: (number | string)[];
+            /**
+             * Starting Base
+             * @default 0
+             */
+            starting_base: number | string;
+        };
+        /**
+         * Subscription
+         * @description Абонентская база: приток новых, отток действующих (SPEC §5).
+         *
+         *     Подписку планируют не объёмом продаж, а **базой**: сколько абонентов есть, сколько
+         *     приходит, сколько уходит. Объём месяца — это действующая база:
+         *
+         *         ``база[t] = база[t−1] · (1 − отток) + новые[t]``,   ``база[−1] = starting_base``
+         *
+         *     Отток задан **долей базы за месяц**: 0,03 — уходит 3% действующих. Ноль — допустимое
+         *     значение, но **не безобидное**: без оттока подписная модель красива всегда, потому что
+         *     база только растёт. Ревью плана говорит об этом отдельным предупреждением, а не
+         *     оставляет пользователя наедине с красивым графиком.
+         *
+         *     Выбытие считается **от базы начала месяца, до притока**: пришедший в этом месяце
+         *     абонент в этом же месяце не уходит. Обратный порядок дал бы отток с тех, кто ещё не
+         *     успел подписаться, — и занижал бы базу тем сильнее, чем быстрее рост.
+         */
+        "Subscription-Output": {
+            /**
+             * Churn Monthly
+             * @default 0
+             */
+            churn_monthly: string;
+            /** New Per Month */
+            new_per_month?: string[];
+            /**
+             * Starting Base
+             * @default 0
+             */
+            starting_base: string;
+        };
+        /**
+         * SubscriptionBaseOut
+         * @description Абонентская база продукта по месяцам (SPEC §5): что вышло из притока и оттока.
+         */
+        SubscriptionBaseOut: {
+            /** Base */
+            base: string[];
+            /** Churned */
+            churned: string[];
+            /** Name */
+            name: string;
+            /** New */
+            new: string[];
+            /** Product Id */
+            product_id: string;
+        };
+        /**
+         * SubscriptionOut
+         * @description Подписка организации на один продукт: тариф, статус и использование квот.
+         */
         SubscriptionOut: {
             /** Current Period End */
             current_period_end?: string | null;
             /** Max Members */
             max_members?: number | null;
-            /** Max Projects */
-            max_projects?: number | null;
+            /** Max Units */
+            max_units?: number | null;
             /** Plan Code */
             plan_code: string;
             /** Plan Name */
             plan_name: string;
+            /**
+             * Price On Request
+             * @default false
+             */
+            price_on_request: boolean;
+            /**
+             * Price Rub
+             * @default 0
+             */
+            price_rub: number;
+            /**
+             * Product
+             * @default business
+             */
+            product: string;
             /** Status */
             status: string;
+            /**
+             * Unit Name
+             * @default проектов
+             */
+            unit_name: string;
             /** Used Members */
             used_members: number;
-            /** Used Projects */
-            used_projects: number;
+            /**
+             * Used Units
+             * @default 0
+             */
+            used_units: number;
         };
         /** SubscriptionUpdate */
         SubscriptionUpdate: {
@@ -2629,17 +9798,50 @@ export interface components {
             plan_code: string;
         };
         /**
+         * SuspendIn
+         * @description Причина приостановки организации или блокировки учётной записи.
+         *
+         *     Обязательна и показывается тому, кого ограничили: ограничение без причины
+         *     неотличимо от поломки — и для клиента, и для того, кто будет его снимать.
+         */
+        SuspendIn: {
+            /** Reason */
+            reason: string;
+        };
+        /**
          * Tax
-         * @description Настраиваемый налог. В v0 ключевые ставки берутся из ProjectSettings.
+         * @description Настраиваемый налог (SPEC §22.9): ставка × база, периодичность уплаты, отнесение.
+         *
+         *     База считается по показателям **до настраиваемых налогов** (предварительный прогон):
+         *     пресеты — выручка (I1), загруженный ФОТ (I6+I13+I14+I15), имущество (B13+B14),
+         *     прибыль (МАКС(I26, 0)) — либо произвольная формула языка формул (base='formula').
          */
         "Tax-Input": {
             /**
+             * Allocation
+             * @default expense
+             * @enum {string}
+             */
+            allocation: "expense" | "profit";
+            /**
              * Base
+             * @default revenue
+             * @enum {string}
+             */
+            base: "revenue" | "payroll" | "property" | "profit" | "formula";
+            /**
+             * Formula
              * @default
              */
-            base: string;
+            formula: string;
             /** Name */
             name: string;
+            /**
+             * Periodicity
+             * @default month
+             * @enum {string}
+             */
+            periodicity: "month" | "quarter" | "year";
             /**
              * Rate
              * @default 0
@@ -2648,46 +9850,250 @@ export interface components {
         };
         /**
          * Tax
-         * @description Настраиваемый налог. В v0 ключевые ставки берутся из ProjectSettings.
+         * @description Настраиваемый налог (SPEC §22.9): ставка × база, периодичность уплаты, отнесение.
+         *
+         *     База считается по показателям **до настраиваемых налогов** (предварительный прогон):
+         *     пресеты — выручка (I1), загруженный ФОТ (I6+I13+I14+I15), имущество (B13+B14),
+         *     прибыль (МАКС(I26, 0)) — либо произвольная формула языка формул (base='formula').
          */
         "Tax-Output": {
             /**
+             * Allocation
+             * @default expense
+             * @enum {string}
+             */
+            allocation: "expense" | "profit";
+            /**
              * Base
+             * @default revenue
+             * @enum {string}
+             */
+            base: "revenue" | "payroll" | "property" | "profit" | "formula";
+            /**
+             * Formula
              * @default
              */
-            base: string;
+            formula: string;
             /** Name */
             name: string;
+            /**
+             * Periodicity
+             * @default month
+             * @enum {string}
+             */
+            periodicity: "month" | "quarter" | "year";
             /**
              * Rate
              * @default 0
              */
             rate: string;
         };
-        /** TemplateInfo */
-        TemplateInfo: {
-            /** Description */
+        /**
+         * TemplateOut
+         * @description Шаблон быстрого старта: модель + **честный список допущений**.
+         *
+         *     Допущения едут вместе с шаблоном, а не лежат где-то рядом: числа в нём выдуманы,
+         *     и человек обязан узнать об этом там же, где увидит цифры. Базы отраслевых данных у
+         *     платформы нет — выдать пример за статистику значило бы соврать цифрой.
+         */
+        TemplateOut: {
+            /**
+             * Assumptions
+             * @default []
+             */
+            assumptions: string[];
+            /**
+             * Description
+             * @default
+             */
             description: string;
             /** Id */
             id: string;
+            /**
+             * Industry
+             * @default
+             */
+            industry: string;
             /** Name */
             name: string;
+            /**
+             * Shows
+             * @default
+             */
+            shows: string;
         };
         /** TokenResponse */
         TokenResponse: {
             /** Access Token */
             access_token: string;
             /**
+             * Notice
+             * @default
+             */
+            notice: string;
+            /**
              * Token Type
              * @default bearer
              */
             token_type: string;
+        };
+        /** TotpEnableIn */
+        TotpEnableIn: {
+            /** Code */
+            code: string;
+        };
+        /**
+         * TotpRecoveryOut
+         * @description Резервные коды — показываются **один раз**, как пароль.
+         *
+         *     Почты у платформы нет, значит письма «восстановите доступ» не будет: без этих кодов
+         *     потерянный телефон означал бы потерянную учётную запись. Поэтому они не «на всякий
+         *     случай», а единственный способ вернуться — кроме обращения к платформе.
+         */
+        TotpRecoveryOut: {
+            /**
+             * Codes
+             * @default []
+             */
+            codes: string[];
+        };
+        /**
+         * TotpSetupOut
+         * @description Начатая настройка второго фактора (C2).
+         *
+         *     ``secret`` показывается группами по четыре: его вводят руками — QR-кода платформа не
+         *     рисует, и это сказано на экране, а не скрыто. ``otpauth_uri`` читает приложение, если
+         *     страницу открыли на том же устройстве.
+         *
+         *     Второй фактор здесь ещё **не включён**: включение подтверждается кодом. Иначе
+         *     достаточно опечатки в приложении, чтобы человек остался снаружи своей учётной записи.
+         */
+        TotpSetupOut: {
+            /** Otpauth Uri */
+            otpauth_uri: string;
+            /** Secret */
+            secret: string;
+            /** Secret Grouped */
+            secret_grouped: string;
+        };
+        /** TotpStatusOut */
+        TotpStatusOut: {
+            /**
+             * Enabled
+             * @default false
+             */
+            enabled: boolean;
+            /**
+             * Pending
+             * @default false
+             */
+            pending: boolean;
+            /**
+             * Recommended
+             * @default false
+             */
+            recommended: boolean;
+            /**
+             * Recovery Left
+             * @default 0
+             */
+            recovery_left: number;
+        };
+        /**
+         * TransferOwnershipIn
+         * @description Кому передать владение организацией.
+         *
+         *     Появилось вместе с удалением учётной записи (C3): без передачи владелец не мог
+         *     воспользоваться правом уйти — организация без владельца это компания без того, кто
+         *     платит за тариф и управляет доступом.
+         */
+        TransferOwnershipIn: {
+            /** User Id */
+            user_id: string;
+        };
+        /**
+         * UncertainAssumption
+         * @description Допущение, объявленное неопределённым, и распределение его коэффициента.
+         */
+        "UncertainAssumption-Input": {
+            distribution?: components["schemas"]["RiskDistribution-Input"];
+            /**
+             * Param
+             * @default wacc
+             * @enum {string}
+             */
+            param: "wacc" | "terminal_growth" | "tax_rate" | "growth" | "capex" | "nwc_change";
+        };
+        /**
+         * UncertainAssumption
+         * @description Допущение, объявленное неопределённым, и распределение его коэффициента.
+         */
+        "UncertainAssumption-Output": {
+            distribution?: components["schemas"]["RiskDistribution-Output"];
+            /**
+             * Param
+             * @default wacc
+             * @enum {string}
+             */
+            param: "wacc" | "terminal_growth" | "tax_rate" | "growth" | "capex" | "nwc_change";
         };
         /** UncertainParamIn */
         UncertainParamIn: {
             distribution: components["schemas"]["DistributionIn"];
             /** Param */
             param: string;
+        };
+        /**
+         * UsagePolicyOut
+         * @description Что платформа собирает о пользовании — человеку, а не в документации.
+         *
+         *     Скрытая аналитика в продукте, который печатает свои отказы, была бы двойным
+         *     стандартом: тот же экран, где человек забирает свои данные и удаляет учётную запись,
+         *     обязан отвечать и на вопрос «что вы обо мне знаете».
+         */
+        UsagePolicyOut: {
+            /**
+             * Collecting
+             * @default false
+             */
+            collecting: boolean;
+            /**
+             * Events
+             * @default {}
+             */
+            events: {
+                [key: string]: string;
+            };
+            /**
+             * Excluded
+             * @default []
+             */
+            excluded: string[];
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /**
+         * UserMetric
+         * @description Пользовательский показатель: имя + формула над строками аналитической формы.
+         *
+         *     Формула — язык формул платформы (тот же, что в таблицах первого продукта). Доступны
+         *     коды строк аналитической формы (``A_*``/``P_*``/``I_*``/``M_*``) и ``N`` — число
+         *     периодов. Ошибка формулы не роняет анализ: показатель получает сообщение и нули.
+         */
+        UserMetric: {
+            /**
+             * Formula
+             * @default
+             */
+            formula: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
         };
         /** UserOut */
         UserOut: {
@@ -2697,6 +10103,69 @@ export interface components {
             full_name: string;
             /** Id */
             id: string;
+            /**
+             * Is Staff
+             * @default false
+             */
+            is_staff: boolean;
+        };
+        /**
+         * UserRow
+         * @description Строка таблицы: имя + формула над кодами строк отчётов (I1…, C1…, B1…, P1…, N).
+         */
+        UserRow: {
+            /**
+             * Formula
+             * @default
+             */
+            formula: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+        };
+        /**
+         * UserRowOut
+         * @description Вычисленная строка таблицы пользователя (при ошибке формулы — error + нули).
+         */
+        UserRowOut: {
+            /** Error */
+            error?: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Values
+             * @default []
+             */
+            values: string[];
+        };
+        /**
+         * UserTable
+         * @description Пользовательская таблица: набор строк-формул.
+         */
+        UserTable: {
+            /** Id */
+            id: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /** Rows */
+            rows?: components["schemas"]["UserRow"][];
+        };
+        /** UserTableOut */
+        UserTableOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Rows
+             * @default []
+             */
+            rows: components["schemas"]["UserRowOut"][];
         };
         /** ValidationError */
         ValidationError: {
@@ -2710,6 +10179,114 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /**
+         * ValuationAssumptions
+         * @description Допущения оценки (SPEC, Приложение П): всё вводится, ничего не выводится.
+         *
+         *     Дисконтированный поток строится по будущему, а в деле есть только прошлое.
+         *     Экстраполировать выручку «как росла, так и будет» значило бы выдать регрессию за
+         *     прогноз, поэтому рост, капвложения и изменение оборотного капитала задаёт человек.
+         *
+         *     Связь с проверкой одна и главная: база прогноза — **нормализованный** EBIT
+         *     последнего периода (Прил. К), ради чего нормализация и делалась.
+         *
+         *     ``asking_price`` — цена продавца. ``None`` значит «не введена», и тогда дисконта
+         *     **не существует**: величина без второго операнда — не ноль процентов.
+         */
+        "ValuationAssumptions-Input": {
+            /** Asking Price */
+            asking_price?: number | string | null;
+            /** Capex */
+            capex?: (number | string)[];
+            /**
+             * Enabled
+             * @default false
+             */
+            enabled: boolean;
+            /** Growth */
+            growth?: (number | string)[];
+            /**
+             * Horizon Years
+             * @default 5
+             */
+            horizon_years: number;
+            /**
+             * Minority Interest
+             * @default 0
+             */
+            minority_interest: number | string;
+            /** Nwc Change */
+            nwc_change?: (number | string)[];
+            /**
+             * Tax Rate
+             * @default 0.20
+             */
+            tax_rate: number | string;
+            /**
+             * Terminal Growth
+             * @default 0.03
+             */
+            terminal_growth: number | string;
+            /**
+             * Wacc
+             * @default 0.20
+             */
+            wacc: number | string;
+        };
+        /**
+         * ValuationAssumptions
+         * @description Допущения оценки (SPEC, Приложение П): всё вводится, ничего не выводится.
+         *
+         *     Дисконтированный поток строится по будущему, а в деле есть только прошлое.
+         *     Экстраполировать выручку «как росла, так и будет» значило бы выдать регрессию за
+         *     прогноз, поэтому рост, капвложения и изменение оборотного капитала задаёт человек.
+         *
+         *     Связь с проверкой одна и главная: база прогноза — **нормализованный** EBIT
+         *     последнего периода (Прил. К), ради чего нормализация и делалась.
+         *
+         *     ``asking_price`` — цена продавца. ``None`` значит «не введена», и тогда дисконта
+         *     **не существует**: величина без второго операнда — не ноль процентов.
+         */
+        "ValuationAssumptions-Output": {
+            /** Asking Price */
+            asking_price?: string | null;
+            /** Capex */
+            capex?: string[];
+            /**
+             * Enabled
+             * @default false
+             */
+            enabled: boolean;
+            /** Growth */
+            growth?: string[];
+            /**
+             * Horizon Years
+             * @default 5
+             */
+            horizon_years: number;
+            /**
+             * Minority Interest
+             * @default 0
+             */
+            minority_interest: string;
+            /** Nwc Change */
+            nwc_change?: string[];
+            /**
+             * Tax Rate
+             * @default 0.20
+             */
+            tax_rate: string;
+            /**
+             * Terminal Growth
+             * @default 0.03
+             */
+            terminal_growth: string;
+            /**
+             * Wacc
+             * @default 0.20
+             */
+            wacc: string;
         };
         /** ValuationOut */
         ValuationOut: {
@@ -2730,6 +10307,85 @@ export interface components {
          * @enum {string}
          */
         VatBasis: "shipment" | "payment";
+        /**
+         * VersionCreate
+         * @description Запрос снимка текущей модели как именованной версии.
+         */
+        VersionCreate: {
+            /**
+             * Label
+             * @default
+             */
+            label: string;
+        };
+        /**
+         * VersionDiffOut
+         * @description Анализ изменений: диф модели (листовые пути) + диф заголовочных показателей.
+         */
+        VersionDiffOut: {
+            /** Against */
+            against: string;
+            /** Base Id */
+            base_id: string;
+            /**
+             * Metric Changes
+             * @default []
+             */
+            metric_changes: components["schemas"]["MetricChangeOut"][];
+            /**
+             * Model Changes
+             * @default []
+             */
+            model_changes: components["schemas"]["ModelChangeOut"][];
+            /**
+             * Model Changes Truncated
+             * @default false
+             */
+            model_changes_truncated: boolean;
+        };
+        /**
+         * VersionOut
+         * @description Версия с полной моделью снимка.
+         */
+        VersionOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Engine Version */
+            engine_version?: string | null;
+            /** Id */
+            id: string;
+            /** Irr Annual */
+            irr_annual?: string | null;
+            /** Label */
+            label: string;
+            model: components["schemas"]["ProjectModel-Output"];
+            /** Npv */
+            npv?: string | null;
+        };
+        /**
+         * VersionSummary
+         * @description Метаданные версии (без модели): для списка версий проекта.
+         */
+        VersionSummary: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Engine Version */
+            engine_version?: string | null;
+            /** Id */
+            id: string;
+            /** Irr Annual */
+            irr_annual?: string | null;
+            /** Label */
+            label: string;
+            /** Npv */
+            npv?: string | null;
+        };
         /** WhatIfRequest */
         WhatIfRequest: {
             /**
@@ -2757,6 +10413,431 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    read_staff_log_api_v1_admin_log_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                actor?: string;
+                org_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffLogPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_metrics_api_v1_admin_metrics_get: {
+        parameters: {
+            query?: {
+                months?: number;
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformMetricsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_metrics_api_v1_admin_metrics_csv_get: {
+        parameters: {
+            query?: {
+                months?: number;
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_organizations_api_v1_admin_organizations_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffOrgPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_organization_api_v1_admin_organizations__org_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffOrgDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_audit_log_api_v1_admin_organizations__org_id__audit_log_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                actor?: string;
+                action?: string;
+                since?: string | null;
+                until?: string | null;
+                q?: string;
+            };
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    suspend_organization_api_v1_admin_organizations__org_id__suspend_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SuspendIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffOrgDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resume_organization_api_v1_admin_organizations__org_id__suspend_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffOrgDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_users_api_v1_admin_users_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffUserOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_user_api_v1_admin_users__user_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffUserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    block_user_api_v1_admin_users__user_id__block_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SuspendIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffUserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unblock_user_api_v1_admin_users__user_id__block_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffUserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reset_user_totp_api_v1_admin_users__user_id__totp_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffUserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     job_status_api_v1_analysis_jobs__job_id__get: {
         parameters: {
             query?: never;
@@ -2777,6 +10858,1043 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    compare_api_v1_audit_compare_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuditCompareRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditCompareResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    consolidate_api_v1_audit_consolidate_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuditConsolidateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditConsolidateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_groups_api_v1_audit_groups_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditGroupSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_group_api_v1_audit_groups_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuditGroupCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditGroupOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_group_api_v1_audit_groups__group_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                group_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditGroupOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_group_api_v1_audit_groups__group_id__put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                group_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuditGroupUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditGroupOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_group_api_v1_audit_groups__group_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                group_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    analyze_group_api_v1_audit_groups__group_id__analyze_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                group_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditConsolidateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_subjects_api_v1_audit_subjects_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditSubjectSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_subject_api_v1_audit_subjects_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuditSubjectCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditSubjectOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_demo_subject_api_v1_audit_subjects_demo_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditSubjectOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_subject_api_v1_audit_subjects__subject_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditSubjectOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_subject_api_v1_audit_subjects__subject_id__put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuditSubjectUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditSubjectOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_subject_api_v1_audit_subjects__subject_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    analyze_subject_api_v1_audit_subjects__subject_id__analyze_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditAnalysisOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_case_comments_api_v1_audit_subjects__subject_id__comments_get: {
+        parameters: {
+            query?: {
+                anchor?: string | null;
+            };
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommentOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_case_comment_api_v1_audit_subjects__subject_id__comments_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommentCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommentCreated"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    duplicate_subject_api_v1_audit_subjects__subject_id__duplicate_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditSubjectOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_report_api_v1_audit_subjects__subject_id__report_docx_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    analyze_subject_risk_api_v1_audit_subjects__subject_id__risk_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditRiskOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_versions_api_v1_audit_subjects__subject_id__versions_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditVersionSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_version_api_v1_audit_subjects__subject_id__versions_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VersionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditVersionSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_version_api_v1_audit_subjects__subject_id__versions__version_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditVersionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_version_api_v1_audit_subjects__subject_id__versions__version_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    diff_version_api_v1_audit_subjects__subject_id__versions__version_id__diff_get: {
+        parameters: {
+            query?: {
+                against?: string;
+            };
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditVersionDiffOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_version_api_v1_audit_subjects__subject_id__versions__version_id__restore_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditSubjectOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    activate_api_v1_auth_activate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActivateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    capabilities_api_v1_auth_capabilities_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CapabilitiesOut"];
+                };
+            };
+        };
+    };
+    delete_my_account_api_v1_auth_delete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordConfirmIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletionPlanOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_deletion_api_v1_auth_delete_preview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletionPlanOut"];
+                };
+            };
+        };
+    };
+    export_my_data_api_v1_auth_export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    forgot_password_api_v1_auth_forgot_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgotPasswordIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgotPasswordOut"];
                 };
             };
             /** @description Validation Error */
@@ -2843,6 +11961,90 @@ export interface operations {
             };
         };
     };
+    update_me_api_v1_auth_me_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_password_api_v1_auth_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordChange"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    password_policy_api_v1_auth_password_policy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasswordPolicyOut"];
+                };
+            };
+        };
+    };
     register_api_v1_auth_register_post: {
         parameters: {
             query?: never;
@@ -2872,6 +12074,232 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_sessions_api_v1_auth_sessions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionOut"][];
+                };
+            };
+        };
+    };
+    revoke_all_sessions_api_v1_auth_sessions_revoke_all_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevokeAllOut"];
+                };
+            };
+        };
+    };
+    revoke_session_api_v1_auth_sessions__session_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    totp_status_api_v1_auth_totp_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TotpStatusOut"];
+                };
+            };
+        };
+    };
+    totp_disable_api_v1_auth_totp_disable_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordConfirmIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    totp_enable_api_v1_auth_totp_enable_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TotpEnableIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TotpRecoveryOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    totp_new_recovery_codes_api_v1_auth_totp_recovery_codes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordConfirmIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TotpRecoveryOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    totp_setup_api_v1_auth_totp_setup_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TotpSetupOut"];
+                };
+            };
+        };
+    };
+    usage_policy_api_v1_auth_usage_policy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsagePolicyOut"];
                 };
             };
         };
@@ -2918,6 +12346,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CalcResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_api_v1_comments__comment_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                comment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_api_v1_comments__comment_id__resolve_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                comment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reopen_api_v1_comments__comment_id__resolve_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                comment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommentOut"];
                 };
             };
             /** @description Validation Error */
@@ -3322,6 +12849,310 @@ export interface operations {
             };
         };
     };
+    read_activity_api_v1_organizations__org_id__activity_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_keys_api_v1_organizations__org_id__api_keys_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiKeyOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_key_api_v1_organizations__org_id__api_keys_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApiKeyCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiKeyCreated"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    key_scope_api_v1_organizations__org_id__api_keys_scope_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_key_api_v1_organizations__org_id__api_keys__key_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key_id: string;
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiKeyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_audit_log_api_v1_organizations__org_id__audit_log_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                before?: string | null;
+                actor?: string;
+                action?: string;
+                entity_type?: string;
+                since?: string | null;
+                until?: string | null;
+                q?: string;
+            };
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_audit_log_api_v1_organizations__org_id__audit_log_csv_get: {
+        parameters: {
+            query?: {
+                actor?: string;
+                action?: string;
+                entity_type?: string;
+                since?: string | null;
+                until?: string | null;
+                q?: string;
+            };
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_benchmarks_api_v1_organizations__org_id__benchmarks_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BenchmarkOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replace_benchmarks_api_v1_organizations__org_id__benchmarks_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BenchmarkIn"][];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BenchmarkOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     checkout_api_v1_organizations__org_id__billing_checkout_post: {
         parameters: {
             query?: never;
@@ -3344,6 +13175,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CheckoutResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_checklists_api_v1_organizations__org_id__checklists_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChecklistOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replace_checklists_api_v1_organizations__org_id__checklists_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChecklistIn"][];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChecklistOut"][];
                 };
             };
             /** @description Validation Error */
@@ -3489,9 +13386,111 @@ export interface operations {
             };
         };
     };
-    get_subscription_api_v1_organizations__org_id__subscription_get: {
+    issue_access_link_api_v1_organizations__org_id__members__user_id__access_link_post: {
         parameters: {
             query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessLinkOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    block_member_api_v1_organizations__org_id__members__user_id__block_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberBlockIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unblock_member_api_v1_organizations__org_id__members__user_id__block_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_subscription_api_v1_organizations__org_id__subscription_get: {
+        parameters: {
+            query?: {
+                product?: string;
+            };
             header?: never;
             path: {
                 org_id: string;
@@ -3555,9 +13554,77 @@ export interface operations {
             };
         };
     };
-    list_plans_api_v1_plans_get: {
+    get_subscriptions_api_v1_organizations__org_id__subscriptions_get: {
         parameters: {
             query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    transfer_ownership_api_v1_organizations__org_id__transfer_ownership_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferOwnershipIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_plans_api_v1_plans_get: {
+        parameters: {
+            query?: {
+                product?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3571,6 +13638,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlanOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -3628,6 +13704,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portfolio_api_v1_projects_portfolio_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioOut"];
                 };
             };
             /** @description Validation Error */
@@ -3742,6 +13849,72 @@ export interface operations {
             };
         };
     };
+    project_budget_api_v1_projects__project_id__budget_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BudgetOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    business_plan_docx_api_v1_projects__project_id__business_plan_docx_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     calculate_project_api_v1_projects__project_id__calculate_post: {
         parameters: {
             query?: never;
@@ -3775,6 +13948,78 @@ export interface operations {
             };
         };
     };
+    list_project_comments_api_v1_projects__project_id__comments_get: {
+        parameters: {
+            query?: {
+                anchor?: string | null;
+            };
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommentOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_project_comment_api_v1_projects__project_id__comments_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommentCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommentCreated"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     duplicate_project_api_v1_projects__project_id__duplicate_post: {
         parameters: {
             query?: never;
@@ -3795,6 +14040,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finalize_project_api_v1_projects__project_id__finalize_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FinalizeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinalizeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    project_methodology_api_v1_projects__project_id__methodology_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MethodologyResponse"];
                 };
             };
             /** @description Validation Error */
@@ -3882,6 +14197,41 @@ export interface operations {
             };
         };
     };
+    review_project_api_v1_projects__project_id__review_get: {
+        parameters: {
+            query?: {
+                deep?: boolean;
+            };
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     sensitivity_api_v1_projects__project_id__sensitivity_post: {
         parameters: {
             query?: never;
@@ -3906,6 +14256,212 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SensitivityResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_versions_api_v1_projects__project_id__versions_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_version_api_v1_projects__project_id__versions_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VersionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_version_api_v1_projects__project_id__versions__version_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_version_api_v1_projects__project_id__versions__version_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    diff_version_api_v1_projects__project_id__versions__version_id__diff_get: {
+        parameters: {
+            query?: {
+                against?: string;
+            };
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionDiffOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_version_api_v1_projects__project_id__versions__version_id__restore_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectOut"];
                 };
             };
             /** @description Validation Error */
@@ -3991,7 +14547,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TemplateInfo"][];
+                    "application/json": components["schemas"]["TemplateOut"][];
                 };
             };
         };

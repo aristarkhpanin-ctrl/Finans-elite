@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  input,button{font-family:inherit;}
+  input::placeholder{color:inherit;opacity:.4;}
+  a{color:#C77DFF;}
+  a:hover{color:#D69AFF;}
+  @keyframes fa-pulse{from{opacity:.4}to{opacity:1}}
+  @keyframes fa-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes fa-grow-x{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:11px;min-width:0;">
+      <div style="{{ s.barCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="30px,30px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Экран 15 · Доступ и профиль</span>
+        <span style="{{ s.barSub }}">приглашение · профиль · восстановление пароля</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Свет</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тьма</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Сценарий</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segInvite }}" onClick="{{ setInvite }}">Приглашение</button><button style="{{ s.segProfile }}" onClick="{{ setProfile }}">Профиль</button><button style="{{ s.segReset }}" onClick="{{ setReset }}">Пароль</button></div>
+      </div>
+    </div>
+  </div>
+
+  <sc-if value="{{ isInvite }}" hint-placeholder-val="{{ true }}">
+  <div style="{{ s.stage }}">
+    <div style="{{ s.authFrame }}" data-screen-label="Экран 15 — Приглашение">
+      <div style="{{ s.authGrid }}">
+
+        <div style="{{ s.authForm }}">
+          <div style="{{ s.authTop }}">
+            <div style="{{ s.authCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" style="width:100%;height:100%" hint-size="52px,52px"></dc-import></div>
+            <span style="{{ s.authBrand }}">Финанс&nbsp;Аудит</span>
+          </div>
+          <div style="{{ s.eyebrow }}"><span style="{{ s.eyebrowDot }}"></span>ПРИГЛАШЕНИЕ ДЕЙСТВИТЕЛЬНО 7 ДНЕЙ</div>
+          <div style="{{ s.authH1 }}">Марина Королёва приглашает вас в проверку</div>
+          <div style="{{ s.authLead }}">Вы войдёте в пространство ООО «Инвест-Партнёр» как аналитик и сразу попадёте в дело A-2417. Пароль задаёте вы — приглашающий его не видит.</div>
+
+          <div style="{{ s.fieldList }}">
+            <div style="{{ s.field }}">
+              <label style="{{ s.label }}">Почта</label>
+              <div style="{{ s.inputLocked }}"><span style="{{ s.lockedText }}">d.lapin@invest-partner.ru</span><span style="{{ s.lockedNote }}">из приглашения</span></div>
+            </div>
+            <div style="{{ s.field }}">
+              <label style="{{ s.label }}">Как вас представить команде</label>
+              <input style="{{ s.input }}" style-focus="{{ s.inputFocus }}" value="Дмитрий Лапин">
+            </div>
+            <div style="{{ s.field }}">
+              <label style="{{ s.label }}">Пароль</label>
+              <input style="{{ s.input }}" style-focus="{{ s.inputFocus }}" type="password" value="••••••••••••">
+              <div style="{{ s.strengthRow }}">
+                <sc-for list="{{ strength }}" as="st" hint-placeholder-count="4"><div style="{{ st.style }}"></div></sc-for>
+              </div>
+              <div style="{{ s.hint }}">Надёжный · 12 символов, цифры и регистр</div>
+            </div>
+          </div>
+
+          <div style="{{ s.checkRow }}">
+            <span style="{{ s.checkBox }}">✓</span>
+            <span style="{{ s.checkText }}">Согласен с обработкой персональных данных и режимом конфиденциальности дела</span>
+          </div>
+
+          <button style="{{ s.btnPrimaryWide }}" style-hover="{{ s.btnPrimaryHover }}">Принять приглашение и войти</button>
+          <div style="{{ s.authFoot }}">Приглашение не ваше? <a href="#">Сообщите об ошибке</a> — доступ будет отозван.</div>
+        </div>
+
+        <div style="{{ s.authSide }}">
+          <div style="{{ s.sideBeam }}"></div>
+          <div style="{{ s.sideInner }}">
+            <div style="{{ s.sideEyebrow }}">ЧТО ВАС ЖДЁТ</div>
+            <div style="{{ s.sideCaseName }}">ООО «Сибтранс-Логистика»</div>
+            <div style="{{ s.sideCaseMeta }}">дело A-2417 · грузоперевозки · проверка идёт 6-й день</div>
+
+            <div style="{{ s.sideStats }}">
+              <sc-for list="{{ inviteStats }}" as="st" hint-placeholder-count="3">
+              <div style="{{ s.sideStat }}"><div style="{{ s.sideStatLabel }}">{{ st.label }}</div><div style="{{ st.valueStyle }}">{{ st.value }}</div></div>
+              </sc-for>
+            </div>
+
+            <div style="{{ s.sideBlock }}">
+              <div style="{{ s.sideBlockHead }}">Ваша роль — аналитик</div>
+              <sc-for list="{{ rolePerms }}" as="p" hint-placeholder-count="4">
+              <div style="{{ s.permRow }}"><span style="{{ p.markStyle }}">{{ p.mark }}</span><span style="{{ s.permText }}">{{ p.text }}</span></div>
+              </sc-for>
+            </div>
+
+            <div style="{{ s.sideBlock }}">
+              <div style="{{ s.sideBlockHead }}">Кто уже в деле</div>
+              <sc-for list="{{ team }}" as="p" hint-placeholder-count="3">
+              <div style="{{ s.teamRow }}"><span style="{{ p.avatarStyle }}">{{ p.initials }}</span><span style="{{ s.teamBody }}"><span style="{{ s.teamName }}">{{ p.name }}</span><span style="{{ s.teamRole }}">{{ p.role }}</span></span></div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isProfile }}" hint-placeholder-val="{{ false }}">
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}" data-screen-label="Экран 15 — Профиль">
+
+      <div style="{{ s.nav }}">
+        <div style="{{ s.navLeft }}">
+          <div style="{{ s.navCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="24px,24px"></dc-import></div>
+          <span style="{{ s.navBrand }}">Финанс&nbsp;Аудит</span>
+          <div style="{{ s.navTabs }}">
+            <sc-for list="{{ navTabs }}" as="n" hint-placeholder-count="4"><span style="{{ n.style }}">{{ n.label }}</span></sc-for>
+          </div>
+        </div>
+        <div style="{{ s.navRight }}">
+          <span style="{{ s.navCase }}">ООО «ИНВЕСТ-ПАРТНЁР»</span>
+          <span style="{{ s.navAvatar }}">ДЛ</span>
+        </div>
+      </div>
+
+      <div style="{{ s.subhead }}">
+        <div style="min-width:0;">
+          <div style="{{ s.h1 }}">Профиль</div>
+          <div style="{{ s.h1Sub }}">Имя видят коллеги в журнале и в составе дела. Почту менять нельзя — она привязана к приглашению.</div>
+        </div>
+      </div>
+
+      <div style="{{ s.main }}">
+        <div style="{{ s.col }}">
+          <div style="{{ s.panel }}">
+            <div style="{{ s.panelHead }}"><span style="{{ s.panelTitle }}">Кто вы в системе</span><span style="{{ s.panelMeta }}">аналитик · с 04.02.2026</span></div>
+            <div style="{{ s.profRow }}">
+              <span style="{{ s.profAvatar }}">ДЛ</span>
+              <div style="{{ s.profFields }}">
+                <div style="{{ s.field }}">
+                  <label style="{{ s.label }}">Имя и фамилия</label>
+                  <input style="{{ s.input }}" style-focus="{{ s.inputFocus }}" value="Дмитрий Лапин">
+                </div>
+                <div style="{{ s.field }}">
+                  <label style="{{ s.label }}">Почта</label>
+                  <div style="{{ s.inputLocked }}"><span style="{{ s.lockedText }}">d.lapin@invest-partner.ru</span><span style="{{ s.lockedNote }}">нельзя изменить</span></div>
+                </div>
+              </div>
+            </div>
+            <div style="{{ s.actionRow }}">
+              <button style="{{ s.btnPrimary }}" style-hover="{{ s.btnPrimaryHover }}">Сохранить</button>
+              <span style="{{ s.savedNote }}">Изменения попадут в журнал доступа</span>
+            </div>
+          </div>
+
+          <div style="{{ s.panel }}">
+            <div style="{{ s.panelHead }}"><span style="{{ s.panelTitle }}">Пароль</span><span style="{{ s.panelMeta }}">изменён 4 месяца назад</span></div>
+            <div style="{{ s.pwGrid }}">
+              <div style="{{ s.field }}"><label style="{{ s.label }}">Текущий</label><input style="{{ s.input }}" style-focus="{{ s.inputFocus }}" type="password" placeholder="••••••••"></div>
+              <div style="{{ s.field }}"><label style="{{ s.label }}">Новый</label><input style="{{ s.input }}" style-focus="{{ s.inputFocus }}" type="password" placeholder="от 10 символов"></div>
+              <div style="{{ s.field }}"><label style="{{ s.label }}">Ещё раз</label><input style="{{ s.input }}" style-focus="{{ s.inputFocus }}" type="password" placeholder="повторите"></div>
+            </div>
+            <button style="{{ s.btnGhostSm }}" style-hover="{{ s.btnGhostHover }}">Изменить пароль</button>
+          </div>
+
+          <div style="{{ s.panel }}">
+            <div style="{{ s.panelHead }}"><span style="{{ s.panelTitle }}">Активные входы</span><span style="{{ s.panelMeta }}">хранятся в журнале 5 лет</span></div>
+            <div style="{{ s.sessList }}">
+              <sc-for list="{{ sessions }}" as="ss" hint-placeholder-count="3">
+              <div style="{{ s.sessRow }}">
+                <span style="{{ ss.dotStyle }}"></span>
+                <span style="{{ s.sessBody }}"><span style="{{ s.sessName }}">{{ ss.device }}</span><span style="{{ s.sessMeta }}">{{ ss.meta }}</span></span>
+                <span style="{{ ss.stateStyle }}">{{ ss.state }}</span>
+              </div>
+              </sc-for>
+            </div>
+            <button style="{{ s.btnDanger }}" style-hover="{{ s.btnDangerHover }}">Выйти на всех устройствах</button>
+          </div>
+        </div>
+
+        <div style="{{ s.aside }}">
+          <div style="{{ s.card }}">
+            <div style="{{ s.cardHead }}">Ваш доступ</div>
+            <sc-if value="{{ true }}" hint-placeholder-val="{{ true }}">
+            <sc-for list="{{ accessRows }}" as="a" hint-placeholder-count="4">
+            <div style="{{ s.kvRow }}"><span style="{{ s.kvKey }}">{{ a.key }}</span><span style="{{ a.valueStyle }}">{{ a.value }}</span></div>
+            </sc-for>
+            </sc-if>
+          </div>
+          <div style="{{ s.card }}">
+            <div style="{{ s.cardHead }}">Уведомления</div>
+            <sc-for list="{{ notifs }}" as="n" hint-placeholder-count="4">
+            <div style="{{ s.notifRow }}"><span style="{{ s.notifText }}">{{ n.label }}</span><span style="{{ n.switchStyle }}"><span style="{{ n.knobStyle }}"></span></span></div>
+            </sc-for>
+          </div>
+          <div style="{{ s.cardWarn }}">
+            <div style="{{ s.warnEyebrow }}">ВНИМАНИЕ</div>
+            <div style="{{ s.warnTitle }}">Вход из нового города</div>
+            <div style="{{ s.warnLead }}">23.08 в 21:14 был вход из Екатеринбурга. Если это не вы — смените пароль и сообщите администратору.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isReset }}" hint-placeholder-val="{{ false }}">
+  <div style="{{ s.stage }}">
+    <div style="{{ s.resetWrap }}" data-screen-label="Экран 15 — Восстановление пароля">
+      <sc-for list="{{ resetSteps }}" as="st" hint-placeholder-count="3">
+      <div style="{{ st.cardStyle }}">
+        <div style="{{ s.stepTop }}"><span style="{{ st.numStyle }}">{{ st.num }}</span><span style="{{ st.chipStyle }}">{{ st.tag }}</span></div>
+        <div style="{{ s.stepTitle }}">{{ st.title }}</div>
+        <div style="{{ s.stepLead }}">{{ st.lead }}</div>
+        <div style="{{ s.stepBody }}">
+          <sc-if value="{{ st.hasInput }}" hint-placeholder-val="{{ true }}">
+          <div style="{{ s.field }}"><label style="{{ s.label }}">{{ st.inputLabel }}</label><input style="{{ s.input }}" style-focus="{{ s.inputFocus }}" placeholder="{{ st.inputPlaceholder }}"></div>
+          </sc-if>
+          <sc-if value="{{ st.hasSecond }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.field }}"><label style="{{ s.label }}">Ещё раз</label><input style="{{ s.input }}" style-focus="{{ s.inputFocus }}" type="password" placeholder="повторите пароль"></div>
+          </sc-if>
+          <sc-if value="{{ st.hasMailIcon }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.mailBox }}">
+            <div style="{{ s.mailFrom }}">Финанс Аудит</div>
+            <div style="{{ s.mailSubj }}">Восстановление доступа</div>
+            <div style="{{ s.mailBody }}">Ссылка действует 30 минут. Если вы не запрашивали смену пароля — просто удалите письмо.</div>
+          </div>
+          </sc-if>
+        </div>
+        <button style="{{ st.btnStyle }}" style-hover="{{ s.btnPrimaryHover }}">{{ st.btn }}</button>
+        <div style="{{ s.stepFoot }}">{{ st.foot }}</div>
+      </div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { theme:'dark', device:'desktop', view:'invite' };
+
+  THEME(){
+    const dark={
+      pageBg:'#000000', bg:'#000000', surface:'#0E0B14', surface2:'#171122', surface3:'#241A38',
+      border:'#2B2140', borderStrong:'#4B3A6E', gridLine:'#191324',
+      text:'#F2E8FF', muted:'#9C8FB5', subtle:'#6A5C86',
+      primary:'#C77DFF', primaryHover:'#D69AFF', primaryText:'#17061F', accent:'#C77DFF',
+      primaryBg:'rgba(199,125,255,0.15)', primarySoft:'rgba(199,125,255,0.09)',
+      goodBg:'rgba(199,125,255,0.15)', goodBorder:'rgba(199,125,255,0.34)',
+      danger:'#F0796E', dangerBg:'rgba(240,121,110,0.15)', dangerBorder:'rgba(240,121,110,0.34)',
+      warn:'#E0A23A', warnBg:'rgba(224,162,58,0.16)', warnBorder:'rgba(224,162,58,0.32)',
+      ring:'rgba(199,125,255,0.40)',
+      shadow:'0 30px 70px -34px rgba(0,0,0,.9)', glow:'0 0 18px rgba(199,125,255,.35)',
+      barBg:'#0A0710', segBg:'#0A0710', segActiveBg:'#241A38', headerBg:'#0E0B14',
+      sideBg:'radial-gradient(ellipse 80% 90% at 30% 30%, rgba(199,125,255,.16) 0%, rgba(123,63,228,.05) 46%, transparent 78%)'
+    };
+    const light={
+      pageBg:'#F2EDFA', bg:'#FAF7FE', surface:'#FFFFFF', surface2:'#F4EEFA', surface3:'#E8DEF4',
+      border:'#DED2EC', borderStrong:'#C2B0D6', gridLine:'#EDE6F6',
+      text:'#1B1523', muted:'#4E4459', subtle:'#756884',
+      primary:'#C77DFF', primaryHover:'#B968F5', primaryText:'#17061F', accent:'#7A2BC4',
+      primaryBg:'#EEE0FB', primarySoft:'#F6EFFD',
+      goodBg:'#EEE0FB', goodBorder:'#D9BFF0',
+      danger:'#C0473B', dangerBg:'#FAE7E4', dangerBorder:'#EECFCA',
+      warn:'#B07A12', warnBg:'#FBF0D8', warnBorder:'#ECDDB4',
+      ring:'rgba(199,125,255,0.34)',
+      shadow:'0 18px 44px -22px rgba(40,20,60,.22), 0 2px 6px rgba(40,20,60,.05)', glow:'none',
+      barBg:'#FFFFFF', segBg:'#EDE6F6', segActiveBg:'#FFFFFF', headerBg:'#FFFFFF',
+      sideBg:'linear-gradient(160deg,#F6EFFD 0%,#FAF7FE 62%)'
+    };
+    return this.state.theme==='dark'?dark:light;
+  }
+
+  DIM(){
+    const d=this.state.device;
+    if(d==='mobile') return {frame:402, radius:26, pad:16, h1:22, mainCols:'1fr', tabsShown:2, compact:true, authCols:'1fr', authPad:20, pwCols:'1fr', resetCols:'1fr'};
+    if(d==='tablet') return {frame:864, radius:30, pad:20, h1:26, mainCols:'1fr', tabsShown:4, compact:false, authCols:'1fr', authPad:28, pwCols:'repeat(3,minmax(0,1fr))', resetCols:'1fr'};
+    return {frame:1180, radius:30, pad:24, h1:30, mainCols:'1fr 300px', tabsShown:4, compact:false, authCols:'minmax(0,1fr) minmax(0,1fr)', authPad:40, pwCols:'repeat(3,minmax(0,1fr))', resetCols:'repeat(3,minmax(0,1fr))'};
+  }
+
+  setLight=()=>this.setState({theme:'light'});
+  setDark=()=>this.setState({theme:'dark'});
+  setDesktop=()=>this.setState({device:'desktop'});
+  setTablet=()=>this.setState({device:'tablet'});
+  setMobile=()=>this.setState({device:'mobile'});
+  setInvite=()=>this.setState({view:'invite'});
+  setProfile=()=>this.setState({view:'profile'});
+  setReset=()=>this.setState({view:'reset'});
+
+  segBtn(active,t){
+    return 'height:28px;padding:0 12px;border:0;border-radius:7px;cursor:pointer;font:'+(active?'600':'500')+' 11.5px/1 Inter,sans-serif;letter-spacing:-.01em;'+
+      (active?('background:'+t.segActiveBg+';color:'+t.text+';'):('background:transparent;color:'+t.subtle+';'));
+  }
+
+  renderVals(){
+    const t=this.THEME(), d=this.DIM(), dark=this.state.theme==='dark', v=this.state.view;
+    const mono='JetBrains Mono,ui-monospace,monospace';
+    const disp='Satoshi,Inter,sans-serif';
+    const card='border:1px solid '+t.border+';border-radius:16px;background:'+t.surface+';'+(dark?'':'box-shadow:'+t.shadow+';');
+    const chip=(bg,bd,c)=>'display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;background:'+bg+';border:1px solid '+bd+';font:500 10px/1.3 '+mono+';color:'+c+';white-space:nowrap;';
+
+    const s={
+      page:'min-height:100vh;background:'+t.pageBg+';display:flex;flex-direction:column;align-items:center;padding:0 0 60px;',
+      bar:'position:sticky;top:0;z-index:20;width:100%;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:12px 20px;background:'+t.barBg+';border-bottom:1px solid '+t.border+';',
+      barCube:'width:30px;height:30px;flex:none;',
+      barTitle:'font:600 13px/1.2 Inter,sans-serif;letter-spacing:-.015em;color:'+t.text+';',
+      barSub:'font:400 10.5px/1.2 '+mono+';color:'+t.subtle+';',
+      barLabel:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+      seg:'display:flex;gap:2px;padding:3px;border-radius:9px;background:'+t.segBg+';border:1px solid '+t.border+';',
+      segLight:this.segBtn(!dark,t), segDark:this.segBtn(dark,t),
+      segDesktop:this.segBtn(this.state.device==='desktop',t),
+      segTablet:this.segBtn(this.state.device==='tablet',t),
+      segMobile:this.segBtn(this.state.device==='mobile',t),
+      segInvite:this.segBtn(v==='invite',t), segProfile:this.segBtn(v==='profile',t), segReset:this.segBtn(v==='reset',t),
+      stage:'width:100%;display:flex;justify-content:center;padding:26px 18px 0;',
+      frame:'width:100%;max-width:'+d.frame+'px;border:1px solid '+t.border+';border-radius:'+d.radius+'px;background:'+t.bg+';overflow:hidden;'+(dark?'':'box-shadow:'+t.shadow+';'),
+      authFrame:'width:100%;max-width:'+d.frame+'px;border:1px solid '+t.border+';border-radius:'+d.radius+'px;background:'+t.bg+';overflow:hidden;'+(dark?'':'box-shadow:'+t.shadow+';'),
+      authGrid:'display:grid;grid-template-columns:'+d.authCols+';min-height:'+(d.compact?'auto':'640px')+';',
+
+      authForm:'padding:'+d.authPad+'px;display:flex;flex-direction:column;gap:0;min-width:0;animation:fa-fade .3s ease-out both;',
+      authTop:'display:flex;align-items:center;gap:12px;margin-bottom:26px;',
+      authCube:'width:52px;height:52px;flex:none;',
+      authBrand:'font:600 15px/1 Inter,sans-serif;letter-spacing:-.015em;color:'+t.text+';',
+      eyebrow:'display:flex;align-items:center;gap:7px;font:500 9.5px/1 Inter,sans-serif;letter-spacing:.15em;text-transform:uppercase;color:'+t.accent+';margin-bottom:14px;',
+      eyebrowDot:'width:5px;height:5px;border-radius:50%;background:'+t.primary+';'+(dark?'box-shadow:0 0 8px rgba(199,125,255,.9);':'')+'animation:fa-pulse 2.2s ease-in-out infinite alternate;',
+      authH1:'font:500 '+(d.compact?26:32)+'px/1.1 '+disp+';letter-spacing:-.03em;color:'+t.text+';max-width:20ch;',
+      authLead:'margin-top:14px;font:400 13px/1.65 Inter,sans-serif;color:'+t.muted+';max-width:52ch;text-wrap:pretty;',
+
+      fieldList:'display:flex;flex-direction:column;gap:15px;margin-top:26px;',
+      field:'display:flex;flex-direction:column;gap:7px;min-width:0;',
+      label:'font:500 10px/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:'+t.subtle+';',
+      input:'height:42px;padding:0 13px;border:1px solid '+t.border+';border-radius:8px;background:'+t.surface2+';color:'+t.text+';font:400 13px/1 Inter,sans-serif;outline:none;transition:border-color .16s,box-shadow .16s;min-width:0;',
+      inputFocus:'border-color:'+t.primary+';box-shadow:0 0 0 3px '+t.ring+';',
+      inputLocked:'height:42px;padding:0 13px;display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px dashed '+t.border+';border-radius:8px;background:'+t.surface2+';',
+      lockedText:'font:400 13px/1 '+mono+';color:'+t.muted+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;',
+      lockedNote:'flex:none;font:400 9.5px/1 '+mono+';color:'+t.subtle+';',
+      strengthRow:'display:flex;gap:4px;margin-top:3px;',
+      hint:'font:400 10.5px/1.3 '+mono+';color:'+t.accent+';',
+
+      checkRow:'display:flex;align-items:flex-start;gap:10px;margin-top:20px;',
+      checkBox:'flex:none;width:18px;height:18px;border-radius:5px;background:'+t.primary+';color:'+t.primaryText+';text-align:center;font:600 11px/18px Inter,sans-serif;',
+      checkText:'font:400 11.5px/1.5 Inter,sans-serif;color:'+t.muted+';',
+      btnPrimaryWide:'height:46px;margin-top:22px;border:0;border-radius:4px;background:'+t.primary+';color:'+t.primaryText+';font:600 13.5px/1 Inter,sans-serif;letter-spacing:-.01em;cursor:pointer;'+(dark?'box-shadow:'+t.glow+';':''),
+      authFoot:'margin-top:16px;font:400 11px/1.55 Inter,sans-serif;color:'+t.subtle+';',
+
+      authSide:'position:relative;overflow:hidden;background:'+t.sideBg+';border-left:1px solid '+t.border+';',
+      sideBeam:'position:absolute;left:0;right:0;top:0;height:120px;pointer-events:none;background:linear-gradient(to bottom,transparent,'+(dark?'rgba(199,125,255,.10)':'rgba(199,125,255,.14)')+',transparent);',
+      sideInner:'position:relative;padding:'+d.authPad+'px;display:flex;flex-direction:column;gap:20px;',
+      sideEyebrow:'font:500 9.5px/1 Inter,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:'+t.subtle+';',
+      sideCaseName:'font:500 '+(d.compact?20:23)+'px/1.15 '+disp+';letter-spacing:-.026em;color:'+t.text+';',
+      sideCaseMeta:'margin-top:-12px;font:400 11px/1.45 '+mono+';color:'+t.subtle+';',
+      sideStats:'display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;',
+      sideStat:'display:flex;flex-direction:column;gap:6px;',
+      sideStatLabel:'font:500 8.5px/1.2 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:'+t.subtle+';',
+      sideBlock:'padding:15px;border:1px solid '+t.border+';border-radius:14px;background:'+(dark?'rgba(14,11,20,.62)':t.surface)+';display:flex;flex-direction:column;gap:10px;',
+      sideBlockHead:'font:500 9.5px/1 Inter,sans-serif;letter-spacing:.13em;text-transform:uppercase;color:'+t.subtle+';',
+      permRow:'display:flex;align-items:flex-start;gap:9px;',
+      permText:'font:400 11.5px/1.5 Inter,sans-serif;color:'+t.muted+';',
+      teamRow:'display:flex;align-items:center;gap:10px;',
+      teamBody:'flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;',
+      teamName:'font:400 12px/1.2 Inter,sans-serif;color:'+t.text+';',
+      teamRole:'font:400 10px/1.2 '+mono+';color:'+t.subtle+';',
+
+      nav:'display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 '+d.pad+'px;background:'+t.headerBg+';border-bottom:1px solid '+t.border+';',
+      navLeft:'display:flex;align-items:center;gap:11px;min-width:0;',
+      navCube:'width:24px;height:24px;flex:none;',
+      navBrand:'font:600 12.5px/1 Inter,sans-serif;letter-spacing:-.01em;color:'+t.text+';white-space:nowrap;',
+      navTabs:'display:'+(d.frame<500?'none':'flex')+';align-items:center;gap:2px;',
+      navRight:'display:flex;align-items:center;gap:10px;flex:none;',
+      navCase:'display:'+(d.frame<500?'none':'inline')+';font:500 10px/1 '+mono+';letter-spacing:.06em;color:'+t.subtle+';',
+      navAvatar:'flex:none;width:28px;height:28px;border-radius:50%;background:'+t.primary+';color:'+t.primaryText+';text-align:center;font:600 10px/28px '+mono+';',
+
+      subhead:'display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:18px '+d.pad+'px;border-bottom:1px solid '+t.border+';',
+      h1:'font:500 '+d.h1+'px/1.14 '+disp+';letter-spacing:-.028em;color:'+t.text+';',
+      h1Sub:'margin-top:7px;font:400 12px/1.5 Inter,sans-serif;color:'+t.muted+';max-width:64ch;',
+
+      main:'display:grid;grid-template-columns:'+d.mainCols+';gap:'+(d.compact?14:18)+'px;padding:'+(d.compact?16:20)+'px '+d.pad+'px;align-items:start;',
+      col:'display:flex;flex-direction:column;gap:'+(d.compact?14:18)+'px;min-width:0;',
+      aside:'display:flex;flex-direction:column;gap:'+(d.compact?14:18)+'px;min-width:0;',
+      panel:card+'padding:'+(d.compact?14:18)+'px;display:flex;flex-direction:column;gap:14px;min-width:0;animation:fa-fade .3s ease-out both;',
+      panelHead:'display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;',
+      panelTitle:'font:500 '+(d.compact?14:15.5)+'px/1.2 '+disp+';letter-spacing:-.02em;color:'+t.text+';',
+      panelMeta:'font:400 10.5px/1.3 '+mono+';color:'+t.subtle+';',
+
+      profRow:'display:flex;align-items:flex-start;gap:'+(d.compact?12:16)+'px;',
+      profAvatar:'flex:none;width:'+(d.compact?48:60)+'px;height:'+(d.compact?48:60)+'px;border-radius:50%;background:'+t.primary+';color:'+t.primaryText+';text-align:center;font:600 '+(d.compact?16:19)+'px/'+(d.compact?48:60)+'px '+mono+';',
+      profFields:'flex:1;min-width:0;display:flex;flex-direction:column;gap:14px;',
+      actionRow:'display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-top:13px;border-top:1px solid '+t.border+';',
+      savedNote:'font:400 10.5px/1.3 '+mono+';color:'+t.subtle+';',
+      pwGrid:'display:grid;grid-template-columns:'+d.pwCols+';gap:12px;',
+
+      sessList:'display:flex;flex-direction:column;gap:1px;',
+      sessRow:'display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid '+t.gridLine+';',
+      sessBody:'flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;',
+      sessName:'font:400 12px/1.3 Inter,sans-serif;color:'+t.text+';',
+      sessMeta:'font:400 10px/1.3 '+mono+';color:'+t.subtle+';',
+
+      notifRow:'display:flex;align-items:center;justify-content:space-between;gap:12px;',
+      notifText:'font:400 11.5px/1.4 Inter,sans-serif;color:'+t.muted+';',
+
+      card:card+'padding:16px;display:flex;flex-direction:column;gap:11px;',
+      cardWarn:'padding:16px;border:1px solid '+t.warnBorder+';border-radius:16px;background:'+t.warnBg+';display:flex;flex-direction:column;gap:10px;',
+      cardHead:'font:500 9.5px/1 Inter,sans-serif;letter-spacing:.13em;text-transform:uppercase;color:'+t.subtle+';',
+      warnEyebrow:'font:500 9px/1 '+mono+';letter-spacing:.12em;color:'+t.warn+';',
+      warnTitle:'font:500 15px/1.2 '+disp+';letter-spacing:-.02em;color:'+t.text+';',
+      warnLead:'font:400 11.5px/1.55 Inter,sans-serif;color:'+t.muted+';',
+      kvRow:'display:flex;align-items:baseline;justify-content:space-between;gap:10px;',
+      kvKey:'font:400 11.5px/1.4 Inter,sans-serif;color:'+t.muted+';',
+
+      resetWrap:'width:100%;max-width:'+d.frame+'px;display:grid;grid-template-columns:'+d.resetCols+';gap:'+(d.compact?14:18)+'px;',
+      stepTop:'display:flex;align-items:center;justify-content:space-between;gap:10px;',
+      stepTitle:'margin-top:16px;font:500 '+(d.compact?17:19)+'px/1.18 '+disp+';letter-spacing:-.024em;color:'+t.text+';',
+      stepLead:'margin-top:10px;font:400 12px/1.6 Inter,sans-serif;color:'+t.muted+';',
+      stepBody:'display:flex;flex-direction:column;gap:12px;margin-top:18px;min-height:'+(d.compact?'auto':'132px')+';',
+      stepFoot:'margin-top:14px;font:400 10.5px/1.5 '+mono+';color:'+t.subtle+';',
+      mailBox:'padding:13px;border:1px solid '+t.border+';border-radius:10px;background:'+t.surface2+';display:flex;flex-direction:column;gap:6px;',
+      mailFrom:'font:500 9.5px/1 '+mono+';letter-spacing:.1em;text-transform:uppercase;color:'+t.accent+';',
+      mailSubj:'font:500 12.5px/1.3 Inter,sans-serif;color:'+t.text+';',
+      mailBody:'font:400 11px/1.55 Inter,sans-serif;color:'+t.muted+';',
+
+      btnPrimary:'height:38px;padding:0 16px;border:0;border-radius:4px;background:'+t.primary+';color:'+t.primaryText+';font:600 12px/1 Inter,sans-serif;cursor:pointer;'+(dark?'box-shadow:'+t.glow+';':''),
+      btnPrimaryHover:'background:'+t.primaryHover+';',
+      btnGhostSm:'align-self:flex-start;height:34px;padding:0 14px;border:1px solid '+t.border+';border-radius:4px;background:transparent;color:'+t.text+';font:500 11.5px/1 Inter,sans-serif;cursor:pointer;',
+      btnGhostHover:'border-color:'+t.borderStrong+';background:'+t.surface2+';',
+      btnDanger:'align-self:flex-start;height:34px;padding:0 14px;border:1px solid '+t.dangerBorder+';border-radius:4px;background:'+t.dangerBg+';color:'+t.danger+';font:500 11.5px/1 Inter,sans-serif;cursor:pointer;',
+      btnDangerHover:'border-color:'+t.danger+';'
+    };
+
+    const tabs=['Дела','Организация','Профиль','Выход'].slice(0,d.tabsShown).map(label=>{
+      const on=label==='Профиль';
+      return {label, style:'padding:16px 11px;font:'+(on?'500':'400')+' 12px/1 Inter,sans-serif;letter-spacing:-.01em;color:'+(on?t.text:t.muted)+';cursor:pointer;white-space:nowrap;'+(on?'box-shadow:inset 0 -2px 0 '+t.primary+';':'')};
+    });
+
+    const avatar=(kind)=>'flex:none;width:28px;height:28px;border-radius:50%;text-align:center;font:600 10px/28px '+mono+';'+
+      (kind==='accent'?('background:'+t.primary+';color:'+t.primaryText+';'):('background:'+t.surface3+';color:'+t.muted+';'));
+
+    const step=(num,tag,title,lead,btn,foot,opts,kind)=>Object.assign({
+      num, tag, title, lead, btn, foot,
+      hasInput:false, hasSecond:false, hasMailIcon:false, inputLabel:'', inputPlaceholder:'',
+      cardStyle:'padding:'+(d.compact?16:20)+'px;border:1px solid '+(kind==='active'?t.primary:t.border)+';border-radius:18px;background:'+(kind==='active'?t.primarySoft:t.surface)+';display:flex;flex-direction:column;'+(dark?'':'box-shadow:'+t.shadow+';')+'animation:fa-fade .3s ease-out both;',
+      numStyle:'width:24px;height:24px;border-radius:50%;background:'+(kind==='active'?t.primary:t.surface3)+';color:'+(kind==='active'?t.primaryText:t.muted)+';text-align:center;font:600 11px/24px '+mono+';',
+      chipStyle:kind==='active'?chip(t.primaryBg,t.primary,t.accent):chip('transparent',t.border,t.subtle),
+      btnStyle:kind==='active'
+        ? 'height:42px;margin-top:auto;border:0;border-radius:4px;background:'+t.primary+';color:'+t.primaryText+';font:600 12.5px/1 Inter,sans-serif;cursor:pointer;'+(dark?'box-shadow:'+t.glow+';':'')
+        : 'height:42px;margin-top:auto;border:1px solid '+t.border+';border-radius:4px;background:transparent;color:'+t.muted+';font:500 12.5px/1 Inter,sans-serif;cursor:pointer;'
+    }, opts);
+
+    return {
+      s,
+      setLight:this.setLight, setDark:this.setDark,
+      setDesktop:this.setDesktop, setTablet:this.setTablet, setMobile:this.setMobile,
+      setInvite:this.setInvite, setProfile:this.setProfile, setReset:this.setReset,
+      isInvite:v==='invite', isProfile:v==='profile', isReset:v==='reset',
+      navTabs:tabs,
+
+      strength:[0,1,2,3].map(i=>({
+        style:'flex:1;height:3px;border-radius:2px;background:'+(i<3?t.primary:t.surface3)+';'
+      })),
+      inviteStats:[
+        {label:'Процедур', value:'18 / 24', kind:'text'},
+        {label:'Флагов', value:'7', kind:'bad'},
+        {label:'Дней в работе', value:'6', kind:'text'}
+      ].map(m=>({label:m.label, value:m.value, valueStyle:'font:500 15px/1 '+mono+';letter-spacing:-.02em;color:'+(m.kind==='bad'?t.danger:t.text)+';'})),
+      rolePerms:[
+        {mark:'✓', text:'Смотреть дело, сверку и заключение', ok:true},
+        {mark:'✓', text:'Запускать скан и пересчёт оценки', ok:true},
+        {mark:'—', text:'Загружать документы и править данные', ok:false},
+        {mark:'—', text:'Приглашать участников и менять роли', ok:false}
+      ].map(p=>({text:p.text, mark:p.mark, markStyle:'flex:none;font:500 11px/1.5 '+mono+';color:'+(p.ok?t.accent:t.subtle)+';'})),
+      team:[
+        {initials:'АП', name:'Алексей Петров', role:'руководитель проверки', avatarStyle:avatar('accent')},
+        {initials:'МК', name:'Марина Королёва', role:'подпись, админ', avatarStyle:avatar('muted')},
+        {initials:'ИС', name:'Иван Соколов', role:'редактор, сверка', avatarStyle:avatar('muted')}
+      ],
+
+      sessions:[
+        {device:'Chrome · macOS · Москва', meta:'этот вход · 25.08, 13:12', state:'текущий',
+         dotStyle:'flex:none;width:7px;height:7px;border-radius:50%;background:'+t.primary+';',
+         stateStyle:'flex:none;'+chip(t.goodBg,t.goodBorder,t.accent)},
+        {device:'Safari · iPhone · Москва', meta:'24.08, 19:40', state:'активен',
+         dotStyle:'flex:none;width:7px;height:7px;border-radius:50%;background:'+t.muted+';',
+         stateStyle:'flex:none;'+chip('transparent',t.border,t.muted)},
+        {device:'Chrome · Windows · Екатеринбург', meta:'23.08, 21:14 · новое устройство', state:'проверить',
+         dotStyle:'flex:none;width:7px;height:7px;border-radius:50%;background:'+t.warn+';',
+         stateStyle:'flex:none;'+chip(t.warnBg,t.warnBorder,t.warn)}
+      ],
+      accessRows:[
+        {key:'Роль', value:'аналитик'},
+        {key:'Организация', value:'Инвест-Партнёр'},
+        {key:'Дел открыто', value:'2'},
+        {key:'В системе с', value:'04.02.2026'}
+      ].map(a=>({key:a.key, value:a.value, valueStyle:'flex:none;font:500 11.5px/1.4 '+mono+';color:'+t.text+';'})),
+      notifs:[
+        {label:'Скан завершён', on:true},
+        {label:'Новый красный флаг', on:true},
+        {label:'Меня добавили в дело', on:true},
+        {label:'Сводка по организации раз в неделю', on:false}
+      ].map(n=>({
+        label:n.label,
+        switchStyle:'flex:none;position:relative;width:34px;height:19px;border-radius:999px;background:'+(n.on?t.primary:t.surface3)+';transition:background .16s;cursor:pointer;',
+        knobStyle:'position:absolute;top:2px;left:'+(n.on?'17px':'2px')+';width:15px;height:15px;border-radius:50%;background:'+(n.on?t.primaryText:t.muted)+';transition:left .16s;'
+      })),
+
+      resetSteps:[
+        step('1','ШАГ 1','Забыли пароль','Введите почту, с которой вас пригласили. Если такой пользователь есть, отправим ссылку на смену пароля.','Отправить ссылку','Ответ одинаков для существующей и несуществующей почты — так мы не раскрываем состав пользователей.',
+          {hasInput:true, inputLabel:'Почта', inputPlaceholder:'you@company.ru'},'active'),
+        step('2','ШАГ 2','Письмо отправлено','Проверьте почту d.lapin@invest-partner.ru. Ссылка действует 30 минут, повторная отправка — через минуту.','Отправить снова через 0:47','Каждый запрос попадает в журнал доступа организации.',
+          {hasMailIcon:true},'wait'),
+        step('3','ШАГ 3','Новый пароль','От 10 символов, с цифрой и заглавной буквой. После сохранения все прежние входы будут завершены.','Сохранить и войти','Смена пароля не отзывает доступ к уже выгруженным файлам.',
+          {hasInput:true, hasSecond:true, inputLabel:'Новый пароль', inputPlaceholder:'от 10 символов'},'wait')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

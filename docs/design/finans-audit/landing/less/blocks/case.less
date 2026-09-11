@@ -1,0 +1,131 @@
+.case {
+  &__grid {
+    display: grid;
+    gap: @space-12;
+    align-items: stretch;
+
+    .desktop-up({ grid-template-columns: 1.4fr 1fr; });
+  }
+
+  &__main {
+    position: relative;
+    overflow: hidden;
+    padding: 22px 18px;
+    background: var(--case-bg);
+    border: 1px solid var(--c-border);
+    border-radius: @radius-lg;
+    box-shadow: var(--shadow-card);
+
+    .desktop-up({ padding: @space-28; });
+  }
+
+  &__prices {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: flex-end;
+
+    .desktop-up({ gap: 26px; });
+  }
+
+  &__key {
+    font-weight: 500;
+    font-size: 9px;
+    line-height: 1;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--c-subtle);
+  }
+
+  &__ask {
+    margin-top: 10px;
+    font-family: @font-mono;
+    font-weight: 500;
+    font-size: 21px;
+    line-height: 1;
+    letter-spacing: -.03em;
+    color: var(--c-muted);
+    text-decoration: line-through;
+
+    .desktop-up({ font-size: 26px; });
+  }
+
+  &__final {
+    margin-top: 10px;
+    font-family: @font-mono;
+    font-weight: 600;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: -.03em;
+    color: var(--c-accent-text);
+
+    .desktop-up({ font-size: 30px; });
+  }
+
+  &__arrow {
+    padding-bottom: 4px;
+    font-family: @font-mono;
+    font-size: 18px;
+    color: var(--c-subtle);
+  }
+
+  &__quote {
+    position: relative;
+    margin-top: @space-24;
+    font-family: @font-display;
+    font-size: 14px;
+    line-height: 1.7;
+    letter-spacing: -.012em;
+    text-wrap: pretty;
+
+    .desktop-up({ font-size: 16px; });
+  }
+
+  &__author {
+    position: relative;
+    margin-top: @space-16;
+    font-family: @font-mono;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--c-subtle);
+  }
+
+  &__facts {
+    padding: 18px;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: @radius-lg;
+    box-shadow: var(--shadow-card);
+
+    .desktop-up({ padding: @space-24; });
+  }
+
+  &__fact {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: @space-12;
+    padding: 13px 0;
+    border-bottom: 1px solid var(--c-grid-line);
+  }
+
+  &__fact:last-child { border-bottom: 0; }
+
+  &__fact-key {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--c-muted);
+  }
+
+  &__fact-value {
+    font-family: @font-mono;
+    font-weight: 500;
+    font-size: 12.5px;
+    line-height: 1.4;
+    text-align: right;
+  }
+
+  &__fact-value--bad { color: var(--c-danger); }
+  &__fact-value--accent { color: var(--c-accent-text); }
+}

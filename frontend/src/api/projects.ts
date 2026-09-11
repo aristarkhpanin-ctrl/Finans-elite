@@ -20,7 +20,11 @@ export async function createProject(name: string, durationMonths = 12): Promise<
   return data;
 }
 
-export type TemplateInfo = Schema<"TemplateInfo">;
+/**
+ * Шаблон быстрого старта. Несёт **список допущений** (D4): числа в шаблоне выдуманы, и
+ * человек обязан узнать об этом там же, где увидит цифры, а не в документации.
+ */
+export type TemplateInfo = Schema<"TemplateOut">;
 
 export async function listTemplates(): Promise<TemplateInfo[]> {
   const { data } = await api.get<TemplateInfo[]>("/api/v1/templates");

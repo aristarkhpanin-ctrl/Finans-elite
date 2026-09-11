@@ -9,6 +9,7 @@ import {
   IconPrint,
   IconSearch,
   IconTrash,
+  IconUpload,
   IconUser,
   IconWarning,
 } from "../components/icons";
@@ -181,6 +182,7 @@ export function DevUiPage() {
           <IconTrash />
           <IconPlus />
           <IconDownload />
+          <IconUpload />
           <IconPrint />
           <IconChart />
           <IconBox />

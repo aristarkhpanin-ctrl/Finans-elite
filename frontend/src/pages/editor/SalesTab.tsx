@@ -1,14 +1,21 @@
-import type { OperatingPlan, Product, SalesLine } from "../../api/model";
-import { EField } from "../../components/EditorField";
-import { IconCart, IconTrash } from "../../components/icons";
+import { useRef } from "react";
+import type { BomLine, Company, Division, Material, OperatingPlan, Product, SalesLine } from "../../api/model";
+import { EField, ESelect } from "../../components/EditorField";
+import { IconCart, IconDownload, IconTrash, IconUpload } from "../../components/icons";
 import { MonthlyGrid } from "../../components/MonthlyGrid";
 import type { MonthlyRow } from "../../components/MonthlyGrid";
+import { useToast } from "../../components/Toast";
 import { Button, Switch } from "../../components/ui";
+import { fmtMoney } from "../../format";
+import { downloadSalesTemplate, parseSalesXlsx } from "../../salesXlsx";
+import { subscriptionPreview } from "../../subscription";
 
 interface Props {
   n: number;
   operating: OperatingPlan;
+  company: Company;
   onChange: (op: OperatingPlan) => void;
+  onCompany: (c: Company) => void;
 }
 
 const emptyPayment = () => ({ prepayment_share: "0", advance_lead_months: 0, payment_delay_months: 0 });
@@ -24,8 +31,45 @@ const inRange01 = (v: string): boolean => {
 };
 
 /** Вкладка «Сбыт» (макет «Этап 6»): карточки продуктов с помесячной сеткой. */
-export function SalesTab({ n, operating, onChange }: Props) {
+export function SalesTab({ n, operating, company, onChange, onCompany }: Props) {
   const { products, sales, production } = operating;
+
+  // Подразделения (бизнес-единицы, gap 4.5): справочник имён + отнесение продукта.
+  const divisions = company.divisions ?? [];
+  const setDivisions = (next: Division[]) => onCompany({ ...company, divisions: next });
+  const addDivision = () =>
+    setDivisions([...divisions, { id: crypto.randomUUID(), name: `Подразделение ${divisions.length + 1}` }]);
+  const updDivision = (id: string, name: string) =>
+    setDivisions(divisions.map((d) => (d.id === id ? { ...d, name } : d)));
+  const rmDivision = (id: string) => {
+    setDivisions(divisions.filter((d) => d.id !== id));
+    // снять отнесение у продуктов удалённого подразделения
+    onChange({ ...operating, products: products.map((p) => (p.division_id === id ? { ...p, division_id: null } : p)) });
+  };
+  const setProductDivision = (productId: string, division_id: string | null) =>
+    onChange({ ...operating, products: products.map((p) => (p.id === productId ? { ...p, division_id } : p)) });
+
+  // Импорт/шаблон рядов продаж из Excel (gap 5.3): round-trip через XLSX-грид продукт × месяц.
+  const fileRef = useRef<HTMLInputElement>(null);
+  const toast = useToast();
+
+  const onImportFile = async (file: File) => {
+    try {
+      const res = await parseSalesXlsx(file, operating, n);
+      if (res.matched > 0) onChange(res.operating);
+      const extra: string[] = [];
+      if (res.skipped.length) extra.push(`не найдены: ${res.skipped.join(", ")}`);
+      if (res.ignored) extra.push(`пропущено строк: ${res.ignored}`);
+      const sub = extra.length ? extra.join(" · ") : undefined;
+      if (res.matched > 0) {
+        toast(`Импорт из Excel: обновлено рядов — ${res.matched}`, { kind: "success", sub });
+      } else {
+        toast("Импорт из Excel: подходящих строк не найдено", { kind: "warn", sub });
+      }
+    } catch {
+      toast("Не удалось прочитать файл — нужен XLSX по шаблону", { kind: "error" });
+    }
+  };
 
   const productName = (id: string) => products.find((p) => p.id === id)?.name ?? "";
   const productionLine = (id: string) => production.find((l) => l.product_id === id);
@@ -71,6 +115,32 @@ export function SalesTab({ n, operating, onChange }: Props) {
       production: production.map((l) => (l.product_id === id ? { ...l, volume } : l)),
     });
 
+  // --- Материалы и рецептуры (пер-продуктная себестоимость) ---
+  const materials = operating.materials ?? [];
+  const setMaterials = (m: Material[]) => onChange({ ...operating, materials: m });
+  const addMaterial = () =>
+    setMaterials([...materials, { id: crypto.randomUUID(), name: "Материал", unit_price: "0" }]);
+  const updMaterial = (i: number, patch: Partial<Material>) =>
+    setMaterials(materials.map((m, k) => (k === i ? { ...m, ...patch } : m)));
+  /**
+   * Удаление материала снимает и ссылки на него в рецептурах — иначе строка BOM осталась
+   * бы висеть: движок пропускает несуществующий материал, и себестоимость молча упала бы,
+   * а прибыль выросла. Симметрично удалению подразделения, снимающему `division_id`.
+   */
+  const rmMaterial = (i: number) => {
+    const gone = materials[i]?.id;
+    onChange({
+      ...operating,
+      materials: materials.filter((_, k) => k !== i),
+      products: products.map((p) =>
+        p.bom?.some((b) => b.material_id === gone)
+          ? { ...p, bom: p.bom.filter((b) => b.material_id !== gone) }
+          : p),
+    });
+  };
+  const updProduct = (id: string, patch: Partial<Product>) =>
+    onChange({ ...operating, products: products.map((p) => (p.id === id ? { ...p, ...patch } : p)) });
+
   return (
     <div>
       <div className="tab-head">
@@ -80,7 +150,42 @@ export function SalesTab({ n, operating, onChange }: Props) {
             Объём и цена по месяцам формируют выручку проекта. Горизонт: {n} мес.
           </div>
         </div>
-        <Button onClick={addProduct}>＋&nbsp;&nbsp;Продукт</Button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {sales.length > 0 && (
+            <>
+              <Button
+                variant="ghost"
+                onClick={async () => {
+                  try {
+                    await downloadSalesTemplate("Продажи-шаблон.xlsx", operating, n);
+                    toast("Шаблон XLSX скачан", { kind: "success" });
+                  } catch {
+                    toast("Не удалось сформировать шаблон", { kind: "error" });
+                  }
+                }}
+              >
+                <IconDownload size={15} />
+                <span style={{ marginLeft: 6 }}>Шаблон XLSX</span>
+              </Button>
+              <Button variant="ghost" onClick={() => fileRef.current?.click()}>
+                <IconUpload size={15} />
+                <span style={{ marginLeft: 6 }}>Импорт XLSX</span>
+              </Button>
+            </>
+          )}
+          <Button onClick={addProduct}>＋&nbsp;&nbsp;Продукт</Button>
+        </div>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".xlsx"
+          style={{ display: "none" }}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void onImportFile(f);
+            e.target.value = ""; // разрешить повторный выбор того же файла
+          }}
+        />
       </div>
 
       {sales.length === 0 ? (
@@ -101,14 +206,42 @@ export function SalesTab({ n, operating, onChange }: Props) {
             const cur = line.foreign ? "$" : "₽";
             const prod = productionLine(line.product_id);
             const prepayErr = !inRange01(line.payment.prepayment_share) ? "Доля должна быть от 0 до 1" : "";
+            const sub = line.subscription ?? null;
+            // Предпросмотр базы: сервер вернёт её же при расчёте, но набирающему приток и
+            // отток надо видеть, во что они складываются, **до** первого расчёта.
+            const preview = sub ? subscriptionPreview(sub, n, line.start_month ?? 0) : null;
+            const volumes = preview ? preview.base.map(String) : line.volume;
 
             const rows: MonthlyRow[] = [
-              {
-                key: `vol-${line.product_id}`,
-                title: "Объём, шт.",
-                values: line.volume,
-                onChange: (volume) => updateLine(i, { volume }),
-              },
+              ...(sub
+                ? [
+                    {
+                      key: `new-${line.product_id}`,
+                      title: "Новые абоненты, чел.",
+                      values: sub.new_per_month,
+                      onChange: (new_per_month: string[]) =>
+                        updateLine(i, { subscription: { ...sub, new_per_month } }),
+                    },
+                    {
+                      key: `base-${line.product_id}`,
+                      title: "База на конец месяца",
+                      compute: (m: number) => preview!.base[m] ?? 0,
+                      agg: "last" as const,
+                    },
+                    {
+                      key: `churn-${line.product_id}`,
+                      title: "Ушло за месяц",
+                      compute: (m: number) => preview!.churned[m] ?? 0,
+                    },
+                  ]
+                : [
+                    {
+                      key: `vol-${line.product_id}`,
+                      title: "Объём, шт.",
+                      values: line.volume,
+                      onChange: (volume: string[]) => updateLine(i, { volume }),
+                    },
+                  ]),
               {
                 key: `price-${line.product_id}`,
                 title: line.foreign ? "Цена, $ (USD)" : "Цена, ₽",
@@ -130,7 +263,7 @@ export function SalesTab({ n, operating, onChange }: Props) {
               {
                 key: `rev-${line.product_id}`,
                 title: "Выручка",
-                compute: (m) => num(line.volume[m]) * num(line.price[m]),
+                compute: (m) => num(volumes[m]) * num(line.price[m]),
                 unit: cur,
               },
             ];
@@ -159,6 +292,18 @@ export function SalesTab({ n, operating, onChange }: Props) {
 
                 <MonthlyGrid n={n} rows={rows} />
 
+                {divisions.length > 0 && (
+                  <div style={{ marginTop: 12, maxWidth: 280 }}>
+                    <ESelect
+                      label="Подразделение"
+                      hint="Бизнес-единица для аналитики доходов; «—» — вне структуры компании"
+                      value={products.find((x) => x.id === line.product_id)?.division_id ?? ""}
+                      onChange={(v) => setProductDivision(line.product_id, v || null)}
+                      options={[["", "—"], ...divisions.map((d) => [d.id, d.name || d.id] as [string, string])]}
+                    />
+                  </div>
+                )}
+
                 <label className={"opt-row" + (line.foreign ? " opt-row--on" : "")}>
                   <input
                     type="checkbox"
@@ -183,7 +328,92 @@ export function SalesTab({ n, operating, onChange }: Props) {
                   />
                 </div>
 
+                <div style={{ marginTop: 14 }}>
+                  <Switch
+                    label="Абонентская база (подписка): приток и отток вместо объёма"
+                    checked={!!sub}
+                    onChange={(on) =>
+                      updateLine(i, {
+                        subscription: on
+                          ? { starting_base: "0", new_per_month: [], churn_monthly: "0.03" }
+                          : null,
+                      })
+                    }
+                  />
+                </div>
+                {sub && (
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+                      <EField
+                        label="База на старте"
+                        suffix="чел."
+                        value={sub.starting_base}
+                        onChange={(v) => updateLine(i, { subscription: { ...sub, starting_base: v } })}
+                      />
+                      <EField
+                        label="Отток"
+                        suffix="доля базы / мес."
+                        hint="0,03 — уходит 3% действующих абонентов каждый месяц"
+                        value={sub.churn_monthly}
+                        error={!inRange01(sub.churn_monthly) ? "Доля должна быть от 0 до 1" : ""}
+                        onChange={(v) => updateLine(i, { subscription: { ...sub, churn_monthly: v } })}
+                      />
+                    </div>
+                    <div className="hint-note" style={{ marginTop: 8 }}>
+                      {preview!.ceiling !== null ? (
+                        <>
+                          При постоянном притоке база упирается в потолок ≈{" "}
+                          <b>{Math.round(preview!.ceiling)}</b> абонентов (приток ÷ отток) — это
+                          следствие двух чисел выше, а не план.
+                        </>
+                      ) : num(sub.churn_monthly) === 0 ? (
+                        <>
+                          Отток не задан: база только растёт. Без оттока подписная модель
+                          красива всегда — ревью плана скажет об этом отдельно.
+                        </>
+                      ) : (
+                        <>Приток непостоянен — одного потолка у базы нет.</>
+                      )}
+                      {" "}Объём продаж выводится из базы; ручной ряд объёма при включённой
+                      подписке не используется.
+                    </div>
+                  </div>
+                )}
+
+                {!line.foreign && (
+                  <div style={{ marginTop: 12, maxWidth: 250 }}>
+                    <ESelect
+                      label="Ставка НДС строки"
+                      hint="Льготная категория (напр. продукты питания 10%); «Глобальная» — из настроек проекта"
+                      value={line.vat_rate ?? ""}
+                      onChange={(v) => updateLine(i, { vat_rate: v || null })}
+                      options={[["", "Глобальная"], ["0.20", "20%"], ["0.10", "10%"], ["0", "0% (без НДС)"]]}
+                    />
+                  </div>
+                )}
+
                 <div className="terms-head">Условия оплаты</div>
+                <div style={{ margin: "6px 0 10px" }}>
+                  <Switch
+                    label="Сложная схема (график долей со сдвигами)"
+                    checked={(line.payment.schedule?.length ?? 0) > 0}
+                    onChange={(on) =>
+                      updateLine(i, {
+                        payment: {
+                          ...line.payment,
+                          schedule: on ? [{ offset_months: -1, share: "0.3" },
+                                          { offset_months: 0, share: "0.7" }] : [],
+                        },
+                      })
+                    }
+                  />
+                </div>
+                {(line.payment.schedule?.length ?? 0) > 0 ? (
+                  <ScheduleEditor
+                    parts={line.payment.schedule!}
+                    onChange={(schedule) => updateLine(i, { payment: { ...line.payment, schedule } })}
+                  />
+                ) : (
                 <div className="terms-grid">
                   <EField
                     label="Предоплата"
@@ -220,6 +450,16 @@ export function SalesTab({ n, operating, onChange }: Props) {
                     }
                   />
                 </div>
+                )}
+
+                {(() => {
+                  const p = products.find((x) => x.id === line.product_id);
+                  return p ? (
+                    <BomBlock product={p} materials={materials}
+                              avgPrice={line.price.length ? num(line.price[0]) : 0}
+                              onChange={(patch) => updProduct(p.id, patch)} />
+                  ) : null;
+                })()}
               </div>
             );
           })}
@@ -227,6 +467,173 @@ export function SalesTab({ n, operating, onChange }: Props) {
           <button type="button" className="add-row" onClick={addProduct}>
             ＋&nbsp;&nbsp;Добавить ещё продукт
           </button>
+
+          {/* Справочник подразделений (бизнес-единиц) для аналитики доходов */}
+          <div className="res-lib">
+            <div className="res-lib__head">
+              <div className="res-lib__title">Подразделения (бизнес-единицы)</div>
+              <Button variant="ghost" onClick={addDivision}>＋&nbsp;&nbsp;Подразделение</Button>
+            </div>
+            {divisions.length === 0 ? (
+              <p className="muted" style={{ fontSize: 12.5, margin: 0 }}>
+                Группируйте продукты в подразделения — на сводке появится маржа по бизнес-единицам
+                (свёртка маржи продуктов с рецептурой). Продукты без рецептуры/подразделения в свёртку
+                не входят.
+              </p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {divisions.map((d) => (
+                  <div className="res-row" key={d.id}>
+                    <input className="res-row__name" value={d.name ?? ""} placeholder="Подразделение"
+                           onChange={(e) => updDivision(d.id, e.target.value)} />
+                    <span className="muted" style={{ fontSize: 12 }}>
+                      продуктов: {products.filter((p) => p.division_id === d.id).length}
+                    </span>
+                    <button type="button" className="line-card__del" title="Удалить подразделение"
+                            onClick={() => rmDivision(d.id)}>
+                      <IconTrash size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Справочник материалов для рецептур */}
+          <div className="res-lib">
+            <div className="res-lib__head">
+              <div className="res-lib__title">Материалы (для рецептур)</div>
+              <Button variant="ghost" onClick={addMaterial}>＋&nbsp;&nbsp;Материал</Button>
+            </div>
+            {materials.length === 0 ? (
+              <p className="muted" style={{ fontSize: 12.5, margin: 0 }}>
+                Справочник материалов с ценой за единицу и условиями закупки. Рецептура продукта
+                (нормы расхода) превратит их в прямые издержки и себестоимость по продукту.
+              </p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {materials.map((m, i) => (
+                  <div className="res-row" key={m.id}>
+                    <input className="res-row__name" value={m.name ?? ""} placeholder="Материал"
+                           onChange={(e) => updMaterial(i, { name: e.target.value })} />
+                    <EField label={m.foreign ? "Цена ед., $" : "Цена ед., ₽"} value={m.unit_price ?? "0"}
+                            onChange={(v) => updMaterial(i, { unit_price: v })} />
+                    <EField label="Отсрочка" suffix="мес." value={m.payment_delay_months ?? 0}
+                            onChange={(v) => updMaterial(i, { payment_delay_months: parseInt(v || "0", 10) || 0 })} />
+                    <EField label="Закупка заранее" suffix="мес." value={m.stock_lead_months ?? 0}
+                            onChange={(v) => updMaterial(i, { stock_lead_months: parseInt(v || "0", 10) || 0 })} />
+                    <label className="mat-imp" title="Импортный материал: цена в валюте, по курсу FX">
+                      <input type="checkbox" checked={m.foreign ?? false}
+                             onChange={(e) => updMaterial(i, { foreign: e.target.checked })} />
+                      импорт
+                    </label>
+                    <button type="button" className="line-card__del" title="Удалить материал"
+                            onClick={() => rmMaterial(i)}>
+                      <IconTrash size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** График оплаты: доли выручки со сдвигами (аванс < 0, отгрузка 0, рассрочка > 0). */
+function ScheduleEditor({ parts, onChange }: {
+  parts: NonNullable<import("../../api/model").PaymentTerms["schedule"]>;
+  onChange: (parts: import("../../api/model").PaymentPart[]) => void;
+}) {
+  const upd = (i: number, patch: Partial<import("../../api/model").PaymentPart>) =>
+    onChange(parts.map((p, k) => (k === i ? { ...p, ...patch } : p)));
+  const total = parts.reduce((s, p) => s + num(p.share), 0);
+  return (
+    <div className="expand-block" style={{ marginTop: 0 }}>
+      {parts.map((p, i) => (
+        <div className="res-assign" key={i}>
+          <EField label="Сдвиг от отгрузки" suffix="мес."
+                  hint="Отрицательный — предоплата (авансы B24), положительный — рассрочка (дебиторка B2)"
+                  value={p.offset_months}
+                  onChange={(v) => upd(i, { offset_months: parseInt(v || "0", 10) || 0 })} />
+          <EField label="Доля" suffix="0–1" value={p.share}
+                  onChange={(v) => upd(i, { share: v })} />
+          <button type="button" className="line-card__del"
+                  onClick={() => onChange(parts.filter((_, k) => k !== i))}>
+            <IconTrash size={15} />
+          </button>
+        </div>
+      ))}
+      <button type="button" className="add-row add-row--sm"
+              onClick={() => onChange([...parts, { offset_months: 1, share: "0" }])}>
+        ＋&nbsp;&nbsp;Доля оплаты
+      </button>
+      <div className={"field-note" + (Math.abs(total - 1) > 0.001 ? " field-note--warn" : "")}
+           style={{ marginTop: 8 }}>
+        Σ долей = {total.toLocaleString("ru-RU", { maximumFractionDigits: 2 })}
+        {Math.abs(total - 1) > 0.001 && " — остаток будет получен в месяце отгрузки"}
+      </div>
+    </div>
+  );
+}
+
+/** Рецептура продукта (BOM): нормы расхода материалов + сдельная ЗП → себестоимость единицы. */
+function BomBlock({ product, materials, avgPrice, onChange }: {
+  product: Product;
+  materials: Material[];
+  avgPrice: number;
+  onChange: (patch: Partial<Product>) => void;
+}) {
+  const bom = product.bom ?? [];
+  const byId = new Map(materials.map((m) => [m.id, m]));
+  const opts: [string, string][] = [["", "—"], ...materials.map((m) => [m.id, m.name || m.id] as [string, string])];
+  const upd = (i: number, patch: Partial<BomLine>) =>
+    onChange({ bom: bom.map((b, k) => (k === i ? { ...b, ...patch } : b)) });
+  const add = () => onChange({ bom: [...bom, { material_id: materials[0]?.id ?? "", qty_per_unit: "0" }] });
+  const rm = (i: number) => onChange({ bom: bom.filter((_, k) => k !== i) });
+
+  const unitCost = bom.reduce((s, b) => {
+    const m = byId.get(b.material_id);
+    return s + (m ? num(b.qty_per_unit) * num(m.unit_price) : 0);
+  }, 0) + num(product.piece_wage_per_unit);
+  const hasSpec = bom.length > 0 || num(product.piece_wage_per_unit) > 0;
+
+  return (
+    <div className="expand-block">
+      <div className="expand-block__head"><span>⚙</span>Рецептура (себестоимость единицы)</div>
+      {materials.length === 0 && bom.length === 0 && (
+        <p className="muted" style={{ fontSize: 12, margin: "0 0 10px" }}>
+          Добавьте материалы в справочник ниже, затем задайте нормы расхода на единицу продукта.
+        </p>
+      )}
+      {bom.map((b, i) => (
+        <div className="res-assign" key={i}>
+          <ESelect label="Материал" value={b.material_id}
+                   onChange={(v) => upd(i, { material_id: v })} options={opts} />
+          <EField label="Расход на ед." value={b.qty_per_unit ?? "0"}
+                  onChange={(v) => upd(i, { qty_per_unit: v })} />
+          <button type="button" className="line-card__del" onClick={() => rm(i)}>
+            <IconTrash size={15} />
+          </button>
+        </div>
+      ))}
+      <div className="res-assign">
+        <EField label="Сдельная зарплата на ед." prefix="₽" value={product.piece_wage_per_unit ?? "0"}
+                onChange={(v) => onChange({ piece_wage_per_unit: v })} />
+        {materials.length > 0 && (
+          <button type="button" className="add-row add-row--sm" style={{ alignSelf: "flex-end" }}
+                  onClick={add}>
+            ＋&nbsp;&nbsp;Материал рецептуры
+          </button>
+        )}
+      </div>
+      {hasSpec && (
+        <div className={"gain-note " + (avgPrice > 0 && unitCost > avgPrice ? "gain-note--bad" : "gain-note--good")}
+             style={{ marginTop: 8 }}>
+          Себестоимость ≈ {fmtMoney(unitCost)}/ед. (в базовых ценах)
+          {avgPrice > 0 && ` · цена ${fmtMoney(avgPrice)} → маржа ≈ ${fmtMoney(avgPrice - unitCost)}/ед.`}
         </div>
       )}
     </div>

@@ -14,27 +14,47 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from . import crud
-from .plans import Plan, get_plan
+from .plans import UNIT_NAME, Plan, get_plan
 
 
-def current_plan(db: Session, org_id: str) -> Plan:
-    """Действующий тариф организации (при отсутствии подписки — тариф по умолчанию)."""
-    sub = crud.get_subscription(db, org_id)
-    return get_plan(sub.plan_code if sub else None)
+def current_plan(db: Session, org_id: str, product: str = "business") -> Plan:
+    """Действующий тариф организации по продукту (без подписки — тариф по умолчанию)."""
+    sub = crud.get_subscription(db, org_id, product)
+    return get_plan(sub.plan_code if sub else None, product)
 
 
-def ensure_project_quota(db: Session, org_id: str) -> None:
-    plan = current_plan(db, org_id)
-    if plan.max_projects is not None and crud.count_projects(db, org_id) >= plan.max_projects:
+def _ensure_unit_quota(db: Session, org_id: str, product: str, used: int) -> None:
+    """Общая проверка квоты единиц продукта: проектов у «Элит», дел у «Аудита».
+
+    Одна функция на оба продукта не ради краткости: разойдясь, две копии однажды дали
+    бы разный ответ на один и тот же вопрос «можно ли завести ещё».
+    """
+    plan = current_plan(db, org_id, product)
+    if plan.max_units is not None and used >= plan.max_units:
+        unit = UNIT_NAME.get(product, "объектов")
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail=f"Достигнут лимит проектов тарифа «{plan.name}» ({plan.max_projects}). "
+            detail=f"Достигнут лимит {unit} тарифа «{plan.name}» ({plan.max_units}). "
                    f"Перейдите на более высокий тариф.",
         )
 
 
-def ensure_member_quota(db: Session, org_id: str) -> None:
-    plan = current_plan(db, org_id)
+def ensure_project_quota(db: Session, org_id: str) -> None:
+    _ensure_unit_quota(db, org_id, "business", crud.count_projects(db, org_id))
+
+
+def ensure_case_quota(db: Session, org_id: str) -> None:
+    """Квота дел «Финанс-Аудит».
+
+    До этого дела не считались вовсе: ``ensure_project_quota`` смотрел только проекты,
+    а создание дела квоту не вызывало — на любом тарифе, включая бесплатный, дел можно
+    было завести сколько угодно.
+    """
+    _ensure_unit_quota(db, org_id, "audit", crud.count_audit_subjects(db, org_id))
+
+
+def ensure_member_quota(db: Session, org_id: str, product: str = "business") -> None:
+    plan = current_plan(db, org_id, product)
     if plan.max_members is not None and crud.count_members(db, org_id) >= plan.max_members:
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,

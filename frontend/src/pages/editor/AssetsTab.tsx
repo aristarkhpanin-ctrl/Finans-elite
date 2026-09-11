@@ -1,4 +1,4 @@
-import type { Asset, AssetCategory, InvestmentPlan } from "../../api/model";
+import type { AdditionalInvestment, Asset, AssetCategory, InvestmentPlan } from "../../api/model";
 import { EField, ESelect } from "../../components/EditorField";
 import { IconBriefcase, IconBuilding, IconLand, IconSettings, IconTrash } from "../../components/icons";
 import { Button } from "../../components/ui";
@@ -18,6 +18,7 @@ const CATEGORY_META: Record<AssetCategory, { label: string; icon: JSX.Element }>
   equipment: { label: "Оборудование", icon: <IconSettings size={17} /> },
   buildings: { label: "Здания", icon: <IconBuilding size={17} /> },
   land: { label: "Земля", icon: <IconLand size={17} /> },
+  intangible: { label: "НМА", icon: <IconBriefcase size={17} /> },
 };
 
 /** Остаточная стоимость на месяц продажи (линейная амортизация; земля не амортизируется). */
@@ -40,6 +41,15 @@ export function AssetsTab({ investment, onChange }: Props) {
   const upd = (i: number, patch: Partial<Asset>) =>
     onChange({ assets: assets.map((a, k) => (k === i ? { ...a, ...patch } : a)) });
   const rm = (i: number) => onChange({ assets: assets.filter((_, k) => k !== i) });
+
+  // Доинвестирование (модернизация): вложения, амортизируемые от остаточного срока актива.
+  const invsOf = (a: Asset): AdditionalInvestment[] => a.additional_investments ?? [];
+  const addInv = (i: number) =>
+    upd(i, { additional_investments: [...invsOf(assets[i]), { month: assets[i].purchase_month + 1, amount: "0" }] });
+  const updInv = (i: number, k: number, patch: Partial<AdditionalInvestment>) =>
+    upd(i, { additional_investments: invsOf(assets[i]).map((v, j) => (j === k ? { ...v, ...patch } : v)) });
+  const rmInv = (i: number, k: number) =>
+    upd(i, { additional_investments: invsOf(assets[i]).filter((_, j) => j !== k) });
 
   const totalCapex = assets.reduce((s, a) => s + num(a.cost), 0);
   const saleCount = assets.filter((a) => a.sale_month != null).length;
@@ -130,6 +140,8 @@ export function AssetsTab({ investment, onChange }: Props) {
                     <EField
                       label="Месяц приобретения"
                       prefix="М"
+                      hint="Отрицательный месяц — актив куплен до старта проекта (пред-существующее ОС): доамортизируется с t=0, остаточную стоимость сбалансируйте капиталом/прибылью в стартовом балансе."
+                      note={a.purchase_month < 0 ? "Куплен до старта проекта" : undefined}
                       value={a.purchase_month}
                       onChange={(v) => upd(i, { purchase_month: parseInt(v || "0", 10) || 0 })}
                     />
@@ -156,6 +168,7 @@ export function AssetsTab({ investment, onChange }: Props) {
                         ["equipment", "Оборудование"],
                         ["buildings", "Здания"],
                         ["land", "Земля"],
+                        ["intangible", "НМА"],
                       ]}
                     />
                   </div>
@@ -249,6 +262,40 @@ export function AssetsTab({ investment, onChange }: Props) {
                       </div>
                     </div>
                   )}
+
+                  <div className="expand-block">
+                    <div className="expand-block__head">
+                      <span>＋</span>Доинвестирование (модернизация)
+                    </div>
+                    {invsOf(a).length > 0 && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        {invsOf(a).map((inv, k) => (
+                          <div className="ft-row" key={k}>
+                            <EField
+                              label="Месяц"
+                              prefix="М"
+                              value={inv.month}
+                              onChange={(v) => updInv(i, k, { month: parseInt(v || "0", 10) || 0 })}
+                            />
+                            <EField
+                              label="Сумма вложения"
+                              prefix="₽"
+                              value={inv.amount}
+                              onChange={(v) => updInv(i, k, { amount: v })}
+                            />
+                            <button type="button" className="line-card__del" title="Удалить вложение"
+                                    onClick={() => rmInv(i, k)}>
+                              <IconTrash size={15} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <button type="button" className="add-row add-row--sm" style={{ marginTop: invsOf(a).length ? 8 : 0 }}
+                            onClick={() => addInv(i)}>
+                      ＋&nbsp;&nbsp;Доп. вложение (амортизируется от остаточного срока)
+                    </button>
+                  </div>
                 </div>
               );
             })}

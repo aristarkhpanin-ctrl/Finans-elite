@@ -1,0 +1,17 @@
+.reveal-armed .reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity .5s ease, transform .5s ease;
+}
+
+.reveal-armed .reveal--visible {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-armed .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}

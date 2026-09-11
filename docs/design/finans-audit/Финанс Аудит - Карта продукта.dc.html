@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  button{font-family:inherit;}
+  a{color:#C77DFF;}
+  a:hover{color:#D69AFF;}
+  @keyframes fa-pulse{from{opacity:.4}to{opacity:1}}
+  @keyframes fa-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:11px;min-width:0;">
+      <div style="{{ s.barCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="30px,30px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Карта продукта · Финанс Аудит</span>
+        <span style="{{ s.barSub }}">22 экрана · пять волн реализации</span>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+      <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Свет</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тьма</button></div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.sheet }}" data-screen-label="Карта продукта">
+
+      <div style="{{ s.head }}">
+        <div style="{{ s.eyebrow }}"><span style="{{ s.eyebrowDot }}"></span>ОДНО ПОЛОТНО ВМЕСТО ДВАДЦАТИ ДВУХ ФАЙЛОВ</div>
+        <h1 style="{{ s.h1 }}">Путь покупателя: от регистрации до цены, которую он готов назвать</h1>
+        <p style="{{ s.lead }}">Экраны сгруппированы по волнам реализации. Порядок внутри волны свободный, между волнами — зависимость по фундаменту. Стрелка означает переход, который пользователь делает сам; пунктир — состояние, в которое система приводит его без запроса.</p>
+      </div>
+
+      <sc-for list="{{ waves }}" as="w" hint-placeholder-count="5">
+      <div style="{{ s.wave }}">
+        <div style="{{ s.waveHead }}">
+          <span style="{{ w.numStyle }}">{{ w.num }}</span>
+          <div style="min-width:0;flex:1;">
+            <div style="{{ s.waveTitle }}">{{ w.title }}</div>
+            <div style="{{ s.waveLead }}">{{ w.lead }}</div>
+          </div>
+          <span style="{{ w.chipStyle }}">{{ w.tag }}</span>
+        </div>
+
+        <div style="{{ s.trackRow }}">
+          <sc-for list="{{ w.nodes }}" as="n" hint-placeholder-count="4">
+          <div style="{{ n.groupStyle }}">
+            <sc-if value="{{ n.hasArrow }}" hint-placeholder-val="{{ false }}">
+            <span style="{{ n.arrowStyle }}">{{ n.inArrow }}</span>
+            </sc-if>
+            <div style="{{ n.cardStyle }}">
+              <div style="{{ s.nodeTop }}">
+                <span style="{{ n.idStyle }}">{{ n.id }}</span>
+                <span style="{{ n.stateStyle }}">{{ n.state }}</span>
+              </div>
+              <div style="{{ s.nodeName }}">{{ n.name }}</div>
+              <div style="{{ s.nodeRole }}">{{ n.role }}</div>
+              <div style="{{ s.nodeViews }}">
+                <sc-for list="{{ n.views }}" as="vw" hint-placeholder-count="3">
+                <span style="{{ vw.style }}">{{ vw.label }}</span>
+                </sc-for>
+              </div>
+              <div style="{{ n.fileStyle }}">{{ n.file }}</div>
+            </div>
+          </div>
+          </sc-for>
+        </div>
+      </div>
+      </sc-for>
+
+      <div style="{{ s.legendBox }}">
+        <div style="{{ s.legendHead }}">Как читать карту</div>
+        <div style="{{ s.legendGrid }}">
+          <sc-for list="{{ legend }}" as="l" hint-placeholder-count="6">
+          <div style="{{ s.legendItem }}"><span style="{{ l.markStyle }}">{{ l.mark }}</span><span style="{{ s.legendText }}">{{ l.text }}</span></div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="{{ s.footRow }}">
+        <div style="{{ s.footCard }}">
+          <div style="{{ s.footHead }}">Сквозной пример</div>
+          <div style="{{ s.footLead }}">Все экраны показывают одно дело: № A-2417, ООО «Сибтранс-Логистика», грузоперевозки, отчётность 2023–2025, покупатель ООО «Инвест-Партнёр». Цифры сходятся между экранами — можно ходить по маршруту и проверять арифметику.</div>
+        </div>
+        <div style="{{ s.footCardAccent }}">
+          <div style="{{ s.footHead }}">Главный маршрут</div>
+          <div style="{{ s.routeRow }}">
+            <sc-for list="{{ route }}" as="r" hint-placeholder-count="7">
+            <span style="{{ r.style }}">{{ r.label }}</span>
+            </sc-for>
+          </div>
+          <div style="{{ s.footLead }}">Шесть шагов от входа до подписанного заключения. Остальные экраны — ветки и служебные состояния этого маршрута.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1600,&quot;height&quot;:1100}}">
+class Component extends DCLogic {
+  state = { theme:'dark' };
+
+  THEME(){
+    const dark={
+      pageBg:'#000000', bg:'#000000', surface:'#0E0B14', surface2:'#171122', surface3:'#241A38',
+      border:'#2B2140', borderStrong:'#4B3A6E', gridLine:'#191324',
+      text:'#F2E8FF', muted:'#9C8FB5', subtle:'#6A5C86',
+      primary:'#C77DFF', primaryHover:'#D69AFF', primaryText:'#17061F', accent:'#C77DFF',
+      primaryBg:'rgba(199,125,255,0.15)', primarySoft:'rgba(199,125,255,0.09)',
+      goodBg:'rgba(199,125,255,0.15)', goodBorder:'rgba(199,125,255,0.34)',
+      warn:'#E0A23A', warnBg:'rgba(224,162,58,0.16)', warnBorder:'rgba(224,162,58,0.32)',
+      danger:'#F0796E', dangerBg:'rgba(240,121,110,0.15)', dangerBorder:'rgba(240,121,110,0.34)',
+      shadow:'0 30px 70px -34px rgba(0,0,0,.9)', glow:'0 0 18px rgba(199,125,255,.35)',
+      barBg:'#0A0710', segBg:'#0A0710', segActiveBg:'#241A38'
+    };
+    const light={
+      pageBg:'#F2EDFA', bg:'#FAF7FE', surface:'#FFFFFF', surface2:'#F4EEFA', surface3:'#E8DEF4',
+      border:'#DED2EC', borderStrong:'#C2B0D6', gridLine:'#EDE6F6',
+      text:'#1B1523', muted:'#4E4459', subtle:'#756884',
+      primary:'#C77DFF', primaryHover:'#B968F5', primaryText:'#17061F', accent:'#7A2BC4',
+      primaryBg:'#EEE0FB', primarySoft:'#F6EFFD',
+      goodBg:'#EEE0FB', goodBorder:'#D9BFF0',
+      warn:'#B07A12', warnBg:'#FBF0D8', warnBorder:'#ECDDB4',
+      danger:'#C0473B', dangerBg:'#FAE7E4', dangerBorder:'#EECFCA',
+      shadow:'0 18px 44px -22px rgba(40,20,60,.22), 0 2px 6px rgba(40,20,60,.05)', glow:'none',
+      barBg:'#FFFFFF', segBg:'#EDE6F6', segActiveBg:'#FFFFFF'
+    };
+    return this.state.theme==='dark'?dark:light;
+  }
+
+  setLight=()=>this.setState({theme:'light'});
+  setDark=()=>this.setState({theme:'dark'});
+
+  segBtn(active,t){
+    return 'height:28px;padding:0 12px;border:0;border-radius:7px;cursor:pointer;font:'+(active?'600':'500')+' 11.5px/1 Inter,sans-serif;letter-spacing:-.01em;'+
+      (active?('background:'+t.segActiveBg+';color:'+t.text+';'):('background:transparent;color:'+t.subtle+';'));
+  }
+
+  renderVals(){
+    const t=this.THEME(), dark=this.state.theme==='dark';
+    const mono='JetBrains Mono,ui-monospace,monospace';
+    const disp='Satoshi,Inter,sans-serif';
+    const chip=(bg,bd,c)=>'display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;background:'+bg+';border:1px solid '+bd+';font:500 10px/1.3 '+mono+';color:'+c+';white-space:nowrap;';
+
+    const s={
+      page:'min-height:100vh;background:'+t.pageBg+';display:flex;flex-direction:column;align-items:center;padding:0 0 60px;',
+      bar:'position:sticky;top:0;z-index:20;width:100%;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:12px 20px;background:'+t.barBg+';border-bottom:1px solid '+t.border+';',
+      barCube:'width:30px;height:30px;flex:none;',
+      barTitle:'font:600 13px/1.2 Inter,sans-serif;letter-spacing:-.015em;color:'+t.text+';',
+      barSub:'font:400 10.5px/1.2 '+mono+';color:'+t.subtle+';',
+      barLabel:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+      seg:'display:flex;gap:2px;padding:3px;border-radius:9px;background:'+t.segBg+';border:1px solid '+t.border+';',
+      segLight:this.segBtn(!dark,t), segDark:this.segBtn(dark,t),
+      stage:'width:100%;display:flex;justify-content:center;padding:26px 18px 0;',
+      sheet:'width:100%;max-width:1560px;padding:34px;border:1px solid '+t.border+';border-radius:30px;background:'+t.bg+';display:flex;flex-direction:column;gap:34px;'+(dark?'':'box-shadow:'+t.shadow+';'),
+
+      head:'display:flex;flex-direction:column;',
+      eyebrow:'display:flex;align-items:center;gap:7px;font:500 9.5px/1 Inter,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:'+t.accent+';margin-bottom:14px;',
+      eyebrowDot:'width:5px;height:5px;border-radius:50%;background:'+t.primary+';'+(dark?'box-shadow:0 0 8px rgba(199,125,255,.9);':'')+'animation:fa-pulse 2.2s ease-in-out infinite alternate;',
+      h1:'margin:0;font:500 34px/1.1 '+disp+';letter-spacing:-.03em;color:'+t.text+';max-width:30ch;',
+      lead:'margin:16px 0 0;font:400 13.5px/1.68 Inter,sans-serif;color:'+t.muted+';max-width:88ch;text-wrap:pretty;',
+
+      wave:'display:flex;flex-direction:column;gap:16px;',
+      waveHead:'display:flex;align-items:flex-start;gap:14px;padding-bottom:14px;border-bottom:1px solid '+t.border+';',
+      waveTitle:'font:500 19px/1.2 '+disp+';letter-spacing:-.024em;color:'+t.text+';',
+      waveLead:'margin-top:7px;font:400 12px/1.6 Inter,sans-serif;color:'+t.muted+';max-width:82ch;',
+
+      trackRow:'display:flex;flex-wrap:wrap;align-items:stretch;gap:0;',
+      nodeTop:'display:flex;align-items:center;justify-content:space-between;gap:9px;',
+      nodeName:'margin-top:11px;font:500 14px/1.25 Inter,sans-serif;letter-spacing:-.015em;color:'+t.text+';',
+      nodeRole:'margin-top:7px;font:400 11px/1.5 Inter,sans-serif;color:'+t.muted+';',
+      nodeViews:'display:flex;flex-wrap:wrap;gap:5px;margin-top:11px;',
+
+      legendBox:'padding:20px;border:1px solid '+t.border+';border-radius:18px;background:'+t.surface+';display:flex;flex-direction:column;gap:14px;'+(dark?'':'box-shadow:'+t.shadow+';'),
+      legendHead:'font:500 9.5px/1 Inter,sans-serif;letter-spacing:.13em;text-transform:uppercase;color:'+t.subtle+';',
+      legendGrid:'display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px 24px;',
+      legendItem:'display:flex;align-items:flex-start;gap:10px;',
+      legendText:'font:400 11.5px/1.55 Inter,sans-serif;color:'+t.muted+';',
+
+      footRow:'display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px;',
+      footCard:'padding:20px;border:1px solid '+t.border+';border-radius:18px;background:'+t.surface+';display:flex;flex-direction:column;gap:11px;'+(dark?'':'box-shadow:'+t.shadow+';'),
+      footCardAccent:'padding:20px;border:1px solid '+t.goodBorder+';border-radius:18px;background:'+t.goodBg+';display:flex;flex-direction:column;gap:13px;',
+      footHead:'font:500 9.5px/1 Inter,sans-serif;letter-spacing:.13em;text-transform:uppercase;color:'+t.subtle+';',
+      footLead:'font:400 12px/1.65 Inter,sans-serif;color:'+t.muted+';',
+      routeRow:'display:flex;flex-wrap:wrap;align-items:center;gap:7px;'
+    };
+
+    const view=(label,kind)=>({
+      label,
+      style:'display:inline-flex;align-items:center;padding:3px 8px;border-radius:6px;background:'+(kind==='key'?t.primaryBg:t.surface3)+';font:400 9.5px/1.3 '+mono+';color:'+(kind==='key'?t.accent:t.subtle)+';'
+    });
+
+    const node=(id,name,role,views,file,arrow,kind)=>({
+      id, name, role, views, file, arrow,
+      hasArrow:!!arrow,
+      state:kind==='new'?'новый':(kind==='core'?'ядро':(kind==='base'?'фундамент':'ветка')),
+      groupStyle:'display:flex;align-items:stretch;gap:0;min-width:0;',
+      cardStyle:'width:246px;padding:15px;border:1px solid '+(kind==='core'?t.primary:(kind==='base'?t.borderStrong:(kind==='new'?t.warnBorder:t.border)))+';border-radius:16px;background:'+(kind==='core'?t.primarySoft:(kind==='new'?t.warnBg:t.surface))+';display:flex;flex-direction:column;'+(dark?'':'box-shadow:'+t.shadow+';')+'animation:fa-fade .3s ease-out both;',
+      idStyle:'font:600 10px/1 '+mono+';letter-spacing:.06em;color:'+(kind==='core'?t.accent:(kind==='new'?t.warn:t.subtle))+';',
+      stateStyle:kind==='core'?chip(t.primaryBg,t.primary,t.accent):(kind==='base'?chip('transparent',t.borderStrong,t.muted):(kind==='new'?chip(t.warnBg,t.warnBorder,t.warn):chip('transparent',t.border,t.subtle))),
+      views:views.map(v=>view(v[0],v[1])),
+      fileStyle:'margin-top:auto;padding-top:12px;font:400 9.5px/1.4 '+mono+';color:'+t.subtle+';word-break:break-word;'
+    });
+
+    // Стрелка рисуется ПЕРЕД карточкой — тогда при переносе строки
+    // она читается как продолжение, а не висит в пустоте справа.
+    const wave=(num,title,lead,tag,rawNodes,kind)=>({
+      num, title, lead, tag,
+      nodes:rawNodes.map((n,i)=>{
+        const inc=i>0?rawNodes[i-1].arrow:null;
+        return Object.assign({}, n, {
+          hasArrow:!!inc, inArrow:inc||'',
+          arrowStyle:'flex:none;align-self:center;padding:0 9px;font:400 15px/1 '+mono+';color:'+(inc==='⇢'?t.subtle:t.primary)+';'
+        });
+      }),
+      numStyle:'flex:none;width:30px;height:30px;border-radius:9px;background:'+(kind==='base'?t.primary:t.surface3)+';color:'+(kind==='base'?t.primaryText:t.muted)+';text-align:center;font:600 13px/30px '+mono+';',
+      chipStyle:'flex:none;'+(kind==='base'?chip(t.primaryBg,t.primary,t.accent):chip('transparent',t.border,t.subtle))
+    });
+
+    const route=['Вход','Дело','Скан','Флаги','Оценка','Заключение'].map((label,i,arr)=>({
+      label:i<arr.length-1?label+'  →':label,
+      style:'font:500 11.5px/1.5 '+mono+';color:'+(i===arr.length-1?t.accent:t.muted)+';'
+    }));
+
+    return {
+      s,
+      setLight:this.setLight, setDark:this.setDark,
+      route,
+      waves:[
+        wave('1','Фундамент','Без этих четырёх ничего не собрать: токены, каркас, библиотека состояний и фирменный объект. Все остальные экраны на них ссылаются.','делать первым',[
+          node('СГ','Стиль-гайд','Токены двух тем, типографика, компоненты, правила контраста.',[['две темы','key'],['токены','key'],['компоненты']],'Стиль-гайд.dc.html','→','base'),
+          node('06','Каркас и список дел','Боковая навигация, брейкпоинты, список, создание дела, пустое состояние.',[['список','key'],['пусто'],['модалка']],'Экран 6.dc.html','→','base'),
+          node('08','Состояния и поведение','Скелетоны, ошибки, тосты, валидация, лимиты, очередь, устаревший результат.',[['12 состояний','key'],['тосты'],['очередь','key']],'Экран 8.dc.html','⇢','base'),
+          node('КУБ','Cube Hero','Фирменный объект, палитра пропом. Четыре места появления, больше нигде.',[['фиолет','key'],['золото'],['зелёный']],'Cube Hero (Audit).dc.html',null,'base')
+        ],'base'),
+
+        wave('2','Ядро продукта','Основной поток: вошёл → создал дело → загрузил отчётность → увидел вердикт → разобрал находки. Это то, за что платят.','ядро',[
+          node('03','Аутентификация','Вход, регистрация, ошибка входа, восстановление.',[['вход','key'],['регистрация'],['ошибка']],'Экран 3.dc.html','→','core'),
+          node('18','Демо-дело','Первый вход без своих документов: готовое дело в режиме просмотра.',[['демо','key'],['снятие барьера']],'Экран 18.dc.html','⇢','new'),
+          node('19','Ошибки данных','Файл не распознан, неполный год, ФНС расходится с ЕГРЮЛ.',[['3 ошибки','key'],['исправление']],'Экран 19.dc.html','→','new'),
+          node('01','Риск-скан и вердикт','Главный экран: 24 процедуры, вердикт, цена рисков.',[['скан','key'],['вердикт','key'],['пусто']],'Экран 1.dc.html','→','core'),
+          node('02','Отчётность и сверка','Построчная сверка с первичкой, расхождения в строке.',[['таблица','key'],['карточки'],['загрузка']],'Экран 2.dc.html','→','core'),
+          node('07','Качество прибыли','Нормализация EBITDA, разовые доходы, связанные стороны.',[['мостик','key'],['корректировки']],'Экран 7.dc.html','→','core'),
+          node('09','Реестр флагов','Каждая находка с ценой в рублях, фильтры по уровню.',[['реестр','key'],['разбор']],'Экран 9.dc.html','→','core'),
+          node('10','Обязательства и залоги','Кредиты, ковенанты, залоги, забалансовое.',[['ковенанты','key'],['ФНП']],'Экран 10.dc.html',null,'core')
+        ]),
+
+        wave('3','Оценка и вывод','Ответ на вопрос «сколько стоит». Три экрана и печатный документ считают по одному мостику — правки только синхронно.','критично',[
+          node('04','Оценка стоимости','DCF, мостик до цены доли, три сценария, мультипликаторы.',[['DCF','key'],['мостик','key'],['сравнимые']],'Экран 4.dc.html','→','core'),
+          node('13','Анализ рисков','Чувствительность, Монте-Карло, сценарии сделки.',[['торнадо','key'],['10 000 прогонов','key'],['сценарии']],'Экран 13.dc.html','→','core'),
+          node('20','Сравнение дел','Две цели рядом: где риски дешевле, а прибыль честнее.',[['две цели','key'],['выбор']],'Экран 20.dc.html','→','new'),
+          node('05','Заключение на экране','Как документ выглядит в интерфейсе: листы, тулбар, масштаб.',[['предпросмотр','key'],['подписи']],'Экран 5.dc.html','→','core'),
+          node('ПЕЧ','Заключение (печать)','Документ на doc-page: 2 страницы A4, PDF из коробки.',[['A4','key'],['PDF','key']],'Заключение (печать).dc.html',null,'core')
+        ]),
+
+        wave('4','Организация и деньги','Мультиарендность, роли по rbac.py, тариф и оплата. Без этого продукт нельзя продать команде.','обязательно',[
+          node('11','Организация','Участники, 5 ролей и 9 прав, журнал доступа, тариф.',[['роли','key'],['журнал'],['тариф']],'Экран 11.dc.html','→'),
+          node('15','Доступ и профиль','Приглашение, профиль, восстановление пароля, сессии.',[['приглашение','key'],['профиль'],['пароль']],'Экран 15.dc.html','→'),
+          node('16','Оплата','Тарифы, счёт, ЮKassa, четыре статуса платежа.',[['ЮKassa','key'],['4 статуса','key']],'Экран 16.dc.html','⇢'),
+          node('22','Уведомления и поиск','Центр событий по всем делам, поиск по компаниям и находкам.',[['события','key'],['поиск','key']],'Экран 22.dc.html',null,'new')
+        ]),
+
+        wave('5','Расширения','Экраны, которые делают продукт полным, но не блокируют запуск. Каждый закрывает возможность, которая у платформы уже есть в коде.','после запуска',[
+          node('12','Онбординг','Первый вход: профиль организации, первое дело, команда.',[['3 шага','key'],['запуск скана']],'Экран 12.dc.html','→'),
+          node('21','Чек-лист процедур','Настройка 24 процедур под отрасль цели, свои проверки.',[['отрасли','key'],['свои процедуры']],'Экран 21.dc.html','→','new'),
+          node('14','Группа компаний','Структура, консолидация, связанные стороны.',[['группа','key'],['консолидация','key'],['связанные']],'Экран 14.dc.html','→'),
+          node('17','План-факт','Прогноз продавца против факта, сработавшие флаги.',[['план-факт','key'],['окупаемость']],'Экран 17.dc.html',null)
+        ])
+      ],
+
+      legend:[
+        {mark:'→', text:'Переход, который пользователь делает сам: нажал, выбрал, открыл.', markStyle:'flex:none;font:400 13px/1.4 '+mono+';color:'+t.primary+';'},
+        {mark:'⇢', text:'Состояние, в которое система приводит без запроса: ошибка, лимит, устаревший расчёт.', markStyle:'flex:none;font:400 13px/1.4 '+mono+';color:'+t.subtle+';'},
+        {mark:'◆', text:'«Ядро» — экран, без которого продукт не работает. Фиолетовая рамка.', markStyle:'flex:none;font:400 11px/1.5 '+mono+';color:'+t.primary+';'},
+        {mark:'◇', text:'«Фундамент» — не экран продукта, а основа для остальных.', markStyle:'flex:none;font:400 11px/1.5 '+mono+';color:'+t.muted+';'},
+        {mark:'●', text:'«Новый» — экран, которого ещё нет в макетах, поставлен в план.', markStyle:'flex:none;font:400 11px/1.5 '+mono+';color:'+t.warn+';'},
+        {mark:'⬚', text:'Плашки внутри карточки — состояния и режимы, которые экран показывает.', markStyle:'flex:none;font:400 11px/1.5 '+mono+';color:'+t.subtle+';'}
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+.container {
+  width: 100%;
+  max-width: @container-max;
+  margin: 0 auto;
+  padding: 0 @pad-mobile;
+
+  .tablet-up({ padding: 0 @pad-tablet; });
+  .desktop-up({ padding: 0 @pad-desktop; });
+}

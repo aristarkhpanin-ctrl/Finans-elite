@@ -6,31 +6,193 @@
 """
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 from fastapi import Depends, Header, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
-from . import crud
+from . import apikeys, crud
+from .access import WRITE_PERMS, restriction_for
 from .database import get_db, set_tenant
-from .db_models import User
+from .db_models import ApiKey, Membership, User, UserSession
 from .rbac import Perm, has_permission
-from .security import decode_token
+from .security import decode_access
 
 _bearer = HTTPBearer(auto_error=True)
 
 
-def current_user(
+#: Как часто отмечается присутствие участника. Отметка на каждый запрос превратила бы
+#: таблицу членства в счётчик обращений и добавила бы запись к каждому чтению; для
+#: вопроса «работает ли человек в организации» часа более чем достаточно.
+SEEN_INTERVAL = timedelta(hours=1)
+
+
+def _ensure_active(membership: Membership | None,
+                   db: Session | None = None) -> Membership | None:
+    """Проходная точка членства: отказать приостановленному и отметить присутствие.
+
+    Отказ **403, а не 401**: токен действителен и человек тот самый, а 401 отправил бы
+    его на экран входа — и он решил бы, что ошибся паролем. Причина идёт в ответе, чтобы
+    участник знал, к кому идти, а не гадал.
+
+    Проверка живёт здесь, а не в каждом эндпоинте: через эти зависимости проходит **любой**
+    запрос к данным организации, поэтому забыть её нельзя. Отсюда же и мгновенность отзыва
+    — членство читается из базы на каждом запросе, и выданный ранее токен не помогает.
+
+    По той же причине здесь и отметка присутствия (A3): другого места, через которое
+    гарантированно проходит работа с организацией, нет — а собранная в стороне отметка
+    рано или поздно разошлась бы с тем, кто на самом деле работал.
+    """
+    if membership is not None and membership.blocked_at is not None:
+        reason = membership.block_reason or "причина не указана"
+        raise HTTPException(status_code=403,
+                            detail=f"Доступ в организацию приостановлен: {reason}")
+    if membership is not None and db is not None:
+        now = datetime.now(timezone.utc)
+        seen = membership.last_seen_at
+        if seen is not None and seen.tzinfo is None:      # SQLite отдаёт наивное время
+            seen = seen.replace(tzinfo=timezone.utc)
+        if seen is None or now - seen >= SEEN_INTERVAL:
+            membership.last_seen_at = now
+            db.commit()
+    return membership
+
+
+def account_blocked_detail(user: User) -> str:
+    """Текст отказа заблокированной учётной записи — один на все двери (B2).
+
+    Блокировка учётной записи действует **на все организации сразу**, в отличие от
+    приостановки членства (A1): она про человека, а не про его место в одной компании.
+    Причина называется, чтобы человек знал, к кому идти; отказ — 403, а не 401, по тому
+    же доводу, что и в A1: токен действителен, и экран входа отправил бы его искать
+    ошибку в пароле.
+    """
+    reason = user.block_reason or "причина не указана"
+    return f"Учётная запись заблокирована платформой: {reason}"
+
+
+#: Что ключу доступа позволено. Только чтение и расчёт — и это решение, а не недоделка:
+#: у записи в журнале есть автор, а «модель изменил ключ» не автор. Спрос при этом
+#: именно на чтение (выгрузка в BI, 1С, свод портфеля). Расчёт здесь потому же, почему
+#: он открыт неплательщику (B2): это способ **посмотреть** свои числа, а не изменить их.
+KEY_PERMS = frozenset({Perm.PROJECT_READ, Perm.PROJECT_CALCULATE})
+
+#: Отказ ключу, попросившему больше. Причина названа: «недостаточно прав» отправило бы
+#: интегратора выпрашивать роль, которой у ключа не бывает вовсе.
+KEY_READ_ONLY = ("Ключ доступа работает только на чтение и расчёт. Изменения делает "
+                 "человек: у записи в журнале должен быть автор.")
+
+
+def api_key_from(credentials: HTTPAuthorizationCredentials, db: Session) -> ApiKey | None:
+    """Ключ доступа за заголовком — или ``None``, если это не ключ (обычный вход).
+
+    Проверка идёт по отпечатку: самого ключа платформа не хранит. Отозванный ключ
+    отвергается **с названной причиной** — «недействительный токен» отправил бы
+    интегратора искать опечатку там, где ключ просто выключили.
+    """
+    token = credentials.credentials
+    if not apikeys.looks_like_key(token):
+        return None
+    prefix = apikeys.parse_prefix(token)
+    key = crud.find_api_key_by_prefix(db, prefix) if prefix else None
+    if key is None or key.fingerprint != apikeys.fingerprint(token):
+        raise HTTPException(status_code=401, detail="Ключ доступа недействителен")
+    if key.revoked_at is not None:
+        raise HTTPException(status_code=401,
+                            detail="Ключ доступа отозван — выпустите новый")
+    return key
+
+
+def current_session(
     credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+    db: Session = Depends(get_db),
+) -> UserSession:
+    """Сеанс входа за токеном (C1) — проходная точка доступа к учётной записи.
+
+    Отзыв мгновенный по тому же устройству, что и в A1: состояние читается из базы на
+    каждом запросе, а не хранится в токене. Отдельного списка отозванных токенов нет —
+    есть **реестр входов**, который человек видит и которым управляет сам.
+
+    Отказ — **401, а не 403**: сеанс закрыт или истёк, и войти заново это и есть выход.
+    403 сказал бы «вам сюда нельзя» о человеке, которому просто нужно войти.
+    """
+    if apikeys.looks_like_key(credentials.credentials):
+        # Ключ действителен, но у него нет человека: маршрут, которому нужен автор,
+        # обязан сказать это словами, а не «недействительным токеном».
+        api_key_from(credentials, db)
+        raise HTTPException(status_code=403, detail=KEY_READ_ONLY)
+    decoded = decode_access(credentials.credentials)
+    if decoded is None:
+        raise HTTPException(status_code=401, detail="Недействительный токен")
+    _, session_id = decoded
+    session = crud.get_session(db, session_id)
+    if session is None:
+        raise HTTPException(status_code=401, detail="Сеанс завершён — войдите снова")
+    expires = session.expires_at
+    if expires.tzinfo is None:                       # SQLite отдаёт наивное время
+        expires = expires.replace(tzinfo=timezone.utc)
+    if session.revoked_at is not None or expires <= datetime.now(timezone.utc):
+        # Блокировка учётной записи (B2) закрывает и сеансы, поэтому без этой проверки
+        # заблокированный получал бы «сеанс завершён» вместо названной причины — то
+        # есть шёл бы входить заново и упирался в ту же стену, не понимая, во что.
+        # Причина обязана пережить механизм, появившийся позже неё.
+        blocked = crud.get_user(db, session.user_id)
+        if blocked is not None and blocked.blocked_at is not None:
+            raise HTTPException(status_code=403, detail=account_blocked_detail(blocked))
+        closed = "Сеанс завершён" if session.revoked_at is not None else "Сеанс истёк"
+        raise HTTPException(status_code=401, detail=f"{closed} — войдите снова")
+    crud.touch_session(db, session, SEEN_INTERVAL)
+    return session
+
+
+def current_user(
+    session: UserSession = Depends(current_session),
     db: Session = Depends(get_db),
 ) -> User:
     """Текущий пользователь по токену доступа."""
-    user_id = decode_token(credentials.credentials)
-    if user_id is None:
-        raise HTTPException(status_code=401, detail="Недействительный токен")
-    user = crud.get_user(db, user_id)
+    user = crud.get_user(db, session.user_id)
     if user is None:
         raise HTTPException(status_code=401, detail="Пользователь не найден")
+    if user.blocked_at is not None:
+        # Проверка здесь, а не в каждом маршруте: через эту зависимость проходит любой
+        # запрос платформы, включая служебный контур. Отзыв мгновенный по той же причине,
+        # что и в A1 — учётная запись читается из базы на каждом запросе.
+        raise HTTPException(status_code=403, detail=account_blocked_detail(user))
     return user
+
+
+def require_staff(user: User = Depends(current_user)) -> User:
+    """Сотрудник платформы (ADMIN-DECOMPOSITION.md, B1).
+
+    Отдельная ось власти: признак **не выводится** из роли в организации и роль из него
+    не выводится. Владелец крупного клиента не становится сотрудником платформы, а
+    сотрудник платформы не получает прав в организациях, где не состоит, — служебные
+    маршруты и клиентские не пересекаются нигде, кроме этой зависимости.
+
+    Отказ — 403 с названной причиной, а не 404: прятать существование служебного контура
+    смысла нет (он описан в документации), а молчаливый «не найдено» отправил бы своего
+    же сотрудника искать опечатку в адресе вместо недостающего признака.
+    """
+    if not user.is_staff:
+        raise HTTPException(status_code=403,
+                            detail="Служебный раздел платформы: нужен признак сотрудника")
+    return user
+
+
+def enter_tenant(db: Session, org_id: str) -> str:
+    """Войти в организацию запроса: выставить арендатора для RLS и вернуть его.
+
+    Одна функция на **все** двери, через которые запрос узнаёт свою организацию: из
+    членства (:func:`current_org_id`), из пути (:func:`require_membership`,
+    :func:`require_org_permission`) и из ключа доступа. Раньше её делал только первый —
+    и на PostgreSQL журнал организации, её ориентиры и чек-листы читались **пустыми**:
+    маршрут знал арендатора, а база о нём не знала. На SQLite такого не видно (RLS там
+    нет вовсе), поэтому пропажу не показал бы ни один тест, кроме того, что смотрит на
+    сам вызов, — он и заведён (`test_tenancy.py`).
+    """
+    set_tenant(db, org_id)  # RLS: изоляция арендатора на уровне БД (PostgreSQL)
+    return org_id
 
 
 def current_org_id(
@@ -42,15 +204,20 @@ def current_org_id(
     memberships = crud.list_user_memberships(db, user.id)
     if not memberships:
         raise HTTPException(status_code=400, detail="Пользователь не состоит в организации")
-    org_ids = {m.organization_id for m in memberships}
+    by_org = {m.organization_id: m for m in memberships}
     if x_organization_id is not None:
-        if x_organization_id not in org_ids:
+        if x_organization_id not in by_org:
             raise HTTPException(status_code=403, detail="Нет доступа к организации")
+        _ensure_active(by_org[x_organization_id], db)
         org_id = x_organization_id
     else:
-        org_id = memberships[0].organization_id
-    set_tenant(db, org_id)  # RLS: изоляция арендатора на уровне БД (PostgreSQL)
-    return org_id
+        # Организация по умолчанию — первая **действующая**: приостановка в одной
+        # организации не должна запирать человека в остальных, где он работает.
+        active = [m for m in memberships if m.blocked_at is None]
+        if not active:
+            _ensure_active(memberships[0], db)   # все приостановлены — назвать причину
+        org_id = active[0].organization_id
+    return enter_tenant(db, org_id)
 
 
 def require_membership(
@@ -59,31 +226,68 @@ def require_membership(
     db: Session = Depends(get_db),
 ) -> str:
     """Проверить, что пользователь — участник организации из пути."""
-    if not crud.is_member(db, org_id, user.id):
+    membership = crud.get_membership(db, org_id, user.id)
+    if membership is None:
         raise HTTPException(status_code=403, detail="Нет доступа к организации")
-    return org_id
+    _ensure_active(membership, db)
+    return enter_tenant(db, org_id)
 
 
-def require_permission(perm: Perm):
+def _ensure_not_restricted(db: Session, org_id: str, perm: Perm, product: str) -> None:
+    """Режим чтения и выгрузки: закрыть правку, оставив просмотр (B2).
+
+    Проверка живёт рядом с проверкой права — в одном месте на все маршруты — и опирается
+    на **множество прав**, а не на список эндпоинтов: список пришлось бы дополнять при
+    каждом новом маршруте, и однажды его забыли бы дополнить.
+    """
+    if perm not in WRITE_PERMS:
+        return
+    restriction = restriction_for(db, org_id, product)
+    if restriction is not None:
+        raise HTTPException(status_code=403, detail=restriction.detail)
+
+
+def require_permission(perm: Perm, product: str = "business"):
     """Фабрика зависимостей: требовать право ``perm`` в текущей организации (из членства).
 
     Для проектов: организация выводится из ``current_org_id``. Отдаёт ``organization_id``.
+
+    ``product`` называет, чья подписка отвечает за маршрут: у продуктов она своя, и
+    просроченный «Аудит» не имеет отношения к оплаченному «Элит».
+
+    Здесь же вторая дверь — **ключ доступа** (D5). Она не обходит первую, а идёт рядом:
+    ключ называет свою организацию сам (он ей и принадлежит), получает только чтение и
+    расчёт (:data:`KEY_PERMS`) и упирается в те же ограничения продукта. Держать её
+    именно тут — то же решение, что и с проверкой членства: через эту зависимость
+    проходит каждый запрос к данным организации, и забыть её нельзя.
     """
 
     def dependency(
-        org_id: str = Depends(current_org_id),
-        user: User = Depends(current_user),
+        credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+        x_organization_id: str | None = Header(default=None, alias="X-Organization-Id"),
         db: Session = Depends(get_db),
     ) -> str:
-        role = crud.get_role(db, org_id, user.id)
-        if not has_permission(role, perm):
+        key = api_key_from(credentials, db)
+        if key is not None:
+            if perm not in KEY_PERMS:
+                raise HTTPException(status_code=403, detail=KEY_READ_ONLY)
+            crud.touch_api_key(db, key, SEEN_INTERVAL)
+            _ensure_not_restricted(db, key.organization_id, perm, product)
+            return enter_tenant(db, key.organization_id)
+        # Обычный вход человека: сеанс → пользователь → организация → членство.
+        session = current_session(credentials, db)
+        user = current_user(session, db)
+        org_id = current_org_id(user, x_organization_id, db)
+        membership = _ensure_active(crud.get_membership(db, org_id, user.id), db)
+        if not has_permission(membership.role if membership else None, perm):
             raise HTTPException(status_code=403, detail="Недостаточно прав")
-        return org_id
+        _ensure_not_restricted(db, org_id, perm, product)
+        return enter_tenant(db, org_id)
 
     return dependency
 
 
-def require_org_permission(perm: Perm):
+def require_org_permission(perm: Perm, product: str = "business"):
     """Фабрика зависимостей: требовать право ``perm`` в организации **из пути** (``org_id``)."""
 
     def dependency(
@@ -91,9 +295,10 @@ def require_org_permission(perm: Perm):
         user: User = Depends(current_user),
         db: Session = Depends(get_db),
     ) -> str:
-        role = crud.get_role(db, org_id, user.id)
-        if not has_permission(role, perm):
+        membership = _ensure_active(crud.get_membership(db, org_id, user.id), db)
+        if not has_permission(membership.role if membership else None, perm):
             raise HTTPException(status_code=403, detail="Недостаточно прав")
-        return org_id
+        _ensure_not_restricted(db, org_id, perm, product)
+        return enter_tenant(db, org_id)
 
     return dependency

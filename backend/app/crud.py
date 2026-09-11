@@ -4,26 +4,42 @@
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+import hashlib
+import json
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
+from audit_core import AuditSubjectModel
 from calc_core import ProjectModel
 
+from .database import as_tenant
 from .db_models import (
     AnalysisJob,
+    ApiKey,
+    AuditChecklist,
+    AuditGroup,
+    AuditLogEntry,
+    AuditSubject,
+    AuditSubjectVersion,
+    Comment,
     Holding,
     HoldingMember,
+    IndustryBenchmark,
     Membership,
     Organization,
     Payment,
     Project,
+    ProjectVersion,
+    StaffLogEntry,
     Subscription,
     User,
+    UserSession,
 )
 from .plans import DEFAULT_PLAN
+from .schemas import AuditGroupModel
 
 # --- Фоновые задачи анализа (Celery) ---
 
@@ -55,14 +71,23 @@ def get_organization(db: Session, org_id: str) -> Organization | None:
 
 # --- Подписки ---
 
-def get_subscription(db: Session, org_id: str) -> Subscription | None:
-    return db.scalar(select(Subscription).where(Subscription.organization_id == org_id))
+def get_subscription(db: Session, org_id: str, product: str = "business") -> Subscription | None:
+    """Подписка организации на продукт (у каждого продукта своя)."""
+    return db.scalar(select(Subscription).where(
+        Subscription.organization_id == org_id, Subscription.product == product))
 
 
-def set_plan(db: Session, org_id: str, plan_code: str, status: str = "active") -> Subscription:
-    sub = get_subscription(db, org_id)
+def list_subscriptions(db: Session, org_id: str) -> list[Subscription]:
+    return list(db.scalars(select(Subscription).where(
+        Subscription.organization_id == org_id).order_by(Subscription.product)))
+
+
+def set_plan(db: Session, org_id: str, plan_code: str, status: str = "active",
+             product: str = "business") -> Subscription:
+    sub = get_subscription(db, org_id, product)
     if sub is None:
-        sub = Subscription(organization_id=org_id, plan_code=plan_code, status=status)
+        sub = Subscription(organization_id=org_id, plan_code=plan_code, status=status,
+                           product=product)
         db.add(sub)
     else:
         sub.plan_code = plan_code
@@ -114,6 +139,14 @@ def count_projects(db: Session, org_id: str) -> int:
     ) or 0
 
 
+def count_audit_subjects(db: Session, org_id: str) -> int:
+    """Число дел организации — единица квоты продукта «Финанс-Аудит»."""
+    return db.scalar(
+        select(func.count()).select_from(AuditSubject)
+        .where(AuditSubject.organization_id == org_id)
+    ) or 0
+
+
 def count_members(db: Session, org_id: str) -> int:
     return db.scalar(
         select(func.count()).select_from(Membership).where(Membership.organization_id == org_id)
@@ -143,6 +176,20 @@ def get_or_create_user(db: Session, email: str, full_name: str = "") -> User:
     user = get_user_by_email(db, email)
     if user is None:
         user = create_user(db, email, full_name)
+    return user
+
+
+def set_password(db: Session, user: User, hashed: str) -> User:
+    user.hashed_password = hashed
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def set_full_name(db: Session, user: User, full_name: str) -> User:
+    user.full_name = full_name
+    db.commit()
+    db.refresh(user)
     return user
 
 
@@ -206,6 +253,21 @@ def remove_membership(db: Session, membership: Membership) -> None:
     db.commit()
 
 
+def set_membership_block(db: Session, membership: Membership, *, blocked: bool,
+                         by: str = "", reason: str = "") -> Membership:
+    """Приостановить или вернуть доступ участника (A1).
+
+    Снятие **стирает** автора и причину: оставленная причина от прошлой блокировки
+    рассказывала бы о действующем участнике то, чего уже нет.
+    """
+    membership.blocked_at = datetime.now(timezone.utc) if blocked else None
+    membership.blocked_by = by[:255] if blocked else ""
+    membership.block_reason = reason[:500] if blocked else ""
+    db.commit()
+    db.refresh(membership)
+    return membership
+
+
 def list_user_organizations(db: Session, user_id: str) -> list[tuple[Organization, str]]:
     rows = db.execute(
         select(Organization, Membership.role)
@@ -254,12 +316,31 @@ def get_project(db: Session, org_id: str, project_id: str) -> Project | None:
     )
 
 
+def model_hash(model: dict) -> str:
+    """SHA-256 канонического JSON модели (сорт. ключи) — стабильный отпечаток для дрейфа."""
+    canonical = json.dumps(model, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 def update_project(db: Session, project: Project, *, name: str | None = None,
                    model: ProjectModel | None = None) -> Project:
     if name is not None:
         project.name = name
     if model is not None:
         project.model = model.model_dump(mode="json")
+        # Изменение модели снимает финализацию: подтверждён был другой план (гейт ревью).
+        project.status = "draft"
+    db.commit()
+    db.refresh(project)
+    return project
+
+
+def finalize_project(db: Session, project: Project, review: dict) -> Project:
+    """Отметить проект финализированным: снимок ревью + отпечаток модели (Ф10)."""
+    project.status = "finalized"
+    project.finalized_at = datetime.now(timezone.utc)
+    project.finalized_model_hash = model_hash(project.model)
+    project.finalized_review = review
     db.commit()
     db.refresh(project)
     return project
@@ -282,6 +363,288 @@ def duplicate_project(db: Session, project: Project, name: str) -> Project:
     db.commit()
     db.refresh(copy)
     return copy
+
+
+# --- Субъекты анализа (Финанс-Аудит, продукт №2) ---
+
+def create_audit_subject(db: Session, org_id: str, name: str,
+                         model: AuditSubjectModel) -> AuditSubject:
+    subject = AuditSubject(organization_id=org_id, name=name,
+                           model=model.model_dump(mode="json"))
+    db.add(subject)
+    db.commit()
+    db.refresh(subject)
+    return subject
+
+
+def list_audit_subjects(db: Session, org_id: str) -> list[AuditSubject]:
+    return list(
+        db.scalars(
+            select(AuditSubject)
+            .where(AuditSubject.organization_id == org_id)
+            .order_by(AuditSubject.created_at.desc())
+        )
+    )
+
+
+def get_audit_subject(db: Session, org_id: str, subject_id: str) -> AuditSubject | None:
+    return db.scalar(
+        select(AuditSubject).where(
+            AuditSubject.id == subject_id, AuditSubject.organization_id == org_id
+        )
+    )
+
+
+def update_audit_subject(db: Session, subject: AuditSubject, *, name: str | None = None,
+                         model: AuditSubjectModel | None = None) -> AuditSubject:
+    if name is not None:
+        subject.name = name
+    if model is not None:
+        subject.model = model.model_dump(mode="json")
+    db.commit()
+    db.refresh(subject)
+    return subject
+
+
+def duplicate_audit_subject(db: Session, subject: AuditSubject, name: str) -> AuditSubject:
+    """Копия субъекта: модель целиком, новое имя.
+
+    Для аудита дубль уместнее, чем для проекта: повторная проверка той же фирмы через
+    год начинается с прошлогоднего дела — реквизиты, методики и нормативы уже заведены,
+    меняется только отчётность.
+    """
+    copy = AuditSubject(organization_id=subject.organization_id, name=name,
+                        model=subject.model)
+    db.add(copy)
+    db.commit()
+    db.refresh(copy)
+    return copy
+
+
+def delete_audit_subject(db: Session, subject: AuditSubject) -> None:
+    db.delete(subject)
+    db.commit()
+
+
+def load_audit_model(subject: AuditSubject) -> AuditSubjectModel:
+    return AuditSubjectModel.model_validate(subject.model)
+
+
+# --- Сохранённые группы предприятий (Финанс-Аудит, v2) ---
+
+def create_audit_group(db: Session, org_id: str, name: str, model: AuditGroupModel) -> AuditGroup:
+    group = AuditGroup(organization_id=org_id, name=name, model=model.model_dump(mode="json"))
+    db.add(group)
+    db.commit()
+    db.refresh(group)
+    return group
+
+
+def list_audit_groups(db: Session, org_id: str) -> list[AuditGroup]:
+    return list(
+        db.scalars(
+            select(AuditGroup)
+            .where(AuditGroup.organization_id == org_id)
+            .order_by(AuditGroup.created_at.desc())
+        )
+    )
+
+
+def get_audit_group(db: Session, org_id: str, group_id: str) -> AuditGroup | None:
+    return db.scalar(
+        select(AuditGroup).where(
+            AuditGroup.id == group_id, AuditGroup.organization_id == org_id
+        )
+    )
+
+
+def update_audit_group(db: Session, group: AuditGroup, *, name: str | None = None,
+                       model: AuditGroupModel | None = None) -> AuditGroup:
+    if name is not None:
+        group.name = name
+    if model is not None:
+        group.model = model.model_dump(mode="json")
+    db.commit()
+    db.refresh(group)
+    return group
+
+
+def delete_audit_group(db: Session, group: AuditGroup) -> None:
+    db.delete(group)
+    db.commit()
+
+
+def load_audit_group_model(group: AuditGroup) -> AuditGroupModel:
+    return AuditGroupModel.model_validate(group.model)
+
+
+# --- Версии проекта (пакет №8, gap 4.4) ---
+
+#: Максимум версий на проект (защита хранилища; сверх — ошибка на уровне роутера).
+MAX_VERSIONS_PER_PROJECT = 50
+
+
+def count_versions(db: Session, project_id: str) -> int:
+    return db.scalar(
+        select(func.count()).select_from(ProjectVersion)
+        .where(ProjectVersion.project_id == project_id)
+    ) or 0
+
+
+def create_version(db: Session, project: Project, label: str, *,
+                   npv: str | None = None, irr_annual: str | None = None,
+                   engine_version: str | None = None) -> ProjectVersion:
+    """Снимок текущей модели проекта как именованная версия (+ сводка расчёта)."""
+    version = ProjectVersion(
+        organization_id=project.organization_id, project_id=project.id, label=label,
+        model=project.model, npv=npv, irr_annual=irr_annual, engine_version=engine_version,
+    )
+    db.add(version)
+    db.commit()
+    db.refresh(version)
+    return version
+
+
+def list_versions(db: Session, org_id: str, project_id: str) -> list[ProjectVersion]:
+    return list(
+        db.scalars(
+            select(ProjectVersion)
+            .where(ProjectVersion.project_id == project_id,
+                   ProjectVersion.organization_id == org_id)
+            .order_by(ProjectVersion.created_at.desc())
+        )
+    )
+
+
+def get_version(db: Session, org_id: str, project_id: str,
+                version_id: str) -> ProjectVersion | None:
+    return db.scalar(
+        select(ProjectVersion).where(
+            ProjectVersion.id == version_id,
+            ProjectVersion.project_id == project_id,
+            ProjectVersion.organization_id == org_id,
+        )
+    )
+
+
+def delete_version(db: Session, version: ProjectVersion) -> None:
+    db.delete(version)
+    db.commit()
+
+
+# --- Отраслевые ориентиры организации (свои, не рыночные) ---
+
+def list_benchmarks(db: Session, org_id: str) -> list[IndustryBenchmark]:
+    return list(
+        db.scalars(
+            select(IndustryBenchmark)
+            .where(IndustryBenchmark.organization_id == org_id)
+            .order_by(IndustryBenchmark.industry, IndustryBenchmark.metric)
+        )
+    )
+
+
+def replace_benchmarks(db: Session, org_id: str,
+                       rows: list[dict]) -> list[IndustryBenchmark]:
+    """Заменить справочник ориентиров организации целиком.
+
+    Справочник правится как таблица (добавили строку, поправили значение, убрали
+    лишнее), поэтому и сохраняется целиком: пять отдельных вызовов на одно нажатие
+    «Сохранить» дали бы частично применённый справочник при первой же ошибке сети.
+    """
+    for row in db.scalars(
+        select(IndustryBenchmark).where(IndustryBenchmark.organization_id == org_id)
+    ):
+        db.delete(row)
+    saved = [IndustryBenchmark(organization_id=org_id, industry=r["industry"],
+                               metric=r["metric"], value=r["value"],
+                               source=r.get("source", ""))
+             for r in rows]
+    db.add_all(saved)
+    db.commit()
+    return list_benchmarks(db, org_id)
+
+
+def list_checklists(db: Session, org_id: str) -> list[AuditChecklist]:
+    """Свои чек-листы организации, по имени."""
+    return list(db.scalars(
+        select(AuditChecklist).where(AuditChecklist.organization_id == org_id)
+        .order_by(AuditChecklist.name)))
+
+
+def replace_checklists(db: Session, org_id: str, rows: list[dict],
+                       author_email: str = "") -> list[AuditChecklist]:
+    """Заменить чек-листы организации целиком — по тому же доводу, что и ориентиры:
+    справочник правится как таблица, и что на экране, то и в хранилище."""
+    for row in db.scalars(
+        select(AuditChecklist).where(AuditChecklist.organization_id == org_id)
+    ):
+        db.delete(row)
+    saved = [AuditChecklist(organization_id=org_id, name=r["name"],
+                            scope=r.get("scope", ""),
+                            items=[i for i in r.get("items", []) if str(i).strip()],
+                            author_email=author_email)
+             for r in rows if str(r.get("name", "")).strip()]
+    db.add_all(saved)
+    db.commit()
+    return list_checklists(db, org_id)
+
+
+# --- Версии дела (Финанс-Аудит): снимки модели проверки ---
+
+#: Максимум версий на дело. Тот же предел, что у проекта: снимков в проверке столько же
+#: по природе (итерация — приход документов), и второй предел спорил бы с первым.
+MAX_VERSIONS_PER_SUBJECT = MAX_VERSIONS_PER_PROJECT
+
+
+def count_audit_versions(db: Session, subject_id: str) -> int:
+    return db.scalar(
+        select(func.count()).select_from(AuditSubjectVersion)
+        .where(AuditSubjectVersion.subject_id == subject_id)
+    ) or 0
+
+
+def create_audit_version(db: Session, subject: AuditSubject, label: str, *,
+                         verdict: str | None = None, risk_flags: int | None = None,
+                         equity_value: str | None = None) -> AuditSubjectVersion:
+    """Снимок текущей модели дела как именованная версия (+ сводка на тот момент)."""
+    version = AuditSubjectVersion(
+        organization_id=subject.organization_id, subject_id=subject.id, label=label,
+        model=subject.model, verdict=verdict, risk_flags=risk_flags,
+        equity_value=equity_value,
+    )
+    db.add(version)
+    db.commit()
+    db.refresh(version)
+    return version
+
+
+def list_audit_versions(db: Session, org_id: str,
+                        subject_id: str) -> list[AuditSubjectVersion]:
+    return list(
+        db.scalars(
+            select(AuditSubjectVersion)
+            .where(AuditSubjectVersion.subject_id == subject_id,
+                   AuditSubjectVersion.organization_id == org_id)
+            .order_by(AuditSubjectVersion.created_at.desc())
+        )
+    )
+
+
+def get_audit_version(db: Session, org_id: str, subject_id: str,
+                      version_id: str) -> AuditSubjectVersion | None:
+    return db.scalar(
+        select(AuditSubjectVersion).where(
+            AuditSubjectVersion.id == version_id,
+            AuditSubjectVersion.subject_id == subject_id,
+            AuditSubjectVersion.organization_id == org_id,
+        )
+    )
+
+
+def delete_audit_version(db: Session, version: AuditSubjectVersion) -> None:
+    db.delete(version)
+    db.commit()
 
 
 def save_calc_summary(db: Session, project: Project, *, npv: Decimal,
@@ -383,3 +746,636 @@ def save_holding_consolidation(db: Session, holding: Holding, *, npv: Decimal,
     holding.last_consolidation_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(holding)
+
+# --- Сеансы входа (C1) ---
+
+def create_session(db: Session, user_id: str, *, ttl_seconds: int, user_agent: str = "",
+                   ip: str = "") -> UserSession:
+    """Завести сеанс входа. Его идентификатор уходит в токен как ``jti``."""
+    session = UserSession(
+        user_id=user_id,
+        expires_at=datetime.now(timezone.utc) + timedelta(seconds=ttl_seconds),
+        user_agent=(user_agent or "")[:255],
+        ip=(ip or "")[:45],
+    )
+    db.add(session)
+    db.commit()
+    db.refresh(session)
+    return session
+
+
+def get_session(db: Session, session_id: str) -> UserSession | None:
+    return db.get(UserSession, session_id)
+
+
+def list_sessions(db: Session, user_id: str) -> list[UserSession]:
+    """**Действующие** входы пользователя, свежие сверху.
+
+    Закрытые и истёкшие не показываются: список мёртвых сеансов не отвечает ни на один
+    вопрос, ради которого его открывают («кто сейчас в моей учётной записи?»). История
+    входов есть в журнале организации — второй её копии здесь не заводим.
+    """
+    now = datetime.now(timezone.utc)
+    rows = db.execute(
+        select(UserSession)
+        .where(UserSession.user_id == user_id, UserSession.revoked_at.is_(None))
+        .order_by(UserSession.created_at.desc())
+    ).scalars()
+    return [s for s in rows if _aware(s.expires_at) > now]
+
+
+def revoke_session(db: Session, session: UserSession) -> UserSession:
+    """Закрыть сеанс. Запись **остаётся**: отзыв — это состояние, а не удаление строки,
+    и стёртый сеанс невозможно отличить от никогда не существовавшего."""
+    if session.revoked_at is None:
+        session.revoked_at = datetime.now(timezone.utc)
+        db.commit()
+    return session
+
+
+def revoke_user_sessions(db: Session, user_id: str, *, keep: str = "") -> int:
+    """Закрыть все сеансы пользователя, кроме ``keep``. Возвращает, сколько закрыто.
+
+    Число возвращается, чтобы человеку сказали «закрыто 3 входа», а не безличное
+    «готово»: он должен понимать, что именно с ним произошло.
+    """
+    now = datetime.now(timezone.utc)
+    stmt = select(UserSession).where(UserSession.user_id == user_id,
+                                     UserSession.revoked_at.is_(None))
+    if keep:
+        stmt = stmt.where(UserSession.id != keep)
+    closed = 0
+    for session in db.execute(stmt).scalars():
+        session.revoked_at = now
+        closed += 1
+    if closed:
+        db.commit()
+    return closed
+
+
+def touch_session(db: Session, session: UserSession, interval: timedelta) -> None:
+    """Отметить обращение — не чаще, чем раз в ``interval``.
+
+    Тот же довод, что и у отметки присутствия участника (A3): запись на каждый запрос
+    превратила бы таблицу сеансов в счётчик обращений.
+    """
+    now = datetime.now(timezone.utc)
+    seen = _aware(session.last_seen_at)
+    if seen is None or now - seen >= interval:
+        session.last_seen_at = now
+        db.commit()
+
+
+def _aware(value: datetime | None) -> datetime | None:
+    """SQLite отдаёт наивное время; сравнение с осведомлённым — ошибка выполнения."""
+    if value is None:
+        return None
+    return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+
+
+def list_all_sessions(db: Session, user_id: str) -> list[UserSession]:
+    """**Все** сеансы человека, включая закрытые и истёкшие — для выгрузки своих данных
+    и для полного стирания при удалении учётной записи (C3). На экране показываются
+    только действующие (`list_sessions`): там вопрос другой — «кто сейчас внутри»."""
+    return list(db.execute(
+        select(UserSession).where(UserSession.user_id == user_id)
+        .order_by(UserSession.created_at.desc())).scalars())
+
+
+def list_user_log_entries(db: Session, org_id: str, user_id: str,
+                          limit: int) -> list[AuditLogEntry]:
+    """Записи журнала **одной организации**, оставленные человеком, новые сверху (C3).
+
+    По организации, а не по всему журналу разом: журнал под RLS, и запрос без арендатора
+    вернул бы на PostgreSQL пустоту — молча, без ошибки.
+    """
+    return list(db.execute(
+        select(AuditLogEntry)
+        .where(AuditLogEntry.organization_id == org_id, AuditLogEntry.user_id == user_id)
+        .order_by(AuditLogEntry.created_at.desc()).limit(limit)).scalars())
+
+
+def count_user_log_entries(db: Session, org_id: str, user_id: str) -> int:
+    """Сколько записей человек оставил в этой организации — чтобы выгрузка могла назвать
+    свою неполноту, а не молча обрезаться."""
+    return int(db.scalar(
+        select(func.count()).select_from(AuditLogEntry)
+        .where(AuditLogEntry.organization_id == org_id,
+               AuditLogEntry.user_id == user_id)) or 0)
+
+
+# --- Второй фактор (C2) ---
+
+#: Сколько подряд неверных кодов до паузы и насколько. Пять попыток — запас на опечатку
+#: и на разошедшиеся часы; пятнадцать минут превращают подбор шестизначного кода в годы,
+#: но не запирают человека надолго, если он просто ошибся.
+TOTP_MAX_FAILURES = 5
+TOTP_LOCK = timedelta(minutes=15)
+
+
+def start_totp(db: Session, user: User, secret: str) -> User:
+    """Записать секрет **без включения**: настройку подтверждают кодом.
+
+    Включить второй фактор, не убедившись, что приложение выдаёт сходящийся код, значит
+    запереть человека снаружи собственной учётной записи.
+    """
+    user.totp_secret = secret
+    user.totp_enabled_at = None
+    db.commit()
+    return user
+
+
+def enable_totp(db: Session, user: User, recovery_hashes: list[str]) -> User:
+    user.totp_enabled_at = datetime.now(timezone.utc)
+    user.totp_recovery = list(recovery_hashes)
+    user.totp_failures = 0
+    user.totp_locked_until = None
+    db.commit()
+    return user
+
+
+def disable_totp(db: Session, user: User) -> User:
+    """Выключить и **стереть** секрет с кодами: оставленный секрет позволил бы включить
+    второй фактор чужими руками, не заводя новый."""
+    user.totp_secret = ""
+    user.totp_enabled_at = None
+    user.totp_recovery = []
+    user.totp_failures = 0
+    user.totp_locked_until = None
+    db.commit()
+    return user
+
+
+def set_recovery_codes(db: Session, user: User, recovery_hashes: list[str]) -> User:
+    user.totp_recovery = list(recovery_hashes)
+    db.commit()
+    return user
+
+
+def totp_locked_for(user: User) -> int:
+    """Сколько секунд ещё закрыт вход по коду; 0 — открыт."""
+    until = _aware(user.totp_locked_until)
+    if until is None:
+        return 0
+    left = (until - datetime.now(timezone.utc)).total_seconds()
+    return max(0, int(left))
+
+
+def note_totp_failure(db: Session, user: User) -> None:
+    user.totp_failures = (user.totp_failures or 0) + 1
+    if user.totp_failures >= TOTP_MAX_FAILURES:
+        user.totp_locked_until = datetime.now(timezone.utc) + TOTP_LOCK
+        user.totp_failures = 0
+    db.commit()
+
+
+def note_totp_success(db: Session, user: User) -> None:
+    if user.totp_failures or user.totp_locked_until:
+        user.totp_failures = 0
+        user.totp_locked_until = None
+        db.commit()
+
+
+# --- Журнал действий (152-ФЗ, ARCHITECTURE §4) ---
+
+def log_user_action(db: Session, user, action: str, *, details: str = "") -> None:
+    """Событие самого пользователя (вход, смена пароля) — в журналы **его** организаций.
+
+    У журнала есть владелец-организация, а событие входа принадлежит человеку. Пишем его
+    в каждую организацию, где он состоит: администратор обязан видеть, что происходит с
+    доступом к **его** данным, а другого места у записи нет.
+
+    Для **несуществующего** адреса не пишется ничего: журнала у него нет, а запись
+    превратила бы систему в подсказчик «такой адрес у нас есть».
+
+    Запись идёт **внутри арендатора**: у журнала RLS-политика с ``WITH CHECK``, и вход,
+    который организации не назвал, PostgreSQL просто не принял бы — на SQLite такая
+    запись проходит, и расхождение вылезло бы уже на живых данных.
+    """
+    if user is None:
+        return
+    for membership in list_user_memberships(db, user.id):
+        with as_tenant(db, membership.organization_id):
+            log_action(db, membership.organization_id, user, action, entity_type="user",
+                       entity_id=user.id, entity_name=user.email, details=details)
+
+
+def log_action(db: Session, org_id: str, user, action: str, *, entity_type: str = "",
+               entity_id: str = "", entity_name: str = "", details: str = "") -> AuditLogEntry:
+    """Записать действие в журнал организации.
+
+    ``user`` может быть ``None`` (системное действие). Почта актора дублируется текстом:
+    участника удалят, а журнал обязан отвечать «кто это сделал» и через год.
+
+    Длинные поля обрезаются до размера колонки, а не роняют запрос: имя дела задаёт
+    пользователь, и слишком длинное имя не повод потерять запись о его удалении.
+    """
+    entry = AuditLogEntry(
+        organization_id=org_id,
+        user_id=getattr(user, "id", None),
+        actor_email=(getattr(user, "email", "") or "")[:255],
+        action=action[:64],
+        entity_type=entity_type[:32],
+        entity_id=entity_id[:36],
+        entity_name=entity_name[:255],
+        details=details[:500],
+    )
+    db.add(entry)
+    db.commit()
+    return entry
+
+
+def _audit_log_filtered(org_id: str, *, actor: str = "", action: str = "",
+                        entity_type: str = "", since: datetime | None = None,
+                        until: datetime | None = None, q: str = ""):
+    """Условия отбора — общие для чтения и для счётчика.
+
+    Иначе «показано 50 из 12 000» врало бы: счётчик считал бы весь журнал, а список —
+    отобранное. Одно место условий делает эту ошибку невозможной.
+    """
+    stmt = select(AuditLogEntry).where(AuditLogEntry.organization_id == org_id)
+    if actor:
+        stmt = stmt.where(AuditLogEntry.actor_email == actor)
+    if action:
+        stmt = stmt.where(AuditLogEntry.action == action)
+    if entity_type:
+        stmt = stmt.where(AuditLogEntry.entity_type == entity_type)
+    if since is not None:
+        stmt = stmt.where(AuditLogEntry.created_at >= since)
+    if until is not None:
+        stmt = stmt.where(AuditLogEntry.created_at <= until)
+    if q:
+        # Поиск по тому, что человек помнит: имя сущности, кто сделал, примечание.
+        like = f"%{q}%"
+        stmt = stmt.where(
+            AuditLogEntry.entity_name.ilike(like)
+            | AuditLogEntry.actor_email.ilike(like)
+            | AuditLogEntry.details.ilike(like)
+        )
+    return stmt
+
+
+def list_audit_log(db: Session, org_id: str, limit: int = 200,
+                   before: datetime | None = None, **filters) -> list[AuditLogEntry]:
+    """Записи журнала организации, новые сверху; ``before`` — курсор постраничного чтения."""
+    stmt = _audit_log_filtered(org_id, **filters)
+    if before is not None:
+        stmt = stmt.where(AuditLogEntry.created_at < before)
+    stmt = stmt.order_by(AuditLogEntry.created_at.desc()).limit(limit)
+    return list(db.execute(stmt).scalars())
+
+
+def count_audit_log(db: Session, org_id: str, **filters) -> int:
+    """Сколько записей **под теми же условиями**, что и в списке."""
+    inner = _audit_log_filtered(org_id, **filters).subquery()
+    return int(db.execute(select(func.count()).select_from(inner)).scalar_one())
+
+
+def audit_log_actors(db: Session, org_id: str) -> list[str]:
+    """Кто вообще что-то делал в организации — для выбора в фильтре.
+
+    Из **журнала**, а не из списка участников: удалённый сотрудник из участников исчез,
+    а из журнала — нет, и отфильтровать его действия по-прежнему нужно.
+    """
+    rows = db.execute(
+        select(AuditLogEntry.actor_email)
+        .where(AuditLogEntry.organization_id == org_id, AuditLogEntry.actor_email != "")
+        .distinct().order_by(AuditLogEntry.actor_email)
+    ).scalars()
+    return list(rows)
+
+
+def audit_log_actions(db: Session, org_id: str) -> list[str]:
+    """Какие действия встречались — чтобы фильтр предлагал существующее, а не весь каталог."""
+    rows = db.execute(
+        select(AuditLogEntry.action)
+        .where(AuditLogEntry.organization_id == org_id)
+        .distinct().order_by(AuditLogEntry.action)
+    ).scalars()
+    return list(rows)
+
+
+#: Что считается выгрузкой документа наружу. Журнал организации (``audit_log.export``)
+#: сюда не входит: это выгрузка следов, а не продукта, и смешивать их в одном числе
+#: значило бы отвечать на два вопроса одной цифрой.
+EXPORT_ACTIONS = ("project.export", "case.export")
+
+
+# --- Служебный контур платформы (ADMIN-DECOMPOSITION.md, B1) ---
+#
+# Функции ниже читают **метаданные**: организации, состав, подписки, объёмы. Содержимого
+# проектов и дел здесь нет и быть не должно (правило 6 плана): владелец SaaS, читающий
+# финансовые модели клиентов, — ровно то, чего клиент опасается. Единственное, что
+# служебный контур знает о проекте, — что он существует и когда его последний раз считали.
+
+def list_organizations(db: Session, *, q: str = "", limit: int = 50,
+                       offset: int = 0) -> list[Organization]:
+    """Организации платформы, новые сверху; ``q`` — подстрока названия."""
+    stmt = select(Organization)
+    if q:
+        stmt = stmt.where(Organization.name.ilike(f"%{q}%"))
+    stmt = stmt.order_by(Organization.created_at.desc()).limit(limit).offset(offset)
+    return list(db.execute(stmt).scalars())
+
+
+def count_organizations(db: Session, *, q: str = "") -> int:
+    """Сколько организаций **под тем же условием**, что и в списке."""
+    stmt = select(func.count()).select_from(Organization)
+    if q:
+        stmt = stmt.where(Organization.name.ilike(f"%{q}%"))
+    return int(db.scalar(stmt) or 0)
+
+
+def org_volumes(db: Session, org_id: str) -> dict:
+    """Объёмы организации: сколько чего заведено и когда последний раз считали.
+
+    **Числа расчётов здесь нет.** Счётчика расчётов платформа не ведёт: расчёт зовётся
+    при каждом открытии результатов, это чтение, и в журнал он не пишется (правило 5).
+    Придумать число, глядя на журнал, значило бы выдать выгрузки за расчёты; вместо
+    этого возвращается дата последнего расчёта — она есть в самих проектах.
+    """
+    last_calc = db.scalar(
+        select(func.max(Project.last_calculated_at)).where(Project.organization_id == org_id)
+    )
+    last_seen = db.scalar(
+        select(func.max(Membership.last_seen_at)).where(Membership.organization_id == org_id)
+    )
+    return {
+        "projects": count_projects(db, org_id),
+        "cases": count_audit_subjects(db, org_id),
+        "groups": int(db.scalar(
+            select(func.count()).select_from(AuditGroup)
+            .where(AuditGroup.organization_id == org_id)) or 0),
+        "holdings": int(db.scalar(
+            select(func.count()).select_from(Holding)
+            .where(Holding.organization_id == org_id)) or 0),
+        "members": count_members(db, org_id),
+        "members_blocked": int(db.scalar(
+            select(func.count()).select_from(Membership)
+            .where(Membership.organization_id == org_id,
+                   Membership.blocked_at.is_not(None))) or 0),
+        "last_calculated_at": last_calc,
+        "last_seen_at": last_seen,
+    }
+
+
+def search_users(db: Session, *, q: str = "", limit: int = 50) -> list[User]:
+    """Поиск пользователя по адресу или имени — вход в разбор обращения в поддержку."""
+    stmt = select(User)
+    if q:
+        like = f"%{q}%"
+        stmt = stmt.where(User.email.ilike(like) | User.full_name.ilike(like))
+    return list(db.execute(stmt.order_by(User.created_at.desc()).limit(limit)).scalars())
+
+
+def set_staff(db: Session, user: User, *, is_staff: bool) -> User:
+    """Назначить или снять признак сотрудника платформы.
+
+    Вызывается **скриптом**, а не маршрутом API: эндпоинт, повышающий права, сам стал бы
+    главной мишенью, и защищать его пришлось бы сильнее всего остального вместе взятого.
+    """
+    user.is_staff = is_staff
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def set_org_suspension(db: Session, org: Organization, *, suspended: bool,
+                       by: str = "", reason: str = "") -> Organization:
+    """Приостановить организацию или вернуть её к работе (B2).
+
+    Снятие **стирает** автора и причину: оставленная причина у работающей организации
+    читалась бы как действующее ограничение, и следующий, кто откроет карточку, решит,
+    что клиент до сих пор наказан. Историю хранит журнал — он для этого и есть.
+    """
+    org.suspended_at = datetime.now(timezone.utc) if suspended else None
+    org.suspended_by = by if suspended else ""
+    org.suspend_reason = reason if suspended else ""
+    db.commit()
+    db.refresh(org)
+    return org
+
+
+def set_user_block(db: Session, user: User, *, blocked: bool, by: str = "",
+                   reason: str = "") -> User:
+    """Заблокировать учётную запись платформы или снять блокировку (B2).
+
+    Действует на все организации сразу — в отличие от приостановки членства (A1),
+    которая касается одной. Поэтому право только у оператора платформы.
+    """
+    user.blocked_at = datetime.now(timezone.utc) if blocked else None
+    user.blocked_by = by if blocked else ""
+    user.block_reason = reason if blocked else ""
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def log_staff_action(db: Session, user, action: str, *, org_id: str = "",
+                     org_name: str = "", details: str = "") -> StaffLogEntry:
+    """Записать действие сотрудника платформы в **служебный** журнал.
+
+    Визит к конкретному клиенту пишется дважды: сюда и в журнал самой организации
+    (``log_action``). Два журнала отвечают на разные вопросы — «где сегодня был наш
+    сотрудник» и «кто приходил ко мне», — и ни один из них не выводится из другого.
+    """
+    entry = StaffLogEntry(
+        user_id=getattr(user, "id", None),
+        actor_email=(getattr(user, "email", "") or "")[:255],
+        action=action[:64],
+        organization_id=org_id[:36],
+        organization_name=org_name[:255],
+        details=details[:500],
+    )
+    db.add(entry)
+    db.commit()
+    return entry
+
+
+def list_staff_log(db: Session, limit: int = 200, *, actor: str = "",
+                   org_id: str = "") -> list[StaffLogEntry]:
+    """Служебный журнал, новые сверху. Как и журнал организации — только чтение."""
+    stmt = select(StaffLogEntry)
+    if actor:
+        stmt = stmt.where(StaffLogEntry.actor_email == actor)
+    if org_id:
+        stmt = stmt.where(StaffLogEntry.organization_id == org_id)
+    return list(db.execute(
+        stmt.order_by(StaffLogEntry.created_at.desc()).limit(limit)).scalars())
+
+
+def org_metric_slice(db: Session, org_id: str, since: datetime) -> dict:
+    """Срез одной организации для сводки платформы (B3).
+
+    Зовётся из служебного контура **внутри арендатора**: журнал и проекты под RLS, и
+    обойти его платформа не умеет (B1) — оператор входит в организацию той же дверью,
+    что и её участники, по одной.
+
+    ``calculated`` — сколько проектов **считали хотя бы раз** за период, а не сколько
+    было расчётов: счётчика расчётов у платформы нет, и подменять одно другим значило бы
+    выдать удобное число за измеренное.
+    """
+    exports = db.scalar(
+        select(func.count()).select_from(AuditLogEntry)
+        .where(AuditLogEntry.organization_id == org_id,
+               AuditLogEntry.action.in_(EXPORT_ACTIONS),
+               AuditLogEntry.created_at >= since)
+    ) or 0
+    return {
+        "projects": count_projects(db, org_id),
+        "cases": count_audit_subjects(db, org_id),
+        "calculated": int(db.scalar(
+            select(func.count()).select_from(Project)
+            .where(Project.organization_id == org_id,
+                   Project.last_calculated_at.is_not(None),
+                   Project.last_calculated_at >= since)) or 0),
+        "exports": int(exports),
+        "first_log_at": db.scalar(
+            select(func.min(AuditLogEntry.created_at))
+            .where(AuditLogEntry.organization_id == org_id)),
+        # Шаги воронки активации (E3) — **за всё время**, а не за период: воронка
+        # отвечает на вопрос «дошла ли организация», и «дошла в прошлом году» это
+        # тоже «дошла».
+        "ever_exported": bool(db.scalar(
+            select(func.count()).select_from(AuditLogEntry)
+            .where(AuditLogEntry.organization_id == org_id,
+                   AuditLogEntry.action.in_(EXPORT_ACTIONS)))),
+        "ever_calculated": bool(db.scalar(
+            select(func.count()).select_from(Project)
+            .where(Project.organization_id == org_id,
+                   Project.last_calculated_at.is_not(None)))),
+    }
+
+
+# --- Обсуждение (комментарии к проекту и к делу, D3) ---
+
+def create_comment(db: Session, org_id: str, *, subject_type: str, subject_id: str,
+                   author: User, body: str, anchor: str = "", anchor_label: str = "",
+                   mentions: list[str] | None = None) -> Comment:
+    """Записать реплику. Почта и имя автора дублируются текстом: участника удалят, а
+    разговор обязан отвечать «кто это сказал» и через год."""
+    comment = Comment(
+        organization_id=org_id, subject_type=subject_type, subject_id=subject_id,
+        anchor=anchor[:128], anchor_label=anchor_label[:255],
+        author_id=author.id, author_email=(author.email or "")[:255],
+        author_name=(author.full_name or "")[:255],
+        body=body, mentions=",".join(mentions or "")[:1000],
+    )
+    db.add(comment)
+    db.commit()
+    db.refresh(comment)
+    return comment
+
+
+def list_comments(db: Session, org_id: str, subject_type: str, subject_id: str,
+                  *, anchor: str | None = None) -> list[Comment]:
+    """Реплики по сущности, старые сверху — разговор читают сверху вниз.
+
+    ``anchor`` сужает до одного места. Удалённые реплики **остаются в выдаче**: их
+    «надгробие» рисует интерфейс, а пропавшая без следа строка читается как не сказанная.
+    """
+    stmt = select(Comment).where(Comment.organization_id == org_id,
+                                 Comment.subject_type == subject_type,
+                                 Comment.subject_id == subject_id)
+    if anchor is not None:
+        stmt = stmt.where(Comment.anchor == anchor)
+    return list(db.execute(stmt.order_by(Comment.created_at)).scalars())
+
+
+def get_comment(db: Session, org_id: str, comment_id: str) -> Comment | None:
+    return db.scalar(select(Comment).where(Comment.id == comment_id,
+                                           Comment.organization_id == org_id))
+
+
+def resolve_comment(db: Session, comment: Comment, *, by: str,
+                    resolved: bool = True) -> Comment:
+    """Закрыть обсуждение или открыть заново. Кто закрыл — записано: «вопрос снят» без
+    имени снявшего это не ответ, а тишина."""
+    comment.resolved_at = datetime.now(timezone.utc) if resolved else None
+    comment.resolved_by = by if resolved else ""
+    db.commit()
+    db.refresh(comment)
+    return comment
+
+
+def delete_comment(db: Session, comment: Comment, *, by: str) -> Comment:
+    """Стереть текст реплики, оставив «надгробие»: удалённая строка говорит о себе.
+
+    ``by`` — кто убрал: «надгробие» отличает своё удаление от административного, иначе
+    оно приписало бы автору чужое решение.
+    """
+    comment.body = ""
+    comment.mentions = ""
+    comment.deleted_at = datetime.now(timezone.utc)
+    comment.deleted_by = by[:255]
+    db.commit()
+    db.refresh(comment)
+    return comment
+
+
+def count_open_comments(db: Session, org_id: str, subject_type: str,
+                        subject_id: str) -> int:
+    """Сколько обсуждений не закрыто — счётчик для списка проектов и дел."""
+    return int(db.scalar(
+        select(func.count()).select_from(Comment)
+        .where(Comment.organization_id == org_id,
+               Comment.subject_type == subject_type,
+               Comment.subject_id == subject_id,
+               Comment.resolved_at.is_(None),
+               Comment.deleted_at.is_(None))) or 0)
+
+
+# --- Ключи доступа к API (D5) ---
+
+def create_api_key(db: Session, org_id: str, *, name: str, prefix: str,
+                   fingerprint: str, created_by: str) -> ApiKey:
+    key = ApiKey(organization_id=org_id, name=name[:200], prefix=prefix,
+                 fingerprint=fingerprint, created_by=created_by[:255])
+    db.add(key)
+    db.commit()
+    db.refresh(key)
+    return key
+
+
+def list_api_keys(db: Session, org_id: str) -> list[ApiKey]:
+    """Ключи организации, новые сверху. Отозванные **остаются в списке**: исчезнувший
+    ключ читался бы как никогда не существовавший, а он работал и мог что-то забрать."""
+    return list(db.scalars(
+        select(ApiKey).where(ApiKey.organization_id == org_id)
+        .order_by(ApiKey.created_at.desc())))
+
+
+def count_active_api_keys(db: Session, org_id: str) -> int:
+    return int(db.scalar(
+        select(func.count()).select_from(ApiKey)
+        .where(ApiKey.organization_id == org_id, ApiKey.revoked_at.is_(None))) or 0)
+
+
+def get_api_key(db: Session, org_id: str, key_id: str) -> ApiKey | None:
+    return db.scalar(select(ApiKey).where(ApiKey.id == key_id,
+                                          ApiKey.organization_id == org_id))
+
+
+def find_api_key_by_prefix(db: Session, prefix: str) -> ApiKey | None:
+    """Ключ по открытому префиксу — до того, как арендатор известен: ключ его и называет."""
+    return db.scalar(select(ApiKey).where(ApiKey.prefix == prefix))
+
+
+def revoke_api_key(db: Session, key: ApiKey, by: str) -> ApiKey:
+    """Отозвать ключ. Мгновенно: состояние читается из базы на каждом запросе."""
+    if key.revoked_at is None:
+        key.revoked_at = datetime.now(timezone.utc)
+        key.revoked_by = by[:255]
+        db.commit()
+        db.refresh(key)
+    return key
+
+
+def touch_api_key(db: Session, key: ApiKey, interval: timedelta) -> None:
+    """Отметить использование — не чаще раза в интервал: иначе таблица ключей станет
+    счётчиком запросов и добавит запись к каждому чтению."""
+    now = datetime.now(timezone.utc)
+    seen = _aware(key.last_used_at)
+    if seen is None or now - seen >= interval:
+        key.last_used_at = now
+        db.commit()

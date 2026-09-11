@@ -1,52 +1,94 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { InputHTMLAttributes, ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { CubeHero } from "../../components/CubeHero";
 import { IconEye, IconEyeOff } from "../../components/icons";
+import { applyProduct, currentProduct, PRODUCTS, type Product } from "../../components/product";
 import { getTheme, toggleTheme } from "../../components/theme";
 
 /**
- * Общий каркас экранов входа/регистрации (макет «Этап 2»):
+ * Общий каркас экранов входа/регистрации (макеты «Этап 2» и «Финанс Аудит — Экран 3»):
  * карточка по центру; на desktop ≥1024px — сплит с бренд-панелью 44%
  * (марка + hero-куб + фичи + чипы); тумблер темы на карточке;
  * success-оверлей с галкой и прогрессом 1.6 с до редиректа.
+ *
+ * Каркас один на оба продукта, содержимое панели — своё: у входа собственного продукта
+ * нет, поэтому берётся последний выбранный (`currentProduct`). Иначе пользователь
+ * «Аудита» после выхода видел бы зелёный экран с чужим словом в марке и обещаниями
+ * бизнес-плана — то есть вход в другой продукт.
  */
 
-const FEATURES: Array<[string, string]> = [
-  ["4 отчёта + NPV, IRR, PI, окупаемость", "Прибыли и убытки · Кэш-фло · Баланс · Использование прибыли"],
-  ["Оценка бизнеса 5 методами", "DCF, мультипликаторы, ликвидационная и др."],
-  ["Анализ рисков и план-факт", "Чувствительность, Монте-Карло, What-If"],
-];
+interface BrandCopy {
+  headline: string;
+  lead: string;
+  features: Array<[string, string]>;
+  /** Чипы под панелью: у бизнес-плана — пример результата, у аудита — названия методик. */
+  chips: string[];
+}
 
-function Wordmark({ small }: { small?: boolean }) {
+const BRAND: Record<Product, BrandCopy> = {
+  business: {
+    headline: "Финансовая модель бизнеса — за вечер, а не за месяц.",
+    lead: "Помесячный расчёт отчётов, показателей эффективности и оценки стоимости. "
+      + "Данные — герой, интерфейс не мешает.",
+    features: [
+      ["4 отчёта + NPV, IRR, PI, окупаемость",
+       "Прибыли и убытки · Кэш-фло · Баланс · Использование прибыли"],
+      ["Оценка бизнеса 5 методами", "DCF, мультипликаторы, ликвидационная и др."],
+      ["Анализ рисков и план-факт", "Чувствительность, Монте-Карло, What-If"],
+    ],
+    chips: ["NPV 12,48 млн ₽", "IRR 34,2%", "PI 1,82"],
+  },
+  // Обещания макета — «24 процедуры за шесть минут» и «средний дисконт к цене 18%» —
+  // сюда не перенесены: фонового скана в продукте нет (анализ считается сразу и на
+  // месте), а статистики по чужим сделкам платформа не собирает. Панель называет то,
+  // что действительно посчитается по введённой отчётности.
+  audit: {
+    headline: "Что говорит отчётность фирмы-цели — до того, как вы её купите.",
+    lead: "Аналитическая форма, коэффициенты, диагностика банкротства, реестр флагов и "
+      + "оценка — из введённой отчётности. Чего в ней не видно, платформа называет прямо, "
+      + "а не заполняет догадкой.",
+    features: [
+      ["Аналитическая форма, коэффициенты, тренды",
+       "Баланс и отчёт о финрезультатах по периодам — год, квартал, месяц"],
+      ["Реестр флагов, качество прибыли, обязательства",
+       "Находки с денежной мерой; у кого меры нет — сказано отдельно"],
+      ["Оценка DCF, торнадо и Монте-Карло, заключение",
+       "По вашим допущениям: отраслевой статистики у платформы нет"],
+    ],
+    chips: ["Z′ Альтмана", "EBITDA норм.", "DCF"],
+  },
+};
+
+function Wordmark({ product, small }: { product: Product; small?: boolean }) {
   return (
     <span className={small ? "auth-word-sm" : "auth-brand__word"}>
-      Финанс<span style={{ opacity: 0.5, fontWeight: 500 }}>-Элит</span>
+      Финанс<span style={{ opacity: 0.5, fontWeight: 500 }}>{PRODUCTS[product].brand}</span>
     </span>
   );
 }
 
-function BrandPanel() {
+function BrandPanel({ product }: { product: Product }) {
+  const copy = BRAND[product];
+  const accent = PRODUCTS[product].cubeAccent;
   return (
     <div className="auth-brand">
       <div className="auth-brand__inner">
         <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
           <div className="auth-brand__mark">
-            <CubeHero backdrop="transparent" showEnvironment={false} showOrbit={false} pointerTilt={false} />
+            <CubeHero accent={accent} backdrop="transparent" showEnvironment={false}
+                      showOrbit={false} pointerTilt={false} />
           </div>
-          <Wordmark />
+          <Wordmark product={product} />
         </div>
         <div className="auth-brand__hero">
-          <CubeHero backdrop="transparent" />
+          <CubeHero accent={accent} backdrop="transparent" />
         </div>
         <div style={{ marginTop: "auto" }}>
-          <div className="auth-brand__h">Финансовая модель бизнеса — за вечер, а не за месяц.</div>
-          <div className="auth-brand__p">
-            Помесячный расчёт отчётов, показателей эффективности и оценки стоимости. Данные — герой,
-            интерфейс не мешает.
-          </div>
+          <div className="auth-brand__h">{copy.headline}</div>
+          <div className="auth-brand__p">{copy.lead}</div>
           <div className="auth-brand__feats">
-            {FEATURES.map(([title, sub]) => (
+            {copy.features.map(([title, sub]) => (
               <div key={title} className="auth-brand__feat">
                 <div className="auth-brand__tick">✓</div>
                 <div>
@@ -58,9 +100,7 @@ function BrandPanel() {
           </div>
         </div>
         <div className="auth-brand__foot">
-          <span className="auth-brand__chip">NPV 12,48 млн ₽</span>
-          <span className="auth-brand__chip">IRR 34,2%</span>
-          <span className="auth-brand__chip">PI 1,82</span>
+          {copy.chips.map((c) => <span className="auth-brand__chip" key={c}>{c}</span>)}
         </div>
       </div>
     </div>
@@ -72,7 +112,19 @@ export interface AuthSuccess {
   sub: string;
 }
 
+/**
+ * Активный продукт для экрана входа: фиксируется на монтировании (переключателя
+ * продуктов до входа нет) и сразу применяется к теме — иначе токены остались бы от
+ * бизнес-плана, а карточка стала бы зелёной посреди фиолетовой панели.
+ */
+export function useAuthProduct(): Product {
+  const [product] = useState(currentProduct);
+  useEffect(() => applyProduct(product), [product]);
+  return product;
+}
+
 export function AuthLayout({
+  product,
   title,
   subtitle,
   serverError,
@@ -83,6 +135,7 @@ export function AuthLayout({
   switchTo,
   children,
 }: {
+  product: Product;
   title: string;
   subtitle: string;
   serverError: string;
@@ -98,7 +151,7 @@ export function AuthLayout({
   return (
     <div className="auth-page">
       <div className="auth-card auth-card--split">
-        <BrandPanel />
+        <BrandPanel product={product} />
         <div className="auth-form">
           <button
             type="button"
@@ -114,7 +167,8 @@ export function AuthLayout({
           {success ? (
             <div className="auth-success">
               <div className="auth-success__cube">
-                <CubeHero backdrop="transparent" showEnvironment={false} />
+                <CubeHero accent={PRODUCTS[product].cubeAccent} backdrop="transparent"
+                          showEnvironment={false} />
               </div>
               <div className="auth-success__circle">
                 <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
@@ -137,9 +191,10 @@ export function AuthLayout({
             <>
               <div className="auth-form__brandrow">
                 <div className="auth-mark-sm">
-                  <CubeHero backdrop="transparent" showEnvironment={false} showOrbit={false} pointerTilt={false} />
+                  <CubeHero accent={PRODUCTS[product].cubeAccent} backdrop="transparent"
+                            showEnvironment={false} showOrbit={false} pointerTilt={false} />
                 </div>
-                <Wordmark small />
+                <Wordmark product={product} small />
               </div>
               <div className="auth-title">{title}</div>
               <div className="auth-subtitle">{subtitle}</div>

@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+import hashlib
 import os
 import time
 
@@ -17,6 +18,12 @@ _ph = PasswordHasher()
 JWT_SECRET = os.getenv("JWT_SECRET", "dev-secret-change-me")
 JWT_ALG = "HS256"
 JWT_TTL_SECONDS = int(os.getenv("JWT_TTL_SECONDS", str(24 * 3600)))
+#: Срок токена при «запомнить меня». Тридцать дней — осознанно долго: с C1 у входа есть
+#: **реестр сеансов**, и длинный срок перестал быть неотзываемым — человек видит свои
+#: входы и закрывает лишние. Обновляемые токены (refresh) сюда не заводятся: без ротации
+#: они не добавляют безопасности, а с ротацией добавляют машинерию, которую тот же отзыв
+#: сеанса уже покрывает.
+REMEMBER_TTL_SECONDS = int(os.getenv("JWT_REMEMBER_TTL_SECONDS", str(30 * 24 * 3600)))
 
 # Заглушки, недопустимые в продакшене (код и .env.example).
 _INSECURE_SECRETS = {"", "dev-secret-change-me", "change-me-in-production"}
@@ -54,16 +61,108 @@ def verify_password(hashed: str | None, password: str) -> bool:
         return False
 
 
-def create_access_token(user_id: str) -> str:
+#: Срок жизни приглашения. Неделя: приглашённый должен успеть зайти, но вечная
+#: ссылка на заведение пароля — это вечная дыра, если письмо утекло.
+INVITE_TTL_SECONDS = int(os.getenv("INVITE_TTL_SECONDS", str(7 * 24 * 3600)))
+
+
+def _token(user_id: str, typ: str, ttl: int, **claims) -> str:
     now = int(time.time())
-    payload = {"sub": user_id, "iat": now, "exp": now + JWT_TTL_SECONDS}
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALG)
+    return jwt.encode({"sub": user_id, "iat": now, "exp": now + ttl, "typ": typ, **claims},
+                      JWT_SECRET, algorithm=JWT_ALG)
 
 
-def decode_token(token: str) -> str | None:
-    """Вернуть user_id из валидного токена либо ``None``."""
+def access_ttl(remember: bool = False) -> int:
+    """Срок токена входа. Один источник для токена и для строки сеанса: два разных срока
+    однажды разошлись бы, и «активный» сеанс перестал бы работать без объяснения."""
+    return REMEMBER_TTL_SECONDS if remember else JWT_TTL_SECONDS
+
+
+def create_access_token(user_id: str, session_id: str, ttl: int | None = None) -> str:
+    """Токен входа, привязанный к **сеансу** (C1).
+
+    ``jti`` — идентификатор строки в реестре входов. Без него токен не принимается:
+    отозвать его было бы нечем, и жил бы он до истечения срока — то есть ровно столько,
+    сколько злоумышленнику и нужно.
+    """
+    return _token(user_id, "access", ttl if ttl is not None else JWT_TTL_SECONDS,
+                  jti=session_id)
+
+
+def create_invite_token(user_id: str) -> str:
+    """Токен приглашения: им заводят **пароль**, а не входят в систему."""
+    return _token(user_id, "invite", INVITE_TTL_SECONDS)
+
+
+def password_stamp(hashed: str | None) -> str:
+    """Отпечаток действующего пароля — им ссылка сброса делается одноразовой.
+
+    Приглашение одноразово само собой: после активации у пользователя появляется
+    пароль, и повторно оно не срабатывает. У сброса пароль есть и до, и после, поэтому
+    нужен другой признак «уже использована». Отпечаток решает это **без таблицы и
+    миграции**: сменился пароль — сменился отпечаток, старая ссылка мертва. Заодно
+    ссылка умирает, если пользователь тем временем сменил пароль сам.
+
+    В токен уходит только хэш от хэша: сам хэш пароля наружу не выносится.
+    """
+    return hashlib.sha256((hashed or "").encode()).hexdigest()[:16]
+
+
+def create_reset_token(user_id: str, hashed_password: str | None) -> str:
+    """Токен сброса пароля: задать новый пароль, не зная текущего.
+
+    Срок — как у приглашения: вечная ссылка на смену пароля это вечная дыра.
+    """
+    now = int(time.time())
+    return jwt.encode({"sub": user_id, "iat": now, "exp": now + INVITE_TTL_SECONDS,
+                       "typ": "reset", "pw": password_stamp(hashed_password)},
+                      JWT_SECRET, algorithm=JWT_ALG)
+
+
+def decode_reset_token(token: str) -> tuple[str, str] | None:
+    """``(user_id, отпечаток пароля)`` из валидного токена сброса либо ``None``."""
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
     except jwt.PyJWTError:
+        return None
+    if payload.get("typ") != "reset":
+        return None
+    sub, stamp = payload.get("sub"), payload.get("pw")
+    return (sub, stamp) if sub and stamp else None
+
+
+def decode_access(token: str) -> tuple[str, str] | None:
+    """``(user_id, id сеанса)`` из валидного токена входа либо ``None``.
+
+    Токен **без** ``jti`` отвергается: он выпущен до появления реестра сеансов, и принять
+    его значило бы держать в системе доступ, который нечем закрыть. Цена — один вход
+    заново для всех, кто сидел в системе в момент выкатки; молчаливое исключение стоило
+    бы дороже и навсегда.
+    """
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
+    except jwt.PyJWTError:
+        return None
+    if payload.get("typ", "access") != "access":
+        return None
+    sub, jti = payload.get("sub"), payload.get("jti")
+    return (sub, jti) if sub and jti else None
+
+
+def decode_token(token: str, expect: str = "access") -> str | None:
+    """Вернуть user_id из валидного токена нужного назначения либо ``None``.
+
+    Назначение проверяется обязательно. Без этого токен приглашения работал бы как
+    токен входа: приглашённый попадал бы внутрь **до** того, как задал пароль, а
+    сама ссылка-приглашение становилась бы вечным пропуском в чужую организацию.
+
+    Токены без ``typ`` — выпущенные до разделения — считаются токенами доступа:
+    иначе разделение выкинуло бы из системы всех, кто в ней сейчас сидит.
+    """
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
+    except jwt.PyJWTError:
+        return None
+    if payload.get("typ", "access") != expect:
         return None
     return payload.get("sub")

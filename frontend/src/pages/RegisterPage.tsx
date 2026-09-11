@@ -1,16 +1,26 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { httpStatus } from "../api/client";
+import { httpDetail, httpStatus } from "../api/client";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { IconBuilding, IconLock, IconMail, IconUser } from "../components/icons";
-import { AuthLayout, AuthPasswordField, AuthField, AuthSubmit, isEmailValid } from "./auth/AuthLayout";
+import { PRODUCTS } from "../components/product";
+import {
+  AuthLayout, AuthPasswordField, AuthField, AuthSubmit, isEmailValid, useAuthProduct,
+} from "./auth/AuthLayout";
 
 const REDIRECT_DELAY_MS = 1600;
 const MIN_PASSWORD = 8;
 
+/** Регистрация одна на платформу; называется только то, ради чего пришли. */
+const LEAD: Record<string, string> = {
+  business: "Зарегистрируйтесь — и создайте организацию для своих финансовых моделей.",
+  audit: "Зарегистрируйтесь — и создайте организацию для дел о фирмах-целях.",
+};
+
 export function RegisterPage() {
   const { register } = useAuth();
   const navigate = useNavigate();
+  const product = useAuthProduct();
   const [form, setForm] = useState({ full_name: "", email: "", password: "", organization_name: "" });
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [submitted, setSubmitted] = useState(false);
@@ -70,12 +80,20 @@ export function RegisterPage() {
     try {
       await register(form);
       setSuccess(true);
-      timer.current = window.setTimeout(() => navigate("/projects"), REDIRECT_DELAY_MS);
+      // Новая организация ведёт в тот продукт, из которого пришли на регистрацию:
+      // «Аудит» с зелёного списка проектов начинался бы не с того экрана.
+      timer.current = window.setTimeout(
+        () => navigate(PRODUCTS[product].home), REDIRECT_DELAY_MS);
     } catch (err: unknown) {
       setServerError(
         httpStatus(err) === 409
           ? "Этот email уже зарегистрирован"
-          : "Не удалось создать аккаунт. Попробуйте ещё раз.",
+          // Отказ по паролю сервер называет словами («слишком известен», «подряд идущие
+          // клавиши», «повторяет ваш адрес»). Заменять их общим «не удалось» значило бы
+          // отправить человека перебирать варианты вслепую — и он придёт к «Parol1234!».
+          : httpStatus(err) === 422 && httpDetail(err)
+            ? httpDetail(err)!
+            : "Не удалось создать аккаунт. Попробуйте ещё раз.",
       );
       setBusy(false);
     }
@@ -83,8 +101,9 @@ export function RegisterPage() {
 
   return (
     <AuthLayout
+      product={product}
       title="Создать аккаунт"
-      subtitle="Зарегистрируйтесь — и создайте организацию для своих финансовых моделей."
+      subtitle={LEAD[product]}
       serverError={serverError}
       onDismissError={() => setServerError("")}
       success={

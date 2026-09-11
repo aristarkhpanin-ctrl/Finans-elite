@@ -37,6 +37,38 @@ export function httpDetail(e: unknown): string | undefined {
   return undefined;
 }
 
+/**
+ * Отказ валидации (422) в человеческом виде: **какое поле** и **что с ним не так**.
+ *
+ * FastAPI отвечает списком ошибок с путём (`loc`) и техническим текстом pydantic. До
+ * этого экран показывал общее «не удалось сохранить»: правка всей модели отклонялась
+ * из-за одной ячейки, а какой — не знал никто, и введённое приходилось искать глазами.
+ *
+ * Путь печатается как есть (`obligations → 1 → amount`): переводить ключи модели
+ * значило бы завести словарь, который молча отстанет от неё. Зато сказано, **что**
+ * не так — и для числа названо, как его писать.
+ */
+export function httpFieldError(e: unknown): string | undefined {
+  if (!axios.isAxiosError(e)) return undefined;
+  const detail = (e.response?.data as { detail?: unknown } | undefined)?.detail;
+  if (!Array.isArray(detail) || detail.length === 0) return undefined;
+  const first = detail[0] as { loc?: unknown[]; type?: string; input?: unknown };
+  // `body` и `model` — обёртка запроса, а не то, что заполнял человек.
+  const path = (first.loc ?? [])
+    .filter((p) => p !== "body" && p !== "model")
+    .map((p) => (typeof p === "number" ? p + 1 : String(p)))
+    .join(" → ");
+  const kind = String(first.type ?? "");
+  const numeric = kind.includes("decimal") || kind.includes("float") || kind.includes("int");
+  const subject = typeof first.input === "string" && first.input.trim() !== ""
+    ? `«${first.input}»` : "значение";
+  const where = path ? ` в поле «${path}»` : "";
+  return numeric
+    ? `${subject}${where} не читается как число. Десятичный разделитель — запятая или `
+      + "точка, разряды можно разделить пробелом: 1 200,50"
+    : `${subject}${where} не подходит по формату`;
+}
+
 // Подставляем токен и текущую организацию в каждый запрос.
 api.interceptors.request.use((config) => {
   const token = getToken();

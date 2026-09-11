@@ -1,7 +1,7 @@
 [project]
 name = "calc-core"
 version = "0.1.0"
-description = "Расчётное ядро финансовой модели (SaaS, паритет с Project Expert 7.21)"
+description = "Расчётное ядро финансовой модели: помесячный расчёт на Decimal, четыре отчёта"
 requires-python = ">=3.11"
 dependencies = [
     "pydantic>=2.6",
@@ -14,6 +14,7 @@ dependencies = [
     "httpx>=0.27",
     "celery>=5.3",
     "redis>=5.0",
+    "python-docx>=1.1",
 ]
 
 [project.optional-dependencies]

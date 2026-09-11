@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { type CalcResponse, type StatementOut } from "../api/calc";
 import type { ProjectModel } from "../api/model";
-import { fmtMillions, fmtTable, percent } from "../format";
+import { fmtDateOnly, fmtMillions, fmtTable, percent } from "../format";
 import { GRANDS, SUBTOTALS } from "./StatementTable";
 
 /**
@@ -124,7 +124,7 @@ export function PrintReport({
 
   const rate = model?.settings.discount_rate_annual;
   const meta: Array<[string, string]> = [
-    ["Дата старта", model?.header.start_date ? new Date(model.header.start_date).toLocaleDateString("ru-RU") : "—"],
+    ["Дата старта", fmtDateOnly(model?.header.start_date)],
     ["Горизонт", `${n} мес.`],
     ["Валюта", "Рубль (₽)"],
     ["Ставка дисконт.", rate ? percent(rate, 1) : "—"],
@@ -237,6 +237,10 @@ export function PrintReport({
 
         <div className="pr-seclabel">Показатели эффективности инвестиций</div>
         <div className="pr-mgrid">{eff.map((e) => <div key={e.label}>{cell(e.label, e.value, e.note)}</div>)}</div>
+        {m.no_return_metrics_note && (
+          // На бумаге объяснить прочерк особенно важно: спросить автора нельзя.
+          <div className="pr-note">{m.no_return_metrics_note}</div>
+        )}
 
         <div className="pr-seclabel">Оценка стоимости бизнеса</div>
         <div className="pr-vgrid">

@@ -1,0 +1,28 @@
+.showcase {
+  &__frame {
+    padding: @space-12;
+    background: var(--c-page);
+    border: 1px solid var(--c-border);
+    border-radius: @radius-card;
+
+    .desktop-up({ padding: 14px; });
+  }
+
+  &__image { border-radius: 10px; }
+
+  &__row {
+    display: grid;
+    gap: @space-12;
+    margin-top: @space-12;
+
+    .tablet-up({ grid-template-columns: repeat(2, minmax(0, 1fr)); });
+  }
+
+  &__caption {
+    margin-top: 10px;
+    font-family: @font-mono;
+    font-size: 10.5px;
+    line-height: 1.5;
+    color: var(--c-subtle);
+  }
+}

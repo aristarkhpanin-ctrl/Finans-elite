@@ -1,4 +1,5 @@
 import type { CalcResponse, StatementOut } from "./api/calc";
+import { api } from "./api/client";
 import { SUBTOTALS } from "./components/StatementTable";
 import { fmtMoney, fmtTable, percent, ratio } from "./format";
 
@@ -33,6 +34,14 @@ function triggerDownload(filename: string, blob: Blob): void {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+/** DOCX-бизнес-план (пакет №5): документ собирает backend, здесь — скачивание файла. */
+export async function downloadBusinessPlanDocx(projectId: string, filename: string): Promise<void> {
+  const { data } = await api.get<Blob>(`/api/v1/projects/${projectId}/business-plan.docx`, {
+    responseType: "blob",
+  });
+  triggerDownload(filename, data);
 }
 
 // XLSX: лист на каждый отчёт + лист показателей. write-excel-file грузится лениво (по клику).
