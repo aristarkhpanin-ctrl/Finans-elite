@@ -10454,10 +10454,11 @@
         "type": "object"
       },
       "RepaymentType": {
-        "description": "Схема погашения тела займа.",
+        "description": "Схема погашения тела займа (SPEC §10).",
         "enum": [
           "equal_principal",
-          "bullet"
+          "bullet",
+          "annuity"
         ],
         "title": "RepaymentType",
         "type": "string"
@@ -14111,7 +14112,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.40"
+    "version": "0.9.41"
   },
   "openapi": "3.1.0",
   "paths": {

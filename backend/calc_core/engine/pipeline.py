@@ -602,8 +602,30 @@ def _assets(model: ProjectModel, n: int, details: DetailCollector | None = None)
             b9_disposal, b10_disposal, reval, nbv)
 
 
+def _annuity_payment(amount: Decimal, rate: Decimal, term: int) -> Decimal:
+    """Аннуитетный платёж: ``A = P·i / (1 − (1+i)^−n)`` (SPEC §10).
+
+    Нулевая ставка — **отдельная ветка, а не предел формулы**: при ``i = 0`` знаменатель
+    обращается в ноль, и «почти ноль» дал бы платёж в миллиарды вместо ``P/n``. При нулевой
+    ставке аннуитет и есть погашение равными долями — и совпадает с ним до копейки.
+    """
+    if term <= 0:
+        return ZERO
+    if rate <= ZERO:
+        return amount / Decimal(term)
+    return amount * rate / (ONE - (ONE + rate) ** (-term))
+
+
 def _loan_schedule(loan, n: int):
-    """График займа → (поступления, погашение тела, проценты), помесячно."""
+    """График займа → (поступления, погашение тела, проценты), помесячно.
+
+    Проценты начисляются на остаток **на начало месяца**, поэтому в месяц получения их
+    нет, а платежи идут с ``start+1`` по ``start+term`` — одинаково для всех трёх схем.
+    Аннуитет отличается только величиной тела в платеже: постоянный платёж минус
+    проценты этого месяца. **Последний платёж закрывает остаток**: аннуитет считается в
+    точности `Decimal`, и хвост округления иначе остался бы вечным долгом в копейку —
+    остаток тела обязан сойтись с суммой займа, иначе `B26` никогда не обнулится.
+    """
     proceeds = zeros(n)
     principal = zeros(n)
     interest = zeros(n)
@@ -612,6 +634,8 @@ def _loan_schedule(loan, n: int):
     term = loan.term_months
     bal = ZERO
     per = loan.amount / Decimal(term) if term > 0 else loan.amount
+    annuity = (_annuity_payment(loan.amount, m, term)
+               if loan.repayment == RepaymentType.ANNUITY else ZERO)
     for t in range(n):
         interest[t] = bal * m  # проценты на остаток на начало месяца
         if t == s:
@@ -621,6 +645,11 @@ def _loan_schedule(loan, n: int):
         if loan.repayment == RepaymentType.EQUAL_PRINCIPAL:
             if s < t <= s + term:
                 due = per
+        elif loan.repayment == RepaymentType.ANNUITY:
+            if t == s + term:
+                due = bal                       # хвост округления — в последний платёж
+            elif s < t < s + term:
+                due = max(ZERO, annuity - interest[t])
         else:  # BULLET — весь возврат в конце срока
             if t == s + term:
                 due = bal

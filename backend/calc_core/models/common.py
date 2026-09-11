@@ -23,10 +23,11 @@ class DirectCostKind(str, Enum):
 
 
 class RepaymentType(str, Enum):
-    """Схема погашения тела займа."""
+    """Схема погашения тела займа (SPEC §10)."""
 
     EQUAL_PRINCIPAL = "equal_principal"  # равными долями тела
     BULLET = "bullet"                    # весь возврат в конце срока
+    ANNUITY = "annuity"                  # равный платёж «проценты + тело»
 
 
 class VatBasis(str, Enum):

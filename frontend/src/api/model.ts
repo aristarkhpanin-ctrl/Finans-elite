@@ -118,7 +118,7 @@ export interface OtherFlow {
   from_profit?: boolean;
 }
 
-export type RepaymentType = "equal_principal" | "bullet";
+export type RepaymentType = "equal_principal" | "bullet" | "annuity";
 
 export interface Loan {
   name: string;

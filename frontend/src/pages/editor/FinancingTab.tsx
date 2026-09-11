@@ -252,6 +252,7 @@ export function FinancingTab({ n, financing, onChange }: Props) {
                         onChange={(v) => updLoan(i, { repayment: v as RepaymentType })}
                         options={[
                           ["equal_principal", "Равными долями"],
+                          ["annuity", "Аннуитет (равный платёж)"],
                           ["bullet", "В конце срока"],
                         ]}
                       />

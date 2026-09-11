@@ -8284,10 +8284,10 @@ export interface components {
         };
         /**
          * RepaymentType
-         * @description Схема погашения тела займа.
+         * @description Схема погашения тела займа (SPEC §10).
          * @enum {string}
          */
-        RepaymentType: "equal_principal" | "bullet";
+        RepaymentType: "equal_principal" | "bullet" | "annuity";
         /**
          * ReportRequisites
          * @description Реквизиты документа и подписи (SPEC, Прил. Х).

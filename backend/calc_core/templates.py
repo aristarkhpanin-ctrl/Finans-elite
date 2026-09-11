@@ -151,7 +151,7 @@ def build_cafe() -> ProjectModel:
             equity=[EquityInjection(amount=d(2500000), month=0)],
             loans=[Loan(name="Кредит на оборудование", amount=d(1200000), start_month=0,
                         term_months=36, annual_rate=d("0.22"),
-                        repayment=RepaymentType.EQUAL_PRINCIPAL)],
+                        repayment=RepaymentType.ANNUITY)],
             common_shares=d(1000),
         ),
     )
@@ -295,7 +295,7 @@ def build_rental() -> ProjectModel:
             equity=[EquityInjection(amount=d(90000000), month=0)],
             loans=[Loan(name="Кредит под залог объекта", amount=d(60000000),
                         start_month=0, term_months=120, annual_rate=d("0.16"),
-                        repayment=RepaymentType.EQUAL_PRINCIPAL)],
+                        repayment=RepaymentType.ANNUITY)],
             # Входной НДС с покупки объекта возвращается не сразу: до возврата кассовый
             # разрыв закрывает кредитная линия — как это и бывает в жизни.
             auto_financing=AutoFinancing(enabled=True, annual_rate=d("0.19"),
@@ -425,8 +425,9 @@ INDUSTRY_TEMPLATES: dict[str, Template] = {
                 "от выручки — это другая строка, и на неё модель среагирует иначе.",
                 "Списания и потери продуктов не заложены вовсе: реальная себестоимость "
                 "выше рецептурной, и на этом теряется вся видимая прибыль.",
-                "Кредит гасится равными долями тела — аннуитета движок пока не умеет. "
-                "Для банковского графика платёж в первые месяцы будет выше расчётного.",
+                "Кредит гасится аннуитетом — равным платежом, как в банке. Ставка 22% "
+                "и срок 36 месяцев взяты для примера: свои берите из предложения банка, "
+                "платёж пересчитается.",
             ],
             build=build_cafe),
         Template(
