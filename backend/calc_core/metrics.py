@@ -51,14 +51,44 @@ def investment_graph(net_flow: Sequence[Decimal]) -> list[Decimal]:
     return inv
 
 
-def profitability_index(npv_value: Decimal, pv_investments: Decimal) -> Decimal | None:
+#: Причина, по которой нормы доходности на вложенное не считаются. Едет вместе с
+#: отсутствующими числами — на экран, в документ и в снимок: «—» без объяснения читается
+#: как «ноль» или «не посчитали», а это третье состояние.
+NO_INVESTMENT_NOTE = (
+    "Поток начинается с притока: это действующий бизнес, живущий на своём обороте, а не "
+    "вложение. Нормы доходности на вложенное (IRR, MIRR, ARR, PI) к нему неприменимы — "
+    "делить прибыль не на что. NPV и потребность в финансировании считаются как обычно."
+)
+
+
+def has_investment(flow: Sequence[Decimal]) -> bool:
+    """Содержит ли поток вложение: первый ненулевой элемент отрицателен (SPEC §17).
+
+    Одно условие на всё семейство «доходности **на вложенное**» — IRR, MIRR, ARR, PI.
+    Разойтись им нельзя: пользователь, у которого «IRR не определена» стоит рядом с
+    «PI 43,9», получает два противоположных ответа на один вопрос и верит тому, который
+    больше нравится. Именно это и происходило с действующим бизнесом: IRR отказывалась,
+    а PI делил двадцать миллионов NPV на случайный кассовый провал в полмиллиона.
+    """
+    first = next((cf for cf in flow if cf != 0), ZERO)
+    return first < ZERO
+
+
+def profitability_index(npv_value: Decimal, pv_investments: Decimal,
+                        flow: Sequence[Decimal] | None = None) -> Decimal | None:
     """Индекс доходности: ``PI = 1 + NPV / PV(инвестиции)`` (SPEC §17/§22.4).
 
     ``pv_investments`` — приведённая потребность в капитале (дисконтированный график
-    инвестиций ``investment_graph``). ``None``, если капитал не требовался
-    (``pv_investments`` = 0). ``PI > 1`` ⟺ ``NPV > 0``.
+    инвестиций ``investment_graph``). ``PI > 1`` ⟺ ``NPV > 0``.
+
+    ``None`` в двух случаях: капитал не требовался вовсе (``pv_investments`` = 0) и —
+    если передан ``flow`` — поток вложения не содержит (:func:`has_investment`). Во
+    втором знаменатель формально не ноль, но он и не инвестиция: у действующего бизнеса
+    туда попадает случайный кассовый провал, и индекс выходит в десятки.
     """
     if pv_investments <= ZERO:
+        return None
+    if flow is not None and not has_investment(flow):
         return None
     return ONE + npv_value / pv_investments
 
@@ -78,8 +108,7 @@ def irr_annual(flow: Sequence[Decimal], lo: Decimal = D("-0.99"),
 
     Второе условие — смена знака NPV на интервале (иначе корня там просто нет).
     """
-    first = next((cf for cf in flow if cf != 0), Decimal(0))
-    if first >= 0:
+    if not has_investment(flow):
         return None
     f_lo = npv(flow, lo)
     f_hi = npv(flow, hi)
@@ -123,10 +152,12 @@ def mirr_annual(flow: Sequence[Decimal], finance_rate_m: Decimal,
 
     Притоки наращиваются к концу горизонта по ставке реинвестиций, оттоки приводятся к
     началу по ставке финансирования: ``MIRR_м = (FV/|PV|)^(1/(n−1)) − 1``. None, если нет
-    притоков или оттоков (показатель не определён).
+    притоков или оттоков (показатель не определён) — и, как у IRR, если поток вложения не
+    содержит (:func:`has_investment`): «один корень всегда» относится к разрешимости
+    уравнения, а не к осмысленности ответа.
     """
     n = len(flow)
-    if n < 2:
+    if n < 2 or not has_investment(flow):
         return None
     fv = ZERO   # будущая стоимость притоков на конец горизонта
     pv = ZERO   # приведённая стоимость оттоков на начало (отрицательная)
@@ -145,12 +176,14 @@ def arr_annual(flow: Sequence[Decimal]) -> Decimal | None:
     """Средняя норма рентабельности (ARR, годовая).
 
     Среднегодовые поступления (Σ положительных элементов чистого потока / число лет) к
-    потребности в капитале (Σ графика инвестиций §22.4). None без инвестиций.
+    потребности в капитале (Σ графика инвестиций §22.4). None без инвестиций — и когда
+    поток вложения не содержит (:func:`has_investment`): у действующего бизнеса в
+    знаменателе оказывается случайный кассовый провал, и ARR выходит в тысячи процентов.
     """
     inv_total = ZERO
     for v in investment_graph(flow):
         inv_total += v
-    if inv_total <= 0 or not flow:
+    if inv_total <= 0 or not flow or not has_investment(flow):
         return None
     inflows = ZERO
     for cf in flow:

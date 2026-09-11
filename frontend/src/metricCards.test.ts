@@ -152,3 +152,33 @@ describe("Набор карточек", () => {
     expect(full).toHaveLength(8);
   });
 });
+
+describe("Действующий бизнес: вложения в потоке нет", () => {
+  const noInvestment = metrics({
+    irr_annual: null, mirr_annual: null, arr_annual: null, pi: null,
+    no_return_metrics_note:
+      "Поток начинается с притока: это действующий бизнес, а не вложение.",
+  });
+
+  it("все четыре нормы доходности подписаны одной причиной, а не четырьмя неудачами", () => {
+    const by = Object.fromEntries(
+      efficiencyCards(noInvestment, "0.18").map((c) => [c.label, c]));
+    for (const label of ["IRR", "MIRR", "ARR", "PI"]) {
+      expect(by[label].value).toBe("—");
+      expect(by[label].sub).toBe("Вложения в потоке нет");
+      expect(by[label].tone).toBe("");           // ни зелёного, ни красного вердикта
+    }
+  });
+
+  it("NPV и окупаемость при этом остаются посчитанными", () => {
+    const by = Object.fromEntries(
+      efficiencyCards(noInvestment, "0.18").map((c) => [c.label, c]));
+    expect(by["NPV"].value).not.toBe("—");
+    expect(by["Срок окупаемости"].value).not.toBe("—");
+  });
+
+  it("без причины пустая доходность подписана прежним «Не определена»", () => {
+    const cards = efficiencyCards(metrics({ irr_annual: null }), "0.18");
+    expect(cards.find((c) => c.label === "IRR")!.sub).toBe("Не определена");
+  });
+});

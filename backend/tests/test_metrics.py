@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from calc_core.metrics import (
     annual_to_monthly,
+    has_investment,
     investment_graph,
     irr_annual,
     npv,
@@ -9,6 +10,7 @@ from calc_core.metrics import (
     profitability_index,
 )
 from calc_core.money import ONE
+from calc_core.reports.result import build_investment_metrics
 
 
 def test_annual_to_monthly_compounds_back():
@@ -90,3 +92,67 @@ def test_profitability_index_basic():
 
 def test_profitability_index_none_without_investment():
     assert profitability_index(Decimal(20), Decimal(0)) is None
+
+
+def test_the_whole_return_family_refuses_together():
+    """IRR, MIRR, ARR и PI отказываются **одним условием**, а не каждая по-своему.
+
+    До 0.9.43 отказывалась только IRR, и у прибыльного действующего магазина рядом с
+    «IRR не определена» стояли «PI 43,9», «ARR 2995%» и «MIRR 182%». Пользователь,
+    получивший два противоположных ответа на один вопрос, верит тому, который больше
+    нравится, — и это худший из возможных исходов для показателя.
+    """
+    shop = [Decimal(4_265_733), Decimal(-4_742_662)] + [Decimal(1_100_000)] * 22
+    m = build_investment_metrics(shop, annual_to_monthly(Decimal("0.18")))
+
+    assert (m.irr_annual, m.mirr_annual, m.arr_annual, m.pi) == (None, None, None, None)
+    # Отказ назван, а не оставлен прочерком: «—» читается как ноль.
+    assert m.no_return_metrics_note and "действующий бизнес" in m.no_return_metrics_note
+    # NPV и потребность в капитале считаются как обычно — они вложения не требуют.
+    assert m.npv > 0 and m.pv_investments > 0
+
+
+def test_a_project_with_an_investment_keeps_all_four():
+    """Тишина правила — половина его смысла: обычный проект показателей не теряет."""
+    project = [Decimal(-1000)] + [Decimal(200)] * 24
+    m = build_investment_metrics(project, annual_to_monthly(Decimal("0.18")))
+    assert None not in (m.irr_annual, m.mirr_annual, m.arr_annual, m.pi)
+    assert m.no_return_metrics_note is None
+
+
+def test_has_investment_looks_at_the_first_non_zero_month():
+    """Нули в начале горизонта — не приток: проект, стартующий в третьем месяце, вложение
+    содержит, и показателей терять не должен."""
+    assert has_investment([Decimal(0), Decimal(0), Decimal(-100), Decimal(300)])
+    assert not has_investment([Decimal(0), Decimal(50), Decimal(-100)])
+    assert not has_investment([Decimal(0), Decimal(0)])          # потока нет вовсе
+
+
+def test_pi_without_the_flow_keeps_its_old_contract():
+    """Поток — необязательный аргумент: вызов без него проверяет только знаменатель
+    (так PI зовут в местах, где чистого потока под рукой нет)."""
+    assert profitability_index(Decimal(20), Decimal(100)) == Decimal("1.2")
+    assert profitability_index(Decimal(20), Decimal(100), [Decimal(50)]) is None
+
+
+def test_the_reason_reaches_the_document():
+    """Правило дома: пробел называется, а не оставляется прочерком. В бизнес-плане это
+    особенно важно — спросить автора документа нельзя."""
+    from datetime import date
+    from io import BytesIO
+
+    from docx import Document
+
+    from app.docgen import build_business_plan_docx
+    from calc_core import run
+    from calc_core.review import ReviewContext, run_review
+    from calc_core.review.opinion import build_opinion
+    from calc_core.templates import INDUSTRY_TEMPLATES
+
+    model = INDUSTRY_TEMPLATES["retail"].build()     # действующий магазин: приток с t=0
+    result = run(model)
+    assert result.metrics.no_return_metrics_note                      # предпосылка теста
+    opinion = build_opinion(run_review(ReviewContext(model=model, result=result)), result)
+    doc = Document(BytesIO(build_business_plan_docx(
+        model, result, opinion, project_name="Магазин", today=date(2026, 7, 1))))
+    assert "действующий бизнес" in "\n".join(p.text for p in doc.paragraphs)

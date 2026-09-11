@@ -7508,6 +7508,17 @@
             ],
             "title": "Mirr Annual"
           },
+          "no_return_metrics_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "No Return Metrics Note"
+          },
           "npv": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Npv",
@@ -14272,7 +14283,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.42"
+    "version": "0.9.43"
   },
   "openapi": "3.1.0",
   "paths": {

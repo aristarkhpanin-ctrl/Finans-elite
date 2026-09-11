@@ -237,6 +237,10 @@ export function PrintReport({
 
         <div className="pr-seclabel">Показатели эффективности инвестиций</div>
         <div className="pr-mgrid">{eff.map((e) => <div key={e.label}>{cell(e.label, e.value, e.note)}</div>)}</div>
+        {m.no_return_metrics_note && (
+          // На бумаге объяснить прочерк особенно важно: спросить автора нельзя.
+          <div className="pr-note">{m.no_return_metrics_note}</div>
+        )}
 
         <div className="pr-seclabel">Оценка стоимости бизнеса</div>
         <div className="pr-vgrid">

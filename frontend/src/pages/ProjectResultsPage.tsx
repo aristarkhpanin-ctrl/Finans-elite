@@ -311,6 +311,11 @@ export function ProjectResultsPage() {
             </div>
           ))}
         </div>
+        {m.no_return_metrics_note && (
+          // Четыре прочерка подряд без причины читаются как «не посчитали». Причина
+          // приходит с сервера — второй её копией экран разошёлся бы с документом.
+          <div className="field-note" style={{ marginTop: 8 }}>{m.no_return_metrics_note}</div>
+        )}
 
         {fxCards.length > 0 && (
           <>

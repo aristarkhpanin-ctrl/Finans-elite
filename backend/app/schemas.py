@@ -38,6 +38,8 @@ class MetricsOut(BaseModel):
     dpb_months: Optional[int] = None
     pv_investments: Optional[Decimal] = None
     peak_financing_need: Optional[Decimal] = None
+    # Почему пусты сразу четыре нормы доходности (SPEC §17); None — когда они посчитаны.
+    no_return_metrics_note: Optional[str] = None
 
 
 class RatiosOut(BaseModel):
@@ -907,6 +909,29 @@ def _statement_out(s: Statement) -> StatementOut:
     )
 
 
+def _metrics_out(m) -> Optional[MetricsOut]:
+    """Показатели ядра → схема ответа. ``None`` на входе — ``None`` на выходе.
+
+    Один перенос на оба блока показателей (основной и валютный). Раньше их было два, и
+    новое поле попадало в первый, а во втором молча отсутствовало — блок во второй валюте
+    отставал бы от основного ровно настолько, насколько об этом забыли.
+    """
+    if m is None:
+        return None
+    return MetricsOut(
+        npv=m.npv,
+        irr_annual=m.irr_annual,
+        mirr_annual=m.mirr_annual,
+        arr_annual=m.arr_annual,
+        pi=m.pi,
+        pb_months=m.pb_months,
+        dpb_months=m.dpb_months,
+        pv_investments=m.pv_investments,
+        peak_financing_need=m.peak_financing_need,
+        no_return_metrics_note=m.no_return_metrics_note,
+    )
+
+
 def to_response(r: CalcResult) -> CalcResponse:
     """Преобразовать результат ядра в схему ответа API."""
     return CalcResponse(
@@ -916,28 +941,8 @@ def to_response(r: CalcResult) -> CalcResponse:
         cashflow=_statement_out(r.cashflow),
         balance=_statement_out(r.balance),
         profit_use=_statement_out(r.profit_use),
-        metrics=MetricsOut(
-            npv=r.metrics.npv,
-            irr_annual=r.metrics.irr_annual,
-            mirr_annual=r.metrics.mirr_annual,
-            arr_annual=r.metrics.arr_annual,
-            pi=r.metrics.pi,
-            pb_months=r.metrics.pb_months,
-            dpb_months=r.metrics.dpb_months,
-            pv_investments=r.metrics.pv_investments,
-            peak_financing_need=r.metrics.peak_financing_need,
-        ),
-        metrics_foreign=MetricsOut(
-            npv=r.metrics_foreign.npv,
-            irr_annual=r.metrics_foreign.irr_annual,
-            mirr_annual=r.metrics_foreign.mirr_annual,
-            arr_annual=r.metrics_foreign.arr_annual,
-            pi=r.metrics_foreign.pi,
-            pb_months=r.metrics_foreign.pb_months,
-            dpb_months=r.metrics_foreign.dpb_months,
-            pv_investments=r.metrics_foreign.pv_investments,
-            peak_financing_need=r.metrics_foreign.peak_financing_need,
-        ) if r.metrics_foreign is not None else None,
+        metrics=_metrics_out(r.metrics),
+        metrics_foreign=_metrics_out(r.metrics_foreign),
         ratios=RatiosOut(
             liquidity=r.ratios.liquidity,
             activity=r.ratios.activity,

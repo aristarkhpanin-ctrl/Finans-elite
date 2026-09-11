@@ -6568,6 +6568,8 @@ export interface components {
             irr_annual?: string | null;
             /** Mirr Annual */
             mirr_annual?: string | null;
+            /** No Return Metrics Note */
+            no_return_metrics_note?: string | null;
             /** Npv */
             npv: string;
             /** Pb Months */

@@ -50,7 +50,12 @@ def statement_to_dict(stmt: Statement, places: int = MONEY_PLACES) -> dict[str, 
 
 
 def metrics_to_dict(m: InvestmentMetrics) -> dict[str, object]:
+    # Причина отказа от норм доходности — ключом **только когда она есть**: у обычного
+    # проекта его нет, и снимок не сдвигается (как budget/participants выше).
+    note = {"no_return_metrics_note": m.no_return_metrics_note} \
+        if m.no_return_metrics_note else {}
     return {
+        **note,
         "npv": _money(m.npv),
         "irr_annual": _ratio(m.irr_annual),
         "mirr_annual": _ratio(m.mirr_annual),

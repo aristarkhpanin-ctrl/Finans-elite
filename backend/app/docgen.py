@@ -142,6 +142,10 @@ def _add_metrics(doc: Document, result: CalcResult) -> None:
         table.rows[i].cells[0].text = name
         table.rows[i].cells[1].text = value
     _shrink_table(table, 9)
+    if result.metrics.no_return_metrics_note:
+        # Четыре прочерка подряд без объяснения читатель бизнес-плана принимает за
+        # «не посчитали» — а это третье состояние, и у него есть причина.
+        doc.add_paragraph(result.metrics.no_return_metrics_note)
 
 
 def _add_metrics_foreign(doc: Document, model: ProjectModel, result: CalcResult) -> None:
@@ -168,6 +172,8 @@ def _add_metrics_foreign(doc: Document, model: ProjectModel, result: CalcResult)
         table.rows[i].cells[0].text = name
         table.rows[i].cells[1].text = value
     _shrink_table(table, 9)
+    if m.no_return_metrics_note:
+        doc.add_paragraph(m.no_return_metrics_note)
 
 
 def _add_participants(doc: Document, result: CalcResult) -> None:

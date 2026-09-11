@@ -204,6 +204,9 @@ class InvestmentMetrics:
     dpb_months: int | None = None      # дисконтированный срок окупаемости
     pv_investments: Decimal | None = None      # приведённая потребность в капитале
     peak_financing_need: Decimal | None = None  # пиковая потребность в финансировании
+    # Почему сразу четыре нормы доходности пусты. `None` — когда считать было из чего;
+    # прочерк без причины читается как ноль или как «не посчитали», а это третье состояние.
+    no_return_metrics_note: str | None = None
 
 
 def build_investment_metrics(net_flow, monthly_rate: Decimal) -> InvestmentMetrics:
@@ -211,10 +214,17 @@ def build_investment_metrics(net_flow, monthly_rate: Decimal) -> InvestmentMetri
 
     Единая точка расчёта (используется и движком, и Integrator-ом): NPV/IRR/PB/DPB — на
     чистом потоке; PI и потребность в капитале — на графике инвестиций.
+
+    Нормы доходности **на вложенное** (IRR, MIRR, ARR, PI) требуют вложения: поток,
+    начинающийся с притока, его не содержит, и все четыре отказываются разом — одним
+    условием (:func:`~calc_core.metrics.has_investment`), а не каждая по-своему. Отказ
+    несёт причину (``no_return_metrics_note``): она едет с числами на экран и в документ.
     """
     from ..metrics import (
+        NO_INVESTMENT_NOTE,
         arr_annual,
         discounted_payback_months,
+        has_investment,
         investment_graph,
         irr_annual,
         mirr_annual,
@@ -227,17 +237,19 @@ def build_investment_metrics(net_flow, monthly_rate: Decimal) -> InvestmentMetri
     npv_value = npv(net_flow, monthly_rate)
     inv = investment_graph(net_flow)
     pv_invest = npv(inv, monthly_rate)
+    invested = has_investment(net_flow)
     return InvestmentMetrics(
         npv=npv_value,
         irr_annual=irr_annual(net_flow),
         # Ставка финансирования и реинвестиций = ставке дисконтирования (обычная практика).
         mirr_annual=mirr_annual(net_flow, monthly_rate, monthly_rate),
         arr_annual=arr_annual(net_flow),
-        pi=profitability_index(npv_value, pv_invest),
+        pi=profitability_index(npv_value, pv_invest, net_flow),
         pb_months=payback_months(net_flow),
         dpb_months=discounted_payback_months(net_flow, monthly_rate),
         pv_investments=pv_invest,
         peak_financing_need=total(inv),
+        no_return_metrics_note=None if invested else NO_INVESTMENT_NOTE,
     )
 
 

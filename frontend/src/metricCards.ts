@@ -30,10 +30,22 @@ function dec(v: string | null | undefined): number | null {
   return Number.isFinite(x) ? x : null;
 }
 
+/**
+ * Короткая подпись под пустой нормой доходности (SPEC §17).
+ *
+ * Когда поток вложения не содержит, IRR, MIRR, ARR и PI пусты **все четыре разом** и по
+ * одной причине. «Не определена» под каждой читается как четыре разные неудачи расчёта;
+ * здесь сказано, что это одно и то же, а полный текст причины сервер присылает отдельно
+ * и печатается под блоком.
+ */
+const NO_INVESTMENT_SUB = "Вложения в потоке нет";
+
 /** Вердикт доходности против ставки дисконтирования. */
 function vsRate(value: number | null, rate: number | null, rateLabel: string,
-                fallbackSub: string): { sub: string; tone: Tone } {
-  if (value === null) return { sub: "Не определена", tone: "" };
+                fallbackSub: string, noInvestment = false): { sub: string; tone: Tone } {
+  if (value === null) {
+    return { sub: noInvestment ? NO_INVESTMENT_SUB : "Не определена", tone: "" };
+  }
   if (rate === null) return { sub: fallbackSub, tone: "" };
   return value >= rate
     ? { sub: `Выше ставки ${rateLabel}`, tone: "good" }
@@ -45,8 +57,9 @@ export function efficiencyCards(m: MetricsOut, discountRate?: string | null): Me
   const rate = dec(discountRate);
   const rateLabel = percent(discountRate, 0);
   const npv = dec(m.npv);
-  const irr = vsRate(dec(m.irr_annual), rate, rateLabel, "Годовая доходность");
-  const mirr = vsRate(dec(m.mirr_annual), rate, rateLabel, "Модифицированная IRR");
+  const noInv = !!m.no_return_metrics_note;
+  const irr = vsRate(dec(m.irr_annual), rate, rateLabel, "Годовая доходность", noInv);
+  const mirr = vsRate(dec(m.mirr_annual), rate, rateLabel, "Модифицированная IRR", noInv);
   const pi = dec(m.pi);
 
   return [
@@ -73,14 +86,16 @@ export function efficiencyCards(m: MetricsOut, discountRate?: string | null): Me
     {
       label: "ARR",
       value: m.arr_annual != null ? percent(m.arr_annual, 1) : "—",
-      sub: m.arr_annual != null ? "Среднегодовая отдача" : "Нет инвестиций",
+      sub: m.arr_annual != null ? "Среднегодовая отдача"
+        : noInv ? NO_INVESTMENT_SUB : "Нет инвестиций",
       tone: "",
       hint: "Средняя норма рентабельности: среднегодовые поступления к потребности в капитале.",
     },
     {
       label: "PI",
       value: pi !== null ? fmtRatio(m.pi, 2) : "—",
-      sub: pi === null ? "—" : pi >= 1 ? "> 1 — эффективно" : "< 1 — неэффективно",
+      sub: pi === null ? (noInv ? NO_INVESTMENT_SUB : "—")
+        : pi >= 1 ? "> 1 — эффективно" : "< 1 — неэффективно",
       tone: pi === null ? "" : pi >= 1 ? "good" : "bad",
       hint: "Индекс прибыльности — отношение дисконтированных притоков к вложениям.",
     },

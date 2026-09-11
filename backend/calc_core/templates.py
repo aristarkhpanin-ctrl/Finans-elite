@@ -23,7 +23,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
-from typing import Callable
+from typing import Any, Callable
 
 from .models import (
     Asset,
@@ -82,10 +82,17 @@ class Template:
     build: Callable[[], ProjectModel] | None = None
 
 
-def _settings(**over) -> ProjectSettings:
-    """Общая настройка: ставка дисконтирования, налоги, НДС. Отрасли меняют, что нужно."""
-    base = dict(discount_rate_annual=d("0.18"), profit_tax_rate=d("0.20"),
-                vat_rate=d("0.20"), payroll_contribution_rate=d("0.30"))
+def _settings(**over: Any) -> ProjectSettings:
+    """Общая настройка: ставка дисконтирования, налоги, НДС. Отрасли меняют, что нужно.
+
+    ``base`` объявлен ``dict[str, Any]`` намеренно: у ``ProjectSettings`` есть поля не
+    только денежные (периодичность налогов — литерал, ряды инфляции — списки), и словарь,
+    выведенный как ``dict[str, Decimal]`` по первым четырём ставкам, закрывал бы их для
+    отраслей. Значения проверяет сам ``ProjectSettings`` при разборе.
+    """
+    base: dict[str, Any] = dict(
+        discount_rate_annual=d("0.18"), profit_tax_rate=d("0.20"),
+        vat_rate=d("0.20"), payroll_contribution_rate=d("0.30"))
     base.update(over)
     return ProjectSettings(**base)
 
