@@ -71,6 +71,47 @@
         "title": "ActivateRequest",
         "type": "object"
       },
+      "ActivityOut": {
+        "description": "Сводка активности организации. ``notes`` едут вместе с числами.\n\nБез них сводка читается как отчёт о людях: «заходил — пусто» превращается в «не\nработает», а «действий 0» — в «бездельничает». Ни того, ни другого платформа не знает.",
+        "properties": {
+          "entities": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/EntityActivityOut"
+            },
+            "title": "Entities",
+            "type": "array"
+          },
+          "members": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MemberActivityOut"
+            },
+            "title": "Members",
+            "type": "array"
+          },
+          "notes": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "stale_days": {
+            "default": 90,
+            "title": "Stale Days",
+            "type": "integer"
+          },
+          "window_days": {
+            "default": 30,
+            "title": "Window Days",
+            "type": "integer"
+          }
+        },
+        "title": "ActivityOut",
+        "type": "object"
+      },
       "Actualization-Input": {
         "description": "Фактические значения строк Кэш-фло по месяцам.\n\n``actual_until`` — индекс последнего актуализированного месяца (``-1`` — актуализация\nотсутствует). ``actuals`` — фактические значения листовых строк Кэш-фло\n(код → ряд по месяцам); применяются к периодам ``t <= actual_until``.",
         "properties": {
@@ -5688,6 +5729,64 @@
         "title": "EarningsAdjustment",
         "type": "object"
       },
+      "EntityActivityOut": {
+        "description": "Проект или дело: когда правили, когда считали, сколько вопросов открыто.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "last_calculated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Calculated At"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "open_comments": {
+            "default": 0,
+            "title": "Open Comments",
+            "type": "integer"
+          },
+          "stale": {
+            "default": false,
+            "title": "Stale",
+            "type": "boolean"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind"
+        ],
+        "title": "EntityActivityOut",
+        "type": "object"
+      },
       "Environment-Input": {
         "properties": {
           "currencies": {
@@ -7011,6 +7110,57 @@
           "id"
         ],
         "title": "Material",
+        "type": "object"
+      },
+      "MemberActivityOut": {
+        "description": "Участник в сводке активности.\n\n``last_seen_at = None`` — **неизвестно**, а не «никогда»: отметка присутствия ведётся\nне с первого дня платформы. ``actions`` — записи журнала за окно; ноль означает\n«ничего не менял», потому что чтение журнал не пишет.",
+        "properties": {
+          "actions": {
+            "default": 0,
+            "title": "Actions",
+            "type": "integer"
+          },
+          "blocked": {
+            "default": false,
+            "title": "Blocked",
+            "type": "boolean"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "full_name": {
+            "default": "",
+            "title": "Full Name",
+            "type": "string"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "email",
+          "role"
+        ],
+        "title": "MemberActivityOut",
         "type": "object"
       },
       "MemberBlockIn": {
@@ -17992,6 +18142,54 @@
           }
         ],
         "summary": "Get Organization",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/api/v1/organizations/{org_id}/activity": {
+      "get": {
+        "description": "Кто работает и что живо (E1): участники, проекты, дела, открытые обсуждения.\n\nПраво `org.manage` — то же, что у журнала: сводка отвечает на вопрос об **остальных**\nучастниках, и видеть его должен тот, кто за организацию отвечает.\n\nНовых счётчиков под этот экран не заводилось: всё собрано из отметок присутствия,\nжурнала и дат последнего расчёта. Поэтому сводка не может разойтись с тем, что\nпоказывают другие экраны, — а границы того, чего платформа не знает, едут вместе с\nчислами в `notes`.",
+        "operationId": "read_activity_api_v1_organizations__org_id__activity_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Activity",
         "tags": [
           "organizations"
         ]

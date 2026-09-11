@@ -180,6 +180,21 @@ def require_staff(user: User = Depends(current_user)) -> User:
     return user
 
 
+def enter_tenant(db: Session, org_id: str) -> str:
+    """Войти в организацию запроса: выставить арендатора для RLS и вернуть его.
+
+    Одна функция на **все** двери, через которые запрос узнаёт свою организацию: из
+    членства (:func:`current_org_id`), из пути (:func:`require_membership`,
+    :func:`require_org_permission`) и из ключа доступа. Раньше её делал только первый —
+    и на PostgreSQL журнал организации, её ориентиры и чек-листы читались **пустыми**:
+    маршрут знал арендатора, а база о нём не знала. На SQLite такого не видно (RLS там
+    нет вовсе), поэтому пропажу не показал бы ни один тест, кроме того, что смотрит на
+    сам вызов, — он и заведён (`test_tenancy.py`).
+    """
+    set_tenant(db, org_id)  # RLS: изоляция арендатора на уровне БД (PostgreSQL)
+    return org_id
+
+
 def current_org_id(
     user: User = Depends(current_user),
     x_organization_id: str | None = Header(default=None, alias="X-Organization-Id"),
@@ -202,8 +217,7 @@ def current_org_id(
         if not active:
             _ensure_active(memberships[0], db)   # все приостановлены — назвать причину
         org_id = active[0].organization_id
-    set_tenant(db, org_id)  # RLS: изоляция арендатора на уровне БД (PostgreSQL)
-    return org_id
+    return enter_tenant(db, org_id)
 
 
 def require_membership(
@@ -216,7 +230,7 @@ def require_membership(
     if membership is None:
         raise HTTPException(status_code=403, detail="Нет доступа к организации")
     _ensure_active(membership, db)
-    return org_id
+    return enter_tenant(db, org_id)
 
 
 def _ensure_not_restricted(db: Session, org_id: str, perm: Perm, product: str) -> None:
@@ -259,8 +273,7 @@ def require_permission(perm: Perm, product: str = "business"):
                 raise HTTPException(status_code=403, detail=KEY_READ_ONLY)
             crud.touch_api_key(db, key, SEEN_INTERVAL)
             _ensure_not_restricted(db, key.organization_id, perm, product)
-            set_tenant(db, key.organization_id)
-            return key.organization_id
+            return enter_tenant(db, key.organization_id)
         # Обычный вход человека: сеанс → пользователь → организация → членство.
         session = current_session(credentials, db)
         user = current_user(session, db)
@@ -269,7 +282,7 @@ def require_permission(perm: Perm, product: str = "business"):
         if not has_permission(membership.role if membership else None, perm):
             raise HTTPException(status_code=403, detail="Недостаточно прав")
         _ensure_not_restricted(db, org_id, perm, product)
-        return org_id
+        return enter_tenant(db, org_id)
 
     return dependency
 
@@ -286,6 +299,6 @@ def require_org_permission(perm: Perm, product: str = "business"):
         if not has_permission(membership.role if membership else None, perm):
             raise HTTPException(status_code=403, detail="Недостаточно прав")
         _ensure_not_restricted(db, org_id, perm, product)
-        return org_id
+        return enter_tenant(db, org_id)
 
     return dependency

@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from .. import billing, crud, mail
 from ..access import restriction_for
+from ..activity import build_activity
 from ..database import get_db
 from ..db_models import User
 from ..deps import current_user, require_membership, require_org_permission
@@ -19,6 +20,7 @@ from ..plans import PRODUCTS
 from ..rbac import Perm, is_valid_role
 from ..schemas import (
     AccessLinkOut,
+    ActivityOut,
     AuditLogEntryOut,
     AuditLogPage,
     BenchmarkIn,
@@ -35,6 +37,7 @@ from ..schemas import (
     OrganizationOut,
     RestrictionOut,
     TransferOwnershipIn,
+    activity_response,
 )
 from ..security import create_invite_token, create_reset_token
 
@@ -428,6 +431,22 @@ def replace_checklists(body: list[ChecklistIn],
     crud.log_action(db, org_id, actor, "checklists.replace", entity_type="organization",
                     entity_id=org_id, details=f"чек-листов: {len(rows)}")
     return [_checklist_out(c) for c in saved]
+
+
+@router.get("/{org_id}/activity", response_model=ActivityOut)
+def read_activity(org_id: str = Depends(require_org_permission(Perm.ORG_MANAGE)),
+                  db: Session = Depends(get_db)) -> ActivityOut:
+    """Кто работает и что живо (E1): участники, проекты, дела, открытые обсуждения.
+
+    Право `org.manage` — то же, что у журнала: сводка отвечает на вопрос об **остальных**
+    участниках, и видеть его должен тот, кто за организацию отвечает.
+
+    Новых счётчиков под этот экран не заводилось: всё собрано из отметок присутствия,
+    журнала и дат последнего расчёта. Поэтому сводка не может разойтись с тем, что
+    показывают другие экраны, — а границы того, чего платформа не знает, едут вместе с
+    числами в `notes`.
+    """
+    return activity_response(build_activity(db, org_id))
 
 
 @router.get("/{org_id}/audit-log", response_model=AuditLogPage)

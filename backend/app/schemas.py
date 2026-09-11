@@ -2385,3 +2385,65 @@ class ApiKeyCreated(BaseModel):
     token: str
     #: Что ключ умеет — рядом с ним, а не в документации, которую не откроют.
     scope_note: str = ""
+
+
+# --- Активность организации (E1) ---
+
+class MemberActivityOut(BaseModel):
+    """Участник в сводке активности.
+
+    ``last_seen_at = None`` — **неизвестно**, а не «никогда»: отметка присутствия ведётся
+    не с первого дня платформы. ``actions`` — записи журнала за окно; ноль означает
+    «ничего не менял», потому что чтение журнал не пишет.
+    """
+
+    user_id: str
+    email: str
+    full_name: str = ""
+    role: str
+    blocked: bool = False
+    last_seen_at: Optional[datetime] = None
+    actions: int = 0
+
+
+class EntityActivityOut(BaseModel):
+    """Проект или дело: когда правили, когда считали, сколько вопросов открыто."""
+
+    id: str
+    name: str
+    kind: str                      # project | case
+    updated_at: Optional[datetime] = None
+    last_calculated_at: Optional[datetime] = None
+    stale: bool = False
+    open_comments: int = 0
+
+
+class ActivityOut(BaseModel):
+    """Сводка активности организации. ``notes`` едут вместе с числами.
+
+    Без них сводка читается как отчёт о людях: «заходил — пусто» превращается в «не
+    работает», а «действий 0» — в «бездельничает». Ни того, ни другого платформа не знает.
+    """
+
+    members: list[MemberActivityOut] = []
+    entities: list[EntityActivityOut] = []
+    window_days: int = 30
+    stale_days: int = 90
+    notes: list[str] = []
+
+
+def activity_response(report) -> "ActivityOut":
+    """Собрать ответ из сводки (``app.activity.ActivityReport``)."""
+    return ActivityOut(
+        members=[MemberActivityOut(
+            user_id=m.user_id, email=m.email, full_name=m.full_name, role=m.role,
+            blocked=m.blocked, last_seen_at=m.last_seen_at, actions=m.actions,
+        ) for m in report.members],
+        entities=[EntityActivityOut(
+            id=e.id, name=e.name, kind=e.kind, updated_at=e.updated_at,
+            last_calculated_at=e.last_calculated_at, stale=e.stale,
+            open_comments=e.open_comments,
+        ) for e in report.entities],
+        window_days=report.window_days, stale_days=report.stale_days,
+        notes=report.notes,
+    )

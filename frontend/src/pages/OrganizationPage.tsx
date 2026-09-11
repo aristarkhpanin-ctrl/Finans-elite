@@ -5,12 +5,14 @@ import { BillingTab } from "./org/BillingTab";
 import { AuditLogTab } from "./org/AuditLogTab";
 import { ProfileTab } from "./org/ProfileTab";
 import { MembersTab } from "./org/MembersTab";
+import { ActivityTab } from "./org/ActivityTab";
 import { BenchmarksTab } from "./org/BenchmarksTab";
 import { ChecklistsTab } from "./org/ChecklistsTab";
 import { ApiKeysTab } from "./org/ApiKeysTab";
 
 const TABS = [
   ["members", "Участники"],
+  ["activity", "Активность"],
   ["profile", "Профиль"],
   ["benchmarks", "Ориентиры"],
   ["checklists", "Чек-листы"],
@@ -68,6 +70,17 @@ export function OrganizationPage() {
       {/* Журнал видит только тот, кто управляет организацией: право org.manage.
           Аналитик работает с делами — следы чужой работы не его дело. Вкладка не
           прячется, а объясняет отказ: недоступное показывается, а не исчезает. */}
+      {/* Сводка активности видна тем, кто отвечает за организацию, — тот же довод,
+          что у журнала: она отвечает на вопрос об **остальных** участниках. */}
+      {tab === "activity" && (canManageOrg
+        ? <ActivityTab orgId={currentOrgId} />
+        : <div className="tab-empty">
+            <div className="tab-empty__title">Сводка доступна администраторам</div>
+            <div className="tab-empty__sub">
+              Активность показывает, кто из участников работает и над чем, поэтому её
+              видят владелец и администратор. Ваша роль — {roleLabel(myRole)}.
+            </div>
+          </div>)}
       {tab === "profile" && <ProfileTab />}
       {/* Ориентиры принадлежат организации, а не делу: одна и та же медиана фонда
           читается во всех делах, и вести её в каждом значило бы её размножить. */}

@@ -227,3 +227,17 @@ export async function revokeApiKey(orgId: string, keyId: string): Promise<ApiKey
     `/api/v1/organizations/${orgId}/api-keys/${keyId}`);
   return data;
 }
+
+/**
+ * Активность организации (E1): кто работает и что живо.
+ *
+ * Собрана из того, что платформа уже знает — отметок присутствия, журнала и дат
+ * последнего расчёта. `notes` едут **вместе** с числами: без них «заходил — пусто»
+ * читается как «не работает», а «действий 0» — как «бездельничает».
+ */
+export type Activity = Schema<"ActivityOut">;
+
+export async function getActivity(orgId: string): Promise<Activity> {
+  const { data } = await api.get<Activity>(`/api/v1/organizations/${orgId}/activity`);
+  return data;
+}

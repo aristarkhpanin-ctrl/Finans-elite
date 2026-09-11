@@ -1420,6 +1420,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizations/{org_id}/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Activity
+         * @description Кто работает и что живо (E1): участники, проекты, дела, открытые обсуждения.
+         *
+         *     Право `org.manage` — то же, что у журнала: сводка отвечает на вопрос об **остальных**
+         *     участниках, и видеть его должен тот, кто за организацию отвечает.
+         *
+         *     Новых счётчиков под этот экран не заводилось: всё собрано из отметок присутствия,
+         *     журнала и дат последнего расчёта. Поэтому сводка не может разойтись с тем, что
+         *     показывают другие экраны, — а границы того, чего платформа не знает, едут вместе с
+         *     числами в `notes`.
+         */
+        get: operations["read_activity_api_v1_organizations__org_id__activity_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizations/{org_id}/api-keys": {
         parameters: {
             query?: never;
@@ -2398,6 +2426,40 @@ export interface components {
              * @default
              */
             totp_code: string;
+        };
+        /**
+         * ActivityOut
+         * @description Сводка активности организации. ``notes`` едут вместе с числами.
+         *
+         *     Без них сводка читается как отчёт о людях: «заходил — пусто» превращается в «не
+         *     работает», а «действий 0» — в «бездельничает». Ни того, ни другого платформа не знает.
+         */
+        ActivityOut: {
+            /**
+             * Entities
+             * @default []
+             */
+            entities: components["schemas"]["EntityActivityOut"][];
+            /**
+             * Members
+             * @default []
+             */
+            members: components["schemas"]["MemberActivityOut"][];
+            /**
+             * Notes
+             * @default []
+             */
+            notes: string[];
+            /**
+             * Stale Days
+             * @default 90
+             */
+            stale_days: number;
+            /**
+             * Window Days
+             * @default 30
+             */
+            window_days: number;
         };
         /**
          * Actualization
@@ -5493,6 +5555,32 @@ export interface components {
              */
             label: string;
         };
+        /**
+         * EntityActivityOut
+         * @description Проект или дело: когда правили, когда считали, сколько вопросов открыто.
+         */
+        EntityActivityOut: {
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Last Calculated At */
+            last_calculated_at?: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Open Comments
+             * @default 0
+             */
+            open_comments: number;
+            /**
+             * Stale
+             * @default false
+             */
+            stale: boolean;
+            /** Updated At */
+            updated_at?: string | null;
+        };
         /** Environment */
         "Environment-Input": {
             /** Currencies */
@@ -6220,6 +6308,39 @@ export interface components {
              * @default 0
              */
             unit_price: string;
+        };
+        /**
+         * MemberActivityOut
+         * @description Участник в сводке активности.
+         *
+         *     ``last_seen_at = None`` — **неизвестно**, а не «никогда»: отметка присутствия ведётся
+         *     не с первого дня платформы. ``actions`` — записи журнала за окно; ноль означает
+         *     «ничего не менял», потому что чтение журнал не пишет.
+         */
+        MemberActivityOut: {
+            /**
+             * Actions
+             * @default 0
+             */
+            actions: number;
+            /**
+             * Blocked
+             * @default false
+             */
+            blocked: boolean;
+            /** Email */
+            email: string;
+            /**
+             * Full Name
+             * @default
+             */
+            full_name: string;
+            /** Last Seen At */
+            last_seen_at?: string | null;
+            /** Role */
+            role: string;
+            /** User Id */
+            user_id: string;
         };
         /**
          * MemberBlockIn
@@ -12352,6 +12473,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrganizationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_activity_api_v1_organizations__org_id__activity_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityOut"];
                 };
             };
             /** @description Validation Error */
