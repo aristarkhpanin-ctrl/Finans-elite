@@ -44,6 +44,7 @@ from ..schemas import (
     TotpRecoveryOut,
     TotpSetupOut,
     TotpStatusOut,
+    UsagePolicyOut,
     UserOut,
 )
 from ..security import (
@@ -565,6 +566,32 @@ def export_my_data(user: User = Depends(current_user),
     return Response(
         content=body, media_type="application/json; charset=utf-8",
         headers={"Content-Disposition": 'attachment; filename="my-data.json"'},
+    )
+
+
+@router.get("/usage-policy", response_model=UsagePolicyOut)
+def usage_policy(user: User = Depends(current_user)) -> UsagePolicyOut:
+    """Что платформа собирает о пользовании (E2) — там же, где человек забирает свои
+    данные.
+
+    Скрытая аналитика в продукте, который печатает свои отказы, была бы двойным
+    стандартом. Список событий — тот же, по которому идёт запись (`usage.EVENTS`):
+    второй его копии, которая однажды отстанет, здесь нет.
+    """
+    return UsagePolicyOut(
+        collecting=usage.collecting(),
+        events=dict(usage.EVENTS),
+        excluded=[
+            "Чисел из ваших моделей: ни NPV, ни выручки, ни любой другой величины — "
+            "в событие попадают только перечисленные признаки, и те не длиннее 64 знаков.",
+            "Вашего адреса: вместо него отпечаток, по которому видно «тот же человек "
+            "вернулся», но не видно, кто это.",
+            "Содержимого проектов, дел, обсуждений и документов.",
+        ],
+        note=("События читает владелец платформы — чтобы понимать, какими частями "
+              "продукта пользуются. " +
+              ("Сейчас сбор включён." if usage.collecting()
+               else "Сейчас сбор выключен: не записывается ничего.")),
     )
 
 

@@ -41,6 +41,9 @@ from ..schemas import (
     ModelChangeOut,
     MonteCarloRequest,
     MonteCarloResponse,
+    PortfolioCaseOut,
+    PortfolioOut,
+    PortfolioProjectOut,
     ProjectCreate,
     ProjectOut,
     ProjectSummary,
@@ -136,6 +139,35 @@ def list_projects(org_id: str = Depends(require_permission(Perm.PROJECT_READ)),
                   db: Session = Depends(get_db)) -> list[ProjectSummary]:
     """Список проектов организации (метаданные)."""
     return [_summary(p) for p in crud.list_projects(db, org_id)]
+
+
+@router.get("/portfolio", response_model=PortfolioOut)
+def portfolio(org_id: str = Depends(require_permission(Perm.PROJECT_READ)),
+              db: Session = Depends(get_db)) -> PortfolioOut:
+    """Портфель организации одним запросом (E4): проекты и дела для внешней сводки.
+
+    Ради этого и заводились ключи доступа (D5): дашборд финдиректора собирается на
+    стороне клиента, а не у нас. Числа берутся **сохранёнными** — иначе один запрос за
+    портфелем превращался бы в десятки расчётов.
+
+    Вердиктов дел здесь нет, и это **сказано в ответе**: вердикт всегда считается по
+    текущей отчётности и нигде не хранится. Показать вместо него что-то сохранённое
+    значило бы выдать позавчерашнее заключение за сегодняшнее.
+    """
+    projects = crud.list_projects(db, org_id)
+    cases = crud.list_audit_subjects(db, org_id)
+    return PortfolioOut(
+        projects=[PortfolioProjectOut(
+            id=p.id, name=p.name, updated_at=p.updated_at, last_calc=_last_calc(p),
+            is_stale=_is_stale(p), status=p.status) for p in projects],
+        cases=[PortfolioCaseOut(id=c.id, name=c.name, updated_at=c.updated_at)
+               for c in cases],
+        projects_total=len(projects), cases_total=len(cases),
+        projects_never_calculated=sum(1 for p in projects if _last_calc(p) is None),
+        verdicts_note=("Вердикт дела здесь не показан: он всегда считается по текущей "
+                       "отчётности и не хранится. Возьмите его запросом "
+                       "POST /api/v1/audit/subjects/{id}/analyze."),
+    )
 
 
 @router.get("/{project_id}", response_model=ProjectOut)

@@ -226,3 +226,50 @@ def test_an_unpaid_organization_still_lets_the_key_read(client, register, db_ses
     crud.set_plan(db_session, _org_id(client, headers), "pro", status="past_due")
 
     assert client.get("/api/v1/projects", headers=_as_key(token)).status_code == 200
+
+
+# --- Портфель одним запросом (E4) ---
+
+def test_the_portfolio_comes_in_one_request(client, register):
+    """Ради этого ключи и заводились: дашборд собирается на стороне клиента."""
+    headers = register()
+    pid = _project(client, headers, "Считанный")
+    client.post(f"/api/v1/projects/{pid}/calculate", headers=headers)
+    _project(client, headers, "Несчитанный")
+    client.post("/api/v1/audit/subjects",
+                json={"name": "Дело", "model": {"name": "Дело", "periods": [],
+                                                "lines": []}}, headers=headers)
+    token, _ = _issue(client, headers)
+
+    body = client.get("/api/v1/projects/portfolio", headers=_as_key(token)).json()
+    assert body["projects_total"] == 2 and body["cases_total"] == 1
+    calculated = next(p for p in body["projects"] if p["name"] == "Считанный")
+    assert calculated["last_calc"]["npv"] is not None
+    # «Не считали ни разу» — отдельное состояние, а не ноль.
+    assert body["projects_never_calculated"] == 1
+    assert next(p for p in body["projects"]
+                if p["name"] == "Несчитанный")["last_calc"] is None
+
+
+def test_the_portfolio_names_the_missing_verdicts(client, register):
+    """Вердикт дела всегда считается по текущей отчётности и нигде не хранится:
+    показать вместо него сохранённое значило бы выдать позавчерашнее за сегодняшнее."""
+    headers = register()
+    client.post("/api/v1/audit/subjects",
+                json={"name": "Дело", "model": {"name": "Дело", "periods": [],
+                                                "lines": []}}, headers=headers)
+    body = client.get("/api/v1/projects/portfolio", headers=headers).json()
+    assert "verdict" not in str(body["cases"])
+    assert "не хранится" in body["verdicts_note"]
+    assert "analyze" in body["verdicts_note"]
+
+
+def test_the_portfolio_stays_inside_its_organization(client, register):
+    first = register()
+    _project(client, first, "Мой")
+    token, _ = _issue(client, first)
+    stranger = register(email="alien@e.ru", org="Чужая")
+    _project(client, stranger, "Чужой")
+
+    body = client.get("/api/v1/projects/portfolio", headers=_as_key(token)).json()
+    assert [p["name"] for p in body["projects"]] == ["Мой"]

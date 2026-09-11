@@ -192,3 +192,18 @@ export async function deleteMyAccount(password: string): Promise<DeletionPlan> {
   const { data } = await api.post<DeletionPlan>("/api/v1/auth/delete", { password });
   return data;
 }
+
+
+/**
+ * Что платформа собирает о пользовании продуктом (E2).
+ *
+ * Показывается там же, где человек забирает свои данные: скрытая аналитика в продукте,
+ * который печатает свои отказы, была бы двойным стандартом. Список событий приходит
+ * **тот же**, по которому идёт запись, — вторая его копия однажды отстала бы.
+ */
+export type UsagePolicy = Schema<"UsagePolicyOut">;
+
+export async function getUsagePolicy(): Promise<UsagePolicy> {
+  const { data } = await api.get<UsagePolicy>("/api/v1/auth/usage-policy");
+  return data;
+}

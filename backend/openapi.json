@@ -8738,6 +8738,119 @@
         "title": "PlatformMetricsOut",
         "type": "object"
       },
+      "PortfolioCaseOut": {
+        "description": "Дело в портфеле: метаданные. Вердикта здесь нет — см. `verdicts_note`.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "updated_at"
+        ],
+        "title": "PortfolioCaseOut",
+        "type": "object"
+      },
+      "PortfolioOut": {
+        "description": "Портфель организации одним запросом (E4): проекты и дела для внешней сводки.\n\nЧисла проектов берутся **сохранёнными** (последний расчёт), а не считаются на лету:\nиначе один запрос за портфелем превращался бы в десятки расчётов.\n\n**Вердиктов дел здесь нет, и это названо**, а не обойдено молчанием: вердикт дела\nвсегда считается по текущей отчётности и нигде не хранится — выдать за него что-то\nсохранённое значило бы показать позавчерашнее заключение как сегодняшнее.",
+        "properties": {
+          "cases": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PortfolioCaseOut"
+            },
+            "title": "Cases",
+            "type": "array"
+          },
+          "cases_total": {
+            "default": 0,
+            "title": "Cases Total",
+            "type": "integer"
+          },
+          "projects": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PortfolioProjectOut"
+            },
+            "title": "Projects",
+            "type": "array"
+          },
+          "projects_never_calculated": {
+            "default": 0,
+            "title": "Projects Never Calculated",
+            "type": "integer"
+          },
+          "projects_total": {
+            "default": 0,
+            "title": "Projects Total",
+            "type": "integer"
+          },
+          "verdicts_note": {
+            "default": "",
+            "title": "Verdicts Note",
+            "type": "string"
+          }
+        },
+        "title": "PortfolioOut",
+        "type": "object"
+      },
+      "PortfolioProjectOut": {
+        "description": "Проект в портфеле: метаданные и **сохранённая** сводка последнего расчёта.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "is_stale": {
+            "default": false,
+            "title": "Is Stale",
+            "type": "boolean"
+          },
+          "last_calc": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LastCalcOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "default": "draft",
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "updated_at"
+        ],
+        "title": "PortfolioProjectOut",
+        "type": "object"
+      },
       "ProcedureMark": {
         "description": "Отметка аналитика по процедуре каталога (SPEC, Приложение М.3).\n\nСтавится **только** у процедур с исполнителем «аналитик»: итог системной процедуры\nвыводится из фактического прогона, и объявить его вручную нельзя.\n\n``note`` при снятии обязателен: процедура, снятая без причины, неотличима от\nзабытой, а в «Границах проверки» она обязана быть названа с объяснением.",
         "properties": {
@@ -13266,6 +13379,39 @@
         "title": "UncertainParamIn",
         "type": "object"
       },
+      "UsagePolicyOut": {
+        "description": "Что платформа собирает о пользовании — человеку, а не в документации.\n\nСкрытая аналитика в продукте, который печатает свои отказы, была бы двойным\nстандартом: тот же экран, где человек забирает свои данные и удаляет учётную запись,\nобязан отвечать и на вопрос «что вы обо мне знаете».",
+        "properties": {
+          "collecting": {
+            "default": false,
+            "title": "Collecting",
+            "type": "boolean"
+          },
+          "events": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Events",
+            "type": "object"
+          },
+          "excluded": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Excluded",
+            "type": "array"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "title": "UsagePolicyOut",
+        "type": "object"
+      },
       "UserMetric": {
         "description": "Пользовательский показатель: имя + формула над строками аналитической формы.\n\nФормула — язык формул платформы (тот же, что в таблицах первого продукта). Доступны\nкоды строк аналитической формы (``A_*``/``P_*``/``I_*``/``M_*``) и ``N`` — число\nпериодов. Ошибка формулы не роняет анализ: показатель получает сообщение и нули.",
         "properties": {
@@ -17250,6 +17396,33 @@
         ]
       }
     },
+    "/api/v1/auth/usage-policy": {
+      "get": {
+        "description": "Что платформа собирает о пользовании (E2) — там же, где человек забирает свои\nданные.\n\nСкрытая аналитика в продукте, который печатает свои отказы, была бы двойным\nстандартом. Список событий — тот же, по которому идёт запись (`usage.EVENTS`):\nвторой его копии, которая однажды отстанет, здесь нет.",
+        "operationId": "usage_policy_api_v1_auth_usage_policy_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsagePolicyOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Usage Policy",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/billing/webhook/yookassa": {
       "post": {
         "description": "Вебхук ЮKassa: активирует тариф по факту успешной оплаты (идемпотентно).",
@@ -19857,6 +20030,61 @@
           }
         ],
         "summary": "Create Project",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/api/v1/projects/portfolio": {
+      "get": {
+        "description": "Портфель организации одним запросом (E4): проекты и дела для внешней сводки.\n\nРади этого и заводились ключи доступа (D5): дашборд финдиректора собирается на\nстороне клиента, а не у нас. Числа берутся **сохранёнными** — иначе один запрос за\nпортфелем превращался бы в десятки расчётов.\n\nВердиктов дел здесь нет, и это **сказано в ответе**: вердикт всегда считается по\nтекущей отчётности и нигде не хранится. Показать вместо него что-то сохранённое\nзначило бы выдать позавчерашнее заключение за сегодняшнее.",
+        "operationId": "portfolio_api_v1_projects_portfolio_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortfolioOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Portfolio",
         "tags": [
           "projects"
         ]

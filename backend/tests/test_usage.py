@@ -164,3 +164,32 @@ def test_the_organization_is_a_cut_not_an_owner(client, register, db_session,
     _org_id(client, second)
     orgs = {e.organization_id for e in _events(db_session)}
     assert len(orgs) == 2
+
+
+# --- Что платформа знает о пользовании (экран клиента) ---
+
+def test_the_client_can_see_what_is_collected(client, register, collecting):
+    """Скрытая аналитика в продукте, который печатает свои отказы, была бы двойным
+    стандартом: тот же экран, где забирают свои данные, отвечает и на этот вопрос."""
+    headers = register()
+    body = client.get("/api/v1/auth/usage-policy", headers=headers).json()
+    assert body["collecting"] is True
+    assert set(body["events"]) == set(usage.EVENTS)
+    assert any("NPV" in x for x in body["excluded"])
+    assert any("адреса" in x for x in body["excluded"])
+
+
+def test_the_policy_says_when_nothing_is_collected(client, register):
+    headers = register()
+    body = client.get("/api/v1/auth/usage-policy", headers=headers).json()
+    assert body["collecting"] is False
+    # «Список того, что собиралось бы» без этой оговорки читается как список собранного.
+    assert "не записывается ничего" in body["note"]
+
+
+def test_the_policy_list_is_the_same_one_that_writes(client, register, collecting):
+    """Вторая копия перечня однажды отстанет от первой — и экран начнёт обещать то,
+    чего давно не пишут (или молчать о том, что пишут)."""
+    headers = register()
+    shown = client.get("/api/v1/auth/usage-policy", headers=headers).json()["events"]
+    assert shown == usage.EVENTS

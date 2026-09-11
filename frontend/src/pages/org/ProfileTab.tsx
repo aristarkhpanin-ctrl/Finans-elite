@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { changePassword, deleteMyAccount, disableTotp, downloadMyData, enableTotp,
          getCapabilities, getDeletionPlan, getPasswordPolicy, getSessions, getTotpStatus,
+         getUsagePolicy,
          reissueRecoveryCodes, revokeAllSessions, revokeSession, startTotpSetup,
          updateProfile, type TotpSetup } from "../../api/auth";
 import { httpDetail, httpStatus } from "../../api/client";
@@ -111,6 +112,41 @@ export function ProfileTab() {
       </div>
 
       <MyDataBlock />
+      <UsageBlock />
+    </div>
+  );
+}
+
+/**
+ * Что платформа знает о пользовании (E2) — рядом с выгрузкой своих данных.
+ *
+ * Тот же экран, где человек забирает свои данные и удаляет учётную запись, обязан
+ * отвечать и на вопрос «что вы обо мне знаете». Список событий приходит с сервера —
+ * тот же, по которому идёт запись: перечисленный здесь своим текстом, он однажды
+ * отстал бы, и экран начал бы обещать то, чего давно не пишут.
+ */
+function UsageBlock() {
+  const { data } = useQuery({ queryKey: ["usage-policy"], queryFn: getUsagePolicy,
+                              staleTime: Infinity });
+  if (!data) return null;
+  return (
+    <div className="audit-block">
+      <div className="audit-block__title">Что платформа знает о пользовании</div>
+      <p className="page-sub" style={{ marginTop: 0 }}>{data.note}</p>
+      {data.collecting && (
+        <>
+          <div className="tpl-assume__head">Что записывается</div>
+          <ul className="mnotes">
+            {Object.entries(data.events).map(([code, label]) => (
+              <li key={code}>{label}</li>
+            ))}
+          </ul>
+        </>
+      )}
+      <div className="tpl-assume__head">Чего в этих записях нет</div>
+      <ul className="mnotes">
+        {data.excluded.map((x) => <li key={x}>{x}</li>)}
+      </ul>
     </div>
   );
 }

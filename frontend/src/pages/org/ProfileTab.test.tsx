@@ -25,6 +25,7 @@ const getDeletionPlan = vi.fn();
 const deleteMyAccount = vi.fn();
 const downloadMyData = vi.fn();
 const getCapabilities = vi.fn();
+const getUsagePolicy = vi.fn();
 vi.mock("../../api/auth", async (orig) => ({
   ...(await orig<typeof import("../../api/auth")>()),
   getSessions: (...a: unknown[]) => getSessions(...a),
@@ -38,6 +39,7 @@ vi.mock("../../api/auth", async (orig) => ({
   deleteMyAccount: (...a: unknown[]) => deleteMyAccount(...a),
   downloadMyData: (...a: unknown[]) => downloadMyData(...a),
   getCapabilities: (...a: unknown[]) => getCapabilities(...a),
+  getUsagePolicy: (...a: unknown[]) => getUsagePolicy(...a),
 }));
 
 const toast = vi.fn();
@@ -78,6 +80,11 @@ beforeEach(() => {
     kept: ["Записи журнала в организациях, где вы работали."],
   });
   getCapabilities.mockResolvedValue({ mail: false });
+  getUsagePolicy.mockResolvedValue({
+    collecting: false, events: { "project.calculate": "посчитал проект" },
+    excluded: ["Чисел из ваших моделей: ни NPV, ни выручки."],
+    note: "Сейчас сбор выключен: не записывается ничего.",
+  });
   deleteMyAccount.mockResolvedValue({ allowed: true, organizations_deleted: ["Орг"],
                                       organizations_left: [], projects: 3, cases: 1,
                                       blockers: [], kept: [] });
@@ -248,4 +255,26 @@ it("с почтой обещание даётся — и оно выполняе
   getCapabilities.mockResolvedValue({ mail: true });
   show();
   expect(await screen.findByText(/О входе с незнакомого устройства/)).toBeTruthy();
+});
+
+
+// --- E2: что платформа знает о пользовании ---
+
+it("рассказывает, что собирается о пользовании, рядом со своими данными", async () => {
+  // Скрытая аналитика в продукте, который печатает свои отказы, — двойной стандарт.
+  show();
+  expect(await screen.findByText(/не записывается ничего/)).toBeTruthy();
+  expect(screen.getByText(/ни NPV, ни выручки/)).toBeTruthy();
+});
+
+it("при включённом сборе перечисляет события, а не общие слова", async () => {
+  getUsagePolicy.mockResolvedValue({
+    collecting: true, events: { "project.calculate": "посчитал проект",
+                                "signup": "зарегистрировался" },
+    excluded: ["Вашего адреса: вместо него отпечаток."],
+    note: "Сейчас сбор включён.",
+  });
+  show();
+  expect(await screen.findByText("посчитал проект")).toBeTruthy();
+  expect(screen.getByText("зарегистрировался")).toBeTruthy();
 });

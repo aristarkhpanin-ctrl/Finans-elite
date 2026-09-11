@@ -1167,6 +1167,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/usage-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Usage Policy
+         * @description Что платформа собирает о пользовании (E2) — там же, где человек забирает свои
+         *     данные.
+         *
+         *     Скрытая аналитика в продукте, который печатает свои отказы, была бы двойным
+         *     стандартом. Список событий — тот же, по которому идёт запись (`usage.EVENTS`):
+         *     второй его копии, которая однажды отстанет, здесь нет.
+         */
+        get: operations["usage_policy_api_v1_auth_usage_policy_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/billing/webhook/yookassa": {
         parameters: {
             query?: never;
@@ -1870,6 +1895,34 @@ export interface paths {
          * @description Создать проект в текущей организации (право project.create; учёт квоты тарифа).
          */
         post: operations["create_project_api_v1_projects_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/portfolio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Portfolio
+         * @description Портфель организации одним запросом (E4): проекты и дела для внешней сводки.
+         *
+         *     Ради этого и заводились ключи доступа (D5): дашборд финдиректора собирается на
+         *     стороне клиента, а не у нас. Числа берутся **сохранёнными** — иначе один запрос за
+         *     портфелем превращался бы в десятки расчётов.
+         *
+         *     Вердиктов дел здесь нет, и это **сказано в ответе**: вердикт всегда считается по
+         *     текущей отчётности и нигде не хранится. Показать вместо него что-то сохранённое
+         *     значило бы выдать позавчерашнее заключение за сегодняшнее.
+         */
+        get: operations["portfolio_api_v1_projects_portfolio_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -7227,6 +7280,90 @@ export interface components {
             users: number;
         };
         /**
+         * PortfolioCaseOut
+         * @description Дело в портфеле: метаданные. Вердикта здесь нет — см. `verdicts_note`.
+         */
+        PortfolioCaseOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * PortfolioOut
+         * @description Портфель организации одним запросом (E4): проекты и дела для внешней сводки.
+         *
+         *     Числа проектов берутся **сохранёнными** (последний расчёт), а не считаются на лету:
+         *     иначе один запрос за портфелем превращался бы в десятки расчётов.
+         *
+         *     **Вердиктов дел здесь нет, и это названо**, а не обойдено молчанием: вердикт дела
+         *     всегда считается по текущей отчётности и нигде не хранится — выдать за него что-то
+         *     сохранённое значило бы показать позавчерашнее заключение как сегодняшнее.
+         */
+        PortfolioOut: {
+            /**
+             * Cases
+             * @default []
+             */
+            cases: components["schemas"]["PortfolioCaseOut"][];
+            /**
+             * Cases Total
+             * @default 0
+             */
+            cases_total: number;
+            /**
+             * Projects
+             * @default []
+             */
+            projects: components["schemas"]["PortfolioProjectOut"][];
+            /**
+             * Projects Never Calculated
+             * @default 0
+             */
+            projects_never_calculated: number;
+            /**
+             * Projects Total
+             * @default 0
+             */
+            projects_total: number;
+            /**
+             * Verdicts Note
+             * @default
+             */
+            verdicts_note: string;
+        };
+        /**
+         * PortfolioProjectOut
+         * @description Проект в портфеле: метаданные и **сохранённая** сводка последнего расчёта.
+         */
+        PortfolioProjectOut: {
+            /** Id */
+            id: string;
+            /**
+             * Is Stale
+             * @default false
+             */
+            is_stale: boolean;
+            last_calc?: components["schemas"]["LastCalcOut"] | null;
+            /** Name */
+            name: string;
+            /**
+             * Status
+             * @default draft
+             */
+            status: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
          * ProcedureMark
          * @description Отметка аналитика по процедуре каталога (SPEC, Приложение М.3).
          *
@@ -9783,6 +9920,38 @@ export interface components {
             param: string;
         };
         /**
+         * UsagePolicyOut
+         * @description Что платформа собирает о пользовании — человеку, а не в документации.
+         *
+         *     Скрытая аналитика в продукте, который печатает свои отказы, была бы двойным
+         *     стандартом: тот же экран, где человек забирает свои данные и удаляет учётную запись,
+         *     обязан отвечать и на вопрос «что вы обо мне знаете».
+         */
+        UsagePolicyOut: {
+            /**
+             * Collecting
+             * @default false
+             */
+            collecting: boolean;
+            /**
+             * Events
+             * @default {}
+             */
+            events: {
+                [key: string]: string;
+            };
+            /**
+             * Excluded
+             * @default []
+             */
+            excluded: string[];
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /**
          * UserMetric
          * @description Пользовательский показатель: имя + формула над строками аналитической формы.
          *
@@ -11991,6 +12160,26 @@ export interface operations {
             };
         };
     };
+    usage_policy_api_v1_auth_usage_policy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsagePolicyOut"];
+                };
+            };
+        };
+    };
     yookassa_webhook_api_v1_billing_webhook_yookassa_post: {
         parameters: {
             query?: never;
@@ -13391,6 +13580,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portfolio_api_v1_projects_portfolio_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioOut"];
                 };
             };
             /** @description Validation Error */
