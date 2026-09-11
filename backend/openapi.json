@@ -6263,6 +6263,41 @@
         "title": "ForgotPasswordOut",
         "type": "object"
       },
+      "FunnelStepOut": {
+        "description": "Шаг воронки активации. ``share = None`` — считать не от чего (нет организаций).",
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "organizations": {
+            "default": 0,
+            "title": "Organizations",
+            "type": "integer"
+          },
+          "share": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Share"
+          }
+        },
+        "required": [
+          "key",
+          "label"
+        ],
+        "title": "FunnelStepOut",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -8616,6 +8651,14 @@
             "title": "Exports",
             "type": "integer"
           },
+          "funnel": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/FunnelStepOut"
+            },
+            "title": "Funnel",
+            "type": "array"
+          },
           "generated_at": {
             "format": "date-time",
             "title": "Generated At",
@@ -8665,10 +8708,23 @@
             "title": "Projects Calculated",
             "type": "integer"
           },
+          "retention": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/RetentionPointOut"
+            },
+            "title": "Retention",
+            "type": "array"
+          },
           "since_days": {
             "default": 30,
             "title": "Since Days",
             "type": "integer"
+          },
+          "usage_collected": {
+            "default": false,
+            "title": "Usage Collected",
+            "type": "boolean"
           },
           "users": {
             "default": 0,
@@ -10551,6 +10607,36 @@
           "remedy"
         ],
         "title": "RestrictionOut",
+        "type": "object"
+      },
+      "RetentionPointOut": {
+        "description": "Когорта месяца. ``returned = None`` — **не измеряется**, а не ноль.\n\nНоль читался бы как «все ушли»; на деле в этот месяц событий не собирали, и знать\nудержание неоткуда.",
+        "properties": {
+          "arrived": {
+            "default": 0,
+            "title": "Arrived",
+            "type": "integer"
+          },
+          "month": {
+            "title": "Month",
+            "type": "string"
+          },
+          "returned": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Returned"
+          }
+        },
+        "required": [
+          "month"
+        ],
+        "title": "RetentionPointOut",
         "type": "object"
       },
       "Revaluation-Input": {

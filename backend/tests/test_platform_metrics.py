@@ -253,3 +253,91 @@ def test_looking_at_metrics_is_written_only_in_the_service_journal(client, db_se
     ours = {e["action"] for e in
             client.get("/api/v1/admin/log", headers=staff).json()["entries"]}
     assert {"staff.metrics", "staff.metrics_export"} <= ours
+
+
+# --- Воронка активации и удержание (E3) ---
+
+def _staff_headers(client, db_session, register):
+    """Оператор платформы: признак ставится в базе, через API он не выдаётся."""
+    from app import crud
+    headers = register(email="staff@e.ru", org="Платформа")
+    user = crud.get_user_by_email(db_session, "staff@e.ru")
+    user.is_staff = True
+    db_session.commit()
+    return headers
+
+
+def test_the_funnel_is_counted_without_events(client, db_session, register):
+    """Три первых шага доступны из журнала и дат расчёта: воронка есть и там, где сбор
+    событий выключен."""
+    staff = _staff_headers(client, db_session, register)
+    headers = register(email="client@e.ru", org="Клиент")
+    pid = client.post("/api/v1/projects", json={"name": "П", "model":
+                      client.get("/api/v1/sample").json()}, headers=headers).json()["id"]
+    client.post(f"/api/v1/projects/{pid}/calculate", headers=headers)
+
+    body = client.get("/api/v1/admin/metrics", headers=staff).json()
+    steps = {s["key"]: s for s in body["funnel"]}
+    assert steps["signup"]["organizations"] >= 2
+    assert steps["created"]["organizations"] >= 1
+    assert steps["calculated"]["organizations"] >= 1
+    # Доля считается от первого шага; без организаций считать не от чего.
+    assert 0 < steps["created"]["share"] <= 1
+
+
+def test_the_funnel_answers_ever_not_for_the_period(client, db_session, register):
+    """«Дошла в прошлом году» — тоже «дошла»: воронка про достижение шага, а не про
+    активность за окно."""
+    staff = _staff_headers(client, db_session, register)
+    headers = register(email="old@e.ru", org="Давний")
+    client.post("/api/v1/projects", json={"name": "Старый", "model":
+                client.get("/api/v1/sample").json()}, headers=headers)
+
+    body = client.get("/api/v1/admin/metrics?days=1", headers=staff).json()
+    created = next(s for s in body["funnel"] if s["key"] == "created")
+    assert created["organizations"] >= 1
+    assert any("когда-нибудь" in n for n in body["notes"])
+
+
+def test_retention_is_not_measured_without_events(client, db_session, register):
+    """Пустой график честнее нарисованного: удержание считается по событиям, а их
+    выключенный сбор не заменить отметкой присутствия."""
+    staff = _staff_headers(client, db_session, register)
+    body = client.get("/api/v1/admin/metrics", headers=staff).json()
+    assert body["usage_collected"] is False
+    assert body["retention"] == []
+    assert any("не измеряется" in n for n in body["notes"])
+
+
+def test_retention_appears_when_events_are_collected(client, db_session, register,
+                                                     monkeypatch):
+    monkeypatch.setenv("USAGE_EVENTS", "1")
+    staff = _staff_headers(client, db_session, register)
+    register(email="new@e.ru", org="Новый")
+
+    body = client.get("/api/v1/admin/metrics", headers=staff).json()
+    assert body["usage_collected"] is True
+    months = {p["month"]: p for p in body["retention"]}
+    assert months, "когорты не собрались"
+    # В месяце, где никто не регистрировался, «вернулись» — не ноль, а «не измеряется».
+    empty = [p for p in months.values() if p["arrived"] == 0]
+    assert all(p["returned"] is None for p in empty)
+
+
+def test_a_returning_organization_is_counted(db_session, monkeypatch):
+    """Когорта считается по событиям следующих месяцев, а не по отметке присутствия."""
+    from datetime import datetime, timedelta, timezone
+
+    from app import usage
+    from app.metrics import retention
+
+    monkeypatch.setenv("USAGE_EVENTS", "1")
+    now = datetime.now(timezone.utc)
+    past = now - timedelta(days=62)
+    usage.record(db_session, event="signup", org_id="o1", now=past)
+    usage.record(db_session, event="project.calculate", org_id="o1", now=now)
+    usage.record(db_session, event="signup", org_id="o2", now=past)   # больше не приходил
+
+    points = {p.month: p for p in retention(db_session, now, months=6)}
+    cohort = points[f"{past.year:04d}-{past.month:02d}"]
+    assert cohort.arrived == 2 and cohort.returned == 1

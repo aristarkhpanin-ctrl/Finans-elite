@@ -697,3 +697,32 @@ class ApiKey(Base):
         DateTime(timezone=True), nullable=True
     )
     revoked_by: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+
+
+class UsageEvent(Base):
+    """Событие пользования продуктом (E2) — **не журнал**.
+
+    Журнал отвечает клиенту «кто это сделал», не пишет чтение и хранится долго. События
+    отвечают платформе «как пользуются», пишут именно чтение и живут ровно столько,
+    сколько нужно для ответа. Одна таблица на два вопроса означала бы, что в журнале
+    тонет сигнал, а в событиях появляются персональные данные.
+
+    Участник **обезличен**: вместо почты — её отпечаток с солью установки. Для когорт
+    («тот же человек вернулся») этого достаточно, для «кто именно» — нет.
+
+    Содержимого моделей клиента здесь нет и быть не может: ключи контекста перечислены
+    (`usage.CONTEXT_KEYS`), значения обрезаны до 64 знаков.
+    """
+
+    __tablename__ = "usage_events"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
+    #: Код из закрытого перечня `usage.EVENTS`.
+    event: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
+    #: Отпечаток участника; пусто — системное событие, за которым нет человека.
+    actor: Mapped[str] = mapped_column(String(32), nullable=False, default="")
+    context: Mapped[dict] = mapped_column(JSONType, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_now, index=True
+    )

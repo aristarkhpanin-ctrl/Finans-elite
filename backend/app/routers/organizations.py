@@ -9,7 +9,7 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
-from .. import billing, crud, mail
+from .. import billing, crud, mail, usage
 from ..access import restriction_for
 from ..activity import build_activity
 from ..database import get_db
@@ -143,6 +143,7 @@ def add_member(body: MemberCreate,
     crud.log_action(db, org_id, actor, "member.add", entity_type="member",
                     entity_id=user.id, entity_name=user.email,
                     details=f"роль: {membership.role}")
+    usage.record(db, event="member.invite", org_id=org_id, email=actor.email)
     # Приглашённому, у которого ещё нет пароля, нужен способ его завести. Ссылка
     # активации возвращается пригласившему **всегда**: письмо (D1) — добавление к
     # «передайте лично», а не замена, и при неудачной отправке передавать её всё равно

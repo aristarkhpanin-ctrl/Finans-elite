@@ -42,9 +42,11 @@ from ..metrics import (
 from ..plans import PRODUCTS, get_plan
 from ..schemas import (
     AuditLogPage,
+    FunnelStepOut,
     MetricPointOut,
     PlanSliceOut,
     PlatformMetricsOut,
+    RetentionPointOut,
     StaffLogEntryOut,
     StaffLogPage,
     StaffOrgDetail,
@@ -358,6 +360,14 @@ def _tenant_totals(db: Session, since: datetime) -> TenantTotals:
         totals.cases += slice_["cases"]
         totals.calculated += slice_["calculated"]
         totals.exports += slice_["exports"]
+        # Воронка считается тем же обходом: второй проход ради тех же чисел был бы вдвое
+        # дороже и однажды разошёлся бы с первым.
+        if slice_["projects"] or slice_["cases"]:
+            totals.with_entities += 1
+        if slice_["ever_calculated"]:
+            totals.with_calculation += 1
+        if slice_["ever_exported"]:
+            totals.with_export += 1
         first = slice_["first_log_at"]
         if first is not None and (totals.first_log_at is None
                                   or first < totals.first_log_at):
@@ -403,6 +413,11 @@ def read_metrics(months: int = 12, days: int = 30, staff: User = Depends(require
         plans=[PlanSliceOut(product=s.product, plan_code=s.plan_code,
                             plan_name=s.plan_name, organizations=s.organizations)
                for s in m.plans],
+        funnel=[FunnelStepOut(key=f.key, label=f.label, organizations=f.organizations,
+                              share=f.share) for f in m.funnel],
+        retention=[RetentionPointOut(month=r.month, arrived=r.arrived,
+                                     returned=r.returned) for r in m.retention],
+        usage_collected=m.usage_collected,
         notes=list(m.notes),
     )
 

@@ -5817,6 +5817,23 @@ export interface components {
             /** Message */
             message: string;
         };
+        /**
+         * FunnelStepOut
+         * @description Шаг воронки активации. ``share = None`` — считать не от чего (нет организаций).
+         */
+        FunnelStepOut: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /**
+             * Organizations
+             * @default 0
+             */
+            organizations: number;
+            /** Share */
+            share?: number | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -7144,6 +7161,11 @@ export interface components {
              */
             exports: number;
             /**
+             * Funnel
+             * @default []
+             */
+            funnel: components["schemas"]["FunnelStepOut"][];
+            /**
              * Generated At
              * Format: date-time
              */
@@ -7184,10 +7206,20 @@ export interface components {
              */
             projects_calculated: number;
             /**
+             * Retention
+             * @default []
+             */
+            retention: components["schemas"]["RetentionPointOut"][];
+            /**
              * Since Days
              * @default 30
              */
             since_days: number;
+            /**
+             * Usage Collected
+             * @default false
+             */
+            usage_collected: boolean;
             /**
              * Users
              * @default 0
@@ -8319,6 +8351,24 @@ export interface components {
             reason: string;
             /** Remedy */
             remedy: string;
+        };
+        /**
+         * RetentionPointOut
+         * @description Когорта месяца. ``returned = None`` — **не измеряется**, а не ноль.
+         *
+         *     Ноль читался бы как «все ушли»; на деле в этот месяц событий не собирали, и знать
+         *     удержание неоткуда.
+         */
+        RetentionPointOut: {
+            /**
+             * Arrived
+             * @default 0
+             */
+            arrived: number;
+            /** Month */
+            month: string;
+            /** Returned */
+            returned?: number | null;
         };
         /**
          * Revaluation

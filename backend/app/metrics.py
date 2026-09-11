@@ -23,8 +23,9 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from .db_models import Membership, Organization, Subscription, User
-from .plans import PRODUCT_NAME, get_plan
+from .db_models import Membership, Organization, Subscription, UsageEvent, User
+from .plans import DEFAULT_PLAN, PRODUCT_NAME, get_plan
+from .usage import collecting as usage_collecting
 
 #: Окна активности. Семь дней отвечают на вопрос «пользуются ли сейчас», тридцать —
 #: «не ушли ли». Одно окно вместо двух заставило бы выбирать между этими вопросами.
@@ -67,6 +68,37 @@ class TenantTotals:
     first_log_at: datetime | None = None
     organizations_scanned: int = 0
     organizations_total: int = 0
+    #: Сколько организаций дошло до шага воронки (E3). Считается при том же обходе
+    #: арендаторов, что и объёмы: второй обход ради тех же чисел был бы вдвое дороже и
+    #: однажды разошёлся бы с первым.
+    with_entities: int = 0
+    with_calculation: int = 0
+    with_export: int = 0
+
+
+@dataclass
+class FunnelStep:
+    """Шаг воронки активации: сколько организаций дошло и какая доля от начала."""
+
+    key: str
+    label: str
+    organizations: int = 0
+    #: Доля от первого шага. ``None`` — считать не от чего (нет ни одной организации).
+    share: float | None = None
+
+
+@dataclass
+class RetentionPoint:
+    """Когорта: сколько из пришедших в этот месяц вернулись позже.
+
+    ``returned`` = ``None`` означает «**не измеряется**», а не ноль: удержание считается
+    по событиям пользования (E2), и в месяцы, когда сбор был выключен, знать его неоткуда.
+    Ноль здесь читался бы как «все ушли» — это другое утверждение.
+    """
+
+    month: str
+    arrived: int = 0
+    returned: int | None = None
 
 
 @dataclass
@@ -86,6 +118,14 @@ class PlatformMetrics:
     exports: int = 0
     growth: list[MonthPoint] = field(default_factory=list)
     plans: list[PlanSlice] = field(default_factory=list)
+    #: Воронка активации. Считается **всегда**: три первых шага доступны из журнала и
+    #: дат расчёта, событий для них не требуется.
+    funnel: list[FunnelStep] = field(default_factory=list)
+    #: Удержание по когортам. Пусто, если сбор событий не велся: график из воздуха
+    #: хуже отсутствующего.
+    retention: list[RetentionPoint] = field(default_factory=list)
+    #: Собираются ли события пользования (E2) — чтобы экран не гадал, почему пусто.
+    usage_collected: bool = False
     notes: list[str] = field(default_factory=list)
 
 
@@ -177,6 +217,66 @@ def _activity(db: Session, now: datetime) -> tuple[dict[int, int], dict[int, int
     return users, orgs, without_mark
 
 
+def activation_funnel(db: Session, totals: TenantTotals) -> list[FunnelStep]:
+    """Воронка активации: зарегистрировался → завёл → посчитал → выгрузил → оплатил.
+
+    Считается **из уже существующего**: организации, их проекты и дела, даты последнего
+    расчёта и записи журнала о выгрузках. Событий (E2) для этого не нужно — поэтому
+    воронка есть и в установках, где сбор выключен.
+
+    Шага «открыл результаты» в ней нет намеренно: отдельного маршрута у этого экрана не
+    существует, он зовёт расчёт, и шаг был бы вторым именем предыдущего.
+    """
+    organizations = int(db.scalar(select(func.count()).select_from(Organization)) or 0)
+    paid = int(db.scalar(
+        select(func.count(func.distinct(Subscription.organization_id)))
+        .where(Subscription.plan_code != DEFAULT_PLAN)) or 0)
+    steps = [
+        FunnelStep("signup", "Завели организацию", organizations),
+        FunnelStep("created", "Завели проект или дело", totals.with_entities),
+        FunnelStep("calculated", "Посчитали хотя бы раз", totals.with_calculation),
+        FunnelStep("exported", "Выгрузили документ", totals.with_export),
+        FunnelStep("paid", "Перешли на платный тариф", paid),
+    ]
+    base = steps[0].organizations
+    for step in steps:
+        step.share = (step.organizations / base) if base else None
+    return steps
+
+
+def retention(db: Session, now: datetime, months: int) -> list[RetentionPoint]:
+    """Удержание по когортам месяца регистрации — **только по событиям** (E2).
+
+    До появления событий это не считалось вовсе: отметка присутствия хранит одно
+    последнее значение, и «вернулся ли человек через неделю» из неё не выводится. Там,
+    где событий нет, стоит ``None`` — «не измеряется», а не ноль: ноль читался бы как
+    «все ушли».
+    """
+    rows = db.execute(select(UsageEvent.organization_id, UsageEvent.event,
+                             UsageEvent.created_at)).all()
+    if not rows:
+        return []
+    arrived: dict[str, str] = {}          # организация → месяц первого события
+    seen: dict[str, set[str]] = {}        # организация → месяцы, когда была активность
+    for org_id, event, created in rows:
+        stamp = created if created.tzinfo else created.replace(tzinfo=timezone.utc)
+        month = _month(stamp)
+        seen.setdefault(org_id, set()).add(month)
+        if event == "signup":
+            arrived[org_id] = month
+        elif org_id not in arrived or month < arrived[org_id]:
+            arrived.setdefault(org_id, month)
+    out: list[RetentionPoint] = []
+    for month in _months_back(now, months):
+        cohort = [org for org, first in arrived.items() if first == month]
+        if not cohort:
+            out.append(RetentionPoint(month=month, arrived=0, returned=None))
+            continue
+        came_back = sum(1 for org in cohort if any(m > month for m in seen.get(org, ())))
+        out.append(RetentionPoint(month=month, arrived=len(cohort), returned=came_back))
+    return out
+
+
 def build_platform_metrics(db: Session, *, totals: TenantTotals, now: datetime | None = None,
                            months: int = 12, since_days: int = 30) -> PlatformMetrics:
     """Собрать сводку платформы. ``totals`` приходит снаружи — см. :class:`TenantTotals`."""
@@ -196,6 +296,9 @@ def build_platform_metrics(db: Session, *, totals: TenantTotals, now: datetime |
         exports=totals.exports,
         growth=monthly_growth(db, now, months),
         plans=plan_slices(db),
+        funnel=activation_funnel(db, totals),
+        retention=retention(db, now, months),
+        usage_collected=usage_collecting(),
     )
     metrics.notes = _notes(metrics, totals)
     return metrics
@@ -231,6 +334,23 @@ def _notes(metrics: PlatformMetrics, totals: TenantTotals) -> list[str]:
             f"из {totals.organizations_total}: обход арендаторов ограничен.")
     if not metrics.plans:
         notes.append("Подписок никто не оформлял: все работают на тарифе по умолчанию.")
+    notes.append(
+        "Воронка активации отвечает «дошла ли организация до шага **когда-нибудь**», а не "
+        "«за период»: дошла в прошлом году — тоже дошла.")
+    if not metrics.usage_collected:
+        notes.append(
+            "События пользования не собираются (`USAGE_EVENTS` выключен), поэтому "
+            "удержание **не измеряется**: отметка присутствия хранит только последнее "
+            "значение, и «вернулся ли человек через неделю» из неё не выводится. Пустой "
+            "график здесь честнее нарисованного.")
+    elif not metrics.retention:
+        notes.append(
+            "События собираются, но когорт ещё нет: удержание появится, когда пройдёт "
+            "хотя бы один месяц после первых регистраций.")
+    else:
+        notes.append(
+            "Удержание считается по событиям пользования и только с того момента, как их "
+            "начали собирать: у месяцев до этого стоит «не измеряется», а не ноль.")
     return notes
 
 

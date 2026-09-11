@@ -22,7 +22,7 @@ from calc_core.review.opinion import build_opinion
 from calc_core.sensitivity import SENSITIVITY_PARAMS, run_sensitivity
 from calc_core.whatif import Scenario, ScenarioAdjustment, run_what_if
 
-from .. import billing, crud
+from .. import billing, crud, usage
 from ..analysis_service import build_mc_config
 from ..database import get_db
 from ..db_models import Project, User
@@ -124,6 +124,10 @@ def create_project(body: ProjectCreate,
     project = crud.create_project(db, org_id, body.name, body.model)
     crud.log_action(db, org_id, actor, "project.create", entity_type="project",
                     entity_id=project.id, entity_name=project.name)
+    # Событие пользования (E2) — рядом с журналом, но в другую таблицу и по другому
+    # поводу: журнал отвечает клиенту «кто это сделал», событие платформе — «как
+    # пользуются». Ни числа из модели сюда не попадает.
+    usage.record(db, event="project.create", org_id=org_id, email=actor.email)
     return _out(project)
 
 
@@ -139,7 +143,11 @@ def get_project(project_id: str,
                 org_id: str = Depends(require_permission(Perm.PROJECT_READ)),
                 db: Session = Depends(get_db)) -> ProjectOut:
     """Получить проект с моделью."""
-    return _out(_require(db, org_id, project_id))
+    project = _require(db, org_id, project_id)
+    # Открытие проекта журнал **не пишет** (это чтение) — а событие пишет: без него
+    # «пользуются ли продуктом» отвечать нечем.
+    usage.record(db, event="project.open", org_id=org_id)
+    return _out(project)
 
 
 @router.put("/{project_id}", response_model=ProjectOut)
@@ -199,6 +207,10 @@ def calculate_project(project_id: str,
                            irr_annual=result.metrics.irr_annual,
                            pb_months=result.metrics.pb_months,
                            engine_version=result.engine_version)
+    # Расчёт журнал не пишет (экран результатов зовёт его при каждом открытии), а
+    # событие пишет: «посчитали» — главный признак того, что продуктом пользуются.
+    # Ни NPV, ни любого другого числа модели в событие не попадает.
+    usage.record(db, event="project.calculate", org_id=org_id)
     return to_response(result)
 
 
@@ -281,6 +293,8 @@ def business_plan_docx(project_id: str,
     # при каждом заходе и утопил бы журнал, а документ уносят наружу, и это событие.
     crud.log_action(db, org_id, actor, "project.export", entity_type="project",
                     entity_id=project.id, entity_name=project.name, details="DOCX")
+    usage.record(db, event="project.export", org_id=org_id, email=actor.email,
+                 context={"source": "business-plan"})
     filename = quote(f"{project.name}.docx")
     return Response(
         content=content,

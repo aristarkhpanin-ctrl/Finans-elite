@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
-from .. import billing, crud
+from .. import billing, crud, usage
 from ..billing import PaymentProvider, get_payment_provider
 from ..database import get_db
 from ..db_models import User
@@ -104,6 +104,11 @@ def checkout(body: CheckoutRequest,
     crud.log_action(db, org_id, user, "billing.checkout", entity_type="organization",
                     entity_id=org_id, entity_name=plan.code,
                     details="активирован сразу" if result.activated else "ожидает оплаты")
+    if result.activated:
+        # Событие — только на **состоявшейся** оплате: «начал платить» и «заплатил» в
+        # одной воронке это разные шаги, и путать их значит завысить конверсию.
+        usage.record(db, event="billing.paid", org_id=org_id, email=user.email,
+                     context={"plan": plan.code})
     return CheckoutResponse(activated=result.activated, payment_id=result.payment_id,
                             confirmation_url=result.confirmation_url)
 

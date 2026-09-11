@@ -66,6 +66,15 @@ const metrics = (over: Partial<PlatformMetrics> = {}): PlatformMetrics => ({
   growth: [{ period: "2026-08", organizations: 2, users: 5 },
            { period: "2026-09", organizations: 0, users: 0 }],
   plans: [{ product: "business", plan_code: "pro", plan_name: "Профи", organizations: 3 }],
+  funnel: [
+    { key: "signup", label: "Завели организацию", organizations: 12, share: 1 },
+    { key: "created", label: "Завели проект или дело", organizations: 9, share: 0.75 },
+    { key: "calculated", label: "Посчитали хотя бы раз", organizations: 6, share: 0.5 },
+    { key: "exported", label: "Выгрузили документ", organizations: 2, share: 0.17 },
+    { key: "paid", label: "Перешли на платный тариф", organizations: 3, share: 0.25 },
+  ],
+  retention: [],
+  usage_collected: false,
   notes: ["Журнал ведётся с 01.08.2026 — за более ранние даты выгрузок не видно."],
   ...over,
 } as PlatformMetrics);
@@ -238,7 +247,7 @@ it("сотруднику платформы кнопки блокировки н
 it("сводка показывает числа вместе с тем, чего они не значат", async () => {
   show();
   fireEvent.click(await screen.findByRole("button", { name: "Сводка" }));
-  expect(await screen.findByText("12")).toBeTruthy();               // организаций
+  expect((await screen.findAllByText("12")).length).toBeGreaterThan(0);  // организаций
   expect(screen.getByText(/активны за 7 дн.: 5/)).toBeTruthy();
   expect(screen.getByText(/проектов считали \/ выгрузок документов/)).toBeTruthy();
   // Оговорка — на экране, а не в подсказке: без неё ноль читается как «не было».
@@ -271,4 +280,37 @@ it("без оформленных подписок разрез тарифов �
   show();
   fireEvent.click(await screen.findByRole("button", { name: "Сводка" }));
   expect(await screen.findByText(/Оформленных подписок нет/)).toBeTruthy();
+});
+
+
+// --- E3: воронка и удержание ---
+
+it("воронка активации говорит «когда-нибудь», а не «за период»", async () => {
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Сводка" }));
+  expect(await screen.findByText("Завели проект или дело")).toBeTruthy();
+  expect(screen.getByText("75%")).toBeTruthy();
+  expect(screen.getByText(/когда-нибудь/)).toBeTruthy();
+});
+
+it("без событий удержание названо неизмеряемым, а не нарисовано нулём", async () => {
+  // «0%» читалось бы как «все ушли» — это другое утверждение.
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Сводка" }));
+  expect(await screen.findByText(/Не измеряется/)).toBeTruthy();
+  expect(screen.getByText(/USAGE_EVENTS/)).toBeTruthy();
+});
+
+it("когорта без пришедших не выдаётся за когорту с нулевым возвратом", async () => {
+  getPlatformMetrics.mockResolvedValue(metrics({
+    usage_collected: true,
+    retention: [
+      { month: "2026-07", arrived: 4, returned: 3 },
+      { month: "2026-08", arrived: 0, returned: null },
+    ],
+  }));
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Сводка" }));
+  expect(await screen.findByText("3 из 4")).toBeTruthy();
+  expect(screen.getByText("не измеряется")).toBeTruthy();
 });

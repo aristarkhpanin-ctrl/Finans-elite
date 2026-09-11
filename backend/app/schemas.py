@@ -2082,6 +2082,27 @@ class PlanSliceOut(BaseModel):
     organizations: int = 0
 
 
+class FunnelStepOut(BaseModel):
+    """Шаг воронки активации. ``share = None`` — считать не от чего (нет организаций)."""
+
+    key: str
+    label: str
+    organizations: int = 0
+    share: Optional[float] = None
+
+
+class RetentionPointOut(BaseModel):
+    """Когорта месяца. ``returned = None`` — **не измеряется**, а не ноль.
+
+    Ноль читался бы как «все ушли»; на деле в этот месяц событий не собирали, и знать
+    удержание неоткуда.
+    """
+
+    month: str
+    arrived: int = 0
+    returned: Optional[int] = None
+
+
 class PlatformMetricsOut(BaseModel):
     """Сводка платформы (B3).
 
@@ -2105,6 +2126,10 @@ class PlatformMetricsOut(BaseModel):
     exports: int = 0
     growth: list[MetricPointOut] = []
     plans: list[PlanSliceOut] = []
+    funnel: list[FunnelStepOut] = []
+    retention: list[RetentionPointOut] = []
+    #: Собираются ли события пользования (E2) — чтобы экран не гадал, почему пусто.
+    usage_collected: bool = False
     notes: list[str] = []
 
 

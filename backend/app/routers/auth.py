@@ -15,7 +15,7 @@ from fastapi import (
 )
 from sqlalchemy.orm import Session
 
-from .. import crud, totp
+from .. import crud, totp, usage
 from ..database import get_db
 from ..db_models import User, UserSession
 from ..deps import account_blocked_detail, current_session, current_user
@@ -107,6 +107,7 @@ def register(body: RegisterRequest, request: Request,
     crud.add_membership(db, org.id, user.id, role="owner")
     crud.log_action(db, org.id, user, "org.create", entity_type="organization",
                     entity_id=org.id, entity_name=org.name)
+    usage.record(db, event="signup", org_id=org.id, email=user.email)
     return _issue_token(db, user, request)
 
 

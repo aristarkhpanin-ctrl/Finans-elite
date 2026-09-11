@@ -26,7 +26,7 @@ from audit_core import (
 from audit_core.opinion import build_opinion
 from audit_core.samples import build_trading_subject
 
-from .. import billing, crud
+from .. import billing, crud, usage
 from ..audit_docgen import DOCX_MIME, build_audit_docx
 from ..database import get_db
 from ..db_models import AuditGroup, AuditSubject, AuditSubjectVersion, User
@@ -106,6 +106,7 @@ def create_subject(body: AuditSubjectCreate,
     subject = crud.create_audit_subject(db, org_id, body.name, body.model)
     crud.log_action(db, org_id, actor, "case.create", entity_type="case",
                     entity_id=subject.id, entity_name=subject.name)
+    usage.record(db, event="case.create", org_id=org_id, email=actor.email)
     return _out(subject)
 
 
@@ -205,6 +206,9 @@ def analyze_subject(subject_id: str,
     # порядка слоёв однажды уже разошлась с первой и молчала о находках.
     r = review_case(crud.load_audit_model(subject), deep=False,
                     benchmarks=_benchmarks(db, org_id))
+    # Разбор дела журнал не пишет (это чтение результата) — событие пишет: без него
+    # «пользуются ли вторым продуктом» отвечать нечем.
+    usage.record(db, event="case.analyze", org_id=org_id)
     return audit_analysis_response(r.result, r.opinion, r.issues, r.flags, r.earnings,
                                    r.obligations, r.procedures, r.summary, r.valuation,
                                    r.risk, r.plan_fact, r.benchmark, r.requisites)
@@ -476,6 +480,7 @@ def download_report(subject_id: str,
     crud.log_action(db, org_id, actor, "case.export", entity_type="case",
                     entity_id=subject.id, entity_name=subject.name, details="DOCX-заключение")
     filename = quote(f"{subject.name or 'audit'}.docx")
+    usage.record(db, event="case.report", org_id=org_id, email=actor.email)
     return Response(content=content, media_type=DOCX_MIME, headers={
         "Content-Disposition": f"attachment; filename*=UTF-8''{filename}",
     })

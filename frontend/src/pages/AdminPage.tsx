@@ -690,6 +690,78 @@ function MetricsTab() {
         </div>
       )}
 
+      <h2 className="adm-h2" style={{ marginTop: 24 }}>Активация</h2>
+      <div className="page-sub" style={{ marginTop: 0 }}>
+        Сколько организаций дошло до шага — <b>когда-нибудь</b>, а не за период.
+      </div>
+      <div className="mgrid" role="table" aria-label="Воронка активации">
+        <div className="mgrid__row mgrid__row--head" role="row">
+          <div role="columnheader">Шаг</div>
+          <div role="columnheader">Организаций</div>
+          <div role="columnheader">Доля</div>
+          <div role="columnheader" aria-hidden="true" />
+        </div>
+        {(data.funnel ?? []).map((step) => (
+          <div className="mgrid__row" role="row" key={step.key}>
+            <div role="rowheader">{step.label}</div>
+            <div role="cell">{step.organizations}</div>
+            {/* Доля от первого шага; без организаций считать не от чего — и тогда
+                показывается прочерк, а не «0%». */}
+            <div role="cell">
+              {step.share == null ? "—" : `${Math.round(step.share * 100)}%`}
+            </div>
+            <div role="cell" aria-hidden="true">
+              <span className="mbar"
+                    style={{ width: `${Math.round((step.share ?? 0) * 100)}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <h2 className="adm-h2" style={{ marginTop: 24 }}>Удержание</h2>
+      {!data.usage_collected ? (
+        // Пустой график честнее нарисованного: без событий удержание не измеряется,
+        // и «0%» читалось бы как «все ушли».
+        <div className="page-sub">
+          <b>Не измеряется.</b> Сбор событий пользования выключен (<code>USAGE_EVENTS</code>),
+          а отметка присутствия хранит только последнее значение — «вернулся ли человек
+          через неделю» из неё не выводится. Включите сбор, и когорты появятся со
+          следующего месяца.
+        </div>
+      ) : (data.retention ?? []).length === 0 ? (
+        <div className="page-sub">
+          События собираются, но когорт ещё нет: удержание появится, когда пройдёт хотя бы
+          один месяц после первых регистраций.
+        </div>
+      ) : (
+        <div className="mgrid" role="table" aria-label="Удержание по когортам">
+          <div className="mgrid__row mgrid__row--head" role="row">
+            <div role="columnheader">Месяц</div>
+            <div role="columnheader">Пришло</div>
+            <div role="columnheader">Вернулись</div>
+            <div role="columnheader" aria-hidden="true" />
+          </div>
+          {(data.retention ?? []).map((point) => (
+            <div className="mgrid__row" role="row" key={point.month}>
+              <div role="rowheader">{point.month}</div>
+              <div role="cell">{point.arrived}</div>
+              {/* `null` — «не измеряется», а не ноль: ноль читался бы как «все ушли». */}
+              <div role="cell">
+                {point.returned == null
+                  ? <span className="muted">не измеряется</span>
+                  : `${point.returned} из ${point.arrived}`}
+              </div>
+              <div role="cell" aria-hidden="true">
+                <span className="mbar" style={{
+                  width: point.arrived && point.returned != null
+                    ? `${Math.round((point.returned / point.arrived) * 100)}%` : "0%",
+                }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       <h2 className="adm-h2" style={{ marginTop: 24 }}>Чего эти числа не значат</h2>
       <ul className="mnotes">
         {(data.notes ?? []).map((note) => <li key={note}>{note}</li>)}

@@ -1233,6 +1233,17 @@ def org_metric_slice(db: Session, org_id: str, since: datetime) -> dict:
         "first_log_at": db.scalar(
             select(func.min(AuditLogEntry.created_at))
             .where(AuditLogEntry.organization_id == org_id)),
+        # Шаги воронки активации (E3) — **за всё время**, а не за период: воронка
+        # отвечает на вопрос «дошла ли организация», и «дошла в прошлом году» это
+        # тоже «дошла».
+        "ever_exported": bool(db.scalar(
+            select(func.count()).select_from(AuditLogEntry)
+            .where(AuditLogEntry.organization_id == org_id,
+                   AuditLogEntry.action.in_(EXPORT_ACTIONS)))),
+        "ever_calculated": bool(db.scalar(
+            select(func.count()).select_from(Project)
+            .where(Project.organization_id == org_id,
+                   Project.last_calculated_at.is_not(None)))),
     }
 
 
