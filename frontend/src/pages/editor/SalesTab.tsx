@@ -8,6 +8,7 @@ import { useToast } from "../../components/Toast";
 import { Button, Switch } from "../../components/ui";
 import { fmtMoney } from "../../format";
 import { downloadSalesTemplate, parseSalesXlsx } from "../../salesXlsx";
+import { subscriptionPreview } from "../../subscription";
 
 interface Props {
   n: number;
@@ -205,14 +206,42 @@ export function SalesTab({ n, operating, company, onChange, onCompany }: Props) 
             const cur = line.foreign ? "$" : "₽";
             const prod = productionLine(line.product_id);
             const prepayErr = !inRange01(line.payment.prepayment_share) ? "Доля должна быть от 0 до 1" : "";
+            const sub = line.subscription ?? null;
+            // Предпросмотр базы: сервер вернёт её же при расчёте, но набирающему приток и
+            // отток надо видеть, во что они складываются, **до** первого расчёта.
+            const preview = sub ? subscriptionPreview(sub, n, line.start_month ?? 0) : null;
+            const volumes = preview ? preview.base.map(String) : line.volume;
 
             const rows: MonthlyRow[] = [
-              {
-                key: `vol-${line.product_id}`,
-                title: "Объём, шт.",
-                values: line.volume,
-                onChange: (volume) => updateLine(i, { volume }),
-              },
+              ...(sub
+                ? [
+                    {
+                      key: `new-${line.product_id}`,
+                      title: "Новые абоненты, чел.",
+                      values: sub.new_per_month,
+                      onChange: (new_per_month: string[]) =>
+                        updateLine(i, { subscription: { ...sub, new_per_month } }),
+                    },
+                    {
+                      key: `base-${line.product_id}`,
+                      title: "База на конец месяца",
+                      compute: (m: number) => preview!.base[m] ?? 0,
+                      agg: "last" as const,
+                    },
+                    {
+                      key: `churn-${line.product_id}`,
+                      title: "Ушло за месяц",
+                      compute: (m: number) => preview!.churned[m] ?? 0,
+                    },
+                  ]
+                : [
+                    {
+                      key: `vol-${line.product_id}`,
+                      title: "Объём, шт.",
+                      values: line.volume,
+                      onChange: (volume: string[]) => updateLine(i, { volume }),
+                    },
+                  ]),
               {
                 key: `price-${line.product_id}`,
                 title: line.foreign ? "Цена, $ (USD)" : "Цена, ₽",
@@ -234,7 +263,7 @@ export function SalesTab({ n, operating, company, onChange, onCompany }: Props) 
               {
                 key: `rev-${line.product_id}`,
                 title: "Выручка",
-                compute: (m) => num(line.volume[m]) * num(line.price[m]),
+                compute: (m) => num(volumes[m]) * num(line.price[m]),
                 unit: cur,
               },
             ];
@@ -298,6 +327,58 @@ export function SalesTab({ n, operating, company, onChange, onCompany }: Props) 
                     onChange={(on) => toggleProduction(line, on)}
                   />
                 </div>
+
+                <div style={{ marginTop: 14 }}>
+                  <Switch
+                    label="Абонентская база (подписка): приток и отток вместо объёма"
+                    checked={!!sub}
+                    onChange={(on) =>
+                      updateLine(i, {
+                        subscription: on
+                          ? { starting_base: "0", new_per_month: [], churn_monthly: "0.03" }
+                          : null,
+                      })
+                    }
+                  />
+                </div>
+                {sub && (
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+                      <EField
+                        label="База на старте"
+                        suffix="чел."
+                        value={sub.starting_base}
+                        onChange={(v) => updateLine(i, { subscription: { ...sub, starting_base: v } })}
+                      />
+                      <EField
+                        label="Отток"
+                        suffix="доля базы / мес."
+                        hint="0,03 — уходит 3% действующих абонентов каждый месяц"
+                        value={sub.churn_monthly}
+                        error={!inRange01(sub.churn_monthly) ? "Доля должна быть от 0 до 1" : ""}
+                        onChange={(v) => updateLine(i, { subscription: { ...sub, churn_monthly: v } })}
+                      />
+                    </div>
+                    <div className="hint-note" style={{ marginTop: 8 }}>
+                      {preview!.ceiling !== null ? (
+                        <>
+                          При постоянном притоке база упирается в потолок ≈{" "}
+                          <b>{Math.round(preview!.ceiling)}</b> абонентов (приток ÷ отток) — это
+                          следствие двух чисел выше, а не план.
+                        </>
+                      ) : num(sub.churn_monthly) === 0 ? (
+                        <>
+                          Отток не задан: база только растёт. Без оттока подписная модель
+                          красива всегда — ревью плана скажет об этом отдельно.
+                        </>
+                      ) : (
+                        <>Приток непостоянен — одного потолка у базы нет.</>
+                      )}
+                      {" "}Объём продаж выводится из базы; ручной ряд объёма при включённой
+                      подписке не используется.
+                    </div>
+                  </div>
+                )}
 
                 {!line.foreign && (
                   <div style={{ marginTop: 12, maxWidth: 250 }}>

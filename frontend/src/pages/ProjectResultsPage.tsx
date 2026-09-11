@@ -20,6 +20,7 @@ import { Button, Skeleton } from "../components/ui";
 import { downloadBusinessPlanDocx, downloadCsv, downloadPdf, downloadXlsx, statementsToCsv } from "../export";
 import { Comments } from "../components/Comments";
 import { fmtMillions, percent } from "../format";
+import { fmtInt } from "../components/monthlyGrid.logic";
 
 const STATEMENTS = [
   ["income", "Прибыли и убытки"],
@@ -425,6 +426,42 @@ export function ProjectResultsPage() {
             </div>
             <div className="field-note" style={{ marginTop: 8 }}>
               Свёртка маржи продуктов по бизнес-единицам; продукты без рецептуры/подразделения в свёртку не входят.
+            </div>
+          </>
+        )}
+
+        {tab === "summary" && (data.subscription_base ?? []).length > 0 && (
+          <>
+            <div className="rsection-label">Абонентская база</div>
+            <div className="contrib-wrap">
+              <div className="contrib-row contrib-row--head">
+                <div className="contrib-label">Продукт</div>
+                <div className="contrib-cell">На старте</div>
+                <div className="contrib-cell">Пришло всего</div>
+                <div className="contrib-cell">Ушло всего</div>
+                <div className="contrib-cell">База на конец</div>
+              </div>
+              {data.subscription_base.map((s) => {
+                const sum = (xs: (string | number)[]) =>
+                  xs.reduce((a: number, c) => a + Number(c), 0);
+                const last = Number(s.base[s.base.length - 1] ?? 0);
+                const opening = Number(s.base[0] ?? 0) + Number(s.churned[0] ?? 0)
+                  - Number(s.new[0] ?? 0);
+                return (
+                  <div className="contrib-row" key={s.product_id}>
+                    <div className="contrib-label">{s.name || s.product_id}</div>
+                    <div className="contrib-cell">{fmtInt(opening)}</div>
+                    <div className="contrib-cell">{fmtInt(sum(s.new))}</div>
+                    <div className="contrib-cell contrib-cell--neg">−{fmtInt(sum(s.churned))}</div>
+                    <div className="contrib-cell">{fmtInt(last)}</div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="field-note" style={{ marginTop: 8 }}>
+              База на конец месяца и есть объём продаж подписки. «Ушло» — выбытие по
+              заданному оттоку; при нулевом оттоке эта колонка пуста не потому, что никто
+              не уходит, а потому, что отток не задан.
             </div>
           </>
         )}

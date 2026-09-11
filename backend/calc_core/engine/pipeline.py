@@ -24,7 +24,7 @@ from ..models import (
     VatBasis,
 )
 from ..money import ONE, ZERO, D
-from ..reports.result import LineDetail, LineDetailItem
+from ..reports.result import LineDetail, LineDetailItem, SubscriptionBase
 from ..reports.statements import (
     build_balance,
     build_cashflow,
@@ -786,6 +786,60 @@ def _leases(model: ProjectModel, n: int):
     return op_expense, cash, b19, liability, interest, dep
 
 
+def _expand_subscriptions(model: ProjectModel, n: int):
+    """Абонентская база → объём продаж (SPEC §5). Возвращает (модель, база, предупреждения).
+
+    Подписку планируют базой, а движок считает объёмом — поэтому база **разворачивается в
+    объём** той же машинерией, что рецептура разворачивается в прямые издержки, а этап
+    календаря — в актив. Ниже по конвейеру подписки не существует: цена, НДС, условия
+    оплаты, запасы и маржа работают с обычной строкой сбыта.
+
+    Рекуррента одна: ``база[t] = база[t−1] · (1 − отток) + новые[t]``. Выбытие берётся от
+    базы **начала месяца, до притока** — пришедший в этом месяце абонент в этом же месяце
+    не уходит.
+
+    Старт продукта (этап «производство» или ручной ``start_month``) гейтит **приток**, а не
+    выведенную базу: обнулить базу до старта значило бы копить абонентов, которых ещё не
+    начали обслуживать, и выдать их одним скачком в месяц старта. Стартовая база при
+    заданном старте тоже не начисляется — её неоткуда взять до начала продаж.
+
+    Модель без подписок возвращается **как есть, без копии**: правило инертно.
+    """
+    op = model.operating_plan
+    if not any(line.subscription for line in op.sales):
+        return model, [], []
+    starts = product_start_months(model)
+    names = {p.id: p.name for p in op.products}
+    model = model.model_copy(deep=True)
+    bases: list[SubscriptionBase] = []
+    warnings: list[str] = []
+    for line in model.operating_plan.sales:
+        sub = line.subscription
+        if sub is None:
+            continue
+        title = names.get(line.product_id) or line.product_id
+        if any(v for v in line.volume):
+            warnings.append(
+                f"Продукт «{title}»: объём задан и вручную, и абонентской базой — в расчёт "
+                "идёт база (приток минус отток), ручной объём не используется.")
+        start = starts.get(line.product_id, line.start_month) or 0
+        new = _pad(sub.new_per_month, n)
+        base = zeros(n)
+        churned = zeros(n)
+        prev = ZERO if start > 0 else sub.starting_base
+        for t in range(n):
+            left = prev * sub.churn_monthly
+            churned[t] = left
+            arrived = new[t] if t >= start else ZERO
+            base[t] = prev - left + arrived
+            prev = base[t]
+        line.volume = list(base)
+        bases.append(SubscriptionBase(
+            product_id=line.product_id, name=title, base=list(base),
+            new=[new[t] if t >= start else ZERO for t in range(n)], churned=list(churned)))
+    return model, bases, warnings
+
+
 def _apply_production_starts(model: ProjectModel) -> ProjectModel:
     """Гейт объёмов по старту продукта: обнуляет объём до месяца старта.
 
@@ -825,6 +879,8 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
     уплата в C12, задолженность в B21; по умолчанию отсутствует (нулевая инертна).
     """
     n = model.n
+    # Абонентская база → объём (SPEC §5): ниже по конвейеру подписки уже не существует.
+    model, _sub_bases, sub_warnings = _expand_subscriptions(model, n)
     model = _apply_production_starts(model)   # гейт объёмов по старту продукта (этапы «производство»)
     sb = model.company.starting_balance
     auto = auto or AutoInjection.zero(n)
@@ -1108,4 +1164,4 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
 
     # Целостность модели идёт первой: она объясняет, почему числа ниже ожидаемых.
     return (income, cashflow, balance, profit_use,
-            _dangling_bom_warnings(model) + inv_warnings)
+            _dangling_bom_warnings(model) + sub_warnings + inv_warnings)

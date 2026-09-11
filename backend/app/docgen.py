@@ -253,6 +253,39 @@ def _add_division_margins(doc: Document, result: CalcResult) -> None:
     )
 
 
+def _add_subscription_base(doc: Document, result: CalcResult) -> None:
+    """Абонентская база (SPEC §5); пропуск, если подписок в модели нет.
+
+    Выбытие печатается **отдельной колонкой**, а не растворяется в приросте: читателю
+    бизнес-плана важно не только, сколько абонентов осталось, но и сколько ушло — по
+    приросту одно от другого не отличить.
+    """
+    bases = result.subscription_base
+    if not bases:
+        return
+    doc.add_heading("Абонентская база", level=1)
+    table = doc.add_table(rows=1 + len(bases), cols=5)
+    table.style = "Table Grid"
+    for j, h in enumerate(["Продукт", "На старте", "Пришло всего", "Ушло всего",
+                           "База на конец"]):
+        table.rows[0].cells[j].text = h
+    for i, s in enumerate(bases):
+        opening = (s.base[0] if s.base else Decimal(0)) \
+            + (s.churned[0] if s.churned else Decimal(0)) \
+            - (s.new[0] if s.new else Decimal(0))
+        row = table.rows[i + 1].cells
+        row[0].text = s.name
+        row[1].text = _fmt_money(opening)
+        row[2].text = _fmt_money(sum(s.new, Decimal(0)))
+        row[3].text = _fmt_money(sum(s.churned, Decimal(0)))
+        row[4].text = _fmt_money(s.base[-1] if s.base else Decimal(0))
+    _shrink_table(table, 8.5)
+    doc.add_paragraph(
+        "База на конец месяца и есть объём продаж подписки. Нулевое выбытие означает, "
+        "что отток не задан в модели, — а не что абоненты не уходят."
+    )
+
+
 def _add_methodology(doc: Document, model: ProjectModel, result: CalcResult) -> None:
     """Методические допущения расчёта (SPEC §22) — раздел для того, кто их подтверждает.
 
@@ -370,6 +403,7 @@ def build_business_plan_docx(model: ProjectModel, result: CalcResult, opinion: s
     _add_user_sections(doc, model)
     _add_product_margins(doc, result)
     _add_division_margins(doc, result)
+    _add_subscription_base(doc, result)
     _add_budget(doc, result)
     _add_statements(doc, model, result)
     # Допущения — после отчётов: их читает тот, кто уже посмотрел числа и

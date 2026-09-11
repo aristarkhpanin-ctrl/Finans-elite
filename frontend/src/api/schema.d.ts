@@ -4899,6 +4899,11 @@ export interface components {
             profit_use: components["schemas"]["StatementOut"];
             ratios: components["schemas"]["RatiosOut"];
             /**
+             * Subscription Base
+             * @default []
+             */
+            subscription_base: components["schemas"]["SubscriptionBaseOut"][];
+            /**
              * User Tables
              * @default []
              */
@@ -5283,6 +5288,11 @@ export interface components {
             product_margins: components["schemas"]["ProductMarginsOut"];
             profit_use: components["schemas"]["StatementOut"];
             ratios: components["schemas"]["RatiosOut"];
+            /**
+             * Subscription Base
+             * @default []
+             */
+            subscription_base: components["schemas"]["SubscriptionBaseOut"][];
             /**
              * User Tables
              * @default []
@@ -8716,6 +8726,7 @@ export interface components {
             product_id: string;
             /** Start Month */
             start_month?: number | null;
+            subscription?: components["schemas"]["Subscription-Input"] | null;
             /** Vat Rate */
             vat_rate?: number | string | null;
             /** Volume */
@@ -8746,6 +8757,7 @@ export interface components {
             product_id: string;
             /** Start Month */
             start_month?: number | null;
+            subscription?: components["schemas"]["Subscription-Output"] | null;
             /** Vat Rate */
             vat_rate?: string | null;
             /** Volume */
@@ -9622,6 +9634,86 @@ export interface components {
         StatementOut: {
             /** Lines */
             lines: components["schemas"]["LineOut"][];
+        };
+        /**
+         * Subscription
+         * @description Абонентская база: приток новых, отток действующих (SPEC §5).
+         *
+         *     Подписку планируют не объёмом продаж, а **базой**: сколько абонентов есть, сколько
+         *     приходит, сколько уходит. Объём месяца — это действующая база:
+         *
+         *         ``база[t] = база[t−1] · (1 − отток) + новые[t]``,   ``база[−1] = starting_base``
+         *
+         *     Отток задан **долей базы за месяц**: 0,03 — уходит 3% действующих. Ноль — допустимое
+         *     значение, но **не безобидное**: без оттока подписная модель красива всегда, потому что
+         *     база только растёт. Ревью плана говорит об этом отдельным предупреждением, а не
+         *     оставляет пользователя наедине с красивым графиком.
+         *
+         *     Выбытие считается **от базы начала месяца, до притока**: пришедший в этом месяце
+         *     абонент в этом же месяце не уходит. Обратный порядок дал бы отток с тех, кто ещё не
+         *     успел подписаться, — и занижал бы базу тем сильнее, чем быстрее рост.
+         */
+        "Subscription-Input": {
+            /**
+             * Churn Monthly
+             * @default 0
+             */
+            churn_monthly: number | string;
+            /** New Per Month */
+            new_per_month?: (number | string)[];
+            /**
+             * Starting Base
+             * @default 0
+             */
+            starting_base: number | string;
+        };
+        /**
+         * Subscription
+         * @description Абонентская база: приток новых, отток действующих (SPEC §5).
+         *
+         *     Подписку планируют не объёмом продаж, а **базой**: сколько абонентов есть, сколько
+         *     приходит, сколько уходит. Объём месяца — это действующая база:
+         *
+         *         ``база[t] = база[t−1] · (1 − отток) + новые[t]``,   ``база[−1] = starting_base``
+         *
+         *     Отток задан **долей базы за месяц**: 0,03 — уходит 3% действующих. Ноль — допустимое
+         *     значение, но **не безобидное**: без оттока подписная модель красива всегда, потому что
+         *     база только растёт. Ревью плана говорит об этом отдельным предупреждением, а не
+         *     оставляет пользователя наедине с красивым графиком.
+         *
+         *     Выбытие считается **от базы начала месяца, до притока**: пришедший в этом месяце
+         *     абонент в этом же месяце не уходит. Обратный порядок дал бы отток с тех, кто ещё не
+         *     успел подписаться, — и занижал бы базу тем сильнее, чем быстрее рост.
+         */
+        "Subscription-Output": {
+            /**
+             * Churn Monthly
+             * @default 0
+             */
+            churn_monthly: string;
+            /** New Per Month */
+            new_per_month?: string[];
+            /**
+             * Starting Base
+             * @default 0
+             */
+            starting_base: string;
+        };
+        /**
+         * SubscriptionBaseOut
+         * @description Абонентская база продукта по месяцам (SPEC §5): что вышло из притока и оттока.
+         */
+        SubscriptionBaseOut: {
+            /** Base */
+            base: string[];
+            /** Churned */
+            churned: string[];
+            /** Name */
+            name: string;
+            /** New */
+            new: string[];
+            /** Product Id */
+            product_id: string;
         };
         /**
          * SubscriptionOut

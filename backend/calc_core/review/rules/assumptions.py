@@ -72,4 +72,31 @@ def instant_settlement(ctx: ReviewContext, config: ReviewConfig) -> list[Finding
     )]
 
 
-RULES = [zero_tax, discount_below_inflation, instant_settlement]
+def subscription_without_churn(ctx: ReviewContext, config: ReviewConfig) -> list[Finding]:
+    """Абонентская база без оттока: подписка, из которой никто не уходит.
+
+    Ноль оттока — допустимое значение модели (SPEC §5), но не нейтральное: база тогда
+    только растёт, выручка растёт вместе с ней, и подписная модель выходит красивой **при
+    любых** прочих допущениях. Это самое дорогое из молчаливых упрощений, и промолчать о
+    нём значило бы подтвердить его правдоподобие.
+    """
+    lines = [s for s in ctx.model.operating_plan.sales
+             if s.subscription is not None and s.subscription.churn_monthly == 0]
+    if not lines:
+        return []
+    names = {p.id: p.name for p in ctx.model.operating_plan.products}
+    titles = [names.get(s.product_id) or s.product_id for s in lines]
+    return [Finding(
+        id="assumptions.subscription_without_churn", category="assumptions", severity="warning",
+        confidence="high",
+        title="Абонентская база без оттока",
+        detail=f"Отток не задан (0% в месяц): {', '.join(titles)}. База только растёт — "
+               "ни один абонент не уходит за весь горизонт. Выручка подписки в такой "
+               "модели завышена тем сильнее, чем длиннее горизонт.",
+        recommendation="Задайте отток хотя бы приблизительно: даже 2–3% в месяц меняют "
+                       "картину сильнее, чем большинство остальных допущений.",
+        evidence={"products": ", ".join(titles), "churn_monthly": "0"},
+    )]
+
+
+RULES = [zero_tax, discount_below_inflation, instant_settlement, subscription_without_churn]

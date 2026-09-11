@@ -28,6 +28,7 @@ from .operating import (
     ProductionLine,
     SalesLine,
     StaffPosition,
+    Subscription,
 )
 from .project import PlanSection, ProjectHeader, ProjectModel, ProjectSettings
 from .tables import UserRow, UserTable
@@ -57,6 +58,7 @@ __all__ = [
     "BomLine",
     "OtherFlow",
     "SalesLine",
+    "Subscription",
     "StaffPosition",
     "UserTable",
     "UserRow",

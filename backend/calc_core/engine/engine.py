@@ -24,7 +24,13 @@ from .errors import InvariantError
 from .financing_auto import AutoInjection, solve_cash_management
 from .margins import compute_division_margins, compute_product_margins
 from .participants import compute_participants
-from .pipeline import DetailCollector, _fx_series, _preexisting_net_open, run_pipeline
+from .pipeline import (
+    DetailCollector,
+    _expand_subscriptions,
+    _fx_series,
+    _preexisting_net_open,
+    run_pipeline,
+)
 from .tables import compute_user_tables
 from .taxes import TaxInjection, compute_custom_taxes
 
@@ -109,6 +115,9 @@ def _run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
         budget=compute_budget(model, n),
         product_margins=product_margins,
         division_margins=compute_division_margins(model, product_margins),
+        # Та же функция, что разворачивает базу в объём внутри конвейера: второй её
+        # реализации нет, и показанная база не может разойтись с посчитанной.
+        subscription_base=_expand_subscriptions(model, n)[1],
         user_tables=compute_user_tables(model, income, cashflow, balance, profit_use, n),
         details=details,
         participants=compute_participants(model, cashflow, balance, n),

@@ -40,6 +40,18 @@ export interface Product {
   division_id?: string | null;
 }
 
+/**
+ * Абонентская база: приток новых и отток действующих (SPEC §5).
+ *
+ * `база[t] = база[t−1] · (1 − отток) + новые[t]`. Отток — доля базы за месяц; выбытие
+ * считается до притока, поэтому пришедший в этом месяце абонент в этом же месяце не уходит.
+ */
+export interface Subscription {
+  starting_base: string;
+  new_per_month: string[];
+  churn_monthly: string;
+}
+
 export interface SalesLine {
   product_id: string;
   volume: string[];
@@ -49,6 +61,8 @@ export interface SalesLine {
   start_month?: number | null;
   /** Ставка НДС строки (напр. "0.10"); null/пусто — глобальная. */
   vat_rate?: string | null;
+  /** Задана → объём выводится из базы, а `volume` не используется (сервер скажет об этом). */
+  subscription?: Subscription | null;
 }
 
 export interface ProductionLine {

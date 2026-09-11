@@ -4516,6 +4516,14 @@
           "ratios": {
             "$ref": "#/components/schemas/RatiosOut"
           },
+          "subscription_base": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SubscriptionBaseOut"
+            },
+            "title": "Subscription Base",
+            "type": "array"
+          },
           "user_tables": {
             "default": [],
             "items": {
@@ -5152,6 +5160,14 @@
           },
           "ratios": {
             "$ref": "#/components/schemas/RatiosOut"
+          },
+          "subscription_base": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SubscriptionBaseOut"
+            },
+            "title": "Subscription Base",
+            "type": "array"
           },
           "user_tables": {
             "default": [],
@@ -11154,6 +11170,16 @@
             ],
             "title": "Start Month"
           },
+          "subscription": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Subscription-Input"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "vat_rate": {
             "anyOf": [
               {
@@ -11230,6 +11256,16 @@
               }
             ],
             "title": "Start Month"
+          },
+          "subscription": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Subscription-Output"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "vat_rate": {
             "anyOf": [
@@ -12922,6 +12958,130 @@
         "title": "StatementOut",
         "type": "object"
       },
+      "Subscription-Input": {
+        "description": "Абонентская база: приток новых, отток действующих (SPEC §5).\n\nПодписку планируют не объёмом продаж, а **базой**: сколько абонентов есть, сколько\nприходит, сколько уходит. Объём месяца — это действующая база:\n\n    ``база[t] = база[t−1] · (1 − отток) + новые[t]``,   ``база[−1] = starting_base``\n\nОтток задан **долей базы за месяц**: 0,03 — уходит 3% действующих. Ноль — допустимое\nзначение, но **не безобидное**: без оттока подписная модель красива всегда, потому что\nбаза только растёт. Ревью плана говорит об этом отдельным предупреждением, а не\nоставляет пользователя наедине с красивым графиком.\n\nВыбытие считается **от базы начала месяца, до притока**: пришедший в этом месяце\nабонент в этом же месяце не уходит. Обратный порядок дал бы отток с тех, кто ещё не\nуспел подписаться, — и занижал бы базу тем сильнее, чем быстрее рост.",
+        "properties": {
+          "churn_monthly": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Churn Monthly"
+          },
+          "new_per_month": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ]
+            },
+            "title": "New Per Month",
+            "type": "array"
+          },
+          "starting_base": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Starting Base"
+          }
+        },
+        "title": "Subscription",
+        "type": "object"
+      },
+      "Subscription-Output": {
+        "description": "Абонентская база: приток новых, отток действующих (SPEC §5).\n\nПодписку планируют не объёмом продаж, а **базой**: сколько абонентов есть, сколько\nприходит, сколько уходит. Объём месяца — это действующая база:\n\n    ``база[t] = база[t−1] · (1 − отток) + новые[t]``,   ``база[−1] = starting_base``\n\nОтток задан **долей базы за месяц**: 0,03 — уходит 3% действующих. Ноль — допустимое\nзначение, но **не безобидное**: без оттока подписная модель красива всегда, потому что\nбаза только растёт. Ревью плана говорит об этом отдельным предупреждением, а не\nоставляет пользователя наедине с красивым графиком.\n\nВыбытие считается **от базы начала месяца, до притока**: пришедший в этом месяце\nабонент в этом же месяце не уходит. Обратный порядок дал бы отток с тех, кто ещё не\nуспел подписаться, — и занижал бы базу тем сильнее, чем быстрее рост.",
+        "properties": {
+          "churn_monthly": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Churn Monthly",
+            "type": "string"
+          },
+          "new_per_month": {
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "New Per Month",
+            "type": "array"
+          },
+          "starting_base": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Starting Base",
+            "type": "string"
+          }
+        },
+        "title": "Subscription",
+        "type": "object"
+      },
+      "SubscriptionBaseOut": {
+        "description": "Абонентская база продукта по месяцам (SPEC §5): что вышло из притока и оттока.",
+        "properties": {
+          "base": {
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Base",
+            "type": "array"
+          },
+          "churned": {
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Churned",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "new": {
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "New",
+            "type": "array"
+          },
+          "product_id": {
+            "title": "Product Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_id",
+          "name",
+          "base",
+          "new",
+          "churned"
+        ],
+        "title": "SubscriptionBaseOut",
+        "type": "object"
+      },
       "SubscriptionOut": {
         "description": "Подписка организации на один продукт: тариф, статус и использование квот.",
         "properties": {
@@ -14112,7 +14272,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.41"
+    "version": "0.9.42"
   },
   "openapi": "3.1.0",
   "paths": {

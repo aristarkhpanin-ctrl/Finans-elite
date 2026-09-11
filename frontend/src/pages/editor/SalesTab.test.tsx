@@ -108,3 +108,64 @@ describe("SalesTab — удаление не оставляет висячих �
     expect(last(onChange).products[0].division_id).toBeNull();
   });
 });
+
+describe("SalesTab — абонентская база", () => {
+  const withSub = (churn = "0.1", n = 6) =>
+    op({
+      sales: [{
+        product_id: "p1", volume: [], price: ["100"],
+        payment: { prepayment_share: "0", advance_lead_months: 0, payment_delay_months: 0 },
+        subscription: { starting_base: "100", new_per_month: Array(n).fill("10"),
+                        churn_monthly: churn },
+      }],
+    } as unknown as Partial<OperatingPlan>);
+
+  const renderSub = (churn = "0.1", n = 6) => {
+    const onChange = vi.fn();
+    render(<SalesTab n={n} operating={withSub(churn, n)} company={company()}
+                     onChange={onChange} onCompany={vi.fn()} />);
+    return onChange;
+  };
+
+  it("включение подписки заводит блок с оттоком по умолчанию", () => {
+    const { onChange } = renderTab();
+    fireEvent.click(screen.getByText(/Абонентская база/));
+    expect(last(onChange).sales[0].subscription).toEqual({
+      starting_base: "0", new_per_month: [], churn_monthly: "0.03",
+    });
+  });
+
+  it("вместо ручного объёма в сетке — приток, база и выбытие", () => {
+    renderSub();
+    expect(screen.getByText("Новые абоненты, чел.")).toBeTruthy();
+    expect(screen.getByText("База на конец месяца")).toBeTruthy();
+    expect(screen.getByText("Ушло за месяц")).toBeTruthy();
+    expect(screen.queryByText("Объём, шт.")).toBeNull();
+  });
+
+  it("потолок базы назван числом: приток ÷ отток", () => {
+    renderSub("0.1");
+    expect(screen.getByText("100", { selector: "b" })).toBeTruthy();   // 10 / 0,1
+    expect(screen.getByText(/упирается в потолок/)).toBeTruthy();
+  });
+
+  it("нулевой отток не выдаётся за отсутствие потерь, а называется незаданным", () => {
+    renderSub("0");
+    expect(screen.getByText(/Отток не задан/)).toBeTruthy();
+    expect(screen.queryByText(/упирается в потолок/)).toBeNull();
+  });
+
+  it("база-остаток агрегируется «на конец», а не суммой двенадцати месяцев", () => {
+    renderSub("0.1");
+    // 100 на старте, приток ровно покрывает выбытие → база стоит на 100 все месяцы.
+    // Σ дала бы 600 — число, которого в модели не существует.
+    expect(screen.getByText("на конец 100")).toBeTruthy();
+    expect(screen.queryByText("Σ 600")).toBeNull();
+  });
+
+  it("выключение подписки возвращает ручной объём", () => {
+    const onChange = renderSub();
+    fireEvent.click(screen.getByText(/Абонентская база/));
+    expect(last(onChange).sales[0].subscription).toBeNull();
+  });
+});

@@ -8,6 +8,7 @@ from calc_core.models.operating import (
     PaymentTerms,
     Product,
     SalesLine,
+    Subscription,
 )
 from calc_core.montecarlo import MonteCarloResult
 from calc_core.reports.lines import (
@@ -385,6 +386,27 @@ def test_instant_settlement():
     # нет операционной активности — нечего оценивать
     ctx.model.operating_plan.sales = []
     assert assumptions.instant_settlement(ctx, DEFAULT_CONFIG) == []
+
+
+def test_subscription_without_churn():
+    """Ноль оттока — допустимое значение модели, но не нейтральное: база тогда только
+    растёт, и подписка выходит красивой при любых прочих допущениях."""
+    ctx = _liq_ctx()
+    ctx.model.operating_plan.products = [Product(id="A", name="Подписка")]
+    sub = Subscription(starting_base=Decimal(10), new_per_month=[Decimal(1)],
+                       churn_monthly=Decimal(0))
+    ctx.model.operating_plan.sales = [
+        SalesLine(product_id="A", price=[Decimal(1)], subscription=sub)]
+    found = assumptions.subscription_without_churn(ctx, DEFAULT_CONFIG)
+    assert [f.id for f in found] == ["assumptions.subscription_without_churn"]
+    assert found[0].severity == "warning" and "Подписка" in found[0].detail
+
+    # Отток задан — тишина. И у строки вовсе без подписки — тоже.
+    sub.churn_monthly = Decimal("0.02")
+    assert assumptions.subscription_without_churn(ctx, DEFAULT_CONFIG) == []
+    ctx.model.operating_plan.sales = [
+        SalesLine(product_id="A", volume=[Decimal(1)], price=[Decimal(1)])]
+    assert assumptions.subscription_without_churn(ctx, DEFAULT_CONFIG) == []
 
 
 def test_run_review_light_info_on_assumption_only():

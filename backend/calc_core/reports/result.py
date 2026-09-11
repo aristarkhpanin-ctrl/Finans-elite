@@ -116,6 +116,23 @@ class DivisionMargin:
 
 
 @dataclass
+class SubscriptionBase:
+    """Абонентская база продукта по месяцам (SPEC §5): что вышло из притока и оттока.
+
+    Показывается там, где её ввели: объём продаж у подписки **выведен**, и пользователь
+    обязан видеть, во что превратились его «45 новых в месяц при оттоке 3%». Отдельной
+    строкой идёт ``churned`` — сколько абонентов ушло: без неё отток виден только косвенно,
+    по замедлению роста, и его легко принять за особенность модели.
+    """
+
+    product_id: str
+    name: str
+    base: list[Decimal]      # действующая база на конец месяца = объём продаж
+    new: list[Decimal]       # приток (после гейта старта продукта)
+    churned: list[Decimal]   # выбытие за месяц (от базы начала месяца, до притока)
+
+
+@dataclass
 class ParticipantFlow:
     """Доходы участника финансирования (SPEC §17): поток, вложено/получено, NPV/IRR.
 
@@ -247,6 +264,8 @@ class CalcResult:
     product_margins: ProductMargins = field(default_factory=ProductMargins)
     # Маржа по подразделениям (свёртка маржи продуктов); пусто без подразделений.
     division_margins: list[DivisionMargin] = field(default_factory=list)
+    # Абонентская база подписочных строк сбыта; пусто, если подписок нет.
+    subscription_base: list[SubscriptionBase] = field(default_factory=list)
     # Таблицы пользователя (строки-формулы); пустые, если таблиц нет.
     user_tables: list[UserTableResult] = field(default_factory=list)
     # Детализация ключевых строк отчётов (drill-down); не входит в golden-снимок.

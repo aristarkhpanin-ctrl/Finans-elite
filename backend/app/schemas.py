@@ -157,6 +157,16 @@ class DivisionMarginOut(BaseModel):
     product_count: int
 
 
+class SubscriptionBaseOut(BaseModel):
+    """Абонентская база продукта по месяцам (SPEC §5): что вышло из притока и оттока."""
+
+    product_id: str
+    name: str
+    base: list[Decimal]
+    new: list[Decimal]
+    churned: list[Decimal]
+
+
 class UserRowOut(BaseModel):
     """Вычисленная строка таблицы пользователя (при ошибке формулы — error + нули)."""
 
@@ -218,6 +228,8 @@ class CalcResponse(BaseModel):
     product_margins: ProductMarginsOut = ProductMarginsOut()
     # Маржа по подразделениям (gap 4.5); пусто без подразделений.
     division_margins: list[DivisionMarginOut] = []
+    # Абонентская база подписочных строк сбыта (SPEC §5); пусто без подписок.
+    subscription_base: list[SubscriptionBaseOut] = []
     user_tables: list[UserTableOut] = []
     # Детализация ключевых строк отчётов (drill-down, пакет №6); пустая без данных.
     details: list[LineDetailOut] = []
@@ -962,6 +974,10 @@ def to_response(r: CalcResult) -> CalcResponse:
             piece_wages=d.piece_wages, margin=d.margin, margin_share=d.margin_share,
             product_count=d.product_count,
         ) for d in r.division_margins],
+        subscription_base=[SubscriptionBaseOut(
+            product_id=s.product_id, name=s.name, base=list(s.base),
+            new=list(s.new), churned=list(s.churned),
+        ) for s in r.subscription_base],
         details=[LineDetailOut(
             code=d.code,
             items=[LineDetailItemOut(name=i.name, values=list(i.values)) for i in d.items],
