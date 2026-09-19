@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { changePassword, deleteMyAccount, disableTotp, downloadMyData, enableTotp,
-         getCapabilities, getDeletionPlan, getEmailVerification, getPasswordPolicy,
+         getCapabilities, getDeletionPlan, getEmailVerification, getMe, getPasswordPolicy,
          getSessions, getTotpStatus, getUsagePolicy, requestEmailVerification,
          reissueRecoveryCodes, revokeAllSessions, revokeSession, startTotpSetup,
          updateProfile, type TotpSetup } from "../../api/auth";
@@ -30,7 +30,7 @@ export function ProfileTab() {
   const [repeat, setRepeat] = useState("");
 
   const saveName = useMutation({
-    mutationFn: () => updateProfile(fullName.trim()),
+    mutationFn: () => updateProfile({ full_name: fullName.trim() }),
     onSuccess: () => toast("Имя сохранено", { kind: "success" }),
     onError: () => toast("Не удалось сохранить имя", { kind: "error" }),
   });
@@ -112,6 +112,7 @@ export function ProfileTab() {
       </div>
 
       <EmailVerificationBlock />
+      <CommentEmailsBlock />
       <MyDataBlock />
       <UsageBlock />
     </div>
@@ -161,6 +162,65 @@ function EmailVerificationBlock() {
           Прислать письмо с подтверждением
         </Button>
       )}
+    </div>
+  );
+}
+
+/**
+ * Письма об обсуждениях — **один** выключатель (OPEN-DECISIONS §5).
+ *
+ * Матрица «о чём и как часто писать» заполняется один раз и больше не открывается, а
+ * человек, которому письма мешают, ищет не ползунок, а выключатель. Отписка от отдельной
+ * ветки живёт там же, где сама ветка, — в панели обсуждения и в самом письме.
+ *
+ * Выключатель гасит **всё**, включая обращение по имени, и это сказано рядом: последний
+ * рубеж «не пишите мне» со щелью был бы неправдой.
+ *
+ * Блок виден и там, где почта выключена: настройка остаётся настройкой, но обещать, что
+ * что-то придёт, нельзя — где писем нет вовсе, об этом сказано прямо.
+ */
+function CommentEmailsBlock() {
+  const toast = useToast();
+  const qc = useQueryClient();
+  const { data: caps } = useQuery({ queryKey: ["capabilities"], queryFn: getCapabilities,
+                                    staleTime: Infinity });
+  // Состояние берётся с сервера, а не из контекста входа: контекст читает профиль один
+  // раз за сессию и после правки показывал бы прежнее значение.
+  const { data } = useQuery({ queryKey: ["me"], queryFn: getMe });
+
+  const save = useMutation({
+    mutationFn: (enabled: boolean) => updateProfile({ comment_emails: enabled }),
+    onSuccess: (user) => {
+      qc.setQueryData(["me"], user);
+      toast(user.comment_emails ? "Письма об обсуждениях включены"
+                                : "Письма об обсуждениях выключены", { kind: "success" });
+    },
+    onError: (e: unknown) => toast(httpDetail(e) ?? "Не удалось сохранить",
+                                   { kind: "error" }),
+  });
+
+  if (!data) return null;
+  const on = data.comment_emails;
+
+  return (
+    <div className="audit-block">
+      <div className="audit-block__title">Письма об обсуждениях</div>
+      <p className="page-sub" style={{ marginTop: 0 }}>
+        {on
+          ? "Приходит письмо, когда вас упомянули по имени или ответили в обсуждении, "
+            + "где вы участвуете, — не чаще раза в час на обсуждение."
+          : "Письма об обсуждениях не приходят вовсе: ни об ответах, ни о том, что вас "
+            + "позвали по имени."}
+      </p>
+      {!caps?.mail && (
+        <p className="mnote">
+          В этой установке платформа писем не отправляет — настройка ни на что не влияет,
+          пока почту не включат.
+        </p>
+      )}
+      <Button variant="ghost" loading={save.isPending} onClick={() => save.mutate(!on)}>
+        {on ? "Не присылать письма об обсуждениях" : "Присылать письма об обсуждениях"}
+      </Button>
     </div>
   );
 }

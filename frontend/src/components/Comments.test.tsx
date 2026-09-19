@@ -15,12 +15,16 @@ const getComments = vi.fn();
 const addComment = vi.fn();
 const resolveComment = vi.fn();
 const deleteComment = vi.fn();
+const getThreadSubscription = vi.fn();
+const setThreadSubscription = vi.fn();
 vi.mock("../api/comments", async (orig) => ({
   ...(await orig<typeof import("../api/comments")>()),
   getComments: (...a: unknown[]) => getComments(...a),
   addComment: (...a: unknown[]) => addComment(...a),
   resolveComment: (...a: unknown[]) => resolveComment(...a),
   deleteComment: (...a: unknown[]) => deleteComment(...a),
+  getThreadSubscription: (...a: unknown[]) => getThreadSubscription(...a),
+  setThreadSubscription: (...a: unknown[]) => setThreadSubscription(...a),
 }));
 
 const toast = vi.fn();
@@ -44,10 +48,15 @@ beforeEach(() => {
   getComments.mockResolvedValue([row()]);
   addComment.mockResolvedValue({
     comment: row({ id: "c2", body: "новая" }), notified: [], unknown_mentions: [],
-    mail: { attempted: false, ok: false, error: "" },
+    followed: [], mail: { attempted: false, ok: false, error: "" },
   });
   resolveComment.mockResolvedValue(row({ resolved: true, resolved_by: "o@e.ru" }));
   deleteComment.mockResolvedValue(row({ deleted: true, body: "Реплика удалена автором." }));
+  getThreadSubscription.mockResolvedValue({
+    muted: false, note: "Письма о новых репликах приходят участникам обсуждения." });
+  setThreadSubscription.mockResolvedValue({
+    muted: true, note: "Письма о новых репликах не приходят. Если вас позовут по имени, "
+                       + "письмо придёт." });
 });
 
 function show(props: Partial<Parameters<typeof Comments>[0]> = {}) {
@@ -144,4 +153,38 @@ it("пустое обсуждение зовёт спросить рядом с 
   getComments.mockResolvedValue([]);
   show();
   expect(await screen.findByText(/рядом с числами/)).toBeTruthy();
+});
+
+// --- Письма об обсуждении (OPEN-DECISIONS §5) ---
+
+it("называет, кому уедет реплика: это меняет то, как её пишут", async () => {
+  addComment.mockResolvedValue({
+    comment: row(), notified: [], unknown_mentions: [], followed: ["k@e.ru"],
+    mail: { attempted: true, ok: true, error: "" },
+  });
+  show();
+  await screen.findByText("Откуда такая себестоимость?");
+  fireEvent.change(screen.getByLabelText("Новая реплика"),
+                   { target: { value: "Проверил" } });
+  fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
+
+  await waitFor(() => expect(toast).toHaveBeenCalledWith(
+    expect.stringContaining("Участникам обсуждения уйдёт письмо: k@e.ru"),
+    { kind: "success" }));
+});
+
+it("отписка живёт рядом с обсуждением, а не только в письме", async () => {
+  // Человек, которому письма мешают, смотрит на само обсуждение, а не ищет старую
+  // рассылку в ящике.
+  show();
+  const off = await screen.findByRole("button",
+                                      { name: "Не писать мне об этом обсуждении" });
+  fireEvent.click(off);
+
+  await waitFor(() => expect(setThreadSubscription).toHaveBeenCalledWith(
+    { kind: "project", id: "p1" }, "report:income", true));
+  // И сразу видно, что отписка не глотает обращение по имени: текст приходит с сервера.
+  expect(await screen.findByRole("button",
+                                 { name: "Писать мне об этом обсуждении" })).toBeTruthy();
+  expect(screen.getByText(/позовут по имени/)).toBeTruthy();
 });

@@ -42,8 +42,13 @@ export async function activateInvite(payload: {
   return data;
 }
 
-export async function updateProfile(full_name: string): Promise<User> {
-  const { data } = await api.patch<User>("/api/v1/auth/me", { full_name });
+/**
+ * Правка профиля. Поля необязательны и посылаются **только названные**: запрос, меняющий
+ * одну настройку, не должен молча стирать другую (на сервере правило то же).
+ */
+export async function updateProfile(patch: { full_name?: string;
+                                             comment_emails?: boolean }): Promise<User> {
+  const { data } = await api.patch<User>("/api/v1/auth/me", patch);
   return data;
 }
 

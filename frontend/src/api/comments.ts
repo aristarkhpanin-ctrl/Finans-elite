@@ -47,3 +47,37 @@ export async function deleteComment(id: string): Promise<Comment> {
   const { data } = await api.delete<Comment>(`/api/v1/comments/${id}`);
   return data;
 }
+
+/**
+ * Письма об обсуждении (OPEN-DECISIONS §5).
+ *
+ * Подписан тот, кто участвует: написал реплику или был упомянут. Хранится и правится
+ * только исключение — «не писать мне об этой ветке»; смысл отписки приходит с сервера
+ * (`note`), потому что вторая формулировка на клиенте однажды разошлась бы с тем, что
+ * платформа делает на самом деле.
+ */
+export type ThreadSubscription = Schema<"ThreadSubscriptionOut">;
+
+export async function getThreadSubscription(s: Subject, anchor = "")
+    : Promise<ThreadSubscription> {
+  const { data } = await api.get<ThreadSubscription>("/api/v1/comments/subscription", {
+    params: { subject_type: s.kind, subject_id: s.id, anchor },
+  });
+  return data;
+}
+
+export async function setThreadSubscription(s: Subject, anchor: string, muted: boolean)
+    : Promise<ThreadSubscription> {
+  const { data } = await api.post<ThreadSubscription>("/api/v1/comments/subscription", {
+    subject_type: s.kind, subject_id: s.id, anchor, muted,
+  });
+  return data;
+}
+
+/** Отписка по ссылке из письма — **без входа**: токен уже доказал, кто это. */
+export async function unsubscribeByToken(token: string, muted = true)
+    : Promise<ThreadSubscription> {
+  const { data } = await api.post<ThreadSubscription>("/api/v1/comments/unsubscribe",
+                                                      { token, muted });
+  return data;
+}

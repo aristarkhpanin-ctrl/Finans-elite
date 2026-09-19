@@ -129,6 +129,16 @@ class User(Base):
     totp_locked_until: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    #: Приходят ли письма об обсуждениях (OPEN-DECISIONS §5). **Одна настройка, а не
+    #: матрица «что и когда»**: матрицу заполняют один раз и больше не открывают, а
+    #: человек, которому письма мешают, ищет один выключатель.
+    #:
+    #: Выключает **всё**, включая упоминание по имени: это последний рубеж «не пишите
+    #: мне», и оставить в нём щель значило бы сделать его неправдой. Отписка от
+    #: отдельной ветки устроена мягче — см. :class:`CommentSubscription`.
+    comment_emails: Mapped[bool] = mapped_column(Boolean, default=True,
+                                                 server_default=text("true"),
+                                                 nullable=False)
 
 
 class Membership(Base):
@@ -633,6 +643,58 @@ class Comment(Base):
         DateTime(timezone=True), nullable=True
     )
     deleted_by: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+
+
+class CommentSubscription(Base):
+    """Состояние писем **одного человека об одной ветке** обсуждения (OPEN-DECISIONS §5).
+
+    **Подписки здесь нет — есть исключения из неё.** Подписан тот, кто участвует: написал
+    реплику или был в ней упомянут. Это выводится из самих реплик и потому не может
+    разойтись с разговором; хранить отдельный список «кто подписан» значило бы завести
+    вторую правду, которую кто-то должен поддерживать (и которая молча отстанет, как
+    только человек напишет в ветку с телефона). В таблице живёт только то, чего из реплик
+    не вывести:
+
+    * ``muted_at`` — человек сказал «не пишите мне об этой ветке». Отписка обязана
+      переживать перезапуск: «я же отписался» — худшее, что можно услышать об уведомлениях;
+    * ``last_notified_at`` — когда ему в последний раз написали **об этой ветке**. Отсюда
+      пауза: одно письмо и тишина, а не письмо на каждую реплику. Ограничитель в памяти
+      процесса здесь не годится — он обнуляется на выкатке, а получатель этого не знает.
+
+    Ветка — это ``(subject_type, subject_id, anchor)``: место, а не сущность целиком.
+    Обсуждение строки I5 и обсуждение вкладки «Сбыт» — разные разговоры, и человек,
+    ушедший из одного, не переставал следить за другим.
+
+    **Организации у строки нет — и это не упущение.** Это личная настройка человека, как
+    и реестр входов (:class:`UserSession`): она про него, а не про содержимое организации.
+    Отсюда и то, что ссылка «отписаться» из письма работает **без входа и без арендатора**:
+    RLS здесь нечему защищать, а требовать пароль ради «перестаньте мне писать» — способ
+    заставить человека отправить письмо в спам вместо отписки.
+    """
+
+    __tablename__ = "comment_subscriptions"
+    __table_args__ = (
+        UniqueConstraint("user_id", "subject_type", "subject_id", "anchor",
+                         name="uq_comment_subscription_thread"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    #: Ветка: "project" | "case", сущность и место внутри неё (пусто — общее обсуждение).
+    subject_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    subject_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
+    anchor: Mapped[str] = mapped_column(String(128), nullable=False, default="")
+    #: Когда человек отписался от ветки. None — письма о ней идут как обычно.
+    muted_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    #: Когда ему в последний раз написали об этой ветке — начало паузы.
+    last_notified_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
 class AuditChecklist(Base):

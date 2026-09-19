@@ -211,20 +211,61 @@ def test_door_letters_go_to_an_unverified_address(client, register, monkeypatch)
     assert to == "owner@e.ru" and "Восстановление пароля" in letter.subject
 
 
+def _letter_builders() -> dict[str, object]:
+    """Все сборщики писем продукта, **где бы они ни жили**.
+
+    Первая версия перечня смотрела в один `mail.py` — и мимо неё уже прошли два письма об
+    обсуждениях: они живут в своём роутере, рядом со своим текстом. Перечень, который
+    видит не все письма, отвечает не на тот вопрос, который задаёт его имя.
+    """
+    import importlib
+    import inspect
+    import pkgutil
+
+    import app
+
+    found: dict[str, object] = {}
+    for module in pkgutil.walk_packages(app.__path__, prefix="app."):
+        loaded = importlib.import_module(module.name)
+        for name, obj in vars(loaded).items():
+            if (name.endswith("_letter") and inspect.isfunction(obj)
+                    and obj.__module__ == loaded.__name__):
+                found[f"{loaded.__name__}.{name}"] = obj
+    return found
+
+
 def test_every_letter_declares_whether_it_is_informational():
-    """Перечень-тест: следующее информационное письмо допишут в `mail.py` — и тут же
-    увидят поле. Флаг в чужом вызове забыли бы, и рассказ о чужой активности поехал бы
-    в чужой ящик."""
+    """Перечень-тест: следующее информационное письмо допишут — и тут же увидят поле.
+    Флаг в чужом вызове забыли бы, и рассказ о чужой активности поехал бы в чужой ящик."""
     import inspect
 
-    builders = [obj for name, obj in vars(mail).items()
-                if name.endswith("_letter") and inspect.isfunction(obj)]
-    assert len(builders) >= 4, "письма перестали собираться функциями *_letter?"
-    informational = {b.__name__ for b in builders
-                     if "informational=True" in inspect.getsource(b)}
-    # Ровно одно информационное живёт в mail.py (второе — об упоминании — в роутере
-    # обсуждений, рядом со своим текстом).
-    assert informational == {"new_device_letter"}
+    builders = _letter_builders()
+    assert len(builders) >= 6, "письма перестали собираться функциями *_letter?"
+    informational = {name for name, obj in builders.items()
+                     if "informational=True" in inspect.getsource(obj)}
+    # Информационные — рассказ о чужой активности: вход с нового устройства и обе
+    # разновидности письма об обсуждении. Остальные дверные: ими входят.
+    assert informational == {"app.mail.new_device_letter",
+                             "app.routers.comments._mention_letter",
+                             "app.routers.comments._reply_letter"}
+
+
+def test_every_letter_about_a_discussion_says_how_to_stop_them():
+    """Письмо без выхода — рассылка (OPEN-DECISIONS §5). Проверяется не текст ссылки, а
+    то, что выход **назван**: без ``PUBLIC_URL`` ссылка вела бы в никуда, и остаётся
+    второй путь — выключатель в профиле."""
+    from app.routers.comments import _mention_letter, _reply_letter
+
+    for build in (_mention_letter, _reply_letter):
+        with_link = build(author="a@e.ru", subject_name="П", where="", body="б",
+                          link="", mute_link="https://f.example/comments/unsubscribe?"
+                                             "token=t")
+        assert "https://f.example/comments/unsubscribe?token=t" in with_link.text
+        assert "в профиле" in with_link.text
+
+        without = build(author="a@e.ru", subject_name="П", where="", body="б",
+                        link="", mute_link="")
+        assert "в профиле" in without.text
 
 
 # --- Отказы называют причину ---

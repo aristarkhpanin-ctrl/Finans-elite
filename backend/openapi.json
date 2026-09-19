@@ -4842,6 +4842,14 @@
           "comment": {
             "$ref": "#/components/schemas/CommentOut"
           },
+          "followed": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Followed",
+            "type": "array"
+          },
           "mail": {
             "$ref": "#/components/schemas/MailReport",
             "default": {
@@ -9207,12 +9215,30 @@
         "type": "object"
       },
       "ProfileUpdate": {
+        "description": "Правка профиля. Каждое поле необязательно, и ``None`` значит «не трогать».\n\nРаньше неназванное имя означало **пустое**: запрос, меняющий одну настройку, стирал\nбы имя человека молча. Пока поле было одно, этого не могло случиться; со вторым —\nможет, и полагаться на то, что клиент всегда пришлёт оба, нельзя.",
         "properties": {
+          "comment_emails": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment Emails"
+          },
           "full_name": {
-            "default": "",
-            "maxLength": 255,
-            "title": "Full Name",
-            "type": "string"
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Full Name"
           }
         },
         "title": "ProfileUpdate",
@@ -13436,6 +13462,73 @@
         "title": "TemplateOut",
         "type": "object"
       },
+      "ThreadSubscriptionOut": {
+        "description": "Приходят ли этому человеку письма об этой ветке — и что это значит (§5).\n\n``note`` не украшение: отписка от ветки **не останавливает обращение по имени**, и\nузнать об этом человек обязан там же, где отписывается, а не из письма, которое он\nуже не ждал.",
+        "properties": {
+          "muted": {
+            "title": "Muted",
+            "type": "boolean"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "muted"
+        ],
+        "title": "ThreadSubscriptionOut",
+        "type": "object"
+      },
+      "ThreadSubscriptionUpdate": {
+        "description": "Отписаться от ветки или вернуть письма о ней.",
+        "properties": {
+          "anchor": {
+            "default": "",
+            "title": "Anchor",
+            "type": "string"
+          },
+          "muted": {
+            "default": true,
+            "title": "Muted",
+            "type": "boolean"
+          },
+          "subject_id": {
+            "title": "Subject Id",
+            "type": "string"
+          },
+          "subject_type": {
+            "title": "Subject Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject_type",
+          "subject_id"
+        ],
+        "title": "ThreadSubscriptionUpdate",
+        "type": "object"
+      },
+      "ThreadUnsubscribeRequest": {
+        "description": "Отписка по ссылке из письма. Ветку несёт **токен**, а не тело запроса: иначе\nссылку можно было бы переписать и отписать человека от чужого разговора.",
+        "properties": {
+          "muted": {
+            "default": true,
+            "title": "Muted",
+            "type": "boolean"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "title": "ThreadUnsubscribeRequest",
+        "type": "object"
+      },
       "TokenResponse": {
         "properties": {
           "access_token": {
@@ -13670,6 +13763,11 @@
       },
       "UserOut": {
         "properties": {
+          "comment_emails": {
+            "default": true,
+            "title": "Comment Emails",
+            "type": "boolean"
+          },
           "email": {
             "title": "Email",
             "type": "string"
@@ -17264,7 +17362,7 @@
         ]
       },
       "patch": {
-        "description": "Профиль: имя. Почта не меняется — она же логин и адрес приглашений.",
+        "description": "Профиль: имя и письма об обсуждениях. Почта не меняется — она же логин и адрес\nприглашений.\n\nНеназванное поле **не трогается**: запрос, который меняет одну настройку, не должен\nмолча стирать другую.",
         "operationId": "update_me_api_v1_auth_me_patch",
         "requestBody": {
           "content": {
@@ -17831,6 +17929,160 @@
         "summary": "Calculate",
         "tags": [
           "calc"
+        ]
+      }
+    },
+    "/api/v1/comments/subscription": {
+      "get": {
+        "description": "Приходят ли письма об этой ветке — и что это значит.\n\nПрава организации здесь не спрашиваются намеренно: это **личная настройка человека**,\nа не содержимое организации, и строка «не писать мне об этом» не открывает и не\nпоказывает ничего. Тот же довод, по которому у неё нет ни ``organization_id``, ни\nRLS-политики.",
+        "operationId": "thread_subscription_api_v1_comments_subscription_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "subject_type",
+            "required": true,
+            "schema": {
+              "title": "Subject Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "title": "Subject Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "anchor",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Anchor",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThreadSubscriptionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Thread Subscription",
+        "tags": [
+          "comments"
+        ]
+      },
+      "post": {
+        "description": "Отписаться от ветки или вернуть письма о ней.\n\nВозврат обязателен: отписка, из которой нет дороги назад, — ловушка, и нажимают её\nодин раз на всю жизнь.",
+        "operationId": "set_thread_subscription_api_v1_comments_subscription_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ThreadSubscriptionUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThreadSubscriptionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set Thread Subscription",
+        "tags": [
+          "comments"
+        ]
+      }
+    },
+    "/api/v1/comments/unsubscribe": {
+      "post": {
+        "description": "Отписка по ссылке из письма — **без входа**.\n\nТребовать пароль ради «перестаньте мне писать» значит заставить человека отправить\nписьмо в спам вместо отписки: спам-жалоба обходится дороже, чем эта строка кода.\n\nВетка берётся **из подписанного токена**, а не из тела запроса: иначе ссылку можно\nбыло бы переписать и отписать человека от чужого разговора. Сам запрос — ``POST``:\nпочтовые фильтры организаций ходят по ссылкам заранее, и отписка по ``GET``\nсрабатывала бы у тех, кто её не нажимал.",
+        "operationId": "unsubscribe_by_token_api_v1_comments_unsubscribe_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ThreadUnsubscribeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThreadSubscriptionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Unsubscribe By Token",
+        "tags": [
+          "comments"
         ]
       }
     },

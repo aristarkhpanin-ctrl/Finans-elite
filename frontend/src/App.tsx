@@ -18,6 +18,7 @@ import { ProjectEditorPage } from "./pages/ProjectEditorPage";
 import { ProjectsPage } from "./pages/ProjectsPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { ActivatePage } from "./pages/ActivatePage";
+import { UnsubscribePage } from "./pages/UnsubscribePage";
 import { VerifyEmailPage } from "./pages/VerifyEmailPage";
 
 // Тяжёлые страницы результатов/анализа грузим лениво (code-split).
@@ -53,6 +54,9 @@ function AppRoutes() {
       {/* Активация приглашения — до входа: пароля у приглашённого ещё нет. */}
       <Route path="/activate" element={<ActivatePage />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
+      {/* Отписка от обсуждения — тоже до входа: пароль ради «не пишите мне» человек
+          искать не станет, он отправит письмо в спам. */}
+      <Route path="/comments/unsubscribe" element={<UnsubscribePage />} />
       <Route
         element={
           <ProtectedRoute>

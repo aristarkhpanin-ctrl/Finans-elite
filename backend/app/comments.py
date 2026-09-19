@@ -17,7 +17,9 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
 
 #: Адрес после `@`. Намеренно строгий в одном: `@ivan` без домена — это не адрес, и
 #: угадывать, кого имели в виду, платформа не станет (в организации бывают тёзки).
@@ -93,3 +95,92 @@ def visible_body(comment) -> str:
         return comment.body
     own = comment.deleted_by and comment.deleted_by == comment.author_email
     return DELETED_BY_AUTHOR if own else DELETED_BY_ADMIN
+
+
+# --- Кому уходит письмо о новой реплике (OPEN-DECISIONS §5) ---
+#
+# Дайджест «что произошло за день» перестают читать на второй неделе, и он требует
+# решений о времени, часовом поясе и составе. Настоящий вопрос человека другой —
+# **«мне ответили?»**, и отвечает на него подписка на ветку.
+
+#: Пауза между письмами об одной ветке одному человеку. Три реплики подряд не должны
+#: давать три письма: разговор идёт очередями, и письмо на каждую строку — это рассылка.
+#:
+#: Час — не «настройка на будущее», а решение: матрица «как часто и о чём» заполняется
+#: один раз и больше не открывается, а человек, которому письма мешают, ищет не ползунок,
+#: а выключатель. Выключателей два — отписка от ветки и общий в профиле.
+NOTIFY_PAUSE = timedelta(hours=1)
+
+
+@dataclass(frozen=True)
+class ThreadState:
+    """Что платформа знает о письмах этому человеку об этой ветке."""
+
+    #: Человек отписался от ветки.
+    muted: bool = False
+    #: Когда ему в последний раз писали об этой ветке (``None`` — ни разу).
+    last_notified: datetime | None = None
+
+
+def thread_participants(rows: Sequence) -> list[str]:
+    """Кто в разговоре: написал реплику **или был в ней упомянут**.
+
+    Участие выводится из самих реплик, а не хранится списком: отдельный список подписчиков
+    — вторая правда, и она отстала бы от разговора при первой же реплике, написанной мимо
+    экрана (импортом, другим клиентом, чем угодно).
+
+    Порядок — по первому появлению; регистр адреса — как он записан в первой встрече.
+    Удалённые реплики в счёт **идут**: автор в разговоре был, и то, что он потом убрал
+    свои слова, не делает его посторонним (текст стёрт, но ``author_email`` — «надгробие»
+    — остался; упоминания у удалённой реплики стёрты вместе с текстом).
+    """
+    seen: dict[str, str] = {}
+    for row in rows:
+        for email in [row.author_email, *row.mentions.split(",")]:
+            address = (email or "").strip()
+            if address and address.lower() not in seen:
+                seen[address.lower()] = address
+    return list(seen.values())
+
+
+def reply_targets(participants: Iterable[str], *, author_email: str,
+                  mentioned: Iterable[str], members: Iterable[str],
+                  state: dict[str, ThreadState], now: datetime) -> list[str]:
+    """Кому уйдёт письмо «в обсуждении новая реплика».
+
+    Отсев — по пяти причинам, и каждая своя:
+
+    * **автор реплики** — письмо самому себе о собственных словах это шум, из-за которого
+      перестают читать остальные (то же правило, что у упоминания самого себя);
+    * **упомянутые в этой самой реплике** — им уже уходит письмо об упоминании, и второе
+      письмо об одной строке это ровно та рассылка, против которой пауза и написана;
+    * **не участники организации** — участник ветки мог уйти из компании, а разговор о её
+      делах остался; письмо о нём наружу не уезжает;
+    * **отписавшиеся** от ветки;
+    * **те, кому уже писали** об этой ветке меньше паузы назад.
+
+    ``state`` — по адресу в нижнем регистре. Адреса, которого в нём нет, ещё не писали ни
+    разу: ``None`` здесь значит «не писали», а не «писали давно».
+    """
+    skip = {(author_email or "").lower()}
+    skip |= {m.lower() for m in mentioned}
+    allowed = {m.lower() for m in members}
+    out: list[str] = []
+    for email in participants:
+        low = email.lower()
+        if low in skip or low not in allowed:
+            continue
+        seen = state.get(low, ThreadState())
+        if seen.muted:
+            continue
+        if seen.last_notified is not None and _utc(now) - _utc(seen.last_notified) \
+                < NOTIFY_PAUSE:
+            continue
+        out.append(email)
+    return out
+
+
+def _utc(value: datetime) -> datetime:
+    """Наивное время — это время SQLite: он отдаёт его без пояса. Сравнить его с
+    осведомлённым нельзя, и падать посреди отправленной реплики из-за этого мы не станем."""
+    return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)

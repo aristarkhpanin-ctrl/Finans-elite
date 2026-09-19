@@ -118,6 +118,11 @@ def build_export(db: Session, user: User) -> dict:
             "зарегистрирован": _iso(user.created_at),
             "пароль_задан": user.hashed_password is not None,
             "второй_фактор": "включён" if user.totp_enabled_at else "не включён",
+            "письма_об_обсуждениях": ("приходят" if user.comment_emails
+                                      else "выключены вами"),
+            "обсуждения_без_писем": len([
+                s for s in crud.list_user_thread_subscriptions(db, user.id)
+                if s.muted_at is not None]),
             "сотрудник_платформы": bool(user.is_staff),
             "доступ_заблокирован": _iso(user.blocked_at),
             "причина_блокировки": user.block_reason or None,
@@ -273,6 +278,12 @@ def _purge_user(db: Session, user: User) -> None:
     """
     for session in crud.list_all_sessions(db, user.id):
         db.delete(session)
+    # Настройки писем об обсуждениях — тоже о человеке, и уходят с ним. Явным запросом,
+    # а не каскадом базы: строка пользователя **остаётся**, и каскад по ней не сработал
+    # бы вовсе — а на SQLite внешние ключи не действуют и разошлись бы с продакшеном
+    # молча (тот же довод, что у остальных удалений здесь).
+    for subscription in crud.list_user_thread_subscriptions(db, user.id):
+        db.delete(subscription)
     user.email = f"удалён-{user.id}@удалён"
     user.full_name = ""
     user.hashed_password = None

@@ -112,6 +112,40 @@ def create_verify_token(user_id: str) -> str:
     return _token(user_id, "verify", INVITE_TTL_SECONDS)
 
 
+#: Срок ссылки «отписаться от ветки» в письме об обсуждении. Долгий намеренно: письмо
+#: находят в ящике через месяц, и «ссылка устарела» в ответ на «перестаньте мне писать»
+#: — это отказ, который человек запомнит хуже любой рассылки. Вечной она всё же не
+#: делается: своего пароля ею не сменить, но чужие уведомления ею глушат.
+MUTE_TTL_SECONDS = int(os.getenv("MUTE_TTL_SECONDS", str(180 * 24 * 3600)))
+
+
+def create_thread_mute_token(user_id: str, subject_type: str, subject_id: str,
+                             anchor: str) -> str:
+    """Токен ссылки «отписаться» для письма об обсуждении (OPEN-DECISIONS §5).
+
+    Ветка едет **в подписанном токене**: в параметре запроса её можно было бы подменить и
+    отписать человека от чужого разговора. Прав этот токен не даёт никаких — им нельзя ни
+    войти, ни прочитать реплику; он умеет ровно одно — выключить письма об одной ветке.
+    """
+    return _token(user_id, "cmute", MUTE_TTL_SECONDS,
+                  st=subject_type, si=subject_id, an=anchor)
+
+
+def decode_thread_mute_token(token: str) -> tuple[str, str, str, str] | None:
+    """``(user_id, subject_type, subject_id, anchor)`` из валидного токена либо ``None``."""
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
+    except jwt.PyJWTError:
+        return None
+    if payload.get("typ") != "cmute":
+        return None
+    sub, subject_type, subject_id = (payload.get("sub"), payload.get("st"),
+                                     payload.get("si"))
+    if not sub or not subject_type or not subject_id:
+        return None
+    return sub, subject_type, subject_id, payload.get("an") or ""
+
+
 def password_stamp(hashed: str | None) -> str:
     """Отпечаток действующего пароля — им ссылка сброса делается одноразовой.
 

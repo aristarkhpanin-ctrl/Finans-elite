@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { addComment, deleteComment, getComments, resolveComment, type Comment,
-         type Subject } from "../api/comments";
+import { addComment, deleteComment, getComments, getThreadSubscription, resolveComment,
+         setThreadSubscription, type Comment, type Subject } from "../api/comments";
 import { httpDetail } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { useToast } from "./Toast";
@@ -54,6 +54,14 @@ export function Comments({ subject, anchor = "", anchorLabel = "", title = "Об
           ? `Позвали: ${created.notified.join(", ")} — письмо отправлено.`
           : `Позвали: ${created.notified.join(", ")}. Писем платформа не отправляет — `
             + "скажите им сами.", { kind: "success" });
+      } else if (created.followed.length > 0) {
+        // Кому уедет реплика — знать стоит: это меняет то, как её пишут. Часто это не
+        // мешает: следующие письма об этой ветке придержит пауза, и всплывать эта
+        // строка будет не чаще, чем уходят сами письма.
+        toast(created.mail.attempted
+          ? `Участникам обсуждения уйдёт письмо: ${created.followed.join(", ")}.`
+          : `Участники обсуждения: ${created.followed.join(", ")}. Писем платформа не `
+            + "отправляет — скажите им сами.", { kind: "success" });
       }
     },
     onError: (e: unknown) => toast(httpDetail(e) ?? "Не удалось отправить реплику",
@@ -69,6 +77,22 @@ export function Comments({ subject, anchor = "", anchorLabel = "", title = "Об
     mutationFn: (id: string) => deleteComment(id),
     onSuccess: refresh,
     onError: (e: unknown) => toast(httpDetail(e) ?? "Не удалось удалить", { kind: "error" }),
+  });
+
+  // Письма об этой ветке (OPEN-DECISIONS §5). Состояние спрашивается у сервера, а смысл
+  // отписки приходит оттуда же: вторая формулировка на клиенте разошлась бы с тем, что
+  // платформа делает на самом деле, — и разошлась бы именно там, где человек проверяет,
+  // сработало ли «не пишите мне».
+  const subKey = ["comment-subscription", subject.kind, subject.id, anchor];
+  const { data: sub } = useQuery({
+    queryKey: subKey,
+    queryFn: () => getThreadSubscription(subject, anchor),
+  });
+  const mute = useMutation({
+    mutationFn: (muted: boolean) => setThreadSubscription(subject, anchor, muted),
+    onSuccess: (r) => { qc.setQueryData(subKey, r); toast(r.note, { kind: "success" }); },
+    onError: (e: unknown) => toast(httpDetail(e) ?? "Не удалось изменить",
+                                   { kind: "error" }),
   });
 
   const rows = data ?? [];
@@ -119,6 +143,18 @@ export function Comments({ subject, anchor = "", anchorLabel = "", title = "Об
         <Button onClick={() => say.mutate()} loading={say.isPending}
                 disabled={!text.trim()}>Отправить</Button>
       </div>
+      {sub && (
+        <div className="cmt__foot">
+          {/* Отписка живёт и здесь, не только в письме: человек, которому письма
+              мешают, обычно смотрит на само обсуждение, а не ищет старую рассылку. */}
+          <span className="cmt__hint">{sub.note}</span>
+          <button type="button" className="cmt-act" disabled={mute.isPending}
+                  onClick={() => mute.mutate(!sub.muted)}>
+            {sub.muted ? "Писать мне об этом обсуждении"
+                       : "Не писать мне об этом обсуждении"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

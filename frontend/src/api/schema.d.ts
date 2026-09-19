@@ -947,7 +947,11 @@ export interface paths {
         head?: never;
         /**
          * Update Me
-         * @description Профиль: имя. Почта не меняется — она же логин и адрес приглашений.
+         * @description Профиль: имя и письма об обсуждениях. Почта не меняется — она же логин и адрес
+         *     приглашений.
+         *
+         *     Неназванное поле **не трогается**: запрос, который меняет одну настройку, не должен
+         *     молча стирать другую.
          */
         patch: operations["update_me_api_v1_auth_me_patch"];
         trace?: never;
@@ -1283,6 +1287,66 @@ export interface paths {
          * @description Рассчитать проект: вернуть отчёты, показатели эффективности и коэффициенты.
          */
         post: operations["calculate_api_v1_calculate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/comments/subscription": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Thread Subscription
+         * @description Приходят ли письма об этой ветке — и что это значит.
+         *
+         *     Права организации здесь не спрашиваются намеренно: это **личная настройка человека**,
+         *     а не содержимое организации, и строка «не писать мне об этом» не открывает и не
+         *     показывает ничего. Тот же довод, по которому у неё нет ни ``organization_id``, ни
+         *     RLS-политики.
+         */
+        get: operations["thread_subscription_api_v1_comments_subscription_get"];
+        put?: never;
+        /**
+         * Set Thread Subscription
+         * @description Отписаться от ветки или вернуть письма о ней.
+         *
+         *     Возврат обязателен: отписка, из которой нет дороги назад, — ловушка, и нажимают её
+         *     один раз на всю жизнь.
+         */
+        post: operations["set_thread_subscription_api_v1_comments_subscription_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/comments/unsubscribe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Unsubscribe By Token
+         * @description Отписка по ссылке из письма — **без входа**.
+         *
+         *     Требовать пароль ради «перестаньте мне писать» значит заставить человека отправить
+         *     письмо в спам вместо отписки: спам-жалоба обходится дороже, чем эта строка кода.
+         *
+         *     Ветка берётся **из подписанного токена**, а не из тела запроса: иначе ссылку можно
+         *     было бы переписать и отписать человека от чужого разговора. Сам запрос — ``POST``:
+         *     почтовые фильтры организаций ходят по ссылкам заранее, и отписка по ``GET``
+         *     срабатывала бы у тех, кто её не нажимал.
+         */
+        post: operations["unsubscribe_by_token_api_v1_comments_unsubscribe_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5154,6 +5218,11 @@ export interface components {
         CommentCreated: {
             comment: components["schemas"]["CommentOut"];
             /**
+             * Followed
+             * @default []
+             */
+            followed: string[];
+            /**
              * @default {
              *       "attempted": false,
              *       "error": "",
@@ -7605,13 +7674,19 @@ export interface components {
             /** Volume */
             volume?: string[];
         };
-        /** ProfileUpdate */
+        /**
+         * ProfileUpdate
+         * @description Правка профиля. Каждое поле необязательно, и ``None`` значит «не трогать».
+         *
+         *     Раньше неназванное имя означало **пустое**: запрос, меняющий одну настройку, стирал
+         *     бы имя человека молча. Пока поле было одно, этого не могло случиться; со вторым —
+         *     может, и полагаться на то, что клиент всегда пришлёт оба, нельзя.
+         */
         ProfileUpdate: {
-            /**
-             * Full Name
-             * @default
-             */
-            full_name: string;
+            /** Comment Emails */
+            comment_emails?: boolean | null;
+            /** Full Name */
+            full_name?: string | null;
         };
         /** ProjectCreate */
         ProjectCreate: {
@@ -10004,6 +10079,57 @@ export interface components {
              */
             shows: string;
         };
+        /**
+         * ThreadSubscriptionOut
+         * @description Приходят ли этому человеку письма об этой ветке — и что это значит (§5).
+         *
+         *     ``note`` не украшение: отписка от ветки **не останавливает обращение по имени**, и
+         *     узнать об этом человек обязан там же, где отписывается, а не из письма, которое он
+         *     уже не ждал.
+         */
+        ThreadSubscriptionOut: {
+            /** Muted */
+            muted: boolean;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /**
+         * ThreadSubscriptionUpdate
+         * @description Отписаться от ветки или вернуть письма о ней.
+         */
+        ThreadSubscriptionUpdate: {
+            /**
+             * Anchor
+             * @default
+             */
+            anchor: string;
+            /**
+             * Muted
+             * @default true
+             */
+            muted: boolean;
+            /** Subject Id */
+            subject_id: string;
+            /** Subject Type */
+            subject_type: string;
+        };
+        /**
+         * ThreadUnsubscribeRequest
+         * @description Отписка по ссылке из письма. Ветку несёт **токен**, а не тело запроса: иначе
+         *     ссылку можно было бы переписать и отписать человека от чужого разговора.
+         */
+        ThreadUnsubscribeRequest: {
+            /**
+             * Muted
+             * @default true
+             */
+            muted: boolean;
+            /** Token */
+            token: string;
+        };
         /** TokenResponse */
         TokenResponse: {
             /** Access Token */
@@ -10179,6 +10305,11 @@ export interface components {
         };
         /** UserOut */
         UserOut: {
+            /**
+             * Comment Emails
+             * @default true
+             */
+            comment_emails: boolean;
             /** Email */
             email: string;
             /** Full Name */
@@ -12509,6 +12640,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CalcResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    thread_subscription_api_v1_comments_subscription_get: {
+        parameters: {
+            query: {
+                subject_type: string;
+                subject_id: string;
+                anchor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThreadSubscriptionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_thread_subscription_api_v1_comments_subscription_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ThreadSubscriptionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThreadSubscriptionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unsubscribe_by_token_api_v1_comments_unsubscribe_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ThreadUnsubscribeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThreadSubscriptionOut"];
                 };
             };
             /** @description Validation Error */

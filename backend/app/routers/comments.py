@@ -14,21 +14,45 @@
 
 **Письмо об упоминании — только там, где почта настроена** (D1), и ответ об этом
 говорит: обещание «мы позвали» в установке без почты некому выполнить.
+
+**Подписка на ветку вместо дайджеста** (OPEN-DECISIONS §5). Дайджест «что произошло за
+день» перестают читать на второй неделе; вопрос, который человек на самом деле задаёт, —
+«мне ответили?». Поэтому письмо о новой реплике уходит тем, кто **участвует** в ветке
+(написал или упомянут), не чаще раза в час на ветку, и в каждом письме есть отписка.
+Правила отбора — чистые функции в ``app/comments.py``; здесь только почта и база.
 """
 from __future__ import annotations
+
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from .. import crud
-from ..comments import check_body, parse_mentions, visible_body
+from ..comments import (
+    NOTIFY_PAUSE,
+    check_body,
+    parse_mentions,
+    reply_targets,
+    thread_participants,
+    visible_body,
+)
 from ..database import get_db
 from ..db_models import Comment, User
 from ..deps import current_user, require_permission
-from ..mail import Letter, mail_enabled, public_url
+from ..mail import Letter, mail_enabled, public_url, unsubscribe_url
 from ..notify import send_and_log
 from ..rbac import Perm, has_permission
-from ..schemas import CommentCreate, CommentCreated, CommentOut, MailReport
+from ..schemas import (
+    CommentCreate,
+    CommentCreated,
+    CommentOut,
+    MailReport,
+    ThreadSubscriptionOut,
+    ThreadSubscriptionUpdate,
+    ThreadUnsubscribeRequest,
+)
+from ..security import create_thread_mute_token, decode_thread_mute_token
 
 router = APIRouter(prefix="/api/v1", tags=["comments"])
 
@@ -63,8 +87,35 @@ def _subject_or_404(db: Session, org_id: str, subject_type: str, subject_id: str
     return subject.name
 
 
+_SIGNATURE = ("\n\n—\nЭто письмо отправила платформа «Финанс-Элит».\n"
+              "Отвечать на него бесполезно: ящик входящие письма не принимает.")
+
+
+def _unsubscribe_block(mute_link: str, *, mention: bool) -> str:
+    """Чем закончить письмо об обсуждении: как перестать их получать.
+
+    **Без отписки это рассылка, а не уведомление** — но отписка, которая останавливает не
+    то, что обещала, хуже её отсутствия. Поэтому у письма об упоминании рядом со ссылкой
+    сказано, чего она **не** остановит: прямое обращение по имени приходит и из ветки, от
+    которой человек отписался, — проглотить его значило бы обмануть сразу обоих, и
+    позвавшего, и позванного. Выключатель, который выключает всё, тоже назван.
+    """
+    if not mute_link:
+        # Без ``PUBLIC_URL`` ссылка вела бы в никуда. Молчать нельзя: письмо без выхода
+        # это рассылка — поэтому называем второй путь, который работает всегда.
+        return ("\n\nВыключить письма об обсуждениях можно в профиле, раздел «Письма об "
+                "обсуждениях».")
+    if mention:
+        return (f"\n\nНе следить за этим обсуждением: {mute_link}\n"
+                "Письма о том, что вас позвали по имени, это не остановит — они приходят "
+                "и из обсуждений, за которыми вы не следите. Выключить письма об "
+                "обсуждениях совсем можно в профиле.")
+    return (f"\n\nНе писать мне об этом обсуждении: {mute_link}\n"
+            "Выключить письма об обсуждениях совсем можно в профиле.")
+
+
 def _mention_letter(*, author: str, subject_name: str, where: str, body: str,
-                    link: str) -> Letter:
+                    link: str, mute_link: str) -> Letter:
     """Письмо об упоминании. Текст реплики внутри — иначе письмо заставляет открыть
     систему, чтобы узнать, стоило ли её открывать."""
     return Letter(
@@ -75,8 +126,36 @@ def _mention_letter(*, author: str, subject_name: str, where: str, body: str,
               + (f"Открыть: {link}\n\n" if link else "")
               + "Упоминание не открывает доступ: если раздела не видно, попросите права "
                 "у администратора организации."
-              "\n\n—\nЭто письмо отправила платформа «Финанс-Элит».\n"
-              "Отвечать на него бесполезно: ящик входящие письма не принимает."),
+              + _unsubscribe_block(mute_link, mention=True)
+              + _SIGNATURE),
+        # Рассказ о чужой активности: на неподтверждённый адрес не уходит (см. Letter).
+        informational=True,
+    )
+
+
+def _reply_letter(*, author: str, subject_name: str, where: str, body: str,
+                  link: str, mute_link: str) -> Letter:
+    """Письмо участнику ветки: «мне ответили?».
+
+    **Пауза названа в самом письме.** Следующие реплики ближайшего часа письма не дадут, и
+    не сказать об этом значило бы позволить прочесть тишину как «больше никто не ответил»
+    — ровно та ошибка, ради которой уведомления и заводят.
+    """
+    hours = int(NOTIFY_PAUSE.total_seconds() // 3600)
+    return Letter(
+        subject=f"Новая реплика: {subject_name} — Финанс-Элит",
+        text=(f"{author} написал в обсуждении «{subject_name}»"
+              + (f", раздел «{where}»" if where else "") + ":\n\n"
+              f"{body}\n\n"
+              + (f"Открыть обсуждение: {link}\n\n" if link else "")
+              + "Письмо пришло, потому что вы участвуете в этом обсуждении: написали в "
+                "нём или вас в нём упомянули.\n"
+              + ("Если в ближайший час появятся новые реплики, отдельных писем о них не "
+                 "будет — откройте обсуждение целиком." if hours == 1 else
+                 f"Следующие {hours} ч письма о новых репликах не приходят — откройте "
+                 f"обсуждение целиком.")
+              + _unsubscribe_block(mute_link, mention=False)
+              + _SIGNATURE),
         # Рассказ о чужой активности: на неподтверждённый адрес не уходит (см. Letter).
         informational=True,
     )
@@ -106,26 +185,58 @@ def _create(db: Session, background: BackgroundTasks, *, org_id: str, author: Us
         body=body.body.strip(), anchor=body.anchor, anchor_label=body.anchor_label,
         mentions=called)
 
+    # Кому ещё уйдёт письмо: участникам ветки. Отбор — чистая функция; здесь только то,
+    # что ей нужно из базы. Считается **до** отправки и при выключенной почте тоже:
+    # ответ обязан быть одинаковым по смыслу, а «кому бы ушло» — часть этого смысла.
+    thread = crud.list_comments(db, org_id, subject_type, subject_id,
+                                anchor=body.anchor or "")
+    by_email = {u.email.lower(): u for _, u in crud.list_members(db, org_id)}
+    state = crud.thread_notify_state(db, [u.id for u in by_email.values()],
+                                     subject_type, subject_id, body.anchor or "")
+    followed = reply_targets(
+        thread_participants(thread), author_email=author.email or "", mentioned=called,
+        members=by_email.keys(),
+        # Ключ состояния — адрес: правила отбора о пользователях не знают, они читают
+        # разговор, а в разговоре люди названы почтой.
+        state={email: state[user.id] for email, user in by_email.items()
+               if user.id in state},
+        now=datetime.now(timezone.utc))
+
     report = MailReport()
-    if called and mail_enabled():
+    if (called or followed) and mail_enabled():
         base = public_url()
         path = (f"/projects/{subject_id}" if subject_type == "project"
                 else f"/audit/subjects/{subject_id}")
-        letter = _mention_letter(
-            author=author.email, subject_name=subject_name,
-            where=body.anchor_label, body=body.body.strip(),
-            link=f"{base}{path}" if base else "")
-        for email in called:
-            target = crud.get_user_by_email(db, email)
-            if target is not None:
-                background.add_task(send_and_log, db.get_bind(), target.id, email,
-                                    letter, "comment.mention_mail")
+        link = f"{base}{path}" if base else ""
+        sent_to: list[str] = []
+        for email, mention in [(e, True) for e in called] + [(e, False) for e in followed]:
+            target = by_email.get(email.lower())
+            if target is None:                 # ушёл из организации — письма не будет
+                continue
+            # Общий выключатель гасит **всё**, включая обращение по имени: это последний
+            # рубеж «не пишите мне», и щель в нём сделала бы его неправдой.
+            if not target.comment_emails:
+                continue
+            build = _mention_letter if mention else _reply_letter
+            letter = build(author=author.email, subject_name=subject_name,
+                           where=body.anchor_label, body=body.body.strip(), link=link,
+                           mute_link=unsubscribe_url(create_thread_mute_token(
+                               target.id, subject_type, subject_id, body.anchor or "")))
+            background.add_task(send_and_log, db.get_bind(), target.id, email, letter,
+                                "comment.mention_mail" if mention else "comment.reply_mail")
+            sent_to.append(target.id)
+        # Пауза отсчитывается от **постановки в очередь**: очередь разбирается уже за
+        # пределами запроса, и ждать её исхода значило бы выпустить второе письмо, пока
+        # первое ещё летит. Упомянутые в счёт идут тоже — иначе «позвали, а через минуту
+        # ответили» дало бы два письма об одной ветке.
+        crud.mark_thread_notified(db, sent_to, subject_type, subject_id, body.anchor or "")
         # Отправка идёт после ответа, поэтому её исход здесь ещё не известен: обещаем
         # только то, что письма **поставлены в очередь**, а результат каждого уходит в
         # журнал того, кого позвали.
         report = MailReport(attempted=True, ok=True)
     return CommentCreated(comment=_out(comment), notified=called,
-                          unknown_mentions=mentions.unknown, mail=report)
+                          unknown_mentions=mentions.unknown, followed=followed,
+                          mail=report)
 
 
 # --- Проект («Финанс-Элит») ---
@@ -238,3 +349,75 @@ def delete(comment_id: str,
     if comment.deleted_at is not None:
         return _out(comment)
     return _out(crud.delete_comment(db, comment, by=actor.email))
+
+
+# --- Письма об обсуждении: отписка от ветки (OPEN-DECISIONS §5) ---
+
+#: Что значит отписка — один текст на API, экран и письмо: три формулировки одного
+#: обещания однажды разойдутся, и разойдутся именно там, где человек проверяет, сработало
+#: ли «не пишите мне».
+MUTED_NOTE = ("Письма о новых репликах в этом обсуждении не приходят. Если вас позовут "
+              "по имени, письмо придёт — это прямое обращение; выключить письма об "
+              "обсуждениях совсем можно в профиле.")
+FOLLOWING_NOTE = ("Письма о новых репликах приходят участникам обсуждения — тем, кто в "
+                  "нём написал или был упомянут, — не чаще раза в час.")
+
+
+def _subscription_out(muted: bool) -> ThreadSubscriptionOut:
+    return ThreadSubscriptionOut(muted=muted,
+                                 note=MUTED_NOTE if muted else FOLLOWING_NOTE)
+
+
+@router.get("/comments/subscription", response_model=ThreadSubscriptionOut)
+def thread_subscription(subject_type: str, subject_id: str, anchor: str = "",
+                        user: User = Depends(current_user),
+                        db: Session = Depends(get_db)) -> ThreadSubscriptionOut:
+    """Приходят ли письма об этой ветке — и что это значит.
+
+    Права организации здесь не спрашиваются намеренно: это **личная настройка человека**,
+    а не содержимое организации, и строка «не писать мне об этом» не открывает и не
+    показывает ничего. Тот же довод, по которому у неё нет ни ``organization_id``, ни
+    RLS-политики.
+    """
+    row = crud.get_comment_subscription(db, user.id, subject_type, subject_id, anchor)
+    return _subscription_out(row is not None and row.muted_at is not None)
+
+
+@router.post("/comments/subscription", response_model=ThreadSubscriptionOut)
+def set_thread_subscription(body: ThreadSubscriptionUpdate,
+                            user: User = Depends(current_user),
+                            db: Session = Depends(get_db)) -> ThreadSubscriptionOut:
+    """Отписаться от ветки или вернуть письма о ней.
+
+    Возврат обязателен: отписка, из которой нет дороги назад, — ловушка, и нажимают её
+    один раз на всю жизнь.
+    """
+    row = crud.set_thread_muted(db, user.id, body.subject_type, body.subject_id,
+                                body.anchor, muted=body.muted)
+    return _subscription_out(row.muted_at is not None)
+
+
+@router.post("/comments/unsubscribe", response_model=ThreadSubscriptionOut)
+def unsubscribe_by_token(body: ThreadUnsubscribeRequest,
+                         db: Session = Depends(get_db)) -> ThreadSubscriptionOut:
+    """Отписка по ссылке из письма — **без входа**.
+
+    Требовать пароль ради «перестаньте мне писать» значит заставить человека отправить
+    письмо в спам вместо отписки: спам-жалоба обходится дороже, чем эта строка кода.
+
+    Ветка берётся **из подписанного токена**, а не из тела запроса: иначе ссылку можно
+    было бы переписать и отписать человека от чужого разговора. Сам запрос — ``POST``:
+    почтовые фильтры организаций ходят по ссылкам заранее, и отписка по ``GET``
+    срабатывала бы у тех, кто её не нажимал.
+    """
+    claims = decode_thread_mute_token(body.token)
+    if claims is None:
+        raise HTTPException(status_code=400,
+                            detail="Ссылка недействительна или устарела. Письма об "
+                                   "обсуждениях можно выключить в профиле.")
+    user_id, subject_type, subject_id, anchor = claims
+    if crud.get_user(db, user_id) is None:
+        raise HTTPException(status_code=400, detail="Ссылка недействительна или устарела")
+    row = crud.set_thread_muted(db, user_id, subject_type, subject_id, anchor,
+                                muted=body.muted)
+    return _subscription_out(row.muted_at is not None)

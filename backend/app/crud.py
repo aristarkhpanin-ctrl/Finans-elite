@@ -6,15 +6,18 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 from sqlalchemy import func, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from audit_core import AuditSubjectModel
 from calc_core import ProjectModel
 
+from .comments import ThreadState
 from .database import as_tenant
 from .db_models import (
     AnalysisJob,
@@ -25,6 +28,7 @@ from .db_models import (
     AuditSubject,
     AuditSubjectVersion,
     Comment,
+    CommentSubscription,
     Holding,
     HoldingMember,
     IndustryBenchmark,
@@ -1338,6 +1342,111 @@ def delete_comment(db: Session, comment: Comment, *, by: str) -> Comment:
     db.commit()
     db.refresh(comment)
     return comment
+
+
+# --- Письма об обсуждениях: отписка от ветки и пауза (OPEN-DECISIONS §5) ---
+
+def get_comment_subscription(db: Session, user_id: str, subject_type: str,
+                             subject_id: str, anchor: str) -> CommentSubscription | None:
+    """Строка состояния писем этому человеку об этой ветке. ``None`` — ничего не
+    происходило: не отписывался и не писали."""
+    return db.scalar(select(CommentSubscription).where(
+        CommentSubscription.user_id == user_id,
+        CommentSubscription.subject_type == subject_type,
+        CommentSubscription.subject_id == subject_id,
+        CommentSubscription.anchor == anchor))
+
+
+def thread_notify_state(db: Session, user_ids: Sequence[str], subject_type: str,
+                        subject_id: str, anchor: str) -> dict[str, ThreadState]:
+    """Состояние писем по ветке для нескольких человек: ``user_id`` → :class:`ThreadState`.
+
+    Время из SQLite приходит без пояса (как и в `deps`), и сравнивать его с осведомлённым
+    нельзя — приводим здесь, на границе базы, а не в правиле отбора.
+    """
+    if not user_ids:
+        return {}
+    rows = db.execute(select(CommentSubscription).where(
+        CommentSubscription.user_id.in_(list(user_ids)),
+        CommentSubscription.subject_type == subject_type,
+        CommentSubscription.subject_id == subject_id,
+        CommentSubscription.anchor == anchor)).scalars()
+    return {row.user_id: ThreadState(muted=row.muted_at is not None,
+                                     last_notified=_aware(row.last_notified_at))
+            for row in rows}
+
+
+def _write_thread_row(db: Session, user_id: str, subject_type: str, subject_id: str,
+                      anchor: str,
+                      apply: Callable[[CommentSubscription], None]
+                      ) -> CommentSubscription:
+    """Завести или поправить строку ветки, пережив гонку двух одновременных запросов.
+
+    Строка заводится «найти или создать», и двое ответивших в одну секунду могут позвать
+    одного и того же третьего: второй запрос упрётся в уникальность. Реплика к этому
+    моменту **уже записана** — уронить её ради отметки о письме значило бы поменять
+    важное на второстепенное.
+    """
+    row = get_comment_subscription(db, user_id, subject_type, subject_id, anchor)
+    if row is None:
+        row = CommentSubscription(user_id=user_id, subject_type=subject_type,
+                                  subject_id=subject_id, anchor=anchor)
+        db.add(row)
+    apply(row)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        row = get_comment_subscription(db, user_id, subject_type, subject_id, anchor)
+        if row is None:                      # уникальность нарушило что-то другое
+            raise
+        apply(row)
+        db.commit()
+    db.refresh(row)
+    return row
+
+
+def set_thread_muted(db: Session, user_id: str, subject_type: str, subject_id: str,
+                     anchor: str, *, muted: bool) -> CommentSubscription:
+    """Отписаться от ветки или вернуть письма о ней."""
+    stamp = datetime.now(timezone.utc) if muted else None
+
+    def apply(row: CommentSubscription) -> None:
+        row.muted_at = stamp
+
+    return _write_thread_row(db, user_id, subject_type, subject_id, anchor, apply)
+
+
+def mark_thread_notified(db: Session, user_ids: Sequence[str], subject_type: str,
+                         subject_id: str, anchor: str) -> None:
+    """Отметить, что этим людям только что написали об этой ветке, — начало паузы.
+
+    Отметка ставится **при постановке письма в очередь**, а не после отправки: очередь
+    разбирается уже за пределами запроса, и ждать её исхода значило бы выпустить второе
+    письмо, пока первое ещё летит.
+    """
+    now = datetime.now(timezone.utc)
+
+    def apply(row: CommentSubscription) -> None:
+        row.last_notified_at = now
+
+    for user_id in user_ids:
+        _write_thread_row(db, user_id, subject_type, subject_id, anchor, apply)
+
+
+def list_user_thread_subscriptions(db: Session,
+                                   user_id: str) -> list[CommentSubscription]:
+    """Все строки человека — для выгрузки своих данных и для удаления учётной записи."""
+    return list(db.execute(select(CommentSubscription).where(
+        CommentSubscription.user_id == user_id)).scalars())
+
+
+def set_comment_emails(db: Session, user: User, enabled: bool) -> User:
+    """Общий выключатель писем об обсуждениях."""
+    user.comment_emails = enabled
+    db.commit()
+    db.refresh(user)
+    return user
 
 
 def count_open_comments(db: Session, org_id: str, subject_type: str,

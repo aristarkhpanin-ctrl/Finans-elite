@@ -205,6 +205,16 @@ def verify_url(token: str) -> str:
     return f"{public_url()}/verify-email?token={token}"
 
 
+def unsubscribe_url(token: str) -> str:
+    """Ссылка «не писать мне об этом обсуждении» (OPEN-DECISIONS §5).
+
+    Ведёт на **страницу**, а не на изменяющий запрос: корпоративные почтовые фильтры
+    ходят по ссылкам из писем заранее, и отписка по ``GET`` срабатывала бы у людей,
+    которые её не нажимали, — молча и без их ведома.
+    """
+    return f"{public_url()}/comments/unsubscribe?token={token}"
+
+
 def invite_letter(*, organization: str, inviter: str, token: str) -> Letter:
     return Letter(
         subject=f"Приглашение в организацию «{organization}» — Финанс-Элит",

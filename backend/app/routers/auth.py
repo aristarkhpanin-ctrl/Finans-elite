@@ -217,11 +217,21 @@ def _second_factor(db: Session, user: User, code: str) -> str:
     raise HTTPException(status_code=401, detail="Неверный код второго фактора")
 
 
+def _user_out(user: User) -> UserOut:
+    """Перенос пользователя в ответ — **одной копией**.
+
+    Копий было две (чтение профиля и его правка), и новое поле попало бы только в ту, где
+    его дописали: ровно так однажды разошлись два переноса показателей. Разница вышла бы
+    незаметной — экран читает профиль после сохранения и увидел бы прежнее значение.
+    """
+    return UserOut(id=user.id, email=user.email, full_name=user.full_name,
+                   is_staff=user.is_staff, comment_emails=user.comment_emails)
+
+
 @router.get("/me", response_model=UserOut)
 def me(user: User = Depends(current_user)) -> UserOut:
     """Данные текущего пользователя."""
-    return UserOut(id=user.id, email=user.email, full_name=user.full_name,
-                   is_staff=user.is_staff)
+    return _user_out(user)
 
 
 def _check_password(password: str, email: str = "") -> None:
@@ -440,10 +450,18 @@ def verify_email(body: VerifyEmailRequest,
 @router.patch("/me", response_model=UserOut)
 def update_me(body: ProfileUpdate, user: User = Depends(current_user),
               db: Session = Depends(get_db)) -> UserOut:
-    """Профиль: имя. Почта не меняется — она же логин и адрес приглашений."""
-    updated = crud.set_full_name(db, user, body.full_name)
-    return UserOut(id=updated.id, email=updated.email, full_name=updated.full_name,
-                   is_staff=updated.is_staff)
+    """Профиль: имя и письма об обсуждениях. Почта не меняется — она же логин и адрес
+    приглашений.
+
+    Неназванное поле **не трогается**: запрос, который меняет одну настройку, не должен
+    молча стирать другую.
+    """
+    updated = user
+    if body.full_name is not None:
+        updated = crud.set_full_name(db, updated, body.full_name)
+    if body.comment_emails is not None:
+        updated = crud.set_comment_emails(db, updated, body.comment_emails)
+    return _user_out(updated)
 
 
 @router.post("/password", status_code=status.HTTP_204_NO_CONTENT)
