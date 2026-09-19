@@ -29,7 +29,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
-from .. import crud
+from .. import crud, usage
 from ..database import as_tenant, get_db
 from ..db_models import User
 from ..deps import require_staff
@@ -38,6 +38,7 @@ from ..metrics import (
     TenantTotals,
     build_platform_metrics,
     product_label,
+    retention,
 )
 from ..plans import PRODUCTS, get_plan
 from ..schemas import (
@@ -473,6 +474,66 @@ def export_metrics(months: int = 12, days: int = 30, staff: User = Depends(requi
         content=buf.getvalue().encode("utf-8-sig"),
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": 'attachment; filename="platform-metrics.csv"'},
+    )
+
+
+@router.get("/usage.csv")
+def export_usage(months: int = 12, staff: User = Depends(require_staff),
+                 db: Session = Depends(get_db)) -> Response:
+    """Выгрузка событий пользования — **агрегатом, в котором участника нет вовсе**
+    (OPEN-DECISIONS §7).
+
+    Сырые события означали бы выгрузку поведения людей, пусть и обезличенных. Отпечаток
+    нужен платформе **внутри**, чтобы ответить «тот же человек вернулся»; в файле он не
+    нужен ни для одного вопроса, а вне платформы его рано или поздно соединят с чем-то
+    ещё — и обезличенность кончится. Поэтому строка файла — месяц, событие, организация,
+    число и сколько разных людей за ним стоит.
+
+    **Удержание уходит уже посчитанным** (когорта → доля), а не сырьём для пересчёта:
+    пересчитывать его снаружи означало бы, что снаружи есть, из чего.
+
+    Пустой файл **объясняет свою пустоту**, а не отказывает: сбор выключается рубильником
+    установки, и «событий нет» без этой оговорки читается как «никто не пользовался».
+    """
+    months = max(1, min(months, 36))
+    summary = usage.summarize(db, months=months)
+    cohorts = retention(db, summary.generated_at, months)
+
+    buf = io.StringIO()
+    writer = csv.writer(buf, delimiter=";", lineterminator="\r\n")
+    writer.writerow(["Месяц", "Событие", "Что это", "Организация", "Идентификатор",
+                     "Событий", "Участников"])
+    for row in summary.rows:
+        writer.writerow([row.month, row.event, usage.EVENTS.get(row.event, ""),
+                         row.organization, row.organization_id, row.count,
+                         row.participants])
+
+    writer.writerow([])
+    writer.writerow(["Месяц", "Событий всего"])
+    for month, total in summary.monthly:
+        writer.writerow([month, total])
+
+    writer.writerow([])
+    # Доля — **посчитанная**, а не два числа рядом: иначе её посчитают снаружи, и это
+    # будет означать, что снаружи есть, из чего.
+    writer.writerow(["Когорта", "Пришло организаций", "Вернулось", "Доля вернувшихся"])
+    for point in cohorts:
+        share = ("" if point.returned is None or not point.arrived
+                 else f"{point.returned / point.arrived:.2f}".replace(".", ","))
+        writer.writerow([point.month, point.arrived,
+                         "" if point.returned is None else point.returned, share])
+
+    writer.writerow([])
+    writer.writerow(["Чего эти числа не значат"])
+    for note in summary.notes:
+        writer.writerow([note])
+
+    crud.log_staff_action(db, staff, "staff.usage_export",
+                          details=f"{months} мес., строк: {len(summary.rows)}")
+    return Response(
+        content=buf.getvalue().encode("utf-8-sig"),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="usage-summary.csv"'},
     )
 
 

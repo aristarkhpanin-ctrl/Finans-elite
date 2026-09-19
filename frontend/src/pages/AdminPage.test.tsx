@@ -29,6 +29,7 @@ const blockUser = vi.fn();
 const unblockUser = vi.fn();
 const getPlatformMetrics = vi.fn();
 const downloadMetricsCsv = vi.fn();
+const downloadUsageCsv = vi.fn();
 vi.mock("../api/admin", () => ({
   getStaffOrganizations: (...a: unknown[]) => getStaffOrganizations(...a),
   getStaffOrganization: (...a: unknown[]) => getStaffOrganization(...a),
@@ -41,6 +42,7 @@ vi.mock("../api/admin", () => ({
   unblockUser: (...a: unknown[]) => unblockUser(...a),
   getPlatformMetrics: (...a: unknown[]) => getPlatformMetrics(...a),
   downloadMetricsCsv: (...a: unknown[]) => downloadMetricsCsv(...a),
+  downloadUsageCsv: (...a: unknown[]) => downloadUsageCsv(...a),
 }));
 
 const toast = vi.fn();
@@ -114,6 +116,7 @@ beforeEach(() => {
   unblockUser.mockImplementation(async () => ({}));
   getPlatformMetrics.mockResolvedValue(metrics());
   downloadMetricsCsv.mockResolvedValue(undefined);
+  downloadUsageCsv.mockResolvedValue(undefined);
 });
 
 function show() {
@@ -313,4 +316,14 @@ it("когорта без пришедших не выдаётся за кого
   fireEvent.click(await screen.findByRole("button", { name: "Сводка" }));
   expect(await screen.findByText("3 из 4")).toBeTruthy();
   expect(screen.getByText("не измеряется")).toBeTruthy();
+});
+
+it("события выгружаются отдельно от сводки: это разные вопросы", async () => {
+  // Сводка отвечает «сколько клиентов и кто жив», события — «как пользуются». Один
+  // файл на оба вопроса означал бы, что в нём есть поведение людей (OPEN-DECISIONS §7).
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Сводка" }));
+  fireEvent.click(await screen.findByRole("button", { name: "События CSV" }));
+  await waitFor(() => expect(downloadUsageCsv).toHaveBeenCalled());
+  expect(downloadMetricsCsv).not.toHaveBeenCalled();
 });

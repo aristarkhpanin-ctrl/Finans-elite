@@ -8,6 +8,7 @@ import {
   getStaffOrganizations,
   getPlatformMetrics,
   downloadMetricsCsv,
+  downloadUsageCsv,
   resumeOrganization,
   searchStaffUsers,
   suspendOrganization,
@@ -608,6 +609,19 @@ function MetricsTab() {
                     toast("Не удалось выгрузить сводку", { kind: "error" });
                   }
                 }}>CSV</Button>
+        {/* Выгрузка событий — отдельной кнопкой, а не тем же файлом: сводка отвечает
+            «сколько клиентов и кто жив», события — «как пользуются», и участника в них
+            нет вовсе (OPEN-DECISIONS §7). */}
+        <Button variant="ghost"
+                onClick={async () => {
+                  try {
+                    await downloadUsageCsv();
+                    toast("События выгружены — с оговорками внутри файла",
+                          { kind: "success" });
+                  } catch {
+                    toast("Не удалось выгрузить события", { kind: "error" });
+                  }
+                }}>События CSV</Button>
       </div>
 
       <div className="adm-cards">

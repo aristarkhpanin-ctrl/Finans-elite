@@ -33,11 +33,13 @@ from __future__ import annotations
 
 import hashlib
 import os
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .db_models import UsageEvent
+from .db_models import Organization, UsageEvent
 
 #: Закрытый перечень событий: код → что он означает. Ключи стабильны — на них ссылаются
 #: сводка платформы и выгрузка.
@@ -125,3 +127,141 @@ def record(db: Session, *, event: str, org_id: str, email: str = "",
         db.rollback()
         return None
     return row
+
+
+# --- Сводка событий на выгрузку (OPEN-DECISIONS §7) ---
+#
+# Выгружается **агрегат, в котором участника нет вовсе**: месяц, код события,
+# организация, число. Отпечаток нужен платформе **внутри**, чтобы ответить «тот же
+# человек вернулся»; в файле он не нужен ни для одного вопроса, а вне платформы отпечаток
+# с солью рано или поздно соединят с чем-то ещё — и обезличенность кончится. Поэтому из
+# отпечатков в файл уходит только **их количество** — «сколько разных людей», а не «какие».
+
+
+@dataclass(frozen=True)
+class UsageRow:
+    """Строка сводки: что происходило в одной организации в одном месяце."""
+
+    month: str
+    event: str
+    #: Имя организации **на момент выгрузки** и её идентификатор: имя читают, а по
+    #: идентификатору сходятся строки разных выгрузок, если организацию переименовали.
+    organization_id: str
+    organization: str
+    count: int
+    #: Сколько **разных** участников — производная от отпечатков, а не отпечаток.
+    #: «Десять событий от одного человека» и «десять от десяти» — разные факты, и без
+    #: этого числа их не различить.
+    participants: int
+
+
+@dataclass
+class UsageSummary:
+    """Сводка событий: строки, помесячные итоги и **границы их применимости**."""
+
+    generated_at: datetime
+    months: int
+    rows: list[UsageRow] = field(default_factory=list)
+    #: Итог по месяцам — рядом, и **с нулями**: пропущенный месяц в ряду читается как
+    #: потерянные данные, а ноль в нём — это ответ.
+    monthly: list[tuple[str, int]] = field(default_factory=list)
+    #: Когда записано самое первое событие — **по всем** событиям, а не по окну: окно
+    #: сужает выдачу, а «собираем с такого-то числа» обязано остаться правдой.
+    #: ``None`` — событий нет вовсе.
+    first_event_at: datetime | None = None
+    collecting: bool = False
+    notes: list[str] = field(default_factory=list)
+
+
+def _month_key(value: datetime) -> str:
+    return f"{value.year:04d}-{value.month:02d}"
+
+
+def _months_back(now: datetime, months: int) -> list[str]:
+    """Последние ``months`` месяцев, включая текущий, старые сверху."""
+    out: list[str] = []
+    year, month = now.year, now.month
+    for _ in range(months):
+        out.append(f"{year:04d}-{month:02d}")
+        month -= 1
+        if month == 0:
+            year, month = year - 1, 12
+    return list(reversed(out))
+
+
+def summarize(db: Session, *, now: datetime | None = None,
+              months: int = 12) -> UsageSummary:
+    """Собрать сводку событий за последние ``months`` месяцев.
+
+    Группировка — **в Python**, а не выражением SQL: помесячная свёртка на диалекте
+    прошла бы тесты на SQLite и разошлась бы с PostgreSQL молча (тот же довод, что в
+    сводке платформы).
+
+    Организации называются по имени: файл читает владелец установки, который и так видит
+    их в служебном разделе. Содержимого моделей здесь нет и быть не может — его нет в
+    самих событиях.
+    """
+    now = now or datetime.now(timezone.utc)
+    window = set(_months_back(now, months))
+    names = {o.id: o.name for o in db.execute(select(Organization)).scalars()}
+
+    counts: dict[tuple[str, str, str], int] = {}
+    actors: dict[tuple[str, str, str], set[str]] = {}
+    monthly: dict[str, int] = {m: 0 for m in window}
+    first: datetime | None = None
+    for org_id, event, actor, created in db.execute(
+            select(UsageEvent.organization_id, UsageEvent.event, UsageEvent.actor,
+                   UsageEvent.created_at)).all():
+        stamp = created if created.tzinfo else created.replace(tzinfo=timezone.utc)
+        if first is None or stamp < first:
+            first = stamp
+        month = _month_key(stamp)
+        if month not in window:
+            continue
+        key = (month, event, org_id)
+        counts[key] = counts.get(key, 0) + 1
+        if actor:
+            actors.setdefault(key, set()).add(actor)
+        monthly[month] += 1
+
+    rows = [
+        UsageRow(month=month, event=event, organization_id=org_id,
+                 organization=names.get(org_id, ""), count=count,
+                 participants=len(actors.get((month, event, org_id), ())))
+        for (month, event, org_id), count in sorted(counts.items())
+    ]
+    summary = UsageSummary(generated_at=now, months=months, rows=rows,
+                           monthly=sorted(monthly.items()), first_event_at=first,
+                           collecting=collecting())
+    summary.notes = _summary_notes(summary)
+    return summary
+
+
+def _summary_notes(summary: UsageSummary) -> list[str]:
+    """Чего эта выгрузка **не** значит. Едет в самом файле, а не остаётся на экране:
+    таблица, доехавшая до чужой презентации без оговорок, утверждает больше, чем
+    платформа измеряла."""
+    notes = [
+        "Участника в этой выгрузке нет вовсе: ни почты, ни отпечатка. «Участников» — "
+        "это сколько разных людей стоит за числом, а не кто они.",
+        "Это не журнал действий. Журнал отвечает организации «кто это сделал» и не "
+        "пишет чтение; здесь наоборот — платформа считает, как пользуются, и чтение "
+        "считает тоже.",
+        "Чисел из моделей клиентов здесь нет: их нет и в самих событиях — перечень "
+        "того, что попадает в событие, закрыт.",
+        "Строки есть только там, где события были: отсутствие строки — это ноль. "
+        "Помесячный итог, наоборот, идёт со всеми месяцами окна, включая нулевые.",
+    ]
+    if summary.first_event_at is None:
+        notes.append(
+            "Событий не записано ни одного. Это не значит «никто не пользовался»: "
+            "сбор включается рубильником установки, и до его включения не пишется ничего.")
+    else:
+        notes.append(
+            f"Первое событие записано {summary.first_event_at.strftime('%d.%m.%Y')}. "
+            "Раньше этой даты ноль означает «не записывали», а не «не пользовались».")
+    notes.append(
+        "Сбор событий сейчас включён: ряд продолжается." if summary.collecting else
+        "Сбор событий сейчас выключен — новые события не пишутся. На части периода он "
+        "тоже мог быть выключен, и провал в ряду это не отсутствие работы.")
+    return notes

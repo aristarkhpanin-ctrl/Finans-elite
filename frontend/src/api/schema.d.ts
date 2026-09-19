@@ -187,6 +187,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/usage.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Usage
+         * @description Выгрузка событий пользования — **агрегатом, в котором участника нет вовсе**
+         *     (OPEN-DECISIONS §7).
+         *
+         *     Сырые события означали бы выгрузку поведения людей, пусть и обезличенных. Отпечаток
+         *     нужен платформе **внутри**, чтобы ответить «тот же человек вернулся»; в файле он не
+         *     нужен ни для одного вопроса, а вне платформы его рано или поздно соединят с чем-то
+         *     ещё — и обезличенность кончится. Поэтому строка файла — месяц, событие, организация,
+         *     число и сколько разных людей за ним стоит.
+         *
+         *     **Удержание уходит уже посчитанным** (когорта → доля), а не сырьём для пересчёта:
+         *     пересчитывать его снаружи означало бы, что снаружи есть, из чего.
+         *
+         *     Пустой файл **объясняет свою пустоту**, а не отказывает: сбор выключается рубильником
+         *     установки, и «событий нет» без этой оговорки читается как «никто не пользовался».
+         */
+        get: operations["export_usage_api_v1_admin_usage_csv_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/users": {
         parameters: {
             query?: never;
@@ -10958,6 +10991,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StaffOrgDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_usage_api_v1_admin_usage_csv_get: {
+        parameters: {
+            query?: {
+                months?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

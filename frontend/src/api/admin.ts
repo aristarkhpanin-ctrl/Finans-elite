@@ -105,12 +105,28 @@ export async function getPlatformMetrics(days = 30, months = 12): Promise<Platfo
 
 /** Выгрузка сводки: те же числа и те же оговорки — таблица без них утверждает больше. */
 export async function downloadMetricsCsv(days = 30, months = 12): Promise<void> {
-  const { data } = await api.get<Blob>("/api/v1/admin/metrics.csv",
-    { params: { days, months }, responseType: "blob" });
-  const url = URL.createObjectURL(data);
+  await downloadCsv("/api/v1/admin/metrics.csv", { days, months },
+                    "сводка-платформы.csv");
+}
+
+/**
+ * Выгрузка событий пользования — **агрегатом** (OPEN-DECISIONS §7).
+ *
+ * Сырые события означали бы выгрузку поведения людей, пусть и обезличенных: строка файла
+ * — месяц, событие, организация, число, и ни одного отпечатка. Удержание уходит уже
+ * посчитанным, оговорки едут в самом файле.
+ */
+export async function downloadUsageCsv(months = 12): Promise<void> {
+  await downloadCsv("/api/v1/admin/usage.csv", { months }, "события-платформы.csv");
+}
+
+async function downloadCsv(url: string, params: Record<string, number>,
+                           filename: string): Promise<void> {
+  const { data } = await api.get<Blob>(url, { params, responseType: "blob" });
+  const href = URL.createObjectURL(data);
   const a = document.createElement("a");
-  a.href = url;
-  a.download = "сводка-платформы.csv";
+  a.href = href;
+  a.download = filename;
   a.click();
-  URL.revokeObjectURL(url);
+  URL.revokeObjectURL(href);
 }
