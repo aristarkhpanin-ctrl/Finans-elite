@@ -5390,6 +5390,16 @@ export interface components {
             /** Id */
             id: string;
             /**
+             * Links
+             * @default []
+             */
+            links: string[];
+            /**
+             * Links Note
+             * @default
+             */
+            links_note: string;
+            /**
              * Mentions
              * @default []
              */
@@ -5410,6 +5420,11 @@ export interface components {
             subject_id: string;
             /** Subject Type */
             subject_type: string;
+            /**
+             * Unsupported Links
+             * @default []
+             */
+            unsupported_links: string[];
         };
         /** Company */
         "Company-Input": {

@@ -38,6 +38,7 @@ const row = (over: Partial<Comment> = {}): Comment => ({
   anchor: "report:income", anchor_label: "Прибыли и убытки",
   author_email: "o@e.ru", author_name: "Владелец",
   body: "Откуда такая себестоимость?", mentions: [],
+  links: [], unsupported_links: [], links_note: "",
   created_at: "2026-09-10T10:00:00Z",
   resolved: false, resolved_at: null, resolved_by: "", deleted: false, ...over,
 } as Comment);
@@ -187,4 +188,47 @@ it("отписка живёт рядом с обсуждением, а не то
   expect(await screen.findByRole("button",
                                  { name: "Писать мне об этом обсуждении" })).toBeTruthy();
   expect(screen.getByText(/позовут по имени/)).toBeTruthy();
+});
+
+// --- Ссылки на материалы (OPEN-DECISIONS §6) ---
+
+it("ссылка показана, и рядом сказано, что файл не у платформы", async () => {
+  // Обещание «мы этого не храним» в документации, которую не откроют, — не обещание.
+  getComments.mockResolvedValue([row({
+    links: ["https://dataroom.example/a.pdf"],
+    links_note: "Файлов платформа не хранит: это ссылки в чужую систему.",
+  })]);
+  show();
+  const link = await screen.findByRole("link", { name: "https://dataroom.example/a.pdf" });
+  expect(link.getAttribute("href")).toBe("https://dataroom.example/a.pdf");
+  expect(screen.getByText(/Файлов платформа не хранит/)).toBeTruthy();
+});
+
+it("ссылка не уносит с собой адрес страницы и не даёт увести вкладку", async () => {
+  // В адресе страницы — идентификатор проекта: без `noreferrer` чужая система увидит,
+  // откуда пришли; без `noopener` открытая вкладка сможет подменить исходную.
+  getComments.mockResolvedValue([row({ links: ["https://dataroom.example/a.pdf"],
+                                       links_note: "оговорка" })]);
+  show();
+  const link = await screen.findByRole("link", { name: /dataroom/ });
+  expect(link.getAttribute("rel")).toContain("noreferrer");
+  expect(link.getAttribute("rel")).toContain("noopener");
+  expect(link.getAttribute("target")).toBe("_blank");
+});
+
+it("то, что ссылкой не стало, названо, а не проглочено", async () => {
+  // Иначе автор думает, что приложил выписку, а коллега не найдёт ничего.
+  getComments.mockResolvedValue([row({
+    unsupported_links: ["\\\\сервер\\общая\\выписка.xlsx"] })]);
+  show();
+  expect(await screen.findByText(/Ссылкой не стало/)).toBeTruthy();
+  expect(screen.getByText(/только\s+http\(s\)/)).toBeTruthy();
+});
+
+it("реплика без ссылок оговорки не несёт", async () => {
+  // Оговорка, стоящая везде, перестаёт читаться.
+  show();
+  await screen.findByText("Откуда такая себестоимость?");
+  expect(screen.queryByRole("link")).toBeNull();
+  expect(screen.queryByText(/не хранит/)).toBeNull();
 });

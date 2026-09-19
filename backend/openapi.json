@@ -4981,6 +4981,19 @@
             "title": "Id",
             "type": "string"
           },
+          "links": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Links",
+            "type": "array"
+          },
+          "links_note": {
+            "default": "",
+            "title": "Links Note",
+            "type": "string"
+          },
           "mentions": {
             "default": [],
             "items": {
@@ -5018,6 +5031,14 @@
           "subject_type": {
             "title": "Subject Type",
             "type": "string"
+          },
+          "unsupported_links": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Unsupported Links",
+            "type": "array"
           }
         },
         "required": [

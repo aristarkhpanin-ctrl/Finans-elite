@@ -30,8 +30,11 @@ from sqlalchemy.orm import Session
 
 from .. import crud
 from ..comments import (
+    LINKS_NOTE,
+    MAX_LINKS,
     NOTIFY_PAUSE,
     check_body,
+    parse_links,
     parse_mentions,
     reply_targets,
     thread_participants,
@@ -58,12 +61,20 @@ router = APIRouter(prefix="/api/v1", tags=["comments"])
 
 
 def _out(comment: Comment) -> CommentOut:
+    # Ссылки **выводятся из текста**, а не лежат своим полем. Второй список был бы
+    # вторым местом, которое надо чистить при удалении реплики, — и однажды его забыли
+    # бы, оставив адрес комнаты данных в «надгробии». Здесь чистить нечего: текст
+    # стёрт (`delete_comment`), и выводить не из чего.
+    shown = visible_body(comment)
+    links = parse_links(shown)
     return CommentOut(
         id=comment.id, subject_type=comment.subject_type, subject_id=comment.subject_id,
         anchor=comment.anchor, anchor_label=comment.anchor_label,
         author_email=comment.author_email, author_name=comment.author_name,
-        body=visible_body(comment),
+        body=shown,
         mentions=[m for m in comment.mentions.split(",") if m],
+        links=links.known, unsupported_links=links.unsupported,
+        links_note=LINKS_NOTE if links.known else "",
         created_at=comment.created_at,
         resolved=comment.resolved_at is not None, resolved_at=comment.resolved_at,
         resolved_by=comment.resolved_by, deleted=comment.deleted_at is not None,
@@ -114,6 +125,16 @@ def _unsubscribe_block(mute_link: str, *, mention: bool) -> str:
             "Выключить письма об обсуждениях совсем можно в профиле.")
 
 
+def _links_line(has_links: bool) -> str:
+    """Оговорка про ссылки — **в письме тоже**, и только когда они в реплике есть.
+
+    Письмо — то место, где по ссылке и щёлкнут: экран получатель может не открыть вовсе.
+    Строка, стоящая в каждом письме, перестаёт читаться, поэтому её здесь нет там, где
+    ссылок нет.
+    """
+    return f"\n\n{LINKS_NOTE}" if has_links else ""
+
+
 def _mention_letter(*, author: str, subject_name: str, where: str, body: str,
                     link: str, mute_link: str) -> Letter:
     """Письмо об упоминании. Текст реплики внутри — иначе письмо заставляет открыть
@@ -126,6 +147,7 @@ def _mention_letter(*, author: str, subject_name: str, where: str, body: str,
               + (f"Открыть: {link}\n\n" if link else "")
               + "Упоминание не открывает доступ: если раздела не видно, попросите права "
                 "у администратора организации."
+              + _links_line(bool(parse_links(body).known))
               + _unsubscribe_block(mute_link, mention=True)
               + _SIGNATURE),
         # Рассказ о чужой активности: на неподтверждённый адрес не уходит (см. Letter).
@@ -154,6 +176,7 @@ def _reply_letter(*, author: str, subject_name: str, where: str, body: str,
                  "будет — откройте обсуждение целиком." if hours == 1 else
                  f"Следующие {hours} ч письма о новых репликах не приходят — откройте "
                  f"обсуждение целиком.")
+              + _links_line(bool(parse_links(body).known))
               + _unsubscribe_block(mute_link, mention=False)
               + _SIGNATURE),
         # Рассказ о чужой активности: на неподтверждённый адрес не уходит (см. Letter).
@@ -168,6 +191,14 @@ def _create(db: Session, background: BackgroundTasks, *, org_id: str, author: Us
     problem = check_body(body.body)
     if problem:
         raise HTTPException(status_code=422, detail=problem)
+
+    links = parse_links(body.body)
+    if links.too_many:
+        raise HTTPException(
+            status_code=422,
+            detail=(f"Ссылок в одной реплике больше {MAX_LINKS} — это уже опись, а не "
+                    "«вот выписка». Разнесите их по репликам, чтобы к каждой можно было "
+                    "написать, что это."))
 
     members = {u.email.lower(): u.email for _, u in crud.list_members(db, org_id)}
     mentions = parse_mentions(body.body, members)

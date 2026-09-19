@@ -179,6 +179,26 @@ function CommentRow({ c, mine, onResolve, onDelete }: {
         )}
       </div>
       <div className="cmt-row__body">{c.body}</div>
+      {c.links.length > 0 && (
+        <div className="cmt-row__links">
+          {c.links.map((url) => (
+            // `rel` здесь не украшение: без `noreferrer` чужая система увидит, с какой
+            // страницы пришли (а в адресе — идентификатор проекта), без `noopener`
+            // открытая вкладка сможет увести исходную на свою страницу.
+            <a key={url} href={url} target="_blank" rel="noreferrer noopener"
+               className="cmt-link" title={url}>{url}</a>
+          ))}
+          {/* Оговорка приходит с сервера и стоит **рядом со ссылкой**: обещание
+              «файл не у нас» в документации, которую не откроют, — не обещание. */}
+          <div className="cmt-row__note">{c.links_note}</div>
+        </div>
+      )}
+      {c.unsupported_links.length > 0 && (
+        <div className="cmt-row__note">
+          Ссылкой не стало: {c.unsupported_links.join(", ")}. Ссылкой считается только
+          http(s) — остальное у коллеги не откроется.
+        </div>
+      )}
       {!c.deleted && (
         <div className="cmt-row__acts">
           <button type="button" className="cmt-act"
