@@ -154,8 +154,13 @@ def add_member(body: MemberCreate,
     report = MailReport()
     if invite is not None and mail_enabled():
         org = crud.get_organization(db, org_id)
+        # В письмо уходит **свой** токен, с признаком «ушёл в ящик»: тот, что вернётся
+        # администратору, пойдёт мессенджером или голосом и про ящик не доказывает
+        # ничего. Один токен на оба канала подтверждал бы адрес по факту существования
+        # письма, а не по факту, что человек достал ссылку именно оттуда.
         report = _mail_report(mail.send(user.email, invite_letter(
-            organization=org.name if org else "", inviter=actor.email, token=invite)))
+            organization=org.name if org else "", inviter=actor.email,
+            token=create_invite_token(user.id, emailed=True))))
         crud.log_action(db, org_id, actor, "member.invite_mail", entity_type="member",
                         entity_id=user.id, entity_name=user.email,
                         details="письмо отправлено" if report.ok
@@ -338,9 +343,13 @@ def issue_access_link(user_id: str,
     report = MailReport()
     if mail_enabled():
         org = crud.get_organization(db, org_id)
+        # Как и у приглашения: письму — свой токен с признаком «ушёл в ящик».
+        emailed_token = (create_reset_token(user.id, user.hashed_password, emailed=True)
+                         if kind == "reset" else
+                         create_invite_token(user.id, emailed=True))
         report = _mail_report(mail.send(user.email, access_link_letter(
             kind=kind, organization=org.name if org else "", issued_by=actor.email,
-            token=token)))
+            token=emailed_token)))
     # Ссылка возвращается **в любом случае** — и при неудачной отправке, и при
     # успешной: письмо может не дойти молча (спам-фильтр, опечатка в адресе), и
     # администратору нужно, чем его заменить.

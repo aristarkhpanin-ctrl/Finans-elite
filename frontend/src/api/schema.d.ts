@@ -816,6 +816,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/email-verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Email Verification State
+         * @description Подтверждён ли адрес — и что из этого следует.
+         */
+        get: operations["email_verification_state_api_v1_auth_email_verification_get"];
+        put?: never;
+        /**
+         * Request Email Verification
+         * @description Прислать письмо с подтверждением адреса.
+         *
+         *     Письмо уходит **на неподтверждённый адрес** — единственное, которому это разрешено:
+         *     иначе подтверждение недостижимо (чтобы получить письмо, нужно подтвердить адрес, а
+         *     чтобы подтвердить — получить письмо).
+         *
+         *     Где почта не настроена, маршрут **отказывает и называет причину**, а не изображает
+         *     отправку: строчка «письмо отправлено», за которой ничего не происходит, уже стоила
+         *     приглашённым нескольких дней ожидания (D1).
+         */
+        post: operations["request_email_verification_api_v1_auth_email_verification_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/export": {
         parameters: {
             query?: never;
@@ -1186,6 +1218,31 @@ export interface paths {
         get: operations["usage_policy_api_v1_auth_usage_policy_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/verify-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify Email
+         * @description Подтвердить адрес по ссылке из письма.
+         *
+         *     Вход не требуется: ссылку открывают из почты, и заставлять человека сначала войти
+         *     значило бы отправить его искать пароль ради того, что он уже доказал переходом.
+         *     Токен подтверждения **не является токеном входа** и пароля не заводит — им можно
+         *     только подтвердить адрес.
+         */
+        post: operations["verify_email_api_v1_auth_verify_email_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5632,6 +5689,26 @@ export interface components {
              * @default
              */
             label: string;
+        };
+        /**
+         * EmailVerificationOut
+         * @description Состояние адреса и что из этого следует.
+         *
+         *     ``verified=False`` — **не обвинение**: до появления подтверждения не подтверждал
+         *     никто. Поэтому рядом всегда стоит, что именно из-за этого не приходит, и `sent`
+         *     говорит, ушло ли письмо **сейчас** — «не отправляли» и «отправляли, не вышло» здесь
+         *     такие же разные ответы, как и везде.
+         */
+        EmailVerificationOut: {
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /** Sent */
+            sent?: boolean | null;
+            /** Verified */
+            verified: boolean;
         };
         /**
          * EntityActivityOut
@@ -10313,6 +10390,14 @@ export interface components {
          */
         VatBasis: "shipment" | "payment";
         /**
+         * VerifyEmailRequest
+         * @description Подтверждение адреса по ссылке из письма.
+         */
+        VerifyEmailRequest: {
+            /** Token */
+            token: string;
+        };
+        /**
          * VersionCreate
          * @description Запрос снимка текущей модели как именованной версии.
          */
@@ -11860,6 +11945,46 @@ export interface operations {
             };
         };
     };
+    email_verification_state_api_v1_auth_email_verification_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailVerificationOut"];
+                };
+            };
+        };
+    };
+    request_email_verification_api_v1_auth_email_verification_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailVerificationOut"];
+                };
+            };
+        };
+    };
     export_my_data_api_v1_auth_export_get: {
         parameters: {
             query?: never;
@@ -12305,6 +12430,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UsagePolicyOut"];
+                };
+            };
+        };
+    };
+    verify_email_api_v1_auth_verify_email_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyEmailRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailVerificationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

@@ -5760,6 +5760,36 @@
         "title": "EarningsAdjustment",
         "type": "object"
       },
+      "EmailVerificationOut": {
+        "description": "Состояние адреса и что из этого следует.\n\n``verified=False`` — **не обвинение**: до появления подтверждения не подтверждал\nникто. Поэтому рядом всегда стоит, что именно из-за этого не приходит, и `sent`\nговорит, ушло ли письмо **сейчас** — «не отправляли» и «отправляли, не вышло» здесь\nтакие же разные ответы, как и везде.",
+        "properties": {
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          },
+          "sent": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sent"
+          },
+          "verified": {
+            "title": "Verified",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "verified"
+        ],
+        "title": "EmailVerificationOut",
+        "type": "object"
+      },
       "EntityActivityOut": {
         "description": "Проект или дело: когда правили, когда считали, сколько вопросов открыто.",
         "properties": {
@@ -14096,6 +14126,20 @@
         "title": "VatBasis",
         "type": "string"
       },
+      "VerifyEmailRequest": {
+        "description": "Подтверждение адреса по ссылке из письма.",
+        "properties": {
+          "token": {
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "title": "VerifyEmailRequest",
+        "type": "object"
+      },
       "VersionCreate": {
         "description": "Запрос снимка текущей модели как именованной версии.",
         "properties": {
@@ -17032,6 +17076,58 @@
         ]
       }
     },
+    "/api/v1/auth/email-verification": {
+      "get": {
+        "description": "Подтверждён ли адрес — и что из этого следует.",
+        "operationId": "email_verification_state_api_v1_auth_email_verification_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailVerificationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Email Verification State",
+        "tags": [
+          "auth"
+        ]
+      },
+      "post": {
+        "description": "Прислать письмо с подтверждением адреса.\n\nПисьмо уходит **на неподтверждённый адрес** — единственное, которому это разрешено:\nиначе подтверждение недостижимо (чтобы получить письмо, нужно подтвердить адрес, а\nчтобы подтвердить — получить письмо).\n\nГде почта не настроена, маршрут **отказывает и называет причину**, а не изображает\nотправку: строчка «письмо отправлено», за которой ничего не происходит, уже стоила\nприглашённым нескольких дней ожидания (D1).",
+        "operationId": "request_email_verification_api_v1_auth_email_verification_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailVerificationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Request Email Verification",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/auth/export": {
       "get": {
         "description": "Выгрузить всё, что платформа хранит **о вас** — одним файлом.\n\nПроектов и дел здесь нет: они принадлежат организациям, а не сотруднику. Отдать их\n«по запросу субъекта персональных данных» значило бы выдать уходящему модели\nработодателя под видом личного права — выгрузка компании живёт на своих экранах.\n\nСама выгрузка пишется в журнал: вынос данных наружу — событие (правило 5 пакета).",
@@ -17625,6 +17721,48 @@
           }
         ],
         "summary": "Usage Policy",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/verify-email": {
+      "post": {
+        "description": "Подтвердить адрес по ссылке из письма.\n\nВход не требуется: ссылку открывают из почты, и заставлять человека сначала войти\nзначило бы отправить его искать пароль ради того, что он уже доказал переходом.\nТокен подтверждения **не является токеном входа** и пароля не заводит — им можно\nтолько подтвердить адрес.",
+        "operationId": "verify_email_api_v1_auth_verify_email_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEmailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailVerificationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Verify Email",
         "tags": [
           "auth"
         ]

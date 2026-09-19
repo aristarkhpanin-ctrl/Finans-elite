@@ -19,7 +19,12 @@ from .. import crud, totp, usage
 from ..database import get_db
 from ..db_models import User, UserSession
 from ..deps import account_blocked_detail, current_session, current_user
-from ..mail import mail_enabled, new_device_letter, reset_letter
+from ..mail import (
+    mail_enabled,
+    new_device_letter,
+    reset_letter,
+    verify_email_letter,
+)
 from ..notify import send_and_log
 from ..password_policy import MIN_LENGTH, check_password, policy_rules
 from ..personal_data import build_export, delete_account, deletion_plan
@@ -29,6 +34,7 @@ from ..schemas import (
     ActivateRequest,
     CapabilitiesOut,
     DeletionPlanOut,
+    EmailVerificationOut,
     ForgotPasswordIn,
     ForgotPasswordOut,
     LoginRequest,
@@ -46,16 +52,19 @@ from ..schemas import (
     TotpStatusOut,
     UsagePolicyOut,
     UserOut,
+    VerifyEmailRequest,
 )
 from ..security import (
     access_ttl,
     create_access_token,
     create_invite_token,
     create_reset_token,
+    create_verify_token,
     decode_reset_token,
     decode_token,
     hash_password,
     password_stamp,
+    token_was_emailed,
     verify_password,
 )
 from ..sessions import client_ip, device_label
@@ -283,6 +292,11 @@ def activate(body: ActivateRequest, request: Request,
     crud.set_password(db, user, hash_password(body.password))
     if body.full_name:
         crud.set_full_name(db, user, body.full_name)
+    # Ссылка, ушедшая в ящик (и только туда), доказывает, что ящик человека: достать её
+    # больше неоткуда. Ссылка, выданная администратору на руки, не доказывает ничего —
+    # он вправе передать её мессенджером, и признак в подписанном токене их различает.
+    if token_was_emailed(body.token):
+        crud.mark_email_verified(db, user)
     crud.log_user_action(db, user, "auth.activate",
                          details="сброс пароля" if reset is not None else "приглашение")
     # Сброс пароля закрывает прежние входы: ссылку и выдают тогда, когда доступ к
@@ -339,14 +353,88 @@ def forgot_password(body: ForgotPasswordIn, background: BackgroundTasks,
     if (user is not None and user.blocked_at is None
             and allow("forgot-account", user.id, limit=3, window_seconds=3600)):
         has_password = bool(user.hashed_password)
-        token = (create_reset_token(user.id, user.hashed_password) if has_password
-                 else create_invite_token(user.id))
+        # Этот токен уходит **только** в ящик и никому не показывается — в отличие от
+        # ссылки администратора, которая возвращается ему для передачи лично. Поэтому
+        # переход по нему и правда доказывает, что ящик человека: достать ссылку больше
+        # неоткуда.
+        token = (create_reset_token(user.id, user.hashed_password, emailed=True)
+                 if has_password else create_invite_token(user.id, emailed=True))
         # Отправка — в стороне от ответа: разговор с почтовым сервером занимает секунды,
         # и **время ответа** выдало бы существование адреса не хуже разного текста.
         background.add_task(send_and_log, db.get_bind(), user.id, user.email,
                             reset_letter(token=token, has_password=has_password),
                             "auth.password_reset_requested")
     return ForgotPasswordOut(message=_FORGOT_ANSWER)
+
+
+#: Что именно перестаёт приходить на неподтверждённый адрес. Один текст на API и письмо:
+#: две формулировки одного обещания однажды разойдутся.
+UNVERIFIED_NOTE = (
+    "Адрес не подтверждён: уведомления о входе с нового устройства и об упоминаниях в "
+    "обсуждениях на него не уходят — если в адресе опечатка, они попадали бы "
+    "постороннему. Ссылки для входа и восстановления пароля приходят как обычно."
+)
+
+VERIFIED_NOTE = "Адрес подтверждён: уведомления приходят."
+
+
+@router.get("/email-verification", response_model=EmailVerificationOut)
+def email_verification_state(user: User = Depends(current_user)) -> EmailVerificationOut:
+    """Подтверждён ли адрес — и что из этого следует."""
+    verified = user.email_verified_at is not None
+    return EmailVerificationOut(verified=verified,
+                                note=VERIFIED_NOTE if verified else UNVERIFIED_NOTE)
+
+
+@router.post("/email-verification", response_model=EmailVerificationOut)
+def request_email_verification(background: BackgroundTasks,
+                               user: User = Depends(current_user),
+                               db: Session = Depends(get_db)) -> EmailVerificationOut:
+    """Прислать письмо с подтверждением адреса.
+
+    Письмо уходит **на неподтверждённый адрес** — единственное, которому это разрешено:
+    иначе подтверждение недостижимо (чтобы получить письмо, нужно подтвердить адрес, а
+    чтобы подтвердить — получить письмо).
+
+    Где почта не настроена, маршрут **отказывает и называет причину**, а не изображает
+    отправку: строчка «письмо отправлено», за которой ничего не происходит, уже стоила
+    приглашённым нескольких дней ожидания (D1).
+    """
+    if user.email_verified_at is not None:
+        return EmailVerificationOut(verified=True, sent=False, note=VERIFIED_NOTE)
+    if not mail_enabled():
+        raise HTTPException(
+            status_code=409,
+            detail="Отправка писем в этой установке не настроена, и подтвердить адрес "
+                   "нечем. Пока она выключена, уведомления не уходят никому — "
+                   "подтверждение ничего не изменило бы.")
+    if not allow("verify-email", user.id, limit=3, window_seconds=3600):
+        raise HTTPException(status_code=429,
+                            detail="Письмо с подтверждением уже отправляли. Проверьте "
+                                   "почту, в том числе папку «Спам».")
+    background.add_task(send_and_log, db.get_bind(), user.id, user.email,
+                        verify_email_letter(token=create_verify_token(user.id)),
+                        "auth.email_verification_sent")
+    return EmailVerificationOut(verified=False, sent=True, note=UNVERIFIED_NOTE)
+
+
+@router.post("/verify-email", response_model=EmailVerificationOut)
+def verify_email(body: VerifyEmailRequest,
+                 db: Session = Depends(get_db)) -> EmailVerificationOut:
+    """Подтвердить адрес по ссылке из письма.
+
+    Вход не требуется: ссылку открывают из почты, и заставлять человека сначала войти
+    значило бы отправить его искать пароль ради того, что он уже доказал переходом.
+    Токен подтверждения **не является токеном входа** и пароля не заводит — им можно
+    только подтвердить адрес.
+    """
+    user_id = decode_token(body.token, expect="verify")
+    user = crud.get_user(db, user_id) if user_id else None
+    if user is None:
+        raise HTTPException(status_code=400, detail="Ссылка недействительна или устарела")
+    crud.mark_email_verified(db, user)
+    crud.log_user_action(db, user, "auth.email_verified")
+    return EmailVerificationOut(verified=True, sent=False, note=VERIFIED_NOTE)
 
 
 @router.patch("/me", response_model=UserOut)

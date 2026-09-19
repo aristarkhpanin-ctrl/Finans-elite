@@ -207,3 +207,34 @@ export async function getUsagePolicy(): Promise<UsagePolicy> {
   const { data } = await api.get<UsagePolicy>("/api/v1/auth/usage-policy");
   return data;
 }
+
+
+/**
+ * Подтверждение адреса почты (OPEN-DECISIONS §4).
+ *
+ * Подтверждение **ничего не запирает**: вход, восстановление пароля и приглашения
+ * работают и без него. Оно решает одну задачу — информационные письма (вход с нового
+ * устройства, упоминание в обсуждении) не уходят на адрес, которого у человека может не
+ * быть: опечатка превращает утечку в ежедневную.
+ *
+ * Текст «что из-за этого не приходит» берётся **с сервера**: вторая его формулировка на
+ * клиенте однажды разошлась бы с тем, что платформа делает на самом деле.
+ */
+export type EmailVerification = Schema<"EmailVerificationOut">;
+
+export async function getEmailVerification(): Promise<EmailVerification> {
+  const { data } = await api.get<EmailVerification>("/api/v1/auth/email-verification");
+  return data;
+}
+
+/** Попросить письмо с подтверждением. Где почта не настроена — сервер откажет с причиной. */
+export async function requestEmailVerification(): Promise<EmailVerification> {
+  const { data } = await api.post<EmailVerification>("/api/v1/auth/email-verification");
+  return data;
+}
+
+/** Подтвердить адрес по ссылке из письма. Вход не требуется — ссылку открывают из почты. */
+export async function verifyEmail(token: string): Promise<EmailVerification> {
+  const { data } = await api.post<EmailVerification>("/api/v1/auth/verify-email", { token });
+  return data;
+}

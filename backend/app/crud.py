@@ -200,6 +200,19 @@ def set_password(db: Session, user: User, hashed: str) -> User:
     return user
 
 
+def mark_email_verified(db: Session, user: User) -> User:
+    """Отметить, что ящик принадлежит человеку: он перешёл по ушедшей туда ссылке.
+
+    Повторное подтверждение дату **не двигает**: «подтверждён 3 марта» — факт о первом
+    доказательстве, и переписывать его каждым новым письмом значило бы терять его.
+    """
+    if user.email_verified_at is None:
+        user.email_verified_at = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(user)
+    return user
+
+
 def set_full_name(db: Session, user: User, full_name: str) -> User:
     user.full_name = full_name
     db.commit()

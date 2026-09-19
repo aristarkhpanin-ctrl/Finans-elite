@@ -63,6 +63,12 @@ def test_the_link_in_a_letter_is_absolute(post):
     assert "https://finans.example/activate?token=tok" in letter.text
 
 
+def _verify(db, email: str) -> None:
+    """Отметить адрес подтверждённым: информационные письма уходят только на такие."""
+    from app import crud
+    crud.mark_email_verified(db, crud.get_user_by_email(db, email))
+
+
 # --- Приглашение ---
 
 def test_invite_letter_goes_out_and_the_link_stays(client, register, post):
@@ -77,7 +83,11 @@ def test_invite_letter_goes_out_and_the_link_stays(client, register, post):
     assert body["mail"] == {"attempted": True, "ok": True, "error": ""}
     assert body["invite_token"]                       # ссылка на месте
     (to, letter), = post()
-    assert to == "k@e.ru" and body["invite_token"] in letter.text
+    assert to == "k@e.ru" and "/activate?token=" in letter.text
+    # Токен в письме — **свой**, не тот, что вернулся администратору: он несёт признак
+    # «ушёл в ящик», и только по нему активация подтверждает адрес. Один токен на оба
+    # канала подтверждал бы почту у того, кто получил ссылку в мессенджере.
+    assert body["invite_token"] not in letter.text
 
 
 def test_invite_without_mail_says_it_did_not_try(client, register):
@@ -122,7 +132,10 @@ def test_access_link_is_also_sent(client, register, post):
         headers=headers).json()
     assert link["mail"]["ok"] is True and link["token"]
     (to, letter), = post()
-    assert to == "k@e.ru" and link["token"] in letter.text
+    assert to == "k@e.ru" and "/activate?token=" in letter.text
+    # Как и у приглашения: письму — свой токен. Администратор получает ссылку для
+    # передачи лично, и ею адрес не подтверждается.
+    assert link["token"] not in letter.text
 
 
 # --- «Забыли пароль» ---
@@ -233,9 +246,10 @@ def test_the_reset_link_does_not_bypass_the_second_factor(client, register, db_s
 
 # --- Вход с нового устройства ---
 
-def test_a_new_device_is_reported_by_letter(client, register, post):
+def test_a_new_device_is_reported_by_letter(client, register, post, db_session):
     """Обещание, отложенное в C2 до появления почты."""
     register()
+    _verify(db_session, "owner@e.ru")      # уведомления идут на подтверждённый адрес
     mail.clear_outbox()
     client.post("/api/v1/auth/login", json={"email": "owner@e.ru", "password": "secret123"},
                 headers={"user-agent": "Mozilla/5.0 (iPhone) Safari/605"})

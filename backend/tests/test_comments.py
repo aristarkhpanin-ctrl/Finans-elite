@@ -157,14 +157,16 @@ def test_the_author_is_not_notified_about_their_own_words(client, register):
     assert body["notified"] == []
 
 
-def test_a_mention_letter_goes_out_when_mail_is_configured(client, register,
-                                                           monkeypatch):
+def test_a_mention_letter_goes_out_when_mail_is_configured(client, register, monkeypatch,
+                                                           db_session):
     monkeypatch.setenv("MAIL_BACKEND", "memory")
     monkeypatch.setenv("PUBLIC_URL", "https://finans.example")
     mail.clear_outbox()
     owner = register()
     pid = _project(client, owner)
     _member(client, owner)
+    # Упоминание — информационное письмо: на неподтверждённый адрес оно не уходит.
+    crud.mark_email_verified(db_session, crud.get_user_by_email(db_session, "k@e.ru"))
     mail.clear_outbox()          # приглашение участника ушло письмом (D1) — это не наше
 
     body = _say(client, owner, pid, "@k@e.ru посмотри строку I5",

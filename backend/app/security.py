@@ -89,9 +89,27 @@ def create_access_token(user_id: str, session_id: str, ttl: int | None = None) -
                   jti=session_id)
 
 
-def create_invite_token(user_id: str) -> str:
-    """Токен приглашения: им заводят **пароль**, а не входят в систему."""
-    return _token(user_id, "invite", INVITE_TTL_SECONDS)
+def create_invite_token(user_id: str, emailed: bool = False) -> str:
+    """Токен приглашения: им заводят **пароль**, а не входят в систему.
+
+    ``emailed`` — ушла ли ссылка **в почтовый ящик**. От этого зависит, подтверждает ли
+    активация адрес: администратор имеет право передать ту же ссылку лично (в мессенджере,
+    голосом, на бумаге), и тогда человек не доказал про ящик ничего. Признак живёт
+    **в подписанном токене**, а не в параметре запроса: иначе подделать подтверждение
+    адреса можно было бы, дописав его к ссылке.
+    """
+    return _token(user_id, "invite", INVITE_TTL_SECONDS,
+                  **({"eml": True} if emailed else {}))
+
+
+def create_verify_token(user_id: str) -> str:
+    """Токен подтверждения адреса: им **только** подтверждают почту.
+
+    Отдельный тип, а не переиспользование приглашения: приглашением заводят пароль, и
+    письмо «подтвердите адрес», которым можно задать пароль, было бы приглашением под
+    чужим именем.
+    """
+    return _token(user_id, "verify", INVITE_TTL_SECONDS)
 
 
 def password_stamp(hashed: str | None) -> str:
@@ -108,15 +126,31 @@ def password_stamp(hashed: str | None) -> str:
     return hashlib.sha256((hashed or "").encode()).hexdigest()[:16]
 
 
-def create_reset_token(user_id: str, hashed_password: str | None) -> str:
+def create_reset_token(user_id: str, hashed_password: str | None,
+                       emailed: bool = False) -> str:
     """Токен сброса пароля: задать новый пароль, не зная текущего.
 
     Срок — как у приглашения: вечная ссылка на смену пароля это вечная дыра.
+    ``emailed`` — см. :func:`create_invite_token`.
     """
     now = int(time.time())
+    claims = {"eml": True} if emailed else {}
     return jwt.encode({"sub": user_id, "iat": now, "exp": now + INVITE_TTL_SECONDS,
-                       "typ": "reset", "pw": password_stamp(hashed_password)},
+                       "typ": "reset", "pw": password_stamp(hashed_password), **claims},
                       JWT_SECRET, algorithm=JWT_ALG)
+
+
+def token_was_emailed(token: str) -> bool:
+    """Ушла ли эта ссылка в почтовый ящик (признак из подписанного токена).
+
+    Всё, что не является явным «да» в валидной подписи, — «нет»: подтверждение адреса
+    выдаётся только против доказательства, а не против его отсутствия.
+    """
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
+    except jwt.PyJWTError:
+        return False
+    return payload.get("eml") is True
 
 
 def decode_reset_token(token: str) -> tuple[str, str] | None:

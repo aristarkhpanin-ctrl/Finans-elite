@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { changePassword, deleteMyAccount, disableTotp, downloadMyData, enableTotp,
-         getCapabilities, getDeletionPlan, getPasswordPolicy, getSessions, getTotpStatus,
-         getUsagePolicy,
+         getCapabilities, getDeletionPlan, getEmailVerification, getPasswordPolicy,
+         getSessions, getTotpStatus, getUsagePolicy, requestEmailVerification,
          reissueRecoveryCodes, revokeAllSessions, revokeSession, startTotpSetup,
          updateProfile, type TotpSetup } from "../../api/auth";
 import { httpDetail, httpStatus } from "../../api/client";
@@ -111,8 +111,56 @@ export function ProfileTab() {
         </Button>
       </div>
 
+      <EmailVerificationBlock />
       <MyDataBlock />
       <UsageBlock />
+    </div>
+  );
+}
+
+/**
+ * Подтверждение адреса почты (OPEN-DECISIONS §4).
+ *
+ * Блок показывается **только когда есть что подтверждать**: там, где почта в установке
+ * выключена, уведомления не уходят никому, и подтверждение ничего не изменило бы —
+ * предлагать его значило бы звать человека сделать бессмысленное.
+ *
+ * Текст «что именно не приходит» берётся с сервера: вторая формулировка на клиенте
+ * однажды разошлась бы с тем, что платформа делает на самом деле. И это **не отказ**:
+ * вход, восстановление пароля и приглашения работают без подтверждения.
+ */
+function EmailVerificationBlock() {
+  const toast = useToast();
+  const qc = useQueryClient();
+  const { data: caps } = useQuery({ queryKey: ["capabilities"], queryFn: getCapabilities,
+                                    staleTime: Infinity });
+  const { data } = useQuery({ queryKey: ["email-verification"],
+                              queryFn: getEmailVerification });
+
+  const ask = useMutation({
+    mutationFn: requestEmailVerification,
+    onSuccess: (r) => {
+      qc.setQueryData(["email-verification"], r);
+      toast(r.sent ? "Письмо отправлено — проверьте почту, в том числе «Спам»"
+                   : "Адрес уже подтверждён", { kind: "success" });
+    },
+    onError: (e) => toast(httpDetail(e) ?? "Не удалось отправить письмо",
+                          { kind: "error" }),
+  });
+
+  if (!data || !caps?.mail) return null;
+
+  return (
+    <div className="audit-block" style={{ marginTop: 18 }}>
+      <div className="audit-block__title">Адрес почты</div>
+      <div className="mnote" style={{ marginBottom: 10 }}>{data.note}</div>
+      {data.verified ? (
+        <Chip kind="active">подтверждён</Chip>
+      ) : (
+        <Button onClick={() => ask.mutate()} loading={ask.isPending}>
+          Прислать письмо с подтверждением
+        </Button>
+      )}
     </div>
   );
 }
