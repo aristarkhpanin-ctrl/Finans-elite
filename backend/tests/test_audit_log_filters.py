@@ -118,7 +118,10 @@ def test_csv_export_carries_the_rows_and_is_itself_recorded(client, auth_headers
     r = client.get(f"/api/v1/organizations/{org}/audit-log.csv", headers=auth_headers)
     assert r.status_code == 200
     text = r.content.decode("utf-8-sig")
-    assert text.startswith("Дата и время;Кто;Действие")   # Excel в русской локали
+    # Точка с запятой — Excel в русской локали. Колонка «Через ключ» стоит рядом с «Кто»,
+    # а не вместо неё: разбирают инцидент по файлу, и правка из чужого сервера без
+    # пометки увела бы разбор не туда (OPEN-DECISIONS §3).
+    assert text.startswith("Дата и время;Кто;Через ключ;Действие")
     assert "project.create" in text and "Завод" in text
 
     actions = [e["action"] for e in _log(client, auth_headers, org)["entries"]]

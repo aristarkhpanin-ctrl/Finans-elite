@@ -541,6 +541,10 @@ class AuditLogEntryOut(BaseModel):
     entity_id: str = ""
     entity_name: str = ""
     details: str = ""
+    #: Сделано через ключ доступа — имя ключа и его открытая часть (OPEN-DECISIONS §3).
+    #: Пусто — человек работал руками. Автор при этом настоящий: ``actor_email`` — тот,
+    #: кто ключ выпустил, и в записи видно **обоих**, а не одного вместо другого.
+    via_key: str = ""
     created_at: datetime
 
 
@@ -2494,6 +2498,10 @@ class ApiKeyCreate(BaseModel):
     """
 
     name: str
+    #: Что ключу **добавить** к чтению (значения `Perm`, OPEN-DECISIONS §3). Пусто —
+    #: только чтение и расчёт: ключ живёт в чужом сервере, и умолчание обязано быть тем,
+    #: о чём не пожалеют. Чего ключам не выдают вовсе — `apikeys.ALLOWED_PERMS`.
+    scopes: list[str] = []
 
 
 class ApiKeyOut(BaseModel):
@@ -2513,6 +2521,26 @@ class ApiKeyOut(BaseModel):
     revoked: bool = False
     revoked_at: Optional[datetime] = None
     revoked_by: str = ""
+    #: Что ключ умеет на самом деле — включая чтение, которое есть у него всегда.
+    scopes: list[str] = []
+    #: Правит ли он модели. Отдельно от списка прав: в списке ключей важно не «какие
+    #: значения перечислены», а «эта дверь открывается внутрь или только наружу».
+    writes: bool = False
+    #: У ключа не осталось действующего автора — он **не работает**. Показывается, а не
+    #: прячется: живая строка в списке означала бы, что интеграция цела, а она стоит.
+    author_gone: bool = False
+
+
+class ApiKeyScopeOut(BaseModel):
+    """Что ключу можно: два списка, а не один.
+
+    «Есть всегда» и «можно выдать» — разные ответы, и экран, где они слиты, заставляет
+    гадать, что именно выбирают при выпуске.
+    """
+
+    always: list[str] = []
+    grantable: list[str] = []
+    note: str = ""
 
 
 class ApiKeyCreated(BaseModel):

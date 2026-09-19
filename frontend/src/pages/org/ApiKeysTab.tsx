@@ -1,16 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { createApiKey, getApiKeys, revokeApiKey, type ApiKey } from "../../api/org";
+import { createApiKey, getApiKeyScope, getApiKeys, revokeApiKey,
+         type ApiKey } from "../../api/org";
 import { httpDetail } from "../../api/client";
 import { useToast } from "../../components/Toast";
 import { Button, Field, Loading, Modal } from "../../components/ui";
 
 /**
- * Ключи доступа к API организации (D5).
+ * Ключи доступа к API организации (D5; запись — OPEN-DECISIONS §3).
  *
- * Ключ **читает** данные организации: выгрузка показателей в BI, отчёт в 1С, свод
- * портфеля. Писать ключом нельзя, и экран говорит это словами — у записи в журнале
- * есть автор, а «модель изменил ключ» не автор.
+ * Ключ читает данные организации: выгрузка показателей в BI, отчёт в 1С, свод портфеля.
+ * **Право править модели выдаётся при выпуске** и по умолчанию не выдаётся: ключ живёт
+ * в чужом сервере, и умолчание обязано быть тем, о чём не пожалеют. Что это значит,
+ * экран говорит рядом с самим выбором, а не в документации, которую не откроют: такие
+ * правки записаны в журнале на выпустившего, и ключ гаснет вместе с ним.
  *
  * Секрет показывается **один раз**: платформа хранит только отпечаток, и «покажите ещё
  * раз» невозможно ни для кого, включая её саму. Тот же приём, что у резервных кодов
@@ -20,17 +23,24 @@ export function ApiKeysTab({ orgId, canManage }: { orgId: string; canManage: boo
   const qc = useQueryClient();
   const toast = useToast();
   const [name, setName] = useState("");
+  const [writes, setWrites] = useState(false);
   const [issued, setIssued] = useState<{ token: string; note: string } | null>(null);
   const [revoking, setRevoking] = useState<ApiKey | null>(null);
 
   const { data, isLoading } = useQuery({ queryKey: ["api-keys", orgId],
                                          queryFn: () => getApiKeys(orgId) });
+  // Перечень прав приходит с сервера: переписанный здесь своим текстом, он однажды
+  // отстал бы, и экран обещал бы ключу то, чего ему давно не выдают.
+  const { data: scope } = useQuery({ queryKey: ["api-key-scope", orgId],
+                                     queryFn: () => getApiKeyScope(orgId) });
   const refresh = () => qc.invalidateQueries({ queryKey: ["api-keys", orgId] });
 
   const create = useMutation({
-    mutationFn: () => createApiKey(orgId, name.trim()),
+    mutationFn: () => createApiKey(orgId, name.trim(),
+                                   writes ? (scope?.grantable ?? []) : []),
     onSuccess: (fresh) => {
       setName("");
+      setWrites(false);
       refresh();
       setIssued({ token: fresh.token, note: fresh.scope_note });
     },
@@ -53,9 +63,11 @@ export function ApiKeysTab({ orgId, canManage }: { orgId: string; canManage: boo
         <div className="audit-block__title">Ключи доступа к API</div>
         <p className="page-sub" style={{ marginTop: 0 }}>
           Ключ читает данные организации и запускает расчёт — выгрузка в BI, отчёт в 1С,
-          свод портфеля. <b>Изменять модели ключом нельзя</b>: у записи в журнале должен
-          быть автор, а ключ живёт в чужом сервере и переживает увольнение того, кто его
-          завёл. Передаётся заголовком <code>Authorization: Bearer &lt;ключ&gt;</code>.
+          свод портфеля. Ключу можно <b>выдать право править модели</b>: такие правки
+          записаны в журнале на того, кто выпустил ключ, с пометкой о ключе, и ключ
+          перестаёт работать, когда этот человек уходит из организации. Удалять модели и
+          писать в обсуждении ключом нельзя. Передаётся заголовком{" "}
+          <code>Authorization: Bearer &lt;ключ&gt;</code>.
         </p>
 
         {isLoading ? <Loading /> : rows.length === 0 ? (
@@ -69,7 +81,23 @@ export function ApiKeysTab({ orgId, canManage }: { orgId: string; canManage: boo
                     {k.name}
                     {k.revoked && <span className="chip chip--blocked"
                                         style={{ height: 20, fontSize: 11 }}>отозван</span>}
+                    {/* «Читает» и «правит модели» — разные двери, и в списке это первое,
+                        что нужно увидеть. */}
+                    {!k.revoked && (
+                      <span className={"chip " + (k.writes ? "chip--blocked" : "")}
+                            style={{ height: 20, fontSize: 11 }}>
+                        {k.writes ? "чтение и запись" : "только чтение"}
+                      </span>
+                    )}
                   </div>
+                  {/* Ключ без автора не работает — и список говорит это, а не показывает
+                      живую строку: иначе интеграция считается целой, пока она стоит. */}
+                  {!k.revoked && k.author_gone && (
+                    <div className="mnote">
+                      Не работает: у ключа не осталось действующего автора. Ключ работает
+                      от имени выпустившего — выпустите его заново.
+                    </div>
+                  )}
                   <div className="sess-row__meta">
                     {k.masked} · завёл {k.created_by || "—"} ·{" "}
                     {/* «Ни разу» — это не «давно»: забытый ключ отзывают, а не берегут. */}
@@ -92,6 +120,19 @@ export function ApiKeysTab({ orgId, canManage }: { orgId: string; canManage: boo
             <Field label="Имя нового ключа" value={name} placeholder="Выгрузка в 1С"
                    note="Имя обязательно: через год список безымянных ключей означает, что отозвать можно только все сразу."
                    onChange={(e) => setName(e.target.value)} />
+            {/* Выбор прав стоит рядом с выпуском, а не в настройках после него: права
+                ключа больше не меняются — нужен другой набор, выпускается другой ключ. */}
+            <label className="check" style={{ display: "flex", gap: 8,
+                                              alignItems: "flex-start" }}>
+              <input type="checkbox" checked={writes}
+                     onChange={(e) => setWrites(e.target.checked)} />
+              <span>
+                Разрешить создавать и править модели проектов и дел
+                <span className="field-note" style={{ display: "block" }}>
+                  {scope?.note ?? "Права выбираются при выпуске и потом не меняются."}
+                </span>
+              </span>
+            </label>
             <Button onClick={() => create.mutate()} loading={create.isPending}
                     disabled={!name.trim()}>
               Выпустить ключ

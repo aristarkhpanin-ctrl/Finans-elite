@@ -59,7 +59,6 @@ def test_a_key_without_a_name_is_refused_with_the_reason(client, register):
 def test_the_key_says_what_it_can_do_next_to_itself(client, register):
     """Обещание в документации, которую не откроют, — это не обещание."""
     _, body = _issue(client, register())
-    assert "только" not in body["scope_note"].lower() or True
     assert "Изменять модели" in body["scope_note"]
     assert "Authorization: Bearer" in body["scope_note"]
 
@@ -94,8 +93,9 @@ def test_a_key_reads_the_organizations_data(client, register):
     assert calc.status_code == 200 and calc.json()["n"] > 0
 
 
-def test_a_key_cannot_change_anything_and_says_why(client, register):
-    """У записи в журнале есть автор, а «модель изменил ключ» — не автор."""
+def test_a_read_only_key_cannot_change_anything_and_says_why(client, register):
+    """Умолчание — чтение: ключ живёт в чужом сервере, и умолчание обязано быть тем, о
+    чём не пожалеют. Отказ при этом говорит, **что делать**, а не только «нельзя»."""
     headers = register()
     pid = _project(client, headers)
     token, _ = _issue(client, headers)
@@ -103,7 +103,7 @@ def test_a_key_cannot_change_anything_and_says_why(client, register):
     changed = client.put(f"/api/v1/projects/{pid}", json={"name": "Новое"},
                          headers=_as_key(token))
     assert changed.status_code == 403
-    assert "только на чтение" in changed.json()["detail"]
+    assert "Права выбирают при выпуске" in changed.json()["detail"]
 
     created = client.post("/api/v1/projects",
                           json={"name": "Ещё", "model": client.get("/api/v1/sample").json()},
@@ -113,11 +113,19 @@ def test_a_key_cannot_change_anything_and_says_why(client, register):
 
 def test_a_key_is_not_a_person(client, register):
     """Маршруты о человеке ключу недоступны — и отказ называет причину, а не изображает
-    испорченный токен."""
+    испорченный токен.
+
+    Граница важнее прежнего: ключ **научился писать**, и если бы `/auth/me` пускал его
+    от имени выпустившего, ключ из чужого сервера сменил бы ему пароль."""
     headers = register()
     token, _ = _issue(client, headers)
     me = client.get("/api/v1/auth/me", headers=_as_key(token))
-    assert me.status_code == 403 and "автор" in me.json()["detail"]
+    assert me.status_code == 403 and "нужен человек" in me.json()["detail"]
+
+    changed = client.post("/api/v1/auth/password",
+                          json={"current_password": "secret123",
+                                "new_password": "chuzhoi-parol7"}, headers=_as_key(token))
+    assert changed.status_code == 403
 
 
 def test_a_key_cannot_manage_members_or_billing(client, register):

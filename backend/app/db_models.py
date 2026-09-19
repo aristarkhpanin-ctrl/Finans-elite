@@ -484,6 +484,16 @@ class AuditLogEntry(Base):
     entity_name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
     #: Подробности, зависящие от действия (старая и новая роль, код тарифа и т. п.).
     details: Mapped[str] = mapped_column(String(500), nullable=False, default="")
+    #: Сделано **через ключ доступа** — имя ключа и его открытая часть (OPEN-DECISIONS §3).
+    #: Пусто — человек работал руками.
+    #:
+    #: Отдельное поле, а не приписка к ``details``: там лежат подробности действия, и
+    #: дописанная к ним пометка либо затёрла бы их, либо потерялась бы среди них. Отдельным
+    #: полем на вопрос «что у нас делают ключами» отвечает отбор, а не чтение глазами.
+    #: Подмены автора при этом нет: ``actor_email`` — человек, выпустивший ключ, и в
+    #: записи видно **обоих**.
+    via_key: Mapped[str] = mapped_column(String(255), nullable=False, default="",
+                                         server_default="")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_now, index=True
     )
@@ -761,6 +771,20 @@ class ApiKey(Base):
     #: SHA-256 полной строки ключа. Самого ключа платформа не хранит.
     fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
     created_by: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    #: Кто выпустил — **ссылкой**, а не только почтой (OPEN-DECISIONS §3). Почта рядом
+    #: осталась «надгробием» для списка; ссылка нужна для другого: автор ключа — это
+    #: автор его записей в журнале, и ключ работает, **пока работает он**.
+    #:
+    #: ``None`` — автора не найти (ключ старше механизма и выпущен тем, кого в базе уже
+    #: нет). Такой ключ не пишет и не читает: доверенность без доверителя не бывает, —
+    #: и отказ называет причину, а не «недействительный ключ».
+    created_by_id: Mapped[Optional[str]] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    #: Права, выбранные при выпуске (значения `Perm`). Чтение в них не обязано быть — оно
+    #: есть у ключа всегда; список отвечает на вопрос «что ему **добавили**».
+    #: Пустой список — ключ, выпущенный до выбора прав: он читает (`apikeys.effective_perms`).
+    scopes: Mapped[list] = mapped_column(JSONType, default=list)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     #: Когда ключом пользовались последний раз. ``None`` — **ни разу**, и это другое
     #: состояние, чем «давно»: неиспользованный ключ обычно забыт, а не бережём.

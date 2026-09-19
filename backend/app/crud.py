@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from audit_core import AuditSubjectModel
 from calc_core import ProjectModel
 
+from . import apikeys
 from .comments import ThreadState
 from .database import as_tenant
 from .db_models import (
@@ -998,9 +999,16 @@ def log_action(db: Session, org_id: str, user, action: str, *, entity_type: str 
     ``user`` может быть ``None`` (системное действие). Почта актора дублируется текстом:
     участника удалят, а журнал обязан отвечать «кто это сделал» и через год.
 
+    **Пометка «через ключ» берётся из сессии запроса**, а не из параметра (OPEN-DECISIONS
+    §3). Журнал пишут два десятка маршрутов; передавать её каждым вызовом означало бы два
+    десятка мест, где её забудут, — а забытая пометка выглядит как работа человека руками.
+    Ключ кладёт себя в ``db.info`` в той единственной двери, через которую проходит
+    (`deps.api_key_from`), и сессия у запроса своя.
+
     Длинные поля обрезаются до размера колонки, а не роняют запрос: имя дела задаёт
     пользователь, и слишком длинное имя не повод потерять запись о его удалении.
     """
+    key = db.info.get("via_api_key")
     entry = AuditLogEntry(
         organization_id=org_id,
         user_id=getattr(user, "id", None),
@@ -1010,6 +1018,8 @@ def log_action(db: Session, org_id: str, user, action: str, *, entity_type: str 
         entity_id=entity_id[:36],
         entity_name=entity_name[:255],
         details=details[:500],
+        via_key=(f"{key.name} ({apikeys.masked(key.prefix)})"[:255]
+                 if key is not None else ""),
     )
     db.add(entry)
     db.commit()
@@ -1464,9 +1474,11 @@ def count_open_comments(db: Session, org_id: str, subject_type: str,
 # --- Ключи доступа к API (D5) ---
 
 def create_api_key(db: Session, org_id: str, *, name: str, prefix: str,
-                   fingerprint: str, created_by: str) -> ApiKey:
+                   fingerprint: str, created_by: str, created_by_id: str = "",
+                   scopes: list[str] | None = None) -> ApiKey:
     key = ApiKey(organization_id=org_id, name=name[:200], prefix=prefix,
-                 fingerprint=fingerprint, created_by=created_by[:255])
+                 fingerprint=fingerprint, created_by=created_by[:255],
+                 created_by_id=created_by_id or None, scopes=list(scopes or []))
     db.add(key)
     db.commit()
     db.refresh(key)

@@ -448,6 +448,10 @@ export interface paths {
         /**
          * Create Subject
          * @description Создать субъект анализа в текущей организации.
+         *
+         *     Один из четырёх маршрутов, доступных **ключу доступа** с правом на запись
+         *     (OPEN-DECISIONS §3): дело заводит обмен с учётной системой. Автором записи в журнале
+         *     становится человек, выпустивший ключ, — отсюда `acting_user` вместо `current_user`.
          */
         post: operations["create_subject_api_v1_audit_subjects_post"];
         delete?: never;
@@ -496,6 +500,10 @@ export interface paths {
         /**
          * Update Subject
          * @description Обновить имя и/или модель субъекта.
+         *
+         *     Доступен **ключу доступа** с правом на запись (OPEN-DECISIONS §3): отчётность
+         *     приходит из учётной системы, и заставлять человека переносить её руками — ровно то,
+         *     ради чего заводят обмен.
          */
         put: operations["update_subject_api_v1_audit_subjects__subject_id__put"];
         post?: never;
@@ -1611,6 +1619,10 @@ export interface paths {
         /**
          * Create Key
          * @description Выпустить ключ. Секрет показывается **один раз** — платформа его не хранит.
+         *
+         *     Права выбираются здесь и больше не меняются: ключ, права которого правят на ходу,
+         *     означает, что владелец чужого сервера однажды получит больше, чем ему выдавали, и
+         *     никто этого не заметит. Нужно другое — выпускается другой ключ.
          */
         post: operations["create_key_api_v1_organizations__org_id__api_keys_post"];
         delete?: never;
@@ -1628,7 +1640,10 @@ export interface paths {
         };
         /**
          * Key Scope
-         * @description Что ключ умеет — перечнем прав, а не обещанием на словах.
+         * @description Что ключу можно — перечнем прав, а не обещанием на словах.
+         *
+         *     Два списка, а не один: «есть всегда» и «можно выдать» — разные ответы, и экран, где
+         *     они слиты, заставляет гадать, что именно выбирают при выпуске.
          */
         get: operations["key_scope_api_v1_organizations__org_id__api_keys_scope_get"];
         put?: never;
@@ -2014,6 +2029,11 @@ export interface paths {
         /**
          * Create Project
          * @description Создать проект в текущей организации (право project.create; учёт квоты тарифа).
+         *
+         *     Один из четырёх маршрутов, доступных **ключу доступа** с правом на запись
+         *     (OPEN-DECISIONS §3): обмен с учётной системой заводит проекты сам. Автором записи в
+         *     журнале становится человек, выпустивший ключ, — отсюда `acting_user` вместо
+         *     `current_user`. Квота тарифа при этом та же самая: ключ не обходит `max_units`.
          */
         post: operations["create_project_api_v1_projects_post"];
         delete?: never;
@@ -2065,6 +2085,9 @@ export interface paths {
         /**
          * Update Project
          * @description Обновить имя и/или модель проекта (право project.update).
+         *
+         *     Доступен **ключу доступа** с правом на запись (OPEN-DECISIONS §3) — см. создание
+         *     проекта: автором правки в журнале становится тот, кто выпустил ключ.
          */
         put: operations["update_project_api_v1_projects__project_id__put"];
         post?: never;
@@ -2721,6 +2744,11 @@ export interface components {
         ApiKeyCreate: {
             /** Name */
             name: string;
+            /**
+             * Scopes
+             * @default []
+             */
+            scopes: string[];
         };
         /**
          * ApiKeyCreated
@@ -2747,6 +2775,11 @@ export interface components {
          *     обычно забыт, и это повод его отозвать, а не оставить.
          */
         ApiKeyOut: {
+            /**
+             * Author Gone
+             * @default false
+             */
+            author_gone: boolean;
             /**
              * Created At
              * Format: date-time
@@ -2777,6 +2810,40 @@ export interface components {
              * @default
              */
             revoked_by: string;
+            /**
+             * Scopes
+             * @default []
+             */
+            scopes: string[];
+            /**
+             * Writes
+             * @default false
+             */
+            writes: boolean;
+        };
+        /**
+         * ApiKeyScopeOut
+         * @description Что ключу можно: два списка, а не один.
+         *
+         *     «Есть всегда» и «можно выдать» — разные ответы, и экран, где они слиты, заставляет
+         *     гадать, что именно выбирают при выпуске.
+         */
+        ApiKeyScopeOut: {
+            /**
+             * Always
+             * @default []
+             */
+            always: string[];
+            /**
+             * Grantable
+             * @default []
+             */
+            grantable: string[];
+            /**
+             * Note
+             * @default
+             */
+            note: string;
         };
         /**
          * Asset
@@ -3625,6 +3692,11 @@ export interface components {
             entity_type: string;
             /** Id */
             id: string;
+            /**
+             * Via Key
+             * @default
+             */
+            via_key: string;
         };
         /**
          * AuditLogPage
@@ -13356,7 +13428,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": string[];
+                    "application/json": components["schemas"]["ApiKeyScopeOut"];
                 };
             };
             /** @description Validation Error */

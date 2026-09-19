@@ -181,7 +181,17 @@ export function AuditLogTab({ orgId, initialActor = "" }: {
             <div className={"log-row " + (TONE[e.action] ?? "")} key={e.id}
                  role="row" aria-rowindex={i + 2}>
               <div className="log-when" role="cell">{when(e.created_at)}</div>
-              <div className="log-who" role="rowheader">{e.actor_email || "—"}</div>
+              <div className="log-who" role="rowheader">
+                {e.actor_email || "—"}
+                {/* Сделано ключом доступа (OPEN-DECISIONS §3). Автор настоящий — тот, кто
+                    ключ выпустил, — но без пометки правка из чужого сервера читалась бы
+                    как сделанная руками. Видно **обоих**, а не одного вместо другого. */}
+                {e.via_key && (
+                  <span className="log-details" style={{ display: "block" }}>
+                    через ключ · {e.via_key}
+                  </span>
+                )}
+              </div>
               <div role="cell">
                 {ACTION[e.action] ?? e.action}
                 {e.details && <span className="log-details"> · {e.details}</span>}

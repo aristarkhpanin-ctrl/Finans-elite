@@ -26,7 +26,7 @@ from .. import billing, crud, usage
 from ..analysis_service import build_mc_config
 from ..database import get_db
 from ..db_models import Project, User
-from ..deps import current_user, require_permission
+from ..deps import acting_user, current_user, require_permission
 from ..docgen import DOCX_MIME, build_business_plan_docx
 from ..rbac import Perm
 from ..schemas import (
@@ -120,9 +120,15 @@ def _require(db: Session, org_id: str, project_id: str) -> Project:
 @router.post("", response_model=ProjectOut, status_code=status.HTTP_201_CREATED)
 def create_project(body: ProjectCreate,
                    org_id: str = Depends(require_permission(Perm.PROJECT_CREATE)),
-                   actor: User = Depends(current_user),
+                   actor: User = Depends(acting_user),
                    db: Session = Depends(get_db)) -> ProjectOut:
-    """Создать проект в текущей организации (право project.create; учёт квоты тарифа)."""
+    """Создать проект в текущей организации (право project.create; учёт квоты тарифа).
+
+    Один из четырёх маршрутов, доступных **ключу доступа** с правом на запись
+    (OPEN-DECISIONS §3): обмен с учётной системой заводит проекты сам. Автором записи в
+    журнале становится человек, выпустивший ключ, — отсюда `acting_user` вместо
+    `current_user`. Квота тарифа при этом та же самая: ключ не обходит `max_units`.
+    """
     billing.ensure_project_quota(db, org_id)
     project = crud.create_project(db, org_id, body.name, body.model)
     crud.log_action(db, org_id, actor, "project.create", entity_type="project",
@@ -185,9 +191,13 @@ def get_project(project_id: str,
 @router.put("/{project_id}", response_model=ProjectOut)
 def update_project(project_id: str, body: ProjectUpdate,
                    org_id: str = Depends(require_permission(Perm.PROJECT_UPDATE)),
-                   actor: User = Depends(current_user),
+                   actor: User = Depends(acting_user),
                    db: Session = Depends(get_db)) -> ProjectOut:
-    """Обновить имя и/или модель проекта (право project.update)."""
+    """Обновить имя и/или модель проекта (право project.update).
+
+    Доступен **ключу доступа** с правом на запись (OPEN-DECISIONS §3) — см. создание
+    проекта: автором правки в журнале становится тот, кто выпустил ключ.
+    """
     project = _require(db, org_id, project_id)
     updated = crud.update_project(db, project, name=body.name, model=body.model)
     crud.log_action(db, org_id, actor, "project.update", entity_type="project",

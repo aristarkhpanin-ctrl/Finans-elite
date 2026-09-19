@@ -30,7 +30,7 @@ from .. import billing, crud, usage
 from ..audit_docgen import DOCX_MIME, build_audit_docx
 from ..database import get_db
 from ..db_models import AuditGroup, AuditSubject, AuditSubjectVersion, User
-from ..deps import current_user, require_permission
+from ..deps import acting_user, current_user, require_permission
 from ..rbac import Perm
 from ..schemas import (
     AuditAnalysisOut,
@@ -99,9 +99,14 @@ def _require(db: Session, org_id: str, subject_id: str) -> AuditSubject:
 @router.post("/subjects", response_model=AuditSubjectOut, status_code=status.HTTP_201_CREATED)
 def create_subject(body: AuditSubjectCreate,
                    org_id: str = Depends(require_permission(Perm.PROJECT_CREATE, product="audit")),
-                   actor: User = Depends(current_user),
+                   actor: User = Depends(acting_user),
                    db: Session = Depends(get_db)) -> AuditSubjectOut:
-    """Создать субъект анализа в текущей организации."""
+    """Создать субъект анализа в текущей организации.
+
+    Один из четырёх маршрутов, доступных **ключу доступа** с правом на запись
+    (OPEN-DECISIONS §3): дело заводит обмен с учётной системой. Автором записи в журнале
+    становится человек, выпустивший ключ, — отсюда `acting_user` вместо `current_user`.
+    """
     billing.ensure_case_quota(db, org_id)
     subject = crud.create_audit_subject(db, org_id, body.name, body.model)
     crud.log_action(db, org_id, actor, "case.create", entity_type="case",
@@ -128,9 +133,14 @@ def get_subject(subject_id: str,
 @router.put("/subjects/{subject_id}", response_model=AuditSubjectOut)
 def update_subject(subject_id: str, body: AuditSubjectUpdate,
                    org_id: str = Depends(require_permission(Perm.PROJECT_UPDATE, product="audit")),
-                   actor: User = Depends(current_user),
+                   actor: User = Depends(acting_user),
                    db: Session = Depends(get_db)) -> AuditSubjectOut:
-    """Обновить имя и/или модель субъекта."""
+    """Обновить имя и/или модель субъекта.
+
+    Доступен **ключу доступа** с правом на запись (OPEN-DECISIONS §3): отчётность
+    приходит из учётной системы, и заставлять человека переносить её руками — ровно то,
+    ради чего заводят обмен.
+    """
     subject = _require(db, org_id, subject_id)
     updated = crud.update_audit_subject(db, subject, name=body.name, model=body.model)
     crud.log_action(db, org_id, actor, "case.update", entity_type="case",

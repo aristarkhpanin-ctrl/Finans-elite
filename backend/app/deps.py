@@ -16,6 +16,7 @@ from . import apikeys, crud
 from .access import WRITE_PERMS, restriction_for
 from .database import get_db, set_tenant
 from .db_models import ApiKey, Membership, User, UserSession
+from .ratelimit import allow
 from .rbac import Perm, has_permission
 from .security import decode_access
 
@@ -72,16 +73,56 @@ def account_blocked_detail(user: User) -> str:
     return f"Учётная запись заблокирована платформой: {reason}"
 
 
-#: Что ключу доступа позволено. Только чтение и расчёт — и это решение, а не недоделка:
-#: у записи в журнале есть автор, а «модель изменил ключ» не автор. Спрос при этом
-#: именно на чтение (выгрузка в BI, 1С, свод портфеля). Расчёт здесь потому же, почему
-#: он открыт неплательщику (B2): это способ **посмотреть** свои числа, а не изменить их.
-KEY_PERMS = frozenset({Perm.PROJECT_READ, Perm.PROJECT_CALCULATE})
+#: Отказ ключу, попросившему право, которого ключам не выдают вовсе.
+KEY_FORBIDDEN = ("Ключом этого сделать нельзя: удаление и обсуждение остаются за "
+                 "человеком. Ключ читает, считает и, если ему это выдали, создаёт и "
+                 "правит модели.")
 
-#: Отказ ключу, попросившему больше. Причина названа: «недостаточно прав» отправило бы
-#: интегратора выпрашивать роль, которой у ключа не бывает вовсе.
-KEY_READ_ONLY = ("Ключ доступа работает только на чтение и расчёт. Изменения делает "
-                 "человек: у записи в журнале должен быть автор.")
+#: Отказ ключу, которому **этого** права не выдали при выпуске. Отличается от предыдущего
+#: намеренно: «вам не выдали» и «таких прав не бывает» — разные ответы, и первый говорит,
+#: что делать (выпустить ключ с нужными правами), а второй — что просить бесполезно.
+KEY_NOT_GRANTED = ("У этого ключа только чтение и расчёт. Права выбирают при выпуске — "
+                   "заведите ключ с правом на запись, если обмен должен менять модели.")
+
+#: Маршруту нужен человек: тот, кто отвечает не за содержимое организации, а за неё саму
+#: (участники, тариф, ключи) или пишет от своего имени (реплика в обсуждении).
+KEY_NEEDS_A_PERSON = ("Здесь нужен человек, а не ключ доступа: это действие называет "
+                      "того, кто его совершил, и ключ за него не отвечает.")
+
+
+def key_author(db: Session, key: ApiKey) -> User:
+    """Человек, от чьего имени работает ключ, — тот, кто его выпустил.
+
+    Так устроена ответственность за доверенность: спросить можно с выдавшего, отозвать
+    можно доступ. Подмены нет — в журнале видно и человека, и ключ (`audit_log.via_key`).
+
+    Отсюда же второе свойство, которого у ключей не было: **ключ гаснет вместе с автором**.
+    Приостановленное членство, блокировка учётной записи, выход из организации — каждое
+    закрывает его ключи тем же движением, каким смена пароля закрывает сеансы (C1).
+    Иначе ключ уволенного сотрудника продолжал бы работать в чужом сервере, а спросить
+    за его записи было бы не с кого.
+
+    Каждый отказ **называет причину**: «ключ недействителен» отправило бы интегратора
+    искать опечатку там, где дело в человеке.
+    """
+    author = crud.get_user(db, key.created_by_id) if key.created_by_id else None
+    if author is None:
+        raise HTTPException(
+            status_code=401,
+            detail=(f"У ключа нет действующего автора (выпускал: "
+                    f"{key.created_by or 'неизвестно кто'}). Ключ работает от имени "
+                    "выпустившего — выпустите его заново."))
+    if author.blocked_at is not None:
+        raise HTTPException(status_code=403, detail=account_blocked_detail(author))
+    membership = crud.get_membership(db, key.organization_id, author.id)
+    if membership is None:
+        raise HTTPException(
+            status_code=403,
+            detail=(f"Ключ выпустил {key.created_by or author.email}; он больше не "
+                    "участник организации, и ключ вместе с ним не работает. Выпустите "
+                    "ключ заново от действующего участника."))
+    _ensure_active(membership, db)
+    return author
 
 
 def api_key_from(credentials: HTTPAuthorizationCredentials, db: Session) -> ApiKey | None:
@@ -90,9 +131,15 @@ def api_key_from(credentials: HTTPAuthorizationCredentials, db: Session) -> ApiK
     Проверка идёт по отпечатку: самого ключа платформа не хранит. Отозванный ключ
     отвергается **с названной причиной** — «недействительный токен» отправил бы
     интегратора искать опечатку там, где ключ просто выключили.
+
+    Найденный ключ запоминается **в сессии запроса** (``db.info``): журнал организации
+    пишут два десятка маршрутов, и передавать пометку «через ключ» параметром в каждый
+    означало бы два десятка мест, где её забудут. Сессия у запроса своя, и живёт она
+    ровно столько же. Записывается и ``None`` — иначе пометка пережила бы свой запрос.
     """
     token = credentials.credentials
     if not apikeys.looks_like_key(token):
+        db.info["via_api_key"] = None
         return None
     prefix = apikeys.parse_prefix(token)
     key = crud.find_api_key_by_prefix(db, prefix) if prefix else None
@@ -101,7 +148,27 @@ def api_key_from(credentials: HTTPAuthorizationCredentials, db: Session) -> ApiK
     if key.revoked_at is not None:
         raise HTTPException(status_code=401,
                             detail="Ключ доступа отозван — выпустите новый")
+    db.info["via_api_key"] = key
     return key
+
+
+def _key_within_rate(key: ApiKey) -> None:
+    """Предел частоты для ключа (OPEN-DECISIONS §3, п. 4).
+
+    Считается **по ключу**, а не по адресу: ключ живёт в чужом сервере, и адрес у него
+    один на всю интеграцию — ограничение по IP наказывало бы соседей по дата-центру и
+    ничего не сказало бы о самом ключе.
+
+    Отказ называет и предел, и то, что делать: `Retry-After` в заголовке, чтобы клиент
+    не гадал, — сорвавшийся цикл обычно чинит не человек, а сам клиент.
+    """
+    if not allow("apikey", key.id, apikeys.MAX_REQUESTS_PER_MINUTE, 60):
+        raise HTTPException(
+            status_code=429,
+            detail=(f"Ключ отправляет больше {apikeys.MAX_REQUESTS_PER_MINUTE} запросов "
+                    "в минуту. Это предел на ключ — сделайте паузу или разнесите "
+                    "выгрузку во времени."),
+            headers={"Retry-After": "60"})
 
 
 def current_session(
@@ -118,10 +185,10 @@ def current_session(
     403 сказал бы «вам сюда нельзя» о человеке, которому просто нужно войти.
     """
     if apikeys.looks_like_key(credentials.credentials):
-        # Ключ действителен, но у него нет человека: маршрут, которому нужен автор,
-        # обязан сказать это словами, а не «недействительным токеном».
+        # Ключ действителен, но сеанса за ним нет: маршрут, которому нужен вошедший
+        # человек, обязан сказать это словами, а не «недействительным токеном».
         api_key_from(credentials, db)
-        raise HTTPException(status_code=403, detail=KEY_READ_ONLY)
+        raise HTTPException(status_code=403, detail=KEY_NEEDS_A_PERSON)
     decoded = decode_access(credentials.credentials)
     if decoded is None:
         raise HTTPException(status_code=401, detail="Недействительный токен")
@@ -150,7 +217,16 @@ def current_user(
     session: UserSession = Depends(current_session),
     db: Session = Depends(get_db),
 ) -> User:
-    """Текущий пользователь по токену доступа."""
+    """Текущий пользователь по токену доступа.
+
+    **Ключ доступа сюда не проходит** — и это не забытая ветка, а граница. Через эту
+    зависимость идут действия, которые называют человека: правка своего профиля и пароля,
+    управление участниками, тариф, реплика в обсуждении. Пусти сюда ключ от имени
+    выпустившего — и ключ, лежащий в чужом сервере, сменил бы ему пароль.
+
+    Там, где ключу писать **разрешено**, стоит :func:`acting_user`. Разница между ними —
+    это и есть перечень того, что ключом делать можно.
+    """
     user = crud.get_user(db, session.user_id)
     if user is None:
         raise HTTPException(status_code=401, detail="Пользователь не найден")
@@ -160,6 +236,26 @@ def current_user(
         # что и в A1 — учётная запись читается из базы на каждом запросе.
         raise HTTPException(status_code=403, detail=account_blocked_detail(user))
     return user
+
+
+def acting_user(
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+    db: Session = Depends(get_db),
+) -> User:
+    """Кто совершает действие: вошедший человек **или** автор ключа (OPEN-DECISIONS §3).
+
+    Стоит только там, где ключу разрешено писать, — на правке моделей проектов и дел.
+    Подмены нет: автором записи становится человек, выпустивший ключ, а сам ключ идёт
+    пометкой в той же записи. Право на действие при этом проверяет не эта зависимость,
+    а :func:`require_permission`: она же и убедится, что ключу такое право выдавали.
+
+    Перечень маршрутов, где эта зависимость стоит, и есть ответ на вопрос «что можно
+    ключом» — поэтому он закреплён тестом, а не памятью.
+    """
+    key = api_key_from(credentials, db)
+    if key is not None:
+        return key_author(db, key)
+    return current_user(current_session(credentials, db), db)
 
 
 def require_staff(user: User = Depends(current_user)) -> User:
@@ -258,10 +354,10 @@ def require_permission(perm: Perm, product: str = "business"):
     просроченный «Аудит» не имеет отношения к оплаченному «Элит».
 
     Здесь же вторая дверь — **ключ доступа** (D5). Она не обходит первую, а идёт рядом:
-    ключ называет свою организацию сам (он ей и принадлежит), получает только чтение и
-    расчёт (:data:`KEY_PERMS`) и упирается в те же ограничения продукта. Держать её
-    именно тут — то же решение, что и с проверкой членства: через эту зависимость
-    проходит каждый запрос к данным организации, и забыть её нельзя.
+    ключ называет свою организацию сам (он ей и принадлежит), получает ровно то, что ему
+    выдали при выпуске (`apikeys.effective_perms`), и упирается в те же ограничения
+    продукта. Держать её именно тут — то же решение, что и с проверкой членства: через
+    эту зависимость проходит каждый запрос к данным организации, и забыть её нельзя.
     """
 
     def dependency(
@@ -271,8 +367,15 @@ def require_permission(perm: Perm, product: str = "business"):
     ) -> str:
         key = api_key_from(credentials, db)
         if key is not None:
-            if perm not in KEY_PERMS:
-                raise HTTPException(status_code=403, detail=KEY_READ_ONLY)
+            if perm not in apikeys.ALLOWED_PERMS:
+                raise HTTPException(status_code=403, detail=KEY_FORBIDDEN)
+            if perm not in apikeys.effective_perms(key.scopes):
+                raise HTTPException(status_code=403, detail=KEY_NOT_GRANTED)
+            _key_within_rate(key)
+            # Ключ работает от имени выпустившего — и гаснет вместе с ним. Проверка
+            # стоит **до** работы, а не только там, где пишут: ключ уволенного не должен
+            # и читать, иначе доверенность переживает доверителя.
+            key_author(db, key)
             crud.touch_api_key(db, key, SEEN_INTERVAL)
             _ensure_not_restricted(db, key.organization_id, perm, product)
             return enter_tenant(db, key.organization_id)

@@ -214,6 +214,14 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "scopes": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Scopes",
+            "type": "array"
           }
         },
         "required": [
@@ -248,6 +256,11 @@
       "ApiKeyOut": {
         "description": "Ключ в списке. Секрета здесь нет и быть не может — платформа его не хранит.\n\n``last_used_at`` = ``None`` означает **ни разу**, а не «давно»: неиспользованный ключ\nобычно забыт, и это повод его отозвать, а не оставить.",
         "properties": {
+          "author_gone": {
+            "default": false,
+            "title": "Author Gone",
+            "type": "boolean"
+          },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
@@ -303,6 +316,19 @@
             "default": "",
             "title": "Revoked By",
             "type": "string"
+          },
+          "scopes": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Scopes",
+            "type": "array"
+          },
+          "writes": {
+            "default": false,
+            "title": "Writes",
+            "type": "boolean"
           }
         },
         "required": [
@@ -312,6 +338,34 @@
           "created_at"
         ],
         "title": "ApiKeyOut",
+        "type": "object"
+      },
+      "ApiKeyScopeOut": {
+        "description": "Что ключу можно: два списка, а не один.\n\n«Есть всегда» и «можно выдать» — разные ответы, и экран, где они слиты, заставляет\nгадать, что именно выбирают при выпуске.",
+        "properties": {
+          "always": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Always",
+            "type": "array"
+          },
+          "grantable": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Grantable",
+            "type": "array"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "title": "ApiKeyScopeOut",
         "type": "object"
       },
       "Asset-Input": {
@@ -1797,6 +1851,11 @@
           },
           "id": {
             "title": "Id",
+            "type": "string"
+          },
+          "via_key": {
+            "default": "",
+            "title": "Via Key",
             "type": "string"
           }
         },
@@ -15884,7 +15943,7 @@
         ]
       },
       "post": {
-        "description": "Создать субъект анализа в текущей организации.",
+        "description": "Создать субъект анализа в текущей организации.\n\nОдин из четырёх маршрутов, доступных **ключу доступа** с правом на запись\n(OPEN-DECISIONS §3): дело заводит обмен с учётной системой. Автором записи в журнале\nстановится человек, выпустивший ключ, — отсюда `acting_user` вместо `current_user`.",
         "operationId": "create_subject_api_v1_audit_subjects_post",
         "parameters": [
           {
@@ -16121,7 +16180,7 @@
         ]
       },
       "put": {
-        "description": "Обновить имя и/или модель субъекта.",
+        "description": "Обновить имя и/или модель субъекта.\n\nДоступен **ключу доступа** с правом на запись (OPEN-DECISIONS §3): отчётность\nприходит из учётной системы, и заставлять человека переносить её руками — ровно то,\nради чего заводят обмен.",
         "operationId": "update_subject_api_v1_audit_subjects__subject_id__put",
         "parameters": [
           {
@@ -19103,7 +19162,7 @@
         ]
       },
       "post": {
-        "description": "Выпустить ключ. Секрет показывается **один раз** — платформа его не хранит.",
+        "description": "Выпустить ключ. Секрет показывается **один раз** — платформа его не хранит.\n\nПрава выбираются здесь и больше не меняются: ключ, права которого правят на ходу,\nозначает, что владелец чужого сервера однажды получит больше, чем ему выдавали, и\nникто этого не заметит. Нужно другое — выпускается другой ключ.",
         "operationId": "create_key_api_v1_organizations__org_id__api_keys_post",
         "parameters": [
           {
@@ -19161,7 +19220,7 @@
     },
     "/api/v1/organizations/{org_id}/api-keys/scope": {
       "get": {
-        "description": "Что ключ умеет — перечнем прав, а не обещанием на словах.",
+        "description": "Что ключу можно — перечнем прав, а не обещанием на словах.\n\nДва списка, а не один: «есть всегда» и «можно выдать» — разные ответы, и экран, где\nони слиты, заставляет гадать, что именно выбирают при выпуске.",
         "operationId": "key_scope_api_v1_organizations__org_id__api_keys_scope_get",
         "parameters": [
           {
@@ -19179,11 +19238,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "type": "string"
-                  },
-                  "title": "Response Key Scope Api V1 Organizations  Org Id  Api Keys Scope Get",
-                  "type": "array"
+                  "$ref": "#/components/schemas/ApiKeyScopeOut"
                 }
               }
             },
@@ -20569,7 +20624,7 @@
         ]
       },
       "post": {
-        "description": "Создать проект в текущей организации (право project.create; учёт квоты тарифа).",
+        "description": "Создать проект в текущей организации (право project.create; учёт квоты тарифа).\n\nОдин из четырёх маршрутов, доступных **ключу доступа** с правом на запись\n(OPEN-DECISIONS §3): обмен с учётной системой заводит проекты сам. Автором записи в\nжурнале становится человек, выпустивший ключ, — отсюда `acting_user` вместо\n`current_user`. Квота тарифа при этом та же самая: ключ не обходит `max_units`.",
         "operationId": "create_project_api_v1_projects_post",
         "parameters": [
           {
@@ -20806,7 +20861,7 @@
         ]
       },
       "put": {
-        "description": "Обновить имя и/или модель проекта (право project.update).",
+        "description": "Обновить имя и/или модель проекта (право project.update).\n\nДоступен **ключу доступа** с правом на запись (OPEN-DECISIONS §3) — см. создание\nпроекта: автором правки в журнале становится тот, кто выпустил ключ.",
         "operationId": "update_project_api_v1_projects__project_id__put",
         "parameters": [
           {

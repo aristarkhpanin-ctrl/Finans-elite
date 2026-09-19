@@ -105,7 +105,7 @@ def _log_entry_out(e) -> AuditLogEntryOut:
     return AuditLogEntryOut(id=e.id, actor_email=e.actor_email, action=e.action,
                             entity_type=e.entity_type, entity_id=e.entity_id,
                             entity_name=e.entity_name, details=e.details,
-                            created_at=e.created_at)
+                            via_key=e.via_key, created_at=e.created_at)
 
 
 def _mail_report(sent: Sent) -> MailReport:
@@ -512,10 +512,13 @@ def export_audit_log(actor: str = "", action: str = "", entity_type: str = "",
     entries = crud.list_audit_log(db, org_id, limit=MAX_LOG_EXPORT, **f)
     buf = io.StringIO()
     writer = csv.writer(buf, delimiter=";", lineterminator="\r\n")
-    writer.writerow(["Дата и время", "Кто", "Действие", "Тип", "Объект", "Примечание"])
+    # Колонка «Через ключ» — рядом с «Кто», а не вместо неё: разбирают инцидент по файлу,
+    # и «сделал человек» без пометки о ключе увело бы разбор не туда.
+    writer.writerow(["Дата и время", "Кто", "Через ключ", "Действие", "Тип", "Объект",
+                     "Примечание"])
     for e in entries:
         writer.writerow([e.created_at.strftime("%d.%m.%Y %H:%M:%S"), e.actor_email,
-                         e.action, e.entity_type, e.entity_name, e.details])
+                         e.via_key, e.action, e.entity_type, e.entity_name, e.details])
     crud.log_action(db, org_id, actor_user, "audit_log.export", entity_type="organization",
                     entity_id=org_id, details=f"строк: {len(entries)}")
     return Response(

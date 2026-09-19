@@ -141,6 +141,20 @@ describe("Журнал действий", () => {
     await screen.findByText("По отбору ничего не найдено");
   });
 
+  it("правка через ключ названа рядом с автором, а не вместо него", async () => {
+    // Автор настоящий — тот, кто выпустил ключ; но без пометки правка из чужого сервера
+    // читалась бы как сделанная руками, и разбор инцидента пошёл бы не туда.
+    await show([entry({ action: "project.update", via_key: "Обмен с 1С (fe_1a2b3c4d_…)" })]);
+    const who = screen.getByRole("rowheader");
+    expect(who.textContent).toContain("owner@e.ru");
+    expect(who.textContent).toContain("через ключ · Обмен с 1С");
+  });
+
+  it("работа руками пометки не несёт: стоящая везде, она не отличает ничего", async () => {
+    await show([entry()]);
+    expect(screen.queryByText(/через ключ/)).toBeNull();
+  });
+
   it("сброс возвращает журнал целиком", async () => {
     await show([entry()]);
     fireEvent.change(screen.getByLabelText("Поиск по журналу"), { target: { value: "х" } });

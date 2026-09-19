@@ -204,20 +204,30 @@ export async function putChecklists(orgId: string, rows: ChecklistIn[]): Promise
 }
 
 /**
- * Ключи доступа к API (D5). Ключ принадлежит организации и **читает** её данные:
- * выгрузка в BI, отчёт в 1С. Секрет показывается один раз — платформа его не хранит.
+ * Ключи доступа к API (D5; запись — OPEN-DECISIONS §3). Ключ принадлежит организации,
+ * читает её данные (выгрузка в BI, отчёт в 1С) и, если это выдали при выпуске, правит
+ * модели — от имени того, кто его выпустил. Секрет показывается один раз.
  */
 export type ApiKey = Schema<"ApiKeyOut">;
 export type ApiKeyCreated = Schema<"ApiKeyCreated">;
+export type ApiKeyScope = Schema<"ApiKeyScopeOut">;
 
 export async function getApiKeys(orgId: string): Promise<ApiKey[]> {
   const { data } = await api.get<ApiKey[]>(`/api/v1/organizations/${orgId}/api-keys`);
   return data;
 }
 
-export async function createApiKey(orgId: string, name: string): Promise<ApiKeyCreated> {
+/** Что ключу можно: «есть всегда» и «можно выдать» — двумя списками, а не одним. */
+export async function getApiKeyScope(orgId: string): Promise<ApiKeyScope> {
+  const { data } = await api.get<ApiKeyScope>(
+    `/api/v1/organizations/${orgId}/api-keys/scope`);
+  return data;
+}
+
+export async function createApiKey(orgId: string, name: string,
+                                   scopes: string[] = []): Promise<ApiKeyCreated> {
   const { data } = await api.post<ApiKeyCreated>(
-    `/api/v1/organizations/${orgId}/api-keys`, { name });
+    `/api/v1/organizations/${orgId}/api-keys`, { name, scopes });
   return data;
 }
 
