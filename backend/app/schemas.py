@@ -482,9 +482,13 @@ class RestrictionOut(BaseModel):
     #: отношения к оплаченному «Элит». Ручная приостановка приходит по обоим продуктам —
     #: она про организацию целиком.
     product: str
-    kind: str          # "suspended" | "unpaid"
+    kind: str          # "suspended" | "unpaid" | "grace"
     reason: str
     remedy: str
+    #: Закрывает ли запись. ``False`` — предупреждение о льготном сроке: организация
+    #: работает как обычно, но оплаченный период уже кончился. Показать его как отказ
+    #: значило бы напугать раньше времени; не показать — отнять запись без предупреждения.
+    blocking: bool = True
 
 
 class OrganizationMembershipOut(BaseModel):

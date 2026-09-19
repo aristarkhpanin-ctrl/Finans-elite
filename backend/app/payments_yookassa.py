@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from . import crud
 from .billing import CheckoutResult, PaymentProvider
-from .plans import Plan
+from .plans import Plan, get_plan
 
 API_BASE = os.getenv("YOOKASSA_API_BASE", "https://api.yookassa.ru/v3")
 VAT_CODE = int(os.getenv("YOOKASSA_VAT_CODE", "1"))  # 1 — без НДС
@@ -90,6 +90,10 @@ class YooKassaPaymentProvider(PaymentProvider):
             return  # неизвестный платёж — игнорируем
         if new_status == "succeeded" and payment.status != "succeeded":
             crud.mark_payment(db, payment, "succeeded")
-            crud.set_plan(db, payment.organization_id, payment.plan_code, status="active")
+            # Срок оплаченного периода начинает тот же помощник, что и у ручного
+            # провайдера: две двери к одной покупке разошлись бы.
+            from .billing import activate_paid_plan
+            activate_paid_plan(db, payment.organization_id,
+                               get_plan(payment.plan_code))
         elif new_status == "canceled" and payment.status != "canceled":
             crud.mark_payment(db, payment, "canceled")

@@ -8522,6 +8522,11 @@ export interface components {
          *     обоих не туда.
          */
         RestrictionOut: {
+            /**
+             * Blocking
+             * @default true
+             */
+            blocking: boolean;
             /** Kind */
             kind: string;
             /** Product */

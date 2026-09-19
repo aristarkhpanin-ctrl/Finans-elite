@@ -3926,6 +3926,9 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 }
 .restr--unpaid { background: var(--warn-bg); border-color: var(--warn); }
 .restr--suspended { background: var(--danger-bg); border-color: var(--danger); }
+/* Льготный срок: предупреждение, а не отказ. Тише остальных — у клиента всё работает,
+   и пугать его тем же цветом, что и отнятую запись, значит обесценить оба сигнала. */
+.restr--grace, .restr--warn { background: var(--surface-2); border-color: var(--line); }
 .restr__ico { font-size: 16px; line-height: 1.3; flex: none; }
 .restr__title { font: 600 13px var(--font-ui); color: var(--text); margin-bottom: 2px; }
 .restr__text { font: 400 12px/1.55 var(--font-ui); color: var(--muted); }

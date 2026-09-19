@@ -9,12 +9,27 @@ from __future__ import annotations
 import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from . import crud
+from .billing_period import paid_period_end
 from .plans import UNIT_NAME, Plan, get_plan
+
+
+def activate_paid_plan(db: Session, org_id: str, plan: Plan,
+                       paid_at: datetime | None = None):
+    """Включить тариф **по факту оплаты** — и начать отсчёт оплаченного периода.
+
+    Одна дверь на обоих провайдеров: ручного (разработка) и ЮKassa. Раньше каждый звал
+    ``set_plan`` сам, и добавить срок пришлось бы в двух местах — ровно так и появляются
+    подписки, которые истекают у одних клиентов и не истекают у других.
+    """
+    end = paid_period_end(plan, paid_at or datetime.now(timezone.utc))
+    return crud.set_plan(db, org_id, plan.code, status="active", product=plan.product,
+                         period_end=end, paid=True)
 
 
 def current_plan(db: Session, org_id: str, product: str = "business") -> Plan:
@@ -89,7 +104,7 @@ class ManualPaymentProvider(PaymentProvider):
 
     def start_checkout(self, db: Session, org_id: str, plan: Plan, return_url: str,
                        customer_email: str) -> CheckoutResult:
-        crud.set_plan(db, org_id, plan.code, status="active")
+        activate_paid_plan(db, org_id, plan)
         return CheckoutResult(activated=True)
 
 

@@ -25,12 +25,25 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
 from . import crud
+from .billing_period import effective_status, grace_days_left, in_grace
 from .plans import PRODUCT_NAME
 from .rbac import Perm
+
+
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _days(n: int) -> str:
+    """«день / дня / дней» — число без падежа читается как машинный вывод."""
+    if 11 <= n % 100 <= 14:
+        return "дней"
+    return {1: "день", 2: "дня", 3: "дня", 4: "дня"}.get(n % 10, "дней")
 
 #: Права, закрытые в режиме чтения и выгрузки: всё, что **меняет** содержимое.
 #: Чтение, расчёт, участники, тариф и оплата остаются доступными.
@@ -53,9 +66,14 @@ class Restriction:
     бы отправить обоих не туда.
     """
 
-    kind: str          # "suspended" | "unpaid"
+    kind: str          # "suspended" | "unpaid" | "grace"
     reason: str        # что произошло
     remedy: str        # что делать
+    #: Закрывает ли запись. ``False`` — предупреждение: льготный срок после окончания
+    #: оплаченного периода, когда организация ещё работает как обычно. Предупреждение
+    #: обязано ехать тем же каналом, что и отказ: второй канал однажды забыли бы
+    #: показать, и клиент узнал бы о проблеме в день, когда уже ничего не может.
+    blocking: bool = True
 
     @property
     def detail(self) -> str:
@@ -82,9 +100,29 @@ def restriction_for(db: Session, org_id: str, product: str = "business") -> Rest
         )
 
     sub = crud.get_subscription(db, org_id, product)
-    if sub is not None and sub.status in UNPAID_STATUSES:
-        name = PRODUCT_NAME.get(product, product)
-        what = "отменена" if sub.status == "canceled" else "не оплачена"
+    if sub is None:
+        return None
+
+    name = PRODUCT_NAME.get(product, product)
+    # «Сейчас» берётся один раз на все три вопроса: два вызова `now()` на границе суток
+    # ответили бы по-разному, и баннер сказал бы «осталось 0 дней», всё ещё не ограничивая.
+    now = _now()
+    # Льготный срок: период кончился, но работа продолжается. Говорим об этом **до**
+    # того, как отнимем запись, — ограничение в день окончания периода не строгость,
+    # а ловушка: человек узнаёт о проблеме, когда уже не может решить её в продукте.
+    if sub.status not in UNPAID_STATUSES and in_grace(sub.current_period_end, now):
+        left = grace_days_left(sub.current_period_end, now)
+        return Restriction(
+            kind="grace",
+            reason=f"Оплаченный период подписки на «{name}» закончился.",
+            remedy=f"Работа продолжается ещё {left} {_days(left)}; после этого останутся "
+                   "просмотр, расчёт и выгрузка. Оплатите тариф, чтобы не прерываться.",
+            blocking=False,
+        )
+
+    status = effective_status(sub.status, sub.current_period_end, now)
+    if status in UNPAID_STATUSES:
+        what = "отменена" if status == "canceled" else "не оплачена"
         return Restriction(
             kind="unpaid",
             reason=f"Подписка на «{name}» {what}.",

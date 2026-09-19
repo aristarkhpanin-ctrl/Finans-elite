@@ -243,7 +243,9 @@ def _ensure_not_restricted(db: Session, org_id: str, perm: Perm, product: str) -
     if perm not in WRITE_PERMS:
         return
     restriction = restriction_for(db, org_id, product)
-    if restriction is not None:
+    # Предупреждение (льготный срок) идёт тем же каналом, но ничего не закрывает:
+    # «работа продолжается ещё 12 дней» и отказ в записи — разные утверждения.
+    if restriction is not None and restriction.blocking:
         raise HTTPException(status_code=403, detail=restriction.detail)
 
 

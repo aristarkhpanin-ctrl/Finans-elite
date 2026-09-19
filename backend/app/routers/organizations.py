@@ -77,7 +77,8 @@ def _restrictions_out(db: Session, org_id: str) -> list[RestrictionOut]:
         restriction = restriction_for(db, org_id, product)
         if restriction is not None:
             out.append(RestrictionOut(product=product, kind=restriction.kind,
-                                      reason=restriction.reason, remedy=restriction.remedy))
+                                      reason=restriction.reason, remedy=restriction.remedy,
+                                      blocking=restriction.blocking))
     return out
 
 

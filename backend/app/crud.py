@@ -83,15 +83,29 @@ def list_subscriptions(db: Session, org_id: str) -> list[Subscription]:
 
 
 def set_plan(db: Session, org_id: str, plan_code: str, status: str = "active",
-             product: str = "business") -> Subscription:
+             product: str = "business",
+             period_end: datetime | None = None, paid: bool = False) -> Subscription:
+    """Назначить тариф. ``paid=True`` — это **покупка**, и она начинает отсчёт периода.
+
+    Срок ставит платёж, а не смена тарифа: административная смена (право
+    `billing.manage`) — назначение, за которое никто не платил, и начинать отсчёт не с
+    чего. Поэтому по умолчанию ``paid=False`` и дата периода не трогается вовсе — у
+    прежнего вызова поведение не меняется.
+
+    ``period_end=None`` при ``paid=True`` означает «тариф не истекает» (бесплатный,
+    пробный, «по запросу») и **стирает** прежнюю дату: перейдя с платного на бесплатный,
+    организация не должна тащить за собой чужой срок.
+    """
     sub = get_subscription(db, org_id, product)
     if sub is None:
         sub = Subscription(organization_id=org_id, plan_code=plan_code, status=status,
-                           product=product)
+                           product=product, current_period_end=period_end)
         db.add(sub)
     else:
         sub.plan_code = plan_code
         sub.status = status
+        if paid:
+            sub.current_period_end = period_end
     db.commit()
     db.refresh(sub)
     return sub
