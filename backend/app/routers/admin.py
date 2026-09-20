@@ -33,7 +33,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from .. import billing as billing_mod
-from .. import crud, usage
+from .. import crud, support_access, usage
 from ..database import as_tenant, get_db
 from ..db_models import User
 from ..deps import require_operator, require_staff
@@ -53,10 +53,13 @@ from ..schemas import (
     PlatformMetricsOut,
     RetentionPointOut,
     RevenuePointOut,
+    StaffAccessOut,
+    StaffEntityOut,
     StaffListOut,
     StaffLogEntryOut,
     StaffLogPage,
     StaffMemberOut,
+    StaffModelOut,
     StaffOrgDetail,
     StaffOrgOut,
     StaffOrgPage,
@@ -116,7 +119,27 @@ def _org_detail(db: Session, org) -> StaffOrgDetail:
                                 provider=p.provider)
                 for p in crud.list_payments(db, org.id)]
     return StaffOrgDetail(**base.model_dump(), members_list=members, payments=payments,
-                          payments_total=crud.count_payments(db, org.id))
+                          payments_total=crud.count_payments(db, org.id),
+                          access=_access_out(db, org.id))
+
+
+def _access_out(db: Session, org_id: str) -> StaffAccessOut:
+    """Открыл ли клиент доступ к своим моделям (F4) — **и почему нет**, если не открыл.
+
+    Причина нужна оператору **до** нажатия: наткнувшись на 403 в ответ на обычное
+    «посмотрите мой проект», он пойдёт просить выгрузку почтой — то есть ровно тем
+    каналом, который платформа для этого и заменяет.
+    """
+    now = datetime.now(timezone.utc)
+    with as_tenant(db, org_id):
+        grants = crud.list_support_grants(db, org_id)
+    grant = support_access.live_grant(grants, now)
+    if grant is None:
+        refusal = support_access.refusal_for(grants, now, fmt_when=_when_ru)
+        return StaffAccessOut(reason=refusal.reason if refusal else "")
+    return StaffAccessOut(granted=True, expires_at=grant.expires_at,
+                          granted_by_email=grant.granted_by_email,
+                          grant_reason=grant.reason)
 
 
 @router.get("/organizations", response_model=StaffOrgPage)
@@ -622,6 +645,120 @@ def export_usage(months: int = 12, staff: User = Depends(require_staff),
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": 'attachment; filename="usage-summary.csv"'},
     )
+
+
+def _access_or_403(db: Session, org_id: str):
+    """Живой грант клиента — или 403 с **названной** причиной (F4).
+
+    Единственная дверь к содержимому моделей: и список, и сама модель спрашивают её,
+    а не проверяют условие по месту. Проверка, скопированная в три маршрута, однажды
+    разъехалась бы — и разъехалась бы молча, в сторону «видно больше».
+    """
+    now = datetime.now(timezone.utc)
+    with as_tenant(db, org_id):
+        grants = crud.list_support_grants(db, org_id)
+    refusal = support_access.refusal_for(grants, now, fmt_when=_when_ru)
+    if refusal is not None:
+        raise HTTPException(status_code=403, detail=refusal.reason)
+    grant = support_access.live_grant(grants, now)
+    assert grant is not None                      # refusal_for уже это проверил
+    return grant
+
+
+def _when_ru(moment: datetime) -> str:
+    return moment.astimezone(timezone.utc).strftime("%d.%m.%Y %H:%M UTC")
+
+
+def _grant_note(grant) -> str:
+    """На каком основании оператор видит эти числа. Едет **вместе с моделью**: экран,
+    открытый по ошибке, не должен выглядеть как обычная работа."""
+    return (f"Содержимое модели клиента. Доступ открыт самой организацией "
+            f"({grant.granted_by_email or 'кем-то из её администраторов'}) до "
+            f"{_when_ru(grant.expires_at)}, причина: {grant.reason or 'не названа'}. "
+            f"Это обращение записано в журнал организации.")
+
+
+def _org_or_404(db: Session, org_id: str):
+    org = crud.get_organization(db, org_id)
+    if org is None:
+        raise HTTPException(status_code=404, detail="Организация не найдена")
+    return org
+
+
+@router.get("/organizations/{org_id}/projects", response_model=list[StaffEntityOut])
+def list_org_projects(org_id: str, staff: User = Depends(require_staff),
+                      db: Session = Depends(get_db)) -> list[StaffEntityOut]:
+    """Проекты клиента — **за живым грантом** (F4).
+
+    Список закрыт тем же грантом, что и содержимое, и это не перестраховка: название
+    («Покупка завода в Твери») само по себе коммерческая тайна — ради этого правило 6
+    и запрещало показывать имена сущностей в карточке клиента.
+    """
+    org = _org_or_404(db, org_id)
+    _access_or_403(db, org_id)
+    with as_tenant(db, org_id):
+        rows = crud.list_projects(db, org_id)
+        crud.log_action(db, org_id, staff, "support.projects_list",
+                        entity_type="organization", entity_id=org_id,
+                        entity_name=org.name,
+                        details=f"сотрудник платформы, проектов: {len(rows)}")
+    return [StaffEntityOut(id=p.id, name=p.name, updated_at=p.updated_at) for p in rows]
+
+
+@router.get("/organizations/{org_id}/projects/{project_id}", response_model=StaffModelOut)
+def read_org_project(org_id: str, project_id: str, staff: User = Depends(require_staff),
+                     db: Session = Depends(get_db)) -> StaffModelOut:
+    """Модель проекта клиента — единственное место, где содержимое вообще появляется.
+
+    **Каждое** чтение пишется в журнал организации отдельной строкой: приход
+    постороннего в свои числа клиент обязан видеть построчно, а не одной записью
+    «доступ выдан». Это названное исключение из «журнал не пишет чтение», то же, что
+    у визита в карточку.
+    """
+    _org_or_404(db, org_id)
+    grant = _access_or_403(db, org_id)
+    with as_tenant(db, org_id):
+        project = crud.get_project(db, org_id, project_id)
+        if project is None:
+            raise HTTPException(status_code=404, detail="Проект не найден")
+        crud.log_action(db, org_id, staff, "support.project_view", entity_type="project",
+                        entity_id=project.id, entity_name=project.name,
+                        details="сотрудник платформы смотрел модель")
+    return StaffModelOut(id=project.id, name=project.name, updated_at=project.updated_at,
+                         model=project.model, note=_grant_note(grant))
+
+
+@router.get("/organizations/{org_id}/audit-subjects", response_model=list[StaffEntityOut])
+def list_org_subjects(org_id: str, staff: User = Depends(require_staff),
+                      db: Session = Depends(get_db)) -> list[StaffEntityOut]:
+    """Дела клиента («Финанс-Аудит») — за тем же грантом и по тем же правилам."""
+    org = _org_or_404(db, org_id)
+    _access_or_403(db, org_id)
+    with as_tenant(db, org_id):
+        rows = crud.list_audit_subjects(db, org_id)
+        crud.log_action(db, org_id, staff, "support.cases_list",
+                        entity_type="organization", entity_id=org_id,
+                        entity_name=org.name,
+                        details=f"сотрудник платформы, дел: {len(rows)}")
+    return [StaffEntityOut(id=s.id, name=s.name, updated_at=s.updated_at) for s in rows]
+
+
+@router.get("/organizations/{org_id}/audit-subjects/{subject_id}",
+            response_model=StaffModelOut)
+def read_org_subject(org_id: str, subject_id: str, staff: User = Depends(require_staff),
+                     db: Session = Depends(get_db)) -> StaffModelOut:
+    """Модель дела клиента. Правила те же — грант, запись в журнал, только чтение."""
+    _org_or_404(db, org_id)
+    grant = _access_or_403(db, org_id)
+    with as_tenant(db, org_id):
+        subject = crud.get_audit_subject(db, org_id, subject_id)
+        if subject is None:
+            raise HTTPException(status_code=404, detail="Дело не найдено")
+        crud.log_action(db, org_id, staff, "support.case_view", entity_type="audit_subject",
+                        entity_id=subject.id, entity_name=subject.name,
+                        details="сотрудник платформы смотрел отчётность")
+    return StaffModelOut(id=subject.id, name=subject.name, updated_at=subject.updated_at,
+                         model=subject.model, note=_grant_note(grant))
 
 
 @router.get("/staff", response_model=StaffListOut)

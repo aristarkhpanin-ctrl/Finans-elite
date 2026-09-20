@@ -41,6 +41,7 @@ from .db_models import (
     ProjectVersion,
     StaffLogEntry,
     Subscription,
+    SupportGrant,
     User,
     UserSession,
 )
@@ -586,6 +587,58 @@ def get_version(db: Session, org_id: str, project_id: str,
 def delete_version(db: Session, version: ProjectVersion) -> None:
     db.delete(version)
     db.commit()
+
+
+# --- Доступ поддержки к моделям организации (F4) ---
+
+#: Сколько прошлых грантов показывать. История нужна для проверяемого «нам никто не
+#: открывал»; листать её постранично незачем — доступ открывают редко.
+MAX_SUPPORT_GRANTS = 20
+
+
+def list_support_grants(db: Session, org_id: str,
+                        limit: int = MAX_SUPPORT_GRANTS) -> list[SupportGrant]:
+    """Гранты организации, новые сверху. Закрытые и истёкшие **остаются**."""
+    return list(
+        db.scalars(
+            select(SupportGrant)
+            .where(SupportGrant.organization_id == org_id)
+            .order_by(SupportGrant.created_at.desc())
+            .limit(limit)
+        )
+    )
+
+
+def grant_support_access(db: Session, org_id: str, actor: User, *, expires_at: datetime,
+                         reason: str) -> SupportGrant:
+    """Открыть доступ поддержки. Прежний действующий грант **закрывается**.
+
+    Два живых гранта с разными сроками означали бы, что ответ на вопрос «до какого часа
+    открыто» зависит от того, какой из них посмотреть.
+    """
+    now = datetime.now(timezone.utc)
+    for row in list_support_grants(db, org_id):
+        if row.revoked_at is None:
+            row.revoked_at = now
+    grant = SupportGrant(organization_id=org_id, granted_by=actor.id,
+                         granted_by_email=actor.email, reason=reason,
+                         expires_at=expires_at)
+    db.add(grant)
+    db.commit()
+    db.refresh(grant)
+    return grant
+
+
+def revoke_support_access(db: Session, org_id: str) -> SupportGrant | None:
+    """Закрыть доступ досрочно. Строка остаётся — стирается только действие."""
+    now = datetime.now(timezone.utc)
+    for row in list_support_grants(db, org_id):
+        if row.revoked_at is None:
+            row.revoked_at = now
+            db.commit()
+            db.refresh(row)
+            return row
+    return None
 
 
 # --- Отраслевые ориентиры организации (свои, не рыночные) ---

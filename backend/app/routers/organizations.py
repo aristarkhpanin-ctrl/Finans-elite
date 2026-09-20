@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import csv
 import io
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
-from .. import billing, crud, mail, usage
+from .. import billing, crud, mail, support_access, usage
 from ..access import restriction_for
 from ..activity import build_activity
 from ..database import get_db
@@ -36,6 +36,9 @@ from ..schemas import (
     OrganizationMembershipOut,
     OrganizationOut,
     RestrictionOut,
+    SupportAccessIn,
+    SupportAccessOut,
+    SupportGrantOut,
     TransferOwnershipIn,
     activity_response,
 )
@@ -405,6 +408,81 @@ def replace_benchmarks(body: list[BenchmarkIn],
     crud.log_action(db, org_id, actor, "benchmarks.replace", entity_type="organization",
                     entity_id=org_id, details=f"строк: {len(rows)}")
     return [_benchmark_out(b) for b in saved]
+
+
+def _grant_out(g, now: datetime) -> SupportGrantOut:
+    return SupportGrantOut(id=g.id, granted_by_email=g.granted_by_email, reason=g.reason,
+                           created_at=g.created_at, expires_at=g.expires_at,
+                           revoked_at=g.revoked_at,
+                           active=support_access.is_live(g, now))
+
+
+def _access_state(db: Session, org_id: str) -> SupportAccessOut:
+    now = datetime.now(timezone.utc)
+    rows = crud.list_support_grants(db, org_id)
+    live = support_access.live_grant(rows, now)
+    return SupportAccessOut(
+        current=_grant_out(live, now) if live is not None else None,
+        history=[_grant_out(g, now) for g in rows],
+        max_hours=support_access.MAX_GRANT_HOURS,
+        notes=[support_access.SCOPE_NOTE, support_access.READ_ONLY_NOTE])
+
+
+@router.get("/{org_id}/support-access", response_model=SupportAccessOut)
+def read_support_access(org_id: str = Depends(require_membership),
+                        db: Session = Depends(get_db)) -> SupportAccessOut:
+    """Открыт ли сейчас доступ поддержки к моделям организации — и кто его открывал.
+
+    Виден **всем участникам**, а не только тем, кто может его выдать: «кто пустил
+    платформу в наши числа» — вопрос, на который сотрудник вправе получить ответ, не
+    спрашивая администратора.
+    """
+    return _access_state(db, org_id)
+
+
+@router.post("/{org_id}/support-access", response_model=SupportAccessOut)
+def grant_support_access(body: SupportAccessIn,
+                         org_id: str = Depends(require_org_permission(Perm.ORG_MANAGE)),
+                         actor: User = Depends(current_user),
+                         db: Session = Depends(get_db)) -> SupportAccessOut:
+    """Открыть сотрудникам платформы доступ к моделям организации (F4).
+
+    **Дверь открывает клиент.** Платформа выдать себе такой доступ не может ни одним
+    маршрутом — в этом весь смысл: правило «оператор не видит содержимого моделей»
+    осталось, у него лишь появился ключ, и ключ у клиента.
+
+    Срок ограничен сверху (:data:`support_access.MAX_GRANT_HOURS`) и **обрезка не бывает
+    молчаливой**: запрошенные 720 часов превратятся в 72, и об этом сказано в ответе —
+    иначе экран показывал бы «до пятницы» там, где доступ кончится в среду.
+
+    Прежний действующий грант закрывается: два живых доступа с разными сроками означали
+    бы, что «до какого часа открыто» зависит от того, какой из них посмотреть.
+    """
+    hours = support_access.clamp_hours(body.hours)
+    expires_at = support_access.expiry_of(body.hours, datetime.now(timezone.utc))
+    crud.grant_support_access(db, org_id, actor, expires_at=expires_at,
+                              reason=body.reason.strip())
+    crud.log_action(db, org_id, actor, "support.grant", entity_type="organization",
+                    entity_id=org_id,
+                    details=f"на {hours} ч, причина: {body.reason.strip()}")
+    state = _access_state(db, org_id)
+    if hours != body.hours:
+        state.notes.insert(0, f"Срок сокращён до {hours} ч: дольше платформа доступ не "
+                              f"держит — грант, переживший разбор обращения, становится "
+                              f"постоянным доступом, о котором никто не помнит.")
+    return state
+
+
+@router.delete("/{org_id}/support-access", response_model=SupportAccessOut)
+def revoke_support_access(org_id: str = Depends(require_org_permission(Perm.ORG_MANAGE)),
+                          actor: User = Depends(current_user),
+                          db: Session = Depends(get_db)) -> SupportAccessOut:
+    """Закрыть доступ досрочно. Запись о нём **остаётся** — стирается только действие."""
+    revoked = crud.revoke_support_access(db, org_id)
+    if revoked is not None:
+        crud.log_action(db, org_id, actor, "support.revoke", entity_type="organization",
+                        entity_id=org_id, details=f"выдавал: {revoked.granted_by_email}")
+    return _access_state(db, org_id)
 
 
 def _checklist_out(c) -> ChecklistOut:

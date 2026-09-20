@@ -407,6 +407,43 @@ class IndustryBenchmark(Base):
                                                  onupdate=_now)
 
 
+class SupportGrant(Base):
+    """Доступ поддержки к моделям организации, открытый **самой организацией** (F4).
+
+    Правило 6 («оператор видит метаданные, но не содержимое моделей клиентов») этой
+    таблицей не отменяется, а получает дверь, ключ от которой **у клиента**. Форма
+    принята целиком: выдаёт клиент, срок ограничен сверху, каждое чтение пишется в
+    журнал организации. Подробности и отказы — ``app/support_access.py``.
+
+    ``granted_by_email`` — «надгробие» рядом со ссылкой, как у автора записи в журнале:
+    сотрудника могут удалить, а ответ на вопрос «кто открыл нам двери» обязан пережить
+    его уход.
+
+    Строка **не удаляется при закрытии доступа** — проставляется ``revoked_at``. История
+    выданных доступов это и есть то, ради чего гарантия существует: «нам никто не
+    открывал» должно быть проверяемым утверждением, а не отсутствием записи.
+    """
+
+    __tablename__ = "support_grants"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    #: Кто открыл — администратор или владелец организации (право ``org.manage``).
+    granted_by: Mapped[str] = mapped_column(String(36), default="", server_default="")
+    granted_by_email: Mapped[str] = mapped_column(String(320), default="",
+                                                  server_default="")
+    #: Зачем. Обязательна: доступ без причины через неделю неотличим от случайного.
+    reason: Mapped[str] = mapped_column(String(500), default="", server_default="")
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    #: Когда клиент закрыл доступ досрочно. ``None`` — не закрывал.
+    revoked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
 class AuditSubjectVersion(Base):
     """Именованный снимок модели дела: версии проверки и анализ изменений.
 

@@ -169,3 +169,43 @@ async function downloadCsv(url: string, params: Record<string, number>,
   a.click();
   URL.revokeObjectURL(href);
 }
+
+/**
+ * Содержимое моделей клиента — **за живым грантом** (F4).
+ *
+ * Единственное место во всём служебном контуре, где содержимое вообще появляется.
+ * Правило 6 («оператор видит метаданные, но не содержимое моделей клиентов») не
+ * отменено: у него появился ключ, и ключ у клиента. Выдать грант служебные маршруты
+ * не могут — их для этого нет, и это отдельный тест.
+ *
+ * Названия закрыты тем же грантом, что и числа: «Покупка завода в Твери» само по себе
+ * коммерческая тайна. Каждое обращение сюда пишется в журнал **клиента**.
+ */
+export type StaffEntity = Schema<"StaffEntityOut">;
+/** Состояние гранта в карточке клиента: открыт ли — **и почему нет**. */
+export type StaffAccess = Schema<"StaffAccessOut">;
+export type StaffModel = Schema<"StaffModelOut">;
+
+export async function getOrgProjects(orgId: string): Promise<StaffEntity[]> {
+  const { data } = await api.get<StaffEntity[]>(
+    `/api/v1/admin/organizations/${orgId}/projects`);
+  return data;
+}
+
+export async function getOrgProject(orgId: string, projectId: string): Promise<StaffModel> {
+  const { data } = await api.get<StaffModel>(
+    `/api/v1/admin/organizations/${orgId}/projects/${projectId}`);
+  return data;
+}
+
+export async function getOrgSubjects(orgId: string): Promise<StaffEntity[]> {
+  const { data } = await api.get<StaffEntity[]>(
+    `/api/v1/admin/organizations/${orgId}/audit-subjects`);
+  return data;
+}
+
+export async function getOrgSubject(orgId: string, subjectId: string): Promise<StaffModel> {
+  const { data } = await api.get<StaffModel>(
+    `/api/v1/admin/organizations/${orgId}/audit-subjects/${subjectId}`);
+  return data;
+}

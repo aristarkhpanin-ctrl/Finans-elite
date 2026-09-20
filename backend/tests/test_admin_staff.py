@@ -165,29 +165,43 @@ def test_operator_sees_the_client_from_outside(client, db_session, register):
     assert subs["audit"]["status"] == "none"       # «не оформлял» ≠ «оформил бесплатный"
 
 
+#: Маршруты **наблюдения** — те, что показывают клиента снаружи. Содержимого моделей на
+#: них нет и с появлением гранта (F4) не появилось: грант открывает ровно четыре **своих**
+#: маршрута, и ни один из этих.
+WATCHING_ROUTES = ["/api/v1/admin/organizations",
+                   "/api/v1/admin/organizations/{org_id}",
+                   "/api/v1/admin/users?q=client"]
+
+
 def test_operator_does_not_see_the_contents_of_models(client, db_session, register):
-    """Правило 6: метаданные — да, содержимое — нет.
+    """Правило 6 **на маршрутах наблюдения**: метаданные — да, содержимое — нет.
 
     Название проекта («Покупка завода в Твери») само по себе коммерческая тайна, поэтому
     служебный ответ не содержит ни имён сущностей, ни чисел модели. Проверка идёт по
     всему тексту ответа: поле, добавленное «на всякий случай», провалит её сразу.
+
+    **F4 этот тест не ослабила, а сузила его предмет.** Доступ к содержимому появился —
+    но не здесь: он живёт на отдельных маршрутах, за грантом, который выдаёт сам клиент
+    (`tests/test_support_access.py`). Экраны наблюдения остались слепыми, и если
+    содержимое просочится в них, упадёт именно этот тест.
     """
     staff = _staff(client, db_session, register)
     client_headers = _client_org(client, register)
     model = client.get("/api/v1/sample").json()
-    model["header"]["project_name"] = "Покупка завода в Твери"
+    model["header"]["name"] = "Покупка завода в Твери"
     client.post("/api/v1/projects", json={"name": "Покупка завода в Твери", "model": model},
                 headers=client_headers)
     client.post("/api/v1/audit/subjects", json={"name": "Цель поглощения", "model": {
         "name": "Цель поглощения", "periods": [], "lines": []}}, headers=client_headers)
     org_id = client.get("/api/v1/organizations", headers=client_headers).json()[0]["id"]
+    # Грант выдан — и всё равно ничего не меняет для этих маршрутов.
+    client.post(f"/api/v1/organizations/{org_id}/support-access",
+                json={"hours": 24, "reason": "не считается проект"}, headers=client_headers)
 
-    texts = [client.get("/api/v1/admin/organizations", headers=staff).text,
-             client.get(f"/api/v1/admin/organizations/{org_id}", headers=staff).text,
-             client.get("/api/v1/admin/users?q=client", headers=staff).text]
-    for text in texts:
-        assert "Покупка завода" not in text
-        assert "Цель поглощения" not in text
+    for path in WATCHING_ROUTES:
+        text = client.get(path.format(org_id=org_id), headers=staff).text
+        assert "Покупка завода" not in text, path
+        assert "Цель поглощения" not in text, path
 
 
 def test_volumes_report_the_last_calculation_not_an_invented_count(client, db_session,

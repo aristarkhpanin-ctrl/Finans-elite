@@ -154,6 +154,95 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/organizations/{org_id}/audit-subjects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Org Subjects
+         * @description Дела клиента («Финанс-Аудит») — за тем же грантом и по тем же правилам.
+         */
+        get: operations["list_org_subjects_api_v1_admin_organizations__org_id__audit_subjects_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/organizations/{org_id}/audit-subjects/{subject_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Org Subject
+         * @description Модель дела клиента. Правила те же — грант, запись в журнал, только чтение.
+         */
+        get: operations["read_org_subject_api_v1_admin_organizations__org_id__audit_subjects__subject_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/organizations/{org_id}/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Org Projects
+         * @description Проекты клиента — **за живым грантом** (F4).
+         *
+         *     Список закрыт тем же грантом, что и содержимое, и это не перестраховка: название
+         *     («Покупка завода в Твери») само по себе коммерческая тайна — ради этого правило 6
+         *     и запрещало показывать имена сущностей в карточке клиента.
+         */
+        get: operations["list_org_projects_api_v1_admin_organizations__org_id__projects_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/organizations/{org_id}/projects/{project_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Org Project
+         * @description Модель проекта клиента — единственное место, где содержимое вообще появляется.
+         *
+         *     **Каждое** чтение пишется в журнал организации отдельной строкой: приход
+         *     постороннего в свои числа клиент обязан видеть построчно, а не одной записью
+         *     «доступ выдан». Это названное исключение из «журнал не пишет чтение», то же, что
+         *     у визита в карточку.
+         */
+        get: operations["read_org_project_api_v1_admin_organizations__org_id__projects__project_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/organizations/{org_id}/subscription": {
         parameters: {
             query?: never;
@@ -2072,6 +2161,49 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{org_id}/support-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Support Access
+         * @description Открыт ли сейчас доступ поддержки к моделям организации — и кто его открывал.
+         *
+         *     Виден **всем участникам**, а не только тем, кто может его выдать: «кто пустил
+         *     платформу в наши числа» — вопрос, на который сотрудник вправе получить ответ, не
+         *     спрашивая администратора.
+         */
+        get: operations["read_support_access_api_v1_organizations__org_id__support_access_get"];
+        put?: never;
+        /**
+         * Grant Support Access
+         * @description Открыть сотрудникам платформы доступ к моделям организации (F4).
+         *
+         *     **Дверь открывает клиент.** Платформа выдать себе такой доступ не может ни одним
+         *     маршрутом — в этом весь смысл: правило «оператор не видит содержимого моделей»
+         *     осталось, у него лишь появился ключ, и ключ у клиента.
+         *
+         *     Срок ограничен сверху (:data:`support_access.MAX_GRANT_HOURS`) и **обрезка не бывает
+         *     молчаливой**: запрошенные 720 часов превратятся в 72, и об этом сказано в ответе —
+         *     иначе экран показывал бы «до пятницы» там, где доступ кончится в среду.
+         *
+         *     Прежний действующий грант закрывается: два живых доступа с разными сроками означали
+         *     бы, что «до какого часа открыто» зависит от того, какой из них посмотреть.
+         */
+        post: operations["grant_support_access_api_v1_organizations__org_id__support_access_post"];
+        /**
+         * Revoke Support Access
+         * @description Закрыть доступ досрочно. Запись о нём **остаётся** — стирается только действие.
+         */
+        delete: operations["revoke_support_access_api_v1_organizations__org_id__support_access_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -9296,6 +9428,56 @@ export interface components {
             role: string;
         };
         /**
+         * StaffAccessOut
+         * @description Что видно оператору про доступ к моделям клиента — в карточке клиента.
+         *
+         *     ``reason`` заполняется и когда доступа нет: отказ обязан называть причину и
+         *     говорить, что грант выдаёт сам клиент.
+         */
+        StaffAccessOut: {
+            /** Expires At */
+            expires_at?: string | null;
+            /**
+             * Grant Reason
+             * @default
+             */
+            grant_reason: string;
+            /**
+             * Granted
+             * @default false
+             */
+            granted: boolean;
+            /**
+             * Granted By Email
+             * @default
+             */
+            granted_by_email: string;
+            /**
+             * Reason
+             * @default
+             */
+            reason: string;
+        };
+        /**
+         * StaffEntityOut
+         * @description Проект или дело клиента **в списке** — за живым грантом (F4).
+         *
+         *     Название («Покупка завода в Твери») само по себе коммерческая тайна, поэтому
+         *     список закрыт тем же грантом, что и содержимое: без него оператор не узнаёт даже,
+         *     как называются модели клиента.
+         */
+        StaffEntityOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
          * StaffListOut
          * @description Список сотрудников и оговорки к нему — едут вместе с числами.
          */
@@ -9393,11 +9575,48 @@ export interface components {
             role: string;
         };
         /**
+         * StaffModelOut
+         * @description Содержимое модели клиента — единственное место во всём служебном контуре, где
+         *     оно вообще появляется, и только при живом гранте.
+         *
+         *     ``note`` едет вместе с числами и говорит, **на каком основании** оператор их видит:
+         *     открытый по ошибке экран не должен выглядеть как обычная работа.
+         */
+        StaffModelOut: {
+            /** Id */
+            id: string;
+            /** Model */
+            model: {
+                [key: string]: unknown;
+            };
+            /** Name */
+            name: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
          * StaffOrgDetail
          * @description Карточка организации: то же плюс состав и платежи. Содержимого моделей
          *     по-прежнему нет: платёж — это тариф, сумма и статус, а не числа клиента.
          */
         StaffOrgDetail: {
+            /**
+             * @default {
+             *       "grant_reason": "",
+             *       "granted": false,
+             *       "granted_by_email": "",
+             *       "reason": ""
+             *     }
+             */
+            access: components["schemas"]["StaffAccessOut"];
             /**
              * Cases
              * @default 0
@@ -10300,6 +10519,77 @@ export interface components {
             plan_code: string;
         };
         /**
+         * SupportAccessIn
+         * @description Открыть доступ поддержки к моделям организации (F4).
+         *
+         *     Причина обязательна: доступ без причины через неделю неотличим от случайного, а
+         *     объяснять его придётся тому же, кто его открыл.
+         */
+        SupportAccessIn: {
+            /** Hours */
+            hours: number;
+            /** Reason */
+            reason: string;
+        };
+        /**
+         * SupportAccessOut
+         * @description Состояние доступа поддержки и оговорки к нему — едут вместе, а не в подсказке.
+         */
+        SupportAccessOut: {
+            current?: components["schemas"]["SupportGrantOut"] | null;
+            /**
+             * History
+             * @default []
+             */
+            history: components["schemas"]["SupportGrantOut"][];
+            /**
+             * Max Hours
+             * @default 72
+             */
+            max_hours: number;
+            /**
+             * Notes
+             * @default []
+             */
+            notes: string[];
+        };
+        /**
+         * SupportGrantOut
+         * @description Один выданный доступ. Закрытые и истёкшие **остаются в списке**: «нам никто не
+         *     открывал» должно быть проверяемым утверждением, а не отсутствием записи.
+         */
+        SupportGrantOut: {
+            /**
+             * Active
+             * @default false
+             */
+            active: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Granted By Email
+             * @default
+             */
+            granted_by_email: string;
+            /** Id */
+            id: string;
+            /**
+             * Reason
+             * @default
+             */
+            reason: string;
+            /** Revoked At */
+            revoked_at?: string | null;
+        };
+        /**
          * SuspendIn
          * @description Причина приостановки организации или блокировки учётной записи.
          *
@@ -11165,6 +11455,132 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuditLogPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_org_subjects_api_v1_admin_organizations__org_id__audit_subjects_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffEntityOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_org_subject_api_v1_admin_organizations__org_id__audit_subjects__subject_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffModelOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_org_projects_api_v1_admin_organizations__org_id__projects_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffEntityOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_org_project_api_v1_admin_organizations__org_id__projects__project_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffModelOut"];
                 };
             };
             /** @description Validation Error */
@@ -14396,6 +14812,103 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SubscriptionOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_support_access_api_v1_organizations__org_id__support_access_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupportAccessOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    grant_support_access_api_v1_organizations__org_id__support_access_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupportAccessIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupportAccessOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_support_access_api_v1_organizations__org_id__support_access_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupportAccessOut"];
                 };
             };
             /** @description Validation Error */

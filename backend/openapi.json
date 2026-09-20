@@ -11774,6 +11774,70 @@
         "title": "SignatureOut",
         "type": "object"
       },
+      "StaffAccessOut": {
+        "description": "Что видно оператору про доступ к моделям клиента — в карточке клиента.\n\n``reason`` заполняется и когда доступа нет: отказ обязан называть причину и\nговорить, что грант выдаёт сам клиент.",
+        "properties": {
+          "expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "grant_reason": {
+            "default": "",
+            "title": "Grant Reason",
+            "type": "string"
+          },
+          "granted": {
+            "default": false,
+            "title": "Granted",
+            "type": "boolean"
+          },
+          "granted_by_email": {
+            "default": "",
+            "title": "Granted By Email",
+            "type": "string"
+          },
+          "reason": {
+            "default": "",
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "title": "StaffAccessOut",
+        "type": "object"
+      },
+      "StaffEntityOut": {
+        "description": "Проект или дело клиента **в списке** — за живым грантом (F4).\n\nНазвание («Покупка завода в Твери») само по себе коммерческая тайна, поэтому\nсписок закрыт тем же грантом, что и содержимое: без него оператор не узнаёт даже,\nкак называются модели клиента.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "updated_at"
+        ],
+        "title": "StaffEntityOut",
+        "type": "object"
+      },
       "StaffListOut": {
         "description": "Список сотрудников и оговорки к нему — едут вместе с числами.",
         "properties": {
@@ -11908,9 +11972,54 @@
         "title": "StaffMemberOut",
         "type": "object"
       },
+      "StaffModelOut": {
+        "description": "Содержимое модели клиента — единственное место во всём служебном контуре, где\nоно вообще появляется, и только при живом гранте.\n\n``note`` едет вместе с числами и говорит, **на каком основании** оператор их видит:\nоткрытый по ошибке экран не должен выглядеть как обычная работа.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "model": {
+            "additionalProperties": true,
+            "title": "Model",
+            "type": "object"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "updated_at",
+          "model"
+        ],
+        "title": "StaffModelOut",
+        "type": "object"
+      },
       "StaffOrgDetail": {
         "description": "Карточка организации: то же плюс состав и платежи. Содержимого моделей\nпо-прежнему нет: платёж — это тариф, сумма и статус, а не числа клиента.",
         "properties": {
+          "access": {
+            "$ref": "#/components/schemas/StaffAccessOut",
+            "default": {
+              "grant_reason": "",
+              "granted": false,
+              "granted_by_email": "",
+              "reason": ""
+            }
+          },
           "cases": {
             "default": 0,
             "title": "Cases",
@@ -13556,6 +13665,120 @@
         "title": "SubscriptionUpdate",
         "type": "object"
       },
+      "SupportAccessIn": {
+        "description": "Открыть доступ поддержки к моделям организации (F4).\n\nПричина обязательна: доступ без причины через неделю неотличим от случайного, а\nобъяснять его придётся тому же, кто его открыл.",
+        "properties": {
+          "hours": {
+            "maximum": 720.0,
+            "minimum": 1.0,
+            "title": "Hours",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "hours",
+          "reason"
+        ],
+        "title": "SupportAccessIn",
+        "type": "object"
+      },
+      "SupportAccessOut": {
+        "description": "Состояние доступа поддержки и оговорки к нему — едут вместе, а не в подсказке.",
+        "properties": {
+          "current": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SupportGrantOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "history": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SupportGrantOut"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "max_hours": {
+            "default": 72,
+            "title": "Max Hours",
+            "type": "integer"
+          },
+          "notes": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          }
+        },
+        "title": "SupportAccessOut",
+        "type": "object"
+      },
+      "SupportGrantOut": {
+        "description": "Один выданный доступ. Закрытые и истёкшие **остаются в списке**: «нам никто не\nоткрывал» должно быть проверяемым утверждением, а не отсутствием записи.",
+        "properties": {
+          "active": {
+            "default": false,
+            "title": "Active",
+            "type": "boolean"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "granted_by_email": {
+            "default": "",
+            "title": "Granted By Email",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "reason": {
+            "default": "",
+            "title": "Reason",
+            "type": "string"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "expires_at"
+        ],
+        "title": "SupportGrantOut",
+        "type": "object"
+      },
       "SuspendIn": {
         "description": "Причина приостановки организации или блокировки учётной записи.\n\nОбязательна и показывается тому, кого ограничили: ограничение без причины\nнеотличимо от поломки — и для клиента, и для того, кто будет его снимать.",
         "properties": {
@@ -15154,6 +15377,224 @@
           }
         ],
         "summary": "Read Audit Log",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/organizations/{org_id}/audit-subjects": {
+      "get": {
+        "description": "Дела клиента («Финанс-Аудит») — за тем же грантом и по тем же правилам.",
+        "operationId": "list_org_subjects_api_v1_admin_organizations__org_id__audit_subjects_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/StaffEntityOut"
+                  },
+                  "title": "Response List Org Subjects Api V1 Admin Organizations  Org Id  Audit Subjects Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Org Subjects",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/organizations/{org_id}/audit-subjects/{subject_id}": {
+      "get": {
+        "description": "Модель дела клиента. Правила те же — грант, запись в журнал, только чтение.",
+        "operationId": "read_org_subject_api_v1_admin_organizations__org_id__audit_subjects__subject_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "title": "Subject Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffModelOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Org Subject",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/organizations/{org_id}/projects": {
+      "get": {
+        "description": "Проекты клиента — **за живым грантом** (F4).\n\nСписок закрыт тем же грантом, что и содержимое, и это не перестраховка: название\n(«Покупка завода в Твери») само по себе коммерческая тайна — ради этого правило 6\nи запрещало показывать имена сущностей в карточке клиента.",
+        "operationId": "list_org_projects_api_v1_admin_organizations__org_id__projects_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/StaffEntityOut"
+                  },
+                  "title": "Response List Org Projects Api V1 Admin Organizations  Org Id  Projects Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Org Projects",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/organizations/{org_id}/projects/{project_id}": {
+      "get": {
+        "description": "Модель проекта клиента — единственное место, где содержимое вообще появляется.\n\n**Каждое** чтение пишется в журнал организации отдельной строкой: приход\nпостороннего в свои числа клиент обязан видеть построчно, а не одной записью\n«доступ выдан». Это названное исключение из «журнал не пишет чтение», то же, что\nу визита в карточку.",
+        "operationId": "read_org_project_api_v1_admin_organizations__org_id__projects__project_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffModelOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Org Project",
         "tags": [
           "admin"
         ]
@@ -20790,6 +21231,156 @@
         "summary": "Get Subscriptions",
         "tags": [
           "billing"
+        ]
+      }
+    },
+    "/api/v1/organizations/{org_id}/support-access": {
+      "delete": {
+        "description": "Закрыть доступ досрочно. Запись о нём **остаётся** — стирается только действие.",
+        "operationId": "revoke_support_access_api_v1_organizations__org_id__support_access_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportAccessOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Revoke Support Access",
+        "tags": [
+          "organizations"
+        ]
+      },
+      "get": {
+        "description": "Открыт ли сейчас доступ поддержки к моделям организации — и кто его открывал.\n\nВиден **всем участникам**, а не только тем, кто может его выдать: «кто пустил\nплатформу в наши числа» — вопрос, на который сотрудник вправе получить ответ, не\nспрашивая администратора.",
+        "operationId": "read_support_access_api_v1_organizations__org_id__support_access_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportAccessOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Support Access",
+        "tags": [
+          "organizations"
+        ]
+      },
+      "post": {
+        "description": "Открыть сотрудникам платформы доступ к моделям организации (F4).\n\n**Дверь открывает клиент.** Платформа выдать себе такой доступ не может ни одним\nмаршрутом — в этом весь смысл: правило «оператор не видит содержимого моделей»\nосталось, у него лишь появился ключ, и ключ у клиента.\n\nСрок ограничен сверху (:data:`support_access.MAX_GRANT_HOURS`) и **обрезка не бывает\nмолчаливой**: запрошенные 720 часов превратятся в 72, и об этом сказано в ответе —\nиначе экран показывал бы «до пятницы» там, где доступ кончится в среду.\n\nПрежний действующий грант закрывается: два живых доступа с разными сроками означали\nбы, что «до какого часа открыто» зависит от того, какой из них посмотреть.",
+        "operationId": "grant_support_access_api_v1_organizations__org_id__support_access_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportAccessIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportAccessOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Grant Support Access",
+        "tags": [
+          "organizations"
         ]
       }
     },

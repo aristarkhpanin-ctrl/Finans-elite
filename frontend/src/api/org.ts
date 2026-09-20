@@ -264,3 +264,37 @@ export async function getActivity(orgId: string): Promise<Activity> {
   const { data } = await api.get<Activity>(`/api/v1/organizations/${orgId}/activity`);
   return data;
 }
+
+/**
+ * Доступ поддержки к моделям организации (F4).
+ *
+ * Правило «платформа не видит содержимого моделей клиентов» не отменено — у него
+ * появился ключ, и **ключ у клиента**. Маршрутов, которыми платформа выдала бы такой
+ * доступ себе, нет вовсе; выдать его может только организация, на срок не больше
+ * `max_hours` и с указанием причины.
+ *
+ * `notes` едут вместе с состоянием: грант открывает **все** модели организации, а не
+ * одну, и это обязано быть сказано там, где его выдают.
+ */
+export type SupportAccess = Schema<"SupportAccessOut">;
+export type SupportGrant = Schema<"SupportGrantOut">;
+
+export async function getSupportAccess(orgId: string): Promise<SupportAccess> {
+  const { data } = await api.get<SupportAccess>(
+    `/api/v1/organizations/${orgId}/support-access`);
+  return data;
+}
+
+export async function grantSupportAccess(orgId: string, hours: number,
+                                         reason: string): Promise<SupportAccess> {
+  const { data } = await api.post<SupportAccess>(
+    `/api/v1/organizations/${orgId}/support-access`, { hours, reason });
+  return data;
+}
+
+/** Закрыть досрочно. Запись о выданном доступе **остаётся** — стирается только действие. */
+export async function revokeSupportAccess(orgId: string): Promise<SupportAccess> {
+  const { data } = await api.delete<SupportAccess>(
+    `/api/v1/organizations/${orgId}/support-access`);
+  return data;
+}

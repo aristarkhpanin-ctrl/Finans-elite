@@ -9,6 +9,7 @@ import { ActivityTab } from "./org/ActivityTab";
 import { BenchmarksTab } from "./org/BenchmarksTab";
 import { ChecklistsTab } from "./org/ChecklistsTab";
 import { ApiKeysTab } from "./org/ApiKeysTab";
+import { SupportAccessTab } from "./org/SupportAccessTab";
 
 const TABS = [
   ["members", "Участники"],
@@ -17,6 +18,7 @@ const TABS = [
   ["benchmarks", "Ориентиры"],
   ["checklists", "Чек-листы"],
   ["apikeys", "Ключи API"],
+  ["support", "Доступ поддержки"],
   ["log", "Журнал доступа"],
   ["billing", "Тариф и оплата"],
 ] as const;
@@ -92,6 +94,10 @@ export function OrganizationPage() {
           участников. Видеть список может каждый участник: «кто ходит в наши данные» —
           не секрет от тех, чьи это данные. */}
       {tab === "apikeys" && <ApiKeysTab orgId={currentOrgId} canManage={canManageOrg} />}
+      {/* Дверь к содержимому моделей открывает клиент, а не платформа (F4). Состояние
+          видят все участники — «кто пустил платформу в наши числа» не секрет от тех,
+          чьи это числа; открывает и закрывает тот, кто отвечает за организацию. */}
+      {tab === "support" && <SupportAccessTab orgId={currentOrgId} canManage={canManageOrg} />}
       {tab === "log" && (canManageOrg
         ? <AuditLogTab orgId={currentOrgId} initialActor={logActor} />
         : <div className="tab-empty">

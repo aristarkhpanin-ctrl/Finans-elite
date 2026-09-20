@@ -3,6 +3,10 @@ import { useState } from "react";
 import {
   assignPlan,
   blockUser,
+  getOrgProject,
+  getOrgProjects,
+  getOrgSubject,
+  getOrgSubjects,
   getStaffList,
   getStaffLog,
   getStaffOrgLog,
@@ -15,6 +19,7 @@ import {
   searchStaffUsers,
   suspendOrganization,
   unblockUser,
+  type StaffAccess,
   type StaffUser,
 } from "../api/admin";
 import { httpDetail } from "../api/client";
@@ -458,6 +463,10 @@ function OrgCard({ orgId, onBack }: { orgId: string; onBack: () => void }) {
         ))}
       </div>
 
+      {/* Модели клиента (F4) — единственное место во всём служебном контуре, где
+          содержимое вообще появляется, и только при живом гранте самой организации. */}
+      <ModelsSection orgId={orgId} access={data.access} />
+
       {/* Платежи (F2). Таблица `payments` существовала с 6.5b и не показывалась нигде:
           оператор видел тариф и не видел, кто заплатил. Неуспешные **остаются** —
           «карта не прошла» это разговор с клиентом, а не мусор. */}
@@ -667,6 +676,126 @@ function UsersTab() {
  * (`scripts/set_staff.py`) — маршрут, повышающий права, сам становится главной мишенью,
  * и кнопки здесь нет не по недоделке, а по решению; об этом сказано прямо на экране.
  */
+/**
+ * Модели клиента — **за живым грантом** самой организации (F4).
+ *
+ * Единственное место во всём служебном контуре, где содержимое вообще появляется.
+ * Правило 6 не отменено: у него появился ключ, и ключ у клиента — открыть себе доступ
+ * платформа не может ни одним действием, и экран это прямо говорит.
+ *
+ * Названия закрыты тем же грантом, что и числа: «Покупка завода в Твери» само по себе
+ * коммерческая тайна. Каждое открытие модели попадает в журнал клиента отдельной
+ * строкой — и оператор об этом предупреждён **до** нажатия, а не после.
+ */
+function ModelsSection({ orgId, access }: { orgId: string; access: StaffAccess }) {
+  const [open, setOpen] = useState<{ kind: "project" | "case"; id: string } | null>(null);
+
+  if (!access?.granted) {
+    return (
+      <>
+        <h2 className="adm-h2" style={{ marginTop: 24 }}>Модели клиента</h2>
+        <div className="page-sub" style={{ marginTop: 0 }}>
+          {access?.reason
+            || "Содержимое проектов и дел платформе не видно: доступ открывает сама организация."}
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <h2 className="adm-h2" style={{ marginTop: 24 }}>Модели клиента</h2>
+      <div className="restr" role="status">
+        <span className="restr__ico" aria-hidden="true">🔑</span>
+        <div>
+          <div className="restr__title">Клиент открыл доступ до {when(access.expires_at)}</div>
+          <div className="restr__text">
+            Открыл {access.granted_by_email || "—"}
+            {access.grant_reason ? `, причина: «${access.grant_reason}»` : ""}. Смотреть
+            можно, менять — нельзя. Каждое открытие модели попадает в журнал этой
+            организации отдельной строкой.
+          </div>
+        </div>
+      </div>
+      <EntityList orgId={orgId} kind="project" onOpen={(id) => setOpen({ kind: "project", id })} />
+      <EntityList orgId={orgId} kind="case" onOpen={(id) => setOpen({ kind: "case", id })} />
+      {open && <ModelModal orgId={orgId} kind={open.kind} id={open.id}
+                           onClose={() => setOpen(null)} />}
+    </>
+  );
+}
+
+function EntityList({ orgId, kind, onOpen }:
+                    { orgId: string; kind: "project" | "case"; onOpen: (id: string) => void }) {
+  const title = kind === "project" ? "Проекты" : "Дела";
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["admin-entities", orgId, kind],
+    queryFn: () => (kind === "project" ? getOrgProjects(orgId) : getOrgSubjects(orgId)),
+  });
+
+  if (isLoading) return <Loading />;
+  if (isError) return <ErrorState text={`Не удалось загрузить: ${title.toLowerCase()}`}
+                                  onRetry={() => refetch()} />;
+
+  const rows = data ?? [];
+  return (
+    <div style={{ marginTop: 14 }}>
+      <div className="adm-sub" style={{ marginBottom: 6 }}>{title}</div>
+      {rows.length === 0 ? (
+        <div className="page-sub" style={{ marginTop: 0 }}>Нет.</div>
+      ) : (
+        <div className="log-list" role="table" aria-label={`${title} клиента`}>
+          {rows.map((e) => (
+            <div className="log-row adm-row adm-row--log" role="row" key={e.id}>
+              <div className="log-who" role="rowheader">{e.name}</div>
+              <div className="log-when" role="cell">изменён {day(e.updated_at)}</div>
+              <div role="cell" />
+              <div role="cell">
+                <Button variant="ghost" onClick={() => onOpen(e.id)}>Открыть</Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Модель как она есть — JSON, а не редактор клиента.
+ *
+ * Второй редактор был бы второй копией правил ввода и разошёлся бы с первой; здесь
+ * нужен не он, а ответ на вопрос «что у клиента в модели». Строка о том, **на каком
+ * основании** это видно, едет вместе с числами: экран, открытый по ошибке, не должен
+ * выглядеть как обычная работа.
+ */
+function ModelModal({ orgId, kind, id, onClose }:
+                    { orgId: string; kind: "project" | "case"; id: string;
+                      onClose: () => void }) {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["admin-model", orgId, kind, id],
+    queryFn: () => (kind === "project" ? getOrgProject(orgId, id)
+                                       : getOrgSubject(orgId, id)),
+  });
+
+  return (
+    <Modal open title={data?.name ?? "Модель клиента"} maxWidth={860} onClose={onClose}
+           actions={<Button onClick={onClose}>Закрыть</Button>}>
+      {isLoading ? <Loading /> : isError ? (
+        <ErrorState text="Не удалось открыть модель" />
+      ) : (
+        <>
+          <div className="mnote" style={{ marginTop: 0 }}>{data?.note}</div>
+          <textarea className="input" readOnly rows={18} aria-label="Модель клиента"
+                    style={{ width: "100%", height: "auto", padding: 10, marginTop: 10,
+                             fontFamily: "var(--font-mono)", fontSize: 12 }}
+                    value={JSON.stringify(data?.model ?? {}, null, 2)} />
+        </>
+      )}
+    </Modal>
+  );
+}
+
 function StaffTab() {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["admin-staff"],

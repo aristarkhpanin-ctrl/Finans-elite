@@ -24,6 +24,10 @@ const getStaffOrgLog = vi.fn();
 const searchStaffUsers = vi.fn();
 const getStaffLog = vi.fn();
 const getStaffList = vi.fn();
+const getOrgProjects = vi.fn();
+const getOrgProject = vi.fn();
+const getOrgSubjects = vi.fn();
+const getOrgSubject = vi.fn();
 const suspendOrganization = vi.fn();
 const resumeOrganization = vi.fn();
 const blockUser = vi.fn();
@@ -40,6 +44,10 @@ vi.mock("../api/admin", () => ({
   searchStaffUsers: (...a: unknown[]) => searchStaffUsers(...a),
   getStaffLog: (...a: unknown[]) => getStaffLog(...a),
   getStaffList: (...a: unknown[]) => getStaffList(...a),
+  getOrgProjects: (...a: unknown[]) => getOrgProjects(...a),
+  getOrgProject: (...a: unknown[]) => getOrgProject(...a),
+  getOrgSubjects: (...a: unknown[]) => getOrgSubjects(...a),
+  getOrgSubject: (...a: unknown[]) => getOrgSubject(...a),
   suspendOrganization: (...a: unknown[]) => suspendOrganization(...a),
   resumeOrganization: (...a: unknown[]) => resumeOrganization(...a),
   blockUser: (...a: unknown[]) => blockUser(...a),
@@ -119,6 +127,10 @@ beforeEach(() => {
   searchStaffUsers.mockResolvedValue([]);
   getStaffLog.mockResolvedValue({ entries: [] });
   getStaffList.mockResolvedValue({ members: [], notes: [] });
+  getOrgProjects.mockResolvedValue([]);
+  getOrgSubjects.mockResolvedValue([]);
+  getOrgProject.mockResolvedValue({});
+  getOrgSubject.mockResolvedValue({});
   suspendOrganization.mockImplementation(async () => ({
     ...org(), suspended: true, suspend_reason: "жалоба", suspended_by: "s@e.ru",
     suspended_at: "2026-09-10T08:00:00Z", members_list: [],
@@ -530,4 +542,88 @@ it("пустые платежи объясняют себя, а не молча�
   show();
   fireEvent.click(await screen.findByText("ООО «Клиент»"));
   expect(await screen.findByText(/прямые переводы мимо продукта/)).toBeTruthy();
+});
+
+
+// --- F4: содержимое моделей — только по гранту клиента ---
+
+const NO_GRANT = "Клиент не открывал доступ к своим моделям. Содержимое проектов и дел "
+  + "платформе не видно: доступ выдаёт сама организация.";
+
+function withAccess(access: Record<string, unknown>) {
+  getStaffOrganization.mockResolvedValue({
+    ...org(), members_list: [], access,
+  } as unknown as StaffOrgDetail);
+}
+
+async function openCard() {
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "ООО «Клиент»" }));
+  await screen.findByText(/Ваш визит записан в журнал этой организации/i);
+}
+
+it("без гранта содержимого нет, и экран называет причину", async () => {
+  withAccess({ granted: false, reason: NO_GRANT });
+  await openCard();
+
+  expect(await screen.findByText(new RegExp("доступ выдаёт сама организация", "i")))
+    .toBeTruthy();
+  // Не запрошено — граница держится запросами, а не тем, что мы ничего не нарисовали.
+  expect(getOrgProjects).not.toHaveBeenCalled();
+  expect(getOrgSubjects).not.toHaveBeenCalled();
+});
+
+it("по гранту показываются модели — и на каком основании", async () => {
+  withAccess({ granted: true, expires_at: "2026-09-22T18:00:00Z",
+               granted_by_email: "owner@e.ru", grant_reason: "не считается проект" });
+  getOrgProjects.mockResolvedValue([
+    { id: "p1", name: "Покупка завода в Твери", updated_at: "2026-09-19T10:00:00Z" }]);
+  await openCard();
+
+  expect(await screen.findByText(/Клиент открыл доступ до/)).toBeTruthy();
+  expect(screen.getByText(/не считается проект/)).toBeTruthy();
+  expect(await screen.findByText("Покупка завода в Твери")).toBeTruthy();
+});
+
+it("оператор предупреждён, что открытие попадёт в журнал клиента", async () => {
+  // До нажатия, а не после: приход постороннего клиент увидит построчно, и тот, кто
+  // приходит, обязан это знать.
+  withAccess({ granted: true, expires_at: "2026-09-22T18:00:00Z",
+               granted_by_email: "owner@e.ru", grant_reason: "разбор" });
+  await openCard();
+
+  expect(await screen.findByText(/попадает в журнал этой организации отдельной строкой/))
+    .toBeTruthy();
+});
+
+it("модель открывается явным действием и несёт строку об основании", async () => {
+  withAccess({ granted: true, expires_at: "2026-09-22T18:00:00Z",
+               granted_by_email: "owner@e.ru", grant_reason: "разбор" });
+  getOrgProjects.mockResolvedValue([
+    { id: "p1", name: "Покупка завода в Твери", updated_at: "2026-09-19T10:00:00Z" }]);
+  getOrgProject.mockResolvedValue({
+    id: "p1", name: "Покупка завода в Твери", updated_at: "2026-09-19T10:00:00Z",
+    model: { header: { name: "Покупка завода в Твери" } },
+    note: "Содержимое модели клиента. Доступ открыт самой организацией (owner@e.ru).",
+  });
+  await openCard();
+
+  // Список сам по себе модель не запрашивает: открытие — отдельное действие, и оно
+  // отдельная строка в журнале клиента.
+  await screen.findByText("Покупка завода в Твери");
+  expect(getOrgProject).not.toHaveBeenCalled();
+
+  fireEvent.click(screen.getAllByRole("button", { name: "Открыть" })[0]);
+  await waitFor(() => expect(getOrgProject).toHaveBeenCalledWith("o1", "p1"));
+  expect(await screen.findByText(/Доступ открыт самой организацией/)).toBeTruthy();
+});
+
+it("выдать себе доступ оператору нечем — кнопки нет", async () => {
+  // Правило 6 не отменено: у него появился ключ, и ключ у клиента.
+  withAccess({ granted: false, reason: NO_GRANT });
+  await openCard();
+  await screen.findByText(/доступ выдаёт сама организация/i);
+
+  expect(screen.queryByRole("button", { name: /открыть доступ|запросить доступ/i }))
+    .toBeNull();
 });

@@ -1080,6 +1080,43 @@ class BenchmarkOut(BenchmarkIn):
     updated_at: datetime
 
 
+class SupportAccessIn(BaseModel):
+    """Открыть доступ поддержки к моделям организации (F4).
+
+    Причина обязательна: доступ без причины через неделю неотличим от случайного, а
+    объяснять его придётся тому же, кто его открыл.
+    """
+
+    hours: int = Field(ge=1, le=720)
+    reason: str = Field(min_length=3, max_length=500)
+
+
+class SupportGrantOut(BaseModel):
+    """Один выданный доступ. Закрытые и истёкшие **остаются в списке**: «нам никто не
+    открывал» должно быть проверяемым утверждением, а не отсутствием записи."""
+
+    id: str
+    granted_by_email: str = ""
+    reason: str = ""
+    created_at: datetime
+    expires_at: datetime
+    revoked_at: Optional[datetime] = None
+    #: Действует ли **сейчас**. Выводится на каждом запросе, а не хранится: хранимое
+    #: «истёк ли он» пришлось бы кому-то обновлять, а фоновых задач у платформы нет.
+    active: bool = False
+
+
+class SupportAccessOut(BaseModel):
+    """Состояние доступа поддержки и оговорки к нему — едут вместе, а не в подсказке."""
+
+    #: Действующий доступ или ``None``. ``None`` — «не открывали», и это не то же самое,
+    #: что закрытый или истёкший: те видны в ``history``.
+    current: Optional[SupportGrantOut] = None
+    history: list[SupportGrantOut] = []
+    max_hours: int = 72
+    notes: list[str] = []
+
+
 class BenchmarkViewOut(BaseModel):
     """Сопоставление дела с ориентиром организации (SPEC, Прил. Ф).
 
@@ -2089,6 +2126,48 @@ class StaffPaymentOut(BaseModel):
     provider: str = ""
 
 
+class StaffEntityOut(BaseModel):
+    """Проект или дело клиента **в списке** — за живым грантом (F4).
+
+    Название («Покупка завода в Твери») само по себе коммерческая тайна, поэтому
+    список закрыт тем же грантом, что и содержимое: без него оператор не узнаёт даже,
+    как называются модели клиента.
+    """
+
+    id: str
+    name: str
+    updated_at: datetime
+
+
+class StaffModelOut(BaseModel):
+    """Содержимое модели клиента — единственное место во всём служебном контуре, где
+    оно вообще появляется, и только при живом гранте.
+
+    ``note`` едет вместе с числами и говорит, **на каком основании** оператор их видит:
+    открытый по ошибке экран не должен выглядеть как обычная работа.
+    """
+
+    id: str
+    name: str
+    updated_at: datetime
+    model: dict
+    note: str = ""
+
+
+class StaffAccessOut(BaseModel):
+    """Что видно оператору про доступ к моделям клиента — в карточке клиента.
+
+    ``reason`` заполняется и когда доступа нет: отказ обязан называть причину и
+    говорить, что грант выдаёт сам клиент.
+    """
+
+    granted: bool = False
+    expires_at: Optional[datetime] = None
+    granted_by_email: str = ""
+    grant_reason: str = ""
+    reason: str = ""
+
+
 class StaffOrgDetail(StaffOrgOut):
     """Карточка организации: то же плюс состав и платежи. Содержимого моделей
     по-прежнему нет: платёж — это тариф, сумма и статус, а не числа клиента."""
@@ -2098,6 +2177,9 @@ class StaffOrgDetail(StaffOrgOut):
     payments: list[StaffPaymentOut] = []
     #: Сколько их всего: усечённый список обязан **называть свою неполноту**.
     payments_total: int = 0
+    #: Открыл ли клиент доступ к своим моделям (F4) — и до какого часа. Показывается
+    #: **и когда не открыл**: причина отказа нужна оператору до нажатия, а не после.
+    access: StaffAccessOut = StaffAccessOut()
 
 
 class StaffUserOrgOut(BaseModel):
