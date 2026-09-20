@@ -9,7 +9,14 @@ from ..billing import PaymentProvider, get_payment_provider
 from ..database import get_db
 from ..db_models import User
 from ..deps import current_user, require_membership, require_org_permission
-from ..plans import PLANS, UNIT_NAME, get_plan, is_valid_plan, product_of
+from ..plans import (
+    DEFAULT_PLANS,
+    PLANS,
+    UNIT_NAME,
+    get_plan,
+    is_valid_plan,
+    product_of,
+)
 from ..rbac import Perm
 from ..schemas import (
     CheckoutRequest,
@@ -100,11 +107,20 @@ def change_subscription(body: SubscriptionUpdate,
     # Продукт выводится из кода тарифа, а не приходит отдельным полем: два источника
     # правды разошлись бы, и организация получила бы тариф «Аудита» в подписке «Элит».
     product = product_of(body.plan_code)
+    # Прежний тариф читается **до** смены: после неё его уже никто не вспомнит, а без
+    # него запись не отвечает «с чего ушли» — и отток по ней не посчитать (F8).
+    #
+    # Запоминается **строка, а не строка подписки**: `set_plan` правит тот же самый
+    # объект, и ссылка на него после смены назвала бы новый тариф прежним («free → free»
+    # вместо «team → free») — то есть записала бы, что ухода не было.
+    subscription = crud.get_subscription(db, org_id, product)
+    was = subscription.plan_code if subscription else DEFAULT_PLANS.get(product, "")
     # ``paid=True`` с бесплатным тарифом **стирает** чужой срок: уходя с платного,
     # организация не должна тащить за собой его дату (см. `crud.set_plan`).
     crud.set_plan(db, org_id, body.plan_code, product=product, period_end=None, paid=True)
     crud.log_action(db, org_id, user, "billing.plan_change", entity_type="organization",
-                    entity_id=org_id, entity_name=body.plan_code, details=product)
+                    entity_id=org_id, entity_name=body.plan_code,
+                    details=billing.plan_change_details(product, was, body.plan_code))
     return _subscription_out(db, org_id, product)
 
 

@@ -2434,6 +2434,36 @@ class RevenuePointOut(BaseModel):
     payments: int = 0
 
 
+class ChurnPointOut(BaseModel):
+    """Отток месяца — двумя картинами рядом (F8).
+
+    ``expired`` и ``downgraded`` (журнал) приходят ``None``, когда **не измеряется**:
+    месяц раньше первой записи такого вида либо записи есть, но прежний тариф в них не
+    назван. Ноль здесь читался бы как «никто не уходит» — другое утверждение.
+
+    ``payers``/``stopped`` (платежи) — «кто платил и перестал»; доля считается **внутри**
+    этой картины и не делит одну картину на другую.
+    """
+
+    month: str
+    expired: Optional[int] = None
+    downgraded: Optional[int] = None
+    payers: int = 0
+    stopped: int = 0
+    rate: Optional[float] = None
+
+
+class ChurnOut(BaseModel):
+    """Отток по месяцам и то, чего в этих числах нет."""
+
+    months: list[ChurnPointOut] = []
+    #: Запускали ли скрипт, оставляющий запись о неуплате. Нет — уход по окончании
+    #: периода **не измеряется**, и экран обязан сказать это словом, а не нулём.
+    expiry_logged: bool = False
+    #: Записи о смене тарифа без названного прежнего тарифа (сделаны до F8).
+    unnamed_plan_changes: int = 0
+
+
 class PlatformMetricsOut(BaseModel):
     """Сводка платформы (B3).
 
@@ -2461,6 +2491,8 @@ class PlatformMetricsOut(BaseModel):
     retention: list[RetentionPointOut] = []
     #: Выручка по месяцам — только успешные платежи, по **дате платежа** (F2).
     revenue: list[RevenuePointOut] = []
+    #: Отток (F8) — две картины рядом, а не одно число.
+    churn: ChurnOut = ChurnOut()
     #: Собираются ли события пользования (E2) — чтобы экран не гадал, почему пусто.
     usage_collected: bool = False
     notes: list[str] = []

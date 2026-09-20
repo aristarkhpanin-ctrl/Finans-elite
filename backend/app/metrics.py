@@ -23,6 +23,8 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from .billing import is_paid_plan, parse_plan_change
+from .billing_period import GRACE_DAYS, days_overdue
 from .db_models import (
     Membership,
     Organization,
@@ -57,6 +59,21 @@ class PlanSlice:
     organizations: int
 
 
+@dataclass(frozen=True)
+class ChurnRecord:
+    """Одна запись журнала об уходе, собранная обходом арендаторов.
+
+    Организация названа, потому что отток считается **организациями**: одна и та же
+    компания может просрочить подписку на оба продукта в один месяц, и сложить эти
+    строки значило бы потерять одного клиента дважды.
+    """
+
+    organization_id: str
+    action: str
+    at: datetime
+    details: str
+
+
 @dataclass
 class TenantTotals:
     """Итоги, собранные обходом арендаторов (их считает служебный роутер).
@@ -81,6 +98,11 @@ class TenantTotals:
     with_entities: int = 0
     with_calculation: int = 0
     with_export: int = 0
+    #: Записи журнала об уходе (F8) — тем же обходом, что и объёмы.
+    churn_records: list[ChurnRecord] = field(default_factory=list)
+    #: Когда по платформе впервые появилась запись каждого вида. Раньше этой даты ряд
+    #: показывает «не измеряется»: ноль там означал бы «не уходили», а не «не записывали».
+    first_churn_at: dict[str, datetime] = field(default_factory=dict)
 
 
 @dataclass
@@ -122,6 +144,44 @@ class RevenuePoint:
     payments: int = 0
 
 
+@dataclass(frozen=True)
+class ChurnPoint:
+    """Отток одного месяца — **двумя картинами рядом** (F8).
+
+    Журнал отвечает «что записано как случившееся», платежи — «кто платил и перестал».
+    У картин разные пропуски, и свести их в одно число нельзя: среднее между «не
+    запускали скрипт» и «денег не приходило» не значит ничего.
+
+    ``None`` в ``expired`` и ``downgraded`` — «**не измеряется**», а не ноль: месяц
+    раньше первой записи такого вида либо записи есть, но прежний тариф в них не назван.
+    """
+
+    month: str
+    #: Не продлили оплаченный период (`billing.overdue`).
+    expired: int | None = None
+    #: Ушли на бесплатный сами (`billing.plan_change` с названным прежним платным).
+    downgraded: int | None = None
+    #: Платили в этом месяце — организаций (успешные платежи).
+    payers: int = 0
+    #: Из них перестали: последний успешный платёж пришёлся на этот месяц, а
+    #: оплаченного периода с льготным сроком у организации больше нет.
+    stopped: int = 0
+    #: ``stopped / payers``. ``None`` — делить не на что (платящих в месяце не было).
+    rate: float | None = None
+
+
+@dataclass
+class Churn:
+    """Отток по месяцам плюс то, чего в этих числах нет."""
+
+    months: list[ChurnPoint] = field(default_factory=list)
+    #: Запускали ли ``scripts/expire_subscriptions.py`` хоть раз. Нет — значит уход по
+    #: окончании периода не измеряется вовсе, и это надо сказать, а не показать ноль.
+    expiry_logged: bool = False
+    #: Записи о смене тарифа, в которых прежний тариф не назван (сделаны до F8).
+    unnamed_plan_changes: int = 0
+
+
 @dataclass
 class PlatformMetrics:
     generated_at: datetime
@@ -148,6 +208,8 @@ class PlatformMetrics:
     #: Выручка по месяцам — **только успешные** платежи (F2). Неуспешные видны в
     #: карточке клиента: там это разговор, здесь это не деньги.
     revenue: list[RevenuePoint] = field(default_factory=list)
+    #: Отток (F8) — две картины рядом, а не одно число.
+    churn: Churn = field(default_factory=Churn)
     #: Собираются ли события пользования (E2) — чтобы экран не гадал, почему пусто.
     usage_collected: bool = False
     notes: list[str] = field(default_factory=list)
@@ -323,6 +385,126 @@ def revenue_by_month(db: Session, now: datetime, months: int) -> list[RevenuePoi
     return [totals[m] for m in window]
 
 
+def _covered(first_at: datetime | None, month: str) -> bool:
+    """Застал ли ряд этот месяц. ``None`` первой записи — не застал вовсе."""
+    stamp = _as_utc(first_at)
+    return stamp is not None and month >= _month(stamp)
+
+
+def churn(db: Session, now: datetime, months: int, *, totals: TenantTotals) -> Churn:
+    """Отток по месяцам — **двумя картинами, которые не сводятся в одну** (F8).
+
+    Определение записано заранее и не меняется (OPEN-DECISIONS §1): отток — организация,
+    у которой **была платная** подписка и не стало. Триал, не ставший платным, — воронка,
+    а не отток; смешать их значит получить число, которым нельзя пользоваться.
+
+    **Картина 1 — журнал**: что записано как случившееся. Не продлили оплаченный период
+    (`billing.overdue`, запись оставляет скрипт эксплуатации) и ушли на бесплатный сами
+    (`billing.plan_change`, у которой назван прежний тариф). Записей нет — значит **не
+    измеряется**, и ряд говорит это словом, а не нулём: скрипт запускает эксплуатация, и
+    его молчание ничего не говорит о клиентах.
+
+    **Картина 2 — платежи**: кто платил и перестал. Последний успешный платёж пришёлся
+    на месяц, а оплаченного периода с льготным сроком у организации больше нет.
+
+    Делить одну картину на другую нельзя, и здесь этого нет: доля считается **внутри**
+    платежей (перестали / платили). Журнал записывает уходы, но не население, и частное
+    от деления «записанных уходов» на «плативших» было бы ровно тем сведением двух картин
+    в одно число, от которого метрику и уберегали.
+
+    Считается **организациями**, а не подписками: клиент, отказавшийся от одного продукта
+    и оставшийся на другом, ушедшим не считается. Иначе картины считали бы разные единицы
+    (платёж один на организацию) и перестали бы быть сравнимыми.
+    """
+    window = _months_back(now, months)
+    expired: dict[str, set[str]] = {m: set() for m in window}
+    downgraded: dict[str, set[str]] = {m: set() for m in window}
+    unreadable: dict[str, set[str]] = {m: set() for m in window}
+    unnamed = 0
+
+    for record in totals.churn_records:
+        stamp = _as_utc(record.at)
+        month = _month(stamp) if stamp else ""
+        if month not in expired:
+            continue
+        if record.action == "billing.overdue":
+            expired[month].add(record.organization_id)
+            continue
+        parsed = parse_plan_change(record.details)
+        if parsed is None:
+            # Прежний тариф не назван (запись сделана до F8): уход это или переключение
+            # бесплатного на бесплатный — из неё не видно, и гадать метрика не станет.
+            unnamed += 1
+            unreadable[month].add(record.organization_id)
+            continue
+        _, was, became = parsed
+        if is_paid_plan(was) and not is_paid_plan(became):
+            downgraded[month].add(record.organization_id)
+
+    payers, stopped = _payment_churn(db, now, window)
+    first_overdue = totals.first_churn_at.get("billing.overdue")
+    first_change = totals.first_churn_at.get("billing.plan_change")
+
+    points: list[ChurnPoint] = []
+    for month in window:
+        left: int | None = len(expired[month]) if _covered(first_overdue, month) else None
+        if not _covered(first_change, month):
+            went_free: int | None = None
+        elif not downgraded[month] and unreadable[month]:
+            # Записи в месяце есть, но читаемых среди них нет: ноль сказал бы «никто не
+            # уходил сам», а правда — «по этим записям не видно».
+            went_free = None
+        else:
+            went_free = len(downgraded[month])
+        paid_count, left_count = len(payers[month]), len(stopped[month])
+        points.append(ChurnPoint(
+            month=month, expired=left, downgraded=went_free,
+            payers=paid_count, stopped=left_count,
+            rate=(left_count / paid_count) if paid_count else None))
+    return Churn(months=points, expiry_logged=first_overdue is not None,
+                 unnamed_plan_changes=unnamed)
+
+
+def _payment_churn(db: Session, now: datetime,
+                   window: list[str]) -> tuple[dict[str, set[str]], dict[str, set[str]]]:
+    """«Платил и перестал» — вторая картина оттока, целиком из платежей и подписок.
+
+    Уход отнесён к месяцу **последнего платежа**, а не к месяцу, когда кончился
+    оплаченный период: «перестал платить» — это про платёж, которого не было, и датировать
+    его можно только последним, который был.
+
+    «Перестал» проверяется по подписке, а не по календарю от даты платежа: оплату за
+    несколько периодов сразу (оплата по счёту, F1) числом месяцев платформа в платеже не
+    хранит, зато ``current_period_end`` его уже учёл — и организация внутри оплаченного
+    периода ушедшей не считается, сколько бы месяцев назад она ни платила.
+    """
+    payers: dict[str, set[str]] = {m: set() for m in window}
+    last_paid: dict[str, str] = {}
+    for org_id, created in db.execute(
+            select(Payment.organization_id, Payment.created_at)
+            .where(Payment.status == "succeeded")):
+        stamp = _as_utc(created)
+        if stamp is None:
+            continue
+        month = _month(stamp)
+        if month in payers:
+            payers[month].add(org_id)
+        if month > last_paid.get(org_id, ""):
+            last_paid[org_id] = month
+    # Организации, у которых оплаченный период (с льготным сроком) ещё идёт хоть по
+    # одному продукту: они платят, и ушедшими их называть нечем.
+    paying_now = {
+        org_id for org_id, end in db.execute(
+            select(Subscription.organization_id, Subscription.current_period_end))
+        if end is not None and days_overdue(end, now) <= GRACE_DAYS
+    }
+    stopped: dict[str, set[str]] = {m: set() for m in window}
+    for org_id, month in last_paid.items():
+        if month in stopped and org_id not in paying_now:
+            stopped[month].add(org_id)
+    return payers, stopped
+
+
 def build_platform_metrics(db: Session, *, totals: TenantTotals, now: datetime | None = None,
                            months: int = 12, since_days: int = 30) -> PlatformMetrics:
     """Собрать сводку платформы. ``totals`` приходит снаружи — см. :class:`TenantTotals`."""
@@ -345,6 +527,7 @@ def build_platform_metrics(db: Session, *, totals: TenantTotals, now: datetime |
         funnel=activation_funnel(db, totals),
         retention=retention(db, now, months),
         revenue=revenue_by_month(db, now, months),
+        churn=churn(db, now, months, totals=totals),
         usage_collected=usage_collecting(),
     )
     metrics.notes = _notes(metrics, totals)
@@ -404,6 +587,7 @@ def _notes(metrics: PlatformMetrics, totals: TenantTotals) -> list[str]:
             "а не «не считали». Оплата по счёту попадает сюда, только если её провёл "
             "оператор — назначением тарифа; прямые переводы мимо продукта платформа не "
             "видит.")
+    notes.extend(_churn_notes(metrics.churn, totals))
     if not metrics.usage_collected:
         notes.append(
             "События пользования не собираются (`USAGE_EVENTS` выключен), поэтому "
@@ -418,6 +602,59 @@ def _notes(metrics: PlatformMetrics, totals: TenantTotals) -> list[str]:
         notes.append(
             "Удержание считается по событиям пользования и только с того момента, как их "
             "начали собирать: у месяцев до этого стоит «не измеряется», а не ноль.")
+    return notes
+
+
+def _churn_notes(data: Churn, totals: TenantTotals) -> list[str]:
+    """Чего нет в числах оттока. Половина работы этого пункта — здесь.
+
+    Отток — метрика, которой пользуются, чтобы принимать решения о продукте, и каждый её
+    пропуск читается как благополучие: ноль ушедших выглядит ровно как «никто не уходит».
+    """
+    notes = [
+        "Отток — организация, у которой **была платная** подписка и не стало. Триал, не "
+        "ставший платным, сюда не входит: это воронка, а не отток, и смешать их значит "
+        "получить число, которым нельзя пользоваться.",
+        "Две картины оттока **не сводятся в одно число**: журнал отвечает «что записано "
+        "как случившееся», платежи — «кто платил и перестал». Пропуски у них разные, и "
+        "среднее между ними не значило бы ничего.",
+        "Считается организациями, а не подписками: клиент, отказавшийся от одного "
+        "продукта и оставшийся на другом, ушедшим не считается — иначе картины считали "
+        "бы разные единицы (платёж один на организацию) и перестали бы быть сравнимыми.",
+    ]
+    if not data.expiry_logged:
+        notes.append(
+            "Уход по окончании оплаченного периода **не измеряется**: записей "
+            "`billing.overdue` в журнале нет вовсе — `scripts/expire_subscriptions.py` "
+            "ни разу не запускали. Ноль здесь означал бы «никто не уходит», а это другое "
+            "утверждение: приложение таких записей не делает, их оставляет эксплуатация.")
+    else:
+        first = _as_utc(totals.first_churn_at.get("billing.overdue"))
+        assert first is not None      # expiry_logged ровно это и означает
+        notes.append(
+            f"Уход по окончании периода виден с {first.strftime('%m.%Y')} — раньше стоит "
+            "«не измеряется»: запись оставляет скрипт эксплуатации, и до его первого "
+            "запуска её неоткуда было взять.")
+    if data.unnamed_plan_changes:
+        notes.append(
+            f"В {data.unnamed_plan_changes} записях о смене тарифа прежний тариф не "
+            "назван (сделаны до того, как журнал стал его писать): ушла организация с "
+            "платного или переключила бесплатный на бесплатный — из них не видно. В "
+            "отток они не взяты, а месяц, где других записей нет, показывает «не "
+            "измеряется».")
+    notes.append(
+        "«Платил и перестал» отнесён к месяцу **последнего платежа**, а не к месяцу, "
+        "когда кончился оплаченный период. Последние месяцы ещё могут вырасти: у части "
+        "плативших оплаченный период с льготным сроком не истёк, и ушедшими они пока не "
+        "считаются.")
+    notes.append(
+        "Организация, **закрывшая себя** (выгрузка и удаление), из обеих картин исчезает: "
+        "её журнал и её платежи удаляются вместе с ней. Факт закрытия остаётся в "
+        "служебном журнале, но платила ли она — оттуда не видно.")
+    notes.append(
+        "Назначение тарифа платформой (оплата по счёту) в отток не входит ни в одну "
+        "сторону: это её действие, а не решение клиента. Прекращение такой оплаты видно "
+        "по окончании периода — на общих основаниях.")
     return notes
 
 

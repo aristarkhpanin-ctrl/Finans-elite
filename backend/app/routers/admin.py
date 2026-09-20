@@ -38,6 +38,7 @@ from ..database import as_tenant, get_db
 from ..db_models import User
 from ..deps import require_operator, require_staff
 from ..metrics import (
+    ChurnRecord,
     PlatformMetrics,
     TenantTotals,
     build_platform_metrics,
@@ -47,6 +48,8 @@ from ..metrics import (
 from ..plans import PRODUCTS, get_plan, is_valid_plan
 from ..schemas import (
     AuditLogPage,
+    ChurnOut,
+    ChurnPointOut,
     FunnelStepOut,
     MetricPointOut,
     PlanSliceOut,
@@ -451,11 +454,15 @@ def reset_user_totp(user_id: str, staff: User = Depends(require_operator),
 MAX_METRIC_ORGS = 2_000
 
 
-def _tenant_totals(db: Session, since: datetime) -> TenantTotals:
+def _tenant_totals(db: Session, since: datetime, churn_since: datetime) -> TenantTotals:
     """Пройти по арендаторам и сложить то, что лежит под RLS.
 
     Проекты, дела и журнал видны только изнутри организации, поэтому свод собирается
     обходом — той же дверью, что и всё остальное в служебном контуре.
+
+    Окон два: объёмы и выгрузки смотрят за ``since`` (period сводки), а записи об уходе —
+    за ``churn_since`` (глубина ряда по месяцам). Одно окно на оба заставило бы выбирать
+    между «что происходит сейчас» и «как менялось за год».
     """
     total = int(crud.count_organizations(db))
     orgs = crud.list_organizations(db, limit=MAX_METRIC_ORGS)
@@ -463,6 +470,18 @@ def _tenant_totals(db: Session, since: datetime) -> TenantTotals:
     for org in orgs:
         with as_tenant(db, org.id):
             slice_ = crud.org_metric_slice(db, org.id, since)
+            # Отток — тем же обходом: журнал под RLS, и второй проход ради соседних
+            # строк того же журнала однажды разошёлся бы с первым.
+            churn_slice = crud.org_churn_slice(db, org.id, churn_since)
+        totals.churn_records.extend(
+            ChurnRecord(organization_id=org.id, action=action, at=at, details=details)
+            for action, at, details in churn_slice["rows"])
+        for action, first_at in churn_slice["first"].items():
+            if first_at is None:
+                continue
+            known = totals.first_churn_at.get(action)
+            if known is None or first_at < known:
+                totals.first_churn_at[action] = first_at
         totals.projects += slice_["projects"]
         totals.cases += slice_["cases"]
         totals.calculated += slice_["calculated"]
@@ -484,7 +503,10 @@ def _tenant_totals(db: Session, since: datetime) -> TenantTotals:
 
 def _metrics(db: Session, *, months: int, days: int) -> PlatformMetrics:
     now = datetime.now(timezone.utc)
-    totals = _tenant_totals(db, now - timedelta(days=days))
+    # Запас в месяц: окно оттока задано месяцами, а обход читает журнал по дате —
+    # обрезанный по 30 дней первый месяц ряда выглядел бы спокойнее, чем был.
+    totals = _tenant_totals(db, now - timedelta(days=days),
+                            now - timedelta(days=31 * (months + 1)))
     return build_platform_metrics(db, totals=totals, now=now, months=months,
                                   since_days=days)
 
@@ -526,6 +548,13 @@ def read_metrics(months: int = 12, days: int = 30, staff: User = Depends(require
                                      returned=r.returned) for r in m.retention],
         revenue=[RevenuePointOut(month=r.month, rub=r.rub, payments=r.payments)
                  for r in m.revenue],
+        churn=ChurnOut(
+            months=[ChurnPointOut(month=c.month, expired=c.expired,
+                                  downgraded=c.downgraded, payers=c.payers,
+                                  stopped=c.stopped, rate=c.rate)
+                    for c in m.churn.months],
+            expiry_logged=m.churn.expiry_logged,
+            unnamed_plan_changes=m.churn.unnamed_plan_changes),
         usage_collected=m.usage_collected,
         notes=list(m.notes),
     )
@@ -570,6 +599,20 @@ def export_metrics(months: int = 12, days: int = 30, staff: User = Depends(requi
     writer.writerow(["Месяц", "Выручка, ₽", "Платежей"])
     for point in m.revenue:
         writer.writerow([point.month, point.rub, point.payments])
+
+    writer.writerow([])
+    # Отток (F8): «не измеряется» уезжает в файл **словом**, а не пустой ячейкой —
+    # пустая читается как ноль тем увереннее, чем дальше таблица уехала от экрана.
+    writer.writerow(["Месяц", "Не продлили", "Ушли на бесплатный",
+                     "Платили", "Перестали", "Доля ушедших"])
+    for point in m.churn.months:
+        writer.writerow([
+            point.month,
+            "не измеряется" if point.expired is None else point.expired,
+            "не измеряется" if point.downgraded is None else point.downgraded,
+            point.payers, point.stopped,
+            "—" if point.rate is None else f"{round(point.rate * 100)}%",
+        ])
 
     writer.writerow([])
     writer.writerow(["Продукт", "Тариф", "Организаций"])

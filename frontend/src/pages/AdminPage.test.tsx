@@ -97,6 +97,15 @@ const metrics = (over: Partial<PlatformMetrics> = {}): PlatformMetrics => ({
   retention: [],
   revenue: [{ month: "2026-08", rub: 2900, payments: 1 },
             { month: "2026-09", rub: 0, payments: 0 }],
+  // По умолчанию отток **измерен**: ряд с прочерками сделал бы слово «не измеряется»
+  // неоднозначным на экране, где его же ищут тесты удержания.
+  churn: {
+    months: [
+      { month: "2026-08", expired: 1, downgraded: 0, payers: 3, stopped: 1, rate: 0.5 },
+      { month: "2026-09", expired: 0, downgraded: 0, payers: 2, stopped: 0, rate: 0 },
+    ],
+    expiry_logged: true, unnamed_plan_changes: 0,
+  },
   usage_collected: false,
   notes: ["Журнал ведётся с 01.08.2026 — за более ранние даты выгрузок не видно."],
   ...over,
@@ -445,6 +454,65 @@ it("когорта без пришедших не выдаётся за кого
   fireEvent.click(await screen.findByRole("button", { name: "Сводка" }));
   expect(await screen.findByText("3 из 4")).toBeTruthy();
   expect(screen.getByText("не измеряется")).toBeTruthy();
+});
+
+// --- F8: отток ---
+
+it("отток показан двумя картинами рядом, а не одним числом", async () => {
+  // Журнал отвечает «что записано как случившееся», платежи — «кто платил и перестал».
+  // Доля считается **внутри** платежей: делить журнал на платежи значило бы свести две
+  // картины в одно число, у которого нет смысла.
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Сводка" }));
+  await screen.findByText("Отток");
+  const row = [...document.querySelectorAll('[aria-label="Отток по месяцам"] [role="row"]')]
+    .find((n) => n.textContent?.startsWith("2026-08"));
+  expect(row?.textContent).toContain("3 / 1");
+  expect(row?.textContent).toContain("50%");
+});
+
+it("определение оттока названо на самом экране", async () => {
+  // «Была платная подписка и не стало»: триал, не ставший платным, — воронка, и
+  // смешать их значит получить число, которым нельзя пользоваться.
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Сводка" }));
+  expect(await screen.findByText(/воронка, а не отток/)).toBeTruthy();
+});
+
+it("непосчитанный месяц говорит «не измеряется», а не показывает ноль", async () => {
+  getPlatformMetrics.mockResolvedValue(metrics({
+    churn: {
+      months: [{ month: "2026-08", expired: null, downgraded: null,
+                 payers: 0, stopped: 0, rate: null }],
+      expiry_logged: true, unnamed_plan_changes: 0,
+    },
+  }));
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Сводка" }));
+  // Два прочерка: «не продлили» и «ушли на бесплатный» — оба из одной неизвестности.
+  expect((await screen.findAllByText("не измеряется")).length).toBe(2);
+});
+
+it("невыполненный скрипт назван причиной, а не спрятан за нулём", async () => {
+  // Записи об окончании периода оставляет эксплуатация, а не приложение: пока скрипт
+  // не запускали, ноль ушедших означал бы «никто не уходит».
+  getPlatformMetrics.mockResolvedValue(metrics({
+    churn: { months: [], expiry_logged: false, unnamed_plan_changes: 0 },
+  }));
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Сводка" }));
+  expect(await screen.findByText(/не измеряется/)).toBeTruthy();
+  expect(screen.getByText(/expire_subscriptions/)).toBeTruthy();
+});
+
+it("записи без прежнего тарифа названы, а не молча пропущены", async () => {
+  getPlatformMetrics.mockResolvedValue(metrics({
+    churn: { months: [], expiry_logged: true, unnamed_plan_changes: 7 },
+  }));
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Сводка" }));
+  expect(await screen.findByText(/В 7 записях о смене тарифа прежний тариф не назван/))
+    .toBeTruthy();
 });
 
 it("события выгружаются отдельно от сводки: это разные вопросы", async () => {

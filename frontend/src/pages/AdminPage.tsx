@@ -1025,6 +1025,14 @@ function StaffLogTab() {
 }
 
 /**
+ * `null` — «**не измеряется**», а не ноль (F8). Пустая ячейка читается как ноль тем
+ * увереннее, чем меньше рядом текста, поэтому пропуск называется словом.
+ */
+function unmeasured(value: number | null | undefined) {
+  return value == null ? <span className="muted">не измеряется</span> : value;
+}
+
+/**
  * Сводка платформы (B3): сколько клиентов, кто из них жив, чем пользуются.
  *
  * **Оговорки показываются всегда и рядом с числами**, а не прячутся в подсказку. Ноль
@@ -1050,6 +1058,8 @@ function MetricsTab() {
   const peak = Math.max(1, ...growth.map((p) => Math.max(p.organizations, p.users)));
   const revenue = data?.revenue ?? [];
   const peakRub = Math.max(1, ...revenue.map((p) => p.rub));
+  const churn = data.churn ?? { months: [], expiry_logged: false,
+                                unnamed_plan_changes: 0 };
 
   return (
     <div>
@@ -1166,6 +1176,53 @@ function MetricsTab() {
           </div>
         ))}
       </div>
+
+      {/* Отток (F8): **две картины рядом**, а не одно число. Журнал отвечает «что
+          записано как случившееся», платежи — «кто платил и перестал»; пропуски у них
+          разные, и среднее между ними не значило бы ничего. Прочерк с подписью «не
+          измеряется» здесь обязателен: ноль читался бы как «никто не уходит». */}
+      <h2 className="adm-h2" style={{ marginTop: 24 }}>Отток</h2>
+      <div className="page-sub" style={{ marginTop: 0 }}>
+        Организация, у которой <b>была платная</b> подписка и не стало. Триал, не ставший
+        платным, — воронка, а не отток.
+      </div>
+      {!churn.expiry_logged && (
+        <div className="page-sub">
+          <b>Уход по окончании периода не измеряется.</b> Записей нет вовсе:
+          <code> scripts/expire_subscriptions.py</code> ни разу не запускали — их
+          оставляет эксплуатация, а не приложение. Ноль здесь означал бы «никто не
+          уходит», а это другое утверждение.
+        </div>
+      )}
+      <div className="mgrid" role="table" aria-label="Отток по месяцам">
+        <div className="mgrid__row mgrid__row--head" role="row">
+          <div role="columnheader">Месяц</div>
+          <div role="columnheader">Не продлили</div>
+          <div role="columnheader">Ушли на бесплатный</div>
+          <div role="columnheader">Платили / перестали</div>
+        </div>
+        {churn.months.map((point) => (
+          <div className="mgrid__row" role="row" key={point.month}>
+            <div role="rowheader">{point.month}</div>
+            <div role="cell">{unmeasured(point.expired)}</div>
+            <div role="cell">{unmeasured(point.downgraded)}</div>
+            {/* Доля считается **внутри** платежей: делить журнал на платежи значило бы
+                свести две картины в одно число. */}
+            <div role="cell">
+              {point.payers} / {point.stopped}
+              {point.rate != null && point.payers > 0
+                && <span className="muted"> ({Math.round(point.rate * 100)}%)</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+      {!!churn.unnamed_plan_changes && (
+        <div className="page-sub">
+          В {churn.unnamed_plan_changes} записях о смене тарифа прежний тариф не назван —
+          ушла организация с платного или переключила бесплатный на бесплатный, из них не
+          видно. В отток они не взяты.
+        </div>
+      )}
 
       <h2 className="adm-h2" style={{ marginTop: 24 }}>Тарифы</h2>
       {(data.plans ?? []).length === 0 ? (

@@ -1424,6 +1424,39 @@ def org_metric_slice(db: Session, org_id: str, since: datetime) -> dict:
     }
 
 
+#: Действия журнала, по которым читается уход с платного тарифа (F8). Новой таблицы под
+#: отток не заводим — переходы и так записаны там, где записано всё остальное.
+CHURN_ACTIONS = ("billing.overdue", "billing.plan_change")
+
+
+def org_churn_slice(db: Session, org_id: str, since: datetime) -> dict:
+    """Записи об уходе с платного тарифа — для метрики оттока (F8).
+
+    Зовётся **тем же обходом арендаторов**, что и :func:`org_metric_slice`: журнал под
+    RLS, и второй проход ради соседних строк был бы вдвое дороже и однажды разошёлся бы
+    с первым.
+
+    Вместе со строками окна возвращаются **даты первых записей за всё время**. Месяц
+    раньше первой записи метрика обязана показать «не измеряется», а не ноль: запись
+    `billing.overdue` оставляет скрипт эксплуатации, и до его первого запуска ноль
+    означал бы «никто не уходит» — совсем другое утверждение.
+    """
+    rows = db.execute(
+        select(AuditLogEntry.action, AuditLogEntry.created_at, AuditLogEntry.details)
+        .where(AuditLogEntry.organization_id == org_id,
+               AuditLogEntry.action.in_(CHURN_ACTIONS),
+               AuditLogEntry.created_at >= since)).all()
+    first = {
+        action: db.scalar(
+            select(func.min(AuditLogEntry.created_at))
+            .where(AuditLogEntry.organization_id == org_id,
+                   AuditLogEntry.action == action))
+        for action in CHURN_ACTIONS
+    }
+    return {"rows": [(action, at, details) for action, at, details in rows],
+            "first": first}
+
+
 # --- Обсуждение (комментарии к проекту и к делу, D3) ---
 
 def create_comment(db: Session, org_id: str, *, subject_type: str, subject_id: str,

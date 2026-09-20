@@ -4871,6 +4871,88 @@
         "title": "ChoiceOut",
         "type": "object"
       },
+      "ChurnOut": {
+        "description": "Отток по месяцам и то, чего в этих числах нет.",
+        "properties": {
+          "expiry_logged": {
+            "default": false,
+            "title": "Expiry Logged",
+            "type": "boolean"
+          },
+          "months": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ChurnPointOut"
+            },
+            "title": "Months",
+            "type": "array"
+          },
+          "unnamed_plan_changes": {
+            "default": 0,
+            "title": "Unnamed Plan Changes",
+            "type": "integer"
+          }
+        },
+        "title": "ChurnOut",
+        "type": "object"
+      },
+      "ChurnPointOut": {
+        "description": "Отток месяца — двумя картинами рядом (F8).\n\n``expired`` и ``downgraded`` (журнал) приходят ``None``, когда **не измеряется**:\nмесяц раньше первой записи такого вида либо записи есть, но прежний тариф в них не\nназван. Ноль здесь читался бы как «никто не уходит» — другое утверждение.\n\n``payers``/``stopped`` (платежи) — «кто платил и перестал»; доля считается **внутри**\nэтой картины и не делит одну картину на другую.",
+        "properties": {
+          "downgraded": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Downgraded"
+          },
+          "expired": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expired"
+          },
+          "month": {
+            "title": "Month",
+            "type": "string"
+          },
+          "payers": {
+            "default": 0,
+            "title": "Payers",
+            "type": "integer"
+          },
+          "rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate"
+          },
+          "stopped": {
+            "default": 0,
+            "title": "Stopped",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "month"
+        ],
+        "title": "ChurnPointOut",
+        "type": "object"
+      },
       "CommentCreate": {
         "description": "Новая реплика. ``anchor`` — место внутри проекта или дела, ``anchor_label`` — его\nподпись **на момент написания**: объект переименуют, а разговор обязан остаться\nпонятным.",
         "properties": {
@@ -8997,6 +9079,14 @@
             "default": 0,
             "title": "Cases",
             "type": "integer"
+          },
+          "churn": {
+            "$ref": "#/components/schemas/ChurnOut",
+            "default": {
+              "expiry_logged": false,
+              "months": [],
+              "unnamed_plan_changes": 0
+            }
           },
           "exports": {
             "default": 0,

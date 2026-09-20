@@ -5635,6 +5635,58 @@ export interface components {
             title: string;
         };
         /**
+         * ChurnOut
+         * @description Отток по месяцам и то, чего в этих числах нет.
+         */
+        ChurnOut: {
+            /**
+             * Expiry Logged
+             * @default false
+             */
+            expiry_logged: boolean;
+            /**
+             * Months
+             * @default []
+             */
+            months: components["schemas"]["ChurnPointOut"][];
+            /**
+             * Unnamed Plan Changes
+             * @default 0
+             */
+            unnamed_plan_changes: number;
+        };
+        /**
+         * ChurnPointOut
+         * @description Отток месяца — двумя картинами рядом (F8).
+         *
+         *     ``expired`` и ``downgraded`` (журнал) приходят ``None``, когда **не измеряется**:
+         *     месяц раньше первой записи такого вида либо записи есть, но прежний тариф в них не
+         *     назван. Ноль здесь читался бы как «никто не уходит» — другое утверждение.
+         *
+         *     ``payers``/``stopped`` (платежи) — «кто платил и перестал»; доля считается **внутри**
+         *     этой картины и не делит одну картину на другую.
+         */
+        ChurnPointOut: {
+            /** Downgraded */
+            downgraded?: number | null;
+            /** Expired */
+            expired?: number | null;
+            /** Month */
+            month: string;
+            /**
+             * Payers
+             * @default 0
+             */
+            payers: number;
+            /** Rate */
+            rate?: number | null;
+            /**
+             * Stopped
+             * @default 0
+             */
+            stopped: number;
+        };
+        /**
          * CommentCreate
          * @description Новая реплика. ``anchor`` — место внутри проекта или дела, ``anchor_label`` — его
          *     подпись **на момент написания**: объект переименуют, а разговор обязан остаться
@@ -7997,6 +8049,14 @@ export interface components {
              * @default 0
              */
             cases: number;
+            /**
+             * @default {
+             *       "expiry_logged": false,
+             *       "months": [],
+             *       "unnamed_plan_changes": 0
+             *     }
+             */
+            churn: components["schemas"]["ChurnOut"];
             /**
              * Exports
              * @default 0
