@@ -12056,6 +12056,37 @@
         "title": "StaffOrgPage",
         "type": "object"
       },
+      "StaffPlanAssign": {
+        "description": "Назначение тарифа клиенту оператором платформы (F1).\n\n``months`` — сколько периодов **оплачено**: это оплата по счёту, и отсчёт начинается\nот неё. ``None`` значит «тариф не истекает» — так живут бесплатный, пробный и\n«по запросу», условия которого согласованы вне продукта. Ноль сроком не считается:\n«оплачено ноль месяцев» — не оплата, и притворяться ею нельзя.",
+        "properties": {
+          "months": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Months"
+          },
+          "note": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Note",
+            "type": "string"
+          },
+          "plan_code": {
+            "title": "Plan Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan_code"
+        ],
+        "title": "StaffPlanAssign",
+        "type": "object"
+      },
       "StaffPosition-Input": {
         "description": "Штатная позиция: должность с окладом и численностью на период (SPEC §8).\n\nРазворачивается движком в постоянную издержку персонала (I13–I15 по ``function``):\nначисление = оклад × численность в месяцах ``[start_month, end_month)``\n(``end_month=None`` → до конца горизонта). Взносы с ФОТ и индексация инфляцией\nзарплаты применяются той же машинерией, что и к суммовым статьям персонала.",
         "properties": {
@@ -14963,6 +14994,64 @@
           }
         ],
         "summary": "Read Audit Log",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/organizations/{org_id}/subscription": {
+      "post": {
+        "description": "Назначить клиенту тариф — оплата по счёту и условия «по запросу» (F1).\n\nДо этого тариф не мог выдать **никто**: клиентский маршрут менял его правом\n`billing.manage` (то есть клиент выдавал его себе сам и бесплатно), а у оператора\nтакого маршрута не было вовсе — и тариф «по запросу» оставался непродаваемым.\n\n``months`` — сколько периодов оплачено. Отсчёт идёт через ту же\n:func:`billing.activate_paid_plan`, что и у обоих платёжных провайдеров: второй\nрасчёт срока рядом с первым однажды дал бы клиентам разные сроки за одни деньги.\n``None`` — тариф **не истекает**: так живут бесплатный, пробный и «по запросу»,\nусловия которого согласованы вне продукта.\n\n**Оплата оставляет след платежа** (`provider=\"manual\"`): иначе выручка по счетам\nне попадала бы в платежи вовсе, и «кто заплатил» отвечало бы только про ЮKassa.\nСумма — цена тарифа × месяцы; у тарифа «по запросу» суммы нет, и выдумывать её\nнельзя — тогда платёж не заводится, а назначение остаётся в журнале.",
+        "operationId": "assign_subscription_api_v1_admin_organizations__org_id__subscription_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffPlanAssign"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOrgDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Assign Subscription",
         "tags": [
           "admin"
         ]
@@ -19778,7 +19867,7 @@
     },
     "/api/v1/organizations/{org_id}/billing/checkout": {
       "post": {
-        "description": "Инициировать смену тарифа через провайдера (ЮKassa — ссылка оплаты; ручной — сразу).",
+        "description": "Инициировать смену тарифа через провайдера (ЮKassa — ссылка оплаты; ручной — сразу).\n\n**Тариф «по запросу» через оплату не проходит** (F1). Его цена — ноль, и ручной\nпровайдер включал его немедленно и бесплатно, а ЮKassa получила бы платёж на 0 ₽.\nУсловия такого тарифа согласуют вне продукта, и назначает его платформа.",
         "operationId": "checkout_api_v1_organizations__org_id__billing_checkout_post",
         "parameters": [
           {
@@ -20409,7 +20498,7 @@
         ]
       },
       "post": {
-        "description": "Прямая смена тарифа без платежа (право billing.manage; ручной/админский путь).",
+        "description": "Перейти на тариф, за который не платят, — то есть **вниз**, на бесплатный (F1).\n\nРаньше этот маршрут менял тариф на любой: право `billing.manage` есть у владельца\nорганизации-клиента, и «Корпоративный» брался одним запросом бесплатно. Хуже:\n``set_plan`` звался без ``paid``, поэтому срок не ставился вовсе — самовыданный\nтариф не истекал никогда, и режим чтения при неоплате (B2) на него не срабатывал.\n\n**Платный тариф выдаёт платёж, а не право.** Отказ называет обе дороги: оплатить\nили получить назначение от платформы (оплата по счёту). Уйти на бесплатный клиент\nпо-прежнему может сам — это отказ от услуги, а не её получение.",
         "operationId": "change_subscription_api_v1_organizations__org_id__subscription_post",
         "parameters": [
           {

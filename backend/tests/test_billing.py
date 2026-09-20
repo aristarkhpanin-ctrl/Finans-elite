@@ -9,6 +9,18 @@ def _sample(client):
     return client.get("/api/v1/sample").json()
 
 
+def _upgrade(client, headers, org_id: str, plan_code: str):
+    """Поднять тариф **оплатой** — единственной дорогой, которая у клиента есть (F1).
+
+    Раньше тесты поднимали его прямой сменой, и это было не упрощением, а той самой
+    дырой: платный тариф выдавался бесплатно и не истекал. Ручной провайдер в тестах
+    активирует оплату сразу, так что дорога короткая — но настоящая.
+    """
+    return client.post(f"/api/v1/organizations/{org_id}/billing/checkout",
+                       json={"plan_code": plan_code, "return_url": "http://x"},
+                       headers=headers)
+
+
 def test_list_plans(client):
     codes = {p["code"] for p in client.get("/api/v1/plans").json()}
     assert {"free", "team", "business"} <= codes
@@ -22,13 +34,43 @@ def test_new_org_has_free_subscription(client, auth_headers):
     assert sub["used_units"] == 0
 
 
-def test_change_plan_owner(client, auth_headers):
+def test_a_client_cannot_grant_itself_a_paid_plan(client, auth_headers):
+    """Право `billing.manage` есть у владельца организации-клиента, и прямая смена была
+    способом взять платный тариф бесплатно и навсегда — срок при ней не ставился вовсе
+    (F1). Платный тариф включается **оплатой**."""
     org_id = _org_id(client, auth_headers)
     r = client.post(f"/api/v1/organizations/{org_id}/subscription",
                     json={"plan_code": "team"}, headers=auth_headers)
-    assert r.status_code == 200
-    assert r.json()["plan_code"] == "team"
-    assert r.json()["max_units"] == 50
+    assert r.status_code == 403
+    # Отказ называет **обе** дороги: оплатить самому или получить назначение платформы.
+    detail = r.json()["detail"]
+    assert "Оплатите" in detail and "по счёту" in detail
+    # И тариф не изменился.
+    sub = client.get(f"/api/v1/organizations/{org_id}/subscription",
+                     headers=auth_headers).json()
+    assert sub["plan_code"] == "free"
+
+
+def test_a_client_may_step_down_to_free_itself(client, auth_headers):
+    """Уйти на бесплатный — отказ от услуги, а не её получение: это решение клиента."""
+    org_id = _org_id(client, auth_headers)
+    assert _upgrade(client, auth_headers, org_id, "team").status_code == 200
+
+    r = client.post(f"/api/v1/organizations/{org_id}/subscription",
+                    json={"plan_code": "free"}, headers=auth_headers)
+    assert r.status_code == 200 and r.json()["plan_code"] == "free"
+    # Чужой срок не тащится за организацией на бесплатный тариф.
+    assert r.json()["current_period_end"] is None
+
+
+def test_paying_gives_the_plan_and_starts_the_clock(client, auth_headers):
+    org_id = _org_id(client, auth_headers)
+    assert _upgrade(client, auth_headers, org_id, "team").status_code == 200
+    sub = client.get(f"/api/v1/organizations/{org_id}/subscription",
+                     headers=auth_headers).json()
+    assert sub["plan_code"] == "team" and sub["max_units"] == 50
+    # Оплата **начинает отсчёт**: тариф, который не истекает, за деньги не продают.
+    assert sub["current_period_end"] is not None
 
 
 def test_change_plan_invalid_422(client, auth_headers):
@@ -68,8 +110,7 @@ def test_quota_lifted_after_upgrade(client, auth_headers):
     assert client.post("/api/v1/projects", json={"name": "over", "model": sample},
                        headers=auth_headers).status_code == 402
     # апгрейд на team снимает лимит
-    client.post(f"/api/v1/organizations/{org_id}/subscription",
-                json={"plan_code": "team"}, headers=auth_headers)
+    _upgrade(client, auth_headers, org_id, "team")
     assert client.post("/api/v1/projects", json={"name": "ok", "model": sample},
                        headers=auth_headers).status_code == 201
 
@@ -140,9 +181,7 @@ def test_subscriptions_are_independent(client, auth_headers):
     assert subs["business"]["plan_code"] == "free"
     assert subs["audit"]["plan_code"] == "audit_trial"
 
-    r = client.post(f"/api/v1/organizations/{oid}/subscription",
-                    json={"plan_code": "audit_team"}, headers=auth_headers)
-    assert r.status_code == 200 and r.json()["product"] == "audit"
+    assert _upgrade(client, auth_headers, oid, "audit_team").status_code == 200
 
     subs = {s["product"]: s for s in client.get(
         f"/api/v1/organizations/{oid}/subscriptions", headers=auth_headers).json()}
@@ -180,8 +219,7 @@ def test_case_quota_is_enforced(client, auth_headers):
     assert r.status_code == 402 and "дел" in r.json()["detail"]
 
     # выше тариф — можно дальше
-    client.post(f"/api/v1/organizations/{oid}/subscription",
-                json={"plan_code": "audit_team"}, headers=auth_headers)
+    _upgrade(client, auth_headers, oid, "audit_team")
     assert _case(client, auth_headers, "Шестое").status_code == 201
 
 
@@ -208,3 +246,20 @@ def test_project_quota_untouched_by_audit_cases(client, auth_headers):
     business = client.get(f"/api/v1/organizations/{oid}/subscription",
                           headers=auth_headers).json()
     assert business["used_units"] == 0 and business["plan_code"] == "free"
+
+
+def test_a_plan_priced_on_request_is_not_bought_in_the_product(client, auth_headers):
+    """Его цена — ноль, и ручной провайдер включал его немедленно и бесплатно, а ЮKassa
+    получила бы платёж на 0 ₽ (F1). Условия согласуют вне продукта, назначает платформа.
+
+    Отказ при этом **не обещает заявку**: автоматической заявки в продукте нет, и делать
+    вид, что она ушла, хуже, чем сказать «свяжитесь с нами»."""
+    org_id = _org_id(client, auth_headers)
+    r = _upgrade(client, auth_headers, org_id, "audit_corp")
+    assert r.status_code == 409
+    detail = r.json()["detail"]
+    assert "назначает его платформа" in detail and "автоматической заявки" in detail
+
+    subs = {s["product"]: s for s in client.get(
+        f"/api/v1/organizations/{org_id}/subscriptions", headers=auth_headers).json()}
+    assert subs["audit"]["plan_code"] == "audit_trial"

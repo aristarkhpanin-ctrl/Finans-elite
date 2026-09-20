@@ -30,6 +30,8 @@ const unblockUser = vi.fn();
 const getPlatformMetrics = vi.fn();
 const downloadMetricsCsv = vi.fn();
 const downloadUsageCsv = vi.fn();
+const assignPlan = vi.fn();
+const getPlans = vi.fn();
 vi.mock("../api/admin", () => ({
   getStaffOrganizations: (...a: unknown[]) => getStaffOrganizations(...a),
   getStaffOrganization: (...a: unknown[]) => getStaffOrganization(...a),
@@ -43,9 +45,14 @@ vi.mock("../api/admin", () => ({
   getPlatformMetrics: (...a: unknown[]) => getPlatformMetrics(...a),
   downloadMetricsCsv: (...a: unknown[]) => downloadMetricsCsv(...a),
   downloadUsageCsv: (...a: unknown[]) => downloadUsageCsv(...a),
+  assignPlan: (...a: unknown[]) => assignPlan(...a),
 }));
 
 const toast = vi.fn();
+vi.mock("../api/org", async (orig) => ({
+  ...(await orig<typeof import("../api/org")>()),
+  getPlans: (...a: unknown[]) => getPlans(...a),
+}));
 vi.mock("../components/Toast", () => ({ useToast: () => toast }));
 
 let staff = true;
@@ -117,6 +124,13 @@ beforeEach(() => {
   getPlatformMetrics.mockResolvedValue(metrics());
   downloadMetricsCsv.mockResolvedValue(undefined);
   downloadUsageCsv.mockResolvedValue(undefined);
+  assignPlan.mockResolvedValue({ ...org(), members_list: [] });
+  getPlans.mockImplementation(async (product: string) => product === "audit"
+    ? [{ code: "audit_corp", product: "audit", name: "Корпоративный", price_rub: 0,
+         price_on_request: true, max_units: null, unit_name: "дел", max_members: null }]
+    : [{ code: "team", product: "business", name: "Команда", price_rub: 2900,
+         price_on_request: false, max_units: 50, unit_name: "проектов",
+         max_members: 25 }]);
 });
 
 function show() {
@@ -326,4 +340,37 @@ it("события выгружаются отдельно от сводки: э
   fireEvent.click(await screen.findByRole("button", { name: "События CSV" }));
   await waitFor(() => expect(downloadUsageCsv).toHaveBeenCalled());
   expect(downloadMetricsCsv).not.toHaveBeenCalled();
+});
+
+// --- Назначение тарифа (F1) ---
+
+const openPlanModal = async () => {
+  show();
+  fireEvent.click(await screen.findByText("ООО «Клиент»"));
+  fireEvent.click(await screen.findByRole("button", { name: "Назначить тариф" }));
+  return screen.findByLabelText("Тариф");
+};
+
+it("оператор назначает оплаченный по счёту тариф со сроком", async () => {
+  // До F1 тариф не мог выдать никто: клиент выдавал его себе сам и бесплатно, а у
+  // платформы двери не было вовсе — «по запросу» оставался непродаваемым.
+  const select = await openPlanModal();
+  fireEvent.change(select, { target: { value: "team" } });
+  fireEvent.change(await screen.findByLabelText("Оплачено месяцев"),
+                   { target: { value: "6" } });
+  fireEvent.change(screen.getByLabelText("Основание"), { target: { value: "счёт № 42" } });
+  fireEvent.click(screen.getByRole("button", { name: "Назначить" }));
+
+  await waitFor(() => expect(assignPlan).toHaveBeenCalledWith("o1", "team", 6, "счёт № 42"));
+});
+
+it("тарифу без цены срок не предлагается вовсе", async () => {
+  // Отключённое поле выглядит как поломка; срок у такого тарифа был бы выдуманным.
+  const select = await openPlanModal();
+  fireEvent.change(select, { target: { value: "audit_corp" } });
+  expect(await screen.findByText(/Срок не ставится/)).toBeTruthy();
+  expect(screen.queryByLabelText("Оплачено месяцев")).toBeNull();
+
+  fireEvent.click(screen.getByRole("button", { name: "Назначить" }));
+  await waitFor(() => expect(assignPlan).toHaveBeenCalledWith("o1", "audit_corp", null, ""));
 });

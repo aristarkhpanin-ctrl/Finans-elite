@@ -53,15 +53,23 @@ def test_a_paid_plan_gets_a_period_and_a_free_one_does_not():
     assert paid_period_end(PLANS["audit_corp"], NOW) is None
 
 
-def test_the_administrative_plan_change_starts_no_clock(client, register, db_session):
-    """Смена тарифа правом `billing.manage` — назначение, а не покупка: никто не платил,
-    и начинать отсчёт не с чего."""
+def test_a_client_cannot_assign_itself_a_paid_plan_at_all(client, register, db_session):
+    """Здесь стояло правило «смена тарифа правом `billing.manage` — назначение, а не
+    покупка: отсчёт не начинается». Правило было верным про отсчёт и **неверным про
+    право**: `billing.manage` есть у владельца организации-клиента, и «административная»
+    смена оказалась самовыдачей — платный тариф брался бесплатно и не истекал никогда.
+
+    F1 закрыл дорогу целиком: клиент этим маршрутом идёт только вниз. Отсчёт по-прежнему
+    начинает оплата, а назначение без оплаты (оператором, `months=None`) — по-прежнему
+    нет; это проверяет `test_staff_subscription.py`.
+    """
     headers = register()
     org = _org_id(client, headers)
     r = client.post(f"/api/v1/organizations/{org}/subscription",
                     json={"plan_code": "team"}, headers=headers)
-    assert r.status_code == 200
-    assert crud.get_subscription(db_session, org, "business").current_period_end is None
+    assert r.status_code == 403
+    sub = crud.get_subscription(db_session, org, "business")
+    assert sub is None or sub.plan_code == "free"
 
 
 def test_paying_starts_the_clock(client, register, db_session):

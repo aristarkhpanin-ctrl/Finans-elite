@@ -77,13 +77,32 @@ def change_subscription(body: SubscriptionUpdate,
                         org_id: str = Depends(require_org_permission(Perm.BILLING_MANAGE)),
                         user: User = Depends(current_user),
                         db: Session = Depends(get_db)) -> SubscriptionOut:
-    """Прямая смена тарифа без платежа (право billing.manage; ручной/админский путь)."""
+    """Перейти на тариф, за который не платят, — то есть **вниз**, на бесплатный (F1).
+
+    Раньше этот маршрут менял тариф на любой: право `billing.manage` есть у владельца
+    организации-клиента, и «Корпоративный» брался одним запросом бесплатно. Хуже:
+    ``set_plan`` звался без ``paid``, поэтому срок не ставился вовсе — самовыданный
+    тариф не истекал никогда, и режим чтения при неоплате (B2) на него не срабатывал.
+
+    **Платный тариф выдаёт платёж, а не право.** Отказ называет обе дороги: оплатить
+    или получить назначение от платформы (оплата по счёту). Уйти на бесплатный клиент
+    по-прежнему может сам — это отказ от услуги, а не её получение.
+    """
     if not is_valid_plan(body.plan_code):
         raise HTTPException(status_code=422, detail=f"Неизвестный тариф: {body.plan_code}")
+    plan = get_plan(body.plan_code)
+    if not billing.is_self_service(plan):
+        raise HTTPException(
+            status_code=403,
+            detail=(f"Тариф «{plan.name}» включается оплатой. Оплатите его в разделе "
+                    "«Тариф и оплата» либо запросите назначение у платформы, если "
+                    "оплачиваете по счёту."))
     # Продукт выводится из кода тарифа, а не приходит отдельным полем: два источника
     # правды разошлись бы, и организация получила бы тариф «Аудита» в подписке «Элит».
     product = product_of(body.plan_code)
-    crud.set_plan(db, org_id, body.plan_code, product=product)
+    # ``paid=True`` с бесплатным тарифом **стирает** чужой срок: уходя с платного,
+    # организация не должна тащить за собой его дату (см. `crud.set_plan`).
+    crud.set_plan(db, org_id, body.plan_code, product=product, period_end=None, paid=True)
     crud.log_action(db, org_id, user, "billing.plan_change", entity_type="organization",
                     entity_id=org_id, entity_name=body.plan_code, details=product)
     return _subscription_out(db, org_id, product)
@@ -95,10 +114,21 @@ def checkout(body: CheckoutRequest,
              user: User = Depends(current_user),
              provider: PaymentProvider = Depends(get_payment_provider),
              db: Session = Depends(get_db)) -> CheckoutResponse:
-    """Инициировать смену тарифа через провайдера (ЮKassa — ссылка оплаты; ручной — сразу)."""
+    """Инициировать смену тарифа через провайдера (ЮKassa — ссылка оплаты; ручной — сразу).
+
+    **Тариф «по запросу» через оплату не проходит** (F1). Его цена — ноль, и ручной
+    провайдер включал его немедленно и бесплатно, а ЮKassa получила бы платёж на 0 ₽.
+    Условия такого тарифа согласуют вне продукта, и назначает его платформа.
+    """
     if not is_valid_plan(body.plan_code):
         raise HTTPException(status_code=422, detail=f"Неизвестный тариф: {body.plan_code}")
     plan = get_plan(body.plan_code)
+    if plan.price_on_request:
+        raise HTTPException(
+            status_code=409,
+            detail=(f"Тариф «{plan.name}» не оплачивается в продукте: его условия "
+                    "согласуются отдельно, и назначает его платформа. Свяжитесь с нами — "
+                    "автоматической заявки здесь нет."))
     result = provider.start_checkout(db, org_id, plan, body.return_url, user.email)
     # Смена тарифа — деньги и квоты организации: событие журнала наравне с участниками.
     crud.log_action(db, org_id, user, "billing.checkout", entity_type="organization",

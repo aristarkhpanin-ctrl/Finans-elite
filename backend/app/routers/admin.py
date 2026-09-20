@@ -29,6 +29,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
+from .. import billing as billing_mod
 from .. import crud, usage
 from ..database import as_tenant, get_db
 from ..db_models import User
@@ -40,7 +41,7 @@ from ..metrics import (
     product_label,
     retention,
 )
-from ..plans import PRODUCTS, get_plan
+from ..plans import PRODUCTS, get_plan, is_valid_plan
 from ..schemas import (
     AuditLogPage,
     FunnelStepOut,
@@ -53,6 +54,7 @@ from ..schemas import (
     StaffOrgDetail,
     StaffOrgOut,
     StaffOrgPage,
+    StaffPlanAssign,
     StaffSubscriptionOut,
     StaffUserOrgOut,
     StaffUserOut,
@@ -238,6 +240,69 @@ def suspend_organization(org_id: str, body: SuspendIn,
                         entity_id=org_id, entity_name=org.name, details=body.reason)
     crud.log_staff_action(db, staff, "staff.org_suspend", org_id=org_id,
                           org_name=org.name, details=body.reason)
+    return _org_detail(db, org)
+
+
+@router.post("/organizations/{org_id}/subscription", response_model=StaffOrgDetail)
+def assign_subscription(org_id: str, body: StaffPlanAssign,
+                        staff: User = Depends(require_staff),
+                        db: Session = Depends(get_db)) -> StaffOrgDetail:
+    """Назначить клиенту тариф — оплата по счёту и условия «по запросу» (F1).
+
+    До этого тариф не мог выдать **никто**: клиентский маршрут менял его правом
+    `billing.manage` (то есть клиент выдавал его себе сам и бесплатно), а у оператора
+    такого маршрута не было вовсе — и тариф «по запросу» оставался непродаваемым.
+
+    ``months`` — сколько периодов оплачено. Отсчёт идёт через ту же
+    :func:`billing.activate_paid_plan`, что и у обоих платёжных провайдеров: второй
+    расчёт срока рядом с первым однажды дал бы клиентам разные сроки за одни деньги.
+    ``None`` — тариф **не истекает**: так живут бесплатный, пробный и «по запросу»,
+    условия которого согласованы вне продукта.
+
+    **Оплата оставляет след платежа** (`provider="manual"`): иначе выручка по счетам
+    не попадала бы в платежи вовсе, и «кто заплатил» отвечало бы только про ЮKassa.
+    Сумма — цена тарифа × месяцы; у тарифа «по запросу» суммы нет, и выдумывать её
+    нельзя — тогда платёж не заводится, а назначение остаётся в журнале.
+    """
+    org = crud.get_organization(db, org_id)
+    if org is None:
+        raise HTTPException(status_code=404, detail="Организация не найдена")
+    if not is_valid_plan(body.plan_code):
+        raise HTTPException(status_code=422, detail=f"Неизвестный тариф: {body.plan_code}")
+    plan = get_plan(body.plan_code)
+    months = body.months
+    if months is not None and months <= 0:
+        raise HTTPException(status_code=422,
+                            detail="Оплачено ноль месяцев — это не оплата. Укажите срок "
+                                   "или оставьте пустым: тариф не будет истекать.")
+    if months is not None and (plan.price_on_request or plan.price_rub <= 0):
+        raise HTTPException(
+            status_code=422,
+            detail=(f"Тарифу «{plan.name}» срок не ставится: за него не платят помесячно. "
+                    "Оставьте срок пустым — он не будет истекать."))
+
+    if months is None:
+        # Назначение без оплаты: срок стирается, отсчёт не начинается.
+        crud.set_plan(db, org_id, plan.code, status="active", product=plan.product,
+                      period_end=None, paid=True)
+        paid_rub = 0
+    else:
+        billing_mod.activate_paid_plan(db, org_id, plan, months=months)
+        paid_rub = plan.price_rub * months
+        payment = crud.create_payment(db, org_id, plan.code, paid_rub, provider="manual")
+        crud.mark_payment(db, payment, "succeeded")
+
+    details = (f"{plan.name}: оплачено {months} мес., {paid_rub} ₽" if months
+               else f"{plan.name}: без срока")
+    if body.note:
+        details = f"{details} · {body.note}"
+    # В оба журнала: смену своего тарифа клиент обязан видеть у себя — она меняет его
+    # квоты и деньги, а пришла снаружи.
+    with as_tenant(db, org_id):
+        crud.log_action(db, org_id, staff, "staff.plan_assign", entity_type="organization",
+                        entity_id=org_id, entity_name=plan.code, details=details[:500])
+    crud.log_staff_action(db, staff, "staff.plan_assign", org_id=org_id,
+                          org_name=org.name, details=details)
     return _org_detail(db, org)
 
 

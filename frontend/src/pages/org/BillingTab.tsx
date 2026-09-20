@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { httpStatus } from "../../api/client";
 import { useState } from "react";
-import { checkout, getPlans, getSubscription, type Plan } from "../../api/org";
+import { changePlan, checkout, getPlans, getSubscription,
+         type Plan } from "../../api/org";
 import { useToast } from "../../components/Toast";
 import { Button, Modal, Skeleton } from "../../components/ui";
 
@@ -56,8 +57,23 @@ export function BillingTab({ orgId, canManage }: { orgId: string; canManage: boo
                          queryFn: () => getSubscription(orgId, product) });
   const plans = useQuery({ queryKey: ["plans", product], queryFn: () => getPlans(product) });
 
+  /**
+   * Две дороги, и они не взаимозаменяемы (F1).
+   *
+   * **Платный тариф включает оплата** — раньше экран звал её для любого тарифа, и
+   * понижение на бесплатный уходило платежом на ноль рублей: ручной провайдер включал
+   * его молча, а ЮKassa получила бы бессмыслицу. Понижение идёт своим маршрутом, и он
+   * же **стирает** чужой срок.
+   *
+   * Тариф «по запросу» не берётся ни одной из дорог: его условия согласуют вне
+   * продукта. Кнопки у него нет вовсе — см. карточку тарифа.
+   */
   const change = useMutation({
-    mutationFn: (code: string) => checkout(orgId, code),
+    mutationFn: (plan: Plan) =>
+      plan.price_rub > 0 && !plan.price_on_request
+        ? checkout(orgId, plan.code)
+        : changePlan(orgId, plan.code).then(
+            () => ({ activated: true, confirmation_url: null })),
     onSuccess: (res) => {
       setTarget(null);
       if (res.confirmation_url) {
@@ -165,9 +181,18 @@ export function BillingTab({ orgId, canManage }: { orgId: string; canManage: boo
                   <Button variant="ghost" disabled>
                     Текущий тариф
                   </Button>
+                ) : p.price_on_request ? (
+                  /* Кнопки здесь нет намеренно (F1): условия согласуют вне продукта, а
+                     автоматической заявки платформа не отправляет — ящика для входящих
+                     писем у неё нет. Кнопка «Запросить», после которой ничего не
+                     происходит, хуже её отсутствия. */
+                  <div className="field-note">
+                    Условия согласуются отдельно — тариф назначает платформа.
+                    Напишите нам: заявку этот экран не отправляет.
+                  </div>
                 ) : (
                   <Button disabled={!canManage} onClick={() => setTarget(p)}>
-                    Перейти
+                    {p.price_rub > 0 ? "Перейти" : "Перейти на бесплатный"}
                   </Button>
                 )}
               </div>
@@ -192,7 +217,7 @@ export function BillingTab({ orgId, canManage }: { orgId: string; canManage: boo
             <Button variant="ghost" disabled={change.isPending} onClick={() => setTarget(null)}>
               Отмена
             </Button>
-            <Button loading={change.isPending} onClick={() => target && change.mutate(target.code)}>
+            <Button loading={change.isPending} onClick={() => target && change.mutate(target)}>
               Подтвердить
             </Button>
           </>
@@ -214,11 +239,11 @@ export function BillingTab({ orgId, canManage }: { orgId: string; canManage: boo
             <div className="modal__sub" style={{ margin: 0 }}>
               Стоимость нового тарифа — <b style={{ color: "var(--text)" }}>
                 {price(target)}{!target.price_on_request && target.price_rub > 0 ? " / мес" : ""}</b>.
-              {target.price_on_request
-                ? " Условия обсуждаются отдельно — мы свяжемся с вами после заявки."
-                : target.price_rub > 0
-                  ? " После подтверждения откроется страница оплаты."
-                  : " Тариф активируется сразу."}
+              {target.price_rub > 0
+                ? " После подтверждения откроется страница оплаты."
+                : " Тариф сменится сразу. Квота станет меньше: то, что уже заведено, "
+                  + "останется на месте, а новое можно будет добавлять в пределах "
+                  + "бесплатного тарифа."}
             </div>
           </>
         )}

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
+  assignPlan,
   blockUser,
   getStaffLog,
   getStaffOrgLog,
@@ -15,7 +16,8 @@ import {
   unblockUser,
   type StaffUser,
 } from "../api/admin";
-import { roleLabel } from "../api/org";
+import { httpDetail } from "../api/client";
+import { getPlans, roleLabel, type Plan } from "../api/org";
 import { useAuth } from "../auth/AuthContext";
 import { useToast } from "../components/Toast";
 import { Button, Chip, ErrorState, Field, Loading, Modal } from "../components/ui";
@@ -215,6 +217,10 @@ function OrgCard({ orgId, onBack }: { orgId: string; onBack: () => void }) {
   const toast = useToast();
   const [suspendOpen, setSuspendOpen] = useState(false);
   const [reason, setReason] = useState("");
+  const [planOpen, setPlanOpen] = useState(false);
+  const [planCode, setPlanCode] = useState("");
+  const [months, setMonths] = useState("12");
+  const [note, setNote] = useState("");
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["admin-org", orgId],
     queryFn: () => getStaffOrganization(orgId),
@@ -235,6 +241,31 @@ function OrgCard({ orgId, onBack }: { orgId: string; onBack: () => void }) {
     },
     onError: () => toast("Не удалось приостановить", { kind: "error" }),
   });
+  // Каталог обоих продуктов: назначать приходится и тариф «Аудита», а тарифы у
+  // продуктов свои — общий список показал бы клиенту чужие квоты.
+  const plans = useQuery({
+    queryKey: ["all-plans"],
+    queryFn: async () => [...await getPlans("business"), ...await getPlans("audit")],
+    staleTime: Infinity,
+  });
+  const chosen: Plan | undefined = (plans.data ?? []).find((p) => p.code === planCode);
+  /** Тариф без цены срока не получает: «по запросу» согласуют вне продукта. */
+  const termless = !chosen || chosen.price_on_request || chosen.price_rub <= 0;
+
+  const assign = useMutation({
+    mutationFn: () => assignPlan(orgId, planCode,
+                                 termless ? null : Number(months) || 1, note.trim()),
+    onSuccess: (fresh) => {
+      qc.setQueryData(["admin-org", orgId], fresh);
+      qc.invalidateQueries({ queryKey: ["admin-orgs"] });
+      setPlanOpen(false);
+      setNote("");
+      toast("Тариф назначен", { kind: "success" });
+    },
+    onError: (e: unknown) => toast(httpDetail(e) ?? "Не удалось назначить тариф",
+                                   { kind: "error" }),
+  });
+
   const resume = useMutation({
     mutationFn: () => resumeOrganization(orgId),
     onSuccess: (fresh) => {
@@ -261,6 +292,7 @@ function OrgCard({ orgId, onBack }: { orgId: string; onBack: () => void }) {
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, flex: "none" }}>
+          <Button variant="ghost" onClick={() => setPlanOpen(true)}>Назначить тариф</Button>
           {data.suspended
             ? <Button onClick={() => resume.mutate()} disabled={resume.isPending}>
                 Снять приостановку
@@ -309,6 +341,52 @@ function OrgCard({ orgId, onBack }: { orgId: string; onBack: () => void }) {
         <Field label="Причина" value={reason} autoFocus
                onChange={(e) => setReason(e.target.value)}
                note="Причину увидит сама организация — и тот, кто будет снимать приостановку." />
+      </Modal>
+
+      {/* Назначение тарифа (F1): оплата по счёту и условия «по запросу».
+          До этого тариф не мог выдать никто — клиент выдавал его себе сам и бесплатно,
+          а у платформы двери не было вовсе. */}
+      <Modal open={planOpen} title="Назначить тариф" sub={data.name} maxWidth={460}
+             onClose={() => !assign.isPending && setPlanOpen(false)}
+             actions={
+               <>
+                 <Button variant="ghost" disabled={assign.isPending}
+                         onClick={() => setPlanOpen(false)}>Отмена</Button>
+                 <Button loading={assign.isPending} disabled={!planCode}
+                         onClick={() => assign.mutate()}>Назначить</Button>
+               </>
+             }>
+        <label className="field">
+          <span className="field__label">Тариф</span>
+          <select className="input" value={planCode} aria-label="Тариф"
+                  onChange={(e) => setPlanCode(e.target.value)}>
+            <option value="">— выберите —</option>
+            {(plans.data ?? []).map((p) => (
+              <option key={p.code} value={p.code}>
+                {PRODUCT[p.product] ?? p.product} · {p.name}
+                {p.price_on_request ? " (по запросу)"
+                  : p.price_rub > 0 ? ` (${p.price_rub} ₽/мес)` : " (бесплатный)"}
+              </option>
+            ))}
+          </select>
+        </label>
+        {termless ? (
+          /* Срок у такого тарифа выдуман: за него не платят помесячно. Поле не
+             показывается вовсе — отключённое поле выглядит как поломка. */
+          <div className="field-note">
+            Срок не ставится: за этот тариф не платят помесячно. Он не будет истекать.
+          </div>
+        ) : (
+          <Field label="Оплачено месяцев" type="number" value={months}
+                 note={`Отсчёт начнётся сегодня. Платёж на ${
+                   (chosen?.price_rub ?? 0) * (Number(months) || 0)} ₽ останется в истории `
+                   + "платежей организации."}
+                 onChange={(e) => setMonths(e.target.value)} />
+        )}
+        <Field label="Основание" value={note} placeholder="счёт № 42 от 01.09.2026"
+               note="Номер счёта или договора. Платформа его не проверяет — это пометка
+                     для журнала, который увидит и клиент."
+               onChange={(e) => setNote(e.target.value)} />
       </Modal>
 
       <div className="adm-cards">

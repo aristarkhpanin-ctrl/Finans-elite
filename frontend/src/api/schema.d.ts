@@ -154,6 +154,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/organizations/{org_id}/subscription": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Assign Subscription
+         * @description Назначить клиенту тариф — оплата по счёту и условия «по запросу» (F1).
+         *
+         *     До этого тариф не мог выдать **никто**: клиентский маршрут менял его правом
+         *     `billing.manage` (то есть клиент выдавал его себе сам и бесплатно), а у оператора
+         *     такого маршрута не было вовсе — и тариф «по запросу» оставался непродаваемым.
+         *
+         *     ``months`` — сколько периодов оплачено. Отсчёт идёт через ту же
+         *     :func:`billing.activate_paid_plan`, что и у обоих платёжных провайдеров: второй
+         *     расчёт срока рядом с первым однажды дал бы клиентам разные сроки за одни деньги.
+         *     ``None`` — тариф **не истекает**: так живут бесплатный, пробный и «по запросу»,
+         *     условия которого согласованы вне продукта.
+         *
+         *     **Оплата оставляет след платежа** (`provider="manual"`): иначе выручка по счетам
+         *     не попадала бы в платежи вовсе, и «кто заплатил» отвечало бы только про ЮKassa.
+         *     Сумма — цена тарифа × месяцы; у тарифа «по запросу» суммы нет, и выдумывать её
+         *     нельзя — тогда платёж не заводится, а назначение остаётся в журнале.
+         */
+        post: operations["assign_subscription_api_v1_admin_organizations__org_id__subscription_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/organizations/{org_id}/suspend": {
         parameters: {
             query?: never;
@@ -1803,6 +1838,10 @@ export interface paths {
         /**
          * Checkout
          * @description Инициировать смену тарифа через провайдера (ЮKassa — ссылка оплаты; ручной — сразу).
+         *
+         *     **Тариф «по запросу» через оплату не проходит** (F1). Его цена — ноль, и ручной
+         *     провайдер включал его немедленно и бесплатно, а ЮKassa получила бы платёж на 0 ₽.
+         *     Условия такого тарифа согласуют вне продукта, и назначает его платформа.
          */
         post: operations["checkout_api_v1_organizations__org_id__billing_checkout_post"];
         delete?: never;
@@ -1968,7 +2007,16 @@ export interface paths {
         put?: never;
         /**
          * Change Subscription
-         * @description Прямая смена тарифа без платежа (право billing.manage; ручной/админский путь).
+         * @description Перейти на тариф, за который не платят, — то есть **вниз**, на бесплатный (F1).
+         *
+         *     Раньше этот маршрут менял тариф на любой: право `billing.manage` есть у владельца
+         *     организации-клиента, и «Корпоративный» брался одним запросом бесплатно. Хуже:
+         *     ``set_plan`` звался без ``paid``, поэтому срок не ставился вовсе — самовыданный
+         *     тариф не истекал никогда, и режим чтения при неоплате (B2) на него не срабатывал.
+         *
+         *     **Платный тариф выдаёт платёж, а не право.** Отказ называет обе дороги: оплатить
+         *     или получить назначение от платформы (оплата по счёту). Уйти на бесплатный клиент
+         *     по-прежнему может сам — это отказ от услуги, а не её получение.
          */
         post: operations["change_subscription_api_v1_organizations__org_id__subscription_post"];
         delete?: never;
@@ -9395,6 +9443,26 @@ export interface components {
             total: number;
         };
         /**
+         * StaffPlanAssign
+         * @description Назначение тарифа клиенту оператором платформы (F1).
+         *
+         *     ``months`` — сколько периодов **оплачено**: это оплата по счёту, и отсчёт начинается
+         *     от неё. ``None`` значит «тариф не истекает» — так живут бесплатный, пробный и
+         *     «по запросу», условия которого согласованы вне продукта. Ноль сроком не считается:
+         *     «оплачено ноль месяцев» — не оплата, и притворяться ею нельзя.
+         */
+        StaffPlanAssign: {
+            /** Months */
+            months?: number | null;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /** Plan Code */
+            plan_code: string;
+        };
+        /**
          * StaffPosition
          * @description Штатная позиция: должность с окладом и численностью на период (SPEC §8).
          *
@@ -10940,6 +11008,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuditLogPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assign_subscription_api_v1_admin_organizations__org_id__subscription_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffPlanAssign"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffOrgDetail"];
                 };
             };
             /** @description Validation Error */

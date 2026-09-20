@@ -185,9 +185,15 @@ def test_password_change_is_recorded_with_its_failure(client, auth_headers):
 
 
 def test_billing_changes_are_recorded(client, auth_headers):
-    """Смена тарифа — деньги и квоты организации, а раньше не писалась вовсе."""
+    """Смена тарифа — деньги и квоты организации, а раньше не писалась вовсе.
+
+    Обе дороги пишутся: оплата (`billing.checkout`) и понижение на бесплатный
+    (`billing.plan_change`). Платный тариф клиент себе больше не назначает — это F1.
+    """
     org = _org(client, auth_headers)
+    client.post(f"/api/v1/organizations/{org}/billing/checkout",
+                json={"plan_code": "team", "return_url": "http://x"}, headers=auth_headers)
     client.post(f"/api/v1/organizations/{org}/subscription",
-                json={"plan_code": "team"}, headers=auth_headers)
+                json={"plan_code": "free"}, headers=auth_headers)
     actions = [e["action"] for e in _log(client, auth_headers, org)["entries"]]
-    assert "billing.plan_change" in actions
+    assert "billing.plan_change" in actions and "billing.checkout" in actions

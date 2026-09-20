@@ -13,15 +13,23 @@ import { BillingTab } from "./BillingTab";
 
 const getPlans = vi.fn();
 const getSubscription = vi.fn();
+const checkout = vi.fn();
+const changePlan = vi.fn();
 vi.mock("../../api/org", async (orig) => ({
   ...(await orig<typeof import("../../api/org")>()),
   getPlans: (...a: unknown[]) => getPlans(...a),
   getSubscription: (...a: unknown[]) => getSubscription(...a),
+  checkout: (...a: unknown[]) => checkout(...a),
+  changePlan: (...a: unknown[]) => changePlan(...a),
 }));
 vi.mock("../../components/Toast", () => ({ useToast: () => vi.fn() }));
 
 afterEach(cleanup);
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  checkout.mockResolvedValue({ activated: true, confirmation_url: null });
+  changePlan.mockResolvedValue({});
+});
 
 const BUSINESS_PLANS: Plan[] = [
   { code: "free", product: "business", name: "Бесплатный", price_rub: 0,
@@ -49,10 +57,11 @@ function sub(product: string): Subscription {
         max_members: 5, used_units: 1, used_members: 1 } as Subscription;
 }
 
-async function show() {
+async function show(over: Partial<Subscription> = {}) {
   getPlans.mockImplementation((p: string) => Promise.resolve(
     p === "audit" ? AUDIT_PLANS : BUSINESS_PLANS));
-  getSubscription.mockImplementation((_o: string, p: string) => Promise.resolve(sub(p)));
+  getSubscription.mockImplementation((_o: string, p: string) =>
+    Promise.resolve({ ...sub(p), ...over } as Subscription));
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(<QueryClientProvider client={qc}><BillingTab orgId="o1" canManage /></QueryClientProvider>);
   await screen.findByText("Тарифные планы");
@@ -100,5 +109,46 @@ describe("Тарифы по продуктам", () => {
     fireEvent.click(screen.getByText("Финанс-Аудит"));
     await waitFor(() => expect(cardNames()).toContain("Пробный"));
     expect(cardNames()).toEqual(["Пробный", "Команда", "Корпоративный"]);
+  });
+});
+
+/**
+ * Две дороги к тарифу, и они не взаимозаменяемы (F1). Платный включает **оплата**;
+ * понижение идёт своим маршрутом — платёж на ноль рублей это не платёж; тариф «по
+ * запросу» не берётся ни одной из дорог.
+ */
+describe("Как меняется тариф", () => {
+  const confirm = async (planName: string) => {
+    fireEvent.click([...document.querySelectorAll(".plan-card")]
+      .find((c) => c.textContent?.includes(planName))!
+      .querySelector("button")!);
+    fireEvent.click(await screen.findByRole("button", { name: "Подтвердить" }));
+  };
+
+  it("платный тариф включается оплатой", async () => {
+    await show();
+    await confirm("Команда");
+    await waitFor(() => expect(checkout).toHaveBeenCalledWith("o1", "team"));
+    expect(changePlan).not.toHaveBeenCalled();
+  });
+
+  it("понижение на бесплатный идёт своим маршрутом, а не платежом на ноль", async () => {
+    await show({ plan_code: "team", plan_name: "Команда", price_rub: 2900,
+                 max_units: 50 });
+    await confirm("Бесплатный");
+    await waitFor(() => expect(changePlan).toHaveBeenCalledWith("o1", "free"));
+    expect(checkout).not.toHaveBeenCalled();
+  });
+
+  it("у тарифа «по запросу» кнопки нет вовсе", async () => {
+    // Кнопка «Запросить», после которой ничего не происходит, хуже её отсутствия:
+    // автоматической заявки платформа не отправляет — ящика для входящих у неё нет.
+    await show();
+    fireEvent.click(screen.getByText("Финанс-Аудит"));
+    await waitFor(() => expect(cardNames()).toContain("Корпоративный"));
+    const card = [...document.querySelectorAll(".plan-card")]
+      .find((c) => c.textContent?.includes("Корпоративный"))!;
+    expect(card.querySelector("button")).toBeNull();
+    expect(card.textContent).toContain("заявку этот экран не отправляет");
   });
 });

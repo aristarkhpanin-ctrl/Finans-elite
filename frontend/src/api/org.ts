@@ -104,6 +104,19 @@ export async function getSubscription(orgId: string, product = "business"): Prom
   return data;
 }
 
+/**
+ * Перейти на тариф, за который не платят, — то есть вниз, на бесплатный (F1).
+ *
+ * Платный тариф этим маршрутом не берётся: его включает **оплата**, и сервер отказывает,
+ * называя обе дороги. Через оплату понижение тоже не идёт — платёж на ноль рублей это не
+ * платёж, и провайдер получил бы бессмыслицу.
+ */
+export async function changePlan(orgId: string, planCode: string): Promise<Subscription> {
+  const { data } = await api.post<Subscription>(
+    `/api/v1/organizations/${orgId}/subscription`, { plan_code: planCode });
+  return data;
+}
+
 export async function checkout(orgId: string, planCode: string): Promise<CheckoutResponse> {
   const { data } = await api.post<CheckoutResponse>(`/api/v1/organizations/${orgId}/billing/checkout`, {
     plan_code: planCode,

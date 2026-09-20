@@ -73,8 +73,11 @@ def test_the_power_of_the_operator_is_listed_in_full():
     В B1 изменяющих маршрутов не было вовсе. B2 добавил два действия со снятием у
     каждого (приостановка организации и блокировка учётной записи), C2 — сброс второго
     фактора: письма «восстановите доступ» у платформы нет, и кто-то обязан быть последней
-    инстанцией. Список закрыт: новый служебный маршрут, меняющий что-то у клиента, обязан
-    пройти здесь, а не появиться тихо между экранами наблюдения.
+    инстанцией. F1 добавил назначение тарифа: право `billing.manage` есть у владельца
+    организации-клиента, поэтому «административная» смена тарифа была самовыдачей, а у
+    платформы двери не было вовсе — и тариф «по запросу» оставался непродаваемым.
+    Список закрыт: новый служебный маршрут, меняющий что-то у клиента, обязан пройти
+    здесь, а не появиться тихо между экранами наблюдения.
     """
     mutating = sorted(f"{sorted(r.methods)[0]} {r.path}" for r in admin.router.routes
                       if (r.methods or set()) & {"POST", "PUT", "PATCH", "DELETE"})
@@ -82,6 +85,7 @@ def test_the_power_of_the_operator_is_listed_in_full():
         "DELETE /api/v1/admin/organizations/{org_id}/suspend",
         "DELETE /api/v1/admin/users/{user_id}/block",
         "DELETE /api/v1/admin/users/{user_id}/totp",
+        "POST /api/v1/admin/organizations/{org_id}/subscription",
         "POST /api/v1/admin/organizations/{org_id}/suspend",
         "POST /api/v1/admin/users/{user_id}/block",
     ]

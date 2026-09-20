@@ -72,6 +72,22 @@ export async function resumeOrganization(orgId: string): Promise<StaffOrgDetail>
 }
 
 /**
+ * Назначить клиенту тариф — оплата по счёту и условия «по запросу» (F1).
+ *
+ * `months` — сколько периодов **оплачено**; `null` значит «тариф не истекает» (так
+ * живут бесплатный, пробный и «по запросу»). Оплата оставляет след платежа, назначение
+ * попадает в оба журнала.
+ */
+export async function assignPlan(orgId: string, planCode: string,
+                                 months: number | null,
+                                 note = ""): Promise<StaffOrgDetail> {
+  const { data } = await api.post<StaffOrgDetail>(
+    `/api/v1/admin/organizations/${orgId}/subscription`,
+    { plan_code: planCode, months, note });
+  return data;
+}
+
+/**
  * Заблокировать учётную запись платформы — сразу во всех организациях (B2).
  *
  * Не путать с приостановкой членства (A1): та закрывает человеку одно рабочее
