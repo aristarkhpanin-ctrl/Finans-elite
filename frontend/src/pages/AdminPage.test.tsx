@@ -23,6 +23,7 @@ const getStaffOrganization = vi.fn();
 const getStaffOrgLog = vi.fn();
 const searchStaffUsers = vi.fn();
 const getStaffLog = vi.fn();
+const getStaffList = vi.fn();
 const suspendOrganization = vi.fn();
 const resumeOrganization = vi.fn();
 const blockUser = vi.fn();
@@ -38,6 +39,7 @@ vi.mock("../api/admin", () => ({
   getStaffOrgLog: (...a: unknown[]) => getStaffOrgLog(...a),
   searchStaffUsers: (...a: unknown[]) => searchStaffUsers(...a),
   getStaffLog: (...a: unknown[]) => getStaffLog(...a),
+  getStaffList: (...a: unknown[]) => getStaffList(...a),
   suspendOrganization: (...a: unknown[]) => suspendOrganization(...a),
   resumeOrganization: (...a: unknown[]) => resumeOrganization(...a),
   blockUser: (...a: unknown[]) => blockUser(...a),
@@ -116,6 +118,7 @@ beforeEach(() => {
   getStaffOrgLog.mockResolvedValue({ entries: [], total: 0, actors: [], actions: [] });
   searchStaffUsers.mockResolvedValue([]);
   getStaffLog.mockResolvedValue({ entries: [] });
+  getStaffList.mockResolvedValue({ members: [], notes: [] });
   suspendOrganization.mockImplementation(async () => ({
     ...org(), suspended: true, suspend_reason: "жалоба", suspended_by: "s@e.ru",
     suspended_at: "2026-09-10T08:00:00Z", members_list: [],
@@ -204,6 +207,97 @@ it("служебный журнал показывает, где были сот
   fireEvent.click(await screen.findByRole("button", { name: "Журнал сотрудников" }));
   expect(await screen.findByText("staff.org_view")).toBeTruthy();
   expect(screen.getByText("ООО «Клиент»")).toBeTruthy();
+});
+
+
+// --- F5: два уровня сотрудника и список в интерфейсе ---
+
+const member = (over: Record<string, unknown> = {}) => ({
+  id: "s1", email: "operator@e.ru", full_name: "Оператор", role: "operator",
+  blocked: false, created_at: "2026-01-10T00:00:00Z",
+  last_seen_at: "2026-09-10T08:00:00Z", ...over,
+});
+
+it("вкладка «Сотрудники» отвечает, кто ходит к клиентам и на каком уровне", async () => {
+  getStaffList.mockResolvedValue({
+    members: [member(), member({ id: "s2", email: "support@e.ru", full_name: "Поддержка",
+                                 role: "support" })],
+    notes: [],
+  });
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Сотрудники" }));
+
+  const table = within(await screen.findByRole("table", { name: "Сотрудники платформы" }));
+  expect(table.getByText(/оператор — наблюдение и власть/)).toBeTruthy();
+  expect(table.getByText(/поддержка — наблюдение/)).toBeTruthy();
+});
+
+it("незаполненная отметка входа — «неизвестно», а не «никогда»", async () => {
+  getStaffList.mockResolvedValue({ members: [member({ last_seen_at: null })], notes: [] });
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Сотрудники" }));
+  expect(await screen.findByText("неизвестно")).toBeTruthy();
+});
+
+it("сотрудник без уровня назван, а не подписан «поддержкой»", async () => {
+  // Подставить сюда значение значило бы ответить на вопрос, на который ответа нет:
+  // такому сотруднику власти не даётся, и экран обязан это сказать, а не угадать.
+  getStaffList.mockResolvedValue({ members: [member({ role: "" })], notes: [] });
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Сотрудники" }));
+  expect(await screen.findByText(/уровень не назначен — власти нет/)).toBeTruthy();
+});
+
+it("оговорки списка сотрудников показываются, а не прячутся", async () => {
+  getStaffList.mockResolvedValue({
+    members: [member()],
+    notes: ["Уровень и признак сотрудника ставятся вне API — scripts/set_staff.py."],
+  });
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Сотрудники" }));
+  expect(await screen.findByText(/ставятся вне API/)).toBeTruthy();
+});
+
+it("кнопки «повысить» на экране нет — уровень ставится вне интерфейса", async () => {
+  getStaffList.mockResolvedValue({ members: [member()], notes: [] });
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Сотрудники" }));
+  await screen.findByRole("table", { name: "Сотрудники платформы" });
+  // Правило B1 не ослаблено: маршрут, повышающий права, сам становится главной мишенью.
+  expect(screen.queryByRole("button", { name: /уровень|повысить|назначить/i })).toBeNull();
+});
+
+it("отбор по сотруднику уходит на сервер, отбор по клиенту сужает показанное", async () => {
+  getStaffLog.mockResolvedValue({ entries: [
+    { id: "l1", actor_email: "a@e.ru", action: "staff.org_view", organization_id: "o1",
+      organization_name: "ООО «Клиент»", details: "", created_at: "2026-09-10T08:00:00Z" },
+    { id: "l2", actor_email: "b@e.ru", action: "staff.orgs_list", organization_id: "",
+      organization_name: "Другая", details: "", created_at: "2026-09-10T09:00:00Z" },
+  ] });
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Журнал сотрудников" }));
+  await screen.findByText("staff.org_view");
+
+  fireEvent.change(screen.getByLabelText("Отбор по сотруднику"), { target: { value: "a@" } });
+  await waitFor(() => expect(getStaffLog).toHaveBeenCalledWith(100, "a@"));
+
+  fireEvent.change(screen.getByLabelText("Отбор по клиенту"), { target: { value: "Другая" } });
+  await waitFor(() => expect(screen.queryByText("staff.org_view")).toBeNull());
+  expect(screen.getByText("staff.orgs_list")).toBeTruthy();
+});
+
+it("пустой отбор в журнале объясняет себя, а не притворяется пустым журналом", async () => {
+  getStaffLog.mockResolvedValue({ entries: [
+    { id: "l1", actor_email: "a@e.ru", action: "staff.org_view", organization_id: "o1",
+      organization_name: "ООО «Клиент»", details: "", created_at: "2026-09-10T08:00:00Z" },
+  ] });
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Журнал сотрудников" }));
+  await screen.findByText("staff.org_view");
+
+  fireEvent.change(screen.getByLabelText("Отбор по клиенту"), { target: { value: "нет такого" } });
+  expect(await screen.findByText(/По отбору ничего не найдено/)).toBeTruthy();
+  expect(screen.queryByText("Журнал пуст")).toBeNull();
 });
 
 

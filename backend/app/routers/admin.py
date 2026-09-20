@@ -1,6 +1,9 @@
 """Служебный контур платформы: что мы видим о своих клиентах (ADMIN-DECOMPOSITION.md, B1).
 
 Отдельный роутер, отдельная зависимость (:func:`deps.require_staff`), отдельный журнал.
+Внутри контура два уровня (F5): :func:`deps.require_staff` пускает **смотреть**, а всё,
+что меняет состояние клиента, закрыто :func:`deps.require_operator` — и перечень таких
+маршрутов закрыт перечень-тестом в обе стороны.
 Ни один клиентский маршрут прав оператора не получает, и ни один служебный не выдаёт
 содержимого моделей: оператору видны метаданные — организации, состав, подписки, объёмы —
 и не видно ни одного числа из проекта или дела (правило 6 плана). Иначе владелец SaaS
@@ -33,7 +36,7 @@ from .. import billing as billing_mod
 from .. import crud, usage
 from ..database import as_tenant, get_db
 from ..db_models import User
-from ..deps import require_staff
+from ..deps import require_operator, require_staff
 from ..metrics import (
     PlatformMetrics,
     TenantTotals,
@@ -50,8 +53,10 @@ from ..schemas import (
     PlatformMetricsOut,
     RetentionPointOut,
     RevenuePointOut,
+    StaffListOut,
     StaffLogEntryOut,
     StaffLogPage,
+    StaffMemberOut,
     StaffOrgDetail,
     StaffOrgOut,
     StaffOrgPage,
@@ -228,7 +233,7 @@ def get_user(user_id: str, staff: User = Depends(require_staff),
 
 @router.post("/organizations/{org_id}/suspend", response_model=StaffOrgDetail)
 def suspend_organization(org_id: str, body: SuspendIn,
-                         staff: User = Depends(require_staff),
+                         staff: User = Depends(require_operator),
                          db: Session = Depends(get_db)) -> StaffOrgDetail:
     """Приостановить организацию (нарушение, запрос, разбирательство) — B2.
 
@@ -255,7 +260,7 @@ def suspend_organization(org_id: str, body: SuspendIn,
 
 @router.post("/organizations/{org_id}/subscription", response_model=StaffOrgDetail)
 def assign_subscription(org_id: str, body: StaffPlanAssign,
-                        staff: User = Depends(require_staff),
+                        staff: User = Depends(require_operator),
                         db: Session = Depends(get_db)) -> StaffOrgDetail:
     """Назначить клиенту тариф — оплата по счёту и условия «по запросу» (F1).
 
@@ -317,7 +322,7 @@ def assign_subscription(org_id: str, body: StaffPlanAssign,
 
 
 @router.delete("/organizations/{org_id}/suspend", response_model=StaffOrgDetail)
-def resume_organization(org_id: str, staff: User = Depends(require_staff),
+def resume_organization(org_id: str, staff: User = Depends(require_operator),
                         db: Session = Depends(get_db)) -> StaffOrgDetail:
     """Снять приостановку. Автор и причина стираются — историю хранит журнал."""
     org = crud.get_organization(db, org_id)
@@ -350,7 +355,7 @@ def _blockable(db: Session, user_id: str, staff: User) -> User:
 
 
 @router.post("/users/{user_id}/block", response_model=StaffUserOut)
-def block_user(user_id: str, body: SuspendIn, staff: User = Depends(require_staff),
+def block_user(user_id: str, body: SuspendIn, staff: User = Depends(require_operator),
                db: Session = Depends(get_db)) -> StaffUserOut:
     """Заблокировать учётную запись платформы — сразу во всех организациях (B2).
 
@@ -374,7 +379,7 @@ def block_user(user_id: str, body: SuspendIn, staff: User = Depends(require_staf
 
 
 @router.delete("/users/{user_id}/block", response_model=StaffUserOut)
-def unblock_user(user_id: str, staff: User = Depends(require_staff),
+def unblock_user(user_id: str, staff: User = Depends(require_operator),
                  db: Session = Depends(get_db)) -> StaffUserOut:
     """Снять блокировку учётной записи."""
     user = crud.get_user(db, user_id)
@@ -387,7 +392,7 @@ def unblock_user(user_id: str, staff: User = Depends(require_staff),
 
 
 @router.delete("/users/{user_id}/totp", response_model=StaffUserOut)
-def reset_user_totp(user_id: str, staff: User = Depends(require_staff),
+def reset_user_totp(user_id: str, staff: User = Depends(require_operator),
                     db: Session = Depends(get_db)) -> StaffUserOut:
     """Сбросить второй фактор человеку — **последний способ вернуть доступ** (C2).
 
@@ -617,6 +622,42 @@ def export_usage(months: int = 12, staff: User = Depends(require_staff),
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": 'attachment; filename="usage-summary.csv"'},
     )
+
+
+@router.get("/staff", response_model=StaffListOut)
+def list_staff(staff: User = Depends(require_staff),
+               db: Session = Depends(get_db)) -> StaffListOut:
+    """Кто у нас сотрудник — и на каком уровне (F5).
+
+    До этого ответ давал только ``scripts/set_staff.py --list``: продукт, который видит
+    клиентов снаружи, о собственном служебном контуре молчал, и «кто ходит к клиентам»
+    нельзя было спросить у него самого.
+
+    Маршрут **только показывает**. Признак и уровень по-прежнему ставятся вне API
+    (правило B1): маршрут, повышающий права, сам становится главной мишенью, и защищать
+    его пришлось бы сильнее всего остального вместе взятого.
+
+    Собственный список журнал не пишет: он ничего не выносит наружу и никуда не
+    приходит — исключение «журнал пишет чтение» заведено для прихода постороннего **к
+    клиенту**, а не для взгляда контура на себя.
+    """
+    members = crud.list_staff(db)
+    notes = [
+        "Уровень и признак сотрудника ставятся вне API — scripts/set_staff.py. "
+        "Маршрут, повышающий права, сам становится главной мишенью.",
+        "«Заходил» — по реестру входов (C1): пусто значит «неизвестно», а не «никогда». "
+        "У тех, кто не входил после появления реестра, отметки нет по устройству.",
+    ]
+    if any(not u.staff_role for u in members):
+        notes.append("У кого-то уровень не назначен: такой сотрудник видит контур, но "
+                     "менять состояние клиента не может. Назначается тем же скриптом.")
+    return StaffListOut(
+        members=[StaffMemberOut(id=u.id, email=u.email, full_name=u.full_name,
+                                role=u.staff_role, blocked=u.blocked_at is not None,
+                                created_at=u.created_at,
+                                last_seen_at=crud.last_seen_of(db, u.id))
+                 for u in members],
+        notes=notes)
 
 
 @router.get("/log", response_model=StaffLogPage)

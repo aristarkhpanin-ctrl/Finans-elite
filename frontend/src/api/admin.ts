@@ -48,9 +48,32 @@ export async function searchStaffUsers(q = "", limit = 50): Promise<StaffUser[]>
   return data;
 }
 
-/** Служебный журнал: где были наши сотрудники. Только чтение — как и журнал клиента. */
-export async function getStaffLog(limit = 100): Promise<StaffLogPage> {
-  const { data } = await api.get<StaffLogPage>("/api/v1/admin/log", { params: { limit } });
+/**
+ * Служебный журнал: где были наши сотрудники. Только чтение — как и журнал клиента.
+ *
+ * Отбор по сотруднику и по организации был в API с самого начала и отсутствовал на
+ * экране: журнал листали глазами, а вопрос к нему всегда конкретный — «кто ходил к
+ * этому клиенту» или «где был этот сотрудник».
+ */
+export async function getStaffLog(limit = 100, actor = "",
+                                  orgId = ""): Promise<StaffLogPage> {
+  const { data } = await api.get<StaffLogPage>("/api/v1/admin/log",
+    { params: { limit, actor, org_id: orgId } });
+  return data;
+}
+
+export type StaffMember = Schema<"StaffMemberOut">;
+export type StaffList = Schema<"StaffListOut">;
+
+/**
+ * Кто у нас сотрудник и на каком уровне (F5).
+ *
+ * Список **только показывает**: признак и уровень ставятся вне API (`set_staff.py`) —
+ * маршрут, повышающий права, сам становится главной мишенью. Поэтому здесь нет ни
+ * одной изменяющей функции, и это не упущение.
+ */
+export async function getStaffList(): Promise<StaffList> {
+  const { data } = await api.get<StaffList>("/api/v1/admin/staff");
   return data;
 }
 

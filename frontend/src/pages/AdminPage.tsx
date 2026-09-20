@@ -3,6 +3,7 @@ import { useState } from "react";
 import {
   assignPlan,
   blockUser,
+  getStaffList,
   getStaffLog,
   getStaffOrgLog,
   getStaffOrganization,
@@ -51,8 +52,19 @@ const TABS = [
   ["orgs", "Организации"],
   ["users", "Пользователи"],
   ["metrics", "Сводка"],
+  ["staff", "Сотрудники"],
   ["log", "Журнал сотрудников"],
 ] as const;
+
+/**
+ * Уровень сотрудника словами (F5). Пустой — **не «поддержка»**: это сотрудник, которому
+ * уровень не назначили, и власти он не получает. Подставить здесь значение значило бы
+ * ответить на вопрос, на который ответа нет.
+ */
+const STAFF_ROLE: Record<string, string> = {
+  support: "поддержка — наблюдение",
+  operator: "оператор — наблюдение и власть",
+};
 
 function when(iso: string | null | undefined, dash = "—"): string {
   if (!iso) return dash;
@@ -129,6 +141,7 @@ export function AdminPage() {
       {tab === "orgs" && <OrgsTab onOpen={setOpenOrg} />}
       {tab === "users" && <UsersTab />}
       {tab === "metrics" && <MetricsTab />}
+      {tab === "staff" && <StaffTab />}
       {tab === "log" && <StaffLogTab />}
     </div>
   );
@@ -647,28 +660,118 @@ function UsersTab() {
   );
 }
 
-function StaffLogTab() {
+/**
+ * Кто у нас сотрудник и на каком уровне (F5).
+ *
+ * Вкладка **только показывает**. Признак и уровень ставятся вне интерфейса
+ * (`scripts/set_staff.py`) — маршрут, повышающий права, сам становится главной мишенью,
+ * и кнопки здесь нет не по недоделке, а по решению; об этом сказано прямо на экране.
+ */
+function StaffTab() {
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["admin-staff-log"],
-    queryFn: () => getStaffLog(),
+    queryKey: ["admin-staff"],
+    queryFn: () => getStaffList(),
   });
 
   if (isLoading) return <Loading />;
+  if (isError || !data) return <ErrorState text="Не удалось загрузить список сотрудников"
+                                           onRetry={() => refetch()} />;
+
+  return (
+    <div>
+      <div className="page-sub" style={{ marginBottom: 12 }}>
+        Кто входит в служебный контур платформы. Уровень «поддержка» — это наблюдение:
+        списки, карточки и журнал. «Оператор» — ещё и власть над клиентом: приостановка
+        организации, блокировка учётной записи, сброс второго фактора, назначение тарифа.
+      </div>
+
+      {data.members.length === 0 ? (
+        <div className="tab-empty">
+          <div className="tab-empty__title">Сотрудников платформы нет</div>
+          <div className="tab-empty__sub">
+            Признак ставится вне интерфейса — <code>scripts/set_staff.py</code>.
+          </div>
+        </div>
+      ) : (
+        <div className="log-list" role="table" aria-label="Сотрудники платформы">
+          <div className="log-row adm-row adm-row--log adm-row--head" role="row">
+            <div role="columnheader">Кто</div>
+            <div role="columnheader">Уровень</div>
+            <div role="columnheader">С какого числа</div>
+            <div role="columnheader">Заходил</div>
+          </div>
+          {data.members.map((m) => (
+            <div className="log-row adm-row adm-row--log" role="row" key={m.id}>
+              <div className="log-who" role="rowheader">
+                {m.email}
+                {m.full_name && <span className="log-details"> · {m.full_name}</span>}
+                {m.blocked && <Chip kind="problem">учётная запись заблокирована</Chip>}
+              </div>
+              <div role="cell">
+                {m.role
+                  ? STAFF_ROLE[m.role] ?? m.role
+                  : <span className="muted">уровень не назначен — власти нет</span>}
+              </div>
+              <div className="log-when" role="cell">{day(m.created_at)}</div>
+              {/* Пусто — «неизвестно», а не «никогда»: реестр входов появился с C1. */}
+              <div className="log-when" role="cell">
+                {m.last_seen_at ? when(m.last_seen_at) : "неизвестно"}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <ul className="mnotes" style={{ marginTop: 16 }}>
+        {data.notes.map((n) => <li key={n}>{n}</li>)}
+      </ul>
+    </div>
+  );
+}
+
+function StaffLogTab() {
+  const [actor, setActor] = useState("");
+  const [orgQuery, setOrgQuery] = useState("");
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["admin-staff-log", actor],
+    queryFn: () => getStaffLog(100, actor),
+    placeholderData: (prev) => prev,
+  });
+
+  if (isLoading && !data) return <Loading />;
   if (isError) return <ErrorState text="Не удалось загрузить журнал"
                                   onRetry={() => refetch()} />;
 
-  const entries = data?.entries ?? [];
+  // Отбор по клиенту — по названию, на уже полученных записях: у API параметр `org_id`,
+  // а оператор помнит имя, а не идентификатор. Отбор по сотруднику уходит на сервер:
+  // адрес он как раз знает, и сужать выборку там дешевле, чем возить её целиком.
+  const all = data?.entries ?? [];
+  const needle = orgQuery.trim().toLowerCase();
+  const entries = needle
+    ? all.filter((e) => (e.organization_name ?? "").toLowerCase().includes(needle))
+    : all;
+  const filtered = Boolean(actor || needle);
   return (
     <div>
       <div className="page-sub" style={{ marginBottom: 12 }}>
         Где были наши сотрудники. Как и журнал клиента — только чтение: журнал, который
         можно поправить, не журнал, и для собственных следов это верно ровно так же.
       </div>
+      <div className="log-filter">
+        <input className="input" placeholder="Сотрудник (адрес)" aria-label="Отбор по сотруднику"
+               value={actor} onChange={(e) => setActor(e.target.value)} />
+        <input className="input" placeholder="Клиент (название)" aria-label="Отбор по клиенту"
+               value={orgQuery} onChange={(e) => setOrgQuery(e.target.value)} />
+      </div>
       {entries.length === 0 ? (
         <div className="tab-empty">
-          <div className="tab-empty__title">Журнал пуст</div>
+          <div className="tab-empty__title">
+            {filtered ? "По отбору ничего не найдено" : "Журнал пуст"}
+          </div>
           <div className="tab-empty__sub">
-            Здесь появятся обращения сотрудников платформы к данным клиентов.
+            {filtered
+              ? "Измените условия отбора — записи могли остаться за пределами показанных."
+              : "Здесь появятся обращения сотрудников платформы к данным клиентов."}
           </div>
         </div>
       ) : (

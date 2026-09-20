@@ -11774,6 +11774,29 @@
         "title": "SignatureOut",
         "type": "object"
       },
+      "StaffListOut": {
+        "description": "Список сотрудников и оговорки к нему — едут вместе с числами.",
+        "properties": {
+          "members": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/StaffMemberOut"
+            },
+            "title": "Members",
+            "type": "array"
+          },
+          "notes": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          }
+        },
+        "title": "StaffListOut",
+        "type": "object"
+      },
       "StaffLogEntryOut": {
         "description": "Запись служебного журнала: кто из сотрудников, что и у кого смотрел.",
         "properties": {
@@ -11831,6 +11854,58 @@
           }
         },
         "title": "StaffLogPage",
+        "type": "object"
+      },
+      "StaffMemberOut": {
+        "description": "Сотрудник платформы: кто входит в служебный контур и на каком уровне (F5).\n\n``last_seen_at`` — по реестру входов (C1), а не по отметке присутствия в\nорганизации: у сотрудника платформы вопрос не «когда заходил в эту компанию», а\n«жива ли учётная запись». Пусто — **неизвестно**, а не «никогда»: сеансы появились\nс C1, и у тех, кто не входил после неё, отметки нет по устройству.\n\n``role`` пусто — уровень **не назначен** (правка базы руками мимо\n``set_staff.py``), и власти такому не даётся. Подставлять здесь «поддержку» значило\nбы отвечать на вопрос, на который ответа нет.",
+        "properties": {
+          "blocked": {
+            "default": false,
+            "title": "Blocked",
+            "type": "boolean"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "full_name": {
+            "default": "",
+            "title": "Full Name",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "role": {
+            "default": "",
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "created_at"
+        ],
+        "title": "StaffMemberOut",
         "type": "object"
       },
       "StaffOrgDetail": {
@@ -15241,6 +15316,33 @@
           }
         ],
         "summary": "Suspend Organization",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/staff": {
+      "get": {
+        "description": "Кто у нас сотрудник — и на каком уровне (F5).\n\nДо этого ответ давал только ``scripts/set_staff.py --list``: продукт, который видит\nклиентов снаружи, о собственном служебном контуре молчал, и «кто ходит к клиентам»\nнельзя было спросить у него самого.\n\nМаршрут **только показывает**. Признак и уровень по-прежнему ставятся вне API\n(правило B1): маршрут, повышающий права, сам становится главной мишенью, и защищать\nего пришлось бы сильнее всего остального вместе взятого.\n\nСобственный список журнал не пишет: он ничего не выносит наружу и никуда не\nприходит — исключение «журнал пишет чтение» заведено для прихода постороннего **к\nклиенту**, а не для взгляда контура на себя.",
+        "operationId": "list_staff_api_v1_admin_staff_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffListOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Staff",
         "tags": [
           "admin"
         ]

@@ -5,9 +5,16 @@
 защите отдаёт служебный контур целиком. Признак ставится тем, у кого и так есть доступ к
 базе, — то есть тем, кто в этом случае уже может всё.
 
+Уровень внутри контура (F5) ставится здесь же и по той же причине: ``--role support``
+даёт наблюдение (списки, карточки, журнал), ``--role operator`` — ещё и власть над
+клиентом (приостановка организации, блокировка учётной записи, сброс второго фактора,
+назначение тарифа). Умолчание — ``operator``: оно совпадает с тем, что признак значил до
+разделения, и никого не понижает молча.
+
 Запуск (из каталога ``backend``)::
 
     python scripts/set_staff.py --email operator@example.com
+    python scripts/set_staff.py --email support@example.com --role support
     python scripts/set_staff.py --email operator@example.com --off
     python scripts/set_staff.py --list
 
@@ -25,13 +32,15 @@ from sqlalchemy import select  # noqa: E402
 
 from app import crud  # noqa: E402
 from app.database import SessionLocal  # noqa: E402
-from app.db_models import User  # noqa: E402
+from app.db_models import STAFF_OPERATOR, STAFF_ROLES, User  # noqa: E402
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Признак сотрудника платформы")
     parser.add_argument("--email", help="адрес пользователя")
     parser.add_argument("--off", action="store_true", help="снять признак")
+    parser.add_argument("--role", choices=list(STAFF_ROLES), default=STAFF_OPERATOR,
+                        help="уровень внутри контура (по умолчанию operator)")
     parser.add_argument("--list", action="store_true", dest="show",
                         help="показать текущих сотрудников")
     args = parser.parse_args(argv)
@@ -43,7 +52,10 @@ def main(argv: list[str] | None = None) -> int:
             if not staff:
                 print("Сотрудников платформы нет.")
             for user in staff:
-                print(f"{user.email}\t{user.full_name}")
+                # Пустой уровень — не «поддержка»: это сотрудник, которому уровень не
+                # назначали, и власти он не получает. Называем прямо, а не подставляем.
+                print(f"{user.email}\t{user.staff_role or '(уровень не назначен)'}"
+                      f"\t{user.full_name}")
             return 0
 
         if not args.email:
@@ -54,9 +66,9 @@ def main(argv: list[str] | None = None) -> int:
             # сотрудника платформы, о котором никто не знает.
             print(f"Пользователь {args.email} не найден.", file=sys.stderr)
             return 1
-        crud.set_staff(db, user, is_staff=not args.off)
+        crud.set_staff(db, user, is_staff=not args.off, role=args.role)
         print(f"{user.email}: признак сотрудника "
-              + ("снят" if args.off else "установлен"))
+              + ("снят" if args.off else f"установлен, уровень — {args.role}"))
     return 0
 
 

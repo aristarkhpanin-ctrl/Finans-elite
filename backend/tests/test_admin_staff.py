@@ -15,7 +15,7 @@ from __future__ import annotations
 import inspect
 from pathlib import Path
 
-from app import crud, database
+from app import crud, database, deps
 from app.db_models import Organization
 from app.routers import admin
 
@@ -51,19 +51,40 @@ def test_staff_area_is_closed_without_a_token(client):
     assert client.get("/api/v1/admin/organizations").status_code == 401
 
 
+def _guard_of(route) -> object | None:
+    """Зависимость, стоящая на маршруте: `require_staff` или `require_operator`."""
+    params = inspect.signature(route.endpoint).parameters
+    for p in params.values():
+        dep = getattr(p.default, "dependency", None)
+        if dep in (admin.require_staff, admin.require_operator):
+            return dep
+    return None
+
+
 def test_every_admin_route_requires_the_staff_mark():
     """Перечень: новый служебный маршрут не может открыться всем незаметно.
 
     Проверяется не поведение одного эндпоинта, а то, что зависимость стоит на **каждом**:
     забытая на одном маршруте, она отдала бы наружу весь контур целиком.
+
+    С F5 зависимостей две, но дверь по-прежнему одна: `require_operator` идёт **через**
+    `require_staff` (проверяется ниже), поэтому любая из них закрывает вход в контур.
     """
-    unguarded = []
-    for route in admin.router.routes:
-        params = inspect.signature(route.endpoint).parameters
-        if not any(getattr(p.default, "dependency", None) is admin.require_staff
-                   for p in params.values()):
-            unguarded.append(f"{sorted(route.methods)} {route.path}")
-    assert unguarded == [], f"маршруты без require_staff: {unguarded}"
+    unguarded = [f"{sorted(route.methods)} {route.path}"
+                 for route in admin.router.routes if _guard_of(route) is None]
+    assert unguarded == [], f"маршруты без признака сотрудника: {unguarded}"
+
+
+def test_the_operator_level_goes_through_the_staff_door():
+    """Второй вход в служебный контур не заводится.
+
+    Если бы `require_operator` проверял признак сам, дверей стало бы две — и однажды
+    поправили бы одну, а вторую нет. Поэтому уровень проверяется **после** двери, а не
+    вместо неё.
+    """
+    params = inspect.signature(deps.require_operator).parameters
+    assert any(getattr(p.default, "dependency", None) is deps.require_staff
+               for p in params.values())
 
 
 def test_the_power_of_the_operator_is_listed_in_full():
@@ -89,6 +110,23 @@ def test_the_power_of_the_operator_is_listed_in_full():
         "POST /api/v1/admin/organizations/{org_id}/suspend",
         "POST /api/v1/admin/users/{user_id}/block",
     ]
+
+
+def test_power_and_observation_are_split_in_both_directions():
+    """Перечень-тест F5 **в обе стороны**: власть закрыта уровнем, наблюдение — нет.
+
+    Одной стороны мало. Проверять только «у власти стоит `require_operator`» значило бы
+    пропустить обратную ошибку — уровень, приписанный к маршруту наблюдения: поддержка
+    молча потеряла бы список клиентов, и это выглядело бы как поломка, а не как правило.
+    """
+    power, watch = set(), set()
+    for route in admin.router.routes:
+        name = f"{sorted(route.methods)[0]} {route.path}"
+        (power if _guard_of(route) is admin.require_operator else watch).add(name)
+    mutating = {f"{sorted(r.methods)[0]} {r.path}" for r in admin.router.routes
+                if (r.methods or set()) & {"POST", "PUT", "PATCH", "DELETE"}}
+    assert power == mutating, f"власть и уровень разошлись: {power ^ mutating}"
+    assert watch and not (watch & mutating)
 
 
 def test_staff_mark_grants_nothing_in_client_organizations(client, db_session, register):

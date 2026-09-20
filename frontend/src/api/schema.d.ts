@@ -222,6 +222,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/staff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Staff
+         * @description Кто у нас сотрудник — и на каком уровне (F5).
+         *
+         *     До этого ответ давал только ``scripts/set_staff.py --list``: продукт, который видит
+         *     клиентов снаружи, о собственном служебном контуре молчал, и «кто ходит к клиентам»
+         *     нельзя было спросить у него самого.
+         *
+         *     Маршрут **только показывает**. Признак и уровень по-прежнему ставятся вне API
+         *     (правило B1): маршрут, повышающий права, сам становится главной мишенью, и защищать
+         *     его пришлось бы сильнее всего остального вместе взятого.
+         *
+         *     Собственный список журнал не пишет: он ничего не выносит наружу и никуда не
+         *     приходит — исключение «журнал пишет чтение» заведено для прихода постороннего **к
+         *     клиенту**, а не для взгляда контура на себя.
+         */
+        get: operations["list_staff_api_v1_admin_staff_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/usage.csv": {
         parameters: {
             query?: never;
@@ -9264,6 +9296,22 @@ export interface components {
             role: string;
         };
         /**
+         * StaffListOut
+         * @description Список сотрудников и оговорки к нему — едут вместе с числами.
+         */
+        StaffListOut: {
+            /**
+             * Members
+             * @default []
+             */
+            members: components["schemas"]["StaffMemberOut"][];
+            /**
+             * Notes
+             * @default []
+             */
+            notes: string[];
+        };
+        /**
          * StaffLogEntryOut
          * @description Запись служебного журнала: кто из сотрудников, что и у кого смотрел.
          */
@@ -9302,6 +9350,47 @@ export interface components {
              * @default []
              */
             entries: components["schemas"]["StaffLogEntryOut"][];
+        };
+        /**
+         * StaffMemberOut
+         * @description Сотрудник платформы: кто входит в служебный контур и на каком уровне (F5).
+         *
+         *     ``last_seen_at`` — по реестру входов (C1), а не по отметке присутствия в
+         *     организации: у сотрудника платформы вопрос не «когда заходил в эту компанию», а
+         *     «жива ли учётная запись». Пусто — **неизвестно**, а не «никогда»: сеансы появились
+         *     с C1, и у тех, кто не входил после неё, отметки нет по устройству.
+         *
+         *     ``role`` пусто — уровень **не назначен** (правка базы руками мимо
+         *     ``set_staff.py``), и власти такому не даётся. Подставлять здесь «поддержку» значило
+         *     бы отвечать на вопрос, на который ответа нет.
+         */
+        StaffMemberOut: {
+            /**
+             * Blocked
+             * @default false
+             */
+            blocked: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Email */
+            email: string;
+            /**
+             * Full Name
+             * @default
+             */
+            full_name: string;
+            /** Id */
+            id: string;
+            /** Last Seen At */
+            last_seen_at?: string | null;
+            /**
+             * Role
+             * @default
+             */
+            role: string;
         };
         /**
          * StaffOrgDetail
@@ -11186,6 +11275,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_staff_api_v1_admin_staff_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffListOut"];
                 };
             };
         };

@@ -2133,6 +2133,35 @@ class StaffUserOut(BaseModel):
     organizations: list[StaffUserOrgOut] = []
 
 
+class StaffMemberOut(BaseModel):
+    """Сотрудник платформы: кто входит в служебный контур и на каком уровне (F5).
+
+    ``last_seen_at`` — по реестру входов (C1), а не по отметке присутствия в
+    организации: у сотрудника платформы вопрос не «когда заходил в эту компанию», а
+    «жива ли учётная запись». Пусто — **неизвестно**, а не «никогда»: сеансы появились
+    с C1, и у тех, кто не входил после неё, отметки нет по устройству.
+
+    ``role`` пусто — уровень **не назначен** (правка базы руками мимо
+    ``set_staff.py``), и власти такому не даётся. Подставлять здесь «поддержку» значило
+    бы отвечать на вопрос, на который ответа нет.
+    """
+
+    id: str
+    email: str
+    full_name: str = ""
+    role: str = ""
+    blocked: bool = False
+    created_at: datetime
+    last_seen_at: Optional[datetime] = None
+
+
+class StaffListOut(BaseModel):
+    """Список сотрудников и оговорки к нему — едут вместе с числами."""
+
+    members: list[StaffMemberOut] = []
+    notes: list[str] = []
+
+
 class StaffLogEntryOut(BaseModel):
     """Запись служебного журнала: кто из сотрудников, что и у кого смотрел."""
 

@@ -21,6 +21,7 @@ from . import apikeys
 from .comments import ThreadState
 from .database import as_tenant
 from .db_models import (
+    STAFF_OPERATOR,
     AnalysisJob,
     ApiKey,
     AuditChecklist,
@@ -1192,16 +1193,50 @@ def search_users(db: Session, *, q: str = "", limit: int = 50) -> list[User]:
     return list(db.execute(stmt.order_by(User.created_at.desc()).limit(limit)).scalars())
 
 
-def set_staff(db: Session, user: User, *, is_staff: bool) -> User:
-    """Назначить или снять признак сотрудника платформы.
+def set_staff(db: Session, user: User, *, is_staff: bool,
+              role: str = STAFF_OPERATOR) -> User:
+    """Назначить или снять признак сотрудника платформы, с уровнем внутри контура (F5).
 
     Вызывается **скриптом**, а не маршрутом API: эндпоинт, повышающий права, сам стал бы
     главной мишенью, и защищать его пришлось бы сильнее всего остального вместе взятого.
+
+    Уровень пишется **вместе с признаком**, а не отдельным действием: сотрудник без
+    уровня — состояние, в котором непонятно, что ему можно, и власти такому не даётся
+    (см. докстринг поля). Снятие признака **стирает** уровень: оставленный `operator` у
+    бывшего сотрудника читался бы как действующая власть, а вернуть её должен тот, кто
+    возвращает и сам признак.
     """
     user.is_staff = is_staff
+    user.staff_role = role if is_staff else ""
     db.commit()
     db.refresh(user)
     return user
+
+
+def list_staff(db: Session) -> list[User]:
+    """Сотрудники платформы — все, кто входит в служебный контур.
+
+    До F5 ответ на вопрос «кто у нас сотрудник» давал только ``set_staff.py --list``:
+    продукт о собственном служебном контуре молчал. Список **только показывает**:
+    признак и уровень по-прежнему ставятся вне API (правило B1).
+    """
+    return list(db.execute(select(User).where(User.is_staff.is_(True))
+                           .order_by(User.email)).scalars())
+
+
+def last_seen_of(db: Session, user_id: str) -> datetime | None:
+    """Когда человек последний раз обращался к платформе — по реестру входов (C1).
+
+    Отметка присутствия участника (A3) здесь не годится: она живёт в членстве, то есть
+    отвечает «когда заходил **в эту организацию**». У сотрудника платформы вопрос другой
+    — «жива ли учётная запись вообще», и ответ на него дают сеансы.
+
+    ``None`` — **неизвестно**, а не «никогда»: сеансы появились с C1, и у тех, кто не
+    входил после неё, отметки нет по устройству, а не по бездействию.
+    """
+    rows = list_all_sessions(db, user_id)
+    stamps = [s.last_seen_at or s.created_at for s in rows]
+    return max(stamps) if stamps else None
 
 
 def set_org_suspension(db: Session, org: Organization, *, suspended: bool,

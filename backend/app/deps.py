@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from . import apikeys, crud
 from .access import WRITE_PERMS, restriction_for
 from .database import get_db, set_tenant
-from .db_models import ApiKey, Membership, User, UserSession
+from .db_models import STAFF_OPERATOR, ApiKey, Membership, User, UserSession
 from .ratelimit import allow
 from .rbac import Perm, has_permission
 from .security import decode_access
@@ -273,6 +273,31 @@ def require_staff(user: User = Depends(current_user)) -> User:
     if not user.is_staff:
         raise HTTPException(status_code=403,
                             detail="Служебный раздел платформы: нужен признак сотрудника")
+    return user
+
+
+def require_operator(user: User = Depends(require_staff)) -> User:
+    """Оператор платформы: сотрудник, которому можно **менять** что-то у клиента (F5).
+
+    `is_staff` был всё или ничего: поддержке нужен просмотр — разобрать обращение,
+    ответить «почему человек не может войти», — а приостанавливать организацию и
+    блокировать учётные записи не нужно, и раз это выдавалось вместе, промах поддержки
+    стоил бы клиенту работы.
+
+    **Дверь остаётся одна.** Зависимость идёт **через** :func:`require_staff`, а не
+    вместо неё: второй независимый вход в служебный контур пришлось бы защищать дважды,
+    и однажды одну из защит поправили бы, а вторую нет. Поэтому здесь проверяется
+    только уровень, и перечень маршрутов власти стережёт тест.
+
+    Неназванный уровень у сотрудника (правка базы руками) власти не даёт и **называет
+    причину**: молча считать его высшим значило бы выдать власть по опечатке.
+    """
+    if user.staff_role != STAFF_OPERATOR:
+        raise HTTPException(
+            status_code=403,
+            detail="Это действие меняет состояние клиента: нужен уровень оператора "
+                   "платформы. Уровень ставится вне API — scripts/set_staff.py --role",
+        )
     return user
 
 
