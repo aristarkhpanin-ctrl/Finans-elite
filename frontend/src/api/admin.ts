@@ -209,3 +209,20 @@ export async function getOrgSubject(orgId: string, subjectId: string): Promise<S
     `/api/v1/admin/organizations/${orgId}/audit-subjects/${subjectId}`);
   return data;
 }
+
+/**
+ * Что происходит в фоновом хозяйстве платформы (F3).
+ *
+ * Состояние задач живёт в Celery, и опросить их можно было только по одному
+ * идентификатору и только своим арендатором — значит зависшая задача не была видна
+ * никому. Здесь — **метаданные**: чей, какого рода, сколько живёт, в каком состоянии.
+ * Результата задачи в ответе нет: числа Монте-Карло это содержимое модели клиента, и
+ * открываются они только по его гранту (F4).
+ */
+export type StaffJob = Schema<"StaffJobOut">;
+export type StaffJobs = Schema<"StaffJobsOut">;
+
+export async function getStaffJobs(hours = 24): Promise<StaffJobs> {
+  const { data } = await api.get<StaffJobs>("/api/v1/admin/jobs", { params: { hours } });
+  return data;
+}

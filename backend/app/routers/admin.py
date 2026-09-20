@@ -33,7 +33,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from .. import billing as billing_mod
-from .. import crud, support_access, usage
+from .. import crud, job_state, support_access, usage
 from ..database import as_tenant, get_db
 from ..db_models import User
 from ..deps import require_operator, require_staff
@@ -55,6 +55,8 @@ from ..schemas import (
     RevenuePointOut,
     StaffAccessOut,
     StaffEntityOut,
+    StaffJobOut,
+    StaffJobsOut,
     StaffListOut,
     StaffLogEntryOut,
     StaffLogPage,
@@ -70,6 +72,7 @@ from ..schemas import (
     StaffUserOut,
     SuspendIn,
 )
+from .jobs import fetch_state
 from .organizations import _log_entry_out, _member_out
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
@@ -759,6 +762,58 @@ def read_org_subject(org_id: str, subject_id: str, staff: User = Depends(require
                         details="сотрудник платформы смотрел отчётность")
     return StaffModelOut(id=subject.id, name=subject.name, updated_at=subject.updated_at,
                          model=subject.model, note=_grant_note(grant))
+
+
+@router.get("/jobs", response_model=StaffJobsOut)
+def list_jobs(hours: int = 24, staff: User = Depends(require_staff),
+              db: Session = Depends(get_db)) -> StaffJobsOut:
+    """Что происходит в фоновом хозяйстве платформы (F3).
+
+    `AnalysisJob` хранил только владение, а состояние живёт в Celery — и опросить задачу
+    можно было **только по её идентификатору и только своим арендатором**. Значит
+    зависшая задача не видна никому: ни клиенту (он ушёл с экрана), ни платформе, и
+    первый зависший Монте-Карло платформа узнавала от клиента по телефону.
+
+    **Метаданные, а не результат.** Числа Монте-Карло — содержимое модели клиента, и
+    правило 6 на них распространяется: смотреть содержимое можно только по гранту (F4).
+    Здесь их нет ни в каком виде, и это отдельный тест.
+
+    **Недоступный брокер даёт «неизвестно» с причиной**, а не «упало» и не 500: опрос
+    хранилища результатов — сеть, а молчание сети это не отказ задачи.
+    """
+    hours = max(1, min(hours, 24 * 30))
+    now = datetime.now(timezone.utc)
+    since = now - timedelta(hours=hours)
+    rows = crud.list_analysis_jobs(db, since)
+    total = crud.count_analysis_jobs(db, since)
+    names = {o.id: o.name for o in crud.list_organizations(db, limit=1000)}
+
+    jobs = []
+    for row in rows:
+        state, result = job_state.poll(row.id, fetch_state)
+        verdict = job_state.interpret(state, created_at=row.created_at, now=now)
+        jobs.append(StaffJobOut(
+            id=row.id, organization_id=row.organization_id,
+            organization_name=names.get(row.organization_id, ""),
+            project_id=row.project_id, kind=row.kind, created_at=row.created_at,
+            age_minutes=job_state.age_minutes(row.created_at, now),
+            status=verdict.status, note=verdict.note))
+        del result                                   # содержимое клиента здесь не живёт
+
+    notes = [
+        "Состояние приходит из Celery и может быть неизвестно — это сказано у самой "
+        "задачи, а не заменено на «упало»: молчание хранилища результатов не означает, "
+        "что задача не посчиталась.",
+        "Результатов задач здесь нет: числа Монте-Карло — содержимое модели клиента, и "
+        "открываются они только по его гранту (вкладка «Доступ поддержки» у клиента).",
+        "Список задач растёт и не чистится: строки не удаляются никогда. Чистка — "
+        "политика эксплуатации, как и у журнала.",
+    ]
+    if total > len(jobs):
+        notes.append(f"Задач за окно {total}, показаны последние {len(jobs)}.")
+    crud.log_staff_action(db, staff, "staff.jobs_view",
+                          details=f"за {hours} ч, задач: {len(jobs)}")
+    return StaffJobsOut(jobs=jobs, total=total, hours=hours, notes=notes)
 
 
 @router.get("/staff", response_model=StaffListOut)

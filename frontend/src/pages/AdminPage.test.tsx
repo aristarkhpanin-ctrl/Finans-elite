@@ -24,6 +24,7 @@ const getStaffOrgLog = vi.fn();
 const searchStaffUsers = vi.fn();
 const getStaffLog = vi.fn();
 const getStaffList = vi.fn();
+const getStaffJobs = vi.fn();
 const getOrgProjects = vi.fn();
 const getOrgProject = vi.fn();
 const getOrgSubjects = vi.fn();
@@ -44,6 +45,7 @@ vi.mock("../api/admin", () => ({
   searchStaffUsers: (...a: unknown[]) => searchStaffUsers(...a),
   getStaffLog: (...a: unknown[]) => getStaffLog(...a),
   getStaffList: (...a: unknown[]) => getStaffList(...a),
+  getStaffJobs: (...a: unknown[]) => getStaffJobs(...a),
   getOrgProjects: (...a: unknown[]) => getOrgProjects(...a),
   getOrgProject: (...a: unknown[]) => getOrgProject(...a),
   getOrgSubjects: (...a: unknown[]) => getOrgSubjects(...a),
@@ -127,6 +129,7 @@ beforeEach(() => {
   searchStaffUsers.mockResolvedValue([]);
   getStaffLog.mockResolvedValue({ entries: [] });
   getStaffList.mockResolvedValue({ members: [], notes: [] });
+  getStaffJobs.mockResolvedValue({ jobs: [], total: 0, hours: 24, notes: [] });
   getOrgProjects.mockResolvedValue([]);
   getOrgSubjects.mockResolvedValue([]);
   getOrgProject.mockResolvedValue({});
@@ -626,4 +629,66 @@ it("выдать себе доступ оператору нечем — кно�
 
   expect(screen.queryByRole("button", { name: /открыть доступ|запросить доступ/i }))
     .toBeNull();
+});
+
+
+// --- F3: видно, что зависло ---
+
+const job = (over: Record<string, unknown> = {}) => ({
+  id: "j1", organization_id: "o1", organization_name: "ООО «Клиент»",
+  project_id: "p1", kind: "monte_carlo", created_at: "2026-09-20T08:00:00Z",
+  age_minutes: 40, status: "pending", note: "", ...over,
+});
+
+async function openJobs() {
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Эксплуатация" }));
+}
+
+it("зависшая задача видна вместе со своим возрастом", async () => {
+  // «В очереди сорок минут» — это и есть сигнал: без возраста список ничего не говорит.
+  getStaffJobs.mockResolvedValue({ jobs: [job()], total: 1, hours: 24, notes: [] });
+  await openJobs();
+
+  const table = within(await screen.findByRole("table", { name: "Фоновые задачи" }));
+  expect(table.getByText("ООО «Клиент»")).toBeTruthy();
+  expect(table.getByText("40 минут")).toBeTruthy();
+  expect(table.getByText("в очереди")).toBeTruthy();
+});
+
+it("«неизвестно» показано как «неизвестно», а не как «упало»", async () => {
+  getStaffJobs.mockResolvedValue({
+    jobs: [job({ status: "unknown",
+                 note: "Состояние неизвестно: хранилище результатов не ответило." })],
+    total: 1, hours: 24, notes: [] });
+  await openJobs();
+
+  expect(await screen.findByText("неизвестно")).toBeTruthy();
+  expect(screen.queryByText("упала")).toBeNull();
+  // Причина едет рядом с самим «неизвестно»: без неё оно неотличимо от поломки.
+  expect(screen.getByText(/хранилище результатов не ответило/)).toBeTruthy();
+});
+
+it("пустой список объясняет свою пустоту, а не выглядит поломкой", async () => {
+  await openJobs();
+  expect(await screen.findByText("Задач за это окно не было")).toBeTruthy();
+  expect(screen.getByText(/Это не поломка/)).toBeTruthy();
+});
+
+it("окно переключается, и запрос уходит с ним", async () => {
+  await openJobs();
+  await waitFor(() => expect(getStaffJobs).toHaveBeenCalledWith(24));
+  fireEvent.click(screen.getByRole("button", { name: "Неделя" }));
+  await waitFor(() => expect(getStaffJobs).toHaveBeenCalledWith(24 * 7));
+});
+
+it("оговорки списка задач показаны", async () => {
+  getStaffJobs.mockResolvedValue({
+    jobs: [job()], total: 1, hours: 24,
+    notes: ["Результатов задач здесь нет: числа Монте-Карло — содержимое модели клиента.",
+            "Список задач растёт и не чистится: строки не удаляются никогда."] });
+  await openJobs();
+
+  expect(await screen.findByText(/содержимое модели клиента/)).toBeTruthy();
+  expect(screen.getByText(/не чистится/)).toBeTruthy();
 });

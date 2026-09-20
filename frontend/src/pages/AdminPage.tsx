@@ -7,6 +7,7 @@ import {
   getOrgProjects,
   getOrgSubject,
   getOrgSubjects,
+  getStaffJobs,
   getStaffList,
   getStaffLog,
   getStaffOrgLog,
@@ -58,6 +59,7 @@ const TABS = [
   ["users", "Пользователи"],
   ["metrics", "Сводка"],
   ["staff", "Сотрудники"],
+  ["jobs", "Эксплуатация"],
   ["log", "Журнал сотрудников"],
 ] as const;
 
@@ -147,6 +149,7 @@ export function AdminPage() {
       {tab === "users" && <UsersTab />}
       {tab === "metrics" && <MetricsTab />}
       {tab === "staff" && <StaffTab />}
+      {tab === "jobs" && <JobsTab />}
       {tab === "log" && <StaffLogTab />}
     </div>
   );
@@ -793,6 +796,99 @@ function ModelModal({ orgId, kind, id, onClose }:
         </>
       )}
     </Modal>
+  );
+}
+
+/** Состояние фоновой задачи словами. `unknown` — **не отказ**: платформа не знает. */
+const JOB_STATUS: Record<string, string> = {
+  pending: "в очереди", running: "считается", success: "посчитана",
+  failure: "упала", unknown: "неизвестно",
+};
+
+/**
+ * Что происходит в фоновом хозяйстве (ADMIN-PHASE-F, F3).
+ *
+ * Состояние задач живёт в Celery, и опросить их можно было только по одному
+ * идентификатору и только своим арендатором: зависшая задача не была видна никому, и
+ * первый зависший Монте-Карло платформа узнавала от клиента по телефону.
+ *
+ * Экран показывает **метаданные** — чей, какого рода, сколько живёт, в каком состоянии.
+ * Результата задачи здесь нет: числа Монте-Карло это содержимое модели клиента, и
+ * открываются они только по его гранту. «Неизвестно» показывается как «неизвестно», с
+ * причиной рядом, а не как «упало».
+ */
+function JobsTab() {
+  const [hours, setHours] = useState(24);
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["admin-jobs", hours],
+    queryFn: () => getStaffJobs(hours),
+    placeholderData: (prev) => prev,
+  });
+
+  if (isLoading && !data) return <Loading />;
+  if (isError || !data) return <ErrorState text="Не удалось загрузить задачи"
+                                           onRetry={() => refetch()} />;
+
+  return (
+    <div>
+      <div className="page-sub" style={{ marginBottom: 12 }}>
+        Фоновые задачи анализа за окно. Возраст задачи — это и есть сигнал: «в очереди
+        сорок минут» означает, что её никто не взял.
+      </div>
+      <div className="log-filter">
+        {[6, 24, 24 * 7].map((h) => (
+          <Button key={h} variant={hours === h ? "primary" : "ghost"}
+                  onClick={() => setHours(h)}>
+            {h === 6 ? "6 часов" : h === 24 ? "Сутки" : "Неделя"}
+          </Button>
+        ))}
+      </div>
+
+      {data.jobs.length === 0 ? (
+        <div className="tab-empty">
+          <div className="tab-empty__title">Задач за это окно не было</div>
+          <div className="tab-empty__sub">
+            Это не поломка: тяжёлый анализ запускают редко. Расширьте окно, если ищете
+            конкретную задачу.
+          </div>
+        </div>
+      ) : (
+        <div className="log-list" role="table" aria-label="Фоновые задачи">
+          <div className="log-row adm-row adm-row--log adm-row--head" role="row">
+            <div role="columnheader">Когда</div>
+            <div role="columnheader">Клиент</div>
+            <div role="columnheader">Задача</div>
+            <div role="columnheader">Состояние</div>
+          </div>
+          {data.jobs.map((j) => (
+            <div className="log-row adm-row adm-row--log" role="row" key={j.id}>
+              <div className="log-when" role="cell">
+                {when(j.created_at)}
+                <div className="adm-sub">
+                  {j.age_minutes} {plural(j.age_minutes, "минута", "минуты", "минут")}
+                </div>
+              </div>
+              <div className="log-who" role="rowheader">{j.organization_name || "—"}</div>
+              <div role="cell">{j.kind}</div>
+              <div role="cell">
+                {j.status === "failure"
+                  ? <Chip kind="problem">упала</Chip>
+                  : j.status === "success"
+                    ? <Chip kind="active">посчитана</Chip>
+                    : <Chip kind="neutral">{JOB_STATUS[j.status] ?? j.status}</Chip>}
+                {/* Причина «неизвестно» едет рядом с самим «неизвестно»: без неё оно
+                    неотличимо от поломки. */}
+                {j.note && <div className="adm-sub">{j.note}</div>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <ul className="mnotes" style={{ marginTop: 16 }}>
+        {data.notes.map((n) => <li key={n}>{n}</li>)}
+      </ul>
+    </div>
   );
 }
 

@@ -4,6 +4,38 @@
  */
 
 export interface paths {
+    "/api/v1/admin/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Jobs
+         * @description Что происходит в фоновом хозяйстве платформы (F3).
+         *
+         *     `AnalysisJob` хранил только владение, а состояние живёт в Celery — и опросить задачу
+         *     можно было **только по её идентификатору и только своим арендатором**. Значит
+         *     зависшая задача не видна никому: ни клиенту (он ушёл с экрана), ни платформе, и
+         *     первый зависший Монте-Карло платформа узнавала от клиента по телефону.
+         *
+         *     **Метаданные, а не результат.** Числа Монте-Карло — содержимое модели клиента, и
+         *     правило 6 на них распространяется: смотреть содержимое можно только по гранту (F4).
+         *     Здесь их нет ни в каком виде, и это отдельный тест.
+         *
+         *     **Недоступный брокер даёт «неизвестно» с причиной**, а не «упало» и не 500: опрос
+         *     хранилища результатов — сеть, а молчание сети это не отказ задачи.
+         */
+        get: operations["list_jobs_api_v1_admin_jobs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/log": {
         parameters: {
             query?: never;
@@ -490,6 +522,11 @@ export interface paths {
         /**
          * Job Status
          * @description Статус (и результат) фоновой задачи. Доступна только своему арендатору.
+         *
+         *     **Недоступный брокер больше не превращается в 500.** Раньше запрос к упавшему
+         *     хранилищу результатов давал исключение, и клиент видел «не удалось загрузить» — то
+         *     есть сообщение о поломке продукта там, где замолчало соседнее хозяйство. Теперь
+         *     статус ``unknown`` с названной причиной (F3): молчание сети — не отказ задачи.
          */
         get: operations["job_status_api_v1_analysis_jobs__job_id__get"];
         put?: never;
@@ -6604,6 +6641,11 @@ export interface components {
             error?: string | null;
             /** Job Id */
             job_id: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
             result?: components["schemas"]["MonteCarloResponse"] | null;
             /** Status */
             status: string;
@@ -9766,6 +9808,75 @@ export interface components {
             updated_at: string;
         };
         /**
+         * StaffJobOut
+         * @description Фоновая задача в служебном списке (F3): **метаданные, а не результат**.
+         *
+         *     Результат Монте-Карло — содержимое модели клиента, и правило 6 на него
+         *     распространяется: смотреть содержимое можно только по гранту (F4). Здесь его нет
+         *     ни в каком виде — ни числом, ни обрезком.
+         */
+        StaffJobOut: {
+            /**
+             * Age Minutes
+             * @default 0
+             */
+            age_minutes: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /** Organization Id */
+            organization_id: string;
+            /**
+             * Organization Name
+             * @default
+             */
+            organization_name: string;
+            /** Project Id */
+            project_id: string;
+            /**
+             * Status
+             * @default pending
+             */
+            status: string;
+        };
+        /**
+         * StaffJobsOut
+         * @description Что происходит в фоновом хозяйстве. Оговорки едут с числами, а не в документации.
+         */
+        StaffJobsOut: {
+            /**
+             * Hours
+             * @default 24
+             */
+            hours: number;
+            /**
+             * Jobs
+             * @default []
+             */
+            jobs: components["schemas"]["StaffJobOut"][];
+            /**
+             * Notes
+             * @default []
+             */
+            notes: string[];
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+        };
+        /**
          * StaffListOut
          * @description Список сотрудников и оговорки к нему — едут вместе с числами.
          */
@@ -11557,6 +11668,37 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    list_jobs_api_v1_admin_jobs_get: {
+        parameters: {
+            query?: {
+                hours?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffJobsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     read_staff_log_api_v1_admin_log_get: {
         parameters: {
             query?: {

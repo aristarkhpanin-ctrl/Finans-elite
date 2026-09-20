@@ -6726,6 +6726,11 @@
             "title": "Job Id",
             "type": "string"
           },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          },
           "result": {
             "anyOf": [
               {
@@ -12152,6 +12157,94 @@
         "title": "StaffEntityOut",
         "type": "object"
       },
+      "StaffJobOut": {
+        "description": "Фоновая задача в служебном списке (F3): **метаданные, а не результат**.\n\nРезультат Монте-Карло — содержимое модели клиента, и правило 6 на него\nраспространяется: смотреть содержимое можно только по гранту (F4). Здесь его нет\nни в каком виде — ни числом, ни обрезком.",
+        "properties": {
+          "age_minutes": {
+            "default": 0,
+            "title": "Age Minutes",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          },
+          "organization_id": {
+            "title": "Organization Id",
+            "type": "string"
+          },
+          "organization_name": {
+            "default": "",
+            "title": "Organization Name",
+            "type": "string"
+          },
+          "project_id": {
+            "title": "Project Id",
+            "type": "string"
+          },
+          "status": {
+            "default": "pending",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "project_id",
+          "kind",
+          "created_at"
+        ],
+        "title": "StaffJobOut",
+        "type": "object"
+      },
+      "StaffJobsOut": {
+        "description": "Что происходит в фоновом хозяйстве. Оговорки едут с числами, а не в документации.",
+        "properties": {
+          "hours": {
+            "default": 24,
+            "title": "Hours",
+            "type": "integer"
+          },
+          "jobs": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/StaffJobOut"
+            },
+            "title": "Jobs",
+            "type": "array"
+          },
+          "notes": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "title": "StaffJobsOut",
+        "type": "object"
+      },
       "StaffListOut": {
         "description": "Список сотрудников и оговорки к нему — едут вместе с числами.",
         "properties": {
@@ -15272,6 +15365,55 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/admin/jobs": {
+      "get": {
+        "description": "Что происходит в фоновом хозяйстве платформы (F3).\n\n`AnalysisJob` хранил только владение, а состояние живёт в Celery — и опросить задачу\nможно было **только по её идентификатору и только своим арендатором**. Значит\nзависшая задача не видна никому: ни клиенту (он ушёл с экрана), ни платформе, и\nпервый зависший Монте-Карло платформа узнавала от клиента по телефону.\n\n**Метаданные, а не результат.** Числа Монте-Карло — содержимое модели клиента, и\nправило 6 на них распространяется: смотреть содержимое можно только по гранту (F4).\nЗдесь их нет ни в каком виде, и это отдельный тест.\n\n**Недоступный брокер даёт «неизвестно» с причиной**, а не «упало» и не 500: опрос\nхранилища результатов — сеть, а молчание сети это не отказ задачи.",
+        "operationId": "list_jobs_api_v1_admin_jobs_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "hours",
+            "required": false,
+            "schema": {
+              "default": 24,
+              "title": "Hours",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffJobsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Jobs",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/admin/log": {
       "get": {
         "description": "Служебный журнал: где были наши сотрудники.\n\nКак и журнал организации — только чтение: ни PUT, ни DELETE. Журнал, который можно\nпоправить, не журнал, и для собственных следов это верно ровно в той же мере.\nСобственное чтение журнала не пишется: оно никуда не приходит и ничего не выносит.",
@@ -16414,7 +16556,7 @@
     },
     "/api/v1/analysis/jobs/{job_id}": {
       "get": {
-        "description": "Статус (и результат) фоновой задачи. Доступна только своему арендатору.",
+        "description": "Статус (и результат) фоновой задачи. Доступна только своему арендатору.\n\n**Недоступный брокер больше не превращается в 500.** Раньше запрос к упавшему\nхранилищу результатов давал исключение, и клиент видел «не удалось загрузить» — то\nесть сообщение о поломке продукта там, где замолчало соседнее хозяйство. Теперь\nстатус ``unknown`` с названной причиной (F3): молчание сети — не отказ задачи.",
         "operationId": "job_status_api_v1_analysis_jobs__job_id__get",
         "parameters": [
           {

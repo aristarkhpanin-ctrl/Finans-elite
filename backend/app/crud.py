@@ -60,6 +60,31 @@ def create_analysis_job(db: Session, job_id: str, org_id: str, project_id: str, 
 def get_analysis_job(db: Session, job_id: str) -> AnalysisJob | None:
     return db.get(AnalysisJob, job_id)
 
+
+#: Сколько задач показывать оператору за раз. Не предел истории — предел экрана:
+#: разбирают «что зависло сейчас», а не читают летопись.
+MAX_JOBS_VIEW = 200
+
+
+def list_analysis_jobs(db: Session, since: datetime,
+                       limit: int = MAX_JOBS_VIEW) -> list[AnalysisJob]:
+    """Фоновые задачи **всей платформы** за окно, новые сверху (F3).
+
+    Чтение без арендатора и без фильтра по организации — это взгляд платформы на своё
+    хозяйство: вопрос «что у нас зависло» ни один арендатор задать не может. У таблицы
+    нет RLS-политики, и причина названа в :data:`db_models.NO_RLS_POLICY`; клиентское
+    чтение задачи закрывает явная проверка организации в маршруте.
+    """
+    return list(db.scalars(
+        select(AnalysisJob).where(AnalysisJob.created_at >= since)
+        .order_by(AnalysisJob.created_at.desc()).limit(limit)))
+
+
+def count_analysis_jobs(db: Session, since: datetime) -> int:
+    """Сколько их всего за окно: усечённый список обязан **называть свою неполноту**."""
+    return int(db.scalar(select(func.count()).select_from(AnalysisJob)
+                         .where(AnalysisJob.created_at >= since)) or 0)
+
 # --- Организации ---
 
 def create_organization(db: Session, name: str, plan_code: str = DEFAULT_PLAN) -> Organization:

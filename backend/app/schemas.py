@@ -862,9 +862,17 @@ class JobSubmitResponse(BaseModel):
 
 class JobStatusResponse(BaseModel):
     job_id: str
-    status: str                                # pending | running | success | failure
+    #: pending | running | success | failure | unknown
+    #:
+    #: ``unknown`` — платформа **не знает** состояния (F3): либо хранилище результатов
+    #: не ответило, либо срок хранения результата истёк. Это не отказ задачи, и
+    #: показывать его как отказ значило бы объявить сломанным то, что могло посчитаться.
+    status: str
     result: MonteCarloResponse | None = None   # заполнено при status=success
     error: str | None = None                   # заполнено при status=failure
+    #: Почему состояние неизвестно. Заполняется только при ``unknown`` — и тогда
+    #: обязательно: «неизвестно» без причины неотличимо от поломки.
+    note: str = ""
 
 
 # --- What-If (9.1) ---
@@ -2197,6 +2205,37 @@ class StaffPaymentOut(BaseModel):
     amount_rub: int = 0
     status: str
     provider: str = ""
+
+
+class StaffJobOut(BaseModel):
+    """Фоновая задача в служебном списке (F3): **метаданные, а не результат**.
+
+    Результат Монте-Карло — содержимое модели клиента, и правило 6 на него
+    распространяется: смотреть содержимое можно только по гранту (F4). Здесь его нет
+    ни в каком виде — ни числом, ни обрезком.
+    """
+
+    id: str
+    organization_id: str
+    organization_name: str = ""
+    project_id: str
+    kind: str
+    created_at: datetime
+    #: Сколько задача живёт. «В очереди 40 минут» — это и есть сигнал.
+    age_minutes: int = 0
+    #: pending | running | success | failure | unknown
+    status: str = "pending"
+    #: Почему состояние неизвестно — заполняется только при ``unknown``.
+    note: str = ""
+
+
+class StaffJobsOut(BaseModel):
+    """Что происходит в фоновом хозяйстве. Оговорки едут с числами, а не в документации."""
+
+    jobs: list[StaffJobOut] = []
+    total: int = 0
+    hours: int = 24
+    notes: list[str] = []
 
 
 class StaffEntityOut(BaseModel):
