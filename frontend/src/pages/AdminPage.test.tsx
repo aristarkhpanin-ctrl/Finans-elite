@@ -83,6 +83,8 @@ const metrics = (over: Partial<PlatformMetrics> = {}): PlatformMetrics => ({
     { key: "paid", label: "Перешли на платный тариф", organizations: 3, share: 0.25 },
   ],
   retention: [],
+  revenue: [{ month: "2026-08", rub: 2900, payments: 1 },
+            { month: "2026-09", rub: 0, payments: 0 }],
   usage_collected: false,
   notes: ["Журнал ведётся с 01.08.2026 — за более ранние даты выгрузок не видно."],
   ...over,
@@ -278,10 +280,14 @@ it("«без отметки» названо отдельно от «неакт�
 });
 
 it("пустой месяц остаётся в ряду роста", async () => {
+  // Отбор по таблице роста: месяцы теперь есть и в выручке (F2), и общий поиск по
+  // тексту нашёл бы оба ряда сразу.
   show();
   fireEvent.click(await screen.findByRole("button", { name: "Сводка" }));
-  expect(await screen.findByText("2026-09")).toBeTruthy();
-  expect(screen.getByText("2026-08")).toBeTruthy();
+  await screen.findByText("Появлялось по месяцам");
+  const months = [...document.querySelectorAll(
+    '[aria-label="Рост по месяцам"] [role="rowheader"]')].map((n) => n.textContent);
+  expect(months).toEqual(["2026-08", "2026-09"]);
 });
 
 it("смена окна перезапрашивает сводку тем же периодом", async () => {
@@ -373,4 +379,61 @@ it("тарифу без цены срок не предлагается вовс
 
   fireEvent.click(screen.getByRole("button", { name: "Назначить" }));
   await waitFor(() => expect(assignPlan).toHaveBeenCalledWith("o1", "audit_corp", null, ""));
+});
+
+// --- Деньги (F2) ---
+
+it("выручка показана деньгами и названа деньгами месяца, а не периода", async () => {
+  // Признание по периодам требует учётной политики, которой у платформы нет: говорить
+  // «выручка за март», имея в виду «деньги, пришедшие в марте», можно только назвав это.
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Сводка" }));
+  expect(await screen.findByText("Деньги по месяцам")).toBeTruthy();
+  expect(screen.getByText("2 900")).toBeTruthy();
+  expect(screen.getByText(/по дате поступления/)).toBeTruthy();
+  expect(screen.getByText(/Возвраты платформа не учитывает/)).toBeTruthy();
+});
+
+it("пустой месяц выручки остаётся в ряду нулём", async () => {
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Сводка" }));
+  await screen.findByText("Деньги по месяцам");
+  const rows = [...document.querySelectorAll('[aria-label="Выручка по месяцам"] [role="row"]')];
+  expect(rows.length).toBe(3);   // шапка + два месяца, включая нулевой
+});
+
+it("платежи клиента видны в карточке, и неуспешные не прячутся", async () => {
+  getStaffOrganization.mockResolvedValue({
+    ...org(), members_list: [], payments_total: 2,
+    payments: [
+      { id: "p1", created_at: "2026-09-01T10:00:00Z", plan_code: "team",
+        amount_rub: 2900, status: "succeeded", provider: "yookassa" },
+      { id: "p2", created_at: "2026-08-20T10:00:00Z", plan_code: "team",
+        amount_rub: 2900, status: "canceled", provider: "yookassa" },
+    ],
+  } as unknown as StaffOrgDetail);
+  show();
+  fireEvent.click(await screen.findByText("ООО «Клиент»"));
+  expect(await screen.findByText("Платежи")).toBeTruthy();
+  // «Карта не прошла» — это разговор с клиентом, а не мусор.
+  expect(screen.getByText("отменён")).toBeTruthy();
+});
+
+it("оплата по счёту названа проведённой оператором", async () => {
+  getStaffOrganization.mockResolvedValue({
+    ...org(), members_list: [], payments_total: 1,
+    payments: [{ id: "p1", created_at: "2026-09-01T10:00:00Z", plan_code: "team",
+                 amount_rub: 5800, status: "succeeded", provider: "manual" }],
+  } as unknown as StaffOrgDetail);
+  show();
+  fireEvent.click(await screen.findByText("ООО «Клиент»"));
+  expect(await screen.findByText(/по счёту, провёл оператор/)).toBeTruthy();
+});
+
+it("пустые платежи объясняют себя, а не молчат", async () => {
+  // Ноль читался бы как «клиент не платил», хотя платформа просто не видит переводов
+  // мимо продукта.
+  show();
+  fireEvent.click(await screen.findByText("ООО «Клиент»"));
+  expect(await screen.findByText(/прямые переводы мимо продукта/)).toBeTruthy();
 });

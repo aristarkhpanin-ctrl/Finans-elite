@@ -49,11 +49,13 @@ from ..schemas import (
     PlanSliceOut,
     PlatformMetricsOut,
     RetentionPointOut,
+    RevenuePointOut,
     StaffLogEntryOut,
     StaffLogPage,
     StaffOrgDetail,
     StaffOrgOut,
     StaffOrgPage,
+    StaffPaymentOut,
     StaffPlanAssign,
     StaffSubscriptionOut,
     StaffUserOrgOut,
@@ -97,11 +99,19 @@ def _org_out(db: Session, org) -> StaffOrgOut:
 
 
 def _org_detail(db: Session, org) -> StaffOrgDetail:
-    """Карточка клиента: метаданные плюс состав. Собирается из одного места, чтобы
-    приостановка и снятие возвращали ровно то же, что показывает сама карточка."""
+    """Карточка клиента: метаданные, состав и платежи. Собирается из одного места, чтобы
+    приостановка, снятие и назначение тарифа возвращали ровно то же, что показывает сама
+    карточка."""
     base = _org_out(db, org)
     members = [_member_out(m, u) for m, u in crud.list_members(db, org.id)]
-    return StaffOrgDetail(**base.model_dump(), members_list=members)
+    # Платежи читаются **с фильтром по организации**, без арендатора: RLS у таблицы нет
+    # намеренно (см. `Payment`), и изоляцию здесь держит именно этот фильтр.
+    payments = [StaffPaymentOut(id=p.id, created_at=p.created_at, plan_code=p.plan_code,
+                                amount_rub=p.amount_rub, status=p.status,
+                                provider=p.provider)
+                for p in crud.list_payments(db, org.id)]
+    return StaffOrgDetail(**base.model_dump(), members_list=members, payments=payments,
+                          payments_total=crud.count_payments(db, org.id))
 
 
 @router.get("/organizations", response_model=StaffOrgPage)
@@ -483,6 +493,8 @@ def read_metrics(months: int = 12, days: int = 30, staff: User = Depends(require
                               share=f.share) for f in m.funnel],
         retention=[RetentionPointOut(month=r.month, arrived=r.arrived,
                                      returned=r.returned) for r in m.retention],
+        revenue=[RevenuePointOut(month=r.month, rub=r.rub, payments=r.payments)
+                 for r in m.revenue],
         usage_collected=m.usage_collected,
         notes=list(m.notes),
     )
@@ -522,6 +534,11 @@ def export_metrics(months: int = 12, days: int = 30, staff: User = Depends(requi
     writer.writerow(["Месяц", "Новых организаций", "Новых пользователей"])
     for point in m.growth:
         writer.writerow([point.period, point.organizations, point.users])
+
+    writer.writerow([])
+    writer.writerow(["Месяц", "Выручка, ₽", "Платежей"])
+    for point in m.revenue:
+        writer.writerow([point.month, point.rub, point.payments])
 
     writer.writerow([])
     writer.writerow(["Продукт", "Тариф", "Организаций"])

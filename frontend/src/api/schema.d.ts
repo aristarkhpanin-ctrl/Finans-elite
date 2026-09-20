@@ -7620,6 +7620,11 @@ export interface components {
              */
             retention: components["schemas"]["RetentionPointOut"][];
             /**
+             * Revenue
+             * @default []
+             */
+            revenue: components["schemas"]["RevenuePointOut"][];
+            /**
              * Since Days
              * @default 30
              */
@@ -8920,6 +8925,27 @@ export interface components {
              */
             label: string;
         };
+        /**
+         * RevenuePointOut
+         * @description Выручка месяца: сколько пришло и сколькими платежами.
+         *
+         *     ``rub`` — **деньги, пришедшие в месяце**, а не выручка периода, за который платили:
+         *     признание по периодам требует учётной политики, которой у платформы нет.
+         */
+        RevenuePointOut: {
+            /** Month */
+            month: string;
+            /**
+             * Payments
+             * @default 0
+             */
+            payments: number;
+            /**
+             * Rub
+             * @default 0
+             */
+            rub: number;
+        };
         /** ReviewResponse */
         ReviewResponse: {
             /** Counts */
@@ -9279,7 +9305,8 @@ export interface components {
         };
         /**
          * StaffOrgDetail
-         * @description Карточка организации: то же плюс состав. Содержимого моделей по-прежнему нет.
+         * @description Карточка организации: то же плюс состав и платежи. Содержимого моделей
+         *     по-прежнему нет: платёж — это тариф, сумма и статус, а не числа клиента.
          */
         StaffOrgDetail: {
             /**
@@ -9325,6 +9352,16 @@ export interface components {
             members_list: components["schemas"]["MemberOut"][];
             /** Name */
             name: string;
+            /**
+             * Payments
+             * @default []
+             */
+            payments: components["schemas"]["StaffPaymentOut"][];
+            /**
+             * Payments Total
+             * @default 0
+             */
+            payments_total: number;
             /**
              * Projects
              * @default 0
@@ -9441,6 +9478,37 @@ export interface components {
              * @default 0
              */
             total: number;
+        };
+        /**
+         * StaffPaymentOut
+         * @description Платёж клиента в карточке оператора (F2).
+         *
+         *     **Неуспешные остаются в списке**: попытка оплаты — это разговор с клиентом («карта
+         *     не прошла»), и спрятать её значило бы убрать половину причин, по которым он звонит.
+         *     ``provider`` различает оплату в продукте и проведённую оператором по счёту.
+         */
+        StaffPaymentOut: {
+            /**
+             * Amount Rub
+             * @default 0
+             */
+            amount_rub: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            /** Plan Code */
+            plan_code: string;
+            /**
+             * Provider
+             * @default
+             */
+            provider: string;
+            /** Status */
+            status: string;
         };
         /**
          * StaffPlanAssign

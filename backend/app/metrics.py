@@ -23,7 +23,14 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from .db_models import Membership, Organization, Subscription, UsageEvent, User
+from .db_models import (
+    Membership,
+    Organization,
+    Payment,
+    Subscription,
+    UsageEvent,
+    User,
+)
 from .plans import DEFAULT_PLAN, PRODUCT_NAME, get_plan
 from .usage import collecting as usage_collecting
 
@@ -102,6 +109,20 @@ class RetentionPoint:
 
 
 @dataclass
+class RevenuePoint:
+    """Выручка одного месяца: сколько пришло и сколькими платежами.
+
+    Считается **по дате платежа**, а не по периоду, за который платили: второе — это
+    признание выручки, и оно требует учётной политики, которой у платформы нет. Говорить
+    «выручка за март», имея в виду «деньги, пришедшие в марте», можно только назвав это.
+    """
+
+    month: str
+    rub: int = 0
+    payments: int = 0
+
+
+@dataclass
 class PlatformMetrics:
     generated_at: datetime
     since_days: int
@@ -124,6 +145,9 @@ class PlatformMetrics:
     #: Удержание по когортам. Пусто, если сбор событий не велся: график из воздуха
     #: хуже отсутствующего.
     retention: list[RetentionPoint] = field(default_factory=list)
+    #: Выручка по месяцам — **только успешные** платежи (F2). Неуспешные видны в
+    #: карточке клиента: там это разговор, здесь это не деньги.
+    revenue: list[RevenuePoint] = field(default_factory=list)
     #: Собираются ли события пользования (E2) — чтобы экран не гадал, почему пусто.
     usage_collected: bool = False
     notes: list[str] = field(default_factory=list)
@@ -277,6 +301,28 @@ def retention(db: Session, now: datetime, months: int) -> list[RetentionPoint]:
     return out
 
 
+def revenue_by_month(db: Session, now: datetime, months: int) -> list[RevenuePoint]:
+    """Выручка платформы по месяцам (F2).
+
+    Суммируются **успешные** платежи: `pending` — это ещё не деньги, `canceled` — уже не
+    деньги. Группировка в Python, как и рост: помесячная свёртка на диалекте SQL прошла
+    бы тесты на SQLite и разошлась бы с PostgreSQL молча.
+
+    Пустой месяц остаётся в ряду с нулём — пропуск читался бы как потерянные данные.
+    """
+    window = _months_back(now, months)
+    totals: dict[str, RevenuePoint] = {m: RevenuePoint(month=m) for m in window}
+    earliest = window[0]
+    for payment in db.scalars(select(Payment).where(Payment.status == "succeeded")):
+        stamp = _as_utc(payment.created_at)
+        month = _month(stamp) if stamp else ""
+        if month < earliest or month not in totals:
+            continue
+        totals[month].rub += int(payment.amount_rub or 0)
+        totals[month].payments += 1
+    return [totals[m] for m in window]
+
+
 def build_platform_metrics(db: Session, *, totals: TenantTotals, now: datetime | None = None,
                            months: int = 12, since_days: int = 30) -> PlatformMetrics:
     """Собрать сводку платформы. ``totals`` приходит снаружи — см. :class:`TenantTotals`."""
@@ -298,6 +344,7 @@ def build_platform_metrics(db: Session, *, totals: TenantTotals, now: datetime |
         plans=plan_slices(db),
         funnel=activation_funnel(db, totals),
         retention=retention(db, now, months),
+        revenue=revenue_by_month(db, now, months),
         usage_collected=usage_collecting(),
     )
     metrics.notes = _notes(metrics, totals)
@@ -344,6 +391,19 @@ def _notes(metrics: PlatformMetrics, totals: TenantTotals) -> list[str]:
     notes.append(
         "Воронка активации отвечает «дошла ли организация до шага **когда-нибудь**», а не "
         "«за период»: дошла в прошлом году — тоже дошла.")
+    if any(point.rub for point in metrics.revenue):
+        notes.append(
+            "Выручка — это **деньги, пришедшие в месяце**, а не выручка периода, за "
+            "который платили: признание по периодам требует учётной политики, которой у "
+            "платформы нет. Считаются только успешные платежи; возвратов платформа не "
+            "учитывает вовсе — механизма возврата в продукте нет, и вычесть их неоткуда. "
+            "Тариф «по запросу» суммы не имеет и в выручку не попадает.")
+    else:
+        notes.append(
+            "Успешных платежей за окно не было: ноль здесь означает «денег не приходило», "
+            "а не «не считали». Оплата по счёту попадает сюда, только если её провёл "
+            "оператор — назначением тарифа; прямые переводы мимо продукта платформа не "
+            "видит.")
     if not metrics.usage_collected:
         notes.append(
             "События пользования не собираются (`USAGE_EVENTS` выключен), поэтому "

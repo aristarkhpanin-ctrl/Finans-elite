@@ -8891,6 +8891,14 @@
             "title": "Retention",
             "type": "array"
           },
+          "revenue": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/RevenuePointOut"
+            },
+            "title": "Revenue",
+            "type": "array"
+          },
           "since_days": {
             "default": 30,
             "title": "Since Days",
@@ -11012,6 +11020,30 @@
         "title": "Revaluation",
         "type": "object"
       },
+      "RevenuePointOut": {
+        "description": "Выручка месяца: сколько пришло и сколькими платежами.\n\n``rub`` — **деньги, пришедшие в месяце**, а не выручка периода, за который платили:\nпризнание по периодам требует учётной политики, которой у платформы нет.",
+        "properties": {
+          "month": {
+            "title": "Month",
+            "type": "string"
+          },
+          "payments": {
+            "default": 0,
+            "title": "Payments",
+            "type": "integer"
+          },
+          "rub": {
+            "default": 0,
+            "title": "Rub",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "month"
+        ],
+        "title": "RevenuePointOut",
+        "type": "object"
+      },
       "ReviewResponse": {
         "properties": {
           "counts": {
@@ -11802,7 +11834,7 @@
         "type": "object"
       },
       "StaffOrgDetail": {
-        "description": "Карточка организации: то же плюс состав. Содержимого моделей по-прежнему нет.",
+        "description": "Карточка организации: то же плюс состав и платежи. Содержимого моделей\nпо-прежнему нет: платёж — это тариф, сумма и статус, а не числа клиента.",
         "properties": {
           "cases": {
             "default": 0,
@@ -11873,6 +11905,19 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "payments": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/StaffPaymentOut"
+            },
+            "title": "Payments",
+            "type": "array"
+          },
+          "payments_total": {
+            "default": 0,
+            "title": "Payments Total",
+            "type": "integer"
           },
           "projects": {
             "default": 0,
@@ -12054,6 +12099,46 @@
           }
         },
         "title": "StaffOrgPage",
+        "type": "object"
+      },
+      "StaffPaymentOut": {
+        "description": "Платёж клиента в карточке оператора (F2).\n\n**Неуспешные остаются в списке**: попытка оплаты — это разговор с клиентом («карта\nне прошла»), и спрятать её значило бы убрать половину причин, по которым он звонит.\n``provider`` различает оплату в продукте и проведённую оператором по счёту.",
+        "properties": {
+          "amount_rub": {
+            "default": 0,
+            "title": "Amount Rub",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "plan_code": {
+            "title": "Plan Code",
+            "type": "string"
+          },
+          "provider": {
+            "default": "",
+            "title": "Provider",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "plan_code",
+          "status"
+        ],
+        "title": "StaffPaymentOut",
         "type": "object"
       },
       "StaffPlanAssign": {

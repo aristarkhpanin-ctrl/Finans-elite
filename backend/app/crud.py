@@ -132,6 +132,29 @@ def get_payment(db: Session, payment_id: str) -> Payment | None:
     return db.get(Payment, payment_id)
 
 
+#: Сколько платежей показывать в карточке клиента. Не предел истории — предел экрана:
+#: разговор с клиентом ведут о последних, а полная история живёт в выгрузке выручки.
+MAX_ORG_PAYMENTS = 20
+
+
+def list_payments(db: Session, org_id: str, limit: int = MAX_ORG_PAYMENTS) -> list[Payment]:
+    """Платежи организации, новые сверху (F2).
+
+    **Неуспешные остаются в списке**: попытка оплаты — это разговор с клиентом («карта
+    не прошла»), и спрятать её значило бы убрать половину причин, по которым он звонит.
+    """
+    return list(db.scalars(
+        select(Payment).where(Payment.organization_id == org_id)
+        .order_by(Payment.created_at.desc()).limit(limit)))
+
+
+def count_payments(db: Session, org_id: str) -> int:
+    """Сколько платежей всего — чтобы усечённый список **называл свою неполноту**."""
+    return int(db.scalar(select(func.count()).select_from(Payment)
+                         .where(Payment.organization_id == org_id)) or 0)
+
+
+
 def get_payment_by_provider_id(db: Session, provider_payment_id: str) -> Payment | None:
     return db.scalar(
         select(Payment).where(Payment.provider_payment_id == provider_payment_id)

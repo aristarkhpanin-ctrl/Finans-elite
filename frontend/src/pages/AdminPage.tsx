@@ -77,6 +77,11 @@ const SUB_STATUS: Record<string, string> = {
 
 const PRODUCT: Record<string, string> = { business: "Элит", audit: "Аудит" };
 
+/** Состояние платежа по-русски. «Ожидает» — это ещё не деньги, «отменён» — уже не деньги. */
+const PAYMENT_STATUS: Record<string, string> = {
+  pending: "ожидает оплаты", canceled: "отменён", succeeded: "оплачен",
+};
+
 export function AdminPage() {
   const { user } = useAuth();
   const [tab, setTab] = useState<string>("orgs");
@@ -440,6 +445,53 @@ function OrgCard({ orgId, onBack }: { orgId: string; onBack: () => void }) {
         ))}
       </div>
 
+      {/* Платежи (F2). Таблица `payments` существовала с 6.5b и не показывалась нигде:
+          оператор видел тариф и не видел, кто заплатил. Неуспешные **остаются** —
+          «карта не прошла» это разговор с клиентом, а не мусор. */}
+      <h2 className="adm-h2" style={{ marginTop: 24 }}>Платежи</h2>
+      {(data.payments ?? []).length === 0 ? (
+        <div className="page-sub" style={{ marginTop: 0 }}>
+          Платежей не было. Это не значит «клиент не платил»: оплату по счёту видно
+          только тогда, когда её провёл оператор назначением тарифа, — прямые переводы
+          мимо продукта платформа не видит.
+        </div>
+      ) : (
+        <>
+          <div className="log-list" role="table" aria-label="Платежи организации">
+            <div className="log-row adm-row adm-row--head" role="row">
+              <div role="columnheader">Когда</div>
+              <div role="columnheader">Тариф</div>
+              <div role="columnheader">Сумма</div>
+              <div role="columnheader">Состояние</div>
+            </div>
+            {(data.payments ?? []).map((p) => (
+              <div className="log-row adm-row" role="row" key={p.id}>
+                <div role="rowheader">{day(p.created_at)}</div>
+                <div role="cell">
+                  {p.plan_code}
+                  <div className="adm-sub">
+                    {p.provider === "manual" ? "по счёту, провёл оператор" : p.provider}
+                  </div>
+                </div>
+                <div role="cell">{p.amount_rub.toLocaleString("ru-RU")} ₽</div>
+                <div role="cell">
+                  {p.status === "succeeded"
+                    ? <Chip kind="active">оплачен</Chip>
+                    : <Chip kind="problem">{PAYMENT_STATUS[p.status] ?? p.status}</Chip>}
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Усечённый список называет свою неполноту: иначе «последние двадцать»
+              читаются как «всего двадцать». */}
+          {data.payments_total > (data.payments ?? []).length && (
+            <div className="page-sub">
+              Показаны последние {(data.payments ?? []).length} из {data.payments_total}.
+            </div>
+          )}
+        </>
+      )}
+
       <h2 className="adm-h2" style={{ marginTop: 24 }}>Журнал организации</h2>
       <div className="page-sub" style={{ marginBottom: 12 }}>
         Тот же журнал, что видит администратор клиента. Второго представления не заводим:
@@ -668,6 +720,8 @@ function MetricsTab() {
 
   const growth = data.growth ?? [];
   const peak = Math.max(1, ...growth.map((p) => Math.max(p.organizations, p.users)));
+  const revenue = data?.revenue ?? [];
+  const peakRub = Math.max(1, ...revenue.map((p) => p.rub));
 
   return (
     <div>
@@ -753,6 +807,33 @@ function MetricsTab() {
                 в ровную линию — то есть врёт там, где смотреть интереснее всего. */}
             <div role="cell" aria-hidden="true">
               <span className="mbar" style={{ width: `${(p.users / peak) * 100}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Выручка (F2): деньги, **пришедшие в месяце**, а не выручка периода, за который
+          платили. Признание по периодам требует учётной политики, которой у платформы
+          нет, — и это сказано в оговорках под числами. */}
+      <h2 className="adm-h2" style={{ marginTop: 24 }}>Деньги по месяцам</h2>
+      <div className="page-sub" style={{ marginTop: 0 }}>
+        Успешные платежи по дате поступления. Возвраты платформа не учитывает — механизма
+        возврата в продукте нет.
+      </div>
+      <div className="mgrid" role="table" aria-label="Выручка по месяцам">
+        <div className="mgrid__row mgrid__row--head" role="row">
+          <div role="columnheader">Месяц</div>
+          <div role="columnheader">Выручка, ₽</div>
+          <div role="columnheader">Платежей</div>
+          <div role="columnheader" aria-hidden="true" />
+        </div>
+        {revenue.map((p) => (
+          <div className="mgrid__row" role="row" key={p.month}>
+            <div role="rowheader">{p.month}</div>
+            <div role="cell">{p.rub.toLocaleString("ru-RU")}</div>
+            <div role="cell">{p.payments}</div>
+            <div role="cell" aria-hidden="true">
+              <span className="mbar" style={{ width: `${(p.rub / peakRub) * 100}%` }} />
             </div>
           </div>
         ))}

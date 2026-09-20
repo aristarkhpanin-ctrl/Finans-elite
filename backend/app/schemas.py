@@ -2073,10 +2073,31 @@ class StaffOrgPage(BaseModel):
     total: int = 0
 
 
+class StaffPaymentOut(BaseModel):
+    """Платёж клиента в карточке оператора (F2).
+
+    **Неуспешные остаются в списке**: попытка оплаты — это разговор с клиентом («карта
+    не прошла»), и спрятать её значило бы убрать половину причин, по которым он звонит.
+    ``provider`` различает оплату в продукте и проведённую оператором по счёту.
+    """
+
+    id: str
+    created_at: datetime
+    plan_code: str
+    amount_rub: int = 0
+    status: str
+    provider: str = ""
+
+
 class StaffOrgDetail(StaffOrgOut):
-    """Карточка организации: то же плюс состав. Содержимого моделей по-прежнему нет."""
+    """Карточка организации: то же плюс состав и платежи. Содержимого моделей
+    по-прежнему нет: платёж — это тариф, сумма и статус, а не числа клиента."""
 
     members_list: list[MemberOut] = []
+    #: Последние платежи (новые сверху) — не вся история.
+    payments: list[StaffPaymentOut] = []
+    #: Сколько их всего: усечённый список обязан **называть свою неполноту**.
+    payments_total: int = 0
 
 
 class StaffUserOrgOut(BaseModel):
@@ -2178,6 +2199,18 @@ class RetentionPointOut(BaseModel):
     returned: Optional[int] = None
 
 
+class RevenuePointOut(BaseModel):
+    """Выручка месяца: сколько пришло и сколькими платежами.
+
+    ``rub`` — **деньги, пришедшие в месяце**, а не выручка периода, за который платили:
+    признание по периодам требует учётной политики, которой у платформы нет.
+    """
+
+    month: str
+    rub: int = 0
+    payments: int = 0
+
+
 class PlatformMetricsOut(BaseModel):
     """Сводка платформы (B3).
 
@@ -2203,6 +2236,8 @@ class PlatformMetricsOut(BaseModel):
     plans: list[PlanSliceOut] = []
     funnel: list[FunnelStepOut] = []
     retention: list[RetentionPointOut] = []
+    #: Выручка по месяцам — только успешные платежи, по **дате платежа** (F2).
+    revenue: list[RevenuePointOut] = []
     #: Собираются ли события пользования (E2) — чтобы экран не гадал, почему пусто.
     usage_collected: bool = False
     notes: list[str] = []
