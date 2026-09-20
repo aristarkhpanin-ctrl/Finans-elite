@@ -11,8 +11,10 @@ import { ChecklistsTab } from "./org/ChecklistsTab";
 import { ApiKeysTab } from "./org/ApiKeysTab";
 import { SupportAccessTab } from "./org/SupportAccessTab";
 import { DataTab } from "./org/DataTab";
+import { OverviewTab } from "./org/OverviewTab";
 
 const TABS = [
+  ["overview", "Обзор"],
   ["members", "Участники"],
   ["activity", "Активность"],
   ["profile", "Профиль"],
@@ -27,7 +29,7 @@ const TABS = [
 
 export function OrganizationPage() {
   const { currentOrgId, organizations, user } = useAuth();
-  const [tab, setTab] = useState<string>("members");
+  const [tab, setTab] = useState<string>("overview");
   /**
    * Отбор, с которым открыть журнал. Заполняется с экрана участников («действия
    * участника») — так «кто что делал» отвечает **журнал**, а не второй список рядом,
@@ -65,6 +67,9 @@ export function OrganizationPage() {
         </div>
       </div>
 
+      {/* Сводка (F7) видна всем участникам: «почему я не могу завести проект» — вопрос
+          того, кто упёрся, а не только того, кто платит. Имён здесь нет, только числа. */}
+      {tab === "overview" && <OverviewTab orgId={currentOrgId} />}
       {tab === "members" && (
         <MembersTab orgId={currentOrgId} myRole={myRole} myUserId={user?.id ?? ""}
                     onShowActions={canManageOrg

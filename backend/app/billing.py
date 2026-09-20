@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
@@ -54,6 +55,24 @@ def current_plan(db: Session, org_id: str, product: str = "business") -> Plan:
     return get_plan(sub.plan_code if sub else None, product)
 
 
+#: Чем меряется квота единиц у каждого продукта: проектами у «Элит», делами у «Аудита».
+#:
+#: **Одна карта на проверку и на показ.** Экран сводки (F7) считает «осталось» отсюда же,
+#: чем отказывает создание: посчитай он сам, и однажды показал бы «осталось 2» там, где
+#: сохранение уже отвечает 402, — а клиент пошёл бы в поддержку с двумя правдами сразу.
+#: Перечень закрыт: продукт без своей меры роняет тест.
+UNIT_COUNT: dict[str, Callable[[Session, str], int]] = {
+    "business": crud.count_projects,
+    "audit": crud.count_audit_subjects,
+}
+
+
+def units_used(db: Session, org_id: str, product: str) -> int:
+    """Сколько единиц квоты израсходовано — тем же счётом, что и в проверке."""
+    counter = UNIT_COUNT.get(product)
+    return counter(db, org_id) if counter is not None else 0
+
+
 def _ensure_unit_quota(db: Session, org_id: str, product: str, used: int) -> None:
     """Общая проверка квоты единиц продукта: проектов у «Элит», дел у «Аудита».
 
@@ -71,7 +90,7 @@ def _ensure_unit_quota(db: Session, org_id: str, product: str, used: int) -> Non
 
 
 def ensure_project_quota(db: Session, org_id: str) -> None:
-    _ensure_unit_quota(db, org_id, "business", crud.count_projects(db, org_id))
+    _ensure_unit_quota(db, org_id, "business", units_used(db, org_id, "business"))
 
 
 def ensure_case_quota(db: Session, org_id: str) -> None:
@@ -81,7 +100,7 @@ def ensure_case_quota(db: Session, org_id: str) -> None:
     а создание дела квоту не вызывало — на любом тарифе, включая бесплатный, дел можно
     было завести сколько угодно.
     """
-    _ensure_unit_quota(db, org_id, "audit", crud.count_audit_subjects(db, org_id))
+    _ensure_unit_quota(db, org_id, "audit", units_used(db, org_id, "audit"))
 
 
 def ensure_member_quota(db: Session, org_id: str, product: str = "business") -> None:

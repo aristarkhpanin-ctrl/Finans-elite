@@ -2176,6 +2176,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizations/{org_id}/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Overview
+         * @description Организация одним взглядом: объёмы, квоты, срок тарифа, состав (F7).
+         *
+         *     Ответы были разложены по трём экранам и одному отказу 402, который приходил уже в
+         *     момент сохранения. Здесь они собраны — **и собраны из существующего**: объёмы
+         *     считает `crud.org_volumes`, израсходованную квоту — та же `billing.units_used`,
+         *     которой отказывает создание, срок — `billing_period`, ограничение — тот же
+         *     `access.restriction_for`, что и закрывает запись. Второй источник любого из этих
+         *     чисел однажды разошёлся бы с первым.
+         *
+         *     Видят **все участники**: «почему я не могу завести проект» — вопрос того, кто
+         *     упёрся, а не только того, кто платит. Имён здесь нет, только числа.
+         */
+        get: operations["read_overview_api_v1_organizations__org_id__overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizations/{org_id}/subscription": {
         parameters: {
             query?: never;
@@ -7559,6 +7589,70 @@ export interface components {
             name: string;
         };
         /**
+         * OverviewOut
+         * @description Организация одним взглядом (F7). Собрана из того, что платформа уже считает, —
+         *     ни счётчика, ни таблицы под неё не заводится. `notes` — что эти числа **не**
+         *     значат — едут вместе с ними.
+         */
+        OverviewOut: {
+            /**
+             * Cases
+             * @default 0
+             */
+            cases: number;
+            /** Created At */
+            created_at?: string | null;
+            /**
+             * Groups
+             * @default 0
+             */
+            groups: number;
+            /**
+             * Holdings
+             * @default 0
+             */
+            holdings: number;
+            /** Last Calculated At */
+            last_calculated_at?: string | null;
+            /** Last Seen At */
+            last_seen_at?: string | null;
+            /**
+             * Members
+             * @default 0
+             */
+            members: number;
+            /**
+             * Members Blocked
+             * @default 0
+             */
+            members_blocked: number;
+            /**
+             * Members Unknown
+             * @default 0
+             */
+            members_unknown: number;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Notes
+             * @default []
+             */
+            notes: string[];
+            /**
+             * Products
+             * @default []
+             */
+            products: components["schemas"]["ProductStateOut"][];
+            /**
+             * Projects
+             * @default 0
+             */
+            projects: number;
+        };
+        /**
          * ParticipantOut
          * @description Доходы участника финансирования: поток, вложено/получено, NPV/IRR (± терминальная).
          */
@@ -8113,6 +8207,67 @@ export interface components {
              * @default 0
              */
             unallocated_direct: string;
+        };
+        /**
+         * ProductStateOut
+         * @description Продукт в сводке организации (F7): тариф, квота, срок, ограничение.
+         *
+         *     Пределы — `Optional[int]`: `None` значит «без предела», и это **не ноль**.
+         *     Подставить число значило бы показать корпоративному клиенту «осталось 0» там, где
+         *     ему можно всё.
+         */
+        ProductStateOut: {
+            /** Days Left */
+            days_left?: number | null;
+            /** Grace Left */
+            grace_left?: number | null;
+            /** Members Left */
+            members_left?: number | null;
+            /** Members Limit */
+            members_limit?: number | null;
+            /** Period End */
+            period_end?: string | null;
+            /** Plan Code */
+            plan_code: string;
+            /** Plan Name */
+            plan_name: string;
+            /** Product */
+            product: string;
+            /** Product Name */
+            product_name: string;
+            /**
+             * Restriction Blocking
+             * @default false
+             */
+            restriction_blocking: boolean;
+            /**
+             * Restriction Kind
+             * @default
+             */
+            restriction_kind: string;
+            /**
+             * Restriction Reason
+             * @default
+             */
+            restriction_reason: string;
+            /**
+             * Restriction Remedy
+             * @default
+             */
+            restriction_remedy: string;
+            /** Status */
+            status: string;
+            /** Unit Name */
+            unit_name: string;
+            /** Units Left */
+            units_left?: number | null;
+            /** Units Limit */
+            units_limit?: number | null;
+            /**
+             * Units Used
+             * @default 0
+             */
+            units_used: number;
         };
         /**
          * ProductionLine
@@ -14943,6 +15098,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MemberOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_overview_api_v1_organizations__org_id__overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OverviewOut"];
                 };
             };
             /** @description Validation Error */

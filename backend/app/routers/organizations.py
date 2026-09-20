@@ -17,6 +17,7 @@ from ..database import get_db
 from ..db_models import User
 from ..deps import current_user, require_membership, require_org_permission
 from ..mail import Sent, access_link_letter, invite_letter, mail_enabled
+from ..overview import build_overview
 from ..plans import PRODUCTS
 from ..rbac import Perm, is_valid_role
 from ..schemas import (
@@ -37,7 +38,9 @@ from ..schemas import (
     OrganizationMembershipOut,
     OrganizationOut,
     OrgDeletionPlanOut,
+    OverviewOut,
     PasswordConfirmIn,
+    ProductStateOut,
     RestrictionOut,
     SupportAccessIn,
     SupportAccessOut,
@@ -411,6 +414,32 @@ def replace_benchmarks(body: list[BenchmarkIn],
     crud.log_action(db, org_id, actor, "benchmarks.replace", entity_type="organization",
                     entity_id=org_id, details=f"строк: {len(rows)}")
     return [_benchmark_out(b) for b in saved]
+
+
+@router.get("/{org_id}/overview", response_model=OverviewOut)
+def read_overview(org_id: str = Depends(require_membership),
+                  db: Session = Depends(get_db)) -> OverviewOut:
+    """Организация одним взглядом: объёмы, квоты, срок тарифа, состав (F7).
+
+    Ответы были разложены по трём экранам и одному отказу 402, который приходил уже в
+    момент сохранения. Здесь они собраны — **и собраны из существующего**: объёмы
+    считает `crud.org_volumes`, израсходованную квоту — та же `billing.units_used`,
+    которой отказывает создание, срок — `billing_period`, ограничение — тот же
+    `access.restriction_for`, что и закрывает запись. Второй источник любого из этих
+    чисел однажды разошёлся бы с первым.
+
+    Видят **все участники**: «почему я не могу завести проект» — вопрос того, кто
+    упёрся, а не только того, кто платит. Имён здесь нет, только числа.
+    """
+    data = build_overview(db, org_id)
+    return OverviewOut(
+        name=data.name, created_at=data.created_at, projects=data.projects,
+        cases=data.cases, groups=data.groups, holdings=data.holdings,
+        members=data.members, members_blocked=data.members_blocked,
+        members_unknown=data.members_unknown,
+        last_calculated_at=data.last_calculated_at, last_seen_at=data.last_seen_at,
+        products=[ProductStateOut(**vars(p)) for p in data.products],
+        notes=data.notes)
 
 
 def _plan_out(plan) -> OrgDeletionPlanOut:

@@ -8432,6 +8432,105 @@
         "title": "OtherFlow",
         "type": "object"
       },
+      "OverviewOut": {
+        "description": "Организация одним взглядом (F7). Собрана из того, что платформа уже считает, —\nни счётчика, ни таблицы под неё не заводится. `notes` — что эти числа **не**\nзначат — едут вместе с ними.",
+        "properties": {
+          "cases": {
+            "default": 0,
+            "title": "Cases",
+            "type": "integer"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "groups": {
+            "default": 0,
+            "title": "Groups",
+            "type": "integer"
+          },
+          "holdings": {
+            "default": 0,
+            "title": "Holdings",
+            "type": "integer"
+          },
+          "last_calculated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Calculated At"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "members": {
+            "default": 0,
+            "title": "Members",
+            "type": "integer"
+          },
+          "members_blocked": {
+            "default": 0,
+            "title": "Members Blocked",
+            "type": "integer"
+          },
+          "members_unknown": {
+            "default": 0,
+            "title": "Members Unknown",
+            "type": "integer"
+          },
+          "name": {
+            "default": "",
+            "title": "Name",
+            "type": "string"
+          },
+          "notes": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "products": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ProductStateOut"
+            },
+            "title": "Products",
+            "type": "array"
+          },
+          "projects": {
+            "default": 0,
+            "title": "Projects",
+            "type": "integer"
+          }
+        },
+        "title": "OverviewOut",
+        "type": "object"
+      },
       "ParticipantOut": {
         "description": "Доходы участника финансирования: поток, вложено/получено, NPV/IRR (± терминальная).",
         "properties": {
@@ -9300,6 +9399,148 @@
           }
         },
         "title": "ProductMarginsOut",
+        "type": "object"
+      },
+      "ProductStateOut": {
+        "description": "Продукт в сводке организации (F7): тариф, квота, срок, ограничение.\n\nПределы — `Optional[int]`: `None` значит «без предела», и это **не ноль**.\nПодставить число значило бы показать корпоративному клиенту «осталось 0» там, где\nему можно всё.",
+        "properties": {
+          "days_left": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days Left"
+          },
+          "grace_left": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grace Left"
+          },
+          "members_left": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Members Left"
+          },
+          "members_limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Members Limit"
+          },
+          "period_end": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period End"
+          },
+          "plan_code": {
+            "title": "Plan Code",
+            "type": "string"
+          },
+          "plan_name": {
+            "title": "Plan Name",
+            "type": "string"
+          },
+          "product": {
+            "title": "Product",
+            "type": "string"
+          },
+          "product_name": {
+            "title": "Product Name",
+            "type": "string"
+          },
+          "restriction_blocking": {
+            "default": false,
+            "title": "Restriction Blocking",
+            "type": "boolean"
+          },
+          "restriction_kind": {
+            "default": "",
+            "title": "Restriction Kind",
+            "type": "string"
+          },
+          "restriction_reason": {
+            "default": "",
+            "title": "Restriction Reason",
+            "type": "string"
+          },
+          "restriction_remedy": {
+            "default": "",
+            "title": "Restriction Remedy",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "unit_name": {
+            "title": "Unit Name",
+            "type": "string"
+          },
+          "units_left": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Units Left"
+          },
+          "units_limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Units Limit"
+          },
+          "units_used": {
+            "default": 0,
+            "title": "Units Used",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "product",
+          "product_name",
+          "plan_code",
+          "plan_name",
+          "status",
+          "unit_name"
+        ],
+        "title": "ProductStateOut",
         "type": "object"
       },
       "ProductionLine-Input": {
@@ -21286,6 +21527,54 @@
           }
         ],
         "summary": "Block Member",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/api/v1/organizations/{org_id}/overview": {
+      "get": {
+        "description": "Организация одним взглядом: объёмы, квоты, срок тарифа, состав (F7).\n\nОтветы были разложены по трём экранам и одному отказу 402, который приходил уже в\nмомент сохранения. Здесь они собраны — **и собраны из существующего**: объёмы\nсчитает `crud.org_volumes`, израсходованную квоту — та же `billing.units_used`,\nкоторой отказывает создание, срок — `billing_period`, ограничение — тот же\n`access.restriction_for`, что и закрывает запись. Второй источник любого из этих\nчисел однажды разошёлся бы с первым.\n\nВидят **все участники**: «почему я не могу завести проект» — вопрос того, кто\nупёрся, а не только того, кто платит. Имён здесь нет, только числа.",
+        "operationId": "read_overview_api_v1_organizations__org_id__overview_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OverviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Overview",
         "tags": [
           "organizations"
         ]

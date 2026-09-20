@@ -332,3 +332,19 @@ export async function deleteOrganization(orgId: string,
     `/api/v1/organizations/${orgId}`, { data: { password } });
   return data;
 }
+
+/**
+ * Организация одним взглядом (F7): объёмы, квоты, срок тарифа, состав.
+ *
+ * **Ни счётчика, ни таблицы** — сервер складывает то, что уже считает: «осталось»
+ * приходит из того же счёта, которым отказывает создание, а причина ограничения — теми
+ * же словами, какими отказывает запись. Пределы `null` значат «без предела», и это
+ * **не ноль**; `notes` — что эти числа не значат — едут вместе с ними.
+ */
+export type Overview = Schema<"OverviewOut">;
+export type ProductState = Schema<"ProductStateOut">;
+
+export async function getOverview(orgId: string): Promise<Overview> {
+  const { data } = await api.get<Overview>(`/api/v1/organizations/${orgId}/overview`);
+  return data;
+}

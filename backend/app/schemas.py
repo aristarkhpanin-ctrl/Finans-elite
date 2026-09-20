@@ -1080,6 +1080,55 @@ class BenchmarkOut(BenchmarkIn):
     updated_at: datetime
 
 
+class ProductStateOut(BaseModel):
+    """Продукт в сводке организации (F7): тариф, квота, срок, ограничение.
+
+    Пределы — `Optional[int]`: `None` значит «без предела», и это **не ноль**.
+    Подставить число значило бы показать корпоративному клиенту «осталось 0» там, где
+    ему можно всё.
+    """
+
+    product: str
+    product_name: str
+    plan_code: str
+    plan_name: str
+    #: `none` — подписку не оформляли; это не то же, что «бесплатный тариф».
+    status: str
+    unit_name: str
+    units_used: int = 0
+    units_limit: Optional[int] = None
+    units_left: Optional[int] = None
+    members_limit: Optional[int] = None
+    members_left: Optional[int] = None
+    period_end: Optional[datetime] = None
+    days_left: Optional[int] = None
+    grace_left: Optional[int] = None
+    restriction_kind: str = ""
+    restriction_reason: str = ""
+    restriction_remedy: str = ""
+    restriction_blocking: bool = False
+
+
+class OverviewOut(BaseModel):
+    """Организация одним взглядом (F7). Собрана из того, что платформа уже считает, —
+    ни счётчика, ни таблицы под неё не заводится. `notes` — что эти числа **не**
+    значат — едут вместе с ними."""
+
+    name: str = ""
+    created_at: Optional[datetime] = None
+    projects: int = 0
+    cases: int = 0
+    groups: int = 0
+    holdings: int = 0
+    members: int = 0
+    members_blocked: int = 0
+    members_unknown: int = 0
+    last_calculated_at: Optional[datetime] = None
+    last_seen_at: Optional[datetime] = None
+    products: list[ProductStateOut] = []
+    notes: list[str] = []
+
+
 class OrgDeletionPlanOut(BaseModel):
     """Что исчезнет вместе с организацией — **до** нажатия кнопки (F6).
 
