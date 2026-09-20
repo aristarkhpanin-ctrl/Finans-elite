@@ -334,7 +334,9 @@ def test_tenant_is_entered_only_in_named_places():
     ``routers/admin.py`` — служебный контур, обходит организации по одной (B1, B3);
     ``crud.py`` — событие человека пишется в журналы **его** организаций (вход, удаление);
     ``personal_data.py`` — свои данные и удаление учётной записи ходят по тем же
-    организациям (C3).
+    организациям (C3);
+    ``org_data.py`` — выгрузка организации целиком и подсчёт того, что исчезнет при её
+    удалении (F6): читает содержимое **одной** организации, стоя в её же дверях.
     """
     app_dir = Path(__file__).resolve().parents[1] / "app"
     callers = sorted(
@@ -342,7 +344,8 @@ def test_tenant_is_entered_only_in_named_places():
         for path in app_dir.rglob("*.py")
         if path.name not in {"database.py"} and "_tenant(" in path.read_text()
     )
-    assert callers == ["crud.py", "deps.py", "personal_data.py", "routers/admin.py"], (
+    assert callers == ["crud.py", "deps.py", "org_data.py", "personal_data.py",
+                       "routers/admin.py"], (
         "арендатор выставляется где-то ещё; это либо новая дверь в чужие данные, "
         f"либо забытый выход из неё: {callers}")
 

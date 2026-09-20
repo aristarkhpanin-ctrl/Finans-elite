@@ -1080,6 +1080,30 @@ class BenchmarkOut(BenchmarkIn):
     updated_at: datetime
 
 
+class OrgDeletionPlanOut(BaseModel):
+    """Что исчезнет вместе с организацией — **до** нажатия кнопки (F6).
+
+    Числа собираются **заново** перед самим удалением: между «показали» и «сделали»
+    проходит время, за которое кто-то мог завести ещё десять проектов, и показать одно,
+    а стереть другое — худший исход необратимого действия.
+    """
+
+    name: str = ""
+    allowed: bool = True
+    projects: int = 0
+    cases: int = 0
+    groups: int = 0
+    members: int = 0
+    #: Сколько участников останутся **без единой организации**: для них это не «выход
+    #: из компании», а пустой продукт при следующем входе.
+    members_left_homeless: int = 0
+    comments: int = 0
+    log_entries: int = 0
+    api_keys: int = 0
+    kept: list[str] = []
+    blockers: list[str] = []
+
+
 class SupportAccessIn(BaseModel):
     """Открыть доступ поддержки к моделям организации (F4).
 

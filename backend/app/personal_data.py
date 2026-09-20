@@ -34,10 +34,13 @@ from . import crud
 from .database import as_tenant
 from .db_models import (
     AnalysisJob,
+    ApiKey,
+    AuditChecklist,
     AuditGroup,
     AuditLogEntry,
     AuditSubject,
     AuditSubjectVersion,
+    Comment,
     Holding,
     HoldingMember,
     IndustryBenchmark,
@@ -47,6 +50,7 @@ from .db_models import (
     Project,
     ProjectVersion,
     Subscription,
+    SupportGrant,
     User,
 )
 
@@ -237,12 +241,42 @@ def delete_account(db: Session, user: User) -> DeletionPlan:
     return plan
 
 
+#: Что стирается вместе с организацией — **перечень, и он проверяется тестом** против
+#: списка таблиц с ``organization_id``. Порядок — от зависимых к главным, чтобы не
+#: осталось строк, ссылающихся в пустоту.
+#:
+#: Забытая здесь таблица не роняет ничего: организация исчезает, а её строки остаются
+#: висеть на несуществующем арендаторе — под RLS их уже никто не увидит, а ключ доступа
+#: или грант поддержки при этом продолжат существовать. Именно так пропали шесть таблиц,
+#: заведённых после C3, и нашлось это при F6.
+PURGED_WITH_ORGANIZATION = (
+    ProjectVersion, AuditSubjectVersion, AnalysisJob, Project, AuditSubject, AuditGroup,
+    Holding, IndustryBenchmark, AuditChecklist, Comment, ApiKey, SupportGrant,
+    Subscription, Payment, AuditLogEntry, Membership,
+)
+
+#: Таблицы с ``organization_id``, которые уходом клиента **не стираются**, — каждая
+#: с причиной. Это не забытые, а оставленные.
+KEPT_AFTER_ORGANIZATION: dict[str, str] = {
+    # Журнал платформы о себе: «где были наши сотрудники». Он принадлежит платформе, а
+    # не клиенту (в отличие от `audit_log`, который уходит вместе с организацией), и
+    # стирать свою же подотчётность, потому что клиент ушёл, — ровно наоборот тому,
+    # ради чего служебный журнал заведён.
+    "staff_log": "журнал платформы о своих сотрудниках — её собственность, а не клиента",
+    # Обезличенная аналитика пользования (E2): ни чисел клиента, ни адресов, только
+    # отпечаток с солью. Стереть её значило бы задним числом переписать собственные
+    # метрики платформы — воронка и удержание прошлых месяцев изменились бы молча.
+    "usage_events": "обезличенные события пользования — метрики платформы о себе",
+}
+
+
 def _purge_organization(db: Session, org_id: str) -> None:
     """Стереть организацию и всё, что ей принадлежит.
 
-    Порядок — от зависимых к главным, чтобы не осталось строк, ссылающихся в пустоту.
-    Журнал этой организации уходит вместе с ней: он её собственность, а не платформы, и
-    хранить его после того, как хранить его больше некому, незачем.
+    Состав — :data:`PURGED_WITH_ORGANIZATION`, исключения — :data:`KEPT_AFTER_ORGANIZATION`,
+    и оба перечня стережёт тест: таблица с ``organization_id``, не названная ни в одном
+    из них, роняет его. Журнал этой организации уходит вместе с ней: он её собственность,
+    а не платформы, и хранить его после того, как хранить его больше некому, незачем.
 
     Всё — **внутри арендатора**: половина этих таблиц под RLS, и запрос без него стёр бы
     на PostgreSQL ноль строк, оставив организацию с данными, которых никто уже не видит.
@@ -254,9 +288,7 @@ def _purge_organization(db: Session, org_id: str) -> None:
             for member in db.execute(select(HoldingMember).where(
                     HoldingMember.holding_id == holding_id)).scalars():
                 db.delete(member)
-        for model in (ProjectVersion, AuditSubjectVersion, AnalysisJob, Project,
-                      AuditSubject, AuditGroup, Holding, IndustryBenchmark, Subscription,
-                      Payment, AuditLogEntry, Membership):
+        for model in PURGED_WITH_ORGANIZATION:
             for row in db.execute(select(model).where(
                     model.organization_id == org_id)).scalars():
                 db.delete(row)

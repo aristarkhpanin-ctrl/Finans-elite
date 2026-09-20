@@ -1757,7 +1757,23 @@ export interface paths {
         get: operations["get_organization_api_v1_organizations__org_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete Organization
+         * @description Удалить организацию со всем, что ей принадлежит, — **по паролю владельца**.
+         *
+         *     Пароль здесь по тому же доводу, что у удаления учётной записи (C3): это ровно то,
+         *     что сделает дорвавшийся до открытой вкладки, и разница между «украли сессию» и
+         *     «украли компанию» — один запрос.
+         *
+         *     Событие пишется **в служебный журнал платформы до удаления**: журнал самой
+         *     организации уходит вместе с ней, а платформа обязана видеть, что клиент ушёл, — и
+         *     после стирания записывать это будет уже некуда.
+         *
+         *     План собирается **заново** внутри :func:`org_data.delete_organization` и
+         *     возвращается как отчёт о сделанном: показать одно, а стереть другое — худший исход
+         *     необратимого действия.
+         */
+        delete: operations["delete_organization_api_v1_organizations__org_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1992,6 +2008,53 @@ export interface paths {
          * @description Заменить чек-листы целиком — как и ориентиры: что на экране, то и в хранилище.
          */
         put: operations["replace_checklists_api_v1_organizations__org_id__checklists_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{org_id}/delete-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview Org Deletion
+         * @description Что исчезнет вместе с организацией — **до** того, как это случится (F6).
+         */
+        get: operations["preview_org_deletion_api_v1_organizations__org_id__delete_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{org_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Organization
+         * @description Забрать всё, что платформа хранит для организации, — одним файлом (F6).
+         *
+         *     Выгрузка была только по одному проекту или делу: «дайте нам наши данные» упиралось
+         *     в обход экранов вручную. Здесь — организация целиком, **с моделями проектов и дел**,
+         *     и файл объясняет себя сам: что внутри, чего внутри нет и почему.
+         *
+         *     **Сама выгрузка пишется в журнал** — вынос данных наружу это событие (правило 5
+         *     пакета), и оно единственное, о котором журнал иначе умолчал бы.
+         */
+        get: operations["export_organization_api_v1_organizations__org_id__export_get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -7338,6 +7401,76 @@ export interface components {
             sales?: components["schemas"]["SalesLine-Output"][];
             /** Staff */
             staff?: components["schemas"]["StaffPosition-Output"][];
+        };
+        /**
+         * OrgDeletionPlanOut
+         * @description Что исчезнет вместе с организацией — **до** нажатия кнопки (F6).
+         *
+         *     Числа собираются **заново** перед самим удалением: между «показали» и «сделали»
+         *     проходит время, за которое кто-то мог завести ещё десять проектов, и показать одно,
+         *     а стереть другое — худший исход необратимого действия.
+         */
+        OrgDeletionPlanOut: {
+            /**
+             * Allowed
+             * @default true
+             */
+            allowed: boolean;
+            /**
+             * Api Keys
+             * @default 0
+             */
+            api_keys: number;
+            /**
+             * Blockers
+             * @default []
+             */
+            blockers: string[];
+            /**
+             * Cases
+             * @default 0
+             */
+            cases: number;
+            /**
+             * Comments
+             * @default 0
+             */
+            comments: number;
+            /**
+             * Groups
+             * @default 0
+             */
+            groups: number;
+            /**
+             * Kept
+             * @default []
+             */
+            kept: string[];
+            /**
+             * Log Entries
+             * @default 0
+             */
+            log_entries: number;
+            /**
+             * Members
+             * @default 0
+             */
+            members: number;
+            /**
+             * Members Left Homeless
+             * @default 0
+             */
+            members_left_homeless: number;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Projects
+             * @default 0
+             */
+            projects: number;
         };
         /** OrganizationCreate */
         OrganizationCreate: {
@@ -14089,6 +14222,41 @@ export interface operations {
             };
         };
     };
+    delete_organization_api_v1_organizations__org_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordConfirmIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgDeletionPlanOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     read_activity_api_v1_organizations__org_id__activity_get: {
         parameters: {
             query?: never;
@@ -14481,6 +14649,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChecklistOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_org_deletion_api_v1_organizations__org_id__delete_preview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgDeletionPlanOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_organization_api_v1_organizations__org_id__export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

@@ -8223,6 +8223,79 @@
         "title": "OperatingPlan",
         "type": "object"
       },
+      "OrgDeletionPlanOut": {
+        "description": "Что исчезнет вместе с организацией — **до** нажатия кнопки (F6).\n\nЧисла собираются **заново** перед самим удалением: между «показали» и «сделали»\nпроходит время, за которое кто-то мог завести ещё десять проектов, и показать одно,\nа стереть другое — худший исход необратимого действия.",
+        "properties": {
+          "allowed": {
+            "default": true,
+            "title": "Allowed",
+            "type": "boolean"
+          },
+          "api_keys": {
+            "default": 0,
+            "title": "Api Keys",
+            "type": "integer"
+          },
+          "blockers": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Blockers",
+            "type": "array"
+          },
+          "cases": {
+            "default": 0,
+            "title": "Cases",
+            "type": "integer"
+          },
+          "comments": {
+            "default": 0,
+            "title": "Comments",
+            "type": "integer"
+          },
+          "groups": {
+            "default": 0,
+            "title": "Groups",
+            "type": "integer"
+          },
+          "kept": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Kept",
+            "type": "array"
+          },
+          "log_entries": {
+            "default": 0,
+            "title": "Log Entries",
+            "type": "integer"
+          },
+          "members": {
+            "default": 0,
+            "title": "Members",
+            "type": "integer"
+          },
+          "members_left_homeless": {
+            "default": 0,
+            "title": "Members Left Homeless",
+            "type": "integer"
+          },
+          "name": {
+            "default": "",
+            "title": "Name",
+            "type": "string"
+          },
+          "projects": {
+            "default": 0,
+            "title": "Projects",
+            "type": "integer"
+          }
+        },
+        "title": "OrgDeletionPlanOut",
+        "type": "object"
+      },
       "OrganizationCreate": {
         "properties": {
           "name": {
@@ -19801,6 +19874,62 @@
       }
     },
     "/api/v1/organizations/{org_id}": {
+      "delete": {
+        "description": "Удалить организацию со всем, что ей принадлежит, — **по паролю владельца**.\n\nПароль здесь по тому же доводу, что у удаления учётной записи (C3): это ровно то,\nчто сделает дорвавшийся до открытой вкладки, и разница между «украли сессию» и\n«украли компанию» — один запрос.\n\nСобытие пишется **в служебный журнал платформы до удаления**: журнал самой\nорганизации уходит вместе с ней, а платформа обязана видеть, что клиент ушёл, — и\nпосле стирания записывать это будет уже некуда.\n\nПлан собирается **заново** внутри :func:`org_data.delete_organization` и\nвозвращается как отчёт о сделанном: показать одно, а стереть другое — худший исход\nнеобратимого действия.",
+        "operationId": "delete_organization_api_v1_organizations__org_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordConfirmIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrgDeletionPlanOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Organization",
+        "tags": [
+          "organizations"
+        ]
+      },
       "get": {
         "operationId": "get_organization_api_v1_organizations__org_id__get",
         "parameters": [
@@ -20662,6 +20791,100 @@
           }
         ],
         "summary": "Replace Checklists",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/api/v1/organizations/{org_id}/delete-preview": {
+      "get": {
+        "description": "Что исчезнет вместе с организацией — **до** того, как это случится (F6).",
+        "operationId": "preview_org_deletion_api_v1_organizations__org_id__delete_preview_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrgDeletionPlanOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Preview Org Deletion",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/api/v1/organizations/{org_id}/export": {
+      "get": {
+        "description": "Забрать всё, что платформа хранит для организации, — одним файлом (F6).\n\nВыгрузка была только по одному проекту или делу: «дайте нам наши данные» упиралось\nв обход экранов вручную. Здесь — организация целиком, **с моделями проектов и дел**,\nи файл объясняет себя сам: что внутри, чего внутри нет и почему.\n\n**Сама выгрузка пишется в журнал** — вынос данных наружу это событие (правило 5\nпакета), и оно единственное, о котором журнал иначе умолчал бы.",
+        "operationId": "export_organization_api_v1_organizations__org_id__export_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Export Organization",
         "tags": [
           "organizations"
         ]

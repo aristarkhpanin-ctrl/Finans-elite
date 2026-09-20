@@ -3,13 +3,14 @@ from __future__ import annotations
 
 import csv
 import io
+import json
 from datetime import datetime, timezone
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
-from .. import billing, crud, mail, support_access, usage
+from .. import billing, crud, mail, org_data, support_access, usage
 from ..access import restriction_for
 from ..activity import build_activity
 from ..database import get_db
@@ -35,6 +36,8 @@ from ..schemas import (
     OrganizationCreate,
     OrganizationMembershipOut,
     OrganizationOut,
+    OrgDeletionPlanOut,
+    PasswordConfirmIn,
     RestrictionOut,
     SupportAccessIn,
     SupportAccessOut,
@@ -42,7 +45,7 @@ from ..schemas import (
     TransferOwnershipIn,
     activity_response,
 )
-from ..security import create_invite_token, create_reset_token
+from ..security import create_invite_token, create_reset_token, verify_password
 
 
 def _benchmark_out(b) -> BenchmarkOut:
@@ -408,6 +411,106 @@ def replace_benchmarks(body: list[BenchmarkIn],
     crud.log_action(db, org_id, actor, "benchmarks.replace", entity_type="organization",
                     entity_id=org_id, details=f"строк: {len(rows)}")
     return [_benchmark_out(b) for b in saved]
+
+
+def _plan_out(plan) -> OrgDeletionPlanOut:
+    """Отчёт о плане — из одного места: предпросмотр и само удаление возвращают ровно
+    одно и то же, и разойтись не могут."""
+    return OrgDeletionPlanOut(
+        name=plan.name, allowed=plan.allowed, projects=plan.projects, cases=plan.cases,
+        groups=plan.groups, members=plan.members,
+        members_left_homeless=plan.members_left_homeless, comments=plan.comments,
+        log_entries=plan.log_entries, api_keys=plan.api_keys, kept=plan.kept,
+        blockers=plan.blockers)
+
+
+@router.get("/{org_id}/export")
+def export_organization(org_id: str = Depends(require_org_permission(Perm.ORG_MANAGE)),
+                        actor: User = Depends(current_user),
+                        db: Session = Depends(get_db)) -> Response:
+    """Забрать всё, что платформа хранит для организации, — одним файлом (F6).
+
+    Выгрузка была только по одному проекту или делу: «дайте нам наши данные» упиралось
+    в обход экранов вручную. Здесь — организация целиком, **с моделями проектов и дел**,
+    и файл объясняет себя сам: что внутри, чего внутри нет и почему.
+
+    **Сама выгрузка пишется в журнал** — вынос данных наружу это событие (правило 5
+    пакета), и оно единственное, о котором журнал иначе умолчал бы.
+    """
+    org = crud.get_organization(db, org_id)
+    if org is None:
+        raise HTTPException(status_code=404, detail="Организация не найдена")
+    payload = org_data.build_export(db, org)
+    crud.log_action(db, org_id, actor, "org.export", entity_type="organization",
+                    entity_id=org_id, entity_name=org.name,
+                    details=(f"проектов: {len(payload['проекты'])}, "
+                             f"дел: {len(payload['дела'])}"))
+    body = json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
+    return Response(
+        content=body, media_type="application/json; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="organization.json"'},
+    )
+
+
+def _owner_or_403(db: Session, org_id: str, user: User):
+    """Закрыть организацию может **владелец**, а не всякий с правом `org.manage`.
+
+    Администратор ведёт участников и справочники — это работа внутри компании. Закрытие
+    самой компании такой работой не является: за тариф платит владелец, и решение уйти
+    принимает он. Отказ называет, к кому идти, а не «недостаточно прав».
+    """
+    membership = crud.get_membership(db, org_id, user.id)
+    if membership is None or membership.role != "owner":
+        raise HTTPException(
+            status_code=403,
+            detail="Удалить организацию может только её владелец. Администратор ведёт "
+                   "участников и справочники, но закрытие компании — решение того, кто "
+                   "за неё платит.")
+    org = crud.get_organization(db, org_id)
+    if org is None:
+        raise HTTPException(status_code=404, detail="Организация не найдена")
+    return org
+
+
+@router.get("/{org_id}/delete-preview", response_model=OrgDeletionPlanOut)
+def preview_org_deletion(org_id: str = Depends(require_membership),
+                         user: User = Depends(current_user),
+                         db: Session = Depends(get_db)) -> OrgDeletionPlanOut:
+    """Что исчезнет вместе с организацией — **до** того, как это случится (F6)."""
+    org = _owner_or_403(db, org_id, user)
+    return _plan_out(org_data.deletion_plan(db, org))
+
+
+@router.delete("/{org_id}", response_model=OrgDeletionPlanOut)
+def delete_organization(body: PasswordConfirmIn,
+                        org_id: str = Depends(require_membership),
+                        user: User = Depends(current_user),
+                        db: Session = Depends(get_db)) -> OrgDeletionPlanOut:
+    """Удалить организацию со всем, что ей принадлежит, — **по паролю владельца**.
+
+    Пароль здесь по тому же доводу, что у удаления учётной записи (C3): это ровно то,
+    что сделает дорвавшийся до открытой вкладки, и разница между «украли сессию» и
+    «украли компанию» — один запрос.
+
+    Событие пишется **в служебный журнал платформы до удаления**: журнал самой
+    организации уходит вместе с ней, а платформа обязана видеть, что клиент ушёл, — и
+    после стирания записывать это будет уже некуда.
+
+    План собирается **заново** внутри :func:`org_data.delete_organization` и
+    возвращается как отчёт о сделанном: показать одно, а стереть другое — худший исход
+    необратимого действия.
+    """
+    org = _owner_or_403(db, org_id, user)
+    if not verify_password(user.hashed_password, body.password):
+        raise HTTPException(status_code=400, detail="Пароль неверен")
+    preview = org_data.deletion_plan(db, org)
+    if not preview.allowed:
+        raise HTTPException(status_code=409, detail=" ".join(preview.blockers))
+    crud.log_staff_action(
+        db, user, "org.delete", org_id=org_id, org_name=org.name,
+        details=(f"удалил владелец {user.email}; проектов: {preview.projects}, "
+                 f"дел: {preview.cases}, участников: {preview.members}"))
+    return _plan_out(org_data.delete_organization(db, org))
 
 
 def _grant_out(g, now: datetime) -> SupportGrantOut:

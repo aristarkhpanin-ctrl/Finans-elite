@@ -298,3 +298,37 @@ export async function revokeSupportAccess(orgId: string): Promise<SupportAccess>
     `/api/v1/organizations/${orgId}/support-access`);
   return data;
 }
+
+/**
+ * Забрать всё и уйти (F6).
+ *
+ * У человека права 152-ФЗ закрыты давно, у организации не было ни выгрузки, ни
+ * удаления. Выгрузка несёт **модели проектов и дел целиком** и объясняет себя сама;
+ * удаление требует пароля владельца и собирает план **заново** перед тем, как стереть.
+ */
+export type OrgDeletionPlan = Schema<"OrgDeletionPlanOut">;
+
+export async function downloadOrgExport(orgId: string, orgName = "организация") {
+  const { data } = await api.get<Blob>(`/api/v1/organizations/${orgId}/export`,
+                                       { responseType: "blob" });
+  const url = URL.createObjectURL(data);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${orgName}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function getOrgDeletePreview(orgId: string): Promise<OrgDeletionPlan> {
+  const { data } = await api.get<OrgDeletionPlan>(
+    `/api/v1/organizations/${orgId}/delete-preview`);
+  return data;
+}
+
+/** Удалить организацию. Возвращает отчёт о **сделанном**, а не о показанном ранее. */
+export async function deleteOrganization(orgId: string,
+                                         password: string): Promise<OrgDeletionPlan> {
+  const { data } = await api.delete<OrgDeletionPlan>(
+    `/api/v1/organizations/${orgId}`, { data: { password } });
+  return data;
+}

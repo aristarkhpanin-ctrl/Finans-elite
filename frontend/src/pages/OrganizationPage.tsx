@@ -10,6 +10,7 @@ import { BenchmarksTab } from "./org/BenchmarksTab";
 import { ChecklistsTab } from "./org/ChecklistsTab";
 import { ApiKeysTab } from "./org/ApiKeysTab";
 import { SupportAccessTab } from "./org/SupportAccessTab";
+import { DataTab } from "./org/DataTab";
 
 const TABS = [
   ["members", "Участники"],
@@ -19,6 +20,7 @@ const TABS = [
   ["checklists", "Чек-листы"],
   ["apikeys", "Ключи API"],
   ["support", "Доступ поддержки"],
+  ["data", "Данные"],
   ["log", "Журнал доступа"],
   ["billing", "Тариф и оплата"],
 ] as const;
@@ -98,6 +100,18 @@ export function OrganizationPage() {
           видят все участники — «кто пустил платформу в наши числа» не секрет от тех,
           чьи это числа; открывает и закрывает тот, кто отвечает за организацию. */}
       {tab === "support" && <SupportAccessTab orgId={currentOrgId} canManage={canManageOrg} />}
+      {/* Забрать всё и уйти (F6). Выгрузку организации целиком берёт тот, кто за неё
+          отвечает; закрыть компанию может только владелец — за тариф платит он. */}
+      {tab === "data" && (canManageOrg
+        ? <DataTab orgId={currentOrgId} orgName={org?.name ?? "организация"}
+                   isOwner={myRole === "owner"} />
+        : <div className="tab-empty">
+            <div className="tab-empty__title">Выгрузка доступна администраторам</div>
+            <div className="tab-empty__sub">
+              Файл содержит модели всех проектов и дел организации, поэтому забирает его
+              тот, кто за неё отвечает. Ваша роль — {roleLabel(myRole)}.
+            </div>
+          </div>)}
       {tab === "log" && (canManageOrg
         ? <AuditLogTab orgId={currentOrgId} initialActor={logActor} />
         : <div className="tab-empty">

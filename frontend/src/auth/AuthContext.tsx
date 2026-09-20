@@ -13,6 +13,14 @@ interface AuthState {
   register: (p: RegisterPayload) => Promise<void>;
   logout: () => void;
   selectOrg: (orgId: string) => void;
+  /**
+   * Перечитать профиль и список организаций.
+   *
+   * Нужен там, где состав организаций меняется помимо входа, — сейчас это удаление
+   * организации (F6). Без него продукт продолжал бы показывать арендатора, которого
+   * больше нет, и следующий запрос упирался бы в отказ без объяснения.
+   */
+  refresh: () => Promise<void>;
 }
 
 const AuthCtx = createContext<AuthState | null>(null);
@@ -27,9 +35,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [me, orgs] = await Promise.all([getMe(), getMyOrganizations()]);
     setUser(me);
     setOrganizations(orgs);
-    if (orgs.length > 0 && !getOrgId()) {
+    // Выбранная организация могла исчезнуть (её удалили — F6 — или человека из неё
+    // вывели): держаться за мёртвого арендатора значило бы слать запросы, на которые
+    // сервер отвечает отказом, и показывать этот отказ как поломку.
+    const chosen = getOrgId();
+    const alive = orgs.some((o) => o.id === chosen);
+    if (orgs.length > 0 && (!chosen || !alive)) {
       setOrgId(orgs[0].id);
       setCurrentOrgId(orgs[0].id);
+    } else if (orgs.length === 0) {
+      setOrgId(null);
+      setCurrentOrgId(null);
     }
   }
 
@@ -65,7 +81,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const value = useMemo<AuthState>(
-    () => ({ user, organizations, currentOrgId, loading, login, register, logout, selectOrg }),
+    () => ({ user, organizations, currentOrgId, loading, login, register, logout,
+             selectOrg, refresh: loadProfile }),
     // login/register/logout/selectOrg стабильны по поведению; их включение в deps
     // пересоздавало бы value каждый рендер — осознанно исключаем.
     // eslint-disable-next-line react-hooks/exhaustive-deps
