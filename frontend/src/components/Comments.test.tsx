@@ -46,6 +46,7 @@ const row = (over: Partial<Comment> = {}): Comment => ({
 afterEach(cleanup);
 beforeEach(() => {
   vi.clearAllMocks();
+  localStorage.clear();
   getComments.mockResolvedValue([row()]);
   addComment.mockResolvedValue({
     comment: row({ id: "c2", body: "новая" }), notified: [], unknown_mentions: [],
@@ -231,4 +232,67 @@ it("реплика без ссылок оговорки не несёт", async 
   await screen.findByText("Откуда такая себестоимость?");
   expect(screen.queryByRole("link")).toBeNull();
   expect(screen.queryByText(/не хранит/)).toBeNull();
+});
+
+
+// --- F9: черновик реплики ---
+
+it("набранный текст переживает закрытие панели", async () => {
+  // Остаток D3: страж несохранённого ввода эту панель не ловит — он про модель, — и
+  // длинный вопрос к строке отчёта приходилось набирать заново.
+  show();
+  await screen.findByText("Откуда такая себестоимость?");
+  fireEvent.change(screen.getByLabelText("Новая реплика"),
+                   { target: { value: "почему выручка падает в марте?" } });
+
+  cleanup();
+  show();
+  expect((await screen.findByLabelText("Новая реплика") as HTMLTextAreaElement).value)
+    .toBe("почему выручка падает в марте?");
+});
+
+it("восстановленный черновик говорит, что он локальный", async () => {
+  // Пообещать, что он найдётся на другом устройстве, нельзя — а молча не найтись хуже.
+  show();
+  fireEvent.change(await screen.findByLabelText("Новая реплика"),
+                   { target: { value: "черновик" } });
+  cleanup();
+  show();
+
+  expect(await screen.findByText(/остался в этом браузере/)).toBeTruthy();
+});
+
+it("строка о черновике не висит при обычном наборе", async () => {
+  // Подпись, которая видна всегда, перестают читать — как и предупреждение, которое
+  // показывают на пустом месте.
+  show();
+  fireEvent.change(await screen.findByLabelText("Новая реплика"),
+                   { target: { value: "пишу прямо сейчас" } });
+  expect(screen.queryByText(/остался в этом браузере/)).toBeNull();
+});
+
+it("черновик другой ветки не подставляется", async () => {
+  // Обсуждение о цене не должно подставлять текст из обсуждения сроков.
+  show();
+  fireEvent.change(await screen.findByLabelText("Новая реплика"),
+                   { target: { value: "про себестоимость" } });
+  cleanup();
+
+  show({ anchor: "tab:calendar", anchorLabel: "Календарный план" });
+  expect((await screen.findByLabelText("Новая реплика") as HTMLTextAreaElement).value)
+    .toBe("");
+});
+
+it("отправленная реплика черновиком больше не является", async () => {
+  show();
+  await screen.findByText("Откуда такая себестоимость?");
+  fireEvent.change(screen.getByLabelText("Новая реплика"),
+                   { target: { value: "вопрос" } });
+  fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
+  await waitFor(() => expect(addComment).toHaveBeenCalled());
+
+  cleanup();
+  show();
+  expect((await screen.findByLabelText("Новая реплика") as HTMLTextAreaElement).value)
+    .toBe("");
 });

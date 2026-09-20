@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { addComment, deleteComment, getComments, getThreadSubscription, resolveComment,
          setThreadSubscription, type Comment, type Subject } from "../api/comments";
 import { httpDetail } from "../api/client";
+import { clearDraft, draftKey, readDraft, writeDraft, DRAFT_NOTE }
+  from "../commentDraft";
 import { useAuth } from "../auth/AuthContext";
 import { useToast } from "./Toast";
 import { Button } from "./ui";
@@ -30,7 +32,15 @@ export function Comments({ subject, anchor = "", anchorLabel = "", title = "Об
   const qc = useQueryClient();
   const toast = useToast();
   const { user } = useAuth();
-  const [text, setText] = useState("");
+  // Черновик живёт в браузере (F9): набранный текст пропадал при закрытии вкладки, а
+  // страж несохранённого ввода его не ловит — он про модель, а не про эту панель.
+  const draft = draftKey(subject.kind, subject.id, anchor);
+  const [text, setText] = useState(() => readDraft(draft));
+  // «Черновик остался» показывается только там, где он **был восстановлен**: строка,
+  // висящая при каждом наборе, превращается в шум и перестаёт читаться.
+  const [restored, setRestored] = useState(() => readDraft(draft) !== "");
+
+  useEffect(() => { writeDraft(draft, text); }, [draft, text]);
 
   const key = ["comments", subject.kind, subject.id, anchor];
   const { data, isLoading } = useQuery({
@@ -43,6 +53,9 @@ export function Comments({ subject, anchor = "", anchorLabel = "", title = "Об
     mutationFn: () => addComment(subject, text.trim(), anchor, anchorLabel),
     onSuccess: (created) => {
       setText("");
+      // Отправленное черновиком уже не является.
+      clearDraft(draft);
+      setRestored(false);
       refresh();
       // Нераспознанное упоминание называется вслух: «позвал, и никто не пришёл» —
       // худший вид тишины.
@@ -132,8 +145,11 @@ export function Comments({ subject, anchor = "", anchorLabel = "", title = "Об
         placeholder="Что обсуждаем? Упомянуть коллегу — @почта@компании.ру"
         value={text}
         disabled={say.isPending}
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e) => { setText(e.target.value); setRestored(false); }}
       />
+      {/* Обещание держится буквально: черновик локальный, и сказать об этом надо до
+          того, как человек сядет за другой компьютер. */}
+      {restored && <div className="cmt__hint">{DRAFT_NOTE}</div>}
       <div className="cmt__foot">
         {/* Упоминание зовёт посмотреть, но не открывает доступ: обещать иное значило бы
             подменять права на проект строкой в тексте. */}

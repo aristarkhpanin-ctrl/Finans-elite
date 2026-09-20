@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { getMe, getMyOrganizations, login as apiLogin, register as apiRegister } from "../api/auth";
 import { getOrgId, getToken, setOrgId, setToken } from "../api/client";
+import { clearAllDrafts } from "../commentDraft";
 import type { LoginPayload, OrganizationMembership, RegisterPayload, User } from "../api/types";
 
 interface AuthState {
@@ -70,6 +71,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   function logout() {
     setToken(null);
     setOrgId(null);
+    // Черновики реплик (F9) — несказанные слова того, кто уходит. Следующему человеку
+    // за этим же браузером их видеть незачем.
+    clearAllDrafts();
     setUser(null);
     setOrganizations([]);
     setCurrentOrgId(null);
