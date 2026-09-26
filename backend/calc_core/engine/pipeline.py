@@ -38,7 +38,7 @@ from .financing_auto import AutoInjection
 from .inventory import finished_goods, purchase_schedule, work_in_progress
 from .taxes import TaxInjection, _payment_schedule
 from .timing import cost_timing, sales_timing
-from .vat import settle_vat
+from .vat import output_on_earliest_date, settle_vat
 
 # Функции издержек, попадающие в «Общие издержки» (C5) и «Затраты на персонал» (C6).
 _STAFF_FUNCTIONS = {
@@ -129,7 +129,9 @@ def _sales(model: ProjectModel, n: int, vat_rate: Decimal,
 
     ОПУ — без НДС (I1 = нетто-выручка); деньги и оборотный капитал — с НДС. Экспортные
     (валютные) строки — без НДС, с пересчётом по ``fx[t]``; их дебиторка/авансы
-    переоцениваются → курсовая разница ``i25_sales`` (SPEC §22.3).
+    переоцениваются → курсовая разница ``i25_sales`` (SPEC §22.3). Исходящий НДС — в трёх
+    видах: по отгрузке, в полученных деньгах и остаток НДС с авансов (по строкам, та же
+    схема оплаты, что у авансов B24) — из них собирается признание (SPEC §11).
     """
     i1 = zeros(n)
     c1 = zeros(n)
@@ -137,6 +139,7 @@ def _sales(model: ProjectModel, n: int, vat_rate: Decimal,
     b24 = zeros(n)
     vat_out = zeros(n)        # исходящий НДС начислено (по отгрузке)
     vat_out_paid = zeros(n)   # исходящий НДС в полученных деньгах (по оплате)
+    vat_advances = zeros(n)   # остаток НДС с полученных авансов на конец периода
     recv_f = zeros(n)         # валютная дебиторка (в валюте) — для переоценки
     adv_f = zeros(n)          # валютные авансы (в валюте) — для переоценки
     product_names = {p.id: p.name for p in model.operating_plan.products}
@@ -166,7 +169,8 @@ def _sales(model: ProjectModel, n: int, vat_rate: Decimal,
             gross = [revenue[t] * one_plus for t in range(n)]        # с НДС (→ деньги/WC)
             cash, recv, adv = sales_timing(gross, line.payment, n)
             vat_amt = [revenue[t] * line_vat for t in range(n)]
-            vat_cash, _, _ = sales_timing(vat_amt, line.payment, n)  # НДС в деньгах (та же схема)
+            # НДС в деньгах и в остатке авансов — та же схема оплаты, что у выручки.
+            vat_cash, _, vat_adv = sales_timing(vat_amt, line.payment, n)
             revenue_rub, cash_rub = revenue, cash
             i1 = add(i1, revenue)
             c1 = add(c1, cash)
@@ -174,6 +178,7 @@ def _sales(model: ProjectModel, n: int, vat_rate: Decimal,
             b24 = add(b24, adv)
             vat_out = add(vat_out, vat_amt)
             vat_out_paid = add(vat_out_paid, vat_cash)
+            vat_advances = add(vat_advances, vat_adv)
         if details is not None:
             details.put("I1", pname, revenue_rub)
             details.put("C1", pname, cash_rub)
@@ -182,7 +187,7 @@ def _sales(model: ProjectModel, n: int, vat_rate: Decimal,
     for t in range(n):
         net_start = (recv_f[t - 1] - adv_f[t - 1]) if t > 0 else ZERO
         i25_sales[t] = net_start * (fx[t] - fx_prev[t])
-    return i1, c1, b2, b24, vat_out, vat_out_paid, i25_sales
+    return i1, c1, b2, b24, vat_out, vat_out_paid, vat_advances, i25_sales
 
 
 def _production_by_product(model: ProjectModel, n: int) -> dict[str, list[Decimal]]:
@@ -922,7 +927,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
         _inflation_year_rates(settings.inflation_general, settings.inflation_general_series), n)
 
     # --- операционный контур (accrual + cash + оборотный капитал + запасы + НДС) ---
-    i1, c1, b2, b24, vat_out, vat_out_paid, i25_sales = _sales(
+    i1, c1, b2, b24, vat_out, vat_out_paid, vat_advances, i25_sales = _sales(
         model, n, vat_rate, fx, fx_prev, idx_sales, details)
     tp, tq = _volumes(model, n)
     mc, wc, c2, c3, b3, pay_direct, vat_in_mat, vat_in_paid_mat, i25_materials = \
@@ -1049,15 +1054,18 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
     vat_in_accrued = add(vat_in_mat, vat_in_fixed, vat_in_capex)
     vat_in_paid = add(vat_in_paid_mat, vat_in_paid_fixed, vat_in_capex)
 
-    # Момент признания НДС (SPEC §22.2): «по отгрузке» — начисление; «по оплате» — деньги.
+    # Момент признания НДС (SPEC §22.2): «по оплате» — деньги; «по отгрузке» — начисление,
+    # а с полученного аванса — при получении денег (наиболее ранняя из дат, п. 1 ст. 167).
     if settings.vat_basis == VatBasis.PAYMENT:
         out_settle, in_settle = vat_out_paid, vat_in_paid
     else:
-        out_settle, in_settle = vat_out, vat_in_accrued
+        out_settle = output_on_earliest_date(vat_out, vat_advances)
+        in_settle = vat_in_accrued
     vat_to_budget, credit_carry = settle_vat(out_settle, in_settle, n)
 
     # Балансовые статьи НДС (разрывы начисление↔признание паркуются, инвариант сохраняется):
-    # B7 — входной НДС-актив (накоплен, ещё не зачтён); B21 — отложенный исходящий НДС.
+    # B7 — НДС-актив (кредит, входной вне зачёта, НДС с полученных авансов, уплаченный до
+    # отгрузки); B21 — отложенный исходящий НДС.
     cum_out_acc, cum_out_set = cumulative(vat_out), cumulative(out_settle)
     cum_in_acc, cum_in_set = cumulative(vat_in_accrued), cumulative(in_settle)
     b7 = zeros(n)
@@ -1066,7 +1074,9 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
         deferred_out = cum_out_acc[t] - cum_out_set[t]   # начислен, но не признан к уплате
         in_not_settled = cum_in_acc[t] - cum_in_set[t]   # начислен, но не предъявлен к вычету
         b21[t] = max(ZERO, deferred_out)
-        # B7 = неиспользованный НДС-кредит + входной НДС вне зачёта + НДС с авансов выданных
+        # B7 = неиспользованный НДС-кредит + входной НДС вне зачёта + НДС с авансов
+        # **полученных** (признан раньше отгрузки). Авансов выданных движок не моделирует —
+        # прежняя подпись «выданных» была неверной.
         b7[t] = credit_carry[t] + in_not_settled + max(ZERO, -deferred_out)
 
     # --- Кэш-фло (оплата, с НДС) ---

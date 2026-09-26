@@ -19,7 +19,10 @@ SPEC §22 с тех пор, как движок начали писать. Ка�
 
 **Слой чисто читающий.** Как ревью плана и слои due diligence: чистая функция над моделью
 и готовым результатом, в ``CalcResult`` не входит, golden-снимок не двигает. Изменить
-методику картой невозможно — она о ней только рассказывает.
+методику картой невозможно — она о ней только рассказывает. Одно место считает сверх
+прочитанного: режим НДС «по оплате» судится пересчётом **копии** модели по норме, потому
+что признание по норме в его результат не попадает (:func:`_payment_basis_gap`) — тем же
+движком, без второй копии правил.
 
 **Карта не подтверждает трактовки.** Подтверждение — работа человека с профессиональным
 суждением на реальных проектах; карта лишь показывает ему, что именно подтверждать, и
@@ -46,7 +49,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from decimal import Decimal
 
+from .engine import run
 from .models import ProjectModel
+from .models.common import VatBasis
 from .models.project import LOSS_CARRYFORWARD_NORM
 from .reports.result import CalcResult
 from .reports.statements import TAX_YEAR_MONTHS, carry_losses
@@ -223,15 +228,39 @@ def _i24(model: ProjectModel, result: CalcResult) -> Choice:
     )
 
 
-def _has_prepayment(model: ProjectModel) -> bool:
-    """Есть ли в сбыте предоплата — деньги раньше отгрузки (в любой из двух схем)."""
-    for line in model.operating_plan.sales:
-        p = line.payment
-        if p.prepayment_share > 0:
-            return True
-        if any(part.offset_months < 0 and part.share > 0 for part in p.schedule):
-            return True
-    return False
+def _vat_paid(result: CalcResult) -> list[Decimal]:
+    """НДС в кассе по месяцам — слагаемое C12, сохранённое конвейером (без него — нули)."""
+    for detail in result.details:
+        if detail.code == "C12":
+            for item in detail.items:
+                if item.name == "НДС к уплате":
+                    return list(item.values)
+    return [Decimal(0)] * result.n
+
+
+def _payment_basis_gap(model: ProjectModel, result: CalcResult) -> Decimal:
+    """Насколько режим «по оплате» уводит НДС к уплате от нормы — по числам.
+
+    Норма (п. 1 ст. 167, п. 1 ст. 172) — это режим «по отгрузке» с 0.9.45, поэтому судить
+    можно только пересчётом: признание по отгрузке в результат режима «по оплате» не
+    попадает. Пересчитывается **копия** модели тем же движком — ни модель, ни результат
+    не меняются, второй копии правил здесь нет. Ответ — наибольшее расхождение по месяцам
+    накопленного НДС к уплате и балансовых строк НДС (B7, B21): при большом входном
+    кредите касса в обоих режимах может быть нулевой, а баланс — разным. Ноль — режим в
+    этой модели ничего не сдвигает.
+    """
+    at_norm = model.model_copy(deep=True)
+    at_norm.settings.vat_basis = VatBasis.SHIPMENT
+    norm_result = run(at_norm)
+    gap, acc = Decimal(0), Decimal(0)
+    for a, b in zip(_vat_paid(result), _vat_paid(norm_result), strict=True):
+        acc += b - a
+        gap = max(gap, abs(acc))
+    for code in ("B7", "B21"):
+        for a, b in zip(_line(result, "balance", code), _line(norm_result, "balance", code),
+                        strict=True):
+            gap = max(gap, abs(b - a))
+    return gap
 
 
 def _vat(model: ProjectModel, result: CalcResult) -> Choice:
@@ -241,37 +270,50 @@ def _vat(model: ProjectModel, result: CalcResult) -> Choice:
     # имущество, и при выключенном НДС непустая C12 читалась бы как «НДС всё-таки есть».
     receivable = _nonzero(_line(result, "balance", "B7"))
     payable = _nonzero(_line(result, "balance", "B21"))
-    # Расхождение объявляется только там, где оно действительно есть: НДС включён,
-    # режим «по отгрузке» и в сбыте есть предоплата. У модели без авансов начислять
-    # нечего, и предупреждение о ней было бы шумом.
-    advance_gap = rate > 0 and basis == "shipment" and _has_prepayment(model)
+    evidence: dict = {"vat_rate": str(rate), "vat_receivable_b7": str(receivable),
+                      "vat_payable_b21": str(payable)}
+    # НДС с полученных авансов в режиме «по отгрузке» начисляется с 0.9.45 (G11) — там
+    # расхождения больше нет. Режим «по оплате» — упрощение: норма признаёт НДС по
+    # наиболее ранней дате, а вычет — по принятию на учёт, и где есть отсрочки оплаты,
+    # он сдвигает НДС. Называется только там, где сдвиг действительно есть.
+    divergence = ""
+    if rate > 0 and basis == "payment":
+        gap = _payment_basis_gap(model, result)
+        if gap > 0:
+            evidence["vat_gap_vs_norm_max"] = str(gap)
+            divergence = (
+                "Режим «по оплате» признаёт НДС по деньгам: исходящий — при получении "
+                "оплаты, входной — при оплате поставщику. Норма иначе: база — на наиболее "
+                "раннюю из дат отгрузки и оплаты (п. 1 ст. 167 НК РФ), то есть при оплате "
+                "после отгрузки — в день отгрузки, а вычет входного — по принятию на учёт, "
+                "без оплаты (п. 1 ст. 172). В этой модели есть отсрочки оплаты, и НДС по "
+                "месяцам — к уплате или в балансе (B7, B21) — расходится с расчётом по "
+                "норме, то есть с режимом «по отгрузке».")
     return Choice(
         id="vat.basis",
         number=2,
         title="Момент признания НДС",
         spec="SPEC §11",
-        chosen=("По отгрузке: НДС начисляется в момент реализации."
+        chosen=("По отгрузке, на наиболее раннюю из дат: НДС начисляется при реализации, а "
+                "с полученного аванса — при получении денег и принимается к вычету при "
+                "отгрузке; уплаченный НДС с аванса — в B7 до отгрузки."
                 if basis == "shipment" else
                 "По оплате: НДС признаётся по факту денег; отложенный исходящий → B21, "
-                "входной вне зачёта → B7."),
+                "входной вне зачёта и НДС с полученных авансов → B7."),
         controls=["settings.vat_rate", "settings.vat_basis", "settings.vat_periodicity"],
-        open_question="НДС с полученных авансов и режим возврата переплаты в C12.",
+        open_question="Режим возврата переплаты НДС в C12.",
         resolution="citable",
         proposed_basis="п. 1 ст. 167 НК РФ: момент определения базы — **наиболее ранняя** "
-                       "из дат отгрузки и оплаты, поэтому с полученного аванса НДС "
-                       "начисляется сразу, а при отгрузке принимается к вычету "
-                       "(п. 8 ст. 171, п. 6 ст. 172). Возврат переплаты — ст. 176 НК РФ.",
-        divergence=(
-            "В этой модели есть предоплата, а режим — «по отгрузке»: НДС с полученного "
-            "аванса не начисляется, база возникает только при отгрузке. Уплата НДС "
-            "сдвигается на более поздний месяц, и касса в промежутке завышена. В режиме "
-            "«по оплате» расхождения нет — там НДС идёт за деньгами."
-            if advance_gap else ""),
+                       "из дат отгрузки и оплаты; с полученного аванса НДС начисляется "
+                       "сразу, а при отгрузке принимается к вычету (п. 8 ст. 171, п. 6 "
+                       "ст. 172) — так считает режим «по отгрузке» с 0.9.45. Вычет входного "
+                       "НДС — по принятию на учёт (п. 1 ст. 172). Возврат переплаты — "
+                       "ст. 176 НК РФ.",
+        divergence=divergence,
         engaged=rate > 0,
         silent_because="" if rate > 0 else
                        "НДС в модели выключен (ставка 0) — момент признания ни на что не влияет.",
-        evidence={"vat_rate": str(rate), "vat_receivable_b7": str(receivable),
-                  "vat_payable_b21": str(payable)},
+        evidence=evidence,
     )
 
 

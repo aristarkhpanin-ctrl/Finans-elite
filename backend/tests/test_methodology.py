@@ -311,27 +311,47 @@ def test_the_project_year_is_named_only_where_the_calendar_would_change_numbers(
     assert "календарный год" not in _loss_item(cafe).divergence
 
 
-def test_the_advance_vat_divergence_needs_all_three_conditions():
-    """НДС с аванса расходится с п. 1 ст. 167 НК только там, где есть что начислять:
-    НДС включён, режим «по отгрузке» и в сбыте действительно есть предоплата."""
+def test_the_advance_vat_divergence_is_gone_from_the_shipment_basis():
+    """До 0.9.45 в режиме «по отгрузке» НДС с полученного аванса не начислялся (п. 1
+    ст. 167 НК требует наиболее раннюю из дат). G11 это исправил — расхождения нет ни у
+    одного шаблона, в том числе с настоящим авансом (деньги за месяц до отгрузки)."""
+    from calc_core.templates import INDUSTRY_TEMPLATES
+
+    for key, template in INDUSTRY_TEMPLATES.items():
+        assert _by_id(_map(template.build()), "vat.basis").divergence == "", key
+    ahead = INDUSTRY_TEMPLATES["saas"].build()
+    ahead.operating_plan.sales[0].payment.advance_lead_months = 1
+    item = _by_id(_map(ahead), "vat.basis")
+    assert item.divergence == "" and "аванса" in item.chosen and "167" in item.proposed_basis
+
+
+def test_the_payment_basis_is_named_where_deferrals_move_the_vat():
+    """«По оплате» — упрощение: база по норме — наиболее ранняя дата, вычет — по принятию
+    на учёт (п. 1 ст. 172). Раньше карта писала «в режиме „по оплате“ расхождения нет» —
+    это была неправда для любой модели с отсрочкой оплаты. Судится пересчётом копии по
+    норме: названо только там, где числа действительно другие."""
     from calc_core.models.common import VatBasis
     from calc_core.templates import INDUSTRY_TEMPLATES
 
-    prepaid = INDUSTRY_TEMPLATES["saas"].build()             # предоплата 100%
-    assert _by_id(_map(prepaid), "vat.basis").divergence
+    deferred = INDUSTRY_TEMPLATES["logistics"].build()
+    deferred.settings.vat_basis = VatBasis.PAYMENT
+    item = _by_id(_map(deferred), "vat.basis")
+    assert "167" in item.divergence and "172" in item.divergence
+    assert Decimal(item.evidence["vat_gap_vs_norm_max"]) > 0
 
-    # «По оплате» — НДС и так идёт за деньгами, расхождения нет.
-    by_payment = INDUSTRY_TEMPLATES["saas"].build()
-    by_payment.settings.vat_basis = VatBasis.PAYMENT
-    assert _by_id(_map(by_payment), "vat.basis").divergence == ""
+    # Деньги в месяце отгрузки и без отсрочек поставщикам — режимы совпадают до числа.
+    same_month = INDUSTRY_TEMPLATES["saas"].build()
+    same_month.settings.vat_basis = VatBasis.PAYMENT
+    assert _by_id(_map(same_month), "vat.basis").divergence == ""
 
-    # Без НДС начислять нечего.
-    no_vat = INDUSTRY_TEMPLATES["saas"].build()
+    # Касса одинаковая (входной кредит гасит всё), баланс — нет: витрина называется.
+    assert _by_id(_map(build_showcase_project()), "vat.basis").divergence
+
+    # Без НДС сдвигать нечего.
+    no_vat = INDUSTRY_TEMPLATES["logistics"].build()
+    no_vat.settings.vat_basis = VatBasis.PAYMENT
     no_vat.settings.vat_rate = Decimal(0)
     assert _by_id(_map(no_vat), "vat.basis").divergence == ""
-
-    # Без предоплаты — тоже: у кофейни деньги в момент отгрузки.
-    assert _by_id(_map(INDUSTRY_TEMPLATES["cafe"].build()), "vat.basis").divergence == ""
 
 
 def test_a_divergence_is_named_not_fixed():
