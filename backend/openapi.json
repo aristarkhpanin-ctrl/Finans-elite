@@ -15026,6 +15026,16 @@
             "title": "Description",
             "type": "string"
           },
+          "duration_months": {
+            "default": 0,
+            "title": "Duration Months",
+            "type": "integer"
+          },
+          "existing_business": {
+            "default": false,
+            "title": "Existing Business",
+            "type": "boolean"
+          },
           "id": {
             "title": "Id",
             "type": "string"

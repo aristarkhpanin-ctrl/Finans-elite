@@ -13,9 +13,11 @@ export async function getProject(id: string): Promise<ProjectDetail> {
   return data;
 }
 
-export async function createProject(name: string, durationMonths = 12): Promise<ProjectDetail> {
+export async function createProject(name: string, durationMonths = 12,
+                                    startDate?: string): Promise<ProjectDetail> {
   // Минимальная модель — backend заполнит остальные разделы значениями по умолчанию.
-  const model = { header: { name, duration_months: durationMonths } };
+  const model = { header: { name, duration_months: durationMonths,
+                            ...(startDate ? { start_date: startDate } : {}) } };
   const { data } = await api.post<ProjectDetail>("/api/v1/projects", { name, model });
   return data;
 }
@@ -31,9 +33,15 @@ export async function listTemplates(): Promise<TemplateInfo[]> {
   return data;
 }
 
-export async function createProjectFromTemplate(templateId: string, name: string): Promise<ProjectDetail> {
+/**
+ * Проект из шаблона — одним сохранением: шаблон читается, правится и уходит целиком.
+ * Дата старта — подпись периодов (числа от неё не зависят), поэтому её можно задать и
+ * шаблону; горизонт — нет: ряды шаблона заданы на свой срок (см. мастер G12).
+ */
+export async function createProjectFromTemplate(templateId: string, name: string,
+                                                startDate?: string): Promise<ProjectDetail> {
   const { data: model } = await api.get<ProjectModel>(`/api/v1/templates/${templateId}`);
-  model.header = { ...model.header, name };
+  model.header = { ...model.header, name, ...(startDate ? { start_date: startDate } : {}) };
   const { data } = await api.post<ProjectDetail>("/api/v1/projects", { name, model });
   return data;
 }

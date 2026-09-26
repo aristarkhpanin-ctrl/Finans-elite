@@ -15,6 +15,7 @@ import { HoldingsPage } from "./pages/HoldingsPage";
 import { LoginPage } from "./pages/LoginPage";
 import { OrganizationPage } from "./pages/OrganizationPage";
 import { ProjectEditorPage } from "./pages/ProjectEditorPage";
+import { ProjectOnboardingPage } from "./pages/ProjectOnboardingPage";
 import { ProjectsPage } from "./pages/ProjectsPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { ActivatePage } from "./pages/ActivatePage";
@@ -65,6 +66,7 @@ function AppRoutes() {
         }
       >
         <Route path="/projects" element={<ProjectsPage />} />
+        <Route path="/projects/onboarding" element={<ProjectOnboardingPage />} />
         <Route path="/audit" element={<AuditHomePage />} />
         <Route path="/audit/onboarding" element={<AuditOnboardingPage />} />
         <Route path="/audit/group" element={<AuditGroupPage />} />

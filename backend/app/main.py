@@ -120,6 +120,14 @@ def sample() -> ProjectModel:
     return build_sample_project()
 
 
+def _shape(model: ProjectModel) -> dict:
+    """Что мастер (G12) узнаёт о шаблоне из **его модели**: горизонт и есть ли остатки на
+    старте. Из модели, а не подписью рядом — подпись однажды разошлась бы с ней."""
+    opening = model.company.starting_balance.model_dump()
+    return {"duration_months": model.header.duration_months,
+            "existing_business": any(v not in (0, None) for v in opening.values())}
+
+
 #: Каталог шаблонов: демонстрационные (были с первых версий) и отраслевые (D4).
 #: Ключи не пересекаются — проверяется тестом: совпавший ключ молча спрятал бы один
 #: шаблон за другим.
@@ -127,13 +135,13 @@ def _catalog() -> dict[str, TemplateOut]:
     out = {
         k: TemplateOut(id=k, name=v[0], description=v[1], industry="Демонстрация",
                        shows="Базовый разбор: как устроена модель целиком.",
-                       assumptions=[NOT_A_BENCHMARK])
+                       assumptions=[NOT_A_BENCHMARK], **_shape(v[2]()))
         for k, v in TEMPLATES.items()
     }
     out.update({
         t.id: TemplateOut(id=t.id, name=t.name, industry=t.industry,
                           description=t.description, shows=t.shows,
-                          assumptions=list(t.assumptions))
+                          assumptions=list(t.assumptions), **_shape(t.build()))
         for t in INDUSTRY_TEMPLATES.values()
     })
     return out

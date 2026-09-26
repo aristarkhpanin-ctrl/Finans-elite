@@ -11764,6 +11764,16 @@ export interface components {
              * @default
              */
             description: string;
+            /**
+             * Duration Months
+             * @default 0
+             */
+            duration_months: number;
+            /**
+             * Existing Business
+             * @default false
+             */
+            existing_business: boolean;
             /** Id */
             id: string;
             /**

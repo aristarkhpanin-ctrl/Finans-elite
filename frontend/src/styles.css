@@ -3769,9 +3769,10 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   font: 600 11px var(--font-ui); pointer-events: none; z-index: 3;
 }
 
-/* ── Финанс-Аудит: онбординг (макет Экран 12) ────────────────────────────────
+/* ── Онбординг (оба продукта; макет «Аудита», Экран 12) ──────────────────────
    Рейл со шагами слева, шаг справа. Ниже 900px рейл встаёт над содержимым:
-   на телефоне колонка в 340px оставила бы форме половину экрана. */
+   на телефоне колонка в 340px оставила бы форме половину экрана. Мастер «Элиты»
+   (G12) — тот же каркас; от продукта зависит только свечение рейла в тёмной теме. */
 .onb {
   display: flex; align-items: stretch; min-height: 520px;
   border: 1px solid var(--border); border-radius: 18px; overflow: hidden;
@@ -3784,6 +3785,10 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   background: linear-gradient(160deg, var(--primary-soft) 0%, var(--surface) 66%);
 }
 [data-theme="dark"] .onb__rail {
+  background: radial-gradient(ellipse 80% 70% at 30% 26%,
+              rgba(127, 238, 100, 0.12) 0%, rgba(31, 174, 104, 0.04) 48%, transparent 78%);
+}
+[data-theme="dark"][data-product="audit"] .onb__rail {
   background: radial-gradient(ellipse 80% 70% at 30% 26%,
               rgba(199, 125, 255, 0.15) 0%, rgba(123, 63, 228, 0.04) 48%, transparent 78%);
 }
@@ -3850,6 +3855,32 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   font: 400 12px/1.55 var(--font-ui); margin: 12px 0;
 }
 .onb__foot { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 18px; }
+
+/* Выбор в мастере «Элиты» (цель, основа): карточка-кнопка, выбранная — в рамке акцента. */
+.onb__choices { display: flex; flex-direction: column; gap: 8px; margin: 4px 0 12px; }
+.onb__choice {
+  display: flex; flex-direction: column; gap: 3px; width: 100%; text-align: left;
+  padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px;
+  background: var(--surface); color: var(--text); font: inherit; cursor: pointer;
+}
+.onb__choice:hover { border-color: var(--border-strong); }
+.onb__choice--on { border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
+.onb__choicetitle {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font: 500 13px var(--font-ui); color: var(--text);
+}
+.onb__choicenote { font: 400 11.5px/1.5 var(--font-ui); color: var(--muted); }
+.onb__chip {
+  font: 500 9.5px var(--font-ui); letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--accent);
+}
+.onb__grouphead {
+  font: 500 9.5px var(--font-ui); letter-spacing: 0.13em; text-transform: uppercase;
+  color: var(--subtle); margin: 12px 0 4px;
+}
+.onb__assume {
+  margin: 6px 0 0; padding-left: 18px; font: 400 12px/1.55 var(--font-ui); color: var(--muted);
+}
 
 .onb__invited { margin-top: 16px; }
 .onb__invitedhead {
