@@ -1,14 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  fmtAxis,
-  fmtMillions,
-  fmtMoney,
-  fmtRatio,
-  fmtTable,
-  fracToPct,
-  pctToFrac,
-  percent,
-} from "./format";
+import { fmtAxis, fmtDateOnly, fmtMillions, fmtMoney, fmtRatio, fmtTable, fracToPct, pctToFrac, percent } from "./format";
 
 const NBSP = String.fromCharCode(0xa0); // NBSP (\u00A0)
 
@@ -87,3 +78,24 @@ describe("fracToPct / pctToFrac (точный сдвиг)", () => {
     }
   });
 });
+
+describe("fmtDateOnly — календарная дата без часового пояса", () => {
+  it("день, месяц и год берутся из строки, а не из часового пояса", () => {
+    // `new Date("2026-09-05")` — полночь UTC: западнее Гринвича документ напечатал бы
+    // 04.09.2026. Дата документа и дата старта проекта уходят третьим лицам.
+    expect(fmtDateOnly("2026-09-05")).toBe("05.09.2026");
+    expect(fmtDateOnly("2026-01-01")).toBe("01.01.2026");
+  });
+
+  it("полная отметка времени тоже читается по календарной части", () => {
+    expect(fmtDateOnly("2026-09-05T23:30:00Z")).toBe("05.09.2026");
+  });
+
+  it("пусто и непонятное — прочерк, а не выдуманная дата", () => {
+    expect(fmtDateOnly(null)).toBe("—");
+    expect(fmtDateOnly(undefined)).toBe("—");
+    expect(fmtDateOnly("")).toBe("—");
+    expect(fmtDateOnly("вчера")).toBe("—");
+  });
+});
+

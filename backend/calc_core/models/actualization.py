@@ -3,10 +3,12 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from ..decimals import MoneyModel
 
 
-class Actualization(BaseModel):
+class Actualization(MoneyModel):
     """Фактические значения строк Кэш-фло по месяцам.
 
     ``actual_until`` — индекс последнего актуализированного месяца (``-1`` — актуализация

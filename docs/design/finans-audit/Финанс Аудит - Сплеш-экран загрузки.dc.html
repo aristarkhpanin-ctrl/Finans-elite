@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  button{font-family:inherit;}
+  a{color:#C77DFF;}
+  a:hover{color:#D69AFF;}
+  @keyframes fa-pulse{from{opacity:.35}to{opacity:1}}
+  @keyframes fa-fade{from{opacity:0}to{opacity:1}}
+  @keyframes fa-scan{0%{transform:translateY(-140%)}100%{transform:translateY(840%)}}
+  @keyframes fa-grow{from{width:6%}to{width:96%}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:11px;min-width:0;">
+      <div style="{{ s.barCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="30px,30px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Сплеш-экран загрузки</span>
+        <span style="{{ s.barSub }}">первый кадр продукта · куб в полной сцене</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Свет</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тьма</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}" data-screen-label="Сплеш-экран загрузки">
+      <div style="{{ s.beam }}"></div>
+      <div style="{{ s.center }}">
+        <div style="{{ s.cubeBox }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" style="width:100%;height:100%" hint-size="100%,100%"></dc-import></div>
+        <div style="{{ s.brand }}">Финанс&nbsp;Аудит</div>
+        <div style="{{ s.tagline }}">Выгодно ли покупать эту фирму</div>
+        <div style="{{ s.track }}"><div style="{{ s.fill }}"></div></div>
+        <div style="{{ s.status }}">{{ statusText }}</div>
+      </div>
+      <div style="{{ s.foot }}">
+        <span style="{{ s.footLeft }}">v2.0 · сборка 2026.08</span>
+        <span style="{{ s.footRight }}">данные хранятся в РФ · 152-ФЗ</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:880}}">
+class Component extends DCLogic {
+  state = { theme:'dark', device:'desktop', step:0 };
+
+  STEPS(){
+    return ['Проверяем сессию','Загружаем дела организации','Готовим движок сверки','Почти готово'];
+  }
+
+  componentDidMount(){
+    this._t=setInterval(()=>{
+      this.setState(st=>({step:(st.step+1)%this.STEPS().length}));
+    },1700);
+  }
+  componentWillUnmount(){ if(this._t) clearInterval(this._t); }
+
+  THEME(){
+    const dark={
+      pageBg:'#000000', bg:'#000000', surface:'#0E0B14', surface2:'#171122', surface3:'#241A38',
+      border:'#2B2140', borderStrong:'#4B3A6E',
+      text:'#F2E8FF', muted:'#9C8FB5', subtle:'#6A5C86',
+      primary:'#C77DFF', primaryText:'#17061F', accent:'#C77DFF',
+      primarySoft:'rgba(199,125,255,0.09)',
+      shadow:'0 30px 70px -34px rgba(0,0,0,.9)', glow:'0 0 18px rgba(199,125,255,.35)',
+      barBg:'#0A0710', segBg:'#0A0710', segActiveBg:'#241A38'
+    };
+    const light={
+      pageBg:'#F2EDFA', bg:'#FAF7FE', surface:'#FFFFFF', surface2:'#F4EEFA', surface3:'#E8DEF4',
+      border:'#DED2EC', borderStrong:'#C2B0D6',
+      text:'#1B1523', muted:'#4E4459', subtle:'#756884',
+      primary:'#C77DFF', primaryText:'#17061F', accent:'#7A2BC4',
+      primarySoft:'#F6EFFD',
+      shadow:'0 18px 44px -22px rgba(40,20,60,.22), 0 2px 6px rgba(40,20,60,.05)', glow:'none',
+      barBg:'#FFFFFF', segBg:'#EDE6F6', segActiveBg:'#FFFFFF'
+    };
+    return this.state.theme==='dark'?dark:light;
+  }
+
+  DIM(){
+    const d=this.state.device;
+    if(d==='mobile') return {frame:402, radius:26, h:660, cube:200, brand:15, tag:19};
+    if(d==='tablet') return {frame:864, radius:30, h:700, cube:280, brand:16, tag:24};
+    return {frame:1180, radius:30, h:720, cube:330, brand:17, tag:29};
+  }
+
+  setLight=()=>this.setState({theme:'light'});
+  setDark=()=>this.setState({theme:'dark'});
+  setDesktop=()=>this.setState({device:'desktop'});
+  setTablet=()=>this.setState({device:'tablet'});
+  setMobile=()=>this.setState({device:'mobile'});
+
+  segBtn(active,t){
+    return 'height:28px;padding:0 12px;border:0;border-radius:7px;cursor:pointer;font:'+(active?'600':'500')+' 11.5px/1 Inter,sans-serif;letter-spacing:-.01em;'+
+      (active?('background:'+t.segActiveBg+';color:'+t.text+';'):('background:transparent;color:'+t.subtle+';'));
+  }
+
+  renderVals(){
+    const t=this.THEME(), d=this.DIM(), dark=this.state.theme==='dark';
+    const mono='JetBrains Mono,ui-monospace,monospace';
+    const disp='Satoshi,Inter,sans-serif';
+
+    const s={
+      page:'min-height:100vh;background:'+t.pageBg+';display:flex;flex-direction:column;align-items:center;padding:0 0 60px;',
+      bar:'position:sticky;top:0;z-index:20;width:100%;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:12px 20px;background:'+t.barBg+';border-bottom:1px solid '+t.border+';',
+      barCube:'width:30px;height:30px;flex:none;',
+      barTitle:'font:600 13px/1.2 Inter,sans-serif;letter-spacing:-.015em;color:'+t.text+';',
+      barSub:'font:400 10.5px/1.2 '+mono+';color:'+t.subtle+';',
+      barLabel:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+      seg:'display:flex;gap:2px;padding:3px;border-radius:9px;background:'+t.segBg+';border:1px solid '+t.border+';',
+      segLight:this.segBtn(!dark,t), segDark:this.segBtn(dark,t),
+      segDesktop:this.segBtn(this.state.device==='desktop',t),
+      segTablet:this.segBtn(this.state.device==='tablet',t),
+      segMobile:this.segBtn(this.state.device==='mobile',t),
+      stage:'width:100%;display:flex;justify-content:center;padding:26px 18px 0;',
+      frame:'position:relative;width:100%;max-width:'+d.frame+'px;height:'+d.h+'px;border:1px solid '+t.border+';border-radius:'+d.radius+'px;overflow:hidden;display:flex;flex-direction:column;background:'+(dark?'radial-gradient(ellipse 62% 62% at 50% 42%, rgba(199,125,255,.16) 0%, rgba(123,63,228,.05) 44%, #000000 76%)':'linear-gradient(168deg,'+t.primarySoft+' 0%, '+t.bg+' 62%)')+';'+(dark?'':'box-shadow:'+t.shadow+';'),
+      beam:'position:absolute;left:0;right:0;top:0;height:100px;pointer-events:none;background:linear-gradient(to bottom,transparent,'+(dark?'rgba(199,125,255,.10)':'rgba(199,125,255,.15)')+',transparent);animation:fa-scan 11s linear infinite;',
+
+      center:'position:relative;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:20px;',
+      cubeBox:'width:'+d.cube+'px;height:'+d.cube+'px;',
+      brand:'margin-top:6px;font:600 '+d.brand+'px/1 Inter,sans-serif;letter-spacing:.24em;text-transform:uppercase;color:'+t.text+';',
+      tagline:'margin-top:16px;font:500 '+d.tag+'px/1.2 '+disp+';letter-spacing:-.026em;color:'+t.muted+';text-align:center;max-width:22ch;',
+      track:'width:min(280px,70%);height:4px;margin-top:34px;border-radius:2px;background:'+(dark?t.surface2:t.surface3)+';overflow:hidden;',
+      fill:'height:100%;border-radius:2px;background:'+t.primary+';animation:fa-grow 6.8s cubic-bezier(.4,0,.2,1) infinite;'+(dark?'box-shadow:0 0 12px rgba(199,125,255,.7);':''),
+      status:'margin-top:13px;font:400 11px/1 '+mono+';letter-spacing:.04em;color:'+t.subtle+';animation:fa-pulse 1.6s ease-in-out infinite alternate;',
+
+      foot:'position:relative;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 22px;border-top:1px solid '+t.border+';',
+      footLeft:'font:400 10px/1 '+mono+';color:'+t.subtle+';',
+      footRight:'font:400 10px/1 '+mono+';color:'+t.subtle+';'
+    };
+
+    return {
+      s,
+      setLight:this.setLight, setDark:this.setDark,
+      setDesktop:this.setDesktop, setTablet:this.setTablet, setMobile:this.setMobile,
+      statusText:this.STEPS()[this.state.step]+' …'
+    };
+  }
+}
+</script>
+</body>
+</html>

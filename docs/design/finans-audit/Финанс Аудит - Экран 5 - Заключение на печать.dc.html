@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  input,button{font-family:inherit;}
+  a{color:#C77DFF;}
+  a:hover{color:#D69AFF;}
+  @keyframes fa-pulse{from{opacity:.4}to{opacity:1}}
+  @keyframes fa-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:11px;min-width:0;">
+      <div style="{{ s.barCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="30px,30px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Экран 5 · Заключение на печать</span>
+        <span style="{{ s.barSub }}">A4 · бумага всегда белая, акцент Deep Violet</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема интерфейса</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Свет</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тьма</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}" data-screen-label="Экран 5 — Заключение на печать">
+
+      <div style="{{ s.nav }}">
+        <div style="{{ s.navLeft }}">
+          <div style="{{ s.navCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="24px,24px"></dc-import></div>
+          <span style="{{ s.navBrand }}">Финанс&nbsp;Аудит</span>
+          <div style="{{ s.navTabs }}">
+            <sc-for list="{{ navTabs }}" as="n" hint-placeholder-count="5"><span style="{{ n.style }}">{{ n.label }}</span></sc-for>
+          </div>
+        </div>
+        <div style="{{ s.navRight }}">
+          <span style="{{ s.navCase }}">ДЕЛО № A-2417</span>
+          <button style="{{ s.btnPrimarySm }}" style-hover="{{ s.btnPrimaryHover }}">Скачать PDF</button>
+        </div>
+      </div>
+
+      <div style="{{ s.toolbar }}">
+        <div style="{{ s.toolLeft }}">
+          <span style="{{ s.toolLabel }}">Разделы</span>
+          <div style="{{ s.segDemo }}"><button style="{{ s.segDemoActive }}">Полное</button><button style="{{ s.segDemoOff }}">Только вердикт</button><button style="{{ s.segDemoOff }}">Для банка</button></div>
+        </div>
+        <div style="{{ s.toolRight }}">
+          <span style="{{ s.pageCount }}">2 страницы · A4 · подписи на второй</span>
+          <button style="{{ s.btnGhostSm }}" style-hover="{{ s.btnGhostHover }}">Настроить бланк</button>
+        </div>
+      </div>
+
+      <div style="{{ s.deskArea }}">
+
+        <div style="{{ s.sheetSizer }}">
+          <div style="{{ s.sheet }}">
+            <div style="{{ s.pHead }}">
+              <div style="{{ s.pHeadLeft }}"><span style="{{ s.pMark }}"></span><span style="{{ s.pBrand }}">ФИНАНС АУДИТ</span></div>
+              <div style="{{ s.pHeadRight }}">ДЕЛО № A-2417 · 24.08.2026</div>
+            </div>
+
+            <div style="{{ s.pTitleBlock }}">
+              <div style="{{ s.pKicker }}">Заключение по результатам финансового аудита</div>
+              <div style="{{ s.pTitle }}">ООО «Сибтранс-Логистика»</div>
+              <div style="{{ s.pSubtitle }}">ИНН 5406231908 · грузоперевозки · отчётность 2023–2025 · подготовлено для ООО «Инвест-Партнёр»</div>
+            </div>
+
+            <div style="{{ s.pVerdict }}">
+              <div style="{{ s.pVerdictLeft }}">
+                <div style="{{ s.pVerdictLabel }}">Вердикт</div>
+                <div style="{{ s.pVerdictValue }}">Покупать с дисконтом 18%</div>
+                <div style="{{ s.pVerdictNote }}">Прибыль подтверждена на 11 из 12 месяцев, EBITDA нормализована на 24 млн ₽ разовых доходов. Сделка оправдана при цене не выше справедливой.</div>
+              </div>
+              <div style="{{ s.pVerdictRight }}">
+                <div style="{{ s.pPriceRow }}"><span style="{{ s.pPriceKey }}">Запрошено</span><span style="{{ s.pPriceAsk }}">1 240 млн ₽</span></div>
+                <div style="{{ s.pPriceRow }}"><span style="{{ s.pPriceKey }}">Справедливо</span><span style="{{ s.pPriceFair }}">1 020 млн ₽</span></div>
+                <div style="{{ s.pPriceRowLast }}"><span style="{{ s.pPriceKey }}">Дисконт</span><span style="{{ s.pPriceFair }}">18%</span></div>
+              </div>
+            </div>
+
+            <div style="{{ s.pMetrics }}">
+              <sc-for list="{{ printMetrics }}" as="m" hint-placeholder-count="6">
+              <div style="{{ s.pMetric }}"><div style="{{ s.pMetricLabel }}">{{ m.label }}</div><div style="{{ m.valueStyle }}">{{ m.value }}</div></div>
+              </sc-for>
+            </div>
+
+            <div style="{{ s.pSection }}">
+              <div style="{{ s.pSecNum }}">1</div>
+              <div style="{{ s.pSecBody }}">
+                <div style="{{ s.pSecTitle }}">Основание и объём проверки</div>
+                <p style="{{ s.pText }}">Проверка выполнена по данным бухгалтерской отчётности за 2023–2025 годы (формы 1 и 2, загружены из ФНС 14.02.2026), банковских выписок по четырём счетам, реестра залогов и договоров аренды. Пройдено 18 из 24 процедур; 6 процедур ожидают документов от продавца и отмечены в реестре как незакрытые.</p>
+              </div>
+            </div>
+
+            <div style="{{ s.pSection }}">
+              <div style="{{ s.pSecNum }}">2</div>
+              <div style="{{ s.pSecBody }}">
+                <div style="{{ s.pSecTitle }}">Ключевые выводы</div>
+                <div style="{{ s.pList }}">
+                  <sc-for list="{{ findings }}" as="f" hint-placeholder-count="4">
+                  <div style="{{ s.pListItem }}"><span style="{{ f.dotStyle }}"></span><span style="{{ s.pListText }}">{{ f.text }}</span></div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+
+            <div style="{{ s.pFoot }}">
+              <span style="{{ s.pFootText }}">Конфиденциально · только для участников сделки · журнал доступа A-2417</span>
+              <span style="{{ s.pFootPage }}">1 / 2</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="{{ s.sheetSizer }}">
+          <div style="{{ s.sheet }}">
+            <div style="{{ s.pHead }}">
+              <div style="{{ s.pHeadLeft }}"><span style="{{ s.pMark }}"></span><span style="{{ s.pBrand }}">ФИНАНС АУДИТ</span></div>
+              <div style="{{ s.pHeadRight }}">ДЕЛО № A-2417 · 24.08.2026</div>
+            </div>
+
+            <div style="{{ s.pSection }}">
+              <div style="{{ s.pSecNum }}">3</div>
+              <div style="{{ s.pSecBody }}">
+                <div style="{{ s.pSecTitle }}">Реестр красных флагов</div>
+                <div style="{{ s.pTbl }}">
+                  <div style="{{ s.pTblHead }}"><div style="{{ s.pThFirst }}">Наблюдение</div><div style="{{ s.pThMid }}">Уровень</div><div style="{{ s.pThNum }}">Влияние на цену</div></div>
+                  <sc-for list="{{ flagRows }}" as="r" hint-placeholder-count="5">
+                  <div style="{{ s.pTblRow }}"><div style="{{ s.pTdFirst }}">{{ r.label }}</div><div style="{{ r.levelStyle }}">{{ r.level }}</div><div style="{{ r.impactStyle }}">{{ r.impact }}</div></div>
+                  </sc-for>
+                  <div style="{{ s.pTblTotal }}"><div style="{{ s.pTdTotal }}">Итого дисконт за риск</div><div style="{{ s.pTdMidTotal }}">—</div><div style="{{ s.pTdNumTotal }}">(220)</div></div>
+                </div>
+              </div>
+            </div>
+
+            <div style="{{ s.pSection }}">
+              <div style="{{ s.pSecNum }}">4</div>
+              <div style="{{ s.pSecBody }}">
+                <div style="{{ s.pSecTitle }}">Сверка ключевых строк, млн ₽</div>
+                <div style="{{ s.pTbl }}">
+                  <div style="{{ s.pTblHead2 }}"><div style="{{ s.pThFirst }}">Строка</div><div style="{{ s.pThNum }}">Отчёт</div><div style="{{ s.pThNum }}">Проверка</div><div style="{{ s.pThNum }}">Δ</div></div>
+                  <sc-for list="{{ reconRows }}" as="r" hint-placeholder-count="5">
+                  <div style="{{ r.rowStyle }}"><div style="{{ s.pTdFirst }}">{{ r.label }}</div><div style="{{ r.repStyle }}">{{ r.rep }}</div><div style="{{ r.chkStyle }}">{{ r.chk }}</div><div style="{{ r.deltaStyle }}">{{ r.delta }}</div></div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+
+            <div style="{{ s.pSection }}">
+              <div style="{{ s.pSecNum }}">5</div>
+              <div style="{{ s.pSecBody }}">
+                <div style="{{ s.pSecTitle }}">Расчёт цены за 100% доли</div>
+                <div style="{{ s.pBridge }}">
+                  <sc-for list="{{ bridgeRows }}" as="b" hint-placeholder-count="5">
+                  <div style="{{ b.rowStyle }}"><span style="{{ s.pBridgeKey }}">{{ b.label }}</span><span style="{{ b.valueStyle }}">{{ b.value }}</span></div>
+                  </sc-for>
+                </div>
+                <p style="{{ s.pTextSm }}">Метод DCF, WACC 18.5%, рост в постпрогнозе 3.0%. Диапазон по чувствительности: 930–1 140 млн ₽.</p>
+              </div>
+            </div>
+
+            <div style="{{ s.pSignRow }}">
+              <div style="{{ s.pSign }}"><div style="{{ s.pSignLine }}"></div><div style="{{ s.pSignName }}">А. В. Петров</div><div style="{{ s.pSignRole }}">Руководитель проверки</div></div>
+              <div style="{{ s.pSign }}"><div style="{{ s.pSignLine }}"></div><div style="{{ s.pSignName }}">М. С. Королёва</div><div style="{{ s.pSignRole }}">Партнёр, подпись и печать</div></div>
+            </div>
+
+            <div style="{{ s.pFoot }}">
+              <span style="{{ s.pFootText }}">Заключение не является инвестиционной рекомендацией · 6 процедур не закрыты</span>
+              <span style="{{ s.pFootPage }}">2 / 2</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:1000}}">
+class Component extends DCLogic {
+  state = { theme:'dark', device:'desktop' };
+
+  THEME(){
+    const dark={
+      pageBg:'#000000', bg:'#000000', surface:'#0E0B14', surface2:'#171122', surface3:'#241A38',
+      border:'#2B2140', borderStrong:'#4B3A6E', gridLine:'#191324',
+      text:'#F2E8FF', muted:'#9C8FB5', subtle:'#6A5C86',
+      primary:'#C77DFF', primaryHover:'#D69AFF', primaryText:'#17061F', accent:'#C77DFF',
+      ring:'rgba(199,125,255,0.40)',
+      shadow:'0 30px 70px -34px rgba(0,0,0,.9)', glow:'0 0 18px rgba(199,125,255,.35)',
+      barBg:'#0A0710', segBg:'#0A0710', segActiveBg:'#241A38', headerBg:'#0E0B14',
+      desk:'#07060A', sheetShadow:'0 40px 90px -40px rgba(0,0,0,.95)'
+    };
+    const light={
+      pageBg:'#F2EDFA', bg:'#FAF7FE', surface:'#FFFFFF', surface2:'#F4EEFA', surface3:'#E8DEF4',
+      border:'#DED2EC', borderStrong:'#C2B0D6', gridLine:'#EDE6F6',
+      text:'#1B1523', muted:'#4E4459', subtle:'#756884',
+      primary:'#C77DFF', primaryHover:'#B968F5', primaryText:'#17061F', accent:'#7A2BC4',
+      ring:'rgba(199,125,255,0.34)',
+      shadow:'0 18px 44px -22px rgba(40,20,60,.22), 0 2px 6px rgba(40,20,60,.05)', glow:'none',
+      barBg:'#FFFFFF', segBg:'#EDE6F6', segActiveBg:'#FFFFFF', headerBg:'#FFFFFF',
+      desk:'#E7E1F0', sheetShadow:'0 24px 60px -30px rgba(40,20,60,.35)'
+    };
+    return this.state.theme==='dark'?dark:light;
+  }
+
+  // Бумага не зависит от темы интерфейса — печать всегда белая
+  PAPER(){
+    return {
+      paper:'#FFFFFF', ink:'#17141C', muted:'#5A5364', faint:'#8C8598',
+      rule:'#E3DEE8', ruleStrong:'#CFC7DA',
+      accent:'#7A2BC4', accentSoft:'#F4EDFB',
+      danger:'#A53A30', warn:'#8A5E0C'
+    };
+  }
+
+  DIM(){
+    const d=this.state.device;
+    if(d==='mobile') return {frame:402, radius:26, pad:14, scale:0.42, tabsShown:2};
+    if(d==='tablet') return {frame:864, radius:30, pad:20, scale:0.86, tabsShown:4};
+    return {frame:1180, radius:30, pad:24, scale:1, tabsShown:5};
+  }
+
+  setLight=()=>this.setState({theme:'light'});
+  setDark=()=>this.setState({theme:'dark'});
+  setDesktop=()=>this.setState({device:'desktop'});
+  setTablet=()=>this.setState({device:'tablet'});
+  setMobile=()=>this.setState({device:'mobile'});
+
+  segBtn(active,t){
+    return 'height:28px;padding:0 12px;border:0;border-radius:7px;cursor:pointer;font:'+(active?'600':'500')+' 11.5px/1 Inter,sans-serif;letter-spacing:-.01em;'+
+      (active?('background:'+t.segActiveBg+';color:'+t.text+';'):('background:transparent;color:'+t.subtle+';'));
+  }
+
+  renderVals(){
+    const t=this.THEME(), p=this.PAPER(), d=this.DIM(), dark=this.state.theme==='dark';
+    const mono='JetBrains Mono,ui-monospace,monospace';
+    const disp='Satoshi,Inter,sans-serif';
+    const W=794, H=1123;
+
+    const s={
+      page:'min-height:100vh;background:'+t.pageBg+';display:flex;flex-direction:column;align-items:center;padding:0 0 60px;',
+      bar:'position:sticky;top:0;z-index:20;width:100%;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:12px 20px;background:'+t.barBg+';border-bottom:1px solid '+t.border+';',
+      barCube:'width:30px;height:30px;flex:none;',
+      barTitle:'font:600 13px/1.2 Inter,sans-serif;letter-spacing:-.015em;color:'+t.text+';',
+      barSub:'font:400 10.5px/1.2 '+mono+';color:'+t.subtle+';',
+      barLabel:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+      seg:'display:flex;gap:2px;padding:3px;border-radius:9px;background:'+t.segBg+';border:1px solid '+t.border+';',
+      segLight:this.segBtn(!dark,t), segDark:this.segBtn(dark,t),
+      segDesktop:this.segBtn(this.state.device==='desktop',t),
+      segTablet:this.segBtn(this.state.device==='tablet',t),
+      segMobile:this.segBtn(this.state.device==='mobile',t),
+      stage:'width:100%;display:flex;justify-content:center;padding:26px 18px 0;',
+      frame:'width:100%;max-width:'+d.frame+'px;border:1px solid '+t.border+';border-radius:'+d.radius+'px;background:'+t.bg+';overflow:hidden;'+(dark?'':'box-shadow:'+t.shadow+';'),
+
+      nav:'display:flex;align-items:center;justify-content:space-between;gap:14px;height:52px;padding:0 '+d.pad+'px;background:'+t.headerBg+';border-bottom:1px solid '+t.border+';',
+      navLeft:'display:flex;align-items:center;gap:20px;min-width:0;',
+      navCube:'width:24px;height:24px;flex:none;',
+      navBrand:'font:600 10.5px/1 Inter,sans-serif;letter-spacing:.15em;text-transform:uppercase;color:'+t.text+';',
+      navTabs:'display:'+(d.frame<500?'none':'flex')+';align-items:center;gap:2px;',
+      navRight:'display:flex;align-items:center;gap:10px;flex:none;',
+      navCase:'display:'+(d.frame<500?'none':'inline')+';font:500 10px/1 '+mono+';letter-spacing:.06em;color:'+t.subtle+';',
+
+      toolbar:'display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px '+d.pad+'px;border-bottom:1px solid '+t.border+';',
+      toolLeft:'display:flex;align-items:center;gap:10px;flex-wrap:wrap;',
+      toolRight:'display:flex;align-items:center;gap:10px;flex-wrap:wrap;',
+      toolLabel:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+      pageCount:'font:400 11px/1.4 '+mono+';color:'+t.subtle+';',
+      segDemo:'display:flex;gap:2px;padding:3px;border-radius:9px;background:'+t.surface2+';border:1px solid '+t.border+';',
+      segDemoActive:'height:30px;padding:0 13px;border:0;border-radius:7px;background:'+t.primary+';color:'+t.primaryText+';font:600 11.5px/1 Inter,sans-serif;cursor:pointer;',
+      segDemoOff:'height:30px;padding:0 13px;border:0;border-radius:7px;background:transparent;color:'+t.subtle+';font:500 11.5px/1 Inter,sans-serif;cursor:pointer;',
+
+      deskArea:'display:flex;flex-direction:column;align-items:center;gap:'+Math.round(26*d.scale)+'px;padding:'+Math.round(28*d.scale+10)+'px '+d.pad+'px '+Math.round(30*d.scale+12)+'px;background:'+t.desk+';',
+      sheetSizer:'width:'+Math.round(W*d.scale)+'px;height:'+Math.round(H*d.scale)+'px;flex:none;',
+      sheet:'width:'+W+'px;height:'+H+'px;transform:scale('+d.scale+');transform-origin:top left;background:'+p.paper+';box-shadow:'+t.sheetShadow+';padding:52px 58px 42px;display:flex;flex-direction:column;overflow:hidden;',
+
+      pHead:'display:flex;align-items:center;justify-content:space-between;gap:14px;padding-bottom:14px;border-bottom:2px solid '+p.ink+';',
+      pHeadLeft:'display:flex;align-items:center;gap:9px;',
+      pMark:'width:14px;height:14px;border-radius:3px;background:'+p.accent+';',
+      pBrand:'font:600 11px/1 Inter,sans-serif;letter-spacing:.18em;color:'+p.ink+';',
+      pHeadRight:'font:500 10.5px/1 '+mono+';letter-spacing:.06em;color:'+p.faint+';',
+
+      pTitleBlock:'padding:26px 0 22px;border-bottom:1px solid '+p.rule+';',
+      pKicker:'font:500 10.5px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:'+p.accent+';',
+      pTitle:'margin-top:13px;font:500 34px/1.1 '+disp+';letter-spacing:-.028em;color:'+p.ink+';',
+      pSubtitle:'margin-top:11px;font:400 13px/1.55 '+mono+';color:'+p.muted+';',
+
+      pVerdict:'display:flex;gap:26px;align-items:stretch;padding:20px;margin-top:22px;border:1px solid '+p.ruleStrong+';border-left:4px solid '+p.accent+';background:'+p.accentSoft+';',
+      pVerdictLeft:'flex:1;min-width:0;',
+      pVerdictLabel:'font:500 10px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:'+p.faint+';',
+      pVerdictValue:'margin-top:10px;font:500 25px/1.14 '+disp+';letter-spacing:-.024em;color:'+p.ink+';',
+      pVerdictNote:'margin-top:11px;font:400 14px/1.6 Inter,sans-serif;color:'+p.muted+';max-width:46ch;',
+      pVerdictRight:'flex:none;width:216px;display:flex;flex-direction:column;justify-content:center;',
+      pPriceRow:'display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid '+p.ruleStrong+';',
+      pPriceRowLast:'display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:9px 0 0;',
+      pPriceKey:'font:400 12.5px/1.3 Inter,sans-serif;color:'+p.muted+';',
+      pPriceAsk:'font:500 14px/1.3 '+mono+';color:'+p.danger+';',
+      pPriceFair:'font:600 14px/1.3 '+mono+';color:'+p.accent+';',
+
+      pMetrics:'display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin-top:22px;background:'+p.rule+';border:1px solid '+p.rule+';',
+      pMetric:'padding:13px 14px;background:'+p.paper+';',
+      pMetricLabel:'font:500 9.5px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+p.faint+';',
+
+      pSection:'display:flex;gap:16px;margin-top:18px;',
+      pSecNum:'flex:none;width:24px;height:24px;border-radius:50%;background:'+p.ink+';color:'+p.paper+';font:600 12px/24px '+mono+';text-align:center;',
+      pSecBody:'flex:1;min-width:0;',
+      pSecTitle:'font:500 16px/1.25 '+disp+';letter-spacing:-.02em;color:'+p.ink+';margin-bottom:9px;',
+      pText:'margin:0;font:400 14px/1.68 Inter,sans-serif;color:'+p.muted+';text-wrap:pretty;',
+      pTextSm:'margin:11px 0 0;font:400 12.5px/1.6 Inter,sans-serif;color:'+p.muted+';text-wrap:pretty;',
+      pList:'display:flex;flex-direction:column;gap:11px;',
+      pListItem:'display:flex;align-items:flex-start;gap:11px;',
+      pListText:'font:400 14px/1.6 Inter,sans-serif;color:'+p.muted+';',
+
+      pTbl:'border-top:1.5px solid '+p.ink+';',
+      pTblHead:'display:grid;grid-template-columns:1fr 110px 130px;padding:8px 0;border-bottom:1px solid '+p.ruleStrong+';',
+      pTblHead2:'display:grid;grid-template-columns:1fr 92px 92px 84px;padding:8px 0;border-bottom:1px solid '+p.ruleStrong+';',
+      pThFirst:'font:500 9.5px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+p.faint+';',
+      pThMid:'text-align:center;font:500 9.5px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+p.faint+';',
+      pThNum:'text-align:right;font:500 9.5px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+p.faint+';',
+      pTblRow:'display:grid;grid-template-columns:1fr 110px 130px;padding:8px 0;border-bottom:1px solid '+p.rule+';align-items:baseline;',
+      pTdFirst:'font:400 13px/1.45 Inter,sans-serif;color:'+p.ink+';',
+      pTblTotal:'display:grid;grid-template-columns:1fr 110px 130px;padding:9px 0;border-top:1.5px solid '+p.ink+';align-items:baseline;',
+      pTdTotal:'font:600 13px/1.45 Inter,sans-serif;color:'+p.ink+';',
+      pTdMidTotal:'text-align:center;font:400 12.5px/1.45 '+mono+';color:'+p.faint+';',
+      pTdNumTotal:'text-align:right;font:600 13.5px/1.45 '+mono+';color:'+p.danger+';',
+
+      pBridge:'border-top:1.5px solid '+p.ink+';',
+      pBridgeKey:'font:400 13px/1.45 Inter,sans-serif;color:'+p.muted+';',
+
+      pSignRow:'display:flex;gap:40px;padding-top:24px;',
+      pSign:'flex:1;',
+      pSignLine:'height:1px;background:'+p.ruleStrong+';margin-bottom:9px;',
+      pSignName:'font:500 13px/1.3 Inter,sans-serif;color:'+p.ink+';',
+      pSignRole:'margin-top:4px;font:400 11px/1.4 '+mono+';color:'+p.faint+';',
+
+      pFoot:'display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin-top:auto;padding-top:18px;border-top:1px solid '+p.rule+';',
+      pFootText:'font:400 10px/1.4 '+mono+';color:'+p.faint+';',
+      pFootPage:'font:500 10px/1.4 '+mono+';color:'+p.ink+';',
+
+      btnPrimarySm:'height:31px;padding:0 14px;border:0;border-radius:4px;background:'+t.primary+';color:'+t.primaryText+';font:600 11.5px/1 Inter,sans-serif;cursor:pointer;'+(dark?'box-shadow:'+t.glow+';':''),
+      btnPrimaryHover:'background:'+t.primaryHover+';',
+      btnGhostSm:'height:31px;padding:0 13px;border:1px solid '+t.border+';border-radius:4px;background:transparent;color:'+t.text+';font:500 11.5px/1 Inter,sans-serif;cursor:pointer;',
+      btnGhostHover:'border-color:'+t.primary+';color:'+t.accent+';'
+    };
+
+    const tabs=['Скан','Отчётность','Качество прибыли','Обязательства','Заключение'].slice(0,d.tabsShown).map(label=>{
+      const active=(label==='Заключение');
+      return {label, style:'padding:16px 11px;font:'+(active?'500':'400')+' 12px/1 Inter,sans-serif;letter-spacing:-.01em;color:'+(active?t.text:t.muted)+';cursor:pointer;'+(active?'box-shadow:inset 0 -2px 0 '+t.primary+';':'')};
+    });
+
+    const metric=(label,value,kind)=>({
+      label, value,
+      valueStyle:'margin-top:9px;font:500 17px/1 '+mono+';letter-spacing:-.02em;color:'+(kind==='bad'?p.danger:(kind==='warn'?p.warn:(kind==='accent'?p.accent:p.ink)))+';'
+    });
+
+    const finding=(text,kind)=>({
+      text,
+      dotStyle:'flex:none;width:7px;height:7px;margin-top:7px;border-radius:50%;background:'+(kind==='bad'?p.danger:(kind==='warn'?p.warn:p.accent))+';'
+    });
+
+    const flagRow=(label,level,impact,kind)=>({
+      label, level, impact,
+      levelStyle:'text-align:center;font:500 11.5px/1.45 '+mono+';color:'+(kind==='bad'?p.danger:(kind==='warn'?p.warn:p.faint))+';',
+      impactStyle:'text-align:right;font:400 12.5px/1.45 '+mono+';color:'+(kind==='bad'?p.danger:p.ink)+';'
+    });
+
+    const reconRow=(label,rep,chk,delta,kind)=>{
+      const isTotal=kind==='total';
+      const num='text-align:right;font:'+(isTotal?'600':'400')+' 12.5px/1.45 '+mono+';';
+      const col=kind==='bad'?p.danger:(kind==='warn'?p.warn:p.ink);
+      return {
+        label, rep, chk, delta,
+        rowStyle:'display:grid;grid-template-columns:1fr 92px 92px 84px;padding:8px 0;align-items:baseline;'+(isTotal?('border-top:1.5px solid '+p.ink+';'):('border-bottom:1px solid '+p.rule+';')),
+        repStyle:num+'color:'+(isTotal?p.faint:p.ink)+';',
+        chkStyle:num+'color:'+(isTotal?p.accent:col)+';',
+        deltaStyle:num+'color:'+(isTotal?p.accent:col)+';'
+      };
+    };
+
+    const bridgeRow=(label,value,kind,last)=>({
+      label, value,
+      rowStyle:'display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:8px 0;'+(last?('border-top:1.5px solid '+p.ink+';'):('border-bottom:1px solid '+p.rule+';')),
+      valueStyle:'font:'+(last?'600 15px':'400 13px')+'/1.4 '+mono+';color:'+(kind==='bad'?p.danger:(last?p.accent:p.ink))+';'
+    });
+
+    return {
+      s,
+      setLight:this.setLight, setDark:this.setDark,
+      setDesktop:this.setDesktop, setTablet:this.setTablet, setMobile:this.setMobile,
+      navTabs:tabs,
+      printMetrics:[
+        metric('Выручка 2025','1 842 млн ₽','ok'),
+        metric('EBITDA норм.','268 млн ₽','ok'),
+        metric('Долг / EBITDA','3.1×','warn'),
+        metric('Красных флагов','7 · 2 крит.','bad'),
+        metric('Мультипликатор','4.6× EBITDA','ok'),
+        metric('Справедливая цена','1 020 млн ₽','accent')
+      ],
+      findings:[
+        finding('Выручка и себестоимость подтверждены полностью: расхождений с первичными документами и выпиской не выявлено.','ok'),
+        finding('42 млн ₽ прочих доходов за декабрь 2025 не подтверждены банковской выпиской — влияние на нормализованную EBITDA −8.2%.','bad'),
+        finding('Дебиторская задолженность сконцентрирована: 30% приходится на одного контрагента с просрочкой 64 дня.','bad'),
+        finding('Выявлены забалансовые поручительства на 180 млн ₽ за связанную сторону, не раскрытые в пояснениях.','warn'),
+        finding('Договоры аренды без индексации до 2029 года — риск роста издержек 8–11% годовых после пересмотра.','warn')
+      ],
+      flagRows:[
+        flagRow('Концентрация дебиторки на одном контрагенте','критич.','(84)','bad'),
+        flagRow('Разрыв ОПУ и банковской выписки','критич.','(62)','bad'),
+        flagRow('Забалансовые поручительства','средний','(41)','warn'),
+        flagRow('Аренда без индексации до 2029','средний','(24)','warn'),
+        flagRow('Смена аудитора дважды за 3 года','низкий','(9)','low')
+      ],
+      reconRows:[
+        reconRow('Выручка','1 842','1 842','0','ok'),
+        reconRow('Себестоимость продаж','(1 448)','(1 448)','0','ok'),
+        reconRow('Прочие доходы','61','19','(42)','bad'),
+        reconRow('Дебиторская задолженность','402','402','конц.','warn'),
+        reconRow('EBITDA после нормализации','292','268','−8.2%','total')
+      ],
+      bridgeRows:[
+        bridgeRow('Enterprise Value (DCF)','1 240','ok',false),
+        bridgeRow('Долг и займы','(831)','bad',false),
+        bridgeRow('Денежные средства','+96','ok',false),
+        bridgeRow('Дисконт за выявленные риски','(220)','bad',false),
+        bridgeRow('Цена за 100% доли','1 020','ok',true)
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

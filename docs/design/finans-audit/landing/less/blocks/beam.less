@@ -1,0 +1,12 @@
+.beam {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 110px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, var(--beam), transparent);
+  opacity: 0;
+
+  .motion-safe({ opacity: 1; animation: fn-scan 13s linear infinite; });
+}

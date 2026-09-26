@@ -7,43 +7,126 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
+from ..decimals import MoneyModel
 from .common import CostFunction, DirectCostKind
 
 
-class PaymentTerms(BaseModel):
+class PaymentPart(MoneyModel):
+    """Часть графика оплаты: доля выручки со сдвигом относительно месяца отгрузки.
+
+    ``offset_months`` < 0 — предоплата (за |offset| мес. до отгрузки → авансы B24);
+    > 0 — рассрочка (через offset мес. после отгрузки → дебиторка B2); 0 — при отгрузке.
+    """
+
+    offset_months: int = 0
+    share: Decimal = Field(default=Decimal(0), ge=0, le=1)
+
+
+class PaymentTerms(MoneyModel):
     """Условия оплаты продаж (SPEC §5).
 
-    Доля ``prepayment_share`` поступает предоплатой за ``advance_lead_months`` до поставки
-    (формирует авансы, B24). Остаток поступает через ``payment_delay_months`` после
-    поставки (формирует дебиторку, B2).
+    Простая схема: доля ``prepayment_share`` поступает предоплатой за
+    ``advance_lead_months`` до поставки (формирует авансы, B24); остаток — через
+    ``payment_delay_months`` после поставки (формирует дебиторку, B2).
+
+    Сложная схема: непустой ``schedule`` (список долей со сдвигами) **заменяет** простые
+    поля. Σ долей должна быть 1; остаток (1 − Σ) балансируется в месяце отгрузки — так
+    сумма оплат всегда равна выручке (иначе дебиторка/авансы не разворачиваются).
     """
 
     prepayment_share: Decimal = Field(default=Decimal(0), ge=0, le=1)
     advance_lead_months: int = Field(default=0, ge=0)
     payment_delay_months: int = Field(default=0, ge=0)
+    schedule: list[PaymentPart] = Field(default_factory=list)
 
 
-class Product(BaseModel):
+class Material(MoneyModel):
+    """Материал/комплектующая (справочник): цена единицы и условия закупки.
+
+    Потребление задаёт рецептура продукта (``Product.bom``); движок разворачивает её в
+    прямые издержки с этими условиями (отсрочка → B23, опережающая закупка → B3,
+    ``foreign`` — импорт по курсу закупки с импортным НДС).
+    """
+
+    id: str
+    name: str = ""
+    unit: str = ""                                       # информационно («кг», «шт»)
+    unit_price: Decimal = Decimal(0)                     # цена за единицу (при foreign — в валюте)
+    payment_delay_months: int = Field(default=0, ge=0)
+    stock_lead_months: int = Field(default=0, ge=0)
+    foreign: bool = False
+
+
+class BomLine(MoneyModel):
+    """Строка рецептуры: норма расхода материала на единицу продукта."""
+
+    material_id: str
+    qty_per_unit: Decimal = Decimal(0)
+
+
+class Product(MoneyModel):
     id: str
     name: str
+    # Рецептура (BOM): нормы расхода материалов на единицу + сдельная зарплата на единицу.
+    # Пустая рецептура — продукт без пер-продуктной себестоимости (как раньше).
+    bom: list[BomLine] = Field(default_factory=list)
+    piece_wage_per_unit: Decimal = Decimal(0)
+    # Подразделение (бизнес-единица), к которому отнесён продукт (SPEC §6, gap 4.5).
+    # None — продукт вне структуры; аналитика по подразделениям сворачивает маржу продуктов.
+    division_id: Optional[str] = None
 
 
-class SalesLine(BaseModel):
+class Subscription(MoneyModel):
+    """Абонентская база: приток новых, отток действующих (SPEC §5).
+
+    Подписку планируют не объёмом продаж, а **базой**: сколько абонентов есть, сколько
+    приходит, сколько уходит. Объём месяца — это действующая база:
+
+        ``база[t] = база[t−1] · (1 − отток) + новые[t]``,   ``база[−1] = starting_base``
+
+    Отток задан **долей базы за месяц**: 0,03 — уходит 3% действующих. Ноль — допустимое
+    значение, но **не безобидное**: без оттока подписная модель красива всегда, потому что
+    база только растёт. Ревью плана говорит об этом отдельным предупреждением, а не
+    оставляет пользователя наедине с красивым графиком.
+
+    Выбытие считается **от базы начала месяца, до притока**: пришедший в этом месяце
+    абонент в этом же месяце не уходит. Обратный порядок дал бы отток с тех, кто ещё не
+    успел подписаться, — и занижал бы базу тем сильнее, чем быстрее рост.
+    """
+
+    starting_base: Decimal = Field(default=Decimal(0), ge=0)   # база на начало горизонта
+    new_per_month: list[Decimal] = Field(default_factory=list)  # приток новых по месяцам
+    churn_monthly: Decimal = Field(default=Decimal(0), ge=0, le=1)  # доля выбытия за месяц
+
+
+class SalesLine(MoneyModel):
     """Продажи одного продукта: помесячные объём и цена (без НДС)."""
 
     product_id: str
     volume: list[Decimal] = Field(default_factory=list)  # натуральный объём по месяцам
     price: list[Decimal] = Field(default_factory=list)    # цена за единицу по месяцам
+    # Абонентская база вместо ручного объёма (SPEC §5). Задана → объём месяца выводится из
+    # притока и оттока, а ``volume`` **не используется**: два источника объёма молча
+    # разошлись бы, и расчёт пошёл бы по тому, о котором пользователь забыл. Подмена
+    # названа в предупреждениях расчёта, а выведенная база — в результате. None — обычная
+    # строка сбыта (по умолчанию; модель без подписок ведёт себя как раньше).
+    subscription: Optional[Subscription] = None
     payment: PaymentTerms = PaymentTerms()
     # Экспорт во 2-й валюте: цена в валюте, пересчёт выручки/денег/дебиторки по FX[t]
     # (без НДС); валютная дебиторка переоценивается → I25 (SPEC §22.3). По умолчанию — рубли.
     foreign: bool = False
+    # Старт продаж: объём до этого месяца обнуляется. Задаётся вручную либо этапом
+    # «производство» календарного плана (тот перекрывает ручной старт). None — без гейта.
+    start_month: Optional[int] = None
+    # Ставка НДС строки (льготная категория, напр. 0.10); None → глобальная vat_rate.
+    vat_rate: Optional[Decimal] = None
 
 
-class ProductionLine(BaseModel):
+class ProductionLine(MoneyModel):
     """План производства продукта (натуральный объём по месяцам).
 
     Если для продукта план производства не задан, считается «производство под продажи»
@@ -52,9 +135,11 @@ class ProductionLine(BaseModel):
 
     product_id: str
     volume: list[Decimal] = Field(default_factory=list)
+    # Старт производства (гейт объёма), аналогично сбыту; задаётся этапом «производство».
+    start_month: Optional[int] = None
 
 
-class DirectCostLine(BaseModel):
+class DirectCostLine(MoneyModel):
     """Прямая издержка (материалы или сдельная зарплата), помесячно.
 
     ``amount`` — стоимость, относимая к производству месяца (себестоимость капитализуется
@@ -72,7 +157,7 @@ class DirectCostLine(BaseModel):
     foreign: bool = False
 
 
-class FixedCostLine(BaseModel):
+class FixedCostLine(MoneyModel):
     """Постоянная (общая) издержка с функциональным разносом, помесячно."""
 
     name: str
@@ -86,9 +171,48 @@ class FixedCostLine(BaseModel):
     foreign: bool = False
 
 
-class OperatingPlan(BaseModel):
+class StaffPosition(MoneyModel):
+    """Штатная позиция: должность с окладом и численностью на период (SPEC §8).
+
+    Разворачивается движком в постоянную издержку персонала (I13–I15 по ``function``):
+    начисление = оклад × численность в месяцах ``[start_month, end_month)``
+    (``end_month=None`` → до конца горизонта). Взносы с ФОТ и индексация инфляцией
+    зарплаты применяются той же машинерией, что и к суммовым статьям персонала.
+    """
+
+    name: str
+    monthly_salary: Decimal = Decimal(0)    # оклад одного сотрудника в месяц
+    headcount: Decimal = Decimal(1)          # численность (дробная = доля ставки)
+    start_month: int = Field(default=0, ge=0)
+    end_month: Optional[int] = None          # исключительно; None → до конца горизонта
+    function: CostFunction = CostFunction.STAFF_ADMIN   # staff_admin|staff_production|staff_marketing
+    payment_delay_months: int = Field(default=0, ge=0)  # задержка выплаты → кредиторка B23
+
+
+class OtherFlow(MoneyModel):
+    """Прочее поступление/выплата (вне основной деятельности), помесячно.
+
+    Начисление = оплата (в месяце ряда): доход → I20 + C10; выплата → I21 + C11 (вычитаемая)
+    либо, при ``from_profit=True``, → I24 + C11 (за счёт прибыли, не уменьшает налоговую базу).
+    Инфляцией не индексируется (суммы произвольные).
+    """
+
+    name: str
+    amount: list[Decimal] = Field(default_factory=list)
+    # Только для выплат: невычитаемая (из прибыли) — идёт в I24 вместо I21.
+    from_profit: bool = False
+
+
+class OperatingPlan(MoneyModel):
     products: list[Product] = Field(default_factory=list)
     sales: list[SalesLine] = Field(default_factory=list)
     production: list[ProductionLine] = Field(default_factory=list)
     direct_costs: list[DirectCostLine] = Field(default_factory=list)
     fixed_costs: list[FixedCostLine] = Field(default_factory=list)
+    # Справочник материалов для рецептур продуктов (Product.bom).
+    materials: list[Material] = Field(default_factory=list)
+    # Прочие поступления и выплаты (вне основной деятельности) → I20/C10 и I21|I24/C11.
+    other_income: list[OtherFlow] = Field(default_factory=list)
+    other_expenses: list[OtherFlow] = Field(default_factory=list)
+    # План персонала: штатные позиции → постоянные издержки персонала (I13–I15) + взносы.
+    staff: list[StaffPosition] = Field(default_factory=list)

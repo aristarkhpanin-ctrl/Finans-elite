@@ -1,28 +1,61 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { roleLabel } from "../api/org";
 import { useAuth } from "../auth/AuthContext";
 import { BillingTab } from "./org/BillingTab";
+import { AuditLogTab } from "./org/AuditLogTab";
+import { ProfileTab } from "./org/ProfileTab";
 import { MembersTab } from "./org/MembersTab";
+import { ActivityTab } from "./org/ActivityTab";
+import { BenchmarksTab } from "./org/BenchmarksTab";
+import { ChecklistsTab } from "./org/ChecklistsTab";
+import { ApiKeysTab } from "./org/ApiKeysTab";
+import { SupportAccessTab } from "./org/SupportAccessTab";
+import { DataTab } from "./org/DataTab";
+import { OverviewTab } from "./org/OverviewTab";
 
 const TABS = [
+  ["overview", "Обзор"],
   ["members", "Участники"],
+  ["activity", "Активность"],
+  ["profile", "Профиль"],
+  ["benchmarks", "Ориентиры"],
+  ["checklists", "Чек-листы"],
+  ["apikeys", "Ключи API"],
+  ["support", "Доступ поддержки"],
+  ["data", "Данные"],
+  ["log", "Журнал доступа"],
   ["billing", "Тариф и оплата"],
 ] as const;
 
 export function OrganizationPage() {
   const { currentOrgId, organizations, user } = useAuth();
-  const [tab, setTab] = useState<string>("members");
+  const [searchParams] = useSearchParams();
+  // ?tab=billing — прямой переход на вкладку. Письма о деньгах (G4) ведут сразу к оплате:
+  // ссылка на «Обзор» заставила бы искать нужную вкладку того, кто пришёл платить.
+  const [tab, setTab] = useState<string>(() => {
+    const wanted = searchParams.get("tab");
+    return TABS.some(([key]) => key === wanted) ? (wanted as string) : "overview";
+  });
+  /**
+   * Отбор, с которым открыть журнал. Заполняется с экрана участников («действия
+   * участника») — так «кто что делал» отвечает **журнал**, а не второй список рядом,
+   * который со временем разошёлся бы с ним.
+   */
+  const [logActor, setLogActor] = useState("");
   const org = organizations.find((o) => o.id === currentOrgId);
 
   if (!currentOrgId) return <p className="muted">Организация не выбрана</p>;
 
   const myRole = org?.role ?? "viewer";
+  const canManageOrg = myRole === "owner" || myRole === "admin";
 
   return (
     <div>
       <div className="page-head">
         <div style={{ minWidth: 0 }}>
           <h1 className="page-title">{org?.name ?? "Организация"}</h1>
-          <div className="page-sub">Участники, роли, тариф и оплата.</div>
+          <div className="page-sub">Участники, роли, отраслевые ориентиры, тариф и оплата.</div>
         </div>
       </div>
 
@@ -41,8 +74,66 @@ export function OrganizationPage() {
         </div>
       </div>
 
-      {tab === "members" && <MembersTab orgId={currentOrgId} myRole={myRole} myUserId={user?.id ?? ""} />}
-      {tab === "billing" && <BillingTab orgId={currentOrgId} canManage={myRole === "owner" || myRole === "admin"} />}
+      {/* Сводка (F7) видна всем участникам: «почему я не могу завести проект» — вопрос
+          того, кто упёрся, а не только того, кто платит. Имён здесь нет, только числа. */}
+      {tab === "overview" && <OverviewTab orgId={currentOrgId} />}
+      {tab === "members" && (
+        <MembersTab orgId={currentOrgId} myRole={myRole} myUserId={user?.id ?? ""}
+                    onShowActions={canManageOrg
+                      ? (email) => { setLogActor(email); setTab("log"); }
+                      : undefined} />
+      )}
+      {/* Журнал видит только тот, кто управляет организацией: право org.manage.
+          Аналитик работает с делами — следы чужой работы не его дело. Вкладка не
+          прячется, а объясняет отказ: недоступное показывается, а не исчезает. */}
+      {/* Сводка активности видна тем, кто отвечает за организацию, — тот же довод,
+          что у журнала: она отвечает на вопрос об **остальных** участниках. */}
+      {tab === "activity" && (canManageOrg
+        ? <ActivityTab orgId={currentOrgId} />
+        : <div className="tab-empty">
+            <div className="tab-empty__title">Сводка доступна администраторам</div>
+            <div className="tab-empty__sub">
+              Активность показывает, кто из участников работает и над чем, поэтому её
+              видят владелец и администратор. Ваша роль — {roleLabel(myRole)}.
+            </div>
+          </div>)}
+      {tab === "profile" && <ProfileTab />}
+      {/* Ориентиры принадлежат организации, а не делу: одна и та же медиана фонда
+          читается во всех делах, и вести её в каждом значило бы её размножить. */}
+      {tab === "benchmarks" && <BenchmarksTab orgId={currentOrgId} canManage={canManageOrg} />}
+      {/* Чек-листы принадлежат организации, а не делу: один и тот же набор процедур
+          применяют ко всем делам, и вести его в каждом значило бы его размножить. */}
+      {tab === "checklists" && <ChecklistsTab orgId={currentOrgId} canManage={canManageOrg} />}
+      {/* Ключ — дверь в данные организации, поэтому заводит его тот же, кто заводит
+          участников. Видеть список может каждый участник: «кто ходит в наши данные» —
+          не секрет от тех, чьи это данные. */}
+      {tab === "apikeys" && <ApiKeysTab orgId={currentOrgId} canManage={canManageOrg} />}
+      {/* Дверь к содержимому моделей открывает клиент, а не платформа (F4). Состояние
+          видят все участники — «кто пустил платформу в наши числа» не секрет от тех,
+          чьи это числа; открывает и закрывает тот, кто отвечает за организацию. */}
+      {tab === "support" && <SupportAccessTab orgId={currentOrgId} canManage={canManageOrg} />}
+      {/* Забрать всё и уйти (F6). Выгрузку организации целиком берёт тот, кто за неё
+          отвечает; закрыть компанию может только владелец — за тариф платит он. */}
+      {tab === "data" && (canManageOrg
+        ? <DataTab orgId={currentOrgId} orgName={org?.name ?? "организация"}
+                   isOwner={myRole === "owner"} />
+        : <div className="tab-empty">
+            <div className="tab-empty__title">Выгрузка доступна администраторам</div>
+            <div className="tab-empty__sub">
+              Файл содержит модели всех проектов и дел организации, поэтому забирает его
+              тот, кто за неё отвечает. Ваша роль — {roleLabel(myRole)}.
+            </div>
+          </div>)}
+      {tab === "log" && (canManageOrg
+        ? <AuditLogTab orgId={currentOrgId} initialActor={logActor} />
+        : <div className="tab-empty">
+            <div className="tab-empty__title">Журнал доступен администраторам</div>
+            <div className="tab-empty__sub">
+              Записи журнала показывают действия всех участников организации, поэтому
+              их видят владелец и администратор. Ваша роль — {roleLabel(myRole)}.
+            </div>
+          </div>)}
+      {tab === "billing" && <BillingTab orgId={currentOrgId} canManage={canManageOrg} />}
     </div>
   );
 }

@@ -20,7 +20,11 @@ export async function createProject(name: string, durationMonths = 12): Promise<
   return data;
 }
 
-export type TemplateInfo = Schema<"TemplateInfo">;
+/**
+ * Шаблон быстрого старта. Несёт **список допущений** (D4): числа в шаблоне выдуманы, и
+ * человек обязан узнать об этом там же, где увидит цифры, а не в документации.
+ */
+export type TemplateInfo = Schema<"TemplateOut">;
 
 export async function listTemplates(): Promise<TemplateInfo[]> {
   const { data } = await api.get<TemplateInfo[]>("/api/v1/templates");
@@ -34,8 +38,26 @@ export async function createProjectFromTemplate(templateId: string, name: string
   return data;
 }
 
-export async function updateProject(id: string, name: string, model: ProjectModel): Promise<ProjectDetail> {
-  const { data } = await api.put<ProjectDetail>(`/api/v1/projects/${id}`, { name, model });
+/**
+ * Сохранить проект. ``expectedRevision`` — ревизия той версии, которую правили (G2):
+ * если проект с тех пор сохранил кто-то другой, сервер ответит 409 и назовёт его, а не
+ * сотрёт чужие правки молча. Без неё — прежняя перезапись (так работают старые скрипты).
+ */
+export async function updateProject(id: string, name: string, model: ProjectModel,
+                                    expectedRevision?: string): Promise<ProjectDetail> {
+  const body: Record<string, unknown> = { name, model };
+  if (expectedRevision) body.expected_revision = expectedRevision;
+  const { data } = await api.put<ProjectDetail>(`/api/v1/projects/${id}`, body);
+  return data;
+}
+
+/**
+ * Новый проект из готовой модели — безопасный выход из конфликта правок (G2): свои
+ * правки уходят в копию, чужие остаются нетронутыми, и сравнить обе версии можно спокойно.
+ */
+export async function createProjectFromModel(name: string, model: ProjectModel): Promise<ProjectDetail> {
+  const copy = { ...model, header: { ...model.header, name } };
+  const { data } = await api.post<ProjectDetail>("/api/v1/projects", { name, model: copy });
   return data;
 }
 

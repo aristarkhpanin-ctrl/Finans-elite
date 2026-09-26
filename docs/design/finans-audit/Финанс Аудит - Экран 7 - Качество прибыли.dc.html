@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  input,button{font-family:inherit;}
+  a{color:#C77DFF;}
+  a:hover{color:#D69AFF;}
+  @keyframes fa-pulse{from{opacity:.4}to{opacity:1}}
+  @keyframes fa-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes fa-scan{0%{transform:translateY(-130%)}100%{transform:translateY(680%)}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:11px;min-width:0;">
+      <div style="{{ s.barCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="30px,30px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Экран 7 · Качество прибыли</span>
+        <span style="{{ s.barSub }}">нормализация EBITDA · корректировки включаются</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Свет</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тьма</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}" data-screen-label="Экран 7 — Качество прибыли">
+
+      <div style="{{ s.nav }}">
+        <div style="{{ s.navLeft }}">
+          <div style="{{ s.navCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="24px,24px"></dc-import></div>
+          <span style="{{ s.navBrand }}">Финанс&nbsp;Аудит</span>
+          <div style="{{ s.navTabs }}">
+            <sc-for list="{{ navTabs }}" as="n" hint-placeholder-count="5"><span style="{{ n.style }}">{{ n.label }}</span></sc-for>
+          </div>
+        </div>
+        <div style="{{ s.navRight }}">
+          <span style="{{ s.navCase }}">ДЕЛО № A-2417</span>
+          <button style="{{ s.btnPrimarySm }}" style-hover="{{ s.btnPrimaryHover }}">Зафиксировать базу</button>
+        </div>
+      </div>
+
+      <div style="{{ s.headWrap }}">
+        <div style="{{ s.headBeam }}"></div>
+        <div style="{{ s.headMain }}">
+          <div style="{{ s.eyebrow }}"><span style="{{ s.eyebrowDot }}"></span>БАЗА ДЛЯ ОЦЕНКИ · {{ activeCount }} ИЗ 5 КОРРЕКТИРОВОК</div>
+          <div style="{{ s.headValue }}">{{ normalized }}</div>
+          <div style="{{ s.headLead }}">Нормализованная EBITDA за 2025. Отчётная — 292 млн ₽; разница {{ deltaText }} формируется корректировками справа. Мультипликатор считается только от этой величины.</div>
+        </div>
+        <div style="{{ s.headAside }}">
+          <div style="{{ s.gradeLabel }}">Качество прибыли</div>
+          <div style="{{ s.gradeValue }}">{{ grade }}</div>
+          <div style="{{ s.gradeNote }}">{{ gradeNote }}</div>
+          <div style="{{ s.gradeScale }}">
+            <sc-for list="{{ gradeMarks }}" as="g" hint-placeholder-count="4"><span style="{{ g.style }}">{{ g.label }}</span></sc-for>
+          </div>
+        </div>
+      </div>
+
+      <div style="{{ s.twoCol }}">
+
+        <div style="{{ s.panel }}">
+          <div style="{{ s.panelHead }}"><span style="{{ s.panelTitle }}">Мост от отчётной к нормализованной</span><span style="{{ s.panelMeta }}">млн ₽</span></div>
+          <div style="{{ s.chart }}">
+            <sc-for list="{{ waterfall }}" as="w" hint-placeholder-count="7">
+            <div style="{{ s.chartCol }}">
+              <div style="{{ s.chartBarArea }}"><div style="{{ w.barStyle }}"></div><span style="{{ w.valueStyle }}">{{ w.value }}</span></div>
+              <div style="{{ w.labelStyle }}">{{ w.label }}</div>
+            </div>
+            </sc-for>
+          </div>
+          <div style="{{ s.panelNote }}">Серая колонка — как в отчёте, фиолетовая — база для сделки. Отключённые корректировки исчезают из моста мгновенно.</div>
+        </div>
+
+        <div style="{{ s.panel }}">
+          <div style="{{ s.panelHead }}"><span style="{{ s.panelTitle }}">Корректировки</span><span style="{{ s.panelMeta }}">кликните строку</span></div>
+          <div style="{{ s.adjList }}">
+            <sc-for list="{{ adjustments }}" as="a" hint-placeholder-count="5">
+            <div style="{{ a.rowStyle }}" style-hover="{{ a.hoverStyle }}" onClick="{{ a.onToggle }}">
+              <span style="{{ a.boxStyle }}">{{ a.mark }}</span>
+              <span style="{{ s.adjBody }}">
+                <span style="{{ a.labelStyle }}">{{ a.label }}</span>
+                <span style="{{ s.adjNote }}">{{ a.note }}</span>
+              </span>
+              <span style="{{ a.deltaStyle }}">{{ a.delta }}</span>
+            </div>
+            </sc-for>
+          </div>
+          <div style="{{ s.sumRow }}"><span style="{{ s.sumLabel }}">Итого корректировок</span><span style="{{ s.sumValue }}">{{ deltaText }}</span></div>
+          <div style="{{ s.natureHead }}">Природа расхождений</div>
+          <sc-for list="{{ natures }}" as="n" hint-placeholder-count="3">
+          <div style="{{ s.natureRow }}"><span style="{{ s.natureLabel }}">{{ n.label }}</span><div style="{{ s.natureTrack }}"><div style="{{ n.fillStyle }}"></div></div><span style="{{ n.valueStyle }}">{{ n.value }}</span></div>
+          </sc-for>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { theme:'dark', device:'desktop', off:{} };
+
+  ADJ(){
+    return [
+      {id:'a1', label:'Разовый доход от продажи техники', note:'акт от 14.08.2025 · не повторится', delta:-24, nature:'once'},
+      {id:'a2', label:'Списание безнадёжной дебиторки', note:'разовое, возвращаем в базу', delta:18, nature:'once'},
+      {id:'a3', label:'Услуги управляющей компании', note:'связанная сторона · выше рынка на 11 млн', delta:-11, nature:'related'},
+      {id:'a4', label:'Капитализированный текущий ремонт', note:'по МСФО — расход периода', delta:9, nature:'capex'},
+      {id:'a5', label:'Аренда склада ниже рынка', note:'связанная сторона · пересмотр в 2027', delta:-16, nature:'related'}
+    ];
+  }
+
+  THEME(){
+    const dark={
+      pageBg:'#000000', bg:'#000000', surface:'#0E0B14', surface2:'#171122', surface3:'#241A38', sk:'#171122',
+      border:'#2B2140', borderStrong:'#4B3A6E', gridLine:'#191324',
+      text:'#F2E8FF', muted:'#9C8FB5', subtle:'#6A5C86',
+      primary:'#C77DFF', primaryHover:'#D69AFF', primaryText:'#17061F', accent:'#C77DFF',
+      primaryBg:'rgba(199,125,255,0.15)', primarySoft:'rgba(199,125,255,0.09)',
+      goodBg:'rgba(199,125,255,0.15)', goodBorder:'rgba(199,125,255,0.34)',
+      danger:'#F0796E', dangerBg:'rgba(240,121,110,0.15)', dangerBorder:'rgba(240,121,110,0.34)',
+      warn:'#E0A23A', warnBg:'rgba(224,162,58,0.16)', warnBorder:'rgba(224,162,58,0.32)',
+      info:'#B9A6E8',
+      ring:'rgba(199,125,255,0.40)',
+      shadow:'0 30px 70px -34px rgba(0,0,0,.9)', glow:'0 0 18px rgba(199,125,255,.35)',
+      barBg:'#0A0710', segBg:'#0A0710', segActiveBg:'#241A38', headerBg:'#0E0B14', neutralBar:'#4B3A6E'
+    };
+    const light={
+      pageBg:'#F2EDFA', bg:'#FAF7FE', surface:'#FFFFFF', surface2:'#F4EEFA', surface3:'#E8DEF4', sk:'#EDE6F6',
+      border:'#DED2EC', borderStrong:'#C2B0D6', gridLine:'#EDE6F6',
+      text:'#1B1523', muted:'#4E4459', subtle:'#756884',
+      primary:'#C77DFF', primaryHover:'#B968F5', primaryText:'#17061F', accent:'#7A2BC4',
+      primaryBg:'#EEE0FB', primarySoft:'#F6EFFD',
+      goodBg:'#EEE0FB', goodBorder:'#D9BFF0',
+      danger:'#C0473B', dangerBg:'#FAE7E4', dangerBorder:'#EECFCA',
+      warn:'#B07A12', warnBg:'#FBF0D8', warnBorder:'#ECDDB4',
+      info:'#6B5E8C',
+      ring:'rgba(199,125,255,0.34)',
+      shadow:'0 18px 44px -22px rgba(40,20,60,.22), 0 2px 6px rgba(40,20,60,.05)', glow:'none',
+      barBg:'#FFFFFF', segBg:'#EDE6F6', segActiveBg:'#FFFFFF', headerBg:'#FFFFFF', neutralBar:'#C2B0D6'
+    };
+    return this.state.theme==='dark'?dark:light;
+  }
+
+  DIM(){
+    const d=this.state.device;
+    if(d==='mobile') return {frame:402, radius:26, pad:16, big:32, twoCols:'1fr', tabsShown:2, chartH:150, colFont:8.5};
+    if(d==='tablet') return {frame:864, radius:30, pad:20, big:40, twoCols:'1fr', tabsShown:4, chartH:180, colFont:9.5};
+    return {frame:1180, radius:30, pad:24, big:46, twoCols:'1.15fr 1fr', tabsShown:5, chartH:190, colFont:9.5};
+  }
+
+  setLight=()=>this.setState({theme:'light'});
+  setDark=()=>this.setState({theme:'dark'});
+  setDesktop=()=>this.setState({device:'desktop'});
+  setTablet=()=>this.setState({device:'tablet'});
+  setMobile=()=>this.setState({device:'mobile'});
+  toggle=(id)=>()=>this.setState(st=>{
+    const off=Object.assign({},st.off);
+    if(off[id]) delete off[id]; else off[id]=true;
+    return {off};
+  });
+
+  segBtn(active,t){
+    return 'height:28px;padding:0 12px;border:0;border-radius:7px;cursor:pointer;font:'+(active?'600':'500')+' 11.5px/1 Inter,sans-serif;letter-spacing:-.01em;'+
+      (active?('background:'+t.segActiveBg+';color:'+t.text+';'):('background:transparent;color:'+t.subtle+';'));
+  }
+
+  fmt(n){ return (n<0?'−':'+')+Math.abs(n); }
+
+  renderVals(){
+    const t=this.THEME(), d=this.DIM(), dark=this.state.theme==='dark';
+    const mono='JetBrains Mono,ui-monospace,monospace';
+    const disp='Satoshi,Inter,sans-serif';
+    const card='border:1px solid '+t.border+';border-radius:16px;background:'+t.surface+';'+(dark?'':'box-shadow:'+t.shadow+';');
+    const reported=292;
+    const adj=this.ADJ();
+    const active=adj.filter(a=>!this.state.off[a.id]);
+    const total=active.reduce((sum,a)=>sum+a.delta,0);
+    const norm=reported+total;
+    const scale=d.chartH/340;
+
+    const s={
+      page:'min-height:100vh;background:'+t.pageBg+';display:flex;flex-direction:column;align-items:center;padding:0 0 60px;',
+      bar:'position:sticky;top:0;z-index:20;width:100%;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:12px 20px;background:'+t.barBg+';border-bottom:1px solid '+t.border+';',
+      barCube:'width:30px;height:30px;flex:none;',
+      barTitle:'font:600 13px/1.2 Inter,sans-serif;letter-spacing:-.015em;color:'+t.text+';',
+      barSub:'font:400 10.5px/1.2 '+mono+';color:'+t.subtle+';',
+      barLabel:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+      seg:'display:flex;gap:2px;padding:3px;border-radius:9px;background:'+t.segBg+';border:1px solid '+t.border+';',
+      segLight:this.segBtn(!dark,t), segDark:this.segBtn(dark,t),
+      segDesktop:this.segBtn(this.state.device==='desktop',t),
+      segTablet:this.segBtn(this.state.device==='tablet',t),
+      segMobile:this.segBtn(this.state.device==='mobile',t),
+      stage:'width:100%;display:flex;justify-content:center;padding:26px 18px 0;',
+      frame:'width:100%;max-width:'+d.frame+'px;border:1px solid '+t.border+';border-radius:'+d.radius+'px;background:'+t.bg+';overflow:hidden;'+(dark?'':'box-shadow:'+t.shadow+';'),
+
+      nav:'display:flex;align-items:center;justify-content:space-between;gap:14px;height:52px;padding:0 '+d.pad+'px;background:'+t.headerBg+';border-bottom:1px solid '+t.border+';',
+      navLeft:'display:flex;align-items:center;gap:20px;min-width:0;',
+      navCube:'width:24px;height:24px;flex:none;',
+      navBrand:'font:600 10.5px/1 Inter,sans-serif;letter-spacing:.15em;text-transform:uppercase;color:'+t.text+';',
+      navTabs:'display:'+(d.frame<500?'none':'flex')+';align-items:center;gap:2px;',
+      navRight:'display:flex;align-items:center;gap:10px;flex:none;',
+      navCase:'display:'+(d.frame<500?'none':'inline')+';font:500 10px/1 '+mono+';letter-spacing:.06em;color:'+t.subtle+';',
+
+      headWrap:'position:relative;display:flex;flex-direction:'+(d.frame<900?'column':'row')+';gap:'+(d.frame<900?'20px':'30px')+';margin:'+d.pad+'px '+d.pad+'px 0;padding:'+(d.frame<500?'22px 18px':'26px 24px')+';border:1px solid '+t.border+';border-radius:20px;overflow:hidden;background:'+(dark?'radial-gradient(ellipse 60% 120% at 14% 40%, rgba(199,125,255,.14) 0%, rgba(123,63,228,.04) 46%, '+t.surface+' 78%)':'linear-gradient(150deg,'+t.primarySoft+' 0%, '+t.surface+' 58%)')+';'+(dark?'':'box-shadow:'+t.shadow+';'),
+      headBeam:'position:absolute;left:0;right:0;top:0;height:70px;pointer-events:none;background:linear-gradient(to bottom,transparent,'+(dark?'rgba(199,125,255,.09)':'rgba(199,125,255,.13)')+',transparent);animation:fa-scan 9s linear infinite;',
+      headMain:'position:relative;flex:1;min-width:0;',
+      eyebrow:'display:flex;align-items:center;gap:7px;font:500 9.5px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:'+t.accent+';margin-bottom:12px;',
+      eyebrowDot:'width:5px;height:5px;border-radius:50%;background:'+t.primary+';'+(dark?'box-shadow:0 0 8px rgba(199,125,255,.9);':'')+'animation:fa-pulse 2s ease-in-out infinite alternate;',
+      headValue:'font:600 '+d.big+'px/1 '+mono+';letter-spacing:-.035em;color:'+t.text+';'+(dark?'text-shadow:0 0 30px rgba(199,125,255,.26);':''),
+      headLead:'margin-top:14px;font:400 13px/1.62 Inter,sans-serif;color:'+t.muted+';max-width:54ch;text-wrap:pretty;',
+      headAside:'position:relative;flex:none;width:'+(d.frame<900?'100%':'232px')+';padding:18px;border:1px solid '+t.border+';border-radius:16px;background:'+(dark?'rgba(14,11,20,.86)':t.surface)+';',
+      gradeLabel:'font:500 9px/1 Inter,sans-serif;letter-spacing:.13em;text-transform:uppercase;color:'+t.subtle+';',
+      gradeValue:'margin-top:10px;font:500 42px/1 '+disp+';letter-spacing:-.03em;color:'+t.accent+';',
+      gradeNote:'margin-top:10px;font:400 11.5px/1.5 Inter,sans-serif;color:'+t.muted+';',
+      gradeScale:'display:flex;gap:5px;margin-top:14px;',
+
+      twoCol:'display:grid;grid-template-columns:'+d.twoCols+';gap:12px;padding:'+d.pad+'px;align-items:start;',
+      panel:card+'padding:18px;display:flex;flex-direction:column;gap:13px;',
+      panelHead:'display:flex;align-items:baseline;justify-content:space-between;gap:12px;',
+      panelTitle:'font:500 15px/1.2 '+disp+';letter-spacing:-.02em;color:'+t.text+';',
+      panelMeta:'font:400 10px/1 '+mono+';color:'+t.subtle+';',
+      panelNote:'font:400 11.5px/1.55 Inter,sans-serif;color:'+t.muted+';',
+
+      chart:'display:flex;align-items:flex-end;gap:'+(d.frame<500?'4px':'8px')+';padding:14px 0 0;border-bottom:1px solid '+t.border+';',
+      chartCol:'flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;',
+      chartBarArea:'position:relative;height:'+d.chartH+'px;',
+
+      adjList:'display:flex;flex-direction:column;',
+      adjBody:'flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;',
+      adjNote:'font:400 10.5px/1.45 '+mono+';color:'+t.subtle+';',
+      sumRow:'display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:12px 0 0;border-top:1.5px solid '+t.border+';',
+      sumLabel:'font:600 12.5px/1.4 Inter,sans-serif;color:'+t.text+';',
+      sumValue:'font:600 14px/1.4 '+mono+';color:'+(total<0?t.danger:t.accent)+';',
+
+      natureHead:'margin-top:4px;padding-top:13px;border-top:1px solid '+t.border+';font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+      natureRow:'display:flex;align-items:center;gap:10px;',
+      natureLabel:'flex:none;width:'+(d.frame<500?'110px':'128px')+';font:400 11.5px/1.35 Inter,sans-serif;color:'+t.muted+';',
+      natureTrack:'flex:1;height:6px;border-radius:3px;background:'+t.surface2+';overflow:hidden;',
+
+      btnPrimarySm:'height:31px;padding:0 14px;border:0;border-radius:4px;background:'+t.primary+';color:'+t.primaryText+';font:600 11.5px/1 Inter,sans-serif;cursor:pointer;'+(dark?'box-shadow:'+t.glow+';':''),
+      btnPrimaryHover:'background:'+t.primaryHover+';'
+    };
+
+    const tabs=['Скан','Отчётность','Качество прибыли','Обязательства','Оценка'].slice(0,d.tabsShown).map(label=>{
+      const on=(label==='Качество прибыли');
+      return {label, style:'padding:16px 11px;font:'+(on?'500':'400')+' 12px/1 Inter,sans-serif;letter-spacing:-.01em;color:'+(on?t.text:t.muted)+';cursor:pointer;'+(on?'box-shadow:inset 0 -2px 0 '+t.primary+';':'')};
+    });
+
+    // waterfall
+    const wf=[];
+    const colLabel=(c)=>'text-align:center;font:400 '+d.colFont+'px/1.3 Inter,sans-serif;color:'+c+';';
+    wf.push({
+      label:'Отчётная', value:reported,
+      barStyle:'position:absolute;left:12%;right:12%;bottom:0;height:'+Math.round(reported*scale)+'px;border-radius:4px 4px 0 0;background:'+t.neutralBar+';',
+      valueStyle:'position:absolute;left:0;right:0;bottom:'+(Math.round(reported*scale)+6)+'px;text-align:center;font:500 10px/1 '+mono+';color:'+t.muted+';',
+      labelStyle:colLabel(t.subtle)
+    });
+    let run=reported;
+    adj.forEach(a=>{
+      const on=!this.state.off[a.id];
+      const start=run, end=on?run+a.delta:run;
+      run=end;
+      const lo=Math.min(start,end), h=Math.max(Math.abs(a.delta)*scale, on?3:2);
+      const c=on?(a.delta<0?t.danger:t.accent):t.border;
+      wf.push({
+        label:a.label.split(' ').slice(0,2).join(' '), value:on?this.fmt(a.delta):'—',
+        barStyle:'position:absolute;left:16%;right:16%;bottom:'+Math.round(lo*scale)+'px;height:'+Math.round(h)+'px;border-radius:3px;background:'+c+';'+(on?'':'opacity:.5;'),
+        valueStyle:'position:absolute;left:0;right:0;bottom:'+(Math.round(lo*scale+h)+6)+'px;text-align:center;font:500 10px/1 '+mono+';color:'+(on?c:t.subtle)+';',
+        labelStyle:colLabel(on?t.muted:t.subtle)
+      });
+    });
+    wf.push({
+      label:'Нормализованная', value:norm,
+      barStyle:'position:absolute;left:12%;right:12%;bottom:0;height:'+Math.round(norm*scale)+'px;border-radius:4px 4px 0 0;background:'+t.primary+';'+(dark?'box-shadow:0 0 18px rgba(199,125,255,.45);':''),
+      valueStyle:'position:absolute;left:0;right:0;bottom:'+(Math.round(norm*scale)+6)+'px;text-align:center;font:600 11px/1 '+mono+';color:'+t.accent+';',
+      labelStyle:colLabel(t.text)
+    });
+
+    const adjustments=adj.map(a=>{
+      const on=!this.state.off[a.id];
+      return {
+        label:a.label, note:a.note, delta:this.fmt(a.delta), mark:on?'✓':'',
+        onToggle:this.toggle(a.id),
+        rowStyle:'display:flex;align-items:flex-start;gap:11px;padding:12px 0;border-bottom:1px solid '+t.gridLine+';cursor:pointer;',
+        hoverStyle:'background:'+t.surface2+';',
+        boxStyle:'flex:none;width:17px;height:17px;margin-top:1px;border-radius:4px;text-align:center;font:600 10px/17px Inter,sans-serif;'+
+          (on?('background:'+t.primary+';color:'+t.primaryText+';border:1.5px solid '+t.primary+';'):('background:transparent;color:transparent;border:1.5px solid '+t.borderStrong+';')),
+        labelStyle:'font:'+(on?'500':'400')+' 12.5px/1.4 Inter,sans-serif;color:'+(on?t.text:t.subtle)+';'+(on?'':'text-decoration:line-through;'),
+        deltaStyle:'flex:none;font:500 12.5px/1.4 '+mono+';color:'+(on?(a.delta<0?t.danger:t.accent):t.subtle)+';'
+      };
+    });
+
+    const natureSum=(key)=>active.filter(a=>a.nature===key).reduce((x,a)=>x+Math.abs(a.delta),0);
+    const natMax=Math.max(1,natureSum('once'),natureSum('related'),natureSum('capex'));
+    const nature=(label,key,c)=>{
+      const val=natureSum(key);
+      return {
+        label, value:val?val+' млн':'—',
+        fillStyle:'width:'+Math.round(val/natMax*100)+'%;height:100%;background:'+c+';',
+        valueStyle:'flex:none;width:56px;text-align:right;font:500 11px/1 '+mono+';color:'+(val?c:t.subtle)+';'
+      };
+    };
+
+    const absTotal=active.reduce((x,a)=>x+Math.abs(a.delta),0);
+    const share=absTotal/reported;
+    const grade=share>0.25?'C':(share>0.10?'B':'A');
+    const gradeIdx={A:0,B:1,C:2,D:3}[grade];
+
+    return {
+      s,
+      setLight:this.setLight, setDark:this.setDark,
+      setDesktop:this.setDesktop, setTablet:this.setTablet, setMobile:this.setMobile,
+      navTabs:tabs,
+      normalized:norm+' млн ₽',
+      deltaText:this.fmt(total)+' млн ₽',
+      activeCount:active.length,
+      grade,
+      gradeNote:'Совокупные корректировки — '+Math.round(share*100)+'% отчётной EBITDA. Порог для оценки без дисконта — 10%.',
+      gradeMarks:['A','B','C','D'].map((label,i)=>({
+        label,
+        style:'flex:1;padding:6px 0;text-align:center;border-radius:6px;font:600 11px/1 '+mono+';'+
+          (i===gradeIdx?('background:'+t.primary+';color:'+t.primaryText+';'):('background:'+t.surface2+';color:'+t.subtle+';'))
+      })),
+      waterfall:wf,
+      adjustments,
+      natures:[
+        nature('Разовые операции','once',t.accent),
+        nature('Связанные стороны','related',t.danger),
+        nature('Капитализация','capex',t.warn)
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

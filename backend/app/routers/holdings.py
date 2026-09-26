@@ -15,8 +15,8 @@ from calc_core.integrator import consolidate_detailed
 
 from .. import crud
 from ..database import get_db
-from ..db_models import Holding
-from ..deps import require_permission
+from ..db_models import Holding, User
+from ..deps import current_user, require_permission
 from ..rbac import Perm
 from ..schemas import (
     ConsolidateResponse,
@@ -59,8 +59,12 @@ def _out(db: Session, holding: Holding) -> HoldingOut:
 @router.post("", response_model=HoldingOut, status_code=status.HTTP_201_CREATED)
 def create_holding(body: HoldingCreate,
                    org_id: str = Depends(require_permission(Perm.PROJECT_CREATE)),
+                   actor: User = Depends(current_user),
                    db: Session = Depends(get_db)) -> HoldingOut:
-    return _out(db, crud.create_holding(db, org_id, body.name))
+    holding = crud.create_holding(db, org_id, body.name)
+    crud.log_action(db, org_id, actor, "holding.create", entity_type="holding",
+                    entity_id=holding.id, entity_name=holding.name)
+    return _out(db, holding)
 
 
 @router.get("", response_model=list[HoldingOut])
@@ -77,8 +81,13 @@ def get_holding(holding_id: str, org_id: str = Depends(require_permission(Perm.P
 
 @router.delete("/{holding_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_holding(holding_id: str, org_id: str = Depends(require_permission(Perm.PROJECT_DELETE)),
+                   actor: User = Depends(current_user),
                    db: Session = Depends(get_db)) -> None:
-    crud.delete_holding(db, _require(db, org_id, holding_id))
+    holding = _require(db, org_id, holding_id)
+    name = holding.name
+    crud.delete_holding(db, holding)
+    crud.log_action(db, org_id, actor, "holding.delete", entity_type="holding",
+                    entity_id=holding_id, entity_name=name)
 
 
 @router.post("/{holding_id}/members", response_model=HoldingOut, status_code=status.HTTP_201_CREATED)

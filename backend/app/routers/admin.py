@@ -1,0 +1,920 @@
+"""Служебный контур платформы: что мы видим о своих клиентах (ADMIN-DECOMPOSITION.md, B1).
+
+Отдельный роутер, отдельная зависимость (:func:`deps.require_staff`), отдельный журнал.
+Внутри контура два уровня (F5): :func:`deps.require_staff` пускает **смотреть**, а всё,
+что меняет состояние клиента, закрыто :func:`deps.require_operator` — и перечень таких
+маршрутов закрыт перечень-тестом в обе стороны.
+Ни один клиентский маршрут прав оператора не получает, и ни один служебный не выдаёт
+содержимого моделей: оператору видны метаданные — организации, состав, подписки, объёмы —
+и не видно ни одного числа из проекта или дела (правило 6 плана). Иначе владелец SaaS
+читает финансовые модели своих клиентов, то есть ровно то, чего клиент и опасается.
+
+**Обхода изоляции арендатора здесь нет.** Служебные запросы к данным организации идут
+через тот же ``set_tenant``, что и клиентские: оператор входит в организацию по очереди,
+через ту же дверь, и выходит из неё явно (:func:`database.as_tenant` — дверь общая, своей
+у служебного контура нет). Отдельная роль в
+PostgreSQL или политика с лазейкой дали бы контур, в котором RLS не действует, — и он
+существовал бы ровно до первой ошибки в коде, которая направит туда клиентский запрос.
+
+**Правило «журнал не пишет чтение» здесь имеет названное исключение.** Оно защищает
+журнал от потока собственных просмотров участников; приход **постороннего** — событие,
+которого клиент иначе не увидит вовсе. Поэтому визит в конкретную организацию пишется в
+её журнал, а платформенные списки (все организации, поиск человека) — только в служебный:
+иначе одно обновление экрана оператора оставило бы запись у каждого клиента сразу, и
+сигнал «к нам приходили» утонул бы в шуме, который сам же и создаёт.
+"""
+from __future__ import annotations
+
+import csv
+import io
+from datetime import datetime, timedelta, timezone
+
+from fastapi import APIRouter, Depends, HTTPException, Response
+from sqlalchemy.orm import Session
+
+from .. import billing as billing_mod
+from .. import crud, job_state, support_access, usage
+from ..database import as_tenant, get_db
+from ..db_models import User
+from ..deps import require_operator, require_staff
+from ..metrics import (
+    ChurnRecord,
+    PlatformMetrics,
+    TenantTotals,
+    build_platform_metrics,
+    product_label,
+    retention,
+)
+from ..plans import PRODUCTS, get_plan, is_valid_plan
+from ..schemas import (
+    AuditLogPage,
+    ChurnOut,
+    ChurnPointOut,
+    FunnelStepOut,
+    MetricPointOut,
+    PlanSliceOut,
+    PlatformMetricsOut,
+    RetentionPointOut,
+    RevenuePointOut,
+    StaffAccessOut,
+    StaffEntityOut,
+    StaffJobOut,
+    StaffJobsOut,
+    StaffListOut,
+    StaffLogEntryOut,
+    StaffLogPage,
+    StaffMemberOut,
+    StaffModelOut,
+    StaffOrgDetail,
+    StaffOrgOut,
+    StaffOrgPage,
+    StaffPaymentOut,
+    StaffPlanAssign,
+    StaffSubscriptionOut,
+    StaffUserOrgOut,
+    StaffUserOut,
+    SuspendIn,
+)
+from ..timefmt import when_utc
+from .jobs import fetch_state
+from .organizations import _log_entry_out, _member_out
+
+router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
+
+
+def _subscriptions_out(db: Session, org_id: str) -> list[StaffSubscriptionOut]:
+    """Оба продукта платформы, а не только оформленные подписки.
+
+    Организация пользуется продуктом и на тарифе по умолчанию, подписки при этом нет
+    вовсе. Показать только оформленные значило бы, что клиент с тремя делами выглядит
+    не пользующимся «Аудитом»; статус ``none`` отличает «не оформлял» от «оформил
+    бесплатный», и это разные разговоры с клиентом.
+    """
+    subs = {s.product: s for s in crud.list_subscriptions(db, org_id)}
+    out = []
+    for product in PRODUCTS:
+        sub = subs.get(product)
+        plan = get_plan(sub.plan_code if sub else None, product)
+        out.append(StaffSubscriptionOut(
+            product=product, plan_code=plan.code, plan_name=plan.name,
+            status=sub.status if sub else "none",
+            current_period_end=sub.current_period_end if sub else None,
+            auto_renew=bool(sub and sub.auto_renew),
+            renew_error=sub.renew_error if sub else ""))
+    return out
+
+
+def _org_out(db: Session, org) -> StaffOrgOut:
+    """Метаданные организации. Объёмы считаются, стоя в её же дверях (RLS)."""
+    with as_tenant(db, org.id):
+        volumes = crud.org_volumes(db, org.id)
+    return StaffOrgOut(id=org.id, name=org.name, created_at=org.created_at,
+                       subscriptions=_subscriptions_out(db, org.id),
+                       suspended=org.suspended_at is not None,
+                       suspended_at=org.suspended_at, suspended_by=org.suspended_by,
+                       suspend_reason=org.suspend_reason, **volumes)
+
+
+def _org_detail(db: Session, org) -> StaffOrgDetail:
+    """Карточка клиента: метаданные, состав и платежи. Собирается из одного места, чтобы
+    приостановка, снятие и назначение тарифа возвращали ровно то же, что показывает сама
+    карточка."""
+    base = _org_out(db, org)
+    members = [_member_out(m, u) for m, u in crud.list_members(db, org.id)]
+    # Платежи читаются **с фильтром по организации**, без арендатора: RLS у таблицы нет
+    # намеренно (см. `Payment`), и изоляцию здесь держит именно этот фильтр.
+    payments = [StaffPaymentOut(id=p.id, created_at=p.created_at, plan_code=p.plan_code,
+                                amount_rub=p.amount_rub, status=p.status,
+                                provider=p.provider, months=p.months,
+                                automatic=p.renews_period_end is not None)
+                for p in crud.list_payments(db, org.id)]
+    return StaffOrgDetail(**base.model_dump(), members_list=members, payments=payments,
+                          payments_total=crud.count_payments(db, org.id),
+                          access=_access_out(db, org.id))
+
+
+def _access_out(db: Session, org_id: str) -> StaffAccessOut:
+    """Открыл ли клиент доступ к своим моделям (F4) — **и почему нет**, если не открыл.
+
+    Причина нужна оператору **до** нажатия: наткнувшись на 403 в ответ на обычное
+    «посмотрите мой проект», он пойдёт просить выгрузку почтой — то есть ровно тем
+    каналом, который платформа для этого и заменяет.
+    """
+    now = datetime.now(timezone.utc)
+    with as_tenant(db, org_id):
+        grants = crud.list_support_grants(db, org_id)
+    grant = support_access.live_grant(grants, now)
+    if grant is None:
+        refusal = support_access.refusal_for(grants, now, fmt_when=_when_ru)
+        return StaffAccessOut(reason=refusal.reason if refusal else "")
+    return StaffAccessOut(granted=True, expires_at=grant.expires_at,
+                          granted_by_email=grant.granted_by_email,
+                          grant_reason=grant.reason)
+
+
+@router.get("/organizations", response_model=StaffOrgPage)
+def list_organizations(q: str = "", limit: int = 50, offset: int = 0,
+                       staff: User = Depends(require_staff),
+                       db: Session = Depends(get_db)) -> StaffOrgPage:
+    """Клиенты платформы: кто, с какого числа, на каком тарифе и сколько чего завёл.
+
+    Пишется **только в служебный журнал**: список — это платформенный взгляд, а не визит
+    к конкретному клиенту. Запись у каждого клиента при каждом обновлении экрана сделала
+    бы их журналы нечитаемыми.
+    """
+    limit = max(1, min(limit, 200))
+    orgs = crud.list_organizations(db, q=q, limit=limit, offset=offset)
+    crud.log_staff_action(db, staff, "staff.orgs_list",
+                          details=f"найдено: {len(orgs)}" + (f", отбор: {q}" if q else ""))
+    return StaffOrgPage(organizations=[_org_out(db, o) for o in orgs],
+                        total=crud.count_organizations(db, q=q))
+
+
+@router.get("/organizations/{org_id}", response_model=StaffOrgDetail)
+def get_organization(org_id: str, staff: User = Depends(require_staff),
+                     db: Session = Depends(get_db)) -> StaffOrgDetail:
+    """Карточка клиента: подписки, объёмы, состав.
+
+    Визит пишется **в оба журнала** — в служебный и в журнал самой организации. Клиент
+    обязан видеть, что к нему приходили, даже (и особенно) когда приходили мы.
+    """
+    org = crud.get_organization(db, org_id)
+    if org is None:
+        raise HTTPException(status_code=404, detail="Организация не найдена")
+    detail = _org_detail(db, org)
+    with as_tenant(db, org_id):
+        crud.log_action(db, org_id, staff, "staff.org_view", entity_type="organization",
+                        entity_id=org_id, entity_name=org.name,
+                        details="просмотр сотрудником платформы")
+    crud.log_staff_action(db, staff, "staff.org_view", org_id=org_id, org_name=org.name)
+    return detail
+
+
+@router.get("/organizations/{org_id}/audit-log", response_model=AuditLogPage)
+def read_audit_log(org_id: str, limit: int = 200, actor: str = "", action: str = "",
+                   since: datetime | None = None, until: datetime | None = None,
+                   q: str = "", staff: User = Depends(require_staff),
+                   db: Session = Depends(get_db)) -> AuditLogPage:
+    """Журнал организации глазами оператора — тот же, что видит её администратор.
+
+    Второго представления журнала не заводим: расхождение двух ответов на один вопрос
+    («что у клиента происходило») пришлось бы разбирать в момент инцидента, то есть
+    тогда, когда времени на это меньше всего.
+    """
+    org = crud.get_organization(db, org_id)
+    if org is None:
+        raise HTTPException(status_code=404, detail="Организация не найдена")
+    limit = max(1, min(limit, 500))
+    f = {"actor": actor, "action": action, "since": since, "until": until, "q": q}
+    with as_tenant(db, org_id):
+        entries = crud.list_audit_log(db, org_id, limit=limit, **f)
+        page = AuditLogPage(entries=[_log_entry_out(e) for e in entries],
+                            total=crud.count_audit_log(db, org_id, **f),
+                            actors=crud.audit_log_actors(db, org_id),
+                            actions=crud.audit_log_actions(db, org_id))
+        crud.log_action(db, org_id, staff, "staff.audit_log_view",
+                        entity_type="organization", entity_id=org_id, entity_name=org.name,
+                        details="журнал прочитан сотрудником платформы")
+    crud.log_staff_action(db, staff, "staff.audit_log_view", org_id=org_id,
+                          org_name=org.name, details=f"строк: {len(entries)}")
+    return page
+
+
+def _user_out(db: Session, user: User) -> StaffUserOut:
+    orgs = []
+    for org, role in crud.list_user_organizations(db, user.id):
+        membership = crud.get_membership(db, org.id, user.id)
+        orgs.append(StaffUserOrgOut(
+            id=org.id, name=org.name, role=role,
+            blocked=membership is not None and membership.blocked_at is not None,
+            block_reason=membership.block_reason if membership else "",
+            last_seen_at=membership.last_seen_at if membership else None))
+    return StaffUserOut(id=user.id, email=user.email, full_name=user.full_name,
+                        created_at=user.created_at, is_staff=user.is_staff,
+                        has_password=user.hashed_password is not None,
+                        blocked=user.blocked_at is not None, blocked_at=user.blocked_at,
+                        blocked_by=user.blocked_by, block_reason=user.block_reason,
+                        organizations=orgs)
+
+
+@router.get("/users", response_model=list[StaffUserOut])
+def search_users(q: str = "", limit: int = 50, staff: User = Depends(require_staff),
+                 db: Session = Depends(get_db)) -> list[StaffUserOut]:
+    """Поиск человека по адресу или имени — вход в разбор обращения в поддержку.
+
+    Ответ говорит и то, о чём поддержку спрашивают чаще всего: заведён ли пароль вообще
+    (приглашённый его мог не задать) и не приостановлен ли доступ — и в какой именно
+    организации. Это метаданные человека, а не данные организации, поэтому запись идёт
+    в служебный журнал.
+    """
+    limit = max(1, min(limit, 200))
+    users = crud.search_users(db, q=q, limit=limit)
+    crud.log_staff_action(db, staff, "staff.users_search",
+                          details=f"найдено: {len(users)}" + (f", отбор: {q}" if q else ""))
+    return [_user_out(db, u) for u in users]
+
+
+@router.get("/users/{user_id}", response_model=StaffUserOut)
+def get_user(user_id: str, staff: User = Depends(require_staff),
+             db: Session = Depends(get_db)) -> StaffUserOut:
+    user = crud.get_user(db, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    crud.log_staff_action(db, staff, "staff.user_view", details=user.email)
+    return _user_out(db, user)
+
+
+@router.post("/organizations/{org_id}/suspend", response_model=StaffOrgDetail)
+def suspend_organization(org_id: str, body: SuspendIn,
+                         staff: User = Depends(require_operator),
+                         db: Session = Depends(get_db)) -> StaffOrgDetail:
+    """Приостановить организацию (нарушение, запрос, разбирательство) — B2.
+
+    **Приостановка не конфискует данные** (правило 7): организация переходит в режим
+    чтения и выгрузки — свои модели видны, считаются и выгружаются, новые не заводятся
+    и старые не правятся. Отрезать клиента от собственных чисел значило бы держать их в
+    заложниках, чем бы это ни было вызвано.
+
+    Причина обязательна и показывается **самой организации**: ограничение без объяснения
+    неотличимо от поломки. Оплата приостановку не снимает — снимает только платформа, и
+    в тексте отказа это сказано прямо.
+    """
+    org = crud.get_organization(db, org_id)
+    if org is None:
+        raise HTTPException(status_code=404, detail="Организация не найдена")
+    crud.set_org_suspension(db, org, suspended=True, by=staff.email, reason=body.reason)
+    with as_tenant(db, org_id):
+        crud.log_action(db, org_id, staff, "staff.org_suspend", entity_type="organization",
+                        entity_id=org_id, entity_name=org.name, details=body.reason)
+    crud.log_staff_action(db, staff, "staff.org_suspend", org_id=org_id,
+                          org_name=org.name, details=body.reason)
+    return _org_detail(db, org)
+
+
+@router.post("/organizations/{org_id}/subscription", response_model=StaffOrgDetail)
+def assign_subscription(org_id: str, body: StaffPlanAssign,
+                        staff: User = Depends(require_operator),
+                        db: Session = Depends(get_db)) -> StaffOrgDetail:
+    """Назначить клиенту тариф — оплата по счёту и условия «по запросу» (F1).
+
+    До этого тариф не мог выдать **никто**: клиентский маршрут менял его правом
+    `billing.manage` (то есть клиент выдавал его себе сам и бесплатно), а у оператора
+    такого маршрута не было вовсе — и тариф «по запросу» оставался непродаваемым.
+
+    ``months`` — сколько периодов оплачено. Отсчёт идёт через ту же
+    :func:`billing.activate_paid_plan`, что и у обоих платёжных провайдеров: второй
+    расчёт срока рядом с первым однажды дал бы клиентам разные сроки за одни деньги.
+    ``None`` — тариф **не истекает**: так живут бесплатный, пробный и «по запросу»,
+    условия которого согласованы вне продукта.
+
+    **Оплата оставляет след платежа** (`provider="manual"`): иначе выручка по счетам
+    не попадала бы в платежи вовсе, и «кто заплатил» отвечало бы только про ЮKassa.
+    Сумма — цена тарифа × месяцы; у тарифа «по запросу» суммы нет, и выдумывать её
+    нельзя — тогда платёж не заводится, а назначение остаётся в журнале.
+    """
+    org = crud.get_organization(db, org_id)
+    if org is None:
+        raise HTTPException(status_code=404, detail="Организация не найдена")
+    if not is_valid_plan(body.plan_code):
+        raise HTTPException(status_code=422, detail=f"Неизвестный тариф: {body.plan_code}")
+    plan = get_plan(body.plan_code)
+    months = body.months
+    if months is not None and months <= 0:
+        raise HTTPException(status_code=422,
+                            detail="Оплачено ноль месяцев — это не оплата. Укажите срок "
+                                   "или оставьте пустым: тариф не будет истекать.")
+    if months is not None and (plan.price_on_request or plan.price_rub <= 0):
+        raise HTTPException(
+            status_code=422,
+            detail=(f"Тарифу «{plan.name}» срок не ставится: за него не платят помесячно. "
+                    "Оставьте срок пустым — он не будет истекать."))
+
+    if months is None:
+        # Назначение без оплаты: срок стирается, отсчёт не начинается.
+        crud.set_plan(db, org_id, plan.code, status="active", product=plan.product,
+                      period_end=None, paid=True)
+        paid_rub = 0
+    else:
+        billing_mod.activate_paid_plan(db, org_id, plan, months=months)
+        paid_rub = plan.price_rub * months
+        payment = crud.create_payment(db, org_id, plan.code, paid_rub, provider="manual")
+        crud.mark_payment(db, payment, "succeeded")
+
+    details = (f"{plan.name}: оплачено {months} мес., {paid_rub} ₽" if months
+               else f"{plan.name}: без срока")
+    if body.note:
+        details = f"{details} · {body.note}"
+    # В оба журнала: смену своего тарифа клиент обязан видеть у себя — она меняет его
+    # квоты и деньги, а пришла снаружи.
+    with as_tenant(db, org_id):
+        crud.log_action(db, org_id, staff, "staff.plan_assign", entity_type="organization",
+                        entity_id=org_id, entity_name=plan.code, details=details[:500])
+    crud.log_staff_action(db, staff, "staff.plan_assign", org_id=org_id,
+                          org_name=org.name, details=details)
+    return _org_detail(db, org)
+
+
+@router.delete("/organizations/{org_id}/suspend", response_model=StaffOrgDetail)
+def resume_organization(org_id: str, staff: User = Depends(require_operator),
+                        db: Session = Depends(get_db)) -> StaffOrgDetail:
+    """Снять приостановку. Автор и причина стираются — историю хранит журнал."""
+    org = crud.get_organization(db, org_id)
+    if org is None:
+        raise HTTPException(status_code=404, detail="Организация не найдена")
+    crud.set_org_suspension(db, org, suspended=False)
+    with as_tenant(db, org_id):
+        crud.log_action(db, org_id, staff, "staff.org_resume", entity_type="organization",
+                        entity_id=org_id, entity_name=org.name)
+    crud.log_staff_action(db, staff, "staff.org_resume", org_id=org_id, org_name=org.name)
+    return _org_detail(db, org)
+
+
+def _blockable(db: Session, user_id: str, staff: User) -> User:
+    """Кого оператору блокировать нельзя — и почему (оба отказа названы в ответе)."""
+    user = crud.get_user(db, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    if user.id == staff.id:
+        raise HTTPException(status_code=400,
+                            detail="Себя заблокировать нельзя: выйдете и не вернётесь")
+    if user.is_staff:
+        # Тот же довод, что и запрет блокировать владельца организации (A1): иначе один
+        # оператор отключает другого, и служебный контур решает свои споры блокировками.
+        raise HTTPException(
+            status_code=400,
+            detail="Учётная запись сотрудника платформы блокируется не отсюда: снимите "
+                   "признак сотрудника у того, у кого есть доступ к базе")
+    return user
+
+
+@router.post("/users/{user_id}/block", response_model=StaffUserOut)
+def block_user(user_id: str, body: SuspendIn, staff: User = Depends(require_operator),
+               db: Session = Depends(get_db)) -> StaffUserOut:
+    """Заблокировать учётную запись платформы — сразу во всех организациях (B2).
+
+    Отличается от приостановки членства (A1) осью: там администратор закрывает человеку
+    **своё** рабочее пространство, здесь платформа закрывает саму учётную запись. Право
+    только у оператора именно поэтому: человек состоит и в чужих организациях, которые
+    администратору одной не подчиняются.
+
+    Пишется в журнал **каждой** организации, где человек состоит: администратор обязан
+    понимать, почему его сотрудник перестал работать, — иначе он будет искать поломку.
+    """
+    user = _blockable(db, user_id, staff)
+    crud.set_user_block(db, user, blocked=True, by=staff.email, reason=body.reason)
+    # Блокировка закрывает и сеансы (C1). Отказ на входе даёт `blocked_at` и так, но
+    # снятие блокировки не должно воскрешать входы, которые были живы в момент запрета:
+    # заблокированного разблокируют, а его старый токен на чужом устройстве — нет.
+    crud.revoke_user_sessions(db, user.id)
+    crud.log_user_action(db, user, "staff.user_block", details=body.reason)
+    crud.log_staff_action(db, staff, "staff.user_block", details=f"{user.email}: {body.reason}")
+    return _user_out(db, user)
+
+
+@router.delete("/users/{user_id}/block", response_model=StaffUserOut)
+def unblock_user(user_id: str, staff: User = Depends(require_operator),
+                 db: Session = Depends(get_db)) -> StaffUserOut:
+    """Снять блокировку учётной записи."""
+    user = crud.get_user(db, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    crud.set_user_block(db, user, blocked=False)
+    crud.log_user_action(db, user, "staff.user_unblock")
+    crud.log_staff_action(db, staff, "staff.user_unblock", details=user.email)
+    return _user_out(db, user)
+
+
+@router.delete("/users/{user_id}/totp", response_model=StaffUserOut)
+def reset_user_totp(user_id: str, staff: User = Depends(require_operator),
+                    db: Session = Depends(get_db)) -> StaffUserOut:
+    """Сбросить второй фактор человеку — **последний способ вернуть доступ** (C2).
+
+    Почты у платформы нет, значит письма «восстановите доступ» не существует: потерянный
+    телефон **и** потерянные резервные коды означали бы навсегда потерянную учётную
+    запись. Кто-то обязан быть последней инстанцией, и это платформа.
+
+    Отсюда же и обязанность не молчать: сброс пишется в служебный журнал **и** в журналы
+    всех организаций человека. Оператор, снимающий второй фактор, делает ровно то, ради
+    чего второй фактор и ставили, — и это должно быть видно, а не спрятано в поддержке.
+    Личность обратившегося проверяет человек, а не код: платформа не умеет этого и не
+    делает вид, что умеет.
+    """
+    user = crud.get_user(db, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    if user.totp_enabled_at is None and not user.totp_secret:
+        raise HTTPException(status_code=409, detail="Второй фактор не настроен")
+    crud.disable_totp(db, user)
+    crud.log_user_action(db, user, "staff.totp_reset",
+                         details=f"сотрудник платформы: {staff.email}")
+    crud.log_staff_action(db, staff, "staff.totp_reset", details=user.email)
+    return _user_out(db, user)
+
+
+#: Сколько организаций обходить, собирая объёмы и выгрузки. Обхода изоляции у платформы
+#: нет (B1): в каждую организацию она входит по очереди, и на большом числе клиентов это
+#: становится дорого. Предел назван, а не подразумевается: усечённый свод **говорит о
+#: своей неполноте** в `notes`, а не выдаёт частичную сумму за измеренную.
+MAX_METRIC_ORGS = 2_000
+
+
+def _tenant_totals(db: Session, since: datetime, churn_since: datetime) -> TenantTotals:
+    """Пройти по арендаторам и сложить то, что лежит под RLS.
+
+    Проекты, дела и журнал видны только изнутри организации, поэтому свод собирается
+    обходом — той же дверью, что и всё остальное в служебном контуре.
+
+    Окон два: объёмы и выгрузки смотрят за ``since`` (period сводки), а записи об уходе —
+    за ``churn_since`` (глубина ряда по месяцам). Одно окно на оба заставило бы выбирать
+    между «что происходит сейчас» и «как менялось за год».
+    """
+    total = int(crud.count_organizations(db))
+    orgs = crud.list_organizations(db, limit=MAX_METRIC_ORGS)
+    totals = TenantTotals(organizations_scanned=len(orgs), organizations_total=total)
+    for org in orgs:
+        with as_tenant(db, org.id):
+            slice_ = crud.org_metric_slice(db, org.id, since)
+            # Отток — тем же обходом: журнал под RLS, и второй проход ради соседних
+            # строк того же журнала однажды разошёлся бы с первым.
+            churn_slice = crud.org_churn_slice(db, org.id, churn_since)
+        totals.churn_records.extend(
+            ChurnRecord(organization_id=org.id, action=action, at=at, details=details)
+            for action, at, details in churn_slice["rows"])
+        for action, first_at in churn_slice["first"].items():
+            if first_at is None:
+                continue
+            known = totals.first_churn_at.get(action)
+            if known is None or first_at < known:
+                totals.first_churn_at[action] = first_at
+        totals.projects += slice_["projects"]
+        totals.cases += slice_["cases"]
+        totals.calculated += slice_["calculated"]
+        totals.exports += slice_["exports"]
+        # Воронка считается тем же обходом: второй проход ради тех же чисел был бы вдвое
+        # дороже и однажды разошёлся бы с первым.
+        if slice_["projects"] or slice_["cases"]:
+            totals.with_entities += 1
+        if slice_["ever_calculated"]:
+            totals.with_calculation += 1
+        if slice_["ever_exported"]:
+            totals.with_export += 1
+        first = slice_["first_log_at"]
+        if first is not None and (totals.first_log_at is None
+                                  or first < totals.first_log_at):
+            totals.first_log_at = first
+    return totals
+
+
+def _metrics(db: Session, *, months: int, days: int) -> PlatformMetrics:
+    now = datetime.now(timezone.utc)
+    # Запас в месяц: окно оттока задано месяцами, а обход читает журнал по дате —
+    # обрезанный по 30 дней первый месяц ряда выглядел бы спокойнее, чем был.
+    totals = _tenant_totals(db, now - timedelta(days=days),
+                            now - timedelta(days=31 * (months + 1)))
+    return build_platform_metrics(db, totals=totals, now=now, months=months,
+                                  since_days=days)
+
+
+@router.get("/metrics", response_model=PlatformMetricsOut)
+def read_metrics(months: int = 12, days: int = 30, staff: User = Depends(require_staff),
+                 db: Session = Depends(get_db)) -> PlatformMetricsOut:
+    """Сводка платформы: сколько клиентов, кто из них жив и что они делают (B3).
+
+    **Второй системы учёта под это не заводится**: числа собираются из организаций,
+    пользователей, членства, подписок и журнала. Счётчик «под метрики» начал бы жить
+    своей жизнью и расходиться с данными, и разбирать пришлось бы не бизнес, а
+    расхождение.
+
+    Ответ несёт не только числа, но и **границы их применимости** (``notes``): чего
+    платформа не считает и с какого дня вообще может считать. Ноль за период, которого
+    журнал не застал, выглядит ровно как ноль событий — и без оговорки был бы им.
+    """
+    months = max(1, min(months, 36))
+    days = max(1, min(days, 365))
+    m = _metrics(db, months=months, days=days)
+    crud.log_staff_action(db, staff, "staff.metrics",
+                          details=f"за {days} дн., {months} мес.")
+    return PlatformMetricsOut(
+        generated_at=m.generated_at, since_days=m.since_days,
+        organizations=m.organizations, users=m.users,
+        active_users={str(k): v for k, v in m.active_users.items()},
+        active_organizations={str(k): v for k, v in m.active_organizations.items()},
+        members_without_mark=m.members_without_mark, projects=m.projects, cases=m.cases,
+        projects_calculated=m.projects_calculated, exports=m.exports,
+        growth=[MetricPointOut(period=p.period, organizations=p.organizations,
+                               users=p.users) for p in m.growth],
+        plans=[PlanSliceOut(product=s.product, plan_code=s.plan_code,
+                            plan_name=s.plan_name, organizations=s.organizations)
+               for s in m.plans],
+        funnel=[FunnelStepOut(key=f.key, label=f.label, organizations=f.organizations,
+                              share=f.share) for f in m.funnel],
+        retention=[RetentionPointOut(month=r.month, arrived=r.arrived,
+                                     returned=r.returned) for r in m.retention],
+        revenue=[RevenuePointOut(month=r.month, rub=r.rub, payments=r.payments)
+                 for r in m.revenue],
+        churn=ChurnOut(
+            months=[ChurnPointOut(month=c.month, expired=c.expired,
+                                  downgraded=c.downgraded, payers=c.payers,
+                                  stopped=c.stopped, rate=c.rate)
+                    for c in m.churn.months],
+            expiry_logged=m.churn.expiry_logged,
+            unnamed_plan_changes=m.churn.unnamed_plan_changes),
+        usage_collected=m.usage_collected,
+        notes=list(m.notes),
+    )
+
+
+@router.get("/metrics.csv")
+def export_metrics(months: int = 12, days: int = 30, staff: User = Depends(require_staff),
+                   db: Session = Depends(get_db)) -> Response:
+    """Выгрузка сводки — теми же числами, что на экране, и **с теми же оговорками**.
+
+    Оговорки идут в файл строками, а не остаются на экране: таблица, доехавшая до чужой
+    презентации без них, утверждает больше, чем платформа измеряла.
+
+    Разделитель и BOM — как в выгрузке журнала: иначе Excel в русской локали разложит
+    файл в один столбец и испортит кириллицу.
+    """
+    months = max(1, min(months, 36))
+    days = max(1, min(days, 365))
+    m = _metrics(db, months=months, days=days)
+    buf = io.StringIO()
+    writer = csv.writer(buf, delimiter=";", lineterminator="\r\n")
+    writer.writerow(["Показатель", "Значение"])
+    writer.writerow(["Дата сводки", m.generated_at.strftime("%d.%m.%Y %H:%M")])
+    writer.writerow(["Организаций", m.organizations])
+    writer.writerow(["Пользователей", m.users])
+    for window in sorted(m.active_users):
+        writer.writerow([f"Активных пользователей за {window} дн.", m.active_users[window]])
+        writer.writerow([f"Активных организаций за {window} дн.",
+                         m.active_organizations[window]])
+    writer.writerow(["Участников без отметки присутствия", m.members_without_mark])
+    writer.writerow(["Проектов", m.projects])
+    writer.writerow(["Дел", m.cases])
+    writer.writerow([f"Проектов считали за {m.since_days} дн.", m.projects_calculated])
+    writer.writerow([f"Выгрузок документов за {m.since_days} дн.", m.exports])
+
+    writer.writerow([])
+    writer.writerow(["Месяц", "Новых организаций", "Новых пользователей"])
+    for point in m.growth:
+        writer.writerow([point.period, point.organizations, point.users])
+
+    writer.writerow([])
+    writer.writerow(["Месяц", "Выручка, ₽", "Платежей"])
+    for point in m.revenue:
+        writer.writerow([point.month, point.rub, point.payments])
+
+    writer.writerow([])
+    # Отток (F8): «не измеряется» уезжает в файл **словом**, а не пустой ячейкой —
+    # пустая читается как ноль тем увереннее, чем дальше таблица уехала от экрана.
+    writer.writerow(["Месяц", "Не продлили", "Ушли на бесплатный",
+                     "Платили", "Перестали", "Доля ушедших"])
+    for point in m.churn.months:
+        writer.writerow([
+            point.month,
+            "не измеряется" if point.expired is None else point.expired,
+            "не измеряется" if point.downgraded is None else point.downgraded,
+            point.payers, point.stopped,
+            "—" if point.rate is None else f"{round(point.rate * 100)}%",
+        ])
+
+    writer.writerow([])
+    writer.writerow(["Продукт", "Тариф", "Организаций"])
+    for plan in m.plans:
+        writer.writerow([product_label(plan.product), plan.plan_name, plan.organizations])
+
+    writer.writerow([])
+    writer.writerow(["Чего эти числа не значат"])
+    for note in m.notes:
+        writer.writerow([note])
+
+    crud.log_staff_action(db, staff, "staff.metrics_export",
+                          details=f"за {days} дн., {months} мес.")
+    return Response(
+        content=buf.getvalue().encode("utf-8-sig"),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="platform-metrics.csv"'},
+    )
+
+
+@router.get("/usage.csv")
+def export_usage(months: int = 12, staff: User = Depends(require_staff),
+                 db: Session = Depends(get_db)) -> Response:
+    """Выгрузка событий пользования — **агрегатом, в котором участника нет вовсе**
+    (OPEN-DECISIONS §7).
+
+    Сырые события означали бы выгрузку поведения людей, пусть и обезличенных. Отпечаток
+    нужен платформе **внутри**, чтобы ответить «тот же человек вернулся»; в файле он не
+    нужен ни для одного вопроса, а вне платформы его рано или поздно соединят с чем-то
+    ещё — и обезличенность кончится. Поэтому строка файла — месяц, событие, организация,
+    число и сколько разных людей за ним стоит.
+
+    **Удержание уходит уже посчитанным** (когорта → доля), а не сырьём для пересчёта:
+    пересчитывать его снаружи означало бы, что снаружи есть, из чего.
+
+    Пустой файл **объясняет свою пустоту**, а не отказывает: сбор выключается рубильником
+    установки, и «событий нет» без этой оговорки читается как «никто не пользовался».
+    """
+    months = max(1, min(months, 36))
+    summary = usage.summarize(db, months=months)
+    cohorts = retention(db, summary.generated_at, months)
+
+    buf = io.StringIO()
+    writer = csv.writer(buf, delimiter=";", lineterminator="\r\n")
+    writer.writerow(["Месяц", "Событие", "Что это", "Организация", "Идентификатор",
+                     "Событий", "Участников"])
+    for row in summary.rows:
+        writer.writerow([row.month, row.event, usage.EVENTS.get(row.event, ""),
+                         row.organization, row.organization_id, row.count,
+                         row.participants])
+
+    writer.writerow([])
+    writer.writerow(["Месяц", "Событий всего"])
+    for month, total in summary.monthly:
+        writer.writerow([month, total])
+
+    writer.writerow([])
+    # Доля — **посчитанная**, а не два числа рядом: иначе её посчитают снаружи, и это
+    # будет означать, что снаружи есть, из чего.
+    writer.writerow(["Когорта", "Пришло организаций", "Вернулось", "Доля вернувшихся"])
+    for point in cohorts:
+        share = ("" if point.returned is None or not point.arrived
+                 else f"{point.returned / point.arrived:.2f}".replace(".", ","))
+        writer.writerow([point.month, point.arrived,
+                         "" if point.returned is None else point.returned, share])
+
+    writer.writerow([])
+    writer.writerow(["Чего эти числа не значат"])
+    for note in summary.notes:
+        writer.writerow([note])
+
+    crud.log_staff_action(db, staff, "staff.usage_export",
+                          details=f"{months} мес., строк: {len(summary.rows)}")
+    return Response(
+        content=buf.getvalue().encode("utf-8-sig"),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="usage-summary.csv"'},
+    )
+
+
+def _access_or_403(db: Session, org_id: str):
+    """Живой грант клиента — или 403 с **названной** причиной (F4).
+
+    Единственная дверь к содержимому моделей: и список, и сама модель спрашивают её,
+    а не проверяют условие по месту. Проверка, скопированная в три маршрута, однажды
+    разъехалась бы — и разъехалась бы молча, в сторону «видно больше».
+    """
+    now = datetime.now(timezone.utc)
+    with as_tenant(db, org_id):
+        grants = crud.list_support_grants(db, org_id)
+    refusal = support_access.refusal_for(grants, now, fmt_when=_when_ru)
+    if refusal is not None:
+        raise HTTPException(status_code=403, detail=refusal.reason)
+    grant = support_access.live_grant(grants, now)
+    assert grant is not None                      # refusal_for уже это проверил
+    return grant
+
+
+def _when_ru(moment: datetime) -> str:
+    # Формат один на все сообщения сервера (``app/timefmt``); имя оставлено ради
+    # вызывающих в этом модуле.
+    return when_utc(moment)
+
+
+def _grant_note(grant) -> str:
+    """На каком основании оператор видит эти числа. Едет **вместе с моделью**: экран,
+    открытый по ошибке, не должен выглядеть как обычная работа."""
+    return (f"Содержимое модели клиента. Доступ открыт самой организацией "
+            f"({grant.granted_by_email or 'кем-то из её администраторов'}) до "
+            f"{_when_ru(grant.expires_at)}, причина: {grant.reason or 'не названа'}. "
+            f"Это обращение записано в журнал организации.")
+
+
+def _org_or_404(db: Session, org_id: str):
+    org = crud.get_organization(db, org_id)
+    if org is None:
+        raise HTTPException(status_code=404, detail="Организация не найдена")
+    return org
+
+
+@router.get("/organizations/{org_id}/projects", response_model=list[StaffEntityOut])
+def list_org_projects(org_id: str, staff: User = Depends(require_staff),
+                      db: Session = Depends(get_db)) -> list[StaffEntityOut]:
+    """Проекты клиента — **за живым грантом** (F4).
+
+    Список закрыт тем же грантом, что и содержимое, и это не перестраховка: название
+    («Покупка завода в Твери») само по себе коммерческая тайна — ради этого правило 6
+    и запрещало показывать имена сущностей в карточке клиента.
+    """
+    org = _org_or_404(db, org_id)
+    _access_or_403(db, org_id)
+    with as_tenant(db, org_id):
+        rows = crud.list_projects(db, org_id)
+        crud.log_action(db, org_id, staff, "support.projects_list",
+                        entity_type="organization", entity_id=org_id,
+                        entity_name=org.name,
+                        details=f"сотрудник платформы, проектов: {len(rows)}")
+    return [StaffEntityOut(id=p.id, name=p.name, updated_at=p.updated_at) for p in rows]
+
+
+@router.get("/organizations/{org_id}/projects/{project_id}", response_model=StaffModelOut)
+def read_org_project(org_id: str, project_id: str, staff: User = Depends(require_staff),
+                     db: Session = Depends(get_db)) -> StaffModelOut:
+    """Модель проекта клиента — единственное место, где содержимое вообще появляется.
+
+    **Каждое** чтение пишется в журнал организации отдельной строкой: приход
+    постороннего в свои числа клиент обязан видеть построчно, а не одной записью
+    «доступ выдан». Это названное исключение из «журнал не пишет чтение», то же, что
+    у визита в карточку.
+    """
+    _org_or_404(db, org_id)
+    grant = _access_or_403(db, org_id)
+    with as_tenant(db, org_id):
+        project = crud.get_project(db, org_id, project_id)
+        if project is None:
+            raise HTTPException(status_code=404, detail="Проект не найден")
+        crud.log_action(db, org_id, staff, "support.project_view", entity_type="project",
+                        entity_id=project.id, entity_name=project.name,
+                        details="сотрудник платформы смотрел модель")
+    return StaffModelOut(id=project.id, name=project.name, updated_at=project.updated_at,
+                         model=project.model, note=_grant_note(grant))
+
+
+@router.get("/organizations/{org_id}/audit-subjects", response_model=list[StaffEntityOut])
+def list_org_subjects(org_id: str, staff: User = Depends(require_staff),
+                      db: Session = Depends(get_db)) -> list[StaffEntityOut]:
+    """Дела клиента («Финанс-Аудит») — за тем же грантом и по тем же правилам."""
+    org = _org_or_404(db, org_id)
+    _access_or_403(db, org_id)
+    with as_tenant(db, org_id):
+        rows = crud.list_audit_subjects(db, org_id)
+        crud.log_action(db, org_id, staff, "support.cases_list",
+                        entity_type="organization", entity_id=org_id,
+                        entity_name=org.name,
+                        details=f"сотрудник платформы, дел: {len(rows)}")
+    return [StaffEntityOut(id=s.id, name=s.name, updated_at=s.updated_at) for s in rows]
+
+
+@router.get("/organizations/{org_id}/audit-subjects/{subject_id}",
+            response_model=StaffModelOut)
+def read_org_subject(org_id: str, subject_id: str, staff: User = Depends(require_staff),
+                     db: Session = Depends(get_db)) -> StaffModelOut:
+    """Модель дела клиента. Правила те же — грант, запись в журнал, только чтение."""
+    _org_or_404(db, org_id)
+    grant = _access_or_403(db, org_id)
+    with as_tenant(db, org_id):
+        subject = crud.get_audit_subject(db, org_id, subject_id)
+        if subject is None:
+            raise HTTPException(status_code=404, detail="Дело не найдено")
+        crud.log_action(db, org_id, staff, "support.case_view", entity_type="audit_subject",
+                        entity_id=subject.id, entity_name=subject.name,
+                        details="сотрудник платформы смотрел отчётность")
+    return StaffModelOut(id=subject.id, name=subject.name, updated_at=subject.updated_at,
+                         model=subject.model, note=_grant_note(grant))
+
+
+@router.get("/jobs", response_model=StaffJobsOut)
+def list_jobs(hours: int = 24, staff: User = Depends(require_staff),
+              db: Session = Depends(get_db)) -> StaffJobsOut:
+    """Что происходит в фоновом хозяйстве платформы (F3).
+
+    `AnalysisJob` хранил только владение, а состояние живёт в Celery — и опросить задачу
+    можно было **только по её идентификатору и только своим арендатором**. Значит
+    зависшая задача не видна никому: ни клиенту (он ушёл с экрана), ни платформе, и
+    первый зависший Монте-Карло платформа узнавала от клиента по телефону.
+
+    **Метаданные, а не результат.** Числа Монте-Карло — содержимое модели клиента, и
+    правило 6 на них распространяется: смотреть содержимое можно только по гранту (F4).
+    Здесь их нет ни в каком виде, и это отдельный тест.
+
+    **Недоступный брокер даёт «неизвестно» с причиной**, а не «упало» и не 500: опрос
+    хранилища результатов — сеть, а молчание сети это не отказ задачи.
+    """
+    hours = max(1, min(hours, 24 * 30))
+    now = datetime.now(timezone.utc)
+    since = now - timedelta(hours=hours)
+    rows = crud.list_analysis_jobs(db, since)
+    total = crud.count_analysis_jobs(db, since)
+    names = {o.id: o.name for o in crud.list_organizations(db, limit=1000)}
+
+    jobs = []
+    for row in rows:
+        state, result = job_state.poll(row.id, fetch_state)
+        verdict = job_state.interpret(state, created_at=row.created_at, now=now)
+        jobs.append(StaffJobOut(
+            id=row.id, organization_id=row.organization_id,
+            organization_name=names.get(row.organization_id, ""),
+            project_id=row.project_id, kind=row.kind, created_at=row.created_at,
+            age_minutes=job_state.age_minutes(row.created_at, now),
+            status=verdict.status, note=verdict.note))
+        del result                                   # содержимое клиента здесь не живёт
+
+    notes = [
+        "Состояние приходит из Celery и может быть неизвестно — это сказано у самой "
+        "задачи, а не заменено на «упало»: молчание хранилища результатов не означает, "
+        "что задача не посчиталась.",
+        "Результатов задач здесь нет: числа Монте-Карло — содержимое модели клиента, и "
+        "открываются они только по его гранту (вкладка «Доступ поддержки» у клиента).",
+        "Список задач растёт и не чистится: строки не удаляются никогда. Чистка — "
+        "политика эксплуатации, как и у журнала.",
+    ]
+    if total > len(jobs):
+        notes.append(f"Задач за окно {total}, показаны последние {len(jobs)}.")
+    crud.log_staff_action(db, staff, "staff.jobs_view",
+                          details=f"за {hours} ч, задач: {len(jobs)}")
+    return StaffJobsOut(jobs=jobs, total=total, hours=hours, notes=notes)
+
+
+@router.get("/staff", response_model=StaffListOut)
+def list_staff(staff: User = Depends(require_staff),
+               db: Session = Depends(get_db)) -> StaffListOut:
+    """Кто у нас сотрудник — и на каком уровне (F5).
+
+    До этого ответ давал только ``scripts/set_staff.py --list``: продукт, который видит
+    клиентов снаружи, о собственном служебном контуре молчал, и «кто ходит к клиентам»
+    нельзя было спросить у него самого.
+
+    Маршрут **только показывает**. Признак и уровень по-прежнему ставятся вне API
+    (правило B1): маршрут, повышающий права, сам становится главной мишенью, и защищать
+    его пришлось бы сильнее всего остального вместе взятого.
+
+    Собственный список журнал не пишет: он ничего не выносит наружу и никуда не
+    приходит — исключение «журнал пишет чтение» заведено для прихода постороннего **к
+    клиенту**, а не для взгляда контура на себя.
+    """
+    members = crud.list_staff(db)
+    notes = [
+        "Уровень и признак сотрудника ставятся вне API — scripts/set_staff.py. "
+        "Маршрут, повышающий права, сам становится главной мишенью.",
+        "«Заходил» — по реестру входов (C1): пусто значит «неизвестно», а не «никогда». "
+        "У тех, кто не входил после появления реестра, отметки нет по устройству.",
+    ]
+    if any(not u.staff_role for u in members):
+        notes.append("У кого-то уровень не назначен: такой сотрудник видит контур, но "
+                     "менять состояние клиента не может. Назначается тем же скриптом.")
+    return StaffListOut(
+        members=[StaffMemberOut(id=u.id, email=u.email, full_name=u.full_name,
+                                role=u.staff_role, blocked=u.blocked_at is not None,
+                                created_at=u.created_at,
+                                last_seen_at=crud.last_seen_of(db, u.id))
+                 for u in members],
+        notes=notes)
+
+
+@router.get("/log", response_model=StaffLogPage)
+def read_staff_log(limit: int = 200, actor: str = "", org_id: str = "",
+                   staff: User = Depends(require_staff),
+                   db: Session = Depends(get_db)) -> StaffLogPage:
+    """Служебный журнал: где были наши сотрудники.
+
+    Как и журнал организации — только чтение: ни PUT, ни DELETE. Журнал, который можно
+    поправить, не журнал, и для собственных следов это верно ровно в той же мере.
+    Собственное чтение журнала не пишется: оно никуда не приходит и ничего не выносит.
+    """
+    limit = max(1, min(limit, 500))
+    entries = crud.list_staff_log(db, limit=limit, actor=actor, org_id=org_id)
+    return StaffLogPage(entries=[
+        StaffLogEntryOut(id=e.id, actor_email=e.actor_email, action=e.action,
+                         organization_id=e.organization_id,
+                         organization_name=e.organization_name, details=e.details,
+                         created_at=e.created_at) for e in entries])

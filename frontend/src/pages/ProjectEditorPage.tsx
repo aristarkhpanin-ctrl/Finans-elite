@@ -2,25 +2,34 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import type { ProjectModel } from "../api/model";
-import { getProject, updateProject } from "../api/projects";
-import { IconWarning } from "../components/icons";
-import { Button, ErrorState, Loading, Modal } from "../components/ui";
+import { httpDetail, httpFieldError, httpStatus } from "../api/client";
+import { createProjectFromModel, getProject, updateProject } from "../api/projects";
+import { EditConflictModal, useEditConflict } from "../components/EditConflict";
+import { useToast } from "../components/Toast";
+import { Button, ErrorState, Loading } from "../components/ui";
+import { UnsavedLeaveModal, useUnsavedGuard } from "../components/UnsavedGuard";
 import { ValidationPanel } from "../components/ValidationPanel";
 import { ActualizationTab } from "./editor/ActualizationTab";
 import { AssetsTab } from "./editor/AssetsTab";
+import { CalendarTab } from "./editor/CalendarTab";
 import { CostsTab } from "./editor/CostsTab";
 import { CurrencyTab } from "./editor/CurrencyTab";
+import { DocumentTab } from "./editor/DocumentTab";
 import { FinancingTab } from "./editor/FinancingTab";
 import { GeneralTab } from "./editor/GeneralTab";
 import { SalesTab } from "./editor/SalesTab";
+import { TablesTab } from "./editor/TablesTab";
 
 const TABS = [
   ["general", "Проект"],
   ["sales", "Сбыт"],
   ["costs", "Издержки"],
   ["assets", "Инвестиции"],
+  ["calendar", "Календарный план"],
   ["financing", "Финансирование"],
   ["currency", "Валюта и старт"],
+  ["tables", "Таблицы"],
+  ["document", "Документ"],
   ["actual", "Факт"],
 ] as const;
 
@@ -32,9 +41,19 @@ function tabBadge(model: ProjectModel, tab: TabKey): number {
     case "sales":
       return model.operating_plan.sales.length;
     case "costs":
-      return model.operating_plan.direct_costs.length + model.operating_plan.fixed_costs.length;
+      return (
+        model.operating_plan.direct_costs.length +
+        model.operating_plan.fixed_costs.length +
+        (model.operating_plan.staff?.length ?? 0)
+      );
     case "assets":
       return model.investment_plan.assets.length;
+    case "calendar":
+      return model.investment_plan.calendar?.stages.length ?? 0;
+    case "tables":
+      return model.user_tables?.length ?? 0;
+    case "document":
+      return model.business_plan?.length ?? 0;
     case "financing":
       return (
         model.financing.loans.length +
@@ -62,48 +81,41 @@ export function ProjectEditorPage() {
     const t = searchParams.get("tab");
     return TABS.some(([k]) => k === t) ? (t as TabKey) : "general";
   });
-  const [pendingLeave, setPendingLeave] = useState<{ label: string; go: () => void } | null>(null);
   const savedSnapshot = useRef<string>("");
+  // Ревизия той версии, которую правим (G2). Сервер сверяет её при сохранении: если
+  // проект с тех пор сохранил кто-то другой, он ответит 409, а не сотрёт чужие правки.
+  const revision = useRef<string>("");
+  const conflict = useEditConflict();
+  const [resolving, setResolving] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     if (data) {
       setModel(data.model);
       savedSnapshot.current = JSON.stringify(data.model);
+      revision.current = data.revision ?? "";
     }
   }, [data]);
 
   const save = useMutation({
-    mutationFn: () => updateProject(id, model!.header.name, model!),
-    onSuccess: () => {
+    mutationFn: () => updateProject(id, model!.header.name, model!, revision.current),
+    onSuccess: (saved) => {
       savedSnapshot.current = JSON.stringify(model);
+      revision.current = saved.revision ?? "";
       qc.invalidateQueries({ queryKey: ["projects"] });
     },
+    onError: (e) => { conflict.catchConflict(e); },
   });
 
   const dirty = model != null && JSON.stringify(model) !== savedSnapshot.current;
 
-  // Предупреждение о несохранённых изменениях при закрытии/перезагрузке вкладки.
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      if (dirty) {
-        e.preventDefault();
-        e.returnValue = "";
-      }
-    };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, [dirty]);
+  // Страж несохранённого ввода — общий с «Финанс-Аудитом» (components/UnsavedGuard).
+  const { tryNav, pending: pendingLeave, cancel: cancelLeave } = useUnsavedGuard(dirty);
 
   if (isError) return <ErrorState text="Не удалось загрузить проект." />;
   if (isLoading || !model) return <Loading />;
 
   const n = model.header.duration_months;
-
-  /** Переход с guard несохранённых изменений. */
-  const tryNav = (label: string, go: () => void) => {
-    if (dirty) setPendingLeave({ label, go });
-    else go();
-  };
 
   const discard = () => {
     setModel(JSON.parse(savedSnapshot.current));
@@ -111,8 +123,64 @@ export function ProjectEditorPage() {
   };
 
   const calcAndGo = async () => {
-    if (dirty || save.isError) await save.mutateAsync();
+    try {
+      if (dirty || save.isError) await save.mutateAsync();
+    } catch {
+      return;   // причина уже на экране: статус сохранения или модалка конфликта
+    }
     navigate(`/projects/${id}/results`);
+  };
+
+  /** Свои правки — в новый проект: ничьи правки не пропадают (G2). */
+  const saveCopy = async () => {
+    setResolving(true);
+    try {
+      const copy = await createProjectFromModel(`${model.header.name} — мои правки`, model);
+      conflict.close();
+      save.reset();
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      toast("Ваши правки сохранены новым проектом", { kind: "success" });
+      navigate(`/projects/${copy.id}`);
+    } catch (e) {
+      toast(httpDetail(e) ?? "Не удалось создать проект", { kind: "error" });
+    } finally {
+      setResolving(false);
+    }
+  };
+
+  /** Открыть сохранённую другим версию — свои несохранённые правки пропадают. */
+  const takeTheirs = async () => {
+    setResolving(true);
+    try {
+      const fresh = await getProject(id);
+      qc.setQueryData(["project", id], fresh);
+      setModel(fresh.model);
+      savedSnapshot.current = JSON.stringify(fresh.model);
+      revision.current = fresh.revision ?? "";
+      save.reset();
+      conflict.close();
+    } catch (e) {
+      toast(httpDetail(e) ?? "Не удалось загрузить проект", { kind: "error" });
+    } finally {
+      setResolving(false);
+    }
+  };
+
+  /**
+   * Сохранить свои правки поверх — осознанно, после второго нажатия в модалке. Ревизия
+   * берётся свежая: иначе сервер снова ответил бы тем же конфликтом.
+   */
+  const overwrite = async () => {
+    setResolving(true);
+    try {
+      revision.current = (await getProject(id)).revision ?? "";
+      conflict.close();
+      await save.mutateAsync();
+    } catch {
+      // новый конфликт или ошибка сохранения уже показаны тем же путём, что обычно
+    } finally {
+      setResolving(false);
+    }
   };
 
   const saving = save.isPending;
@@ -193,13 +261,16 @@ export function ProjectEditorPage() {
         <GeneralTab
           header={model.header}
           settings={model.settings}
+          environment={model.environment}
           onHeader={(header) => setModel({ ...model, header })}
           onSettings={(settings) => setModel({ ...model, settings })}
+          onEnvironment={(environment) => setModel({ ...model, environment })}
         />
       )}
       {tab === "sales" && (
-        <SalesTab n={n} operating={model.operating_plan}
-                  onChange={(operating_plan) => setModel({ ...model, operating_plan })} />
+        <SalesTab n={n} operating={model.operating_plan} company={model.company}
+                  onChange={(operating_plan) => setModel({ ...model, operating_plan })}
+                  onCompany={(company) => setModel({ ...model, company })} />
       )}
       {tab === "costs" && (
         <CostsTab n={n} operating={model.operating_plan}
@@ -209,6 +280,11 @@ export function ProjectEditorPage() {
         <AssetsTab investment={model.investment_plan}
                    onChange={(investment_plan) => setModel({ ...model, investment_plan })} />
       )}
+      {tab === "calendar" && (
+        <CalendarTab n={n} startDate={model.header.start_date} investment={model.investment_plan}
+                     products={model.operating_plan.products}
+                     onChange={(investment_plan) => setModel({ ...model, investment_plan })} />
+      )}
       {tab === "financing" && (
         <FinancingTab n={n} financing={model.financing}
                       onChange={(financing) => setModel({ ...model, financing })} />
@@ -217,6 +293,14 @@ export function ProjectEditorPage() {
         <CurrencyTab n={n} environment={model.environment} company={model.company}
                      onEnvironment={(environment) => setModel({ ...model, environment })}
                      onCompany={(company) => setModel({ ...model, company })} />
+      )}
+      {tab === "tables" && (
+        <TablesTab tables={model.user_tables ?? []}
+                   onChange={(user_tables) => setModel({ ...model, user_tables })} />
+      )}
+      {tab === "document" && (
+        <DocumentTab sections={model.business_plan ?? []}
+                     onChange={(business_plan) => setModel({ ...model, business_plan })} />
       )}
       {tab === "actual" && (
         <ActualizationTab n={n} actualization={model.actualization}
@@ -234,7 +318,13 @@ export function ProjectEditorPage() {
           {saveErr && (
             <>
               <span className="save-err-dot">!</span>
-              <span className="save-text--err">Не удалось сохранить · повторите</span>
+              {/* Отказ по одному полю называет это поле: искать виновную ячейку
+                  глазами по всей модели — не работа пользователя. */}
+              <span className="save-text--err" title={httpFieldError(save.error) ?? ""}>
+                {httpStatus(save.error) === 409
+                  ? "Проект сохранил кто-то другой · правки не записаны"
+                  : httpFieldError(save.error) ?? "Не удалось сохранить · повторите"}
+              </span>
             </>
           )}
           {dirtyIdle && (
@@ -262,44 +352,11 @@ export function ProjectEditorPage() {
         </div>
       </div>
 
-      <Modal open={!!pendingLeave} onClose={() => setPendingLeave(null)} maxWidth={420}>
-        <div style={{ textAlign: "center" }}>
-          <div className="modal-warn-ico">
-            <IconWarning size={22} />
-          </div>
-          <h3 className="modal__title">Несохранённые изменения</h3>
-          <div className="modal__sub">
-            В модели есть изменения, которые ещё не сохранены. Сохранить их перед переходом в «
-            {pendingLeave?.label}»?
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-            <Button
-              loading={saving}
-              onClick={async () => {
-                const go = pendingLeave!.go;
-                await save.mutateAsync();
-                setPendingLeave(null);
-                go();
-              }}
-            >
-              Сохранить и выйти
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                const go = pendingLeave!.go;
-                setPendingLeave(null);
-                go();
-              }}
-            >
-              Выйти без сохранения
-            </Button>
-            <Button variant="link" style={{ alignSelf: "center" }} onClick={() => setPendingLeave(null)}>
-              Отмена
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      <UnsavedLeaveModal pending={pendingLeave} saving={saving} onCancel={cancelLeave}
+                         onSave={async () => { await save.mutateAsync(); }} />
+      <EditConflictModal kind="project" open={conflict.open} detail={conflict.detail}
+                         busy={resolving} onClose={conflict.close} onSaveCopy={saveCopy}
+                         onTakeTheirs={takeTheirs} onOverwrite={overwrite} />
     </div>
   );
 }

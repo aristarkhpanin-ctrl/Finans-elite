@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  input,button{font-family:inherit;}
+  input::placeholder{color:inherit;opacity:.4;}
+  a{color:#C77DFF;}
+  a:hover{color:#D69AFF;}
+  @keyframes fa-pulse{from{opacity:.4}to{opacity:1}}
+  @keyframes fa-fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes fa-pop{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.06)}100%{transform:scale(1);opacity:1}}
+  @keyframes fa-spin{to{transform:rotate(360deg)}}
+  @keyframes fa-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+  @keyframes fa-scan{0%{transform:translateY(-130%)}100%{transform:translateY(560%)}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:11px;min-width:0;">
+      <div style="{{ s.barCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="30px,30px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Экран 8 · Состояния и поведение</span>
+        <span style="{{ s.barSub }}">сквозной гайд · загрузка, пусто, ошибки, права</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Свет</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тьма</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}" data-screen-label="Экран 8 — Состояния и поведение">
+      <div style="{{ s.body }}">
+
+        <div style="{{ s.intro }}">
+          <div style="{{ s.eyebrow }}"><span style="{{ s.eyebrowDot }}"></span>ПОВЕДЕНИЕ СИСТЕМЫ</div>
+          <div style="{{ s.introTitle }}">Восемь состояний, которые встречаются на каждом экране</div>
+          <div style="{{ s.introLead }}">Правило одно: система никогда не молчит и никогда не пугает. Скан идёт — виден прогресс по процедурам. Данных нет — сказано, чего именно не хватает и у кого запросить. Расхождение найдено — показано влияние на цену, а не просто красный цвет.</div>
+        </div>
+
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">01 · ЗАГРУЗКА</div>
+          <div style="{{ s.secTitle }}">Скелетон повторяет форму будущего контента</div>
+          <div style="{{ s.grid2 }}">
+            <div style="{{ s.demoCard }}">
+              <div style="{{ s.demoLabel }}">Скелетон таблицы</div>
+              <div style="{{ s.skList }}">
+                <sc-for list="{{ skeletons }}" as="k" hint-placeholder-count="5"><div style="{{ k.style }}"></div></sc-for>
+              </div>
+            </div>
+            <div style="{{ s.demoCard }}">
+              <div style="{{ s.demoLabel }}">Длительная операция — всегда с шагами</div>
+              <div style="{{ s.loadRow }}"><span style="{{ s.spinner }}"></span><span style="{{ s.loadText }}">Сверяем 412 строк · процедура 19 из 24</span></div>
+              <div style="{{ s.progressTrack }}"><div style="{{ s.progressFill }}"></div></div>
+              <div style="{{ s.demoNote }}">Дольше 4 секунд — показываем, что именно считается. Спиннер без текста запрещён.</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">02 · ПУСТЫЕ СОСТОЯНИЯ</div>
+          <div style="{{ s.secTitle }}">Пусто — это всегда следующий шаг, а не сообщение</div>
+          <div style="{{ s.grid2 }}">
+            <div style="{{ s.emptyDemo }}">
+              <div style="{{ s.emptyCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="96px,96px"></dc-import></div>
+              <div style="{{ s.emptyTitle }}">Отчётность не загружена</div>
+              <div style="{{ s.emptyLead }}">Начните с ИНН — формы 1 и 2 подтянутся из ФНС.</div>
+              <button style="{{ s.btnPrimarySm }}" style-hover="{{ s.btnPrimaryHover }}">Найти по ИНН</button>
+            </div>
+            <div style="{{ s.demoCard }}">
+              <div style="{{ s.demoLabel }}">Пусто внутри раздела</div>
+              <div style="{{ s.emptyInline }}">
+                <div style="{{ s.emptyInlineTitle }}">Флагов не найдено</div>
+                <div style="{{ s.emptyInlineLead }}">Пройдено 24 из 24 процедур, расхождений нет. Это редкий результат — проверьте полноту документов.</div>
+                <a style="{{ s.textLink }}">Показать журнал процедур →</a>
+              </div>
+              <div style="{{ s.demoNote }}">Куб — только в полноэкранных пустых состояниях. Внутри карточки — пунктирная рамка без иллюстрации.</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">03 · ОШИБКИ И РАСХОЖДЕНИЯ</div>
+          <div style="{{ s.secTitle }}">Ошибка системы и расхождение в данных выглядят по-разному</div>
+          <div style="{{ s.stackCol }}">
+            <div style="{{ s.banner }}"><span style="{{ s.bannerIcon }}">!</span><div style="min-width:0;"><div style="{{ s.bannerTitle }}">Не удалось получить данные ФНС</div><div style="{{ s.bannerText }}">Сервис недоступен, попытка 2 из 5. Загруженные ранее формы не затронуты.</div></div><button style="{{ s.bannerBtn }}">Повторить</button></div>
+            <div style="{{ s.issueBanner }}"><span style="{{ s.issueIcon }}">Δ</span><div style="min-width:0;"><div style="{{ s.issueTitle }}">Расхождение: 42 млн ₽ прочих доходов</div><div style="{{ s.issueText }}">Влияние на нормализованную EBITDA −8.2%, на справедливую цену −220 млн ₽.</div></div><button style="{{ s.issueBtn }}">В реестр флагов</button></div>
+            <div style="{{ s.fieldDemo }}">
+              <span style="{{ s.label }}">ИНН фирмы-цели</span>
+              <input style="{{ s.inputError }}" style-focus="{{ s.inputFocus }}" placeholder="5406231">
+              <span style="{{ s.fieldError }}">ИНН юрлица — 10 цифр. Для ИП укажите 12.</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">04 · УСПЕХ И ТОСТЫ</div>
+          <div style="{{ s.secTitle }}">Подтверждение живёт 4 секунды и не блокирует работу</div>
+          <div style="{{ s.grid2 }}">
+            <div style="{{ s.demoCard }}">
+              <div style="{{ s.demoLabel }}">Тосты</div>
+              <div style="{{ s.toastCol }}">
+                <sc-for list="{{ toasts }}" as="x" hint-placeholder-count="3">
+                <div style="{{ s.toast }}"><span style="{{ x.dotStyle }}"></span><span style="{{ s.toastText }}">{{ x.text }}</span><span style="{{ s.toastAction }}">{{ x.action }}</span></div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="{{ s.demoCard }}">
+              <div style="{{ s.demoLabel }}">Завершение скана</div>
+              <div style="{{ s.successBox }}">
+                <div style="{{ s.successCheck }}">✓</div>
+                <div style="{{ s.successTitle }}">Скан завершён за 05:41</div>
+                <div style="{{ s.successLead }}">24 процедуры, 7 флагов, вердикт готов.</div>
+              </div>
+              <div style="{{ s.demoNote }}">Единственное место, где допустима крупная анимация появления — итог многоминутной работы.</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">05 · ПОДТВЕРЖДЕНИЯ</div>
+          <div style="{{ s.secTitle }}">Деструктивное действие называет последствие</div>
+          <div style="{{ s.confirmWrap }}">
+            <div style="{{ s.confirm }}">
+              <div style="{{ s.confirmTitle }}">Удалить дело A-2417?</div>
+              <div style="{{ s.confirmLead }}">Вместе с делом удаляются 412 строк отчётности, реестр из 7 флагов и черновик заключения. Журнал доступа сохраняется 5 лет по закону.</div>
+              <div style="{{ s.confirmRow }}">
+                <button style="{{ s.btnGhostSm }}" style-hover="{{ s.btnGhostHover }}">Отмена</button>
+                <button style="{{ s.btnDanger }}" style-hover="{{ s.btnDangerHover }}">Удалить дело</button>
+              </div>
+            </div>
+            <div style="{{ s.demoNote }}">Кнопка подтверждения повторяет объект действия — «Удалить дело», не «ОК». Неон в деструктиве не используется.</div>
+          </div>
+        </div>
+
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">06 · ПРАВА И ЛИМИТЫ</div>
+          <div style="{{ s.secTitle }}">Недоступное показано, но объяснено</div>
+          <div style="{{ s.grid2 }}">
+            <div style="{{ s.demoCard }}">
+              <div style="{{ s.demoLabel }}">Роль без доступа</div>
+              <div style="{{ s.lockRow }}"><span style="{{ s.lockGlyph }}">◌</span><div style="min-width:0;"><div style="{{ s.lockTitle }}">Подписать заключение</div><div style="{{ s.lockLead }}">Доступно роли «Редактор» и выше. Ваша роль — «Аналитик».</div></div></div>
+              <div style="{{ s.lockRow }}"><span style="{{ s.lockGlyph }}">◌</span><div style="min-width:0;"><div style="{{ s.lockTitle }}">Журнал доступа организации</div><div style="{{ s.lockLead }}">Доступно администратору пространства.</div></div></div>
+            </div>
+            <div style="{{ s.demoCard }}">
+              <div style="{{ s.demoLabel }}">Лимит тарифа</div>
+              <div style="{{ s.limitTop }}"><span style="{{ s.limitValue }}">10 / 10</span><span style="{{ s.limitLabel }}">дел на тарифе «Команда»</span></div>
+              <div style="{{ s.limitTrack }}"><div style="{{ s.limitFill }}"></div></div>
+              <div style="{{ s.demoNote }}">Лимит достигнут — создание дела не прячем, а показываем с объяснением и переходом к тарифу.</div>
+              <button style="{{ s.btnGhostSm }}" style-hover="{{ s.btnGhostHover }}">Расширить тариф</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">07 · ЖИЗНЬ ЖИВОГО ДЕЛА</div>
+          <div style="{{ s.secTitle }}">Дело меняется после скана — интерфейс это признаёт</div>
+          <div style="{{ s.stackCol }}">
+            <div style="{{ s.staleBanner }}">
+              <span style="{{ s.staleIcon }}">↻</span>
+              <div style="min-width:0;flex:1;">
+                <div style="{{ s.staleTitle }}">Сверка устарела — документы догрузили после скана</div>
+                <div style="{{ s.staleText }}">Три файла загружены 25.08 в 12:40, последний расчёт — 24.08 в 18:12. Показанные цифры и вердикт относятся к прежнему набору документов.</div>
+                <div style="{{ s.staleValue }}">вердикт «покупать с дисконтом 18%» · оценка 1 020 млн ₽ · рассчитано 24.08, 18:12</div>
+              </div>
+              <button style="{{ s.staleBtn }}">Пересчитать</button>
+            </div>
+            <div style="{{ s.demoNote }}">Устаревший результат не прячем и не обнуляем: он остаётся на экране, но помечен и подписан временем. Так аналитик видит, чему верить.</div>
+          </div>
+
+          <div style="{{ s.grid2 }}">
+            <div style="{{ s.demoCard }}">
+              <div style="{{ s.demoLabel }}">Очередь фоновых задач</div>
+              <div style="{{ s.queueList }}">
+                <sc-for list="{{ queue }}" as="q" hint-placeholder-count="4">
+                <div style="{{ s.queueRow }}">
+                  <span style="{{ q.dotStyle }}"></span>
+                  <span style="{{ s.queueBody }}"><span style="{{ s.queueName }}">{{ q.name }}</span><span style="{{ s.queueMeta }}">{{ q.meta }}</span></span>
+                  <span style="{{ q.chipStyle }}">{{ q.state }}</span>
+                </div>
+                </sc-for>
+              </div>
+              <div style="{{ s.demoNote }}">«В очереди» — отдельное состояние: задача принята, воркер занят. Показываем позицию, а не бесконечный спиннер.</div>
+            </div>
+
+            <div style="{{ s.demoCard }}">
+              <div style="{{ s.demoLabel }}">Задача упала</div>
+              <div style="{{ s.failBox }}">
+                <div style="{{ s.failTop }}"><span style="{{ s.failIcon }}">✕</span><span style="{{ s.failTitle }}">Скан прерван на 18-й процедуре</span></div>
+                <div style="{{ s.failText }}">Пройденные 17 процедур сохранены — начинать заново не нужно. Мы перезапустим скан с места остановки.</div>
+                <div style="{{ s.failCode }}">job_8c41f2 · ValueError: unexpected column «прочие доходы, скорр.» · 25.08, 12:58</div>
+                <div style="{{ s.failRow }}">
+                  <button style="{{ s.btnPrimarySm }}" style-hover="{{ s.btnPrimaryHover }}">Продолжить с 18-й</button>
+                  <button style="{{ s.btnGhostSm }}" style-hover="{{ s.btnGhostHover }}">Скопировать код ошибки</button>
+                </div>
+              </div>
+              <div style="{{ s.demoNote }}">Падение задачи — не то же, что недоступность ФНС: здесь виноваты мы, поэтому даём код для поддержки и сохраняем прогресс.</div>
+            </div>
+          </div>
+
+          <div style="{{ s.grid2 }}">
+            <div style="{{ s.demoCard }}">
+              <div style="{{ s.demoLabel }}">Выгрузка в Excel</div>
+              <div style="{{ s.expList }}">
+                <sc-for list="{{ exports }}" as="e" hint-placeholder-count="3">
+                <div style="{{ s.expRow }}" style-hover="{{ s.expHover }}">
+                  <span style="{{ s.expGlyph }}">{{ e.ext }}</span>
+                  <span style="{{ s.expBody }}"><span style="{{ s.expName }}">{{ e.name }}</span><span style="{{ s.expMeta }}">{{ e.meta }}</span></span>
+                  <span style="{{ e.chipStyle }}">{{ e.size }}</span>
+                </div>
+                </sc-for>
+              </div>
+              <div style="{{ s.expProgWrap }}">
+                <div style="{{ s.expProgTop }}"><span style="{{ s.expProgLabel }}">Реестр флагов · собираем лист «Влияние»</span><span style="{{ s.expProgLabel }}">64%</span></div>
+                <div style="{{ s.expTrack }}"><div style="{{ s.expFill }}"></div></div>
+              </div>
+              <div style="{{ s.demoNote }}">Выгрузка идёт в фоне: можно уйти в другой раздел, готовый файл придёт тостом со ссылкой.</div>
+            </div>
+
+            <div style="{{ s.demoCard }}">
+              <div style="{{ s.demoLabel }}">Действия над делом</div>
+              <div style="{{ s.menuBox }}">
+                <sc-for list="{{ rowMenu }}" as="m" hint-placeholder-count="4">
+                <div style="{{ s.menuItem }}" style-hover="{{ s.menuHover }}"><span style="{{ s.menuGlyph }}">{{ m.glyph }}</span><span style="{{ s.menuText }}">{{ m.label }}</span><span style="{{ s.menuHint }}">{{ m.hint }}</span></div>
+                </sc-for>
+                <div style="{{ s.menuSep }}"></div>
+                <div style="{{ s.menuDanger }}" style-hover="{{ s.menuDangerHover }}"><span style="{{ s.menuGlyph }}">✕</span><span style="{{ s.menuDangerText }}">Удалить дело</span><span style="{{ s.menuHint }}">редактор+</span></div>
+              </div>
+              <div style="{{ s.demoNote }}">Дублирование делает копию целиком — «{название} (копия)» — и удобно при повторной проверке той же фирмы через год. Удаление доступно от роли «Редактор» и всегда спрашивает подтверждение.</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">08 · СЛОВАРЬ СТАТУСОВ</div>
+          <div style="{{ s.secTitle }}">Одно значение — один цвет во всём продукте</div>
+          <div style="{{ s.chipRow }}">
+            <sc-for list="{{ chips }}" as="c" hint-placeholder-count="6"><span style="{{ c.style }}"><span style="{{ c.dotStyle }}"></span>{{ c.label }}</span></sc-for>
+          </div>
+          <div style="{{ s.ruleList }}">
+            <sc-for list="{{ rules }}" as="r" hint-placeholder-count="4">
+            <div style="{{ s.ruleRow }}"><span style="{{ r.dotStyle }}"></span><span style="{{ s.ruleText }}">{{ r.text }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="height:6px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:1000}}">
+class Component extends DCLogic {
+  state = { theme:'dark', device:'desktop' };
+
+  THEME(){
+    const dark={
+      pageBg:'#000000', bg:'#000000', surface:'#0E0B14', surface2:'#171122', surface3:'#241A38', sk:'#171122',
+      border:'#2B2140', borderStrong:'#4B3A6E', gridLine:'#191324',
+      text:'#F2E8FF', muted:'#9C8FB5', subtle:'#6A5C86',
+      primary:'#C77DFF', primaryHover:'#D69AFF', primaryText:'#17061F', accent:'#C77DFF',
+      primaryBg:'rgba(199,125,255,0.15)', primarySoft:'rgba(199,125,255,0.09)',
+      goodBg:'rgba(199,125,255,0.15)', goodBorder:'rgba(199,125,255,0.34)',
+      danger:'#F0796E', dangerHover:'#F4988F', dangerBg:'rgba(240,121,110,0.15)', dangerBorder:'rgba(240,121,110,0.34)',
+      warn:'#E0A23A', warnBg:'rgba(224,162,58,0.16)', warnBorder:'rgba(224,162,58,0.32)',
+      info:'#B9A6E8', infoBg:'rgba(185,166,232,0.15)',
+      ring:'rgba(199,125,255,0.40)',
+      shadow:'0 30px 70px -34px rgba(0,0,0,.9)', glow:'0 0 18px rgba(199,125,255,.35)',
+      barBg:'#0A0710', segBg:'#0A0710', segActiveBg:'#241A38', headerBg:'#0E0B14'
+    };
+    const light={
+      pageBg:'#F2EDFA', bg:'#FAF7FE', surface:'#FFFFFF', surface2:'#F4EEFA', surface3:'#E8DEF4', sk:'#EDE6F6',
+      border:'#DED2EC', borderStrong:'#C2B0D6', gridLine:'#EDE6F6',
+      text:'#1B1523', muted:'#4E4459', subtle:'#756884',
+      primary:'#C77DFF', primaryHover:'#B968F5', primaryText:'#17061F', accent:'#7A2BC4',
+      primaryBg:'#EEE0FB', primarySoft:'#F6EFFD',
+      goodBg:'#EEE0FB', goodBorder:'#D9BFF0',
+      danger:'#C0473B', dangerHover:'#A53A30', dangerBg:'#FAE7E4', dangerBorder:'#EECFCA',
+      warn:'#B07A12', warnBg:'#FBF0D8', warnBorder:'#ECDDB4',
+      info:'#6B5E8C', infoBg:'#EDE9F6',
+      ring:'rgba(199,125,255,0.34)',
+      shadow:'0 18px 44px -22px rgba(40,20,60,.22), 0 2px 6px rgba(40,20,60,.05)', glow:'none',
+      barBg:'#FFFFFF', segBg:'#EDE6F6', segActiveBg:'#FFFFFF', headerBg:'#FFFFFF'
+    };
+    return this.state.theme==='dark'?dark:light;
+  }
+
+  DIM(){
+    const d=this.state.device;
+    if(d==='mobile') return {frame:402, radius:26, pad:16, gap:30, cols:'1fr', secTitle:19, h1:24};
+    if(d==='tablet') return {frame:864, radius:30, pad:22, gap:40, cols:'1fr 1fr', secTitle:22, h1:28};
+    return {frame:1180, radius:30, pad:28, gap:48, cols:'1fr 1fr', secTitle:25, h1:32};
+  }
+
+  setLight=()=>this.setState({theme:'light'});
+  setDark=()=>this.setState({theme:'dark'});
+  setDesktop=()=>this.setState({device:'desktop'});
+  setTablet=()=>this.setState({device:'tablet'});
+  setMobile=()=>this.setState({device:'mobile'});
+
+  segBtn(active,t){
+    return 'height:28px;padding:0 12px;border:0;border-radius:7px;cursor:pointer;font:'+(active?'600':'500')+' 11.5px/1 Inter,sans-serif;letter-spacing:-.01em;'+
+      (active?('background:'+t.segActiveBg+';color:'+t.text+';'):('background:transparent;color:'+t.subtle+';'));
+  }
+
+  renderVals(){
+    const t=this.THEME(), d=this.DIM(), dark=this.state.theme==='dark';
+    const mono='JetBrains Mono,ui-monospace,monospace';
+    const disp='Satoshi,Inter,sans-serif';
+    const card='border:1px solid '+t.border+';border-radius:16px;background:'+t.surface+';'+(dark?'':'box-shadow:'+t.shadow+';');
+    const dot=c=>'width:5px;height:5px;flex:none;border-radius:50%;background:'+c+';';
+    const chip=(bg,bd,c)=>'display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;background:'+bg+';border:1px solid '+bd+';font:500 11px/1.3 '+mono+';color:'+c+';';
+
+    const s={
+      page:'min-height:100vh;background:'+t.pageBg+';display:flex;flex-direction:column;align-items:center;padding:0 0 60px;',
+      bar:'position:sticky;top:0;z-index:20;width:100%;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:12px 20px;background:'+t.barBg+';border-bottom:1px solid '+t.border+';',
+      barCube:'width:30px;height:30px;flex:none;',
+      barTitle:'font:600 13px/1.2 Inter,sans-serif;letter-spacing:-.015em;color:'+t.text+';',
+      barSub:'font:400 10.5px/1.2 '+mono+';color:'+t.subtle+';',
+      barLabel:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+      seg:'display:flex;gap:2px;padding:3px;border-radius:9px;background:'+t.segBg+';border:1px solid '+t.border+';',
+      segLight:this.segBtn(!dark,t), segDark:this.segBtn(dark,t),
+      segDesktop:this.segBtn(this.state.device==='desktop',t),
+      segTablet:this.segBtn(this.state.device==='tablet',t),
+      segMobile:this.segBtn(this.state.device==='mobile',t),
+      stage:'width:100%;display:flex;justify-content:center;padding:26px 18px 0;',
+      frame:'width:100%;max-width:'+d.frame+'px;border:1px solid '+t.border+';border-radius:'+d.radius+'px;background:'+t.bg+';overflow:hidden;'+(dark?'':'box-shadow:'+t.shadow+';'),
+      body:'display:flex;flex-direction:column;gap:'+d.gap+'px;padding:'+d.pad+'px;',
+
+      intro:'padding-bottom:4px;',
+      eyebrow:'display:flex;align-items:center;gap:7px;font:500 9.5px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:'+t.accent+';margin-bottom:13px;',
+      eyebrowDot:'width:5px;height:5px;border-radius:50%;background:'+t.primary+';'+(dark?'box-shadow:0 0 8px rgba(199,125,255,.9);':'')+'animation:fa-pulse 2s ease-in-out infinite alternate;',
+      introTitle:'font:500 '+d.h1+'px/1.1 '+disp+';letter-spacing:-.028em;color:'+t.text+';max-width:22ch;',
+      introLead:'margin-top:15px;font:400 13.5px/1.66 Inter,sans-serif;color:'+t.muted+';max-width:70ch;text-wrap:pretty;',
+
+      section:'display:flex;flex-direction:column;gap:12px;',
+      secEyebrow:'font:500 9.5px/1 Inter,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:'+t.subtle+';',
+      secTitle:'font:500 '+d.secTitle+'px/1.16 '+disp+';letter-spacing:-.022em;color:'+t.text+';margin-bottom:4px;',
+      grid2:'display:grid;grid-template-columns:'+d.cols+';gap:12px;align-items:start;',
+      stackCol:'display:flex;flex-direction:column;gap:10px;',
+
+      demoCard:card+'padding:16px;display:flex;flex-direction:column;gap:11px;',
+      demoLabel:'font:500 9px/1 Inter,sans-serif;letter-spacing:.13em;text-transform:uppercase;color:'+t.subtle+';',
+      demoNote:'font:400 11.5px/1.55 Inter,sans-serif;color:'+t.muted+';',
+
+      skList:'display:flex;flex-direction:column;gap:9px;',
+      loadRow:'display:flex;align-items:center;gap:10px;',
+      spinner:'width:14px;height:14px;flex:none;border-radius:50%;border:2px solid '+t.border+';border-top-color:'+t.primary+';animation:fa-spin .7s linear infinite;',
+      loadText:'font:400 12.5px/1.4 Inter,sans-serif;color:'+t.muted+';',
+      progressTrack:'height:6px;border-radius:3px;background:'+t.surface2+';overflow:hidden;',
+      progressFill:'width:79%;height:100%;background:'+t.primary+';'+(dark?'box-shadow:0 0 12px rgba(199,125,255,.6);':''),
+
+      emptyDemo:'display:flex;flex-direction:column;align-items:center;text-align:center;gap:11px;padding:24px 18px;border:1px dashed '+t.borderStrong+';border-radius:16px;background:'+t.surface+';',
+      emptyCube:'width:96px;height:96px;',
+      emptyTitle:'font:500 17px/1.2 '+disp+';letter-spacing:-.022em;color:'+t.text+';',
+      emptyLead:'font:400 12.5px/1.55 Inter,sans-serif;color:'+t.muted+';max-width:40ch;',
+      emptyInline:'display:flex;flex-direction:column;gap:8px;padding:16px;border:1px dashed '+t.border+';border-radius:12px;',
+      emptyInlineTitle:'font:500 13.5px/1.25 Inter,sans-serif;color:'+t.text+';',
+      emptyInlineLead:'font:400 11.5px/1.55 Inter,sans-serif;color:'+t.muted+';',
+      textLink:'font:500 11.5px/1 Inter,sans-serif;color:'+t.accent+';text-decoration:none;cursor:pointer;',
+
+      banner:'display:flex;align-items:flex-start;gap:11px;padding:13px 15px;border:1px solid '+t.dangerBorder+';border-radius:12px;background:'+t.dangerBg+';animation:fa-shake .4s ease-out both;',
+      bannerIcon:'flex:none;width:19px;height:19px;border-radius:50%;background:'+t.danger+';color:'+(dark?'#17061F':'#FFFFFF')+';font:700 11px/19px Inter,sans-serif;text-align:center;',
+      bannerTitle:'font:500 12.5px/1.35 Inter,sans-serif;color:'+t.danger+';',
+      bannerText:'margin-top:5px;font:400 11.5px/1.5 Inter,sans-serif;color:'+t.muted+';',
+      bannerBtn:'flex:none;margin-left:auto;height:28px;padding:0 12px;border:1px solid '+t.dangerBorder+';border-radius:4px;background:transparent;color:'+t.danger+';font:500 11px/1 Inter,sans-serif;cursor:pointer;',
+
+      issueBanner:'display:flex;align-items:flex-start;gap:11px;padding:13px 15px;border:1px solid '+t.warnBorder+';border-radius:12px;background:'+t.warnBg+';',
+      issueIcon:'flex:none;width:19px;height:19px;border-radius:50%;background:'+t.warn+';color:'+(dark?'#17061F':'#FFFFFF')+';font:700 10px/19px '+mono+';text-align:center;',
+      issueTitle:'font:500 12.5px/1.35 Inter,sans-serif;color:'+t.warn+';',
+      issueText:'margin-top:5px;font:400 11.5px/1.5 Inter,sans-serif;color:'+t.muted+';',
+      issueBtn:'flex:none;margin-left:auto;height:28px;padding:0 12px;border:1px solid '+t.warnBorder+';border-radius:4px;background:transparent;color:'+t.warn+';font:500 11px/1 Inter,sans-serif;cursor:pointer;',
+
+      fieldDemo:card+'padding:16px;display:flex;flex-direction:column;gap:7px;max-width:'+(d.cols==='1fr'?'100%':'420px')+';',
+      label:'font:500 9.5px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+      inputError:'width:100%;height:42px;padding:0 14px;border:1.5px solid '+t.danger+';border-radius:8px;background:'+(dark?t.pageBg:t.surface)+';color:'+t.text+';font:400 13.5px/1 '+mono+';outline:none;',
+      inputFocus:'border-color:'+t.primary+';box-shadow:0 0 0 3px '+t.ring+';',
+      fieldError:'font:400 11px/1.45 '+mono+';color:'+t.danger+';',
+
+      toastCol:'display:flex;flex-direction:column;gap:8px;',
+      toast:'display:flex;align-items:center;gap:10px;padding:11px 13px;border:1px solid '+t.border+';border-radius:12px;background:'+t.surface2+';'+(dark?'':'box-shadow:'+t.shadow+';'),
+      toastText:'flex:1;min-width:0;font:400 12px/1.4 Inter,sans-serif;color:'+t.text+';',
+      toastAction:'flex:none;font:500 11px/1 Inter,sans-serif;color:'+t.accent+';cursor:pointer;',
+
+      successBox:'display:flex;flex-direction:column;align-items:center;text-align:center;gap:9px;padding:22px 16px;border-radius:14px;background:'+(dark?'radial-gradient(ellipse 80% 100% at 50% 30%, rgba(199,125,255,.16) 0%, transparent 70%)':t.primarySoft)+';',
+      successCheck:'width:44px;height:44px;border-radius:50%;background:'+t.primary+';color:'+t.primaryText+';font:600 21px/44px Inter,sans-serif;animation:fa-pop .42s cubic-bezier(.16,1,.3,1) both;'+(dark?'box-shadow:0 0 24px rgba(199,125,255,.55);':''),
+      successTitle:'font:500 16px/1.2 '+disp+';letter-spacing:-.02em;color:'+t.text+';',
+      successLead:'font:400 12px/1.5 '+mono+';color:'+t.muted+';',
+
+      confirmWrap:'display:flex;flex-direction:'+(d.cols==='1fr'?'column':'row')+';gap:14px;align-items:'+(d.cols==='1fr'?'stretch':'center')+';',
+      confirm:'flex:none;width:'+(d.cols==='1fr'?'100%':'420px')+';padding:18px;border:1px solid '+t.border+';border-radius:16px;background:'+t.surface+';'+(dark?'':'box-shadow:'+t.shadow+';'),
+      confirmTitle:'font:500 17px/1.2 '+disp+';letter-spacing:-.022em;color:'+t.text+';',
+      confirmLead:'margin-top:10px;font:400 12.5px/1.6 Inter,sans-serif;color:'+t.muted+';',
+      confirmRow:'display:flex;justify-content:flex-end;gap:8px;margin-top:16px;',
+
+      lockRow:'display:flex;align-items:flex-start;gap:11px;padding:11px 0;border-bottom:1px solid '+t.gridLine+';',
+      lockGlyph:'flex:none;width:18px;text-align:center;font:400 13px/1.3 '+mono+';color:'+t.subtle+';',
+      lockTitle:'font:400 12.5px/1.35 Inter,sans-serif;color:'+t.subtle+';',
+      lockLead:'margin-top:4px;font:400 10.5px/1.45 '+mono+';color:'+t.subtle+';',
+
+      limitTop:'display:flex;align-items:baseline;gap:8px;',
+      limitValue:'font:600 22px/1 '+mono+';letter-spacing:-.03em;color:'+t.warn+';',
+      limitLabel:'font:400 11.5px/1.3 Inter,sans-serif;color:'+t.muted+';',
+      limitTrack:'height:6px;border-radius:3px;background:'+t.surface2+';overflow:hidden;',
+      limitFill:'width:100%;height:100%;background:'+t.warn+';',
+
+      staleBanner:'display:flex;align-items:flex-start;gap:12px;padding:14px;border:1px solid '+t.warnBorder+';border-left:3px solid '+t.warn+';border-radius:12px;background:'+t.warnBg+';',
+      staleIcon:'flex:none;width:24px;height:24px;border-radius:7px;background:'+t.warn+';color:'+t.primaryText+';text-align:center;font:600 12px/24px '+mono+';',
+      staleTitle:'font:500 13px/1.3 Inter,sans-serif;color:'+t.text+';',
+      staleText:'margin-top:5px;font:400 11.5px/1.55 Inter,sans-serif;color:'+t.muted+';',
+      staleBtn:'flex:none;height:30px;padding:0 12px;border:0;border-radius:4px;background:'+t.warn+';color:'+t.primaryText+';font:600 11px/1 Inter,sans-serif;cursor:pointer;white-space:nowrap;',
+      staleValue:'margin-top:9px;font:400 10.5px/1.4 '+mono+';color:'+t.subtle+';',
+
+      queueList:'display:flex;flex-direction:column;gap:1px;',
+      queueRow:'display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid '+t.gridLine+';',
+      queueBody:'flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;',
+      queueName:'font:400 11.5px/1.3 Inter,sans-serif;color:'+t.text+';',
+      queueMeta:'font:400 9.5px/1.3 '+mono+';color:'+t.subtle+';',
+
+      failBox:'padding:14px;border:1px solid '+t.dangerBorder+';border-radius:12px;background:'+t.dangerBg+';display:flex;flex-direction:column;gap:10px;',
+      failTop:'display:flex;align-items:center;gap:10px;',
+      failIcon:'flex:none;width:24px;height:24px;border-radius:7px;background:'+t.danger+';color:'+t.primaryText+';text-align:center;font:600 12px/24px '+mono+';',
+      failTitle:'font:500 13px/1.3 Inter,sans-serif;color:'+t.text+';',
+      failText:'font:400 11.5px/1.55 Inter,sans-serif;color:'+t.muted+';',
+      failCode:'padding:9px 11px;border-radius:8px;background:'+t.surface2+';font:400 10px/1.5 '+mono+';color:'+t.subtle+';word-break:break-all;',
+      failRow:'display:flex;align-items:center;gap:9px;flex-wrap:wrap;',
+
+      expList:'display:flex;flex-direction:column;gap:8px;',
+      expRow:'display:flex;align-items:center;gap:11px;padding:11px 12px;border:1px solid '+t.border+';border-radius:10px;background:'+t.surface2+';cursor:pointer;transition:border-color .16s;',
+      expHover:'border-color:'+t.borderStrong+';',
+      expGlyph:'flex:none;width:26px;height:26px;border-radius:7px;background:'+t.surface3+';color:'+t.muted+';text-align:center;font:500 9px/26px '+mono+';',
+      expBody:'flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;',
+      expName:'font:400 11.5px/1.3 Inter,sans-serif;color:'+t.text+';',
+      expMeta:'font:400 9.5px/1.3 '+mono+';color:'+t.subtle+';',
+      expProgWrap:'display:flex;flex-direction:column;gap:7px;padding-top:11px;border-top:1px solid '+t.border+';',
+      expProgTop:'display:flex;align-items:baseline;justify-content:space-between;gap:10px;',
+      expProgLabel:'font:400 10.5px/1.3 '+mono+';color:'+t.muted+';',
+      expTrack:'height:5px;border-radius:999px;background:'+t.surface2+';overflow:hidden;',
+      expFill:'height:100%;width:64%;border-radius:999px;background:'+t.primary+';',
+
+      menuBox:'padding:6px;border:1px solid '+t.border+';border-radius:12px;background:'+t.surface2+';display:flex;flex-direction:column;gap:2px;'+(dark?'':'box-shadow:'+t.shadow+';'),
+      menuItem:'display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;transition:background .14s;',
+      menuHover:'background:'+t.surface3+';',
+      menuGlyph:'flex:none;width:16px;text-align:center;font:400 11px/1 '+mono+';color:'+t.muted+';',
+      menuText:'flex:1;min-width:0;font:400 11.5px/1.3 Inter,sans-serif;color:'+t.text+';',
+      menuHint:'flex:none;font:400 9.5px/1.3 '+mono+';color:'+t.subtle+';',
+      menuSep:'height:1px;margin:4px 2px;background:'+t.border+';',
+      menuDanger:'display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;transition:background .14s;',
+      menuDangerText:'flex:1;min-width:0;font:400 11.5px/1.3 Inter,sans-serif;color:'+t.danger+';',
+      menuDangerHover:'background:'+t.dangerBg+';',
+
+      chipRow:'display:flex;flex-wrap:wrap;gap:9px;',
+      ruleList:'display:flex;flex-direction:column;gap:10px;margin-top:8px;',
+      ruleRow:'display:flex;align-items:flex-start;gap:11px;',
+      ruleText:'font:400 12.5px/1.6 Inter,sans-serif;color:'+t.muted+';max-width:78ch;',
+
+      btnPrimarySm:'height:32px;padding:0 15px;border:0;border-radius:4px;background:'+t.primary+';color:'+t.primaryText+';font:600 11.5px/1 Inter,sans-serif;cursor:pointer;'+(dark?'box-shadow:'+t.glow+';':''),
+      btnPrimaryHover:'background:'+t.primaryHover+';',
+      btnGhostSm:'height:32px;padding:0 14px;border:1px solid '+t.border+';border-radius:4px;background:transparent;color:'+t.text+';font:500 11.5px/1 Inter,sans-serif;cursor:pointer;align-self:flex-start;',
+      btnGhostHover:'border-color:'+t.primary+';color:'+t.accent+';',
+      btnDanger:'height:32px;padding:0 14px;border:1px solid '+t.dangerBorder+';border-radius:4px;background:'+t.dangerBg+';color:'+t.danger+';font:500 11.5px/1 Inter,sans-serif;cursor:pointer;',
+      btnDangerHover:'background:'+t.danger+';color:'+(dark?'#17061F':'#FFFFFF')+';'
+    };
+
+    return {
+      s,
+      setLight:this.setLight, setDark:this.setDark,
+      setDesktop:this.setDesktop, setTablet:this.setTablet, setMobile:this.setMobile,
+      skeletons:[88,64,76,52,68].map((w,i)=>({
+        style:'height:13px;width:'+w+'%;border-radius:5px;background:'+t.sk+';animation:fa-pulse 1.3s ease-in-out '+(i*0.09)+'s infinite alternate;'
+      })),
+      queue:[
+        {name:'Риск-скан · ООО «Сибтранс-Логистика»', meta:'принят 12:58 · третий в очереди', state:'в очереди',
+         dotStyle:dot(t.subtle), chipStyle:'flex:none;'+chip('transparent',t.border,t.subtle)},
+        {name:'Пересчёт оценки · дело A-2391', meta:'идёт 00:42 · процедура 14 из 24', state:'выполняется',
+         dotStyle:dot(t.primary), chipStyle:'flex:none;'+chip(t.goodBg,t.goodBorder,t.accent)},
+        {name:'Выгрузка заключения в PDF · A-2380', meta:'готово 12:44 · 1,8 МБ', state:'готово',
+         dotStyle:dot(t.primary), chipStyle:'flex:none;'+chip(t.goodBg,t.goodBorder,t.accent)},
+        {name:'Загрузка выписки · Сбербанк, счёт 4021', meta:'прервано 12:31 · банк не ответил', state:'ошибка',
+         dotStyle:dot(t.danger), chipStyle:'flex:none;'+chip(t.dangerBg,t.dangerBorder,t.danger)}
+      ],
+      exports:[
+        {name:'Сверка отчётности', meta:'412 строк · 4 листа · формулы сохранены', ext:'XLSX', size:'318 КБ',
+         chipStyle:'flex:none;'+chip('transparent',t.border,t.subtle)},
+        {name:'Реестр флагов с влиянием в рублях', meta:'7 флагов · лист «Влияние» · собирается', ext:'XLSX', size:'готовим',
+         chipStyle:'flex:none;'+chip(t.goodBg,t.goodBorder,t.accent)},
+        {name:'Заключение', meta:'2 страницы A4 · подписи и печать', ext:'PDF', size:'1,8 МБ',
+         chipStyle:'flex:none;'+chip('transparent',t.border,t.subtle)}
+      ],
+      rowMenu:[
+        {glyph:'→', label:'Открыть дело', hint:'наблюдатель+'},
+        {glyph:'⧉', label:'Дублировать — повторная проверка', hint:'редактор+'},
+        {glyph:'↓', label:'Выгрузить в Excel', hint:'аналитик+'},
+        {glyph:'⌸', label:'Перенести в архив', hint:'редактор+'}
+      ],
+      toasts:[
+        {text:'Заключение выгружено в PDF', action:'Открыть', dotStyle:dot(t.primary)},
+        {text:'Флаг «Аренда без индексации» отмечен как принятый', action:'Отменить', dotStyle:dot(t.warn)},
+        {text:'Не удалось отправить запрос продавцу', action:'Повторить', dotStyle:dot(t.danger)}
+      ],
+      chips:[
+        {label:'сходится', style:chip(t.goodBg,t.goodBorder,t.accent), dotStyle:dot(t.primary)},
+        {label:'расхождение', style:chip(t.dangerBg,t.dangerBorder,t.danger), dotStyle:dot(t.danger)},
+        {label:'концентрация', style:chip(t.warnBg,t.warnBorder,t.warn), dotStyle:dot(t.warn)},
+        {label:'нет данных', style:chip('transparent',t.border,t.subtle), dotStyle:dot(t.subtle)},
+        {label:'в работе', style:chip(t.infoBg,t.border,t.info), dotStyle:dot(t.info)},
+        {label:'критично', style:chip(t.danger,t.danger,dark?'#17061F':'#FFFFFF'), dotStyle:dot(dark?'#17061F':'#FFFFFF')}
+      ],
+      rules:[
+        {text:'Неон #C77DFF — только действие, активное состояние, кольцо фокуса и итог. Не декор, не фон, не иконка «просто так».', dotStyle:dot(t.primary)},
+        {text:'Коралл — расхождение и ошибка. Янтарь — внимание и близость к порогу. Оба только по смыслу данных, никогда как акцент оформления.', dotStyle:dot(t.danger)},
+        {text:'Свечение живёт только в тёмной теме. На светлой его заменяет тонкая тень, цвета и пропорции не меняются.', dotStyle:dot(t.warn)},
+        {text:'Куб появляется в четырёх местах: навигация, вход, полноэкранное пустое состояние, завершение скана. Больше — нигде.', dotStyle:dot(t.info)}
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

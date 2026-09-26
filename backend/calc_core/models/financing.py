@@ -7,12 +7,13 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
+from ..decimals import MoneyModel
 from .common import RepaymentType
 
 
-class Loan(BaseModel):
+class Loan(MoneyModel):
     """Заём."""
 
     name: str
@@ -32,14 +33,14 @@ class Loan(BaseModel):
         return (Decimal(1) + self.annual_rate) ** (Decimal(1) / Decimal(12)) - Decimal(1)
 
 
-class EquityInjection(BaseModel):
+class EquityInjection(MoneyModel):
     """Взнос в акционерный капитал (обыкновенные акции)."""
 
     amount: Decimal
     month: int = 0
 
 
-class Lease(BaseModel):
+class Lease(MoneyModel):
     """Лизинг (SPEC §10).
 
     **Операционный** (по умолчанию): платёж — целиком издержка (I21) и отток (C25).
@@ -55,12 +56,20 @@ class Lease(BaseModel):
     term_months: int = 12
     finance: bool = False                   # финансовый лизинг (капитализация предмета)
     annual_rate: Decimal = Decimal("0")     # ставка для финансового лизинга (PV платежей)
+    # Страхование предмета лизинга: помесячная издержка (I21) + отток (C25) за срок лизинга;
+    # применяется к обоим типам (операционному и финансовому). По умолчанию 0.
+    insurance_monthly: Decimal = Decimal("0")
+    # Выкуп предмета по окончании лизинга: цена выкупа (→ приобретение ОС, C14) и срок службы
+    # для последующей амортизации. Предмет становится собственным ОС (оборудование, B14) в
+    # месяц start+term и амортизируется линейно за buyout_life_months. По умолчанию нет выкупа.
+    buyout_price: Decimal = Decimal("0")
+    buyout_life_months: int = 0
 
     def monthly_rate(self) -> Decimal:
         return (Decimal(1) + self.annual_rate) ** (Decimal(1) / Decimal(12)) - Decimal(1)
 
 
-class Deposit(BaseModel):
+class Deposit(MoneyModel):
     """Размещение свободных средств: вложение C8, доход C9, тело в B6 (SPEC §10)."""
 
     name: str
@@ -70,20 +79,25 @@ class Deposit(BaseModel):
     annual_rate: Decimal = Decimal("0")     # годовая ставка дохода
 
 
-class AutoFinancing(BaseModel):
-    """Автоподбор финансирования: покрытие дефицита наличности кредитной линией.
+class AutoFinancing(MoneyModel):
+    """Автоподбор финансирования: покрытие дефицита кредитом + размещение излишков (SPEC §19).
 
     Каждый период, если денег меньше ``min_balance``, привлекается заём до этого уровня;
-    при профиците задолженность гасится. Проценты влияют на прибыль и налог, поэтому
-    расчёт итеративный (см. SPEC §19).
+    при профиците задолженность гасится. При включённом ``invest_surplus`` касса выше
+    ``min_balance`` размещается в депозит (симметрично автокредиту): доход по депозиту
+    растит прибыль и налог, при дефиците депозит изымается раньше привлечения кредита.
+    Проценты/доход влияют на прибыль и налог, поэтому расчёт итеративный.
     """
 
     enabled: bool = False
     annual_rate: Decimal = Decimal("0.18")  # годовая ставка кредитной линии
     min_balance: Decimal = Decimal("0")     # минимальный остаток денежных средств
+    # Авторазмещение излишков кассы в депозит (симметрично автокредиту).
+    invest_surplus: bool = False
+    invest_annual_rate: Decimal = Decimal("0.05")  # годовая ставка депозита
 
 
-class Financing(BaseModel):
+class Financing(MoneyModel):
     loans: list[Loan] = Field(default_factory=list)
     leases: list[Lease] = Field(default_factory=list)
     deposits: list[Deposit] = Field(default_factory=list)

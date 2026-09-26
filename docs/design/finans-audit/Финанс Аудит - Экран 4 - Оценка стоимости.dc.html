@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  input,button{font-family:inherit;}
+  a{color:#C77DFF;}
+  a:hover{color:#D69AFF;}
+  @keyframes fa-pulse{from{opacity:.4}to{opacity:1}}
+  @keyframes fa-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes fa-scan{0%{transform:translateY(-130%)}100%{transform:translateY(620%)}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:11px;min-width:0;">
+      <div style="{{ s.barCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="30px,30px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Экран 4 · Оценка стоимости</span>
+        <span style="{{ s.barSub }}">DCF, мультипликаторы, чувствительность</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Свет</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тьма</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}" data-screen-label="Экран 4 — Оценка стоимости">
+
+      <div style="{{ s.nav }}">
+        <div style="{{ s.navLeft }}">
+          <div style="{{ s.navCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="24px,24px"></dc-import></div>
+          <span style="{{ s.navBrand }}">Финанс&nbsp;Аудит</span>
+          <div style="{{ s.navTabs }}">
+            <sc-for list="{{ navTabs }}" as="n" hint-placeholder-count="5"><span style="{{ n.style }}">{{ n.label }}</span></sc-for>
+          </div>
+        </div>
+        <div style="{{ s.navRight }}">
+          <span style="{{ s.navCase }}">ДЕЛО № A-2417</span>
+          <button style="{{ s.btnPrimarySm }}" style-hover="{{ s.btnPrimaryHover }}">В заключение</button>
+        </div>
+      </div>
+
+      <div style="{{ s.toolbar }}">
+        <div style="{{ s.toolLeft }}">
+          <span style="{{ s.toolLabel }}">Сценарий</span>
+          <div style="{{ s.segDemo }}">
+            <button style="{{ s.scPess }}" onClick="{{ setPess }}">Пессимист</button>
+            <button style="{{ s.scBase }}" onClick="{{ setBase }}">База</button>
+            <button style="{{ s.scOpt }}" onClick="{{ setOpt }}">Оптимист</button>
+          </div>
+        </div>
+        <div style="{{ s.toolRight }}">
+          <span style="{{ s.toolLabel }}">Метод</span>
+          <div style="{{ s.segDemo }}"><button style="{{ s.segDemoActive }}">DCF</button><button style="{{ s.segDemoOff }}">Мультипликаторы</button><button style="{{ s.segDemoOff }}">Активы</button></div>
+        </div>
+      </div>
+
+      <div style="{{ s.resultWrap }}">
+        <div style="{{ s.resultBeam }}"></div>
+        <div style="{{ s.resultMain }}">
+          <div style="{{ s.eyebrow }}"><span style="{{ s.eyebrowDot }}"></span>СПРАВЕДЛИВАЯ СТОИМОСТЬ · {{ scenarioName }}</div>
+          <div style="{{ s.resultValue }}">{{ fairValue }}</div>
+          <div style="{{ s.resultLead }}">{{ resultLead }}</div>
+          <div style="{{ s.rangeWrap }}">
+            <div style="{{ s.rangeTrack }}">
+              <div style="{{ s.rangeBand }}"></div>
+              <div style="{{ s.rangeAsk }}"></div>
+            </div>
+            <div style="{{ s.rangeLabels }}">
+              <span style="{{ s.rangeMin }}">{{ rangeMin }}</span>
+              <span style="{{ s.rangeAskLabel }}">запрошено 1 240</span>
+              <span style="{{ s.rangeMax }}">{{ rangeMax }}</span>
+            </div>
+          </div>
+        </div>
+        <div style="{{ s.bridge }}">
+          <div style="{{ s.bridgeHead }}">От EV к цене за долю 100%</div>
+          <sc-for list="{{ bridge }}" as="b" hint-placeholder-count="4">
+          <div style="{{ b.rowStyle }}"><span style="{{ s.bridgeKey }}">{{ b.label }}</span><span style="{{ b.valueStyle }}">{{ b.value }}</span></div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="{{ s.kpiGrid }}">
+        <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+        <div style="{{ s.kpiCard }}"><div style="{{ s.kpiLabel }}">{{ k.label }}</div><div style="{{ k.valueStyle }}">{{ k.value }}</div><div style="{{ k.noteStyle }}">{{ k.note }}</div></div>
+        </sc-for>
+      </div>
+
+      <div style="{{ s.twoCol }}">
+
+        <div style="{{ s.panel }}">
+          <div style="{{ s.panelHead }}"><span style="{{ s.panelTitle }}">Дисконтированный поток</span><span style="{{ s.panelMeta }}">млн ₽ · WACC {{ wacc }}</span></div>
+          <div style="{{ s.tbl }}">
+            <div style="{{ s.tblHead }}"><div style="{{ s.tblHCell }}">Год</div><div style="{{ s.tblHNum }}">FCF</div><div style="{{ s.tblHNum }}">Коэф.</div><div style="{{ s.tblHNum }}">PV</div></div>
+            <sc-for list="{{ dcfRows }}" as="r" hint-placeholder-count="6">
+            <div style="{{ r.rowStyle }}"><div style="{{ r.labelStyle }}">{{ r.year }}</div><div style="{{ r.fcfStyle }}">{{ r.fcf }}</div><div style="{{ r.dfStyle }}">{{ r.df }}</div><div style="{{ r.pvStyle }}">{{ r.pv }}</div></div>
+            </sc-for>
+          </div>
+          <div style="{{ s.panelNote }}">Терминальная стоимость — {{ terminalShare }} итога. Рост в постпрогнозе {{ growth }}, отраслевая норма 3.0%.</div>
+        </div>
+
+        <div style="{{ s.panel }}">
+          <div style="{{ s.panelHead }}"><span style="{{ s.panelTitle }}">Чувствительность</span><span style="{{ s.panelMeta }}">EV, млн ₽</span></div>
+          <div style="{{ s.sensGrid }}">
+            <sc-for list="{{ sensCells }}" as="c" hint-placeholder-count="25"><div style="{{ c.style }}">{{ c.text }}</div></sc-for>
+          </div>
+          <div style="{{ s.panelNote }}">По вертикали WACC, по горизонтали рост в постпрогнозе. Подсвечена клетка текущего сценария.</div>
+          <div style="{{ s.multHead }}">Сопоставимые сделки</div>
+          <sc-for list="{{ comps }}" as="m" hint-placeholder-count="4">
+          <div style="{{ s.compRow }}"><span style="{{ s.compName }}">{{ m.name }}</span><span style="{{ s.compYear }}">{{ m.year }}</span><span style="{{ m.multStyle }}">{{ m.mult }}</span></div>
+          </sc-for>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { theme:'dark', device:'desktop', sc:'base' };
+
+  THEME(){
+    const dark={
+      pageBg:'#000000', bg:'#000000', surface:'#0E0B14', surface2:'#171122', surface3:'#241A38', sk:'#171122',
+      border:'#2B2140', borderStrong:'#4B3A6E', gridLine:'#191324',
+      text:'#F2E8FF', muted:'#9C8FB5', subtle:'#6A5C86',
+      primary:'#C77DFF', primaryHover:'#D69AFF', primaryText:'#17061F', accent:'#C77DFF',
+      primaryBg:'rgba(199,125,255,0.15)', primarySoft:'rgba(199,125,255,0.09)',
+      goodBg:'rgba(199,125,255,0.15)', goodBorder:'rgba(199,125,255,0.34)',
+      danger:'#F0796E', dangerBg:'rgba(240,121,110,0.15)', dangerBorder:'rgba(240,121,110,0.34)',
+      warn:'#E0A23A', warnBg:'rgba(224,162,58,0.16)', warnBorder:'rgba(224,162,58,0.32)',
+      info:'#B9A6E8',
+      ring:'rgba(199,125,255,0.40)',
+      shadow:'0 30px 70px -34px rgba(0,0,0,.9)', glow:'0 0 18px rgba(199,125,255,.35)',
+      barBg:'#0A0710', segBg:'#0A0710', segActiveBg:'#241A38', headerBg:'#0E0B14',
+      heat:['rgba(199,125,255,0.34)','rgba(199,125,255,0.22)','rgba(199,125,255,0.13)','rgba(224,162,58,0.20)','rgba(240,121,110,0.24)'],
+      heatText:['#0C0714','#F2E8FF','#F2E8FF','#E0A23A','#F0796E']
+    };
+    const light={
+      pageBg:'#F2EDFA', bg:'#FAF7FE', surface:'#FFFFFF', surface2:'#F4EEFA', surface3:'#E8DEF4', sk:'#EDE6F6',
+      border:'#DED2EC', borderStrong:'#C2B0D6', gridLine:'#EDE6F6',
+      text:'#1B1523', muted:'#4E4459', subtle:'#756884',
+      primary:'#C77DFF', primaryHover:'#B968F5', primaryText:'#17061F', accent:'#7A2BC4',
+      primaryBg:'#EEE0FB', primarySoft:'#F6EFFD',
+      goodBg:'#EEE0FB', goodBorder:'#D9BFF0',
+      danger:'#C0473B', dangerBg:'#FAE7E4', dangerBorder:'#EECFCA',
+      warn:'#B07A12', warnBg:'#FBF0D8', warnBorder:'#ECDDB4',
+      info:'#6B5E8C',
+      ring:'rgba(199,125,255,0.34)',
+      shadow:'0 18px 44px -22px rgba(40,20,60,.22), 0 2px 6px rgba(40,20,60,.05)', glow:'none',
+      barBg:'#FFFFFF', segBg:'#EDE6F6', segActiveBg:'#FFFFFF', headerBg:'#FFFFFF',
+      heat:['#DCC5F2','#E9DAF8','#F3EAFB','#FBF0D8','#F7DED9'],
+      heatText:['#3A1D5A','#4E4459','#4E4459','#8A5E0C','#A53A30']
+    };
+    return this.state.theme==='dark'?dark:light;
+  }
+
+  DIM(){
+    const d=this.state.device;
+    if(d==='mobile') return {frame:402, radius:26, pad:16, big:34, twoCols:'1fr', kpiCols:2, tabsShown:2, tbl:11.5, sens:true};
+    if(d==='tablet') return {frame:864, radius:30, pad:20, big:42, twoCols:'1fr', kpiCols:4, tabsShown:4, tbl:12, sens:true};
+    return {frame:1180, radius:30, pad:24, big:50, twoCols:'1fr 1fr', kpiCols:4, tabsShown:5, tbl:12.5, sens:true};
+  }
+
+  DATA(){
+    return {
+      pess:{name:'пессимист', fair:'864', min:'734', max:'965', ask:1240, wacc:'20.0%', growth:'3.0%',
+        ev:'1 611', debt:'−831', cash:'+96', minority:'−12', equity:'864', terminalShare:'54%',
+        askDelta:'−30% к запрошенной', mult:'6.3×', irr:'14.2%', payback:'6.8 года',
+        fcf:[['2026','92','0.83','76'],['2027','104','0.68','71'],['2028','112','0.57','64'],['2029','118','0.47','55'],['2030','122','0.39','48'],['Терминал','—','—','736']],
+        sensRow:3, sensCol:2},
+      base:{name:'база', fair:'1 020', min:'864', max:'1 209', ask:1240, wacc:'18.5%', growth:'3.0%',
+        ev:'1 767', debt:'−831', cash:'+96', minority:'−12', equity:'1 020', terminalShare:'58%',
+        askDelta:'−18% к запрошенной', mult:'6.6×', irr:'17.4%', payback:'5.4 года',
+        fcf:[['2026','108','0.84','91'],['2027','126','0.71','90'],['2028','141','0.60','85'],['2029','152','0.51','78'],['2030','161','0.43','69'],['Терминал','—','—','827']],
+        sensRow:2, sensCol:2},
+      opt:{name:'оптимист', fair:'1 360', min:'1 282', max:'1 536', ask:1240, wacc:'16.0%', growth:'3.0%',
+        ev:'2 107', debt:'−831', cash:'+96', minority:'−12', equity:'1 360', terminalShare:'62%',
+        askDelta:'+10% к запрошенной', mult:'7.0×', irr:'21.8%', payback:'4.3 года',
+        fcf:[['2026','124','0.86','107'],['2027','148','0.74','110'],['2028','170','0.64','109'],['2029','188','0.55','103'],['2030','204','0.48','98'],['Терминал','—','—','1 033']],
+        sensRow:0, sensCol:2}
+    };
+  }
+
+  setLight=()=>this.setState({theme:'light'});
+  setDark=()=>this.setState({theme:'dark'});
+  setDesktop=()=>this.setState({device:'desktop'});
+  setTablet=()=>this.setState({device:'tablet'});
+  setMobile=()=>this.setState({device:'mobile'});
+  setPess=()=>this.setState({sc:'pess'});
+  setBase=()=>this.setState({sc:'base'});
+  setOpt=()=>this.setState({sc:'opt'});
+
+  segBtn(active,t){
+    return 'height:28px;padding:0 12px;border:0;border-radius:7px;cursor:pointer;font:'+(active?'600':'500')+' 11.5px/1 Inter,sans-serif;letter-spacing:-.01em;'+
+      (active?('background:'+t.segActiveBg+';color:'+t.text+';'):('background:transparent;color:'+t.subtle+';'));
+  }
+
+  scBtn(active,t,dark){
+    return 'height:30px;padding:0 13px;border:0;border-radius:7px;cursor:pointer;font:'+(active?'600':'500')+' 11.5px/1 Inter,sans-serif;'+
+      (active?('background:'+t.primary+';color:'+t.primaryText+';'+(dark?'box-shadow:'+t.glow+';':'')):('background:transparent;color:'+t.subtle+';'));
+  }
+
+  sens(t,dt){
+    const cols=['2.0%','2.5%','3.0%','3.5%','4.0%'];
+    const rows=[
+      ['16.0%',['1 209',1],['1 282',0],['1 360',0],['1 444',0],['1 536',0]],
+      ['17.5%',['1 020',2],['1 079',2],['1 142',1],['1 209',1],['1 282',0]],
+      ['18.5%',['913',3],['965',2],['1 020',2],['1 079',2],['1 142',1]],
+      ['20.0%',['775',4],['818',4],['864',3],['913',3],['965',2]],
+      ['21.0%',['695',4],['734',4],['775',4],['818',4],['864',3]]
+    ];
+    const out=[];
+    const cap='padding:6px 0;text-align:center;font:400 9px/1 JetBrains Mono,monospace;color:'+t.subtle+';';
+    out.push({text:'WACC \\ g', style:'display:flex;align-items:center;font:400 8.5px/1.2 JetBrains Mono,monospace;color:'+t.subtle+';'});
+    cols.forEach(c=>out.push({text:c, style:cap}));
+    rows.forEach((r,ri)=>{
+      out.push({text:r[0], style:'display:flex;align-items:center;font:400 9px/1 JetBrains Mono,monospace;color:'+t.muted+';'});
+      r.slice(1).forEach((c,ci)=>{
+        const hot=(ri===dt.sensRow&&ci===dt.sensCol);
+        out.push({
+          text:c[0],
+          style:'padding:8px 2px;text-align:center;border-radius:4px;background:'+t.heat[c[1]]+';font:'+(hot?'600':'500')+' 10px/1 JetBrains Mono,monospace;color:'+t.heatText[c[1]]+';'+(hot?'outline:1.5px solid '+t.primary+';outline-offset:-1.5px;':'')
+        });
+      });
+    });
+    return out;
+  }
+
+  renderVals(){
+    const t=this.THEME(), d=this.DIM(), dark=this.state.theme==='dark';
+    const dt=this.DATA()[this.state.sc];
+    const mono='JetBrains Mono,ui-monospace,monospace';
+    const disp='Satoshi,Inter,sans-serif';
+    const card='border:1px solid '+t.border+';border-radius:16px;background:'+t.surface+';'+(dark?'':'box-shadow:'+t.shadow+';');
+    const askPos=Math.round(((dt.ask-parseInt(dt.min.replace(/\s/g,''),10))/(parseInt(dt.max.replace(/\s/g,''),10)-parseInt(dt.min.replace(/\s/g,''),10)))*100);
+    const askClamped=Math.max(2,Math.min(98,askPos));
+
+    const s={
+      page:'min-height:100vh;background:'+t.pageBg+';display:flex;flex-direction:column;align-items:center;padding:0 0 60px;',
+      bar:'position:sticky;top:0;z-index:20;width:100%;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:12px 20px;background:'+t.barBg+';border-bottom:1px solid '+t.border+';',
+      barCube:'width:30px;height:30px;flex:none;',
+      barTitle:'font:600 13px/1.2 Inter,sans-serif;letter-spacing:-.015em;color:'+t.text+';',
+      barSub:'font:400 10.5px/1.2 '+mono+';color:'+t.subtle+';',
+      barLabel:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+      seg:'display:flex;gap:2px;padding:3px;border-radius:9px;background:'+t.segBg+';border:1px solid '+t.border+';',
+      segLight:this.segBtn(!dark,t), segDark:this.segBtn(dark,t),
+      segDesktop:this.segBtn(this.state.device==='desktop',t),
+      segTablet:this.segBtn(this.state.device==='tablet',t),
+      segMobile:this.segBtn(this.state.device==='mobile',t),
+      stage:'width:100%;display:flex;justify-content:center;padding:26px 18px 0;',
+      frame:'width:100%;max-width:'+d.frame+'px;border:1px solid '+t.border+';border-radius:'+d.radius+'px;background:'+t.bg+';overflow:hidden;'+(dark?'':'box-shadow:'+t.shadow+';'),
+
+      nav:'display:flex;align-items:center;justify-content:space-between;gap:14px;height:52px;padding:0 '+d.pad+'px;background:'+t.headerBg+';border-bottom:1px solid '+t.border+';',
+      navLeft:'display:flex;align-items:center;gap:20px;min-width:0;',
+      navCube:'width:24px;height:24px;flex:none;',
+      navBrand:'font:600 10.5px/1 Inter,sans-serif;letter-spacing:.15em;text-transform:uppercase;color:'+t.text+';',
+      navTabs:'display:'+(d.frame<500?'none':'flex')+';align-items:center;gap:2px;',
+      navRight:'display:flex;align-items:center;gap:10px;flex:none;',
+      navCase:'display:'+(d.frame<500?'none':'inline')+';font:500 10px/1 '+mono+';letter-spacing:.06em;color:'+t.subtle+';',
+
+      toolbar:'display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px '+d.pad+'px;border-bottom:1px solid '+t.border+';',
+      toolLeft:'display:flex;align-items:center;gap:10px;flex-wrap:wrap;',
+      toolRight:'display:flex;align-items:center;gap:10px;flex-wrap:wrap;',
+      toolLabel:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+      segDemo:'display:flex;gap:2px;padding:3px;border-radius:9px;background:'+t.surface2+';border:1px solid '+t.border+';',
+      segDemoActive:'height:30px;padding:0 13px;border:0;border-radius:7px;background:'+t.primary+';color:'+t.primaryText+';font:600 11.5px/1 Inter,sans-serif;cursor:pointer;',
+      segDemoOff:'height:30px;padding:0 13px;border:0;border-radius:7px;background:transparent;color:'+t.subtle+';font:500 11.5px/1 Inter,sans-serif;cursor:pointer;',
+      scPess:this.scBtn(this.state.sc==='pess',t,dark),
+      scBase:this.scBtn(this.state.sc==='base',t,dark),
+      scOpt:this.scBtn(this.state.sc==='opt',t,dark),
+
+      resultWrap:'position:relative;display:flex;flex-direction:'+(d.frame<900?'column':'row')+';gap:'+(d.frame<900?'20px':'30px')+';margin:'+d.pad+'px '+d.pad+'px 0;padding:'+(d.frame<500?'22px 18px':'26px 24px')+';border:1px solid '+t.border+';border-radius:20px;overflow:hidden;background:'+(dark?'radial-gradient(ellipse 60% 120% at 14% 40%, rgba(199,125,255,.14) 0%, rgba(123,63,228,.04) 46%, '+t.surface+' 78%)':'linear-gradient(150deg,'+t.primarySoft+' 0%, '+t.surface+' 58%)')+';'+(dark?'':'box-shadow:'+t.shadow+';'),
+      resultBeam:'position:absolute;left:0;right:0;top:0;height:70px;pointer-events:none;background:linear-gradient(to bottom,transparent,'+(dark?'rgba(199,125,255,.09)':'rgba(199,125,255,.13)')+',transparent);animation:fa-scan 9s linear infinite;',
+      resultMain:'position:relative;flex:1;min-width:0;',
+      eyebrow:'display:flex;align-items:center;gap:7px;font:500 9.5px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:'+t.accent+';margin-bottom:12px;',
+      eyebrowDot:'width:5px;height:5px;border-radius:50%;background:'+t.primary+';'+(dark?'box-shadow:0 0 8px rgba(199,125,255,.9);':'')+'animation:fa-pulse 2s ease-in-out infinite alternate;',
+      resultValue:'font:600 '+d.big+'px/1 '+mono+';letter-spacing:-.035em;color:'+t.text+';'+(dark?'text-shadow:0 0 30px rgba(199,125,255,.28);':''),
+      resultLead:'margin-top:14px;font:400 13px/1.62 Inter,sans-serif;color:'+t.muted+';max-width:52ch;text-wrap:pretty;',
+      rangeWrap:'margin-top:22px;',
+      rangeTrack:'position:relative;height:9px;border-radius:5px;background:'+t.surface2+';overflow:hidden;',
+      rangeBand:'position:absolute;left:12%;right:12%;top:0;bottom:0;background:'+t.primary+';'+(dark?'box-shadow:0 0 14px rgba(199,125,255,.6);':''),
+      rangeAsk:'position:absolute;top:-4px;bottom:-4px;left:'+askClamped+'%;width:2px;background:'+t.danger+';',
+      rangeLabels:'display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:9px;',
+      rangeMin:'font:400 10.5px/1 '+mono+';color:'+t.subtle+';',
+      rangeAskLabel:'font:500 10.5px/1 '+mono+';color:'+t.danger+';',
+      rangeMax:'font:400 10.5px/1 '+mono+';color:'+t.subtle+';',
+
+      bridge:'position:relative;flex:none;width:'+(d.frame<900?'100%':'282px')+';padding:16px;border:1px solid '+t.border+';border-radius:16px;background:'+(dark?'rgba(14,11,20,.86)':t.surface)+';display:flex;flex-direction:column;gap:2px;',
+      bridgeHead:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';margin-bottom:8px;',
+      bridgeKey:'font:400 11.5px/1.4 Inter,sans-serif;color:'+t.muted+';',
+
+      kpiGrid:'display:grid;grid-template-columns:repeat('+d.kpiCols+',minmax(0,1fr));gap:12px;padding:'+d.pad+'px '+d.pad+'px 0;',
+      kpiCard:card+'padding:15px;',
+      kpiLabel:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+
+      twoCol:'display:grid;grid-template-columns:'+d.twoCols+';gap:12px;padding:'+d.pad+'px;align-items:start;',
+      panel:card+'padding:18px;display:flex;flex-direction:column;gap:13px;',
+      panelHead:'display:flex;align-items:baseline;justify-content:space-between;gap:12px;',
+      panelTitle:'font:500 15px/1.2 '+disp+';letter-spacing:-.02em;color:'+t.text+';',
+      panelMeta:'font:400 10px/1 '+mono+';color:'+t.subtle+';',
+      panelNote:'font:400 11.5px/1.55 Inter,sans-serif;color:'+t.muted+';',
+
+      tbl:'border:1px solid '+t.border+';border-radius:12px;overflow:hidden;',
+      tblHead:'display:grid;grid-template-columns:1.2fr .9fr .8fr .9fr;background:'+t.surface2+';border-bottom:1px solid '+t.border+';',
+      tblHCell:'padding:9px 12px;font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.muted+';',
+      tblHNum:'padding:9px 12px;text-align:right;font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.muted+';',
+
+      sensGrid:'display:grid;grid-template-columns:52px repeat(5,minmax(0,1fr));gap:4px;',
+      multHead:'margin-top:6px;padding-top:13px;border-top:1px solid '+t.border+';font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+      compRow:'display:flex;align-items:baseline;gap:10px;',
+      compName:'flex:1;min-width:0;font:400 12px/1.4 Inter,sans-serif;color:'+t.text+';',
+      compYear:'flex:none;font:400 10px/1.4 '+mono+';color:'+t.subtle+';',
+
+      btnPrimarySm:'height:31px;padding:0 14px;border:0;border-radius:4px;background:'+t.primary+';color:'+t.primaryText+';font:600 11.5px/1 Inter,sans-serif;cursor:pointer;'+(dark?'box-shadow:'+t.glow+';':''),
+      btnPrimaryHover:'background:'+t.primaryHover+';'
+    };
+
+    const tabs=['Скан','Отчётность','Качество прибыли','Обязательства','Оценка'].slice(0,d.tabsShown).map((label,i)=>{
+      const active=(label==='Оценка');
+      return {label, style:'padding:16px 11px;font:'+(active?'500':'400')+' 12px/1 Inter,sans-serif;letter-spacing:-.01em;color:'+(active?t.text:t.muted)+';cursor:pointer;'+(active?'box-shadow:inset 0 -2px 0 '+t.primary+';':'')};
+    });
+
+    const bridgeRow=(label,value,kind,last)=>({
+      label, value,
+      rowStyle:'display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:8px 0;'+(last?('margin-top:4px;border-top:1px solid '+t.border+';padding-top:12px;'):('border-bottom:1px solid '+t.gridLine+';')),
+      valueStyle:'font:'+(last?'600 14px':'500 12px')+'/1.4 '+mono+';color:'+(kind==='bad'?t.danger:(last?t.accent:t.text))+';'
+    });
+
+    const dcfRow=(year,fcf,df,pv,isTerm)=>{
+      const num='text-align:right;padding:9px 12px;font:'+(isTerm?'500':'400')+' '+d.tbl+'px/1.35 '+mono+';';
+      return {
+        year, fcf, df, pv,
+        rowStyle:'display:grid;grid-template-columns:1.2fr .9fr .8fr .9fr;'+(isTerm?('background:'+t.primarySoft+';'):('border-bottom:1px solid '+t.gridLine+';')),
+        labelStyle:'padding:9px 12px;font:'+(isTerm?'600':'400')+' '+d.tbl+'px/1.35 Inter,sans-serif;color:'+t.text+';',
+        fcfStyle:num+'color:'+(isTerm?t.subtle:t.text)+';',
+        dfStyle:num+'color:'+t.muted+';',
+        pvStyle:num+'color:'+(isTerm?t.accent:t.text)+';'
+      };
+    };
+
+    const comp=(name,year,mult,hot)=>({
+      name, year, mult,
+      multStyle:'flex:none;font:500 11.5px/1.4 '+mono+';color:'+(hot?t.accent:t.muted)+';'
+    });
+
+    return {
+      s,
+      setLight:this.setLight, setDark:this.setDark,
+      setDesktop:this.setDesktop, setTablet:this.setTablet, setMobile:this.setMobile,
+      setPess:this.setPess, setBase:this.setBase, setOpt:this.setOpt,
+      navTabs:tabs,
+      scenarioName:dt.name,
+      fairValue:dt.fair+' млн ₽',
+      wacc:dt.wacc, growth:dt.growth, terminalShare:dt.terminalShare,
+      rangeMin:dt.min+' млн',
+      rangeMax:dt.max+' млн',
+      resultLead:'Цена за 100% доли, '+dt.askDelta+'. Диапазон получен из чувствительности по WACC и росту в постпрогнозе; красная метка — цена продавца.',
+      bridge:[
+        bridgeRow('Enterprise Value',dt.ev,'ok',false),
+        bridgeRow('Долг и займы',dt.debt,'bad',false),
+        bridgeRow('Денежные средства',dt.cash,'ok',false),
+        bridgeRow('Доля миноритариев',dt.minority,'bad',false),
+        bridgeRow('Цена за 100%',dt.equity,'ok',true)
+      ],
+      kpis:[
+        {label:'Мультипликатор', value:dt.mult, note:'EV / EBITDA норм.',
+         valueStyle:'margin-top:9px;font:500 18px/1 '+mono+';letter-spacing:-.02em;color:'+t.text+';',
+         noteStyle:'margin-top:7px;font:400 10.5px/1.4 '+mono+';color:'+t.subtle+';'},
+        {label:'IRR сделки', value:dt.irr, note:'горизонт 5 лет, выход по 4.5×',
+         valueStyle:'margin-top:9px;font:500 18px/1 '+mono+';letter-spacing:-.02em;color:'+t.accent+';',
+         noteStyle:'margin-top:7px;font:400 10.5px/1.4 '+mono+';color:'+t.accent+';'},
+        {label:'Окупаемость', value:dt.payback, note:'дисконтированная',
+         valueStyle:'margin-top:9px;font:500 18px/1 '+mono+';letter-spacing:-.02em;color:'+t.text+';',
+         noteStyle:'margin-top:7px;font:400 10.5px/1.4 '+mono+';color:'+t.subtle+';'},
+        {label:'WACC', value:dt.wacc, note:'рост в постпрогнозе '+dt.growth,
+         valueStyle:'margin-top:9px;font:500 18px/1 '+mono+';letter-spacing:-.02em;color:'+t.warn+';',
+         noteStyle:'margin-top:7px;font:400 10.5px/1.4 '+mono+';color:'+t.warn+';'}
+      ],
+      dcfRows:dt.fcf.map(r=>dcfRow(r[0],r[1],r[2],r[3],r[0]==='Терминал')),
+      sensCells:this.sens(t,dt),
+      comps:[
+        comp('Транслайн-Групп · 78% доли','2025','5.1×',false),
+        comp('Сибирь-Карго · 100%','2024','6.2×',true),
+        comp('Уралтранс-Логистик · 51%','2024','6.8×',false),
+        comp('Медиана по отрасли','—','6.4×',true)
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

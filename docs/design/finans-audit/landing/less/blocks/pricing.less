@@ -1,0 +1,112 @@
+.pricing {
+  &__grid {
+    display: grid;
+    gap: @space-12;
+    align-items: stretch;
+
+    .tablet-up({ grid-template-columns: repeat(2, minmax(0, 1fr)); });
+    .desktop-up({ grid-template-columns: repeat(3, minmax(0, 1fr)); });
+  }
+
+  &__plan {
+    display: flex;
+    flex-direction: column;
+    padding: @space-20;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: 18px;
+    box-shadow: var(--shadow-card);
+
+    .desktop-up({ padding: @space-24; });
+  }
+
+  &__plan--featured {
+    background: var(--c-accent-soft);
+    border-color: var(--c-accent-border);
+  }
+
+  &__badge {
+    display: inline-flex;
+    align-self: flex-start;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: @radius-pill;
+    font-family: @font-mono;
+    font-weight: 600;
+    font-size: 9px;
+    letter-spacing: .1em;
+    color: var(--c-on-accent);
+    background: var(--c-accent);
+  }
+
+  &__name {
+    margin-top: @space-16;
+    font-family: @font-display;
+    font-weight: 500;
+    font-size: 17px;
+    line-height: 1.2;
+    letter-spacing: -.022em;
+  }
+
+  &__price-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    align-items: baseline;
+    margin-top: @space-12;
+  }
+
+  &__price {
+    font-family: @font-mono;
+    font-weight: 600;
+    font-size: 25px;
+    line-height: 1;
+    letter-spacing: -.035em;
+
+    .desktop-up({ font-size: 30px; });
+  }
+
+  &__plan--featured &__price { color: var(--c-accent-text); }
+
+  &__unit {
+    font-family: @font-mono;
+    font-size: 11px;
+    color: var(--c-subtle);
+  }
+
+  &__lead {
+    margin-top: @space-12;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--c-muted);
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    margin: @space-16 0 @space-20;
+  }
+
+  &__row {
+    display: flex;
+    gap: 9px;
+    align-items: flex-start;
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: var(--c-muted);
+  }
+
+  &__dot {
+    flex: none;
+    width: 5px;
+    height: 5px;
+    margin-top: 6px;
+    border-radius: 50%;
+    background: var(--c-border-strong);
+  }
+
+  &__plan--featured &__dot { background: var(--c-accent); }
+
+  &__action { margin-top: auto; }
+}

@@ -68,3 +68,53 @@ def test_access_foreign_org_via_header_403(client, register):
     # A не состоит в организации B → указание её в заголовке запрещено
     assert client.get("/api/v1/projects",
                       headers={**ha, "X-Organization-Id": org_b}).status_code == 403
+
+
+# --- Дверь арендатора: её видно только тем, кто смотрит на сам вызов ---
+
+def test_every_door_into_an_organization_enters_the_tenant(client, register,
+                                                           monkeypatch):
+    """Маршрут, знающий свою организацию, обязан назвать её **базе**.
+
+    Найдено при подготовке «Активности команды»: арендатора выставлял только путь через
+    членство (`current_org_id`). Маршруты, берущие организацию **из пути**, — журнал,
+    ориентиры, чек-листы — этого не делали, и на PostgreSQL читались бы **пустыми**:
+    таблицы под RLS, а арендатор не задан. На SQLite такого не увидеть (RLS там нет
+    вовсе), поэтому проверка смотрит не на данные, а на сам вызов двери.
+    """
+    from app import deps
+
+    entered: list[str] = []
+    monkeypatch.setattr(deps, "set_tenant", lambda db, org_id: entered.append(org_id))
+
+    headers = register()
+    org = client.get("/api/v1/organizations", headers=headers).json()[0]["id"]
+
+    doors = [
+        ("членство", lambda: client.get("/api/v1/projects", headers=headers)),
+        ("путь + право", lambda: client.get(f"/api/v1/organizations/{org}/audit-log",
+                                            headers=headers)),
+        ("путь + членство", lambda: client.get(f"/api/v1/organizations/{org}/benchmarks",
+                                               headers=headers)),
+        ("чек-листы", lambda: client.get(f"/api/v1/organizations/{org}/checklists",
+                                         headers=headers)),
+    ]
+    for name, call in doors:
+        entered.clear()
+        assert call().status_code == 200, name
+        assert org in entered, f"дверь «{name}» не назвала арендатора базе"
+
+
+def test_an_api_key_also_enters_its_tenant(client, register, monkeypatch):
+    """Ключ называет свою организацию сам — и обязан назвать её базе так же."""
+    from app import deps
+
+    headers = register()
+    org = client.get("/api/v1/organizations", headers=headers).json()[0]["id"]
+    token = client.post(f"/api/v1/organizations/{org}/api-keys", json={"name": "К"},
+                        headers=headers).json()["token"]
+
+    entered: list[str] = []
+    monkeypatch.setattr(deps, "set_tenant", lambda db, org_id: entered.append(org_id))
+    client.get("/api/v1/projects", headers={"Authorization": f"Bearer {token}"})
+    assert entered == [org]

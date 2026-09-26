@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { getMe, getMyOrganizations, login as apiLogin, register as apiRegister } from "../api/auth";
 import { getOrgId, getToken, setOrgId, setToken } from "../api/client";
+import { clearAllDrafts } from "../commentDraft";
 import type { LoginPayload, OrganizationMembership, RegisterPayload, User } from "../api/types";
 
 interface AuthState {
@@ -8,10 +9,19 @@ interface AuthState {
   organizations: OrganizationMembership[];
   currentOrgId: string | null;
   loading: boolean;
-  login: (p: LoginPayload) => Promise<void>;
+  /** Возвращает примечание входа (например «вошли по резервному коду»), если оно есть. */
+  login: (p: LoginPayload) => Promise<string>;
   register: (p: RegisterPayload) => Promise<void>;
   logout: () => void;
   selectOrg: (orgId: string) => void;
+  /**
+   * Перечитать профиль и список организаций.
+   *
+   * Нужен там, где состав организаций меняется помимо входа, — сейчас это удаление
+   * организации (F6). Без него продукт продолжал бы показывать арендатора, которого
+   * больше нет, и следующий запрос упирался бы в отказ без объяснения.
+   */
+  refresh: () => Promise<void>;
 }
 
 const AuthCtx = createContext<AuthState | null>(null);
@@ -26,9 +36,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [me, orgs] = await Promise.all([getMe(), getMyOrganizations()]);
     setUser(me);
     setOrganizations(orgs);
-    if (orgs.length > 0 && !getOrgId()) {
+    // Выбранная организация могла исчезнуть (её удалили — F6 — или человека из неё
+    // вывели): держаться за мёртвого арендатора значило бы слать запросы, на которые
+    // сервер отвечает отказом, и показывать этот отказ как поломку.
+    const chosen = getOrgId();
+    const alive = orgs.some((o) => o.id === chosen);
+    if (orgs.length > 0 && (!chosen || !alive)) {
       setOrgId(orgs[0].id);
       setCurrentOrgId(orgs[0].id);
+    } else if (orgs.length === 0) {
+      setOrgId(null);
+      setCurrentOrgId(null);
     }
   }
 
@@ -37,10 +55,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loadProfile().catch(() => logout()).finally(() => setLoading(false));
   }, []);
 
-  async function login(p: LoginPayload) {
-    const { access_token } = await apiLogin(p);
+  async function login(p: LoginPayload): Promise<string> {
+    const { access_token, notice } = await apiLogin(p);
     setToken(access_token);
     await loadProfile();
+    return notice ?? "";
   }
 
   async function register(p: RegisterPayload) {
@@ -52,6 +71,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   function logout() {
     setToken(null);
     setOrgId(null);
+    // Черновики реплик (F9) — несказанные слова того, кто уходит. Следующему человеку
+    // за этим же браузером их видеть незачем.
+    clearAllDrafts();
     setUser(null);
     setOrganizations([]);
     setCurrentOrgId(null);
@@ -63,7 +85,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const value = useMemo<AuthState>(
-    () => ({ user, organizations, currentOrgId, loading, login, register, logout, selectOrg }),
+    () => ({ user, organizations, currentOrgId, loading, login, register, logout,
+             selectOrg, refresh: loadProfile }),
     // login/register/logout/selectOrg стабильны по поведению; их включение в deps
     // пересоздавало бы value каждый рендер — осознанно исключаем.
     // eslint-disable-next-line react-hooks/exhaustive-deps

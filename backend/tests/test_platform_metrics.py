@@ -1,0 +1,343 @@
+"""Сводка платформы (ADMIN-DECOMPOSITION.md, B3).
+
+Владелец SaaS не мог ответить на простые вопросы о собственном деле: сколько клиентов,
+кто из них жив, чем пользуются. Фаза отвечает — из **уже имеющихся** данных: организации,
+пользователи, членство, подписки и журнал. Второй системы учёта не заводится: счётчик,
+поставленный «под метрики», начинает расходиться с данными, и разбирать потом приходится
+не бизнес, а расхождение.
+
+Половина тестов здесь — про **оговорки**, а не про числа. Сводка обязана говорить, чего
+она не измеряет: ноль выгрузок за период, которого журнал не застал, выглядит ровно как
+ноль выгрузок, и без оговорки им и станет.
+"""
+from __future__ import annotations
+
+from datetime import datetime, timedelta, timezone
+
+from app import crud
+from app.db_models import Membership
+from app.metrics import _months_back
+
+
+def _staff(client, db_session, register, email="staff@e.ru") -> dict:
+    headers = register(email=email, org="Наша платформа")
+    crud.set_staff(db_session, crud.get_user_by_email(db_session, email), is_staff=True)
+    return headers
+
+
+def _metrics(client, staff, **params) -> dict:
+    return client.get("/api/v1/admin/metrics", params=params, headers=staff).json()
+
+
+def _org_id(client, headers) -> str:
+    return client.get("/api/v1/organizations", headers=headers).json()[0]["id"]
+
+
+# --- Доступ ---
+
+def test_metrics_are_staff_only(client, auth_headers):
+    assert client.get("/api/v1/admin/metrics", headers=auth_headers).status_code == 403
+    assert client.get("/api/v1/admin/metrics.csv", headers=auth_headers).status_code == 403
+
+
+# --- Числа ---
+
+def test_counts_the_platform_as_it_is(client, db_session, register):
+    staff = _staff(client, db_session, register)
+    register(email="a@e.ru", org="Первая")
+    register(email="b@e.ru", org="Вторая")
+
+    m = _metrics(client, staff)
+    assert m["organizations"] == 3          # две клиентские и наша собственная
+    assert m["users"] == 3
+
+
+def test_volumes_are_summed_across_tenants(client, db_session, register):
+    """Проекты и дела лежат под RLS: свод собирается обходом арендаторов — той же
+    дверью, что и всё остальное в служебном контуре (обхода изоляции у платформы нет)."""
+    staff = _staff(client, db_session, register)
+    a = register(email="a@e.ru", org="Первая")
+    b = register(email="b@e.ru", org="Вторая")
+    for headers in (a, b):
+        client.post("/api/v1/projects", json={"name": "П", "model":
+                    client.get("/api/v1/sample").json()}, headers=headers)
+    client.post("/api/v1/audit/subjects",
+                json={"name": "Дело", "model": {"name": "Дело", "periods": [], "lines": []}},
+                headers=b)
+
+    m = _metrics(client, staff)
+    assert m["projects"] == 2 and m["cases"] == 1
+
+
+def test_calculated_counts_projects_not_calculations(client, db_session, register):
+    """Счётчика расчётов у платформы нет — и «сколько считали» его не подменяет.
+
+    Проект, открытый трижды, остаётся одним проектом: иначе число зависело бы от того,
+    сколько раз человек нажал F5, и выглядело бы измеренным.
+    """
+    staff = _staff(client, db_session, register)
+    owner = register(email="a@e.ru", org="Первая")
+    pid = client.post("/api/v1/projects", json={"name": "П", "model":
+                      client.get("/api/v1/sample").json()}, headers=owner).json()["id"]
+
+    assert _metrics(client, staff)["projects_calculated"] == 0
+    for _ in range(3):
+        client.post(f"/api/v1/projects/{pid}/calculate", headers=owner)
+    m = _metrics(client, staff)
+    assert m["projects_calculated"] == 1
+    assert any("не сколько было расчётов" in n for n in m["notes"])
+
+
+def test_exports_come_from_the_journal(client, db_session, register):
+    staff = _staff(client, db_session, register)
+    owner = register(email="a@e.ru", org="Первая")
+    pid = client.post("/api/v1/projects", json={"name": "П", "model":
+                      client.get("/api/v1/sample").json()}, headers=owner).json()["id"]
+
+    assert _metrics(client, staff)["exports"] == 0
+    client.get(f"/api/v1/projects/{pid}/business-plan.docx", headers=owner)
+    assert _metrics(client, staff)["exports"] == 1
+
+
+def test_journal_export_is_not_counted_as_a_document(client, db_session, register):
+    """Выгрузка журнала — вынос следов, а не продукта. Одно число на два вопроса
+    отвечало бы неправильно на оба."""
+    staff = _staff(client, db_session, register)
+    owner = register(email="a@e.ru", org="Первая")
+    org = _org_id(client, owner)
+    client.get(f"/api/v1/organizations/{org}/audit-log.csv", headers=owner)
+    assert _metrics(client, staff)["exports"] == 0
+
+
+def test_active_counts_the_person_once_per_window(client, db_session, register):
+    """Человек, работавший в трёх организациях, — один активный пользователь.
+
+    Иначе «активных пользователей» окажется больше, чем пользователей вообще, и первый
+    же взгляд на сводку покажет, что она не считает, а складывает.
+    """
+    staff = _staff(client, db_session, register)
+    a = register(email="a@e.ru", org="Первая")
+    b = register(email="b@e.ru", org="Вторая")
+    org_b = _org_id(client, b)
+    member = client.post(f"/api/v1/organizations/{org_b}/members",
+                         json={"email": "a@e.ru", "full_name": "А", "role": "editor"},
+                         headers=b).json()
+    assert member["user_id"]
+    client.get("/api/v1/projects", headers=a)
+    client.get("/api/v1/projects", headers={**a, "X-Organization-Id": org_b})
+
+    # Отметок присутствия три (у «а» их две — по одной на организацию), а людей два.
+    fresh = [m for m in db_session.query(Membership).all() if m.last_seen_at is not None]
+    assert len(fresh) == 3
+
+    m = _metrics(client, staff)
+    assert m["active_users"]["7"] == 2              # «а» посчитан один раз, не два
+    assert m["active_organizations"]["7"] == 2
+    assert m["active_users"]["7"] <= m["users"]
+
+
+def test_members_without_a_mark_are_unknown_not_idle(client, db_session, register):
+    """Отметка присутствия ведётся не с первого дня, и молчание о ней — «неизвестно»."""
+    staff = _staff(client, db_session, register)
+    owner = register(email="a@e.ru", org="Первая")
+    org = _org_id(client, owner)
+    client.post(f"/api/v1/organizations/{org}/members",
+                json={"email": "новый@e.ru", "full_name": "Новый", "role": "editor"},
+                headers=owner)
+
+    m = _metrics(client, staff)
+    assert m["members_without_mark"] >= 1
+    assert any("«неизвестно», а не «не работают»" in n for n in m["notes"])
+
+
+def test_growth_keeps_empty_months(client, db_session, register):
+    """Пустой месяц остаётся в ряду с нулём: выброшенный, он превращает провал в
+    графике в ровную линию — то есть врёт там, где смотреть интереснее всего."""
+    staff = _staff(client, db_session, register)
+    m = _metrics(client, staff, months=6)
+    assert [p["period"] for p in m["growth"]] == _months_back(
+        datetime.now(timezone.utc), 6)
+    assert sum(p["organizations"] for p in m["growth"]) == m["organizations"]
+
+
+def test_plans_count_only_the_subscriptions_that_exist(client, db_session, register):
+    """«Выбрал бесплатный» и «не выбирал ничего» — разные состояния клиента."""
+    staff = _staff(client, db_session, register)
+    owner = register(email="a@e.ru", org="Первая")
+    org = _org_id(client, owner)
+    m = _metrics(client, staff)
+    business = [p for p in m["plans"] if p["product"] == "business"]
+    assert sum(p["organizations"] for p in business) == m["organizations"]
+    # «Аудитом» никто не оформлял подписку — и в разрезе его нет вовсе, а не с нулём:
+    # приписать всех к тарифу по умолчанию значило бы выдать неоформленное за выбранное.
+    assert not [p for p in m["plans"] if p["product"] == "audit"]
+
+    crud.set_plan(db_session, org, "audit_team", status="active", product="audit")
+    m = _metrics(client, staff)
+    audit = [p for p in m["plans"] if p["product"] == "audit"]
+    assert len(audit) == 1 and audit[0]["organizations"] == 1
+    assert audit[0]["plan_name"] == "Команда"      # тариф назван словом, а не кодом
+
+
+# --- Оговорки ---
+
+def test_journal_horizon_is_named(client, db_session, register):
+    """Ноль выгрузок за период, которого журнал не застал, — это «не записывали»."""
+    staff = _staff(client, db_session, register)
+    m = _metrics(client, staff)
+    assert any("Журнал ведётся с" in n or "Журнал действий пуст" in n for n in m["notes"])
+
+
+def test_empty_platform_says_so_instead_of_showing_zeros(client, db_session, register):
+    staff = _staff(client, db_session, register)
+    m = _metrics(client, staff)
+    assert m["projects"] == 0 and m["exports"] == 0
+    # Ноль сам по себе ничего не объясняет — рядом сказано, почему он ноль.
+    assert len(m["notes"]) >= 2
+
+
+def test_window_is_a_parameter_and_is_named_in_the_answer(client, db_session, register):
+    staff = _staff(client, db_session, register)
+    m = _metrics(client, staff, days=7)
+    assert m["since_days"] == 7
+    assert any("за 7 дн." in n for n in m["notes"])
+
+
+def test_calculation_outside_the_window_is_not_counted(client, db_session, register):
+    staff = _staff(client, db_session, register)
+    owner = register(email="a@e.ru", org="Первая")
+    pid = client.post("/api/v1/projects", json={"name": "П", "model":
+                      client.get("/api/v1/sample").json()}, headers=owner).json()["id"]
+    client.post(f"/api/v1/projects/{pid}/calculate", headers=owner)
+
+    project = crud.get_project(db_session, _org_id(client, owner), pid)
+    project.last_calculated_at = datetime.now(timezone.utc) - timedelta(days=40)
+    db_session.commit()
+
+    assert _metrics(client, staff, days=30)["projects_calculated"] == 0
+    assert _metrics(client, staff, days=90)["projects_calculated"] == 1
+
+
+# --- Выгрузка ---
+
+def test_csv_carries_the_same_numbers_and_the_same_caveats(client, db_session, register):
+    """Таблица, доехавшая до чужой презентации без оговорок, утверждает больше, чем
+    платформа измеряла."""
+    staff = _staff(client, db_session, register)
+    register(email="a@e.ru", org="Первая")
+
+    r = client.get("/api/v1/admin/metrics.csv", headers=staff)
+    assert r.status_code == 200
+    body = r.content.decode("utf-8-sig")
+    assert body.startswith("Показатель;Значение")
+    assert "Организаций;2" in body
+    assert "Чего эти числа не значат" in body
+    for note in _metrics(client, staff)["notes"]:
+        assert note in body
+
+
+def test_looking_at_metrics_is_written_only_in_the_service_journal(client, db_session,
+                                                                    register):
+    """Сводка — платформенный взгляд, а не визит к клиенту: запись в журнале каждой
+    организации при каждом обновлении экрана утопила бы сигнал «к нам приходили»."""
+    staff = _staff(client, db_session, register)
+    owner = register(email="a@e.ru", org="Первая")
+    org = _org_id(client, owner)
+
+    client.get("/api/v1/admin/metrics", headers=staff)
+    client.get("/api/v1/admin/metrics.csv", headers=staff)
+
+    theirs = client.get(f"/api/v1/organizations/{org}/audit-log",
+                        headers=owner).json()["entries"]
+    assert not [e for e in theirs if e["action"].startswith("staff.")]
+    ours = {e["action"] for e in
+            client.get("/api/v1/admin/log", headers=staff).json()["entries"]}
+    assert {"staff.metrics", "staff.metrics_export"} <= ours
+
+
+# --- Воронка активации и удержание (E3) ---
+
+def _staff_headers(client, db_session, register):
+    """Оператор платформы: признак ставится в базе, через API он не выдаётся."""
+    from app import crud
+    headers = register(email="staff@e.ru", org="Платформа")
+    user = crud.get_user_by_email(db_session, "staff@e.ru")
+    user.is_staff = True
+    db_session.commit()
+    return headers
+
+
+def test_the_funnel_is_counted_without_events(client, db_session, register):
+    """Три первых шага доступны из журнала и дат расчёта: воронка есть и там, где сбор
+    событий выключен."""
+    staff = _staff_headers(client, db_session, register)
+    headers = register(email="client@e.ru", org="Клиент")
+    pid = client.post("/api/v1/projects", json={"name": "П", "model":
+                      client.get("/api/v1/sample").json()}, headers=headers).json()["id"]
+    client.post(f"/api/v1/projects/{pid}/calculate", headers=headers)
+
+    body = client.get("/api/v1/admin/metrics", headers=staff).json()
+    steps = {s["key"]: s for s in body["funnel"]}
+    assert steps["signup"]["organizations"] >= 2
+    assert steps["created"]["organizations"] >= 1
+    assert steps["calculated"]["organizations"] >= 1
+    # Доля считается от первого шага; без организаций считать не от чего.
+    assert 0 < steps["created"]["share"] <= 1
+
+
+def test_the_funnel_answers_ever_not_for_the_period(client, db_session, register):
+    """«Дошла в прошлом году» — тоже «дошла»: воронка про достижение шага, а не про
+    активность за окно."""
+    staff = _staff_headers(client, db_session, register)
+    headers = register(email="old@e.ru", org="Давний")
+    client.post("/api/v1/projects", json={"name": "Старый", "model":
+                client.get("/api/v1/sample").json()}, headers=headers)
+
+    body = client.get("/api/v1/admin/metrics?days=1", headers=staff).json()
+    created = next(s for s in body["funnel"] if s["key"] == "created")
+    assert created["organizations"] >= 1
+    assert any("когда-нибудь" in n for n in body["notes"])
+
+
+def test_retention_is_not_measured_without_events(client, db_session, register):
+    """Пустой график честнее нарисованного: удержание считается по событиям, а их
+    выключенный сбор не заменить отметкой присутствия."""
+    staff = _staff_headers(client, db_session, register)
+    body = client.get("/api/v1/admin/metrics", headers=staff).json()
+    assert body["usage_collected"] is False
+    assert body["retention"] == []
+    assert any("не измеряется" in n for n in body["notes"])
+
+
+def test_retention_appears_when_events_are_collected(client, db_session, register,
+                                                     monkeypatch):
+    monkeypatch.setenv("USAGE_EVENTS", "1")
+    staff = _staff_headers(client, db_session, register)
+    register(email="new@e.ru", org="Новый")
+
+    body = client.get("/api/v1/admin/metrics", headers=staff).json()
+    assert body["usage_collected"] is True
+    months = {p["month"]: p for p in body["retention"]}
+    assert months, "когорты не собрались"
+    # В месяце, где никто не регистрировался, «вернулись» — не ноль, а «не измеряется».
+    empty = [p for p in months.values() if p["arrived"] == 0]
+    assert all(p["returned"] is None for p in empty)
+
+
+def test_a_returning_organization_is_counted(db_session, monkeypatch):
+    """Когорта считается по событиям следующих месяцев, а не по отметке присутствия."""
+    from datetime import datetime, timedelta, timezone
+
+    from app import usage
+    from app.metrics import retention
+
+    monkeypatch.setenv("USAGE_EVENTS", "1")
+    now = datetime.now(timezone.utc)
+    past = now - timedelta(days=62)
+    usage.record(db_session, event="signup", org_id="o1", now=past)
+    usage.record(db_session, event="project.calculate", org_id="o1", now=now)
+    usage.record(db_session, event="signup", org_id="o2", now=past)   # больше не приходил
+
+    points = {p.month: p for p in retention(db_session, now, months=6)}
+    cohort = points[f"{past.year:04d}-{past.month:02d}"]
+    assert cohort.arrived == 2 and cohort.returned == 1

@@ -92,14 +92,14 @@ export function fmtAxis(v: number): string {
  */
 export function fmtMillions(
   v: number | string | null | undefined,
-  opts: { sign?: boolean; digits?: number } = {},
+  opts: { sign?: boolean; digits?: number; unit?: string } = {},
 ): string {
   const x = toNum(v);
   if (x === null) return "—";
   const digits = opts.digits ?? 1;
   const abs = (Math.abs(x) / 1e6).toFixed(digits).replace(".", ",");
   const sign = x < 0 ? MINUS : opts.sign && x > 0 ? "+" : "";
-  return sign + abs + NBSP + "млн" + NBSP + "₽";
+  return sign + abs + NBSP + "млн" + NBSP + (opts.unit ?? "₽");
 }
 
 /**
@@ -153,4 +153,35 @@ export function fracToPct(v: string | number | null | undefined): string {
 export function pctToFrac(v: string | number | null | undefined): string {
   if (v === null || v === undefined || v === "") return "";
   return shiftDecimalString(String(v), -2) ?? "";
+}
+
+/**
+ * Русское склонение по числу: 1 дело, 2 дела, 5 дел.
+ *
+ * Живёт здесь, а не в экране: «3 периода(ов)» на печатном бланке выглядит как
+ * недоделка, а таких мест в двух продуктах уже несколько.
+ */
+export function plural(n: number, one: string, few: string, many: string): string {
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 14) return many;
+  const mod10 = n % 10;
+  if (mod10 === 1) return one;
+  if (mod10 >= 2 && mod10 <= 4) return few;
+  return many;
+}
+
+/**
+ * Календарная дата («2026-09-05») → «05.09.2026».
+ *
+ * Через `new Date("2026-09-05")` так делать нельзя: строка без времени читается как
+ * **полночь UTC**, и западнее Гринвича документ печатает предыдущий день. Дата
+ * документа, дата ориентира и дата старта проекта — величины, которые показывают
+ * третьим лицам, и «минус сутки» в них не мелочь. Поэтому день, месяц и год берутся
+ * из самой строки, а часовой пояс к ним отношения не имеет.
+ *
+ * Пусто/непонятное — прочерк: выдумывать дату хуже, чем её не показать.
+ */
+export function fmtDateOnly(iso: string | null | undefined): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso ?? "").trim());
+  return m ? `${m[3]}.${m[2]}.${m[1]}` : "—";
 }

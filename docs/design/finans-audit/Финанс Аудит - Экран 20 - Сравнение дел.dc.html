@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  button{font-family:inherit;}
+  a{color:#C77DFF;}
+  a:hover{color:#D69AFF;}
+  @keyframes fa-pulse{from{opacity:.4}to{opacity:1}}
+  @keyframes fa-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes fa-grow-x{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:11px;min-width:0;">
+      <div style="{{ s.barCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="30px,30px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Экран 20 · Сравнение дел</span>
+        <span style="{{ s.barSub }}">две цели рядом · выбор одной сделки</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Свет</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тьма</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Взгляд</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segSide }}" onClick="{{ setSide }}">Рядом</button><button style="{{ s.segRisk }}" onClick="{{ setRisk }}">Риски</button><button style="{{ s.segPick }}" onClick="{{ setPick }}">Решение</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}" data-screen-label="Экран 20 — Сравнение дел">
+
+      <div style="{{ s.nav }}">
+        <div style="{{ s.navLeft }}">
+          <div style="{{ s.navCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="24px,24px"></dc-import></div>
+          <span style="{{ s.navBrand }}">Финанс&nbsp;Аудит</span>
+          <div style="{{ s.navTabs }}">
+            <sc-for list="{{ navTabs }}" as="n" hint-placeholder-count="4"><span style="{{ n.style }}">{{ n.label }}</span></sc-for>
+          </div>
+        </div>
+        <div style="{{ s.navRight }}">
+          <span style="{{ s.navCase }}">2 ДЕЛА В СРАВНЕНИИ</span>
+          <button style="{{ s.btnPrimarySm }}" style-hover="{{ s.btnPrimaryHover }}">Выгрузить в Excel</button>
+        </div>
+      </div>
+
+      <div style="{{ s.subhead }}">
+        <div style="min-width:0;">
+          <div style="{{ s.h1 }}">{{ title }}</div>
+          <div style="{{ s.h1Sub }}">{{ subtitle }}</div>
+        </div>
+        <div style="{{ s.subheadRight }}">
+          <sc-for list="{{ headMetrics }}" as="m" hint-placeholder-count="3"><div style="{{ s.headMetric }}"><div style="{{ s.headMetricLabel }}">{{ m.label }}</div><div style="{{ m.valueStyle }}">{{ m.value }}</div></div></sc-for>
+        </div>
+      </div>
+
+      <div style="{{ s.main }}">
+        <div style="{{ s.col }}">
+
+          <div style="{{ s.headerRow }}">
+            <sc-for list="{{ targets }}" as="tg" hint-placeholder-count="2">
+            <div style="{{ tg.cardStyle }}">
+              <div style="{{ s.tgTop }}"><span style="{{ tg.tagStyle }}">{{ tg.tag }}</span><span style="{{ s.tgCase }}">{{ tg.caseNo }}</span></div>
+              <div style="{{ s.tgName }}">{{ tg.name }}</div>
+              <div style="{{ s.tgMeta }}">{{ tg.meta }}</div>
+              <div style="{{ s.tgVerdictBox }}">
+                <div style="{{ s.tgVerdictLabel }}">Справедливая цена</div>
+                <div style="{{ tg.priceStyle }}">{{ tg.price }}</div>
+                <div style="{{ tg.askStyle }}">{{ tg.ask }}</div>
+              </div>
+              <div style="{{ s.tgFlags }}"><span style="{{ s.tgFlagsLabel }}">Флагов</span><span style="{{ tg.flagsStyle }}">{{ tg.flags }}</span></div>
+            </div>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ isSide }}" hint-placeholder-val="{{ true }}">
+          <div style="{{ s.panel }}">
+            <div style="{{ s.panelHead }}"><span style="{{ s.panelTitle }}">Показатели рядом</span><span style="{{ s.panelMeta }}">млн ₽, кроме кратностей и процентов</span></div>
+
+            <sc-if value="{{ wide }}" hint-placeholder-val="{{ true }}">
+            <div style="{{ s.tblWrap }}">
+              <div style="{{ s.tblHead }}">
+                <div style="{{ s.thFirst }}">Показатель</div>
+                <div style="{{ s.thCol }}">Сибтранс</div>
+                <div style="{{ s.thCol }}">Ремстрой</div>
+                <div style="{{ s.thColLast }}">Кто лучше</div>
+              </div>
+              <sc-for list="{{ rows }}" as="r" hint-placeholder-count="10">
+              <div style="{{ r.rowStyle }}">
+                <div style="{{ r.labelStyle }}">{{ r.label }}</div>
+                <div style="{{ r.aStyle }}">{{ r.a }}</div>
+                <div style="{{ r.bStyle }}">{{ r.b }}</div>
+                <div style="{{ s.winCell }}"><span style="{{ r.winStyle }}">{{ r.win }}</span></div>
+              </div>
+              </sc-for>
+            </div>
+            </sc-if>
+
+            <sc-if value="{{ narrow }}" hint-placeholder-val="{{ false }}">
+            <div style="{{ s.cardList }}">
+              <sc-for list="{{ rows }}" as="r" hint-placeholder-count="10">
+              <div style="{{ r.cardStyle }}">
+                <div style="{{ s.cardTop }}"><span style="{{ r.cardLabelStyle }}">{{ r.label }}</span><span style="{{ r.winStyle }}">{{ r.win }}</span></div>
+                <div style="{{ s.cardNums }}">
+                  <div style="{{ s.cardCell }}"><span style="{{ s.cardCellLabel }}">Сибтранс</span><span style="{{ r.aCardStyle }}">{{ r.a }}</span></div>
+                  <div style="{{ s.cardCell }}"><span style="{{ s.cardCellLabel }}">Ремстрой</span><span style="{{ r.bCardStyle }}">{{ r.b }}</span></div>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+            </sc-if>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ isRisk }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.panel }}">
+            <div style="{{ s.panelHead }}"><span style="{{ s.panelTitle }}">Чем рискуем в каждой сделке</span><span style="{{ s.panelMeta }}">влияние на цену, млн ₽</span></div>
+            <div style="{{ s.riskGrid }}">
+              <sc-for list="{{ riskCols }}" as="rc" hint-placeholder-count="2">
+              <div style="{{ rc.colStyle }}">
+                <div style="{{ s.riskColHead }}"><span style="{{ rc.nameStyle }}">{{ rc.name }}</span><span style="{{ rc.totalStyle }}">{{ rc.total }}</span></div>
+                <sc-for list="{{ rc.items }}" as="it" hint-placeholder-count="4">
+                <div style="{{ s.riskRow }}">
+                  <span style="{{ it.levelStyle }}">{{ it.level }}</span>
+                  <span style="{{ s.riskBody }}"><span style="{{ s.riskName }}">{{ it.name }}</span><span style="{{ s.riskMeta }}">{{ it.meta }}</span></span>
+                  <span style="{{ it.sumStyle }}">{{ it.sum }}</span>
+                </div>
+                </sc-for>
+                <div style="{{ s.riskFoot }}">{{ rc.foot }}</div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ isPick }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.pickBox }}">
+            <div style="{{ s.pickEyebrow }}">РЕКОМЕНДАЦИЯ ПО ПОРТФЕЛЮ</div>
+            <div style="{{ s.pickTitle }}">Брать «Ремстрой-Альянс», по «Сибтрансу» торговаться дальше</div>
+            <div style="{{ s.pickLead }}">Ремстрой дороже по мультипликатору, но его прибыль подтверждена полностью, а риски измеримы и снимаются до сделки. У Сибтранса дешевле вход, но 30% выручки держится на одном заказчике без долгосрочного договора — этот риск не диверсифицируется деньгами.</div>
+            <div style="{{ s.pickGrid }}">
+              <sc-for list="{{ pickCards }}" as="pc" hint-placeholder-count="2">
+              <div style="{{ pc.cardStyle }}">
+                <div style="{{ s.pickCardTop }}"><span style="{{ pc.tagStyle }}">{{ pc.tag }}</span><span style="{{ pc.scoreStyle }}">{{ pc.score }}</span></div>
+                <div style="{{ s.pickCardName }}">{{ pc.name }}</div>
+                <sc-for list="{{ pc.points }}" as="p" hint-placeholder-count="4">
+                <div style="{{ s.pickRow }}"><span style="{{ p.markStyle }}">{{ p.mark }}</span><span style="{{ s.pickText }}">{{ p.text }}</span></div>
+                </sc-for>
+                <button style="{{ pc.btnStyle }}" style-hover="{{ s.btnPrimaryHover }}">{{ pc.btn }}</button>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="{{ s.panel }}">
+            <div style="{{ s.panelHead }}"><span style="{{ s.panelTitle }}">Как считали оценку</span><span style="{{ s.panelMeta }}">шесть критериев с весами</span></div>
+            <div style="{{ s.scoreList }}">
+              <sc-for list="{{ scores }}" as="sc" hint-placeholder-count="6">
+              <div style="{{ s.scoreRow }}">
+                <span style="{{ s.scoreName }}">{{ sc.name }}</span>
+                <span style="{{ s.scoreWeight }}">{{ sc.weight }}</span>
+                <div style="{{ s.scoreTrack }}"><div style="{{ sc.aFill }}"></div></div>
+                <div style="{{ s.scoreTrack }}"><div style="{{ sc.bFill }}"></div></div>
+                <span style="{{ sc.winStyle }}">{{ sc.win }}</span>
+              </div>
+              </sc-for>
+            </div>
+            <div style="{{ s.scoreLegend }}">
+              <div style="{{ s.legendItem }}"><span style="{{ s.legendA }}"></span><span style="{{ s.legendText }}">Сибтранс-Логистика</span></div>
+              <div style="{{ s.legendItem }}"><span style="{{ s.legendB }}"></span><span style="{{ s.legendText }}">Ремстрой-Альянс</span></div>
+            </div>
+          </div>
+          </sc-if>
+        </div>
+
+        <div style="{{ s.aside }}">
+          <div style="{{ s.cardAccent }}">
+            <div style="{{ s.cardHead }}">{{ asideHead }}</div>
+            <div style="{{ s.asideBig }}">{{ asideBig }}</div>
+            <div style="{{ s.asideLead }}">{{ asideLead }}</div>
+          </div>
+
+          <div style="{{ s.card }}">
+            <div style="{{ s.cardHead }}">Что сравнимо, а что нет</div>
+            <sc-for list="{{ caveats }}" as="c" hint-placeholder-count="3">
+            <div style="{{ s.noteRow }}"><span style="{{ c.dotStyle }}"></span><span style="{{ s.noteText }}">{{ c.text }}</span></div>
+            </sc-for>
+          </div>
+
+          <div style="{{ s.card }}">
+            <div style="{{ s.cardHead }}">Добавить в сравнение</div>
+            <div style="{{ s.asideLead }}">Рядом можно поставить до четырёх дел организации. Сравниваются только дела с законченным сканом.</div>
+            <sc-for list="{{ available }}" as="a" hint-placeholder-count="3">
+            <div style="{{ a.rowStyle }}" style-hover="{{ s.availHover }}">
+              <span style="{{ s.availBody }}"><span style="{{ s.availName }}">{{ a.name }}</span><span style="{{ s.availMeta }}">{{ a.meta }}</span></span>
+              <span style="{{ a.chipStyle }}">{{ a.state }}</span>
+            </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:960}}">
+class Component extends DCLogic {
+  state = { theme:'dark', device:'desktop', view:'side' };
+
+  THEME(){
+    const dark={
+      pageBg:'#000000', bg:'#000000', surface:'#0E0B14', surface2:'#171122', surface3:'#241A38',
+      border:'#2B2140', borderStrong:'#4B3A6E', gridLine:'#191324',
+      text:'#F2E8FF', muted:'#9C8FB5', subtle:'#6A5C86',
+      primary:'#C77DFF', primaryHover:'#D69AFF', primaryText:'#17061F', accent:'#C77DFF',
+      primaryBg:'rgba(199,125,255,0.15)', primarySoft:'rgba(199,125,255,0.09)',
+      goodBg:'rgba(199,125,255,0.15)', goodBorder:'rgba(199,125,255,0.34)',
+      danger:'#F0796E', dangerBg:'rgba(240,121,110,0.15)', dangerBorder:'rgba(240,121,110,0.34)',
+      warn:'#E0A23A', warnBg:'rgba(224,162,58,0.16)', warnBorder:'rgba(224,162,58,0.32)',
+      alt:'#8AA8FF',
+      shadow:'0 30px 70px -34px rgba(0,0,0,.9)', glow:'0 0 18px rgba(199,125,255,.35)',
+      barBg:'#0A0710', segBg:'#0A0710', segActiveBg:'#241A38', headerBg:'#0E0B14'
+    };
+    const light={
+      pageBg:'#F2EDFA', bg:'#FAF7FE', surface:'#FFFFFF', surface2:'#F4EEFA', surface3:'#E8DEF4',
+      border:'#DED2EC', borderStrong:'#C2B0D6', gridLine:'#EDE6F6',
+      text:'#1B1523', muted:'#4E4459', subtle:'#756884',
+      primary:'#C77DFF', primaryHover:'#B968F5', primaryText:'#17061F', accent:'#7A2BC4',
+      primaryBg:'#EEE0FB', primarySoft:'#F6EFFD',
+      goodBg:'#EEE0FB', goodBorder:'#D9BFF0',
+      danger:'#C0473B', dangerBg:'#FAE7E4', dangerBorder:'#EECFCA',
+      warn:'#B07A12', warnBg:'#FBF0D8', warnBorder:'#ECDDB4',
+      alt:'#3B5BB8',
+      shadow:'0 18px 44px -22px rgba(40,20,60,.22), 0 2px 6px rgba(40,20,60,.05)', glow:'none',
+      barBg:'#FFFFFF', segBg:'#EDE6F6', segActiveBg:'#FFFFFF', headerBg:'#FFFFFF'
+    };
+    return this.state.theme==='dark'?dark:light;
+  }
+
+  DIM(){
+    const d=this.state.device;
+    if(d==='mobile') return {frame:402, radius:26, pad:16, h1:22, mainCols:'1fr', tabsShown:2, compact:true, tgCols:'1fr', tblLabel:'104px', riskCols:'1fr', pickCols:'1fr', scoreCols:'1fr 30px 1fr 1fr 34px'};
+    if(d==='tablet') return {frame:864, radius:30, pad:20, h1:26, mainCols:'1fr', tabsShown:4, compact:false, tgCols:'repeat(2,minmax(0,1fr))', tblLabel:'190px', riskCols:'repeat(2,minmax(0,1fr))', pickCols:'repeat(2,minmax(0,1fr))', scoreCols:'170px 42px 1fr 1fr 62px'};
+    return {frame:1180, radius:30, pad:24, h1:29, mainCols:'1fr 300px', tabsShown:4, compact:false, tgCols:'repeat(2,minmax(0,1fr))', tblLabel:'214px', riskCols:'repeat(2,minmax(0,1fr))', pickCols:'repeat(2,minmax(0,1fr))', scoreCols:'194px 44px 1fr 1fr 66px'};
+  }
+
+  setLight=()=>this.setState({theme:'light'});
+  setDark=()=>this.setState({theme:'dark'});
+  setDesktop=()=>this.setState({device:'desktop'});
+  setTablet=()=>this.setState({device:'tablet'});
+  setMobile=()=>this.setState({device:'mobile'});
+  setSide=()=>this.setState({view:'side'});
+  setRisk=()=>this.setState({view:'risk'});
+  setPick=()=>this.setState({view:'pick'});
+
+  segBtn(active,t){
+    return 'height:28px;padding:0 12px;border:0;border-radius:7px;cursor:pointer;font:'+(active?'600':'500')+' 11.5px/1 Inter,sans-serif;letter-spacing:-.01em;'+
+      (active?('background:'+t.segActiveBg+';color:'+t.text+';'):('background:transparent;color:'+t.subtle+';'));
+  }
+
+  renderVals(){
+    const t=this.THEME(), d=this.DIM(), dark=this.state.theme==='dark', v=this.state.view;
+    const mono='JetBrains Mono,ui-monospace,monospace';
+    const disp='Satoshi,Inter,sans-serif';
+    const card='border:1px solid '+t.border+';border-radius:16px;background:'+t.surface+';'+(dark?'':'box-shadow:'+t.shadow+';');
+    const chip=(bg,bd,c)=>'display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;background:'+bg+';border:1px solid '+bd+';font:500 10px/1.3 '+mono+';color:'+c+';white-space:nowrap;';
+    const tcols=d.tblLabel+' repeat(2,minmax(0,1fr)) '+(d.compact?'80px':'118px');
+
+    const s={
+      page:'min-height:100vh;background:'+t.pageBg+';display:flex;flex-direction:column;align-items:center;padding:0 0 60px;',
+      bar:'position:sticky;top:0;z-index:20;width:100%;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:12px 20px;background:'+t.barBg+';border-bottom:1px solid '+t.border+';',
+      barCube:'width:30px;height:30px;flex:none;',
+      barTitle:'font:600 13px/1.2 Inter,sans-serif;letter-spacing:-.015em;color:'+t.text+';',
+      barSub:'font:400 10.5px/1.2 '+mono+';color:'+t.subtle+';',
+      barLabel:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+      seg:'display:flex;gap:2px;padding:3px;border-radius:9px;background:'+t.segBg+';border:1px solid '+t.border+';',
+      segLight:this.segBtn(!dark,t), segDark:this.segBtn(dark,t),
+      segDesktop:this.segBtn(this.state.device==='desktop',t),
+      segTablet:this.segBtn(this.state.device==='tablet',t),
+      segMobile:this.segBtn(this.state.device==='mobile',t),
+      segSide:this.segBtn(v==='side',t), segRisk:this.segBtn(v==='risk',t), segPick:this.segBtn(v==='pick',t),
+      stage:'width:100%;display:flex;justify-content:center;padding:26px 18px 0;',
+      frame:'width:100%;max-width:'+d.frame+'px;border:1px solid '+t.border+';border-radius:'+d.radius+'px;background:'+t.bg+';overflow:hidden;'+(dark?'':'box-shadow:'+t.shadow+';'),
+
+      nav:'display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 '+d.pad+'px;background:'+t.headerBg+';border-bottom:1px solid '+t.border+';',
+      navLeft:'display:flex;align-items:center;gap:11px;min-width:0;',
+      navCube:'width:24px;height:24px;flex:none;',
+      navBrand:'font:600 12.5px/1 Inter,sans-serif;letter-spacing:-.01em;color:'+t.text+';white-space:nowrap;',
+      navTabs:'display:'+(d.frame<500?'none':'flex')+';align-items:center;gap:2px;',
+      navRight:'display:flex;align-items:center;gap:10px;flex:none;padding:12px 0;',
+      navCase:'display:'+(d.frame<500?'none':'inline')+';font:500 10px/1 '+mono+';letter-spacing:.06em;color:'+t.subtle+';',
+
+      subhead:'display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:18px '+d.pad+'px;border-bottom:1px solid '+t.border+';',
+      h1:'font:500 '+d.h1+'px/1.14 '+disp+';letter-spacing:-.028em;color:'+t.text+';',
+      h1Sub:'margin-top:7px;font:400 12px/1.5 Inter,sans-serif;color:'+t.muted+';max-width:66ch;',
+      subheadRight:'display:flex;align-items:flex-start;gap:'+(d.compact?16:22)+'px;flex-wrap:wrap;',
+      headMetric:'display:flex;flex-direction:column;gap:6px;',
+      headMetricLabel:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+
+      main:'display:grid;grid-template-columns:'+d.mainCols+';gap:'+(d.compact?14:18)+'px;padding:'+(d.compact?16:20)+'px '+d.pad+'px;align-items:start;',
+      col:'display:flex;flex-direction:column;gap:'+(d.compact?14:18)+'px;min-width:0;',
+      aside:'display:flex;flex-direction:column;gap:'+(d.compact?14:18)+'px;min-width:0;',
+      panel:card+'padding:'+(d.compact?14:18)+'px;display:flex;flex-direction:column;gap:14px;min-width:0;animation:fa-fade .3s ease-out both;',
+      panelHead:'display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;',
+      panelTitle:'font:500 '+(d.compact?14:15.5)+'px/1.2 '+disp+';letter-spacing:-.02em;color:'+t.text+';',
+      panelMeta:'font:400 10.5px/1.3 '+mono+';color:'+t.subtle+';',
+
+      headerRow:'display:grid;grid-template-columns:'+d.tgCols+';gap:'+(d.compact?12:14)+'px;',
+      tgTop:'display:flex;align-items:center;justify-content:space-between;gap:10px;',
+      tgCase:'font:400 9.5px/1 '+mono+';color:'+t.subtle+';',
+      tgName:'margin-top:13px;font:500 '+(d.compact?17:19)+'px/1.16 '+disp+';letter-spacing:-.024em;color:'+t.text+';',
+      tgMeta:'margin-top:8px;font:400 10.5px/1.45 '+mono+';color:'+t.subtle+';',
+      tgVerdictBox:'margin-top:16px;padding:13px;border:1px solid '+t.border+';border-radius:12px;background:'+t.surface2+';',
+      tgVerdictLabel:'font:500 8.5px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+      tgFlags:'display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:13px;padding-top:12px;border-top:1px solid '+t.border+';',
+      tgFlagsLabel:'font:400 11px/1.3 Inter,sans-serif;color:'+t.subtle+';',
+
+      tblWrap:'min-width:0;',
+      tblHead:'display:grid;grid-template-columns:'+tcols+';padding:8px 0;border-top:1px solid '+t.border+';border-bottom:1px solid '+t.border+';',
+      thFirst:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.muted+';',
+      thCol:'text-align:right;font:500 9px/1 Inter,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:'+t.muted+';',
+      thColLast:'text-align:right;font:500 9px/1 Inter,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:'+t.muted+';',
+      winCell:'display:flex;justify-content:flex-end;',
+
+      cardList:'display:flex;flex-direction:column;gap:9px;',
+      cardTop:'display:flex;align-items:center;justify-content:space-between;gap:10px;',
+      cardNums:'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:10px;padding-top:10px;border-top:1px solid '+t.gridLine+';',
+      cardCell:'display:flex;flex-direction:column;gap:5px;min-width:0;',
+      cardCellLabel:'font:500 8.5px/1.2 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:'+t.subtle+';',
+
+      riskGrid:'display:grid;grid-template-columns:'+d.riskCols+';gap:'+(d.compact?12:14)+'px;',
+      riskColHead:'display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding-bottom:11px;margin-bottom:4px;border-bottom:1px solid '+t.border+';',
+      riskRow:'display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid '+t.gridLine+';',
+      riskBody:'flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;',
+      riskName:'font:400 11.5px/1.4 Inter,sans-serif;color:'+t.text+';',
+      riskMeta:'font:400 9.5px/1.4 '+mono+';color:'+t.subtle+';',
+      riskFoot:'margin-top:11px;font:400 10.5px/1.55 Inter,sans-serif;color:'+t.subtle+';',
+
+      pickBox:'padding:'+(d.compact?16:20)+'px;border:1px solid '+t.goodBorder+';border-radius:18px;background:'+t.goodBg+';display:flex;flex-direction:column;animation:fa-fade .3s ease-out both;',
+      pickEyebrow:'font:500 9px/1 '+mono+';letter-spacing:.14em;color:'+t.accent+';',
+      pickTitle:'margin-top:13px;font:500 '+(d.compact?19:23)+'px/1.16 '+disp+';letter-spacing:-.026em;color:'+t.text+';max-width:26ch;',
+      pickLead:'margin-top:13px;font:400 12.5px/1.68 Inter,sans-serif;color:'+t.muted+';max-width:78ch;text-wrap:pretty;',
+      pickGrid:'display:grid;grid-template-columns:'+d.pickCols+';gap:'+(d.compact?12:14)+'px;margin-top:20px;',
+      pickCardTop:'display:flex;align-items:center;justify-content:space-between;gap:10px;',
+      pickCardName:'margin-top:12px;font:500 '+(d.compact?15:16.5)+'px/1.2 '+disp+';letter-spacing:-.02em;color:'+t.text+';',
+      pickRow:'display:flex;align-items:flex-start;gap:9px;margin-top:10px;',
+      pickText:'font:400 11.5px/1.55 Inter,sans-serif;color:'+t.muted+';',
+
+      scoreList:'display:flex;flex-direction:column;gap:10px;',
+      scoreRow:'display:grid;grid-template-columns:'+d.scoreCols+';gap:'+(d.compact?7:11)+'px;align-items:center;',
+      scoreName:'font:400 '+(d.compact?11:12)+'px/1.4 Inter,sans-serif;color:'+t.text+';min-width:0;',
+      scoreWeight:'font:400 9.5px/1 '+mono+';color:'+t.subtle+';',
+      scoreTrack:'height:6px;border-radius:999px;background:'+t.surface3+';overflow:hidden;',
+      scoreLegend:'display:flex;flex-wrap:wrap;gap:16px;padding-top:12px;border-top:1px solid '+t.border+';',
+      legendItem:'display:flex;align-items:center;gap:7px;',
+      legendA:'width:14px;height:6px;border-radius:999px;background:'+t.primary+';',
+      legendB:'width:14px;height:6px;border-radius:999px;background:'+t.alt+';',
+      legendText:'font:400 10.5px/1.3 Inter,sans-serif;color:'+t.muted+';',
+
+      cardAccent:'padding:16px;border:1px solid '+t.goodBorder+';border-radius:16px;background:'+t.goodBg+';display:flex;flex-direction:column;gap:11px;',
+      card:card+'padding:16px;display:flex;flex-direction:column;gap:11px;',
+      cardHead:'font:500 9.5px/1 Inter,sans-serif;letter-spacing:.13em;text-transform:uppercase;color:'+t.subtle+';',
+      asideBig:'font:500 '+(d.compact?24:27)+'px/1.05 '+disp+';letter-spacing:-.028em;color:'+t.accent+';',
+      asideLead:'font:400 11.5px/1.6 Inter,sans-serif;color:'+t.muted+';',
+      noteRow:'display:flex;align-items:flex-start;gap:9px;',
+      noteText:'font:400 11.5px/1.55 Inter,sans-serif;color:'+t.muted+';',
+
+      availHover:'border-color:'+t.borderStrong+';',
+      availBody:'flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;',
+      availName:'font:400 11.5px/1.35 Inter,sans-serif;color:'+t.text+';',
+      availMeta:'font:400 9.5px/1.35 '+mono+';color:'+t.subtle+';',
+
+      btnPrimarySm:'height:32px;padding:0 13px;border:0;border-radius:4px;background:'+t.primary+';color:'+t.primaryText+';font:600 11.5px/1 Inter,sans-serif;cursor:pointer;white-space:nowrap;'+(dark?'box-shadow:'+t.glow+';':''),
+      btnPrimaryHover:'background:'+t.primaryHover+';'
+    };
+
+    const tabs=['Дела','Сравнение','Организация','Профиль'].slice(0,d.tabsShown).map(label=>{
+      const on=label==='Сравнение';
+      return {label, style:'padding:16px 11px;font:'+(on?'500':'400')+' 12px/1 Inter,sans-serif;letter-spacing:-.01em;color:'+(on?t.text:t.muted)+';cursor:pointer;white-space:nowrap;'+(on?'box-shadow:inset 0 -2px 0 '+t.primary+';':'')};
+    });
+
+    const target=(tag,caseNo,name,meta,price,ask,flags,pick)=>({
+      tag, caseNo, name, meta, price, ask, flags,
+      cardStyle:'padding:'+(d.compact?15:18)+'px;border:1px solid '+(pick?t.primary:t.border)+';border-radius:18px;background:'+(pick?t.primarySoft:t.surface)+';display:flex;flex-direction:column;min-width:0;'+(dark?'':'box-shadow:'+t.shadow+';'),
+      tagStyle:pick?chip(t.primaryBg,t.primary,t.accent):chip('transparent',t.border,t.subtle),
+      priceStyle:'margin-top:9px;font:500 '+(d.compact?23:26)+'px/1 '+mono+';letter-spacing:-.03em;color:'+(pick?t.accent:t.text)+';',
+      askStyle:'margin-top:8px;font:400 10.5px/1.45 '+mono+';color:'+t.danger+';',
+      flagsStyle:'font:500 12px/1.3 '+mono+';color:'+(flags.indexOf('7')===0?t.danger:t.warn)+';'
+    });
+
+    // win: 'a' — лучше Сибтранс, 'b' — Ремстрой, 'eq' — паритет
+    const row=(label,a,b,win,winLabel)=>{
+      const aBest=win==='a', bBest=win==='b';
+      const num=(best,compact)=>'text-align:right;font:'+(best?'600':'400')+' '+(compact?(d.compact?10.5:11.5):12.5)+'px/1.4 '+mono+';color:'+(best?t.accent:t.muted)+';';
+      return {
+        label, a, b, win:winLabel,
+        rowStyle:'display:grid;grid-template-columns:'+tcols+';padding:9px 0;border-bottom:1px solid '+t.gridLine+';align-items:center;',
+        labelStyle:'font:400 '+(d.compact?11:12)+'px/1.4 Inter,sans-serif;color:'+t.text+';',
+        aStyle:num(aBest,true), bStyle:num(bBest,true),
+        winStyle:win==='eq'?chip('transparent',t.border,t.subtle):chip(t.goodBg,t.goodBorder,t.accent),
+        cardStyle:'padding:12px;border:1px solid '+t.border+';border-radius:12px;background:'+t.surface2+';',
+        cardLabelStyle:'font:500 12px/1.35 Inter,sans-serif;color:'+t.text+';min-width:0;',
+        aCardStyle:'font:'+(aBest?'600':'400')+' 12.5px/1 '+mono+';color:'+(aBest?t.accent:t.muted)+';',
+        bCardStyle:'font:'+(bBest?'600':'400')+' 12.5px/1 '+mono+';color:'+(bBest?t.accent:t.muted)+';'
+      };
+    };
+
+    const riskItem=(level,name,meta,sum,kind)=>({
+      level, name, meta, sum,
+      levelStyle:'flex:none;width:'+(d.compact?52:64)+'px;font:500 9px/1.5 '+mono+';letter-spacing:.06em;text-transform:uppercase;color:'+(kind==='crit'?t.danger:(kind==='mid'?t.warn:t.subtle))+';',
+      sumStyle:'flex:none;font:500 11.5px/1.4 '+mono+';color:'+(kind==='crit'?t.danger:(kind==='mid'?t.warn:t.muted))+';'
+    });
+
+    const riskCol=(name,total,items,foot,heavy)=>({
+      name, total, items, foot,
+      colStyle:'padding:'+(d.compact?13:15)+'px;border:1px solid '+(heavy?t.dangerBorder:t.border)+';border-radius:14px;background:'+(heavy?t.dangerBg:t.surface2)+';display:flex;flex-direction:column;min-width:0;',
+      nameStyle:'font:500 13.5px/1.25 '+disp+';letter-spacing:-.018em;color:'+t.text+';',
+      totalStyle:'flex:none;font:600 14px/1 '+mono+';color:'+(heavy?t.danger:t.warn)+';'
+    });
+
+    const pick=(tag,score,name,points,btn,best)=>({
+      tag, score, name, btn,
+      cardStyle:'padding:'+(d.compact?15:17)+'px;border:1px solid '+(best?t.primary:t.border)+';border-radius:16px;background:'+(best?(dark?'rgba(14,11,20,.62)':t.surface):t.surface2)+';display:flex;flex-direction:column;min-width:0;',
+      tagStyle:best?chip(t.primaryBg,t.primary,t.accent):chip('transparent',t.border,t.subtle),
+      scoreStyle:'font:600 15px/1 '+mono+';color:'+(best?t.accent:t.muted)+';',
+      points:points.map(p=>({
+        text:p[0], mark:p[1]?'+':'−',
+        markStyle:'flex:none;font:600 11px/1.5 '+mono+';color:'+(p[1]?t.accent:t.danger)+';'
+      })),
+      btnStyle:best
+        ? 'height:38px;margin-top:16px;border:0;border-radius:4px;background:'+t.primary+';color:'+t.primaryText+';font:600 12px/1 Inter,sans-serif;cursor:pointer;'+(dark?'box-shadow:'+t.glow+';':'')
+        : 'height:38px;margin-top:16px;border:1px solid '+t.border+';border-radius:4px;background:transparent;color:'+t.text+';font:500 12px/1 Inter,sans-serif;cursor:pointer;'
+    });
+
+    const score=(name,weight,a,b)=>({
+      name, weight:weight+'%',
+      aFill:'height:100%;width:'+a+'%;border-radius:999px;background:'+t.primary+';transform-origin:left center;animation:fa-grow-x .5s cubic-bezier(.22,1,.36,1) both;',
+      bFill:'height:100%;width:'+b+'%;border-radius:999px;background:'+t.alt+';transform-origin:left center;animation:fa-grow-x .5s cubic-bezier(.22,1,.36,1) .06s both;',
+      win:a===b?'=':(a>b?'Сиб':'Рем'),
+      winStyle:'text-align:right;font:500 10px/1.3 '+mono+';color:'+(a===b?t.subtle:(a>b?t.primary:t.alt))+';'
+    });
+
+    const avail=(name,meta,state,ready)=>({
+      name, meta, state,
+      rowStyle:'display:flex;align-items:center;gap:10px;padding:10px 11px;border:1px solid '+t.border+';border-radius:10px;background:'+t.surface2+';transition:border-color .16s;cursor:'+(ready?'pointer':'default')+';'+(ready?'':'opacity:.6;'),
+      chipStyle:'flex:none;'+(ready?chip(t.goodBg,t.goodBorder,t.accent):chip('transparent',t.border,t.subtle))
+    });
+
+    const dot=(c)=>'flex:none;width:5px;height:5px;margin-top:6px;border-radius:50%;background:'+c+';';
+
+    const aside={
+      side:{head:'Разница в цене', big:'1 020 против 1 310', lead:'Ремстрой дороже на 290 млн ₽ в абсолюте, но его EBITDA выше на 31% и подтверждена полностью. По кратности он при этом дешевле: 5,3× против 6,6×. Дешевле оказывается не тот, кто дешевле в рублях.'},
+      risk:{head:'Цена рисков', big:'220 против 96', lead:'У Сибтранса риски вдвое дороже и один из них не снимается деньгами: уход ключевого заказчика. У Ремстроя все четыре находки закрываются условиями сделки до подписания.'},
+      pick:{head:'Итог', big:'Ремстрой-Альянс', lead:'7,4 против 5,8 балла по шести критериям. Главный вклад — подтверждённость прибыли и отсутствие концентрации на одном контрагенте.'}
+    }[v];
+
+    return {
+      s,
+      setLight:this.setLight, setDark:this.setDark,
+      setDesktop:this.setDesktop, setTablet:this.setTablet, setMobile:this.setMobile,
+      setSide:this.setSide, setRisk:this.setRisk, setPick:this.setPick,
+      isSide:v==='side', isRisk:v==='risk', isPick:v==='pick',
+      wide:this.state.device!=='mobile', narrow:this.state.device==='mobile',
+      navTabs:tabs,
+
+      title:v==='side'?'Две цели рядом':(v==='risk'?'Чем рискуем в каждой сделке':'Какую сделку брать'),
+      subtitle:v==='side'?'Обе проверки закончены, обе считаны по одной модели — цифры сопоставимы. Подсветка показывает, кто лучше по каждой строке.'
+        :(v==='risk'?'Находки каждого дела с ценой в рублях. Важно не только сколько, но и снимается ли риск до сделки.'
+        :'Шесть критериев с весами, две карточки решения и то, что нужно сделать по каждой цели.'),
+      headMetrics:[
+        {label:'Дел в сравнении', value:'2', kind:'text'},
+        {label:'Разница в цене', value:'290 млн ₽', kind:'text'},
+        {label:'Рекомендация', value:'Ремстрой', kind:'accent'}
+      ].map(m=>({label:m.label, value:m.value, valueStyle:'font:500 15px/1 '+mono+';letter-spacing:-.02em;color:'+(m.kind==='accent'?t.accent:t.text)+';'})),
+
+      targets:[
+        target('ЦЕЛЬ А','A-2417','ООО «Сибтранс-Логистика»','грузоперевозки · 2023–2025 · 18 из 24 процедур','1 020 млн ₽','просят 1 240 · дисконт 18%','7 · 2 крит.',false),
+        target('ЦЕЛЬ Б · РЕКОМЕНДУЕМ','A-2418','ООО «Ремстрой-Альянс»','строительный подряд · 2023–2025 · 24 из 24','1 310 млн ₽','просят 1 406 · дисконт 7%','4 · 0 крит.',true)
+      ],
+
+      rows:[
+        row('Выручка 2025','1 842','2 104','b','Ремстрой'),
+        row('EBITDA нормализованная','268','351','b','Ремстрой'),
+        row('Маржа EBITDA, %','14,5','16,7','b','Ремстрой'),
+        row('Рост выручки за 3 года, %','+11','+19','b','Ремстрой'),
+        row('Долг / EBITDA','3,1×','1,9×','b','Ремстрой'),
+        row('Прибыль подтверждена, %','93','100','b','Ремстрой'),
+        row('Концентрация выручки','30% на одном','9% на одном','b','Ремстрой'),
+        row('Разница с моделью продавца','(220)','(96)','b','Ремстрой'),
+        row('Процедур закрыто','18 / 24','24 / 24','b','Ремстрой'),
+        row('Enterprise Value','1 767','1 849','eq','—'),
+        row('Долг и займы','(831)','(667)','b','Ремстрой'),
+        row('Денежные средства','+96','+128','b','Ремстрой'),
+        row('Миноритарные доли','(12)','—','b','Ремстрой'),
+        row('Мультипликатор EV/EBITDA','6,6×','5,3×','b','Ремстрой'),
+        row('Цена за 100% доли','1 020','1 310','eq','—')
+      ],
+
+      riskCols:[
+        riskCol('Сибтранс-Логистика','(220)',[
+          riskItem('критич.','Ключевой заказчик без договора','30% выручки · не снимается деньгами','(84)','crit'),
+          riskItem('критич.','Разрыв ОПУ и выписки','42 млн прочих доходов не подтверждены','(62)','crit'),
+          riskItem('средний','Забалансовые поручительства','180 млн за связанную сторону','(41)','mid'),
+          riskItem('средний','Аренда без индексации до 2029','рост издержек 8–11% после пересмотра','(24)','mid'),
+          riskItem('низкий','Смена аудитора дважды','за три года','(9)','low')
+        ],'Два критических риска из пяти не закрываются условиями сделки: заказчик может уйти в любой момент после закрытия.',true),
+        riskCol('Ремстрой-Альянс','(96)',[
+          riskItem('средний','Незавершённое производство','переоценка по трём объектам','(38)','mid'),
+          riskItem('средний','Гарантийные обязательства','резерв занижен на 5 лет вперёд','(31)','mid'),
+          riskItem('низкий','Судебный спор с подрядчиком','иск 18 млн · первая инстанция','(18)','low'),
+          riskItem('низкий','Аренда техники у связанной стороны','ставка на 6% выше рынка','(9)','low')
+        ],'Все четыре находки измеримы и снимаются до подписания: резерв доначисляется, спор закрывается мировым, аренда перезаключается.',false)
+      ],
+
+      pickCards:[
+        pick('РЕКОМЕНДУЕМ','7,4','Ремстрой-Альянс',[
+          ['Прибыль подтверждена на 100%, все 24 процедуры закрыты',true],
+          ['Ни одного критического флага, риски снимаются до сделки',true],
+          ['Долг вдвое ниже: 1,9× против 3,1× EBITDA',true],
+          ['Кратность сделки ниже: 5,3× против 6,6× EV/EBITDA',true],
+          ['Дороже на 290 млн ₽ в абсолюте — нужен больший чек',false]
+        ],'Готовить условия сделки',true),
+        pick('ТОРГОВАТЬСЯ','5,8','Сибтранс-Логистика',[
+          ['Дешевле входной билет: 1 020 против 1 310 млн ₽',true],
+          ['30% выручки на одном заказчике без долгосрочного договора',false],
+          ['42 млн прочих доходов так и не подтверждены выпиской',false],
+          ['Шесть процедур не закрыты — продавец не дал документы',false]
+        ],'Запросить документы',false)
+      ],
+
+      scores:[
+        score('Подтверждённость прибыли',25,74,100),
+        score('Устойчивость выручки',20,42,88),
+        score('Долговая нагрузка',15,55,86),
+        score('Качество активов',15,68,79),
+        score('Цена входа в абсолюте',15,88,62),
+        score('Полнота проверки',10,75,100)
+      ],
+
+      caveats:[
+        {text:'Отрасли разные: грузоперевозки и строительный подряд. Медиана у них своя — 6,4× и 5,1×, поэтому обе цели чуть выше рынка каждая в своей.', dotStyle:dot(t.warn)},
+        {text:'У Сибтранса шесть процедур не закрыты — его риски могут оказаться выше показанных 220 млн ₽.', dotStyle:dot(t.warn)},
+        {text:'Обе оценки считаны на одну дату по одной модели: EV минус долг плюс деньги минус миноритарии.', dotStyle:dot(t.primary)}
+      ],
+      available:[
+        avail('ООО «Стройпуть-Инвест»','A-2402 · скан закончен 12.08','можно',true),
+        avail('АО «Мосэнергосбыт-Сервис»','A-2395 · скан закончен 04.08','можно',true),
+        avail('ООО «Гранд-Ритейл»','A-2421 · скан идёт, 14 из 24','ждём',false)
+      ],
+
+      asideHead:aside.head, asideBig:aside.big, asideLead:aside.lead
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  input,button{font-family:inherit;}
+  input::placeholder{color:inherit;opacity:.4;}
+  a{color:#C77DFF;}
+  a:hover{color:#D69AFF;}
+  @keyframes fa-pulse{from{opacity:.4}to{opacity:1}}
+  @keyframes fa-fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes fa-pop{0%{transform:scale(.94);opacity:0}100%{transform:scale(1);opacity:1}}
+  @keyframes fa-scan{0%{transform:translateY(-130%)}100%{transform:translateY(680%)}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:11px;min-width:0;">
+      <div style="{{ s.barCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="30px,30px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Экран 6 · Каркас и список дел</span>
+        <span style="{{ s.barSub }}">боковая навигация · дела · создание</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Свет</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тьма</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Состояние</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segList }}" onClick="{{ setList }}">Список</button><button style="{{ s.segEmpty }}" onClick="{{ setEmpty }}">Пусто</button><button style="{{ s.segModal }}" onClick="{{ setModal }}">Новое дело</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}" data-screen-label="Экран 6 — Каркас и список дел">
+      <div style="{{ s.shell }}">
+
+        <div style="{{ s.rail }}">
+          <div style="{{ s.railTop }}">
+            <div style="{{ s.railCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="28px,28px"></dc-import></div>
+            <span style="{{ s.railBrand }}">Финанс&nbsp;Аудит</span>
+          </div>
+          <div style="{{ s.railGroupLabel }}">Работа</div>
+          <sc-for list="{{ railItems }}" as="r" hint-placeholder-count="5">
+          <div style="{{ r.style }}"><span style="{{ r.glyphStyle }}">{{ r.glyph }}</span><span style="{{ r.labelStyle }}">{{ r.label }}</span><span style="{{ r.countStyle }}">{{ r.count }}</span></div>
+          </sc-for>
+          <div style="{{ s.railGroupLabel }}">Организация</div>
+          <sc-for list="{{ railOrg }}" as="r" hint-placeholder-count="3">
+          <div style="{{ r.style }}"><span style="{{ r.glyphStyle }}">{{ r.glyph }}</span><span style="{{ r.labelStyle }}">{{ r.label }}</span><span style="{{ r.countStyle }}">{{ r.count }}</span></div>
+          </sc-for>
+          <div style="{{ s.railFoot }}">
+            <div style="{{ s.planCard }}">
+              <div style="{{ s.planLabel }}">Тариф «Сделка»</div>
+              <div style="{{ s.planValue }}">7 из 10 дел</div>
+              <div style="{{ s.planTrack }}"><div style="{{ s.planFill }}"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="{{ s.content }}">
+          <div style="{{ s.contentHead }}">
+            <div style="min-width:0;">
+              <div style="{{ s.h1 }}">Дела</div>
+              <div style="{{ s.h1Sub }}">{{ headSub }}</div>
+            </div>
+            <div style="{{ s.headActions }}">
+              <input style="{{ s.input }}" style-focus="{{ s.inputFocus }}" placeholder="Название или ИНН">
+              <button style="{{ s.btnGhostSm }}" style-hover="{{ s.btnGhostHover }}">Фильтры</button>
+              <button style="{{ s.btnPrimarySm }}" style-hover="{{ s.btnPrimaryHover }}" onClick="{{ setModal }}">Новое дело</button>
+            </div>
+          </div>
+
+          <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.emptyWrap }}">
+            <div style="{{ s.emptyCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" style="width:100%;height:100%" hint-size="120px,120px"></dc-import></div>
+            <div style="{{ s.emptyTitle }}">Ни одного дела</div>
+            <div style="{{ s.emptyLead }}">Дело — это одна сделка: одна фирма-цель, её отчётность, реестр флагов и заключение. Начните с ИНН — остальное подтянется из ФНС.</div>
+            <button style="{{ s.btnPrimary }}" style-hover="{{ s.btnPrimaryHover }}" onClick="{{ setModal }}">Создать первое дело</button>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ showList }}" hint-placeholder-val="{{ true }}">
+          <div style="{{ s.filterRow }}">
+            <sc-for list="{{ filters }}" as="f" hint-placeholder-count="4"><span style="{{ f.style }}">{{ f.label }}</span></sc-for>
+          </div>
+          <div style="{{ s.caseGrid }}">
+            <sc-for list="{{ cases }}" as="c" hint-placeholder-count="6">
+            <div style="{{ s.caseCard }}" style-hover="{{ s.caseCardHover }}">
+              <div style="{{ s.caseTop }}">
+                <span style="{{ s.caseNum }}">{{ c.num }}</span>
+                <span style="{{ c.chipStyle }}"><span style="{{ c.dotStyle }}"></span>{{ c.status }}</span>
+              </div>
+              <div style="{{ s.caseName }}">{{ c.name }}</div>
+              <div style="{{ s.caseMeta }}">{{ c.meta }}</div>
+              <div style="{{ s.caseTrack }}"><div style="{{ c.fillStyle }}"></div></div>
+              <div style="{{ s.caseBottom }}">
+                <span style="{{ s.caseProgress }}">{{ c.progress }}</span>
+                <span style="{{ c.verdictStyle }}">{{ c.verdict }}</span>
+              </div>
+            </div>
+            </sc-for>
+          </div>
+          </sc-if>
+        </div>
+
+      </div>
+
+      <sc-if value="{{ isModal }}" hint-placeholder-val="{{ false }}">
+      <div style="{{ s.overlay }}">
+        <div style="{{ s.modal }}">
+          <div style="{{ s.modalHead }}">
+            <div style="{{ s.modalTitle }}">Новое дело</div>
+            <button style="{{ s.modalClose }}" onClick="{{ setList }}">×</button>
+          </div>
+          <div style="{{ s.modalBody }}">
+            <div style="{{ s.field }}"><span style="{{ s.label }}">ИНН фирмы-цели</span><input style="{{ s.inputFull }}" style-focus="{{ s.inputFocus }}" placeholder="5406231908"></div>
+            <div style="{{ s.foundCard }}">
+              <div style="{{ s.foundName }}">ООО «Сибтранс-Логистика»</div>
+              <div style="{{ s.foundMeta }}">Новосибирск · грузоперевозки · отчётность за 2023–2025 доступна в ФНС</div>
+            </div>
+            <div style="{{ s.field }}">
+              <span style="{{ s.label }}">Глубина проверки</span>
+              <div style="{{ s.segDemo }}"><button style="{{ s.segDemoOff }}">Экспресс · 8</button><button style="{{ s.segDemoActive }}">Полная · 24</button><button style="{{ s.segDemoOff }}">Для банка · 31</button></div>
+            </div>
+            <div style="{{ s.field }}"><span style="{{ s.label }}">Кто в деле</span>
+              <div style="{{ s.peopleRow }}">
+                <sc-for list="{{ people }}" as="p" hint-placeholder-count="3"><span style="{{ p.style }}">{{ p.name }}</span></sc-for>
+                <span style="{{ s.personAdd }}">+ пригласить</span>
+              </div>
+            </div>
+            <div style="{{ s.modalNote }}">Дело займёт 8-е из 10 мест тарифа. Доступ участников фиксируется в журнале.</div>
+          </div>
+          <div style="{{ s.modalFoot }}">
+            <button style="{{ s.btnGhostSm }}" style-hover="{{ s.btnGhostHover }}" onClick="{{ setList }}">Отмена</button>
+            <button style="{{ s.btnPrimarySm }}" style-hover="{{ s.btnPrimaryHover }}" onClick="{{ setList }}">Создать и запустить скан</button>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { theme:'dark', device:'desktop', view:'list' };
+
+  THEME(){
+    const dark={
+      pageBg:'#000000', bg:'#000000', surface:'#0E0B14', surface2:'#171122', surface3:'#241A38', sk:'#171122',
+      border:'#2B2140', borderStrong:'#4B3A6E', gridLine:'#191324',
+      text:'#F2E8FF', muted:'#9C8FB5', subtle:'#6A5C86',
+      primary:'#C77DFF', primaryHover:'#D69AFF', primaryText:'#17061F', accent:'#C77DFF',
+      primaryBg:'rgba(199,125,255,0.15)', primarySoft:'rgba(199,125,255,0.09)',
+      goodBg:'rgba(199,125,255,0.15)', goodBorder:'rgba(199,125,255,0.34)',
+      danger:'#F0796E', dangerBg:'rgba(240,121,110,0.15)', dangerBorder:'rgba(240,121,110,0.34)',
+      warn:'#E0A23A', warnBg:'rgba(224,162,58,0.16)', warnBorder:'rgba(224,162,58,0.32)',
+      info:'#B9A6E8', infoBg:'rgba(185,166,232,0.15)',
+      ring:'rgba(199,125,255,0.40)',
+      shadow:'0 30px 70px -34px rgba(0,0,0,.9)', glow:'0 0 18px rgba(199,125,255,.35)',
+      barBg:'#0A0710', segBg:'#0A0710', segActiveBg:'#241A38', headerBg:'#0E0B14',
+      railBg:'#0A0710', overlay:'rgba(0,0,0,.66)'
+    };
+    const light={
+      pageBg:'#F2EDFA', bg:'#FAF7FE', surface:'#FFFFFF', surface2:'#F4EEFA', surface3:'#E8DEF4', sk:'#EDE6F6',
+      border:'#DED2EC', borderStrong:'#C2B0D6', gridLine:'#EDE6F6',
+      text:'#1B1523', muted:'#4E4459', subtle:'#756884',
+      primary:'#C77DFF', primaryHover:'#B968F5', primaryText:'#17061F', accent:'#7A2BC4',
+      primaryBg:'#EEE0FB', primarySoft:'#F6EFFD',
+      goodBg:'#EEE0FB', goodBorder:'#D9BFF0',
+      danger:'#C0473B', dangerBg:'#FAE7E4', dangerBorder:'#EECFCA',
+      warn:'#B07A12', warnBg:'#FBF0D8', warnBorder:'#ECDDB4',
+      info:'#6B5E8C', infoBg:'#EDE9F6',
+      ring:'rgba(199,125,255,0.34)',
+      shadow:'0 18px 44px -22px rgba(40,20,60,.22), 0 2px 6px rgba(40,20,60,.05)', glow:'none',
+      barBg:'#FFFFFF', segBg:'#EDE6F6', segActiveBg:'#FFFFFF', headerBg:'#FFFFFF',
+      railBg:'#FFFFFF', overlay:'rgba(30,18,44,.42)'
+    };
+    return this.state.theme==='dark'?dark:light;
+  }
+
+  DIM(){
+    const d=this.state.device;
+    if(d==='mobile') return {frame:402, radius:26, pad:16, rail:0, cardCols:1, h1:24, modalW:340};
+    if(d==='tablet') return {frame:864, radius:30, pad:22, rail:76, cardCols:2, h1:28, modalW:480};
+    return {frame:1180, radius:30, pad:26, rail:236, cardCols:3, h1:32, modalW:520};
+  }
+
+  setLight=()=>this.setState({theme:'light'});
+  setDark=()=>this.setState({theme:'dark'});
+  setDesktop=()=>this.setState({device:'desktop'});
+  setTablet=()=>this.setState({device:'tablet'});
+  setMobile=()=>this.setState({device:'mobile'});
+  setList=()=>this.setState({view:'list'});
+  setEmpty=()=>this.setState({view:'empty'});
+  setModal=()=>this.setState({view:'modal'});
+
+  segBtn(active,t){
+    return 'height:28px;padding:0 12px;border:0;border-radius:7px;cursor:pointer;font:'+(active?'600':'500')+' 11.5px/1 Inter,sans-serif;letter-spacing:-.01em;'+
+      (active?('background:'+t.segActiveBg+';color:'+t.text+';'):('background:transparent;color:'+t.subtle+';'));
+  }
+
+  renderVals(){
+    const t=this.THEME(), d=this.DIM(), dark=this.state.theme==='dark', v=this.state.view;
+    const mono='JetBrains Mono,ui-monospace,monospace';
+    const disp='Satoshi,Inter,sans-serif';
+    const card='border:1px solid '+t.border+';border-radius:16px;background:'+t.surface+';'+(dark?'':'box-shadow:'+t.shadow+';');
+    const wide=d.rail>=200;
+    const railOn=d.rail>0;
+    const dot=c=>'width:5px;height:5px;border-radius:50%;background:'+c+';';
+    const chip=(bg,bd,c)=>'display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:999px;background:'+bg+';border:1px solid '+bd+';font:500 10px/1.3 '+mono+';color:'+c+';';
+
+    const s={
+      page:'min-height:100vh;background:'+t.pageBg+';display:flex;flex-direction:column;align-items:center;padding:0 0 60px;',
+      bar:'position:sticky;top:0;z-index:20;width:100%;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:12px 20px;background:'+t.barBg+';border-bottom:1px solid '+t.border+';',
+      barCube:'width:30px;height:30px;flex:none;',
+      barTitle:'font:600 13px/1.2 Inter,sans-serif;letter-spacing:-.015em;color:'+t.text+';',
+      barSub:'font:400 10.5px/1.2 '+mono+';color:'+t.subtle+';',
+      barLabel:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+      seg:'display:flex;gap:2px;padding:3px;border-radius:9px;background:'+t.segBg+';border:1px solid '+t.border+';',
+      segLight:this.segBtn(!dark,t), segDark:this.segBtn(dark,t),
+      segDesktop:this.segBtn(this.state.device==='desktop',t),
+      segTablet:this.segBtn(this.state.device==='tablet',t),
+      segMobile:this.segBtn(this.state.device==='mobile',t),
+      segList:this.segBtn(v==='list',t), segEmpty:this.segBtn(v==='empty',t), segModal:this.segBtn(v==='modal',t),
+      stage:'width:100%;display:flex;justify-content:center;padding:26px 18px 0;',
+      frame:'position:relative;width:100%;max-width:'+d.frame+'px;border:1px solid '+t.border+';border-radius:'+d.radius+'px;background:'+t.bg+';overflow:hidden;'+(dark?'':'box-shadow:'+t.shadow+';'),
+      shell:'display:flex;align-items:stretch;min-height:640px;',
+
+      rail:'display:'+(railOn?'flex':'none')+';flex-direction:column;flex:none;width:'+d.rail+'px;padding:16px '+(wide?'14px':'10px')+';gap:2px;background:'+t.railBg+';border-right:1px solid '+t.border+';',
+      railTop:'display:flex;align-items:center;gap:9px;padding:0 '+(wide?'8px':'0')+' 18px;justify-content:'+(wide?'flex-start':'center')+';',
+      railCube:'width:28px;height:28px;flex:none;',
+      railBrand:'display:'+(wide?'inline':'none')+';font:600 10px/1 Inter,sans-serif;letter-spacing:.15em;text-transform:uppercase;color:'+t.text+';',
+      railGroupLabel:'display:'+(wide?'block':'none')+';padding:14px 8px 7px;font:500 8.5px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:'+t.subtle+';',
+      railFoot:'margin-top:auto;padding-top:16px;',
+      planCard:'display:'+(wide?'block':'none')+';padding:12px;border:1px solid '+t.border+';border-radius:12px;background:'+t.surface+';',
+      planLabel:'font:500 8.5px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+      planValue:'margin:8px 0 9px;font:500 13px/1 '+mono+';color:'+t.text+';',
+      planTrack:'height:5px;border-radius:3px;background:'+t.surface2+';overflow:hidden;',
+      planFill:'width:70%;height:100%;background:'+t.primary+';'+(dark?'box-shadow:0 0 10px rgba(199,125,255,.6);':''),
+
+      content:'flex:1;min-width:0;display:flex;flex-direction:column;gap:16px;padding:'+d.pad+'px;',
+      contentHead:'display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;',
+      h1:'font:500 '+d.h1+'px/1.1 '+disp+';letter-spacing:-.028em;color:'+t.text+';',
+      h1Sub:'margin-top:8px;font:400 12px/1.4 '+mono+';color:'+t.subtle+';',
+      headActions:'display:flex;align-items:center;gap:8px;flex-wrap:wrap;',
+
+      filterRow:'display:flex;align-items:center;gap:8px;flex-wrap:wrap;',
+      caseGrid:'display:grid;grid-template-columns:repeat('+d.cardCols+',minmax(0,1fr));gap:12px;',
+      caseCard:card+'padding:16px;display:flex;flex-direction:column;gap:10px;cursor:pointer;animation:fa-fade .3s ease-out both;',
+      caseCardHover:'border-color:'+t.borderStrong+';',
+      caseTop:'display:flex;align-items:center;justify-content:space-between;gap:10px;',
+      caseNum:'font:500 9.5px/1 '+mono+';letter-spacing:.08em;color:'+t.subtle+';',
+      caseName:'font:500 16px/1.25 '+disp+';letter-spacing:-.02em;color:'+t.text+';',
+      caseMeta:'font:400 11px/1.45 '+mono+';color:'+t.subtle+';',
+      caseTrack:'height:5px;border-radius:3px;background:'+t.surface2+';overflow:hidden;margin-top:2px;',
+      caseBottom:'display:flex;align-items:baseline;justify-content:space-between;gap:10px;',
+      caseProgress:'font:400 10.5px/1 '+mono+';color:'+t.muted+';',
+
+      emptyWrap:'display:flex;flex-direction:column;align-items:center;text-align:center;gap:13px;padding:'+(d.frame<500?'40px 8px':'72px 20px')+';animation:fa-fade .35s ease-out both;',
+      emptyCube:'width:120px;height:120px;',
+      emptyTitle:'font:500 '+(d.frame<500?21:25)+'px/1.15 '+disp+';letter-spacing:-.024em;color:'+t.text+';',
+      emptyLead:'font:400 13.5px/1.62 Inter,sans-serif;color:'+t.muted+';max-width:50ch;text-wrap:pretty;',
+
+      overlay:'position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;padding:20px;background:'+t.overlay+';backdrop-filter:blur(3px);animation:fa-fade .22s ease-out both;',
+      modal:'width:100%;max-width:'+d.modalW+'px;border:1px solid '+t.border+';border-radius:16px;background:'+t.surface+';overflow:hidden;box-shadow:'+t.shadow+';animation:fa-pop .26s cubic-bezier(.16,1,.3,1) both;',
+      modalHead:'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid '+t.border+';',
+      modalTitle:'font:500 17px/1.2 '+disp+';letter-spacing:-.022em;color:'+t.text+';',
+      modalClose:'width:28px;height:28px;border:0;border-radius:7px;background:transparent;color:'+t.muted+';font:400 18px/1 Inter,sans-serif;cursor:pointer;',
+      modalBody:'padding:18px;display:flex;flex-direction:column;gap:15px;',
+      modalFoot:'display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:14px 18px;border-top:1px solid '+t.border+';background:'+t.surface2+';',
+      modalNote:'font:400 11px/1.5 '+mono+';color:'+t.subtle+';',
+      foundCard:'padding:13px;border:1px solid '+t.goodBorder+';border-radius:12px;background:'+t.goodBg+';',
+      foundName:'font:500 14px/1.25 '+disp+';letter-spacing:-.018em;color:'+t.text+';',
+      foundMeta:'margin-top:7px;font:400 11px/1.5 '+mono+';color:'+t.muted+';',
+      peopleRow:'display:flex;align-items:center;gap:7px;flex-wrap:wrap;',
+      personAdd:'font:500 11.5px/1 Inter,sans-serif;color:'+t.accent+';cursor:pointer;',
+
+      field:'display:flex;flex-direction:column;gap:7px;',
+      label:'font:500 9.5px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+      segDemo:'display:inline-flex;gap:2px;padding:3px;border-radius:9px;background:'+t.surface2+';border:1px solid '+t.border+';align-self:flex-start;flex-wrap:wrap;',
+      segDemoActive:'height:30px;padding:0 12px;border:0;border-radius:7px;background:'+t.primary+';color:'+t.primaryText+';font:600 11.5px/1 Inter,sans-serif;cursor:pointer;',
+      segDemoOff:'height:30px;padding:0 12px;border:0;border-radius:7px;background:transparent;color:'+t.subtle+';font:500 11.5px/1 Inter,sans-serif;cursor:pointer;',
+
+      input:'width:'+(d.frame<500?'100%':'186px')+';height:31px;padding:0 12px;border:1.5px solid '+t.border+';border-radius:8px;background:'+(dark?t.pageBg:t.surface)+';color:'+t.text+';font:400 12px/1 Inter,sans-serif;outline:none;',
+      inputFull:'width:100%;height:42px;padding:0 14px;border:1.5px solid '+t.border+';border-radius:8px;background:'+(dark?t.pageBg:t.surface)+';color:'+t.text+';font:400 13.5px/1 '+mono+';outline:none;',
+      inputFocus:'border-color:'+t.primary+';box-shadow:0 0 0 3px '+t.ring+';',
+      btnPrimary:'height:40px;padding:0 20px;border:0;border-radius:4px;background:'+t.primary+';color:'+t.primaryText+';font:600 13px/1 Inter,sans-serif;cursor:pointer;'+(dark?'box-shadow:'+t.glow+';':''),
+      btnPrimarySm:'height:31px;padding:0 14px;border:0;border-radius:4px;background:'+t.primary+';color:'+t.primaryText+';font:600 11.5px/1 Inter,sans-serif;cursor:pointer;'+(dark?'box-shadow:'+t.glow+';':''),
+      btnPrimaryHover:'background:'+t.primaryHover+';',
+      btnGhostSm:'height:31px;padding:0 13px;border:1px solid '+t.border+';border-radius:4px;background:transparent;color:'+t.text+';font:500 11.5px/1 Inter,sans-serif;cursor:pointer;',
+      btnGhostHover:'border-color:'+t.primary+';color:'+t.accent+';'
+    };
+
+    const railItem=(glyph,label,count,active)=>({
+      glyph, label, count,
+      style:'display:flex;align-items:center;gap:10px;padding:'+(wide?'9px 8px':'10px 0')+';border-radius:9px;cursor:pointer;justify-content:'+(wide?'flex-start':'center')+';'+(active?('background:'+t.surface3+';box-shadow:inset 2px 0 0 '+t.primary+';'):''),
+      glyphStyle:'flex:none;width:18px;text-align:center;font:500 12px/1 '+mono+';color:'+(active?t.accent:t.subtle)+';',
+      labelStyle:'display:'+(wide?'block':'none')+';flex:1;min-width:0;font:'+(active?'500':'400')+' 12.5px/1.3 Inter,sans-serif;color:'+(active?t.text:t.muted)+';',
+      countStyle:'display:'+(wide&&count?'block':'none')+';flex:none;font:400 10px/1 '+mono+';color:'+t.subtle+';'
+    });
+
+    const caseCard=(num,name,meta,pct,progress,status,verdict,kind)=>{
+      const c=kind==='bad'?t.danger:(kind==='warn'?t.warn:t.primary);
+      const chipMap={ok:chip(t.goodBg,t.goodBorder,t.accent), warn:chip(t.warnBg,t.warnBorder,t.warn), bad:chip(t.dangerBg,t.dangerBorder,t.danger), none:chip('transparent',t.border,t.subtle)};
+      return {
+        num, name, meta, progress, status, verdict,
+        chipStyle:chipMap[kind]||chipMap.ok,
+        dotStyle:dot(c),
+        fillStyle:'width:'+pct+'%;height:100%;background:'+c+';',
+        verdictStyle:'font:500 11px/1 '+mono+';color:'+(kind==='bad'?t.danger:(kind==='warn'?t.warn:t.accent))+';'
+      };
+    };
+
+    return {
+      s,
+      setLight:this.setLight, setDark:this.setDark,
+      setDesktop:this.setDesktop, setTablet:this.setTablet, setMobile:this.setMobile,
+      setList:this.setList, setEmpty:this.setEmpty, setModal:this.setModal,
+      isEmpty:v==='empty', isModal:v==='modal', showList:v!=='empty',
+      headSub:'7 активных · 2 ждут документов · тариф «Сделка»',
+      railItems:[
+        railItem('▣','Дела','7',true),
+        railItem('⬒','Отчётность','',false),
+        railItem('◈','Реестр флагов','12',false),
+        railItem('◧','Оценка','',false),
+        railItem('▤','Заключения','4',false)
+      ],
+      railOrg:[
+        railItem('◇','Участники','6',false),
+        railItem('◎','Журнал доступа','',false),
+        railItem('▧','Тариф и счета','',false)
+      ],
+      filters:['Все · 7','Идёт скан · 2','Ждут документов · 2','Готовы · 3'].map((label,i)=>({
+        label,
+        style:'display:inline-flex;align-items:center;padding:6px 12px;border-radius:999px;font:500 11.5px/1.3 Inter,sans-serif;cursor:pointer;'+
+          (i===0?('background:'+t.primary+';color:'+t.primaryText+';'):('background:transparent;border:1px solid '+t.border+';color:'+t.muted+';'))
+      })),
+      people:['А. Петров','М. Королёва','И. Соколов'].map(name=>({
+        name,
+        style:'display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;background:'+t.surface2+';border:1px solid '+t.border+';font:400 11.5px/1.3 Inter,sans-serif;color:'+t.text+';'
+      })),
+      cases:[
+        caseCard('A-2417','Сибтранс-Логистика','ИНН 5406231908 · грузоперевозки',75,'18 / 24 процедуры','7 флагов','дисконт 18%','bad'),
+        caseCard('A-2410','Уралхим-Трейд','ИНН 6673124509 · оптовая торговля',100,'24 / 24 процедуры','готово','покупать','ok'),
+        caseCard('A-2404','Печора-Агро','ИНН 1102078331 · сельское хозяйство',42,'10 / 24 процедуры','идёт скан','—','none'),
+        caseCard('A-2398','Балт-Девелопмент','ИНН 7813455102 · строительство',88,'21 / 24 процедуры','3 флага','торговаться','warn'),
+        caseCard('A-2391','Ставрополь-Молоко','ИНН 2635890114 · пищевое пр-во',100,'24 / 24 процедуры','готово','отказаться','bad'),
+        caseCard('A-2386','Ямал-Сервис','ИНН 8901027744 · нефтесервис',33,'8 / 24 процедуры','ждёт документов','—','warn')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

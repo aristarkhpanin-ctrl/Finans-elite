@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:#EDEAF2;font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#7A2BC4}
+a:hover{color:#5E1BA3}
+.dv-turn{padding:40px 44px 34px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 6px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1B1523;color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 13px/1.2 'Inter',sans-serif;color:#1B1523}
+.dv-tlead{margin:0 0 22px;max-width:900px;font:400 12.5px/1.6 'Inter',sans-serif;color:rgba(27,21,35,.62)}
+.dv-opts{display:flex;flex-wrap:wrap;gap:30px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(27,21,35,.09);color:#1B1523;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11.5px/1.3 'Inter',sans-serif;color:rgba(27,21,35,.58)}
+.dv-card{max-width:100%;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}
+.dv-opt:target .dv-oid{background:#7A2BC4;color:#fff}
+.dv-next{margin:24px 0 0;font:12px/1.6 'Inter',sans-serif;color:rgba(27,21,35,.5)}
+@keyframes fa-pulse{0%,100%{opacity:.45}50%{opacity:1}}
+@keyframes fa-scan{0%{transform:translateY(-100%)}100%{transform:translateY(420%)}}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t1">
+  <div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Фундамент «Финанс Аудит» — три направления</span></div>
+  <p class="dv-tlead">Общее во всех трёх: неоновый фиолет <strong>#C77DFF</strong> в роли, которую в «Элит» играл <strong>#7FEE64</strong> (заливка кнопок, активное состояние, кольцо фокуса, grand-итог), фиолетово-тонированные нейтрали, тот же куб с фиолетовым свечением, коралл и янтарь строго для семантики данных, шрифты Satoshi / Inter / JetBrains Mono. Различаются главным жестом экрана — тем, что видит пользователь в первую секунду и как отвечает на вопрос «выгодно ли покупать эту фирму».</p>
+  <div class="dv-opts">
+
+    <!-- ============ 1a ВЕРДИКТ ============ -->
+    <div class="dv-opt" id="1a" data-screen-label="1a Вердикт">
+      <div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Вердикт — прямой близнец «Элит», но экран начинается с вывода</div>
+      <div class="dv-card" style="width:900px;">
+
+        <div style="background:#000000;padding:0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;height:50px;padding:0 18px;background:#232028;border-bottom:1px solid #4C4356;">
+            <div style="display:flex;align-items:center;gap:22px;min-width:0;">
+              <div style="display:flex;align-items:center;gap:9px;">
+                <div style="width:24px;height:24px;flex:none;"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="24px,24px"></dc-import></div>
+                <span style="font:600 10.5px/1 'Inter',sans-serif;letter-spacing:.15em;color:#EEDCFF;text-transform:uppercase;">Финанс&nbsp;Аудит</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:2px;">
+                <span style="padding:15px 11px;font:500 12px/1 'Inter',sans-serif;letter-spacing:-.01em;color:#EEDCFF;box-shadow:inset 0 -2px 0 #C77DFF;">Вердикт</span>
+                <span style="padding:15px 11px;font:400 12px/1 'Inter',sans-serif;letter-spacing:-.01em;color:#A297AD;">Отчётность</span>
+                <span style="padding:15px 11px;font:400 12px/1 'Inter',sans-serif;letter-spacing:-.01em;color:#A297AD;">Качество прибыли</span>
+                <span style="padding:15px 11px;font:400 12px/1 'Inter',sans-serif;letter-spacing:-.01em;color:#A297AD;">Риски</span>
+                <span style="padding:15px 11px;font:400 12px/1 'Inter',sans-serif;letter-spacing:-.01em;color:#A297AD;">Оценка</span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;">
+              <span style="font:500 10.5px/1 'JetBrains Mono',monospace;color:#6B5F78;">DD-2417</span>
+              <button style="height:30px;padding:0 14px;border:0;border-radius:4px;background:#C77DFF;color:#17061F;font:600 11.5px/1 'Inter',sans-serif;letter-spacing:-.01em;cursor:pointer;" style-hover="background:#D69AFF;">Пересчитать</button>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:28px;padding:26px 24px 22px;">
+            <div style="min-width:0;">
+              <div style="display:flex;align-items:center;gap:7px;margin-bottom:12px;">
+                <span style="width:5px;height:5px;border-radius:50%;background:#C77DFF;box-shadow:0 0 7px rgba(199,125,255,.9);animation:fa-pulse 2.4s ease-in-out infinite;"></span>
+                <span style="font:500 9.5px/1 'Inter',sans-serif;letter-spacing:.13em;color:#C77DFF;text-transform:uppercase;">Вердикт по сделке</span>
+              </div>
+              <div style="font:500 33px/1.08 'Satoshi','Inter',sans-serif;letter-spacing:-.025em;color:#EEDCFF;max-width:430px;">Покупать с дисконтом 18%</div>
+              <div style="margin-top:11px;font:400 12.5px/1.6 'Inter',sans-serif;color:#A297AD;max-width:420px;">ООО «Сибтранс-Логистика». Прибыль подтверждена выпиской на 11 из 12 месяцев, EBITDA нормализована на 24 млн ₽ разовых доходов. Основной риск — концентрация дебиторки.</div>
+            </div>
+            <div style="flex:none;width:216px;padding:16px;border:1px solid #4C4356;border-radius:14px;background:#232028;">
+              <div style="font:500 9.5px/1 'Inter',sans-serif;letter-spacing:.11em;color:#A297AD;text-transform:uppercase;">Индекс сделки</div>
+              <div style="display:flex;align-items:baseline;gap:5px;margin:10px 0 12px;">
+                <span style="font:600 40px/1 'JetBrains Mono',monospace;letter-spacing:-.03em;color:#C77DFF;">72</span>
+                <span style="font:400 14px/1 'JetBrains Mono',monospace;color:#6B5F78;">/100</span>
+              </div>
+              <div style="height:6px;border-radius:3px;background:#2E2934;overflow:hidden;"><div style="width:72%;height:100%;background:#C77DFF;box-shadow:0 0 10px rgba(199,125,255,.6);"></div></div>
+              <div style="display:flex;justify-content:space-between;margin-top:8px;font:400 9.5px/1 'JetBrains Mono',monospace;color:#6B5F78;"><span>отказ</span><span>торг</span><span>покупка</span></div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:0 24px 22px;">
+            <div style="padding:14px;border:1px solid #4C4356;border-radius:14px;background:#232028;">
+              <div style="font:500 9.5px/1 'Inter',sans-serif;letter-spacing:.1em;color:#A297AD;text-transform:uppercase;">Стоимость EV</div>
+              <div style="margin-top:9px;font:500 19px/1 'JetBrains Mono',monospace;letter-spacing:-.02em;color:#EEDCFF;">1 240 млн ₽</div>
+              <div style="margin-top:6px;font:400 10.5px/1 'JetBrains Mono',monospace;color:#C77DFF;">4.6× EBITDA</div>
+            </div>
+            <div style="padding:14px;border:1px solid #4C4356;border-radius:14px;background:#232028;">
+              <div style="font:500 9.5px/1 'Inter',sans-serif;letter-spacing:.1em;color:#A297AD;text-transform:uppercase;">EBITDA норм.</div>
+              <div style="margin-top:9px;font:500 19px/1 'JetBrains Mono',monospace;letter-spacing:-.02em;color:#EEDCFF;">268 млн ₽</div>
+              <div style="margin-top:6px;font:400 10.5px/1 'JetBrains Mono',monospace;color:#A297AD;">−24 млн разовых</div>
+            </div>
+            <div style="padding:14px;border:1px solid #4C4356;border-radius:14px;background:#232028;">
+              <div style="font:500 9.5px/1 'Inter',sans-serif;letter-spacing:.1em;color:#A297AD;text-transform:uppercase;">Долг / EBITDA</div>
+              <div style="margin-top:9px;font:500 19px/1 'JetBrains Mono',monospace;letter-spacing:-.02em;color:#E0A23A;">3.1×</div>
+              <div style="margin-top:6px;font:400 10.5px/1 'JetBrains Mono',monospace;color:#E0A23A;">выше порога 2.5×</div>
+            </div>
+            <div style="padding:14px;border:1px solid #4C4356;border-radius:14px;background:#232028;">
+              <div style="font:500 9.5px/1 'Inter',sans-serif;letter-spacing:.1em;color:#A297AD;text-transform:uppercase;">Красных флагов</div>
+              <div style="margin-top:9px;font:500 19px/1 'JetBrains Mono',monospace;letter-spacing:-.02em;color:#F0796E;">7</div>
+              <div style="margin-top:6px;font:400 10.5px/1 'JetBrains Mono',monospace;color:#F0796E;">2 критических</div>
+            </div>
+          </div>
+
+          <div style="margin:0 24px 24px;border:1px solid #4C4356;border-radius:14px;background:#232028;overflow:hidden;">
+            <div style="display:grid;grid-template-columns:1.7fr 1fr 1fr 1fr .8fr;gap:0;padding:11px 14px;border-bottom:1px solid #4C4356;background:#2E2934;">
+              <span style="font:500 9.5px/1 'Inter',sans-serif;letter-spacing:.1em;color:#A297AD;text-transform:uppercase;">Показатель</span>
+              <span style="text-align:right;font:500 9.5px/1 'Inter',sans-serif;letter-spacing:.1em;color:#A297AD;text-transform:uppercase;">2023</span>
+              <span style="text-align:right;font:500 9.5px/1 'Inter',sans-serif;letter-spacing:.1em;color:#A297AD;text-transform:uppercase;">2024</span>
+              <span style="text-align:right;font:500 9.5px/1 'Inter',sans-serif;letter-spacing:.1em;color:#A297AD;text-transform:uppercase;">2025</span>
+              <span style="text-align:right;font:500 9.5px/1 'Inter',sans-serif;letter-spacing:.1em;color:#A297AD;text-transform:uppercase;">Δ CAGR</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1.7fr 1fr 1fr 1fr .8fr;padding:10px 14px;border-bottom:1px solid #262230;">
+              <span style="font:400 12px/1.3 'Inter',sans-serif;color:#EEDCFF;">Выручка</span>
+              <span style="text-align:right;font:400 12px/1.3 'JetBrains Mono',monospace;color:#EEDCFF;">1 512</span>
+              <span style="text-align:right;font:400 12px/1.3 'JetBrains Mono',monospace;color:#EEDCFF;">1 704</span>
+              <span style="text-align:right;font:400 12px/1.3 'JetBrains Mono',monospace;color:#EEDCFF;">1 842</span>
+              <span style="text-align:right;font:400 12px/1.3 'JetBrains Mono',monospace;color:#C77DFF;">+10.4%</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1.7fr 1fr 1fr 1fr .8fr;padding:10px 14px;border-bottom:1px solid #262230;">
+              <span style="font:400 12px/1.3 'Inter',sans-serif;color:#EEDCFF;">Валовая маржа</span>
+              <span style="text-align:right;font:400 12px/1.3 'JetBrains Mono',monospace;color:#EEDCFF;">24.1%</span>
+              <span style="text-align:right;font:400 12px/1.3 'JetBrains Mono',monospace;color:#EEDCFF;">22.8%</span>
+              <span style="text-align:right;font:400 12px/1.3 'JetBrains Mono',monospace;color:#EEDCFF;">21.4%</span>
+              <span style="text-align:right;font:400 12px/1.3 'JetBrains Mono',monospace;color:#F0796E;">(−2.7 п.п.)</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1.7fr 1fr 1fr 1fr .8fr;padding:10px 14px;border-bottom:1px solid #262230;">
+              <span style="font:400 12px/1.3 'Inter',sans-serif;color:#EEDCFF;">Оборотный капитал</span>
+              <span style="text-align:right;font:400 12px/1.3 'JetBrains Mono',monospace;color:#EEDCFF;">188</span>
+              <span style="text-align:right;font:400 12px/1.3 'JetBrains Mono',monospace;color:#EEDCFF;">241</span>
+              <span style="text-align:right;font:400 12px/1.3 'JetBrains Mono',monospace;color:#EEDCFF;">318</span>
+              <span style="text-align:right;font:400 12px/1.3 'JetBrains Mono',monospace;color:#E0A23A;">+30.1%</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1.7fr 1fr 1fr 1fr .8fr;padding:11px 14px;background:rgba(199,125,255,.09);">
+              <span style="font:600 12px/1.3 'Inter',sans-serif;color:#EEDCFF;">EBITDA нормализованная</span>
+              <span style="text-align:right;font:500 12px/1.3 'JetBrains Mono',monospace;color:#C77DFF;">221</span>
+              <span style="text-align:right;font:500 12px/1.3 'JetBrains Mono',monospace;color:#C77DFF;">248</span>
+              <span style="text-align:right;font:500 12px/1.3 'JetBrains Mono',monospace;color:#C77DFF;">268</span>
+              <span style="text-align:right;font:500 12px/1.3 'JetBrains Mono',monospace;color:#C77DFF;">+10.1%</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="padding:18px 24px;background:#F0EAF7;border-top:1px solid #DED2EC;">
+          <div style="font:500 9.5px/1 'Inter',sans-serif;letter-spacing:.11em;color:#756884;text-transform:uppercase;margin-bottom:12px;">Светлая тема — тот же экран</div>
+          <div style="display:flex;gap:12px;align-items:stretch;">
+            <div style="flex:1;padding:14px;border:1px solid #DED2EC;border-radius:14px;background:#FFFFFF;box-shadow:0 10px 26px -18px rgba(40,20,60,.2);">
+              <div style="font:500 9.5px/1 'Inter',sans-serif;letter-spacing:.1em;color:#756884;text-transform:uppercase;">Индекс сделки</div>
+              <div style="display:flex;align-items:baseline;gap:5px;margin:9px 0 10px;"><span style="font:600 30px/1 'JetBrains Mono',monospace;letter-spacing:-.03em;color:#7A2BC4;">72</span><span style="font:400 12px/1 'JetBrains Mono',monospace;color:#9C8FB5;">/100</span></div>
+              <div style="height:6px;border-radius:3px;background:#E8DEF4;overflow:hidden;"><div style="width:72%;height:100%;background:#C77DFF;"></div></div>
+            </div>
+            <div style="flex:1;padding:14px;border:1px solid #DED2EC;border-radius:14px;background:#FFFFFF;box-shadow:0 10px 26px -18px rgba(40,20,60,.2);">
+              <div style="font:500 9.5px/1 'Inter',sans-serif;letter-spacing:.1em;color:#756884;text-transform:uppercase;">Вердикт</div>
+              <div style="margin-top:9px;font:500 17px/1.15 'Satoshi','Inter',sans-serif;letter-spacing:-.02em;color:#1B1523;">Покупать с дисконтом</div>
+              <div style="margin-top:8px;font:400 11px/1.4 'Inter',sans-serif;color:#4E4459;">Заливка кнопок остаётся #C77DFF, текст и ссылки — Deep Violet #7A2BC4.</div>
+            </div>
+            <div style="flex:none;width:190px;display:flex;flex-direction:column;gap:8px;justify-content:center;">
+              <button style="height:34px;border:0;border-radius:4px;background:#C77DFF;color:#17061F;font:600 12px/1 'Inter',sans-serif;cursor:pointer;">Сформировать отчёт</button>
+              <button style="height:34px;border:1.5px solid #C2B0D6;border-radius:4px;background:transparent;color:#1B1523;font:500 12px/1 'Inter',sans-serif;cursor:pointer;">Сравнить с отраслью</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="padding:18px 24px 20px;background:#FFFFFF;border-top:1px solid rgba(0,0,0,.07);">
+          <div style="font:500 9.5px/1 'Inter',sans-serif;letter-spacing:.11em;color:#756884;text-transform:uppercase;margin-bottom:10px;">Палитра · тёмная</div>
+          <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin-bottom:16px;">
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#000000;border:1px solid rgba(0,0,0,.12);"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#000000</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#232028;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#232028</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#2E2934;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#2E2934</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#453D4E;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#453D4E</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#6B5F78;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#6B5F78</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#EEDCFF;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#EEDCFF</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#C77DFF;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#C77DFF</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#F0796E;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#F0796E</div></div>
+          </div>
+          <div style="font:500 9.5px/1 'Inter',sans-serif;letter-spacing:.11em;color:#756884;text-transform:uppercase;margin-bottom:10px;">Палитра · светлая</div>
+          <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:8px;">
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#F0EAF7;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#F0EAF7</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#FFFFFF;border:1px solid rgba(0,0,0,.1);"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#FFFFFF</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#E8DEF4;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#E8DEF4</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#DED2EC;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#DED2EC</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#756884;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#756884</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#1B1523;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#1B1523</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#7A2BC4;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#7A2BC4</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#C0473B;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#C0473B</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 1b ДОСЬЕ ============ -->
+    <div class="dv-opt" id="1b" data-screen-label="1b Досье">
+      <div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Досье — рабочий документ: каждая цифра со ссылкой на источник</div>
+      <div class="dv-card" style="width:900px;">
+
+        <div style="background:#07060A;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid #332D3F;background:#16141C;">
+            <div style="display:flex;align-items:center;gap:14px;min-width:0;">
+              <div style="width:30px;height:30px;flex:none;"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="30px,30px"></dc-import></div>
+              <div style="min-width:0;">
+                <div style="font:500 9.5px/1 'JetBrains Mono',monospace;letter-spacing:.1em;color:#C77DFF;">ДЕЛО № A-2417 · DUE DILIGENCE</div>
+                <div style="margin-top:5px;font:500 20px/1.1 'Satoshi','Inter',sans-serif;letter-spacing:-.02em;color:#E6E0F0;">ООО «Сибтранс-Логистика»</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:18px;">
+              <div style="text-align:right;"><div style="font:500 9px/1 'Inter',sans-serif;letter-spacing:.1em;color:#6A6379;text-transform:uppercase;">Проверено</div><div style="margin-top:5px;font:500 13px/1 'JetBrains Mono',monospace;color:#E6E0F0;">18 / 24</div></div>
+              <div style="text-align:right;"><div style="font:500 9px/1 'Inter',sans-serif;letter-spacing:.1em;color:#6A6379;text-transform:uppercase;">Расхождений</div><div style="margin-top:5px;font:500 13px/1 'JetBrains Mono',monospace;color:#F0796E;">3</div></div>
+              <button style="height:32px;padding:0 15px;border:0;border-radius:4px;background:#C77DFF;color:#17061F;font:600 11.5px/1 'Inter',sans-serif;cursor:pointer;" style-hover="background:#D69AFF;">Заключение</button>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:stretch;">
+            <div style="flex:none;width:228px;padding:16px 0;border-right:1px solid #332D3F;background:#0B0910;">
+              <div style="padding:0 18px 12px;font:500 9px/1 'Inter',sans-serif;letter-spacing:.12em;color:#6A6379;text-transform:uppercase;">Разделы проверки</div>
+              <div style="display:flex;align-items:center;gap:10px;padding:10px 18px;background:#1F1C27;box-shadow:inset 2px 0 0 #C77DFF;">
+                <span style="font:500 10px/1 'JetBrains Mono',monospace;color:#C77DFF;">01</span>
+                <span style="flex:1;font:500 12px/1.2 'Inter',sans-serif;color:#E6E0F0;">Отчётность</span>
+                <span style="width:6px;height:6px;border-radius:50%;background:#C77DFF;"></span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;padding:10px 18px;">
+                <span style="font:500 10px/1 'JetBrains Mono',monospace;color:#6A6379;">02</span>
+                <span style="flex:1;font:400 12px/1.2 'Inter',sans-serif;color:#9A93A8;">Сверка с банком</span>
+                <span style="width:6px;height:6px;border-radius:50%;background:#F0796E;"></span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;padding:10px 18px;">
+                <span style="font:500 10px/1 'JetBrains Mono',monospace;color:#6A6379;">03</span>
+                <span style="flex:1;font:400 12px/1.2 'Inter',sans-serif;color:#9A93A8;">Качество прибыли</span>
+                <span style="width:6px;height:6px;border-radius:50%;background:#C77DFF;"></span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;padding:10px 18px;">
+                <span style="font:500 10px/1 'JetBrains Mono',monospace;color:#6A6379;">04</span>
+                <span style="flex:1;font:400 12px/1.2 'Inter',sans-serif;color:#9A93A8;">Обязательства и залоги</span>
+                <span style="width:6px;height:6px;border-radius:50%;background:#E0A23A;"></span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;padding:10px 18px;">
+                <span style="font:500 10px/1 'JetBrains Mono',monospace;color:#6A6379;">05</span>
+                <span style="flex:1;font:400 12px/1.2 'Inter',sans-serif;color:#9A93A8;">Связанные стороны</span>
+                <span style="width:6px;height:6px;border-radius:50%;background:#4A4257;"></span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;padding:10px 18px;">
+                <span style="font:500 10px/1 'JetBrains Mono',monospace;color:#6A6379;">06</span>
+                <span style="flex:1;font:400 12px/1.2 'Inter',sans-serif;color:#9A93A8;">Оценка стоимости</span>
+                <span style="width:6px;height:6px;border-radius:50%;background:#4A4257;"></span>
+              </div>
+              <div style="margin:14px 18px 0;padding-top:14px;border-top:1px solid #332D3F;font:400 10.5px/1.5 'Inter',sans-serif;color:#6A6379;">Точка внимания в разделе 02: выписка не покрывает декабрь 2025.</div>
+            </div>
+
+            <div style="flex:1;min-width:0;padding:16px 22px 20px;">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px;">
+                <div style="font:500 15px/1.2 'Satoshi','Inter',sans-serif;letter-spacing:-.02em;color:#E6E0F0;">01 · Отчётность приведена к аналитическому виду</div>
+                <span style="font:400 10px/1 'JetBrains Mono',monospace;color:#6A6379;">млн ₽</span>
+              </div>
+              <div style="font:400 11.5px/1.5 'Inter',sans-serif;color:#9A93A8;max-width:520px;">Каждая строка кликабельна до исходной формы. Расхождения не прячутся в тултипах — они в самой строке.</div>
+
+              <div style="margin-top:16px;border-top:1px solid #332D3F;">
+                <div style="display:grid;grid-template-columns:1.5fr .7fr .7fr 1.1fr .8fr;gap:0;padding:9px 0;border-bottom:1px solid #1F1C27;">
+                  <span style="font:500 9px/1 'Inter',sans-serif;letter-spacing:.11em;color:#6A6379;text-transform:uppercase;">Строка</span>
+                  <span style="text-align:right;font:500 9px/1 'Inter',sans-serif;letter-spacing:.11em;color:#6A6379;text-transform:uppercase;">Отчёт</span>
+                  <span style="text-align:right;font:500 9px/1 'Inter',sans-serif;letter-spacing:.11em;color:#6A6379;text-transform:uppercase;">Проверка</span>
+                  <span style="text-align:right;font:500 9px/1 'Inter',sans-serif;letter-spacing:.11em;color:#6A6379;text-transform:uppercase;">Источник</span>
+                  <span style="text-align:right;font:500 9px/1 'Inter',sans-serif;letter-spacing:.11em;color:#6A6379;text-transform:uppercase;">Статус</span>
+                </div>
+                <div style="display:grid;grid-template-columns:1.5fr .7fr .7fr 1.1fr .8fr;padding:11px 0;border-bottom:1px solid #1F1C27;align-items:center;">
+                  <span style="font:400 12px/1.3 'Inter',sans-serif;color:#E6E0F0;">Выручка</span>
+                  <span style="text-align:right;font:400 12px/1.3 'JetBrains Mono',monospace;color:#E6E0F0;">1 842</span>
+                  <span style="text-align:right;font:400 12px/1.3 'JetBrains Mono',monospace;color:#E6E0F0;">1 842</span>
+                  <span style="text-align:right;font:400 10.5px/1.3 'JetBrains Mono',monospace;color:#9A93A8;">Ф.2 стр. 2110</span>
+                  <span style="text-align:right;"><span style="display:inline-block;padding:3px 8px;border-radius:999px;background:rgba(199,125,255,.15);border:1px solid rgba(199,125,255,.34);font:500 9.5px/1.3 'JetBrains Mono',monospace;color:#C77DFF;">сходится</span></span>
+                </div>
+                <div style="display:grid;grid-template-columns:1.5fr .7fr .7fr 1.1fr .8fr;padding:11px 0;border-bottom:1px solid #1F1C27;align-items:center;">
+                  <span style="font:400 12px/1.3 'Inter',sans-serif;color:#E6E0F0;">Прочие доходы</span>
+                  <span style="text-align:right;font:400 12px/1.3 'JetBrains Mono',monospace;color:#E6E0F0;">61</span>
+                  <span style="text-align:right;font:400 12px/1.3 'JetBrains Mono',monospace;color:#F0796E;">19</span>
+                  <span style="text-align:right;font:400 10.5px/1.3 'JetBrains Mono',monospace;color:#9A93A8;">выписка · 11 мес</span>
+                  <span style="text-align:right;"><span style="display:inline-block;padding:3px 8px;border-radius:999px;background:rgba(240,121,110,.15);border:1px solid rgba(240,121,110,.34);font:500 9.5px/1.3 'JetBrains Mono',monospace;color:#F0796E;">−42</span></span>
+                </div>
+                <div style="display:grid;grid-template-columns:1.5fr .7fr .7fr 1.1fr .8fr;padding:11px 0;border-bottom:1px solid #1F1C27;align-items:center;">
+                  <span style="font:400 12px/1.3 'Inter',sans-serif;color:#E6E0F0;">Дебиторская задолженность</span>
+                  <span style="text-align:right;font:400 12px/1.3 'JetBrains Mono',monospace;color:#E6E0F0;">402</span>
+                  <span style="text-align:right;font:400 12px/1.3 'JetBrains Mono',monospace;color:#E6E0F0;">402</span>
+                  <span style="text-align:right;font:400 10.5px/1.3 'JetBrains Mono',monospace;color:#9A93A8;">Ф.1 стр. 1230</span>
+                  <span style="text-align:right;"><span style="display:inline-block;padding:3px 8px;border-radius:999px;background:rgba(224,162,58,.16);border:1px solid rgba(224,162,58,.32);font:500 9.5px/1.3 'JetBrains Mono',monospace;color:#E0A23A;">концентр.</span></span>
+                </div>
+                <div style="display:grid;grid-template-columns:1.5fr .7fr .7fr 1.1fr .8fr;padding:11px 0;border-bottom:1px solid #1F1C27;align-items:center;">
+                  <span style="font:400 12px/1.3 'Inter',sans-serif;color:#E6E0F0;">Кредиты и займы</span>
+                  <span style="text-align:right;font:400 12px/1.3 'JetBrains Mono',monospace;color:#E6E0F0;">831</span>
+                  <span style="text-align:right;font:400 12px/1.3 'JetBrains Mono',monospace;color:#E6E0F0;">831</span>
+                  <span style="text-align:right;font:400 10.5px/1.3 'JetBrains Mono',monospace;color:#9A93A8;">Ф.1 стр. 1410</span>
+                  <span style="text-align:right;"><span style="display:inline-block;padding:3px 8px;border-radius:999px;background:rgba(199,125,255,.15);border:1px solid rgba(199,125,255,.34);font:500 9.5px/1.3 'JetBrains Mono',monospace;color:#C77DFF;">сходится</span></span>
+                </div>
+                <div style="display:grid;grid-template-columns:1.5fr .7fr .7fr 1.1fr .8fr;padding:12px 0;align-items:center;background:rgba(199,125,255,.07);">
+                  <span style="font:600 12px/1.3 'Inter',sans-serif;color:#E6E0F0;">EBITDA после нормализации</span>
+                  <span style="text-align:right;font:500 12px/1.3 'JetBrains Mono',monospace;color:#9A93A8;">292</span>
+                  <span style="text-align:right;font:500 12px/1.3 'JetBrains Mono',monospace;color:#C77DFF;">268</span>
+                  <span style="text-align:right;font:400 10.5px/1.3 'JetBrains Mono',monospace;color:#9A93A8;">расчёт · 4 корр.</span>
+                  <span style="text-align:right;font:500 10.5px/1.3 'JetBrains Mono',monospace;color:#C77DFF;">−8.2%</span>
+                </div>
+              </div>
+
+              <div style="display:flex;align-items:center;gap:9px;margin-top:16px;">
+                <button style="height:32px;padding:0 14px;border:0;border-radius:4px;background:#C77DFF;color:#17061F;font:600 11.5px/1 'Inter',sans-serif;cursor:pointer;" style-hover="background:#D69AFF;">Подтвердить раздел</button>
+                <button style="height:32px;padding:0 14px;border:1px solid #4A4257;border-radius:4px;background:transparent;color:#E6E0F0;font:500 11.5px/1 'Inter',sans-serif;cursor:pointer;" style-hover="border-color:#C77DFF;">Запросить документ</button>
+                <button style="height:32px;padding:0 14px;border:1px solid rgba(240,121,110,.34);border-radius:4px;background:rgba(240,121,110,.12);color:#F0796E;font:500 11.5px/1 'Inter',sans-serif;cursor:pointer;">Отметить расхождение</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="padding:18px 22px;background:#F6F4F0;border-top:1px solid #DFDAD1;">
+          <div style="font:500 9.5px/1 'Inter',sans-serif;letter-spacing:.11em;color:#7C7466;text-transform:uppercase;margin-bottom:12px;">Светлая тема — бумага дела</div>
+          <div style="display:flex;gap:12px;">
+            <div style="flex:1;padding:15px;background:#FFFFFF;border:1px solid #DFDAD1;border-radius:14px;box-shadow:0 10px 26px -20px rgba(30,24,16,.25);">
+              <div style="font:500 9.5px/1 'JetBrains Mono',monospace;letter-spacing:.1em;color:#7A2BC4;">РАЗДЕЛ 02 · СВЕРКА</div>
+              <div style="margin-top:9px;font:500 16px/1.2 'Satoshi','Inter',sans-serif;letter-spacing:-.02em;color:#17141C;">Расхождение 42 млн ₽</div>
+              <div style="margin-top:8px;font:400 11px/1.5 'Inter',sans-serif;color:#5A5364;">Прочие доходы не подтверждены выпиской за декабрь. Влияние на EBITDA: −8.2%.</div>
+            </div>
+            <div style="flex:1;padding:15px;background:#FFFFFF;border:1px solid #DFDAD1;border-radius:14px;box-shadow:0 10px 26px -20px rgba(30,24,16,.25);">
+              <div style="font:500 9.5px/1 'Inter',sans-serif;letter-spacing:.1em;color:#7C7466;text-transform:uppercase;">Прогресс дела</div>
+              <div style="display:flex;align-items:baseline;gap:6px;margin:9px 0 10px;"><span style="font:600 26px/1 'JetBrains Mono',monospace;letter-spacing:-.03em;color:#17141C;">18</span><span style="font:400 12px/1 'JetBrains Mono',monospace;color:#8C8478;">/ 24 процедуры</span></div>
+              <div style="height:6px;border-radius:3px;background:#E7E3DC;overflow:hidden;"><div style="width:75%;height:100%;background:#C77DFF;"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="padding:18px 22px 20px;background:#FFFFFF;border-top:1px solid rgba(0,0,0,.07);">
+          <div style="font:500 9.5px/1 'Inter',sans-serif;letter-spacing:.11em;color:#756884;text-transform:uppercase;margin-bottom:10px;">Палитра · тёмная (чернильный индиго)</div>
+          <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin-bottom:16px;">
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#07060A;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#07060A</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#16141C;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#16141C</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#1F1C27;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#1F1C27</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#2C2738;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#2C2738</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#4A4257;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#4A4257</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#E6E0F0;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#E6E0F0</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#C77DFF;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#C77DFF</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#E0A23A;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#E0A23A</div></div>
+          </div>
+          <div style="font:500 9.5px/1 'Inter',sans-serif;letter-spacing:.11em;color:#756884;text-transform:uppercase;margin-bottom:10px;">Палитра · светлая (бумага)</div>
+          <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:8px;">
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#F6F4F0;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#F6F4F0</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#FFFFFF;border:1px solid rgba(0,0,0,.1);"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#FFFFFF</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#F1EFEA;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#F1EFEA</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#DFDAD1;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#DFDAD1</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#7C7466;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#7C7466</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#17141C;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#17141C</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#7A2BC4;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#7A2BC4</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#B07A12;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#B07A12</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 1c СКАНЕР ============ -->
+    <div class="dv-opt" id="1c" data-screen-label="1c Сканер">
+      <div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Сканер — отчётность «просвечивается», риск светится</div>
+      <div class="dv-card" style="width:900px;">
+
+        <div style="background:#000000;">
+          <div style="display:flex;align-items:center;justify-content:space-between;height:48px;padding:0 20px;background:#0E0B14;border-bottom:1px solid #2B2140;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:22px;height:22px;flex:none;"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="22px,22px"></dc-import></div>
+              <span style="font:600 10.5px/1 'Inter',sans-serif;letter-spacing:.16em;color:#F2E8FF;text-transform:uppercase;">Финанс&nbsp;Аудит</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:rgba(199,125,255,.14);border:1px solid rgba(199,125,255,.36);font:500 9.5px/1 'JetBrains Mono',monospace;color:#C77DFF;"><span style="width:5px;height:5px;border-radius:50%;background:#C77DFF;animation:fa-pulse 1.6s ease-in-out infinite;"></span>СКАН ЗАВЕРШЁН · 04:12</span>
+              <span style="font:400 9.5px/1 'JetBrains Mono',monospace;color:#6A5C86;">3 года · 36 периодов</span>
+            </div>
+          </div>
+
+          <div style="position:relative;display:flex;align-items:center;gap:26px;padding:24px 20px 22px;background:radial-gradient(ellipse 70% 90% at 18% 45%, rgba(199,125,255,.16) 0%, rgba(123,63,228,.06) 42%, transparent 74%);overflow:hidden;">
+            <div style="position:absolute;left:0;right:0;top:0;height:70px;background:linear-gradient(to bottom,transparent,rgba(199,125,255,.10),transparent);animation:fa-scan 7s linear infinite;pointer-events:none;"></div>
+            <div style="flex:none;width:148px;height:148px;"><dc-import name="Cube Hero (Audit)" backdrop="transparent" style="width:100%;height:100%" hint-size="148px,148px"></dc-import></div>
+            <div style="flex:1;min-width:0;">
+              <div style="font:500 9.5px/1 'Inter',sans-serif;letter-spacing:.14em;color:#C77DFF;text-transform:uppercase;">Просвечено 24 процедуры</div>
+              <div style="margin-top:11px;font:500 30px/1.08 'Satoshi','Inter',sans-serif;letter-spacing:-.028em;color:#F2E8FF;">7 красных флагов, 2 критических</div>
+              <div style="margin-top:14px;height:8px;border-radius:4px;background:#171122;overflow:hidden;display:flex;">
+                <div style="width:46%;height:100%;background:#C77DFF;box-shadow:0 0 14px rgba(199,125,255,.8);"></div>
+                <div style="width:26%;height:100%;background:#E0A23A;"></div>
+                <div style="width:28%;height:100%;background:#F0796E;"></div>
+              </div>
+              <div style="display:flex;gap:18px;margin-top:9px;">
+                <span style="font:400 10px/1 'JetBrains Mono',monospace;color:#9C8FB5;">норма 46%</span>
+                <span style="font:400 10px/1 'JetBrains Mono',monospace;color:#E0A23A;">внимание 26%</span>
+                <span style="font:400 10px/1 'JetBrains Mono',monospace;color:#F0796E;">риск 28%</span>
+              </div>
+            </div>
+            <div style="flex:none;width:158px;padding:15px;border:1px solid #2B2140;border-radius:14px;background:rgba(14,11,20,.86);">
+              <div style="font:500 9px/1 'Inter',sans-serif;letter-spacing:.12em;color:#9C8FB5;text-transform:uppercase;">Дисконт к цене</div>
+              <div style="margin-top:10px;font:600 30px/1 'JetBrains Mono',monospace;letter-spacing:-.03em;color:#C77DFF;text-shadow:0 0 22px rgba(199,125,255,.55);">18%</div>
+              <div style="margin-top:9px;font:400 10.5px/1.45 'Inter',sans-serif;color:#9C8FB5;">Цена справедлива при 1 020 млн ₽ вместо 1 240 млн ₽.</div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid #2B2140;">
+            <div style="padding:18px 20px;border-right:1px solid #2B2140;">
+              <div style="font:500 9px/1 'Inter',sans-serif;letter-spacing:.12em;color:#9C8FB5;text-transform:uppercase;margin-bottom:14px;">Красные флаги по интенсивности</div>
+              <div style="display:flex;flex-direction:column;gap:12px;">
+                <div>
+                  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;"><span style="font:400 11.5px/1.3 'Inter',sans-serif;color:#F2E8FF;">Дебиторка: 30% на одного контрагента</span><span style="font:500 10px/1 'JetBrains Mono',monospace;color:#F0796E;">крит.</span></div>
+                  <div style="height:5px;border-radius:3px;background:#171122;overflow:hidden;"><div style="width:88%;height:100%;background:#F0796E;"></div></div>
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;"><span style="font:400 11.5px/1.3 'Inter',sans-serif;color:#F2E8FF;">Разрыв ОПУ и выписки — 42 млн ₽</span><span style="font:500 10px/1 'JetBrains Mono',monospace;color:#F0796E;">крит.</span></div>
+                  <div style="height:5px;border-radius:3px;background:#171122;overflow:hidden;"><div style="width:74%;height:100%;background:#F0796E;"></div></div>
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;"><span style="font:400 11.5px/1.3 'Inter',sans-serif;color:#F2E8FF;">Забалансовые поручительства 180 млн ₽</span><span style="font:500 10px/1 'JetBrains Mono',monospace;color:#E0A23A;">средн.</span></div>
+                  <div style="height:5px;border-radius:3px;background:#171122;overflow:hidden;"><div style="width:52%;height:100%;background:#E0A23A;"></div></div>
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;"><span style="font:400 11.5px/1.3 'Inter',sans-serif;color:#F2E8FF;">Смена аудитора дважды за 3 года</span><span style="font:500 10px/1 'JetBrains Mono',monospace;color:#9C8FB5;">низк.</span></div>
+                  <div style="height:5px;border-radius:3px;background:#171122;overflow:hidden;"><div style="width:28%;height:100%;background:#4B3A6E;"></div></div>
+                </div>
+              </div>
+            </div>
+
+            <div style="padding:18px 20px;">
+              <div style="font:500 9px/1 'Inter',sans-serif;letter-spacing:.12em;color:#9C8FB5;text-transform:uppercase;margin-bottom:14px;">Тепловая карта · маржа по кварталам</div>
+              <div style="display:grid;grid-template-columns:44px repeat(4,1fr);gap:5px;">
+                <span style="font:400 9.5px/1 'JetBrains Mono',monospace;color:#6A5C86;align-self:center;"></span>
+                <span style="text-align:center;font:400 9.5px/1 'JetBrains Mono',monospace;color:#6A5C86;">Q1</span>
+                <span style="text-align:center;font:400 9.5px/1 'JetBrains Mono',monospace;color:#6A5C86;">Q2</span>
+                <span style="text-align:center;font:400 9.5px/1 'JetBrains Mono',monospace;color:#6A5C86;">Q3</span>
+                <span style="text-align:center;font:400 9.5px/1 'JetBrains Mono',monospace;color:#6A5C86;">Q4</span>
+
+                <span style="font:400 9.5px/1 'JetBrains Mono',monospace;color:#9C8FB5;align-self:center;">2023</span>
+                <span style="padding:9px 0;text-align:center;border-radius:4px;background:rgba(199,125,255,.42);font:500 10.5px/1 'JetBrains Mono',monospace;color:#0C0714;">24.8</span>
+                <span style="padding:9px 0;text-align:center;border-radius:4px;background:rgba(199,125,255,.34);font:500 10.5px/1 'JetBrains Mono',monospace;color:#0C0714;">23.9</span>
+                <span style="padding:9px 0;text-align:center;border-radius:4px;background:rgba(199,125,255,.28);font:500 10.5px/1 'JetBrains Mono',monospace;color:#F2E8FF;">23.1</span>
+                <span style="padding:9px 0;text-align:center;border-radius:4px;background:rgba(199,125,255,.20);font:500 10.5px/1 'JetBrains Mono',monospace;color:#F2E8FF;">22.6</span>
+
+                <span style="font:400 9.5px/1 'JetBrains Mono',monospace;color:#9C8FB5;align-self:center;">2024</span>
+                <span style="padding:9px 0;text-align:center;border-radius:4px;background:rgba(199,125,255,.22);font:500 10.5px/1 'JetBrains Mono',monospace;color:#F2E8FF;">22.9</span>
+                <span style="padding:9px 0;text-align:center;border-radius:4px;background:rgba(199,125,255,.16);font:500 10.5px/1 'JetBrains Mono',monospace;color:#F2E8FF;">22.4</span>
+                <span style="padding:9px 0;text-align:center;border-radius:4px;background:rgba(224,162,58,.22);font:500 10.5px/1 'JetBrains Mono',monospace;color:#E0A23A;">21.8</span>
+                <span style="padding:9px 0;text-align:center;border-radius:4px;background:rgba(224,162,58,.28);font:500 10.5px/1 'JetBrains Mono',monospace;color:#E0A23A;">21.2</span>
+
+                <span style="font:400 9.5px/1 'JetBrains Mono',monospace;color:#9C8FB5;align-self:center;">2025</span>
+                <span style="padding:9px 0;text-align:center;border-radius:4px;background:rgba(224,162,58,.24);font:500 10.5px/1 'JetBrains Mono',monospace;color:#E0A23A;">21.6</span>
+                <span style="padding:9px 0;text-align:center;border-radius:4px;background:rgba(240,121,110,.20);font:500 10.5px/1 'JetBrains Mono',monospace;color:#F0796E;">20.4</span>
+                <span style="padding:9px 0;text-align:center;border-radius:4px;background:rgba(240,121,110,.28);font:500 10.5px/1 'JetBrains Mono',monospace;color:#F0796E;">19.8</span>
+                <span style="padding:9px 0;text-align:center;border-radius:4px;background:rgba(240,121,110,.36);font:500 10.5px/1 'JetBrains Mono',monospace;color:#F0796E;">19.1</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:9px;margin-top:16px;">
+                <button style="height:32px;padding:0 14px;border:0;border-radius:4px;background:#C77DFF;color:#17061F;font:600 11.5px/1 'Inter',sans-serif;cursor:pointer;box-shadow:0 0 18px rgba(199,125,255,.35);" style-hover="background:#D69AFF;">Открыть отчёт</button>
+                <button style="height:32px;padding:0 14px;border:1px solid #4B3A6E;border-radius:4px;background:transparent;color:#F2E8FF;font:500 11.5px/1 'Inter',sans-serif;cursor:pointer;" style-hover="border-color:#C77DFF;">Повторить скан</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="padding:18px 20px;background:#F2EDFA;border-top:1px solid #DED2EC;">
+          <div style="font:500 9.5px/1 'Inter',sans-serif;letter-spacing:.11em;color:#756884;text-transform:uppercase;margin-bottom:12px;">Светлая тема — свечение уходит, шкала остаётся</div>
+          <div style="display:flex;gap:12px;">
+            <div style="flex:1;padding:15px;background:#FFFFFF;border:1px solid #DED2EC;border-radius:14px;">
+              <div style="font:500 9.5px/1 'Inter',sans-serif;letter-spacing:.1em;color:#756884;text-transform:uppercase;">Профиль риска</div>
+              <div style="margin-top:11px;height:8px;border-radius:4px;overflow:hidden;display:flex;"><div style="width:46%;height:100%;background:#C77DFF;"></div><div style="width:26%;height:100%;background:#B07A12;"></div><div style="width:28%;height:100%;background:#C0473B;"></div></div>
+              <div style="margin-top:9px;font:400 11px/1.45 'Inter',sans-serif;color:#4E4459;">Тот же порядок: норма — внимание — риск. На светлой шкале янтарь и коралл затемняются до AA.</div>
+            </div>
+            <div style="flex:none;width:210px;padding:15px;background:#FFFFFF;border:1px solid #DED2EC;border-radius:14px;">
+              <div style="font:500 9.5px/1 'Inter',sans-serif;letter-spacing:.1em;color:#756884;text-transform:uppercase;">Дисконт</div>
+              <div style="margin-top:9px;font:600 26px/1 'JetBrains Mono',monospace;letter-spacing:-.03em;color:#7A2BC4;">18%</div>
+              <div style="margin-top:8px;font:400 10.5px/1.4 'Inter',sans-serif;color:#4E4459;">Свечение — только тёмная тема.</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="padding:18px 20px 20px;background:#FFFFFF;border-top:1px solid rgba(0,0,0,.07);">
+          <div style="font:500 9.5px/1 'Inter',sans-serif;letter-spacing:.11em;color:#756884;text-transform:uppercase;margin-bottom:10px;">Палитра · тёмная (почти монохром + неон)</div>
+          <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin-bottom:16px;">
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#000000;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#000000</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#0E0B14;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#0E0B14</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#171122;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#171122</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#241A38;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#241A38</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#4B3A6E;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#4B3A6E</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#F2E8FF;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#F2E8FF</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#C77DFF;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#C77DFF</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><div style="height:28px;border-radius:5px;background:#F0796E;"></div><div style="font:500 8.5px/1 'JetBrains Mono',monospace;color:#8A8296;">#F0796E</div></div>
+          </div>
+          <div style="font:500 9.5px/1 'Inter',sans-serif;letter-spacing:.11em;color:#756884;text-transform:uppercase;margin-bottom:10px;">Типографика (общая для всех трёх)</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;align-items:baseline;gap:14px;"><span style="flex:none;width:96px;font:500 9px/1 'JetBrains Mono',monospace;color:#9C8FB5;">display 30</span><span style="font:500 24px/1.1 'Satoshi','Inter',sans-serif;letter-spacing:-.025em;color:#1B1523;">Стоит ли покупать</span></div>
+            <div style="display:flex;align-items:baseline;gap:14px;"><span style="flex:none;width:96px;font:500 9px/1 'JetBrains Mono',monospace;color:#9C8FB5;">ui 12.5</span><span style="font:400 12.5px/1.5 'Inter',sans-serif;color:#4E4459;">Прибыль подтверждена выпиской на 11 из 12 месяцев.</span></div>
+            <div style="display:flex;align-items:baseline;gap:14px;"><span style="flex:none;width:96px;font:500 9px/1 'JetBrains Mono',monospace;color:#9C8FB5;">mono 13</span><span style="font:500 13px/1.3 'JetBrains Mono',monospace;color:#7A2BC4;">1 240 000 000 ₽ · 4.6× EBITDA</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <p class="dv-next">Дальше: «беру <a class="dv-oid" href="#1a">1a</a>, разверни в два экрана» · «смешай: главный жест из <a class="dv-oid" href="#1a">1a</a>, источники строк из <a class="dv-oid" href="#1b">1b</a>» · «<a class="dv-oid" href="#1c">1c</a>, но убрать свечение и оставить тепловую карту»</p>
+</section>
+
+</x-dc>
+</body>
+</html>

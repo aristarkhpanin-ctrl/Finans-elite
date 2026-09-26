@@ -2,20 +2,26 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getProject } from "../api/projects";
+import { MethodologyTab } from "./analysis/MethodologyTab";
 import { MonteCarloTab } from "./analysis/MonteCarloTab";
+import { ReviewTab } from "./analysis/ReviewTab";
 import { SensitivityTab } from "./analysis/SensitivityTab";
+import { VersionsTab } from "./analysis/VersionsTab";
 import { WhatIfTab } from "./analysis/WhatIfTab";
 
 const TABS = [
+  ["review", "Ревью плана", "находки и гейт"],
   ["sensitivity", "Чувствительность", "NPV к параметру"],
   ["montecarlo", "Монте-Карло", "распределение NPV"],
   ["whatif", "What-If", "сравнение сценариев"],
+  ["versions", "Версии", "снимки и изменения"],
+  ["methodology", "Методика", "трактовки расчёта"],
 ] as const;
 
 export function ProjectAnalysisPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<string>("sensitivity");
+  const [tab, setTab] = useState<string>("review");
   const projectQuery = useQuery({ queryKey: ["project", id], queryFn: () => getProject(id) });
   const name = projectQuery.data?.name ?? "";
 
@@ -64,9 +70,12 @@ export function ProjectAnalysisPage() {
         </div>
       </div>
 
+      {tab === "review" && <ReviewTab projectId={id} />}
       {tab === "sensitivity" && <SensitivityTab projectId={id} />}
       {tab === "montecarlo" && <MonteCarloTab projectId={id} />}
       {tab === "whatif" && <WhatIfTab projectId={id} />}
+      {tab === "versions" && <VersionsTab projectId={id} />}
+      {tab === "methodology" && <MethodologyTab projectId={id} />}
     </div>
   );
 }

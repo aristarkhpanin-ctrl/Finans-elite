@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Финанс — проверка отчётности и финансовые модели для сделок</title>
+<meta name="description" content="Две платформы одной семьи: «Финанс Аудит» проверяет, стоит ли покупать фирму, «Финанс-Элит» считает, стоит ли вкладывать в проект. 24 процедуры по отчётности, реестр красных флагов и справедливая цена.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script>
+  document.documentElement.classList.add('has-js');
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.documentElement.classList.add('reveal-armed');
+  }
+  try {
+    var t = localStorage.getItem('finans-theme');
+    if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  } catch (e) {}
+</script>
+<script src="js/main.js" defer></script>
+</head>
+<body>
+
+<a class="visually-hidden" href="#main">Перейти к содержанию</a>
+
+<header class="header" data-header>
+  <div class="container">
+    <div class="header__row">
+      <a class="logo" href="#main" aria-label="Финанс — на главную">
+        <span class="cube" aria-hidden="true" data-cube></span>
+        <span class="logo__text">Финанс</span>
+      </a>
+
+      <nav class="header__nav" id="main-nav" aria-label="Основная навигация">
+        <a class="header__nav-link" href="#products">Продукты</a>
+        <a class="header__nav-link" href="#how">Как работает</a>
+        <a class="header__nav-link" href="#pricing">Тарифы</a>
+        <a class="header__nav-link" href="#security">Безопасность</a>
+      </nav>
+
+      <div class="header__actions">
+        <div class="theme-switch" role="group" aria-label="Тема оформления">
+          <button class="theme-switch__button" type="button" data-theme-set="dark" aria-pressed="true">Тьма</button>
+          <button class="theme-switch__button" type="button" data-theme-set="light" aria-pressed="false">Свет</button>
+        </div>
+        <a class="button button--sm header__cta" href="#cta">Обсудить сделку</a>
+        <button class="header__burger" type="button" data-burger aria-expanded="false" aria-controls="main-nav" aria-label="Открыть меню">
+          <span class="header__burger-line"></span>
+          <span class="header__burger-line"></span>
+          <span class="header__burger-line"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="hero" id="products">
+    <span class="beam"></span>
+    <div class="container">
+      <div class="hero__grid">
+        <div class="hero__text">
+          <p class="eyebrow"><span class="eyebrow__dot"></span>Две платформы одной семьи</p>
+          <h1 class="hero__title">Решение о деньгах опирается на проверенную цифру</h1>
+          <p class="hero__lead">«Финанс-Элит» считает, стоит ли вкладывать в проект. «Финанс Аудит» проверяет, стоит ли покупать фирму. Одна модель данных, один язык отчётов, одна команда сопровождения.</p>
+          <div class="hero__actions">
+            <a class="button" href="#cta">Обсудить сделку</a>
+            <a class="button button--ghost" href="#showcase">Посмотреть отчёт-образец</a>
+          </div>
+          <p class="hero__note">Ответ по вашей отчётности — за один рабочий день. Без внедрения и обучения.</p>
+        </div>
+
+        <div class="hero__products">
+          <article class="product-card product-card--audit">
+            <span class="cube cube--md cube--violet" aria-hidden="true" data-cube data-cube-orbit></span>
+            <div class="product-card__body">
+              <p class="product-card__tag">Проверка</p>
+              <h2 class="product-card__name">Финанс Аудит</h2>
+              <p class="product-card__text">Выгодно ли покупать эту фирму. 24 процедуры по отчётности цели, реестр красных флагов, справедливая цена.</p>
+              <a class="product-card__link" href="#how">Разобрать сделку →</a>
+            </div>
+          </article>
+
+          <article class="product-card product-card--elite">
+            <span class="cube cube--md cube--green" aria-hidden="true" data-cube data-cube-orbit></span>
+            <div class="product-card__body">
+              <p class="product-card__tag">Модель</p>
+              <h2 class="product-card__name">Финанс-Элит</h2>
+              <p class="product-card__text">Выгодно ли вкладывать в этот проект. Финансовая модель, NPV и IRR, сценарии и анализ рисков.</p>
+              <a class="product-card__link" href="#how">Построить модель →</a>
+            </div>
+          </article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section pain" aria-labelledby="pain-title">
+    <div class="container">
+      <div class="section__head reveal">
+        <p class="section__eyebrow">01 · Цена непроверенной цифры</p>
+        <h2 class="section__title" id="pain-title">Что находится в отчётности, когда её начинают читать построчно</h2>
+        <p class="section__lead">Ниже — реальные находки одного дела: транспортная компания, три года отчётности, запрошенная цена 1 240 млн ₽. Ни одна из них не видна в форме 1 и форме 2 без сверки с первичными документами.</p>
+      </div>
+      <div class="pain__grid reveal">
+        <article class="card pain__item">
+          <p class="pain__value pain__value--bad">42 млн ₽</p>
+          <h3 class="pain__title">Доходы без подтверждения</h3>
+          <p class="pain__note">выписка покрыла 11 месяцев из 12</p>
+        </article>
+        <article class="card pain__item">
+          <p class="pain__value pain__value--bad">30%</p>
+          <h3 class="pain__title">Дебиторки на одном контрагенте</h3>
+          <p class="pain__note">просрочка 64 дня, залога нет</p>
+        </article>
+        <article class="card pain__item">
+          <p class="pain__value pain__value--warn">180 млн ₽</p>
+          <h3 class="pain__title">Забалансовые поручительства</h3>
+          <p class="pain__note">за связанную сторону, не раскрыты</p>
+        </article>
+        <article class="card pain__item">
+          <p class="pain__value pain__value--warn">−5.7 п.п.</p>
+          <h3 class="pain__title">Падение маржи за три года</h3>
+          <p class="pain__note">ускорилось в последнем году</p>
+        </article>
+      </div>
+      <p class="pain__summary reveal">Итог: справедливая цена 1 020 млн ₽ вместо 1 240 млн ₽. Дисконт 220 млн ₽ окупает проверку в четыреста раз.</p>
+    </div>
+  </section>
+
+  <section class="section section--alt steps" id="how" aria-labelledby="steps-title">
+    <div class="container">
+      <div class="section__head reveal">
+        <p class="section__eyebrow">02 · Как это работает</p>
+        <h2 class="section__title" id="steps-title">Три шага, ни одного внедрения</h2>
+      </div>
+      <ol class="steps__grid reveal">
+        <li class="card steps__item">
+          <p class="steps__num">1</p>
+          <h3 class="steps__title">Загрузите отчётность</h3>
+          <p class="steps__text">ИНН или файлы форм 1 и 2. Данные из ФНС подтягиваются автоматически, выписки и договоры — перетаскиванием.</p>
+          <p class="steps__meta">5 минут · без настройки</p>
+        </li>
+        <li class="card steps__item">
+          <p class="steps__num">2</p>
+          <h3 class="steps__title">Система просвечивает цифры</h3>
+          <p class="steps__text">24 процедуры: сверка с первичными документами, нормализация прибыли, обязательства и залоги, связанные стороны, оценка.</p>
+          <p class="steps__meta">около 6 минут</p>
+        </li>
+        <li class="card steps__item">
+          <p class="steps__num">3</p>
+          <h3 class="steps__title">Получаете вердикт и цену</h3>
+          <p class="steps__text">Реестр флагов с влиянием каждого на цену, справедливая стоимость и подписанное заключение на A4 для инвесткомитета.</p>
+          <p class="steps__meta">PDF и рабочее пространство</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section procedures" aria-labelledby="proc-title">
+    <div class="container">
+      <div class="section__head reveal">
+        <p class="section__eyebrow">03 · Что проверяет система</p>
+        <h2 class="section__title" id="proc-title">24 процедуры, шесть направлений</h2>
+        <p class="section__lead">Каждая процедура заканчивается статусом: сходится, расхождение, концентрация или нет данных. Незакрытые процедуры видны в заключении — мы не выдаём проверку за полную, если продавец не дал документы.</p>
+      </div>
+      <div class="procedures__grid reveal">
+        <article class="card procedures__item">
+          <div class="procedures__top">
+            <h3 class="procedures__name">Отчётность</h3>
+            <p class="procedures__count">4</p>
+          </div>
+          <ul class="procedures__list">
+            <li class="procedures__row"><span class="procedures__dot" aria-hidden="true"></span>Приведение форм к аналитическому виду</li>
+            <li class="procedures__row"><span class="procedures__dot" aria-hidden="true"></span>Сверка периодов и переносов</li>
+            <li class="procedures__row"><span class="procedures__dot" aria-hidden="true"></span>Контроль арифметики</li>
+            <li class="procedures__row"><span class="procedures__dot" aria-hidden="true"></span>Сопоставимость с прошлыми годами</li>
+          </ul>
+        </article>
+        <article class="card procedures__item">
+          <div class="procedures__top">
+            <h3 class="procedures__name">Сверка</h3>
+            <p class="procedures__count">5</p>
+          </div>
+          <ul class="procedures__list">
+            <li class="procedures__row"><span class="procedures__dot" aria-hidden="true"></span>Выручка против банковской выписки</li>
+            <li class="procedures__row"><span class="procedures__dot" aria-hidden="true"></span>Прочие доходы по первичке</li>
+            <li class="procedures__row"><span class="procedures__dot" aria-hidden="true"></span>Кассовые разрывы</li>
+            <li class="procedures__row"><span class="procedures__dot" aria-hidden="true"></span>Сверка расчётов с контрагентами</li>
+            <li class="procedures__row"><span class="procedures__dot" aria-hidden="true"></span>Контроль дат признания</li>
+          </ul>
+        </article>
+        <article class="card procedures__item">
+          <div class="procedures__top">
+            <h3 class="procedures__name">Качество прибыли</h3>
+            <p class="procedures__count">4</p>
+          </div>
+          <ul class="procedures__list">
+            <li class="procedures__row"><span class="procedures__dot" aria-hidden="true"></span>Разовые операции</li>
+            <li class="procedures__row"><span class="procedures__dot" aria-hidden="true"></span>Связанные стороны</li>
+            <li class="procedures__row"><span class="procedures__dot" aria-hidden="true"></span>Капитализация расходов</li>
+            <li class="procedures__row"><span class="procedures__dot" aria-hidden="true"></span>Изменения учётной политики</li>
+          </ul>
+        </article>
+        <article class="card procedures__item">
+          <div class="procedures__top">
+            <h3 class="procedures__name">Обязательства</h3>
+            <p class="procedures__count">4</p>
+          </div>
+          <ul class="procedures__list">
+            <li class="procedures__row"><span class="procedures__dot" aria-hidden="true"></span>Кредиты, залоги, ковенанты</li>
+            <li class="procedures__row"><span class="procedures__dot" aria-hidden="true"></span>Забалансовые поручительства</li>
+            <li class="procedures__row"><span class="procedures__dot" aria-hidden="true"></span>Аренда и её пересмотр</li>
+            <li class="procedures__row"><span class="procedures__dot" aria-hidden="true"></span>Судебные требования</li>
+          </ul>
+        </article>
+        <article class="card procedures__item">
+          <div class="procedures__top">
+            <h3 class="procedures__name">Оборотный капитал</h3>
+            <p class="procedures__count">3</p>
+          </div>
+          <ul class="procedures__list">
+            <li class="procedures__row"><span class="procedures__dot" aria-hidden="true"></span>Концентрация дебиторки</li>
+            <li class="procedures__row"><span class="procedures__dot" aria-hidden="true"></span>Оборачиваемость запасов</li>
+            <li class="procedures__row"><span class="procedures__dot" aria-hidden="true"></span>Нормализация рабочего капитала</li>
+          </ul>
+        </article>
+        <article class="card procedures__item">
+          <div class="procedures__top">
+            <h3 class="procedures__name">Оценка</h3>
+            <p class="procedures__count">4</p>
+          </div>
+          <ul class="procedures__list">
+            <li class="procedures__row"><span class="procedures__dot" aria-hidden="true"></span>DCF и три сценария</li>
+            <li class="procedures__row"><span class="procedures__dot" aria-hidden="true"></span>Мультипликаторы и сопоставимые сделки</li>
+            <li class="procedures__row"><span class="procedures__dot" aria-hidden="true"></span>Чувствительность к WACC и росту</li>
+            <li class="procedures__row"><span class="procedures__dot" aria-hidden="true"></span>Мост EV к цене за долю</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--alt showcase" id="showcase" aria-labelledby="shot-title">
+    <div class="container">
+      <div class="section__head reveal">
+        <p class="section__eyebrow">04 · Интерфейс</p>
+        <h2 class="section__title" id="shot-title">Отчёт, который читают, а не расшифровывают</h2>
+        <p class="section__lead">Каждая цифра в отчёте кликабельна до первичного документа: строка формы, банковская выписка, акт сверки. Расхождение видно в самой строке, а не в примечании на последней странице.</p>
+      </div>
+      <figure class="reveal">
+        <div class="showcase__frame">
+          <img class="showcase__image" src="img/screen-verdict.png" width="1157" height="1052" loading="lazy" decoding="async" alt="Экран риск-скана: вердикт по сделке, справедливая цена и список красных флагов">
+        </div>
+        <figcaption class="showcase__caption">Риск-скан: вердикт, справедливая цена и влияние каждого флага</figcaption>
+      </figure>
+      <div class="showcase__row reveal">
+        <figure>
+          <div class="showcase__frame">
+            <img class="showcase__image" src="img/screen-reconciliation.png" width="1157" height="700" loading="lazy" decoding="async" alt="Экран сверки: строки отчётности против проверенных значений и расхождения">
+          </div>
+          <figcaption class="showcase__caption">Сверка отчётности с первичными документами</figcaption>
+        </figure>
+        <figure>
+          <div class="showcase__frame">
+            <img class="showcase__image" src="img/screen-valuation.png" width="1157" height="1048" loading="lazy" decoding="async" alt="Экран оценки стоимости: расчёт справедливой цены и чувствительность к ставке дисконтирования">
+          </div>
+          <figcaption class="showcase__caption">Оценка: мост от EV к цене за долю</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="section stats" aria-label="Показатели платформы">
+    <div class="container">
+      <div class="stats__grid reveal">
+        <article class="card stats__item">
+          <p class="stats__value">24</p>
+          <p class="stats__label">процедуры в полном деле</p>
+        </article>
+        <article class="card stats__item">
+          <p class="stats__value">06:00</p>
+          <p class="stats__label">среднее время скана</p>
+        </article>
+        <article class="card stats__item">
+          <p class="stats__value">18%</p>
+          <p class="stats__label">средний дисконт к запрошенной цене</p>
+        </article>
+        <article class="card stats__item">
+          <p class="stats__value stats__value--green">2</p>
+          <p class="stats__label">платформы в одной модели данных</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--alt case" aria-labelledby="case-title">
+    <div class="container">
+      <div class="section__head reveal">
+        <p class="section__eyebrow">05 · Кейс сделки</p>
+        <h2 class="section__title" id="case-title">Покупка транспортной компании, август 2026</h2>
+      </div>
+      <div class="case__grid reveal">
+        <figure class="case__main">
+          <span class="beam"></span>
+          <div class="case__prices">
+            <div>
+              <p class="case__key">Запрошено продавцом</p>
+              <p class="case__ask">1 240 млн ₽</p>
+            </div>
+            <p class="case__arrow" aria-hidden="true">→</p>
+            <div>
+              <p class="case__key">Цена сделки</p>
+              <p class="case__final">1 020 млн ₽</p>
+            </div>
+          </div>
+          <blockquote class="case__quote">«Продавец показывал EBITDA 292 миллиона. После нормализации осталось 268 — и это была не придирка, а четыре подтверждённые корректировки. Мы вошли в переговоры с документом, а не с ощущением».</blockquote>
+          <figcaption class="case__author">Директор по развитию, инвестиционная группа · сделка закрыта за 19 дней</figcaption>
+        </figure>
+        <dl class="case__facts">
+          <div class="case__fact">
+            <dt class="case__fact-key">Отрасль</dt>
+            <dd class="case__fact-value">грузоперевозки</dd>
+          </div>
+          <div class="case__fact">
+            <dt class="case__fact-key">Выручка 2025</dt>
+            <dd class="case__fact-value">1 842 млн ₽</dd>
+          </div>
+          <div class="case__fact">
+            <dt class="case__fact-key">EBITDA заявленная</dt>
+            <dd class="case__fact-value">292 млн ₽</dd>
+          </div>
+          <div class="case__fact">
+            <dt class="case__fact-key">EBITDA после проверки</dt>
+            <dd class="case__fact-value case__fact-value--bad">268 млн ₽</dd>
+          </div>
+          <div class="case__fact">
+            <dt class="case__fact-key">Красных флагов</dt>
+            <dd class="case__fact-value case__fact-value--bad">7 · 2 критических</dd>
+          </div>
+          <div class="case__fact">
+            <dt class="case__fact-key">Экономия покупателя</dt>
+            <dd class="case__fact-value case__fact-value--accent">220 млн ₽</dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <section class="section pricing" id="pricing" aria-labelledby="price-title">
+    <div class="container">
+      <div class="section__head reveal">
+        <p class="section__eyebrow">06 · Тарифы</p>
+        <h2 class="section__title" id="price-title">Платите за дело, а не за места</h2>
+        <p class="section__lead">Черновик тарифной сетки — цифры согласуем перед публикацией.</p>
+      </div>
+      <div class="pricing__grid reveal">
+        <article class="pricing__plan">
+          
+          <h3 class="pricing__name">Разовое дело</h3>
+          <p class="pricing__price-row"><span class="pricing__price">45 000 ₽</span><span class="pricing__unit">за дело</span></p>
+          <p class="pricing__lead">Одна сделка, полная проверка, заключение на подпись.</p>
+          <ul class="pricing__list">
+            <li class="pricing__row"><span class="pricing__dot" aria-hidden="true"></span>24 процедуры</li>
+            <li class="pricing__row"><span class="pricing__dot" aria-hidden="true"></span>Реестр флагов и оценка</li>
+            <li class="pricing__row"><span class="pricing__dot" aria-hidden="true"></span>Заключение A4 и PDF</li>
+            <li class="pricing__row"><span class="pricing__dot" aria-hidden="true"></span>До 3 участников</li>
+          </ul>
+          <a class="button button--ghost button--wide pricing__action" href="#cta">Начать дело</a>
+        </article>
+        <article class="pricing__plan pricing__plan--featured">
+          <p class="pricing__badge">Чаще всего</p>
+          <h3 class="pricing__name">Команда</h3>
+          <p class="pricing__price-row"><span class="pricing__price">24 000 ₽</span><span class="pricing__unit">в месяц</span></p>
+          <p class="pricing__lead">Для тех, кто смотрит несколько целей в квартал.</p>
+          <ul class="pricing__list">
+            <li class="pricing__row"><span class="pricing__dot" aria-hidden="true"></span>10 дел в месяц</li>
+            <li class="pricing__row"><span class="pricing__dot" aria-hidden="true"></span>Обе платформы</li>
+            <li class="pricing__row"><span class="pricing__dot" aria-hidden="true"></span>Журнал доступа и роли</li>
+            <li class="pricing__row"><span class="pricing__dot" aria-hidden="true"></span>Сопровождение аналитика</li>
+          </ul>
+          <a class="button button--wide pricing__action" href="#cta">Обсудить сделку</a>
+        </article>
+        <article class="pricing__plan">
+          
+          <h3 class="pricing__name">Корпоративный</h3>
+          <p class="pricing__price-row"><span class="pricing__price">по запросу</span></p>
+          <p class="pricing__lead">Фонды, банки, консалтинг с собственным контуром.</p>
+          <ul class="pricing__list">
+            <li class="pricing__row"><span class="pricing__dot" aria-hidden="true"></span>Без лимита дел</li>
+            <li class="pricing__row"><span class="pricing__dot" aria-hidden="true"></span>Изолированный контур</li>
+            <li class="pricing__row"><span class="pricing__dot" aria-hidden="true"></span>Свой бланк заключения</li>
+            <li class="pricing__row"><span class="pricing__dot" aria-hidden="true"></span>Интеграция с учётной системой</li>
+          </ul>
+          <a class="button button--ghost button--wide pricing__action" href="#cta">Запросить условия</a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--alt security" id="security" aria-labelledby="sec-title">
+    <div class="container">
+      <div class="section__head reveal">
+        <p class="section__eyebrow">07 · Безопасность</p>
+        <h2 class="section__title" id="sec-title">Отчётность чужой компании — самые чувствительные данные в сделке</h2>
+      </div>
+      <div class="security__grid reveal">
+        <article class="card">
+          <h3 class="security__title">Данные хранятся в России</h3>
+          <p class="security__text">Инфраструктура и резервные копии в российских дата-центрах, обработка персональных данных по 152-ФЗ.</p>
+        </article>
+        <article class="card">
+          <h3 class="security__title">Дело видят только участники</h3>
+          <p class="security__text">Доступ выдаётся поимённо и отзывается в один клик. Каждое открытие документа фиксируется в журнале и хранится пять лет.</p>
+        </article>
+        <article class="card">
+          <h3 class="security__title">Шифрование в транзите и покое</h3>
+          <p class="security__text">TLS для передачи, шифрование хранилища, изоляция пространств разных организаций на уровне данных.</p>
+        </article>
+        <article class="card">
+          <h3 class="security__title">Никакого обучения на ваших делах</h3>
+          <p class="security__text">Отчётность и документы сделки не используются для моделей и не покидают ваше пространство.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section faq" aria-labelledby="faq-title">
+    <div class="container">
+      <div class="section__head reveal">
+        <p class="section__eyebrow">08 · Вопросы</p>
+        <h2 class="section__title" id="faq-title">Что спрашивают перед первым делом</h2>
+      </div>
+      <ul class="faq__list reveal" data-accordion>
+        <li class="faq__item" data-accordion-item>
+          <h3 class="faq__heading">
+            <button class="faq__question" type="button" data-accordion-toggle aria-expanded="false" aria-controls="faq-answer-1">
+              <span class="faq__q-text">Мы не отдаём отчётность цели третьим лицам. Как быть?</span>
+              <span class="faq__sign" aria-hidden="true"></span>
+            </button>
+          </h3>
+          <div class="faq__answer" id="faq-answer-1">Загрузка идёт в ваше пространство: доступ только у участников дела, каждое открытие фиксируется в журнале. Наша команда не видит содержимое дела, пока вы не откроете доступ явно. Для сделок с NDA формируем изолированный контур по запросу.</div>
+        </li>
+        <li class="faq__item" data-accordion-item>
+          <h3 class="faq__heading">
+            <button class="faq__question" type="button" data-accordion-toggle aria-expanded="false" aria-controls="faq-answer-2">
+              <span class="faq__q-text">Что делать, если продавец даёт неполные документы?</span>
+              <span class="faq__sign" aria-hidden="true"></span>
+            </button>
+          </h3>
+          <div class="faq__answer" id="faq-answer-2">Незакрытые процедуры остаются в заключении как незакрытые — с указанием, какого документа не хватает и как это влияет на цену. Это рабочий инструмент переговоров: пункт «нет данных» стоит денег и его можно предъявить.</div>
+        </li>
+        <li class="faq__item" data-accordion-item>
+          <h3 class="faq__heading">
+            <button class="faq__question" type="button" data-accordion-toggle aria-expanded="false" aria-controls="faq-answer-3">
+              <span class="faq__q-text">Чем это отличается от аудиторской проверки?</span>
+              <span class="faq__sign" aria-hidden="true"></span>
+            </button>
+          </h3>
+          <div class="faq__answer" id="faq-answer-3">Аудит подтверждает достоверность отчётности перед законом. Мы отвечаем на вопрос покупателя: сколько стоит эта компания с учётом того, что в отчётности искажено. Заключение не заменяет аудиторское, но принимается инвесткомитетами как основание для торга.</div>
+        </li>
+        <li class="faq__item" data-accordion-item>
+          <h3 class="faq__heading">
+            <button class="faq__question" type="button" data-accordion-toggle aria-expanded="false" aria-controls="faq-answer-4">
+              <span class="faq__q-text">Сколько времени занимает первое дело?</span>
+              <span class="faq__sign" aria-hidden="true"></span>
+            </button>
+          </h3>
+          <div class="faq__answer" id="faq-answer-4">Скан по загруженной отчётности — около шести минут. Полное дело с запросами документов у продавца — от трёх до девяти рабочих дней, в зависимости от того, как быстро приходят первичные документы.</div>
+        </li>
+        <li class="faq__item" data-accordion-item>
+          <h3 class="faq__heading">
+            <button class="faq__question" type="button" data-accordion-toggle aria-expanded="false" aria-controls="faq-answer-5">
+              <span class="faq__q-text">Можно ли работать с двумя платформами одновременно?</span>
+              <span class="faq__sign" aria-hidden="true"></span>
+            </button>
+          </h3>
+          <div class="faq__answer" id="faq-answer-5">Да, это типовой сценарий: «Финанс Аудит» проверяет фирму-цель, «Финанс-Элит» считает модель на три года вперёд уже по нормализованным цифрам. Данные передаются между платформами без повторного ввода.</div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="cta" id="cta" aria-labelledby="cta-title">
+    <span class="beam"></span>
+    <div class="container">
+      <div class="cta__grid">
+        <div class="cta__text">
+          <p class="eyebrow"><span class="eyebrow__dot"></span>Первый шаг</p>
+          <h2 class="cta__title" id="cta-title">Расскажите про сделку — вернёмся с планом проверки</h2>
+          <p class="cta__lead">Достаточно отрасли, размера выручки и срока. В ответ получите список процедур под вашу ситуацию, срок и стоимость. Без презентации и звонка «на 15 минут».</p>
+          <address class="cta__contacts">
+            <p class="cta__contact"><span class="cta__contact-key">Почта</span><a class="cta__contact-value" href="mailto:deals@finans.ru">deals@finans.ru</a></p>
+            <p class="cta__contact"><span class="cta__contact-key">Телефон</span><a class="cta__contact-value" href="tel:+74951204018">+7 495 120-40-18</a></p>
+            <p class="cta__contact"><span class="cta__contact-key">Офис</span><span class="cta__contact-value">Москва, Пресненская наб. 12</span></p>
+          </address>
+        </div>
+
+        <form class="form" data-form novalidate>
+          <p class="form__title">Обсудить сделку</p>
+
+          <div class="form__field" data-field>
+            <label class="form__label" for="field-name">Имя и компания</label>
+            <input class="form__input" id="field-name" name="name" type="text" required minlength="3" autocomplete="name" placeholder="Алексей Петров, Инвест-Партнёр">
+            <span class="form__error" data-error>Укажите имя и компанию — минимум три символа.</span>
+          </div>
+
+          <div class="form__field" data-field>
+            <label class="form__label" for="field-email">Рабочая почта</label>
+            <input class="form__input" id="field-email" name="email" type="email" required autocomplete="email" placeholder="a.petrov@company.ru">
+            <span class="form__error" data-error>Проверьте адрес: нужен рабочий e-mail вида name@company.ru.</span>
+          </div>
+
+          <div class="form__field" data-field>
+            <label class="form__label" for="field-deal">Что за сделка</label>
+            <textarea class="form__input form__input--area" id="field-deal" name="deal" required minlength="20" placeholder="Покупка транспортной компании, выручка ~1,8 млрд ₽, решение до конца квартала"></textarea>
+            <span class="form__error" data-error>Опишите сделку хотя бы одним предложением — так ответ будет по делу.</span>
+          </div>
+
+          <button class="button button--wide" type="submit">Отправить</button>
+          <p class="form__status" data-status role="status">Заявка ушла. Ответим в течение рабочего дня с планом проверки.</p>
+          <p class="form__note">Отвечаем в течение рабочего дня. Данные сделки не передаём третьим лицам.</p>
+        </form>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer__row">
+      <div class="footer__brand">
+        <a class="logo" href="#main" aria-label="Финанс — на главную">
+          <span class="cube" aria-hidden="true" data-cube></span>
+          <span class="logo__text">Финанс</span>
+        </a>
+        <p class="footer__note">Платформы финансового моделирования и проверки отчётности. Данные хранятся в РФ.</p>
+      </div>
+      <div class="footer__cols">
+        <nav class="footer__col" aria-label="Продукты">
+          <p class="footer__col-title">Продукты</p>
+          <a class="footer__link" href="#main">Финанс Аудит</a>
+          <a class="footer__link" href="#main">Финанс-Элит</a>
+          <a class="footer__link" href="#main">Тарифы</a>
+          <a class="footer__link" href="#main">Отчёт-образец</a>
+        </nav>
+        <nav class="footer__col" aria-label="Компания">
+          <p class="footer__col-title">Компания</p>
+          <a class="footer__link" href="#main">О платформе</a>
+          <a class="footer__link" href="#main">Кейсы</a>
+          <a class="footer__link" href="#main">Блог</a>
+          <a class="footer__link" href="#main">Вакансии</a>
+        </nav>
+        <nav class="footer__col" aria-label="Поддержка">
+          <p class="footer__col-title">Поддержка</p>
+          <a class="footer__link" href="#main">База знаний</a>
+          <a class="footer__link" href="#main">Статус сервиса</a>
+          <a class="footer__link" href="#main">Безопасность</a>
+          <a class="footer__link" href="#main">Связаться</a>
+        </nav>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <p class="footer__small">© 2026 Финанс. Все права защищены.</p>
+      <p class="footer__small">152-ФЗ · Политика обработки данных · Оферта</p>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

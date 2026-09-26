@@ -74,3 +74,73 @@ def test_opening_working_capital_participates_in_convergence():
     # та же дебиторка, уравновешенная капиталом, — сходится.
     good = StartingBalance(cash=D(1000), receivables=D(500), paid_in_capital=D(1500))
     assert _balanced(run(_model(good)))
+
+
+def test_opening_short_term_debt_is_carried_in_b22():
+    """Стартовый краткосрочный долг (400, уравновешен кассой 1000 и капиталом 600) несётся
+    в B22 постоянно (как долгосрочный долг в B26): авто-погашения нет, кассу не трогает."""
+    sb = StartingBalance(cash=D(1000), short_term_debt=D(400), paid_in_capital=D(600))
+    r = run(_model(sb))
+    assert [q(v) for v in r.balance["B22"]] == [D("400.00"), D("400.00")]   # несётся, не гасится
+    assert [q(v) for v in r.balance["B1"]] == [D("1000.00"), D("1000.00")]  # долг статичен — касса неизменна
+    assert [q(v) for v in r.balance["B25"]] == [D("400.00"), D("400.00")]   # входит в краткосрочные обязательства
+    assert _balanced(r)
+
+
+def test_opening_short_term_debt_participates_in_convergence():
+    """Краткосрочный долг участвует в проверке сходимости стартового баланса."""
+    # долг 400 без покрытия в активах (касса лишь 600) — разрыв.
+    bad = StartingBalance(cash=D(600), short_term_debt=D(400), paid_in_capital=D(600))
+    with pytest.raises(ModelError):
+        run(_model(bad))
+    # тот же долг, покрытый кассой, — сходится.
+    good = StartingBalance(cash=D(1000), short_term_debt=D(400), paid_in_capital=D(600))
+    assert _balanced(run(_model(good)))
+
+
+def test_opening_equity_structure_is_carried():
+    """Полная стартовая структура капитала: привилегированные акции (B28), резервы (B30),
+    добавочный капитал (B31) — несутся постоянно и входят в собственный капитал B33."""
+    sb = StartingBalance(cash=D(1000), paid_in_capital=D(400), preferred_capital=D(200),
+                         reserves=D(150), additional_capital=D(250))
+    r = run(_model(sb))
+    assert [q(v) for v in r.balance["B28"]] == [D("200.00"), D("200.00")]
+    assert [q(v) for v in r.balance["B30"]] == [D("150.00"), D("150.00")]
+    assert [q(v) for v in r.balance["B31"]] == [D("250.00"), D("250.00")]
+    # собственный капитал = 400 + 200 + 150 + 250 = 1000
+    assert [q(v) for v in r.balance["B33"]] == [D("1000.00"), D("1000.00")]
+    assert _balanced(r)
+
+
+def test_opening_equity_participates_in_convergence():
+    """Стартовые резервы/капитал участвуют в проверке сходимости."""
+    bad = StartingBalance(cash=D(500), reserves=D(200), paid_in_capital=D(500))
+    with pytest.raises(ModelError):
+        run(_model(bad))
+    good = StartingBalance(cash=D(700), reserves=D(200), paid_in_capital=D(500))
+    assert _balanced(run(_model(good)))
+
+
+def test_opening_advances_are_static_standing_level():
+    """Стартовые авансы — поддерживаемый уровень (как запасы): полученный аванс → B24 (пассив),
+    выданный аванс/предоплата → B7 (актив); постоянны, денежного потока не создают.
+
+    Предоплата 300 (актив) уравновешена полученным авансом 300 (пассив), касса 0.
+    """
+    sb = StartingBalance(prepaid_expenses=D(300), advances_received=D(300))
+    r = run(_model(sb))
+    assert [q(v) for v in r.balance["B7"]] == [D("300.00"), D("300.00")]    # предоплата статична
+    assert [q(v) for v in r.balance["B24"]] == [D("300.00"), D("300.00")]   # полученный аванс статичен
+    assert all(v == 0 for v in r.balance["B1"])   # касса не тронута (авансы не создают потока)
+    assert _balanced(r)
+
+
+def test_opening_advances_participate_in_convergence():
+    """Полученный аванс (пассив) без покрытия активом — разрыв стартового баланса."""
+    bad = StartingBalance(cash=D(1000), advances_received=D(300), paid_in_capital=D(1000))
+    with pytest.raises(ModelError):
+        run(_model(bad))
+    # уравновешен встречной предоплатой (актив) — сходится.
+    good = StartingBalance(cash=D(1000), prepaid_expenses=D(300), advances_received=D(300),
+                           paid_in_capital=D(1000))
+    assert _balanced(run(_model(good)))
