@@ -83,7 +83,9 @@ def test_dry_run_changes_nothing_and_leaves_no_trace(client, register, db_sessio
 def test_every_run_leaves_a_trace_even_when_there_was_nothing_to_do(db_session):
     """«Проверили — просроченных нет» — тоже ответ. Без следа он неотличим от «не
     запускались», а это ровно то, что экран готовности должен различать."""
-    assert scheduler.last_runs(db_session) == {"expire": None}      # ни разу — не ноль
+    runs = scheduler.last_runs(db_session)
+    assert set(runs) == set(scheduler.TASKS)                        # каждая задача названа
+    assert all(moment is None for moment in runs.values())          # ни разу — не ноль
     scheduler.expire_overdue(db_session, datetime.now(timezone.utc))
     assert scheduler.last_runs(db_session)["expire"] is not None
     entry = crud.list_staff_log(db_session, limit=1)[0]

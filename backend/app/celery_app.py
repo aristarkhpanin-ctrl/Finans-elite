@@ -43,5 +43,12 @@ celery_app.conf.update(
             "task": "scheduler.expire_subscriptions",
             "schedule": crontab(hour=3, minute=10),
         },
+        # Письма о деньгах — после ночной сверки и к началу рабочего дня по Москве
+        # (06:00 UTC = 09:00 МСК): письмо о закрытии записи, пришедшее ночью, прочли бы
+        # утром, уже упёршись в закрытую запись.
+        "billing-reminders": {
+            "task": "scheduler.billing_reminders",
+            "schedule": crontab(hour=6, minute=0),
+        },
     },
 )

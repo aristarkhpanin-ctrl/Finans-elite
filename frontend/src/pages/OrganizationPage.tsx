@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { roleLabel } from "../api/org";
 import { useAuth } from "../auth/AuthContext";
 import { BillingTab } from "./org/BillingTab";
@@ -29,7 +30,13 @@ const TABS = [
 
 export function OrganizationPage() {
   const { currentOrgId, organizations, user } = useAuth();
-  const [tab, setTab] = useState<string>("overview");
+  const [searchParams] = useSearchParams();
+  // ?tab=billing — прямой переход на вкладку. Письма о деньгах (G4) ведут сразу к оплате:
+  // ссылка на «Обзор» заставила бы искать нужную вкладку того, кто пришёл платить.
+  const [tab, setTab] = useState<string>(() => {
+    const wanted = searchParams.get("tab");
+    return TABS.some(([key]) => key === wanted) ? (wanted as string) : "overview";
+  });
   /**
    * Отбор, с которым открыть журнал. Заполняется с экрана участников («действия
    * участника») — так «кто что делал» отвечает **журнал**, а не второй список рядом,

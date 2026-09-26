@@ -38,3 +38,10 @@ def expire_subscriptions_task() -> int:
     """Суточная сверка неоплаты. Возвращает, сколько подписок переведено в неоплату."""
     with SessionLocal() as db:
         return len(scheduler.expire_overdue(db, datetime.now(timezone.utc)))
+
+
+@celery_app.task(name="scheduler.billing_reminders")
+def billing_reminders_task() -> int:
+    """Письма о деньгах (G4). Возвращает, скольким подпискам письмо ушло."""
+    with SessionLocal() as db:
+        return scheduler.send_billing_reminders(db, datetime.now(timezone.utc)).sent

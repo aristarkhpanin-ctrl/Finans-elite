@@ -116,3 +116,32 @@ def effective_status(status: str, period_end: datetime | None,
         return status
     return OVERDUE_STATUS if days_overdue(period_end, now or datetime.now(timezone.utc)) \
         > GRACE_DAYS else status
+
+
+#: За сколько суток до конца периода напомнить (G4). Неделя — чтобы успеть оплатить по
+#: счёту (бухгалтерия клиента платит не в тот же день) и чтобы письмо не забылось раньше,
+#: чем понадобится.
+REMINDER_DAYS = 7
+
+
+def reminder_stage(status: str, period_end: datetime | None,
+                   now: datetime) -> str | None:
+    """О чём пора написать владельцу подписки: ``ending`` · ``ended`` · ``overdue``.
+
+    ``None`` — писать не о чем: периода нет вовсе («не истекает» — не «истёк давно»), до
+    конца больше :data:`REMINDER_DAYS` суток, или подписка ``canceled`` — это акт
+    человека, автоматически его не ставит никто, и о нём уже знают.
+
+    Этап выводится из тех же функций, что и доступ: письмо не может сказать «запись
+    закрыта», пока экран ещё пускает, и наоборот.
+    """
+    if period_end is None or status == "canceled":
+        return None
+    if effective_status(status, period_end, now) == OVERDUE_STATUS:
+        return "overdue"
+    end, current = _aware(period_end), _aware(now)
+    if current >= end:
+        return "ended"
+    if end - current <= timedelta(days=REMINDER_DAYS):
+        return "ending"
+    return None
