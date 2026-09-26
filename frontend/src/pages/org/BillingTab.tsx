@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { httpStatus } from "../../api/client";
+import { httpDetail, httpStatus } from "../../api/client";
 import { useState } from "react";
 import { changePlan, checkout, getPlans, getSubscription,
          type Plan } from "../../api/org";
@@ -83,8 +83,11 @@ export function BillingTab({ orgId, canManage }: { orgId: string; canManage: boo
         toast("Тариф изменён", { kind: "success" });
       }
     },
+    // Отказ сервера называет причину и выход (например, «оплата не подключена —
+    // оплатите по счёту»). Общее «не удалось» съело бы ровно то, что клиенту нужно.
     onError: (e: unknown) =>
-      toast(httpStatus(e) === 403 ? "Нужны права владельца" : "Не удалось сменить тариф", { kind: "error" }),
+      toast(httpStatus(e) === 403 ? "Нужны права владельца"
+              : httpDetail(e) ?? "Не удалось сменить тариф", { kind: "error" }),
   });
 
   if (sub.isLoading || plans.isLoading) {

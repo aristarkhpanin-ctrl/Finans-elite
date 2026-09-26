@@ -174,7 +174,11 @@ class PaymentProvider(ABC):
 
 
 class ManualPaymentProvider(PaymentProvider):
-    """6.5a: смена тарифа без внешнего платежа (для разработки/тестов)."""
+    """6.5a: смена тарифа без внешнего платежа (для разработки/тестов).
+
+    Включает тариф **сразу и без денег** — поэтому в продакшене не выбирается никогда
+    (см. :func:`_build_provider`).
+    """
 
     def start_checkout(self, db: Session, org_id: str, plan: Plan, return_url: str,
                        customer_email: str) -> CheckoutResult:
@@ -182,14 +186,54 @@ class ManualPaymentProvider(PaymentProvider):
         return CheckoutResult(activated=True)
 
 
-def _build_provider() -> PaymentProvider:
-    """Выбрать провайдера по окружению: ЮKassa при наличии ключей, иначе ручной."""
-    shop_id = os.getenv("YOOKASSA_SHOP_ID")
-    secret = os.getenv("YOOKASSA_SECRET_KEY")
+#: Почему в продукте нельзя оплатить. Отказ называет выход: без него клиент, готовый
+#: платить, упирается в «ошибку» и уходит — хотя оплата по счёту работает всегда.
+PAYMENT_UNAVAILABLE = (
+    "Оплата в продукте сейчас не подключена. Тариф можно получить оплатой по счёту: "
+    "свяжитесь с платформой — назначение тарифа она сделает сама.")
+
+
+class UnavailablePaymentProvider(PaymentProvider):
+    """Оплата не настроена, а установка — боевая: отказать, а не выдать тариф даром.
+
+    Раньше на этом месте стоял ручной провайдер: без ключей ЮKassa он выбирался при
+    **любом** окружении, и в продакшене ``checkout`` включал платный тариф одним запросом
+    и без денег — та же дыра, что закрыл F1 на прямой смене тарифа, только через другую
+    дверь. Отказ здесь — fail-closed, как у ``JWT_SECRET``: забытая настройка не должна
+    превращаться в бесплатный тариф.
+    """
+
+    def start_checkout(self, db: Session, org_id: str, plan: Plan, return_url: str,
+                       customer_email: str) -> CheckoutResult:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail=PAYMENT_UNAVAILABLE)
+
+
+def _build_provider(app_env: str | None = None, shop_id: str | None = None,
+                    secret: str | None = None) -> PaymentProvider:
+    """Выбрать провайдера по окружению.
+
+    Ключи ЮKassa заданы → ЮKassa. Нет ключей: вне продакшена — ручной (разработка,
+    тесты), в продакшене — **отказ** (:class:`UnavailablePaymentProvider`).
+    """
+    app_env = os.getenv("APP_ENV", "development") if app_env is None else app_env
+    shop_id = os.getenv("YOOKASSA_SHOP_ID") if shop_id is None else shop_id
+    secret = os.getenv("YOOKASSA_SECRET_KEY") if secret is None else secret
     if shop_id and secret:
         from .payments_yookassa import YooKassaClient, YooKassaPaymentProvider
         return YooKassaPaymentProvider(YooKassaClient(shop_id, secret))
+    if app_env.strip().lower() == "production":
+        return UnavailablePaymentProvider()
     return ManualPaymentProvider()
+
+
+def provider_kind(p: PaymentProvider) -> str:
+    """Какой провайдер принимает оплату — для экрана готовности установки (G9)."""
+    if isinstance(p, UnavailablePaymentProvider):
+        return "unavailable"
+    if isinstance(p, ManualPaymentProvider):
+        return "manual"
+    return "yookassa"
 
 
 # Текущий провайдер.

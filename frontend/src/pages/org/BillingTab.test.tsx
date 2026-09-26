@@ -22,7 +22,8 @@ vi.mock("../../api/org", async (orig) => ({
   checkout: (...a: unknown[]) => checkout(...a),
   changePlan: (...a: unknown[]) => changePlan(...a),
 }));
-vi.mock("../../components/Toast", () => ({ useToast: () => vi.fn() }));
+const toast = vi.fn();
+vi.mock("../../components/Toast", () => ({ useToast: () => toast }));
 
 afterEach(cleanup);
 beforeEach(() => {
@@ -150,5 +151,44 @@ describe("Как меняется тариф", () => {
       .find((c) => c.textContent?.includes("Корпоративный"))!;
     expect(card.querySelector("button")).toBeNull();
     expect(card.textContent).toContain("заявку этот экран не отправляет");
+  });
+});
+
+describe("Отказ сервера доходит до человека", () => {
+  /**
+   * Сервер отказывает словами и называет выход: «оплата в продукте не подключена —
+   * оплатите по счёту» (G1). Общее «не удалось сменить тариф» съело бы ровно то, что
+   * клиенту, готовому платить, нужнее всего.
+   */
+  const reject = (status: number, detail?: string) => {
+    const err = Object.assign(new Error("x"), {
+      isAxiosError: true,
+      response: { status, data: detail === undefined ? {} : { detail } },
+    });
+    checkout.mockRejectedValue(err);
+  };
+
+  const pick = async (planName: string) => {
+    fireEvent.click([...document.querySelectorAll(".plan-card")]
+      .find((c) => c.textContent?.includes(planName))!
+      .querySelector("button")!);
+    fireEvent.click(await screen.findByRole("button", { name: "Подтвердить" }));
+  };
+
+  it("причина отказа показывается дословно", async () => {
+    reject(503, "Оплата в продукте сейчас не подключена. Тариф можно получить оплатой по счёту.");
+    await show();
+    await pick("Команда");
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(
+      "Оплата в продукте сейчас не подключена. Тариф можно получить оплатой по счёту.",
+      { kind: "error" }));
+  });
+
+  it("без причины остаётся общее сообщение, а не пустой тост", async () => {
+    reject(500);
+    await show();
+    await pick("Команда");
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(
+      "Не удалось сменить тариф", { kind: "error" }));
   });
 });
