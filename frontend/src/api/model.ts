@@ -280,6 +280,11 @@ export interface ProjectSettings {
   liquidation_recovery_rate?: string;
   profit_tax_rate: string;
   profit_tax_benefit_share: string;
+  /**
+   * Доля базы, которую могут закрыть убытки прошлых налоговых лет (0–1; по умолчанию 0,5 —
+   * п. 2.1 ст. 283 НК РФ). 1 — без ограничения, 0 — без переноса из прошлых лет.
+   */
+  loss_carryforward_limit?: string;
   /** Ставка рефинансирования ЦБ (0 = норматив процентов выключен) и коэффициент нормы. */
   cb_refinancing_rate?: string;
   interest_norm_multiple?: string;

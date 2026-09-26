@@ -240,18 +240,75 @@ def test_fewer_questions_wait_for_a_human_than_the_list_suggested():
 
 # --- Расхождения с нормой: отдельно от «ещё обсуждается» ---
 
-def test_the_loss_carryforward_divergence_is_named_where_it_bites():
-    """Пул убытков покрывает базу целиком, а п. 2.1 ст. 283 НК разрешает не больше
-    половины. Это не трактовка: у вопроса есть ответ, и он другой."""
+def _loss_item(model):
+    return _by_id(_map(model), "tax.loss_carryforward")
+
+
+def test_the_limit_divergence_is_gone_at_the_norm_and_named_above_it():
+    """До 0.9.44 пул убытков закрывал базу целиком, а п. 2.1 ст. 283 НК разрешает не
+    больше половины. Теперь норма — умолчание (G10), и расхождение ушло; доля выше нормы
+    возвращает его — названным, и только там, где числа действительно другие."""
     from calc_core.templates import INDUSTRY_TEMPLATES
 
-    losing = _by_id(_map(INDUSTRY_TEMPLATES["cafe"].build()), "tax.loss_carryforward")
-    assert losing.divergence and "50%" in losing.divergence
-    assert "283" in losing.proposed_basis
+    # Подписка переносит убытки первого года во второй — ограничение там работает.
+    at_norm = _loss_item(INDUSTRY_TEMPLATES["saas"].build())
+    assert at_norm.engaged and at_norm.divergence == ""
+    assert "283" in at_norm.proposed_basis and "2030" in at_norm.proposed_basis
+    assert "settings.loss_carryforward_limit" in at_norm.controls
 
-    # У модели без переноса убытков расхождения нет — и предупреждения тоже.
-    profitable = _by_id(_map(INDUSTRY_TEMPLATES["retail"].build()), "tax.loss_carryforward")
-    assert profitable.divergence == ""
+    lifted = INDUSTRY_TEMPLATES["saas"].build()
+    lifted.settings.loss_carryforward_limit = Decimal(1)
+    item = _loss_item(lifted)
+    assert "выше нормы" in item.divergence and "50%" in item.divergence
+    assert "i22_at_norm_total" in item.evidence and "снято" in item.chosen
+
+    # Доля выше нормы, а убытков прошлых лет нет — числа те же, и молчание честное.
+    retail = INDUSTRY_TEMPLATES["retail"].build()
+    retail.settings.loss_carryforward_limit = Decimal(1)
+    assert _loss_item(retail).divergence == ""
+
+
+def test_a_limit_below_the_norm_is_stricter_not_a_divergence():
+    """Норма — потолок: переносить меньше налогоплательщик вправе (п. 1 ст. 283)."""
+    from calc_core.templates import INDUSTRY_TEMPLATES
+
+    strict = INDUSTRY_TEMPLATES["saas"].build()
+    strict.settings.loss_carryforward_limit = Decimal("0.3")
+    item = _loss_item(strict)
+    assert item.divergence == "" and "строже нормы" in item.chosen and "30%" in item.chosen
+
+
+def test_a_loss_after_taxed_profit_of_the_same_year_is_named_where_it_bites():
+    """База помесячная, а закон считает её нарастающим итогом года: убыток декабря после
+    прибыльной осени налог осени не уменьшает. Найдено при G10 — названо, а не
+    исправлено: правка меняет смысл I27 (он стал бы уменьшаться внутри года)."""
+    from calc_core.templates import INDUSTRY_TEMPLATES
+
+    farming = _loss_item(INDUSTRY_TEMPLATES["farming"].build())   # убыток каждого декабря
+    assert "нарастающим итогом" in farming.divergence and "286" in farming.divergence
+    assert Decimal(farming.evidence["late_year_losses"]) > 0
+
+    retail = _loss_item(INDUSTRY_TEMPLATES["retail"].build())     # прибыль каждый месяц
+    assert retail.divergence == "" and "late_year_losses" not in retail.evidence
+
+
+def test_the_project_year_is_named_only_where_the_calendar_would_change_numbers():
+    """Налоговый год — 12 месяцев от старта (конвенция периодичности уплаты), а по закону —
+    календарный. При старте в январе это одно и то же; иначе — названо, если сказывается."""
+    from datetime import date as _date
+
+    from calc_core.templates import INDUSTRY_TEMPLATES
+
+    assert "календарный год" not in _loss_item(INDUSTRY_TEMPLATES["saas"].build()).divergence
+    july = INDUSTRY_TEMPLATES["saas"].build()
+    july.header.start_date = _date(2026, 7, 1)
+    item = _loss_item(july)
+    assert "календарный год" in item.divergence and item.evidence["start_month"] == 7
+
+    # Кофейня гасит убытки внутри первого года — граница года ей не важна.
+    cafe = INDUSTRY_TEMPLATES["cafe"].build()
+    cafe.header.start_date = _date(2026, 7, 1)
+    assert "календарный год" not in _loss_item(cafe).divergence
 
 
 def test_the_advance_vat_divergence_needs_all_three_conditions():
@@ -303,12 +360,14 @@ def test_the_document_prints_the_divergence_under_its_own_heading():
     from calc_core.review.opinion import build_opinion
     from calc_core.templates import INDUSTRY_TEMPLATES
 
-    model = INDUSTRY_TEMPLATES["cafe"].build()
+    # Доля переноса выше нормы — расхождение, которое пользователь выбрал сам.
+    model = INDUSTRY_TEMPLATES["saas"].build()
+    model.settings.loss_carryforward_limit = Decimal(1)
     result = run(model)
     opinion = build_opinion(run_review(ReviewContext(model=model, result=result)), result)
     doc = Document(BytesIO(build_business_plan_docx(
-        model, result, opinion, project_name="Кофейня", today=_date(2026, 7, 1))))
+        model, result, opinion, project_name="Подписка", today=_date(2026, 7, 1))))
     text = "\n".join(p.text for p in doc.paragraphs)
     assert "Где расчёт расходится с нормой" in text
-    assert "283" in text and "50%" in text
+    assert "выше нормы 50%" in text and "283" in text
     assert "предложение" in text                  # и оговорка едет рядом

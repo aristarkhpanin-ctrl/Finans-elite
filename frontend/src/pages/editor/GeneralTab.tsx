@@ -1,7 +1,7 @@
 import type { CustomTax, Environment, ProjectHeader, ProjectSettings } from "../../api/model";
 import { EField, EPercentField, ESelect } from "../../components/EditorField";
 import { IconTrash } from "../../components/icons";
-import { fracToPct, pctToFrac } from "../../format";
+import { fracToPct, isShare, pctToFrac } from "../../format";
 
 type SeriesKey =
   | "inflation_sales_series"
@@ -143,10 +143,6 @@ const PERIODICITY_OPTIONS: [string, string][] = [
   ["year", "Ежегодно"],
 ];
 
-const inRange01 = (v: string | undefined | null): boolean => {
-  const x = Number(v ?? 0);
-  return Number.isFinite(x) && x >= 0 && x <= 1;
-};
 
 /** Настраиваемые налоги (SPEC §22.9): список «база × ставка» поверх профильных ставок. */
 function CustomTaxes({ environment, onChange }: { environment: Environment; onChange: (e: Environment) => void }) {
@@ -251,8 +247,10 @@ export function GeneralTab({ header, settings, environment, onHeader, onSettings
   const set = (patch: Partial<ProjectSettings>) => onSettings({ ...settings, ...patch });
 
   const durationErr = header.duration_months < 1 ? "Минимум 1 месяц" : "";
-  const liqErr = !inRange01(settings.liquidation_recovery_rate) ? "Значение должно быть от 0 до 1" : "";
-  const benefitErr = !inRange01(settings.profit_tax_benefit_share) ? "Значение должно быть от 0 до 1" : "";
+  const liqErr = !isShare(settings.liquidation_recovery_rate) ? "Значение должно быть от 0 до 1" : "";
+  const benefitErr = !isShare(settings.profit_tax_benefit_share) ? "Значение должно быть от 0 до 1" : "";
+  const lossLimit = settings.loss_carryforward_limit ?? "0.5";
+  const lossErr = !isShare(lossLimit) ? "Значение должно быть от 0 до 1" : "";
   // Вторая валюта настроена → показываем ставку дисконтирования во второй валюте (gap 1.4).
   const fxNum = (v: string | number | undefined | null) => Number(String(v ?? "").replace(",", "."));
   const hasSecondCurrency =
@@ -339,6 +337,14 @@ export function GeneralTab({ header, settings, environment, onHeader, onSettings
           error={benefitErr}
           value={settings.profit_tax_benefit_share ?? "0"}
           onChange={(v) => set({ profit_tax_benefit_share: v })}
+        />
+        <EField
+          label="Перенос убытков прошлых лет"
+          suffix="доля"
+          hint="Какую долю базы могут закрыть убытки прошлых налоговых лет: 0,5 — норма п. 2.1 ст. 283 НК РФ (по 2030 г.), 1 — без ограничения. Убыток своего года гасит прибыль этого года целиком"
+          error={lossErr}
+          value={lossLimit}
+          onChange={(v) => set({ loss_carryforward_limit: v })}
         />
         <EPercentField
           label="Ставка рефинансирования ЦБ"

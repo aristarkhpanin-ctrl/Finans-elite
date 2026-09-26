@@ -6,7 +6,7 @@ import { MonthlyGrid } from "../../components/MonthlyGrid";
 import type { MonthlyRow } from "../../components/MonthlyGrid";
 import { useToast } from "../../components/Toast";
 import { Button, Switch } from "../../components/ui";
-import { fmtMoney } from "../../format";
+import { fmtMoney, isShare, parseModelNumber } from "../../format";
 import { downloadSalesTemplate, parseSalesXlsx } from "../../salesXlsx";
 import { subscriptionPreview } from "../../subscription";
 
@@ -21,13 +21,8 @@ interface Props {
 const emptyPayment = () => ({ prepayment_share: "0", advance_lead_months: 0, payment_delay_months: 0 });
 
 const num = (v: string | undefined): number => {
-  const x = Number(String(v ?? "").replace(",", "."));
+  const x = parseModelNumber(v);
   return Number.isFinite(x) ? x : 0;
-};
-
-const inRange01 = (v: string): boolean => {
-  const x = Number(v);
-  return Number.isFinite(x) && x >= 0 && x <= 1;
 };
 
 /** Вкладка «Сбыт» (макет «Этап 6»): карточки продуктов с помесячной сеткой. */
@@ -205,7 +200,7 @@ export function SalesTab({ n, operating, company, onChange, onCompany }: Props) 
           {sales.map((line, i) => {
             const cur = line.foreign ? "$" : "₽";
             const prod = productionLine(line.product_id);
-            const prepayErr = !inRange01(line.payment.prepayment_share) ? "Доля должна быть от 0 до 1" : "";
+            const prepayErr = !isShare(line.payment.prepayment_share) ? "Доля должна быть от 0 до 1" : "";
             const sub = line.subscription ?? null;
             // Предпросмотр базы: сервер вернёт её же при расчёте, но набирающему приток и
             // отток надо видеть, во что они складываются, **до** первого расчёта.
@@ -355,7 +350,7 @@ export function SalesTab({ n, operating, company, onChange, onCompany }: Props) 
                         suffix="доля базы / мес."
                         hint="0,03 — уходит 3% действующих абонентов каждый месяц"
                         value={sub.churn_monthly}
-                        error={!inRange01(sub.churn_monthly) ? "Доля должна быть от 0 до 1" : ""}
+                        error={!isShare(sub.churn_monthly) ? "Доля должна быть от 0 до 1" : ""}
                         onChange={(v) => updateLine(i, { subscription: { ...sub, churn_monthly: v } })}
                       />
                     </div>

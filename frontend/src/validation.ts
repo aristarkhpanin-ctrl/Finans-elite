@@ -1,4 +1,5 @@
 import type { ProjectModel } from "./api/model";
+import { parseModelNumber } from "./format";
 
 export type Severity = "error" | "warn";
 export interface Issue {
@@ -14,9 +15,7 @@ export interface Issue {
  * читала бы «1 200,50» как ноль и сообщала о несходящемся балансе, которого нет.
  */
 const num = (s: string | number | undefined | null): number => {
-  const x = typeof s === "number" ? s
-    // `\s` покрывает и неразрывный пробел — им платформа и печатает разряды.
-    : Number(String(s ?? 0).replace(/\s/g, "").replace(",", "."));
+  const x = parseModelNumber(s);
   return Number.isFinite(x) ? x : 0;
 };
 
@@ -59,6 +58,7 @@ export function validateModel(m: ProjectModel): Issue[] {
   shareWarn(num(s.profit_tax_rate), "Налог на прибыль");
   shareWarn(num(s.vat_rate), "НДС");
   shareWarn(num(s.profit_tax_benefit_share), "Льгота по прибыли");
+  shareWarn(num(s.loss_carryforward_limit ?? "0.5"), "Перенос убытков прошлых лет");
   shareWarn(num(s.sales_tax_rate), "Налог с продаж");
 
   // Предоплата по каждой строке сбыта — доля 0–1.

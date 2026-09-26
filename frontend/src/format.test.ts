@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { fmtAxis, fmtDateOnly, fmtMillions, fmtMoney, fmtRatio, fmtTable, fracToPct, pctToFrac, percent } from "./format";
+import {
+  fmtAxis, fmtDateOnly, fmtMillions, fmtMoney, fmtRatio, fmtTable, fracToPct, isShare, parseModelNumber,
+  pctToFrac, percent,
+} from "./format";
 
 const NBSP = String.fromCharCode(0xa0); // NBSP (\u00A0)
 
@@ -99,3 +102,22 @@ describe("fmtDateOnly — календарная дата без часовог�
   });
 });
 
+
+describe("parseModelNumber / isShare — русское написание, как на сервере", () => {
+  it("запятая и пробелы в разрядах читаются, мусор — NaN, а не ноль", () => {
+    expect(parseModelNumber("0,5")).toBe(0.5);
+    expect(parseModelNumber("1 200,50")).toBe(1200.5);
+    expect(parseModelNumber("1 200")).toBe(1200);
+    expect(parseModelNumber(0.3)).toBe(0.3);
+    expect(Number.isNaN(parseModelNumber("полтора"))).toBe(true);
+  });
+
+  it("доля «0,5» — в диапазоне: сервер её примет, и экран не спорит", () => {
+    expect(isShare("0,5")).toBe(true);
+    expect(isShare("1")).toBe(true);
+    expect(isShare(undefined)).toBe(true);
+    expect(isShare("1,5")).toBe(false);
+    expect(isShare("-0,1")).toBe(false);
+    expect(isShare("полтора")).toBe(false);
+  });
+});

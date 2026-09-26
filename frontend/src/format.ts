@@ -156,6 +156,24 @@ export function pctToFrac(v: string | number | null | undefined): string {
 }
 
 /**
+ * Число из поля модели так, как его пишут по-русски: «1 200,50», «0,5». Сервер принимает
+ * то же написание (`calc_core/decimals.py`), и проверка на экране обязана быть не строже
+ * него — иначе она объявляла бы ошибкой то, что сохранится без вопросов. Мусор — `NaN`,
+ * а не ноль: чем его считать, решает тот, кто читает.
+ */
+export function parseModelNumber(v: string | number | null | undefined): number {
+  if (typeof v === "number") return v;
+  // `\s` покрывает и неразрывный пробел — им платформа и печатает разряды.
+  return Number(String(v ?? 0).replace(/\s/g, "").replace(",", "."));
+}
+
+/** Доля 0–1 в поле модели — в том же написании, что принимает сервер. */
+export function isShare(v: string | number | null | undefined): boolean {
+  const x = parseModelNumber(v);
+  return Number.isFinite(x) && x >= 0 && x <= 1;
+}
+
+/**
  * Русское склонение по числу: 1 дело, 2 дела, 5 дел.
  *
  * Живёт здесь, а не в экране: «3 периода(ов)» на печатном бланке выглядит как

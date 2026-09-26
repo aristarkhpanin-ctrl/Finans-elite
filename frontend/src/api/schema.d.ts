@@ -9023,6 +9023,7 @@ export interface components {
              *       "interest_norm_multiple": "1",
              *       "inventory_method": "average",
              *       "liquidation_recovery_rate": "0",
+             *       "loss_carryforward_limit": "0.5",
              *       "min_cash_balance": "0",
              *       "payroll_contribution_rate": "0",
              *       "production_cycle_months": 0,
@@ -9161,6 +9162,7 @@ export interface components {
              *       "interest_norm_multiple": "1",
              *       "inventory_method": "average",
              *       "liquidation_recovery_rate": "0",
+             *       "loss_carryforward_limit": "0.5",
              *       "min_cash_balance": "0",
              *       "payroll_contribution_rate": "0",
              *       "production_cycle_months": 0,
@@ -9282,6 +9284,11 @@ export interface components {
              * @default 0
              */
             liquidation_recovery_rate: number | string;
+            /**
+             * Loss Carryforward Limit
+             * @default 0.5
+             */
+            loss_carryforward_limit: number | string;
             /**
              * Min Cash Balance
              * @default 0
@@ -9407,6 +9414,11 @@ export interface components {
              * @default 0
              */
             liquidation_recovery_rate: string;
+            /**
+             * Loss Carryforward Limit
+             * @default 0.5
+             */
+            loss_carryforward_limit: string;
             /**
              * Min Cash Balance
              * @default 0

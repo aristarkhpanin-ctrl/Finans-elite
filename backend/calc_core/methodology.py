@@ -47,7 +47,9 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 
 from .models import ProjectModel
+from .models.project import LOSS_CARRYFORWARD_NORM
 from .reports.result import CalcResult
+from .reports.statements import TAX_YEAR_MONTHS, carry_losses
 
 #: Как закрывается **открытый вопрос** пункта. Три состояния, и все три заняты: свободных
 #: «на будущее» здесь нет по той же причине, по которой закрыт перечень событий
@@ -366,36 +368,116 @@ def _ratios(model: ProjectModel, result: CalcResult) -> Choice:
     )
 
 
+def _percent(share: Decimal) -> str:
+    """Доля словами для текста: 0.5 → «50%», 0.335 → «33,5%»."""
+    return format((share * 100).normalize(), "f").replace(".", ",") + "%"
+
+
+def _limit_words(limit: Decimal) -> str:
+    if limit >= 1:
+        return "убытки прошлых лет закрывают базу целиком — ограничение снято"
+    if limit == 0:
+        return "убытки прошлых лет базу не уменьшают — перенос из прошлых лет выключен"
+    words = f"убытки прошлых лет уменьшают базу месяца не больше чем на {_percent(limit)}"
+    if limit < LOSS_CARRYFORWARD_NORM:
+        # Не расхождение: норма — потолок, а переносить меньше налогоплательщик вправе.
+        words += (f" — строже нормы ({_percent(LOSS_CARRYFORWARD_NORM)}): переносить "
+                  "меньше вправе сам налогоплательщик (п. 1 ст. 283)")
+    return words
+
+
+def _late_year_losses(bases: list[Decimal], tax: list[Decimal]) -> Decimal:
+    """Убытки, пришедшие **после** обложенной прибыли того же налогового года.
+
+    Помесячная база их назад не сворачивает: налог, начисленный раньше в этом году, ими
+    не уменьшается, хотя закон считает базу нарастающим итогом года. Годы — те же, что
+    у движка (:data:`TAX_YEAR_MONTHS` от старта проекта).
+    """
+    total = Decimal(0)
+    for start in range(0, len(bases), TAX_YEAR_MONTHS):
+        taxed = False
+        for t in range(start, min(start + TAX_YEAR_MONTHS, len(bases))):
+            if tax[t] > 0:
+                taxed = True
+            elif bases[t] < 0 and taxed:
+                total += -bases[t]
+    return total
+
+
 def _loss_carryforward(model: ProjectModel, result: CalcResult) -> Choice:
-    carried = _nonzero(_line(result, "income", "I22"))
-    benefit = model.settings.profit_tax_benefit_share
+    settings = model.settings
+    i22 = _line(result, "income", "I22")
+    carried = _nonzero(i22)
+    benefit = settings.profit_tax_benefit_share
+    limit = settings.loss_carryforward_limit
     engaged = carried > 0 or benefit > 0
+    # Расхождения судятся по числам, а не по полям: та же функция переноса (одна дверь,
+    # второй копии правила здесь нет) пересчитывается на тех же базах иначе, и
+    # предупреждение появляется, только если числа действительно другие.
+    bases = [a + b for a, b in zip(_line(result, "income", "I23"),
+                                   _line(result, "income", "I25"), strict=True)]
+    evidence: dict = {"i22_total": str(carried), "benefit_share": str(benefit),
+                      "loss_limit": str(limit)}
+    parts = []
+    if limit > LOSS_CARRYFORWARD_NORM:
+        at_norm = carry_losses(bases, LOSS_CARRYFORWARD_NORM)
+        if at_norm != i22:
+            evidence["i22_at_norm_total"] = str(_nonzero(at_norm))
+            parts.append(
+                f"Доля переноса — {_percent(limit)}, выше нормы "
+                f"{_percent(LOSS_CARRYFORWARD_NORM)} (п. 2.1 ст. 283 НК РФ), и в этой модели "
+                "это сказывается: убытки прошлых лет закрыли больше, чем разрешено, налог "
+                "первых прибыльных лет занижен, а уплата сдвинута вперёд. Ставить долю выше "
+                "нормы оправдано, только если ограничение к базе не применяется (часть "
+                "пониженных ставок) или срок его действия истёк.")
+    late = _late_year_losses(bases, _line(result, "income", "I27"))
+    if late > 0:
+        evidence["late_year_losses"] = str(late)
+        parts.append(
+            "База налога помесячная, а закон считает её нарастающим итогом года (ст. 274, "
+            "286 НК РФ). В этой модели убыточный месяц идёт после обложенной прибыли того "
+            "же налогового года: начисленный налог этим убытком не уменьшается — убыток "
+            "гасит прибыль следующих месяцев, а если год на нём кончается, уходит в "
+            "следующий как убыток прошлых лет, под ограничение доли. Налог уплачивается "
+            "раньше, чем требует норма, а убыток конца последнего года горизонта может не "
+            "зачесться вовсе.")
+    start_month = model.header.start_date.month
+    if start_month != 1 and carry_losses(bases, limit, year_offset=start_month - 1) != i22:
+        evidence["start_month"] = start_month
+        parts.append(
+            "Налоговый год в модели — 12 месяцев от старта проекта, а налоговый период по "
+            "закону — календарный год (ст. 285 НК РФ). Проект начинается не в январе, и в "
+            "этой модели это сказывается на переносе: часть убытков, которые по календарю "
+            "были бы убытками прошлых лет (под ограничение доли), здесь гасит прибыль как "
+            "убыток своего года — или наоборот.")
     return Choice(
         id="tax.loss_carryforward",
         number=7,
         title="Перенос убытков и льгота по налогу на прибыль",
         spec="SPEC §11",
-        chosen="Последовательный пул убытков уменьшает базу будущих периодов без "
-               "ограничения доли; льгота освобождает заданную долю базы.",
-        controls=["settings.profit_tax_rate", "settings.profit_tax_benefit_share"],
-        open_question="Ограничение переноса (≤50% базы) и стартовый налоговый убыток.",
+        chosen="Налоговый год — 12 месяцев от старта проекта (с календарным совпадает при "
+               "старте в январе), база — помесячная. Убыток месяца гасит прибыль следующих "
+               f"месяцев своего года целиком; {_limit_words(limit)}; неиспользованный "
+               "остаток переносится бессрочно. Льгота освобождает заданную долю базы.",
+        controls=["settings.profit_tax_rate", "settings.profit_tax_benefit_share",
+                  "settings.loss_carryforward_limit"],
+        open_question="Стартовый налоговый убыток (понесённый до начала проекта) не "
+                      "задаётся; налоговый год считается от старта проекта — как у "
+                      "периодичности уплаты, — а не по календарю.",
         resolution="citable",
-        proposed_basis="п. 2.1 ст. 283 НК РФ: в отчётные периоды 2017–2026 гг. база "
-                       "текущего периода уменьшается на перенесённые убытки **не более "
-                       "чем на 50%**. Ограничение по сроку переноса снято с 2017 г. "
-                       "(п. 2 ст. 283), поэтому бессрочный пул — как сейчас — норме "
-                       "соответствует.",
-        divergence=(
-            "Пул убытков покрывает налоговую базу **целиком** (`applied = min(пул, база)` "
-            "в `build_income`), без ограничения в 50%. У проекта с убыточным стартом "
-            "налог первых прибыльных периодов занижен, а уплата сдвинута вперёд: разница "
-            "во времени, а не в сумме за горизонт, — но она меняет кассу и NPV."
-            if carried > 0 else ""),
+        proposed_basis="п. 2.1 ст. 283 НК РФ: в периоды с 2017 по 2030 г. база уменьшается "
+                       "на убытки прошлых лет **не более чем на 50%**; к базе по ряду "
+                       "пониженных ставок ограничение не применяется. Срок переноса не "
+                       "ограничен с 2017 г. (п. 2 ст. 283). Налоговый период — календарный "
+                       "год (ст. 285), база — нарастающим итогом с его начала (ст. 274, "
+                       "286). Ограничение временное и уже продлевалось, поэтому доля — "
+                       "поле модели, а не константа расчёта.",
+        divergence=" ".join(parts),
         engaged=engaged,
         silent_because="" if engaged else
                        "Убытков к переносу нет и льгота не задана: база налога считается "
                        "прибылью периода.",
-        evidence={"i22_total": str(carried), "benefit_share": str(benefit)},
+        evidence=evidence,
     )
 
 

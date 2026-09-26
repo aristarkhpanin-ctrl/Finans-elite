@@ -14,7 +14,7 @@ from ..formula import FormulaError, evaluate
 from ..formula.functions import as_series
 from ..models import ProjectModel
 from ..money import ZERO
-from ..reports.statements import Statement
+from ..reports.statements import TAX_YEAR_MONTHS, Statement
 from ..series import zeros
 from .errors import ModelError
 
@@ -26,8 +26,9 @@ BASE_FORMULAS = {
     "profit": "МАКС(I26, 0)",            # положительная налогооблагаемая прибыль
 }
 
-#: Длина периода уплаты в месяцах (месяц — уплата в месяце начисления).
-_PERIOD_MONTHS = {"month": 1, "quarter": 3, "year": 12}
+#: Длина периода уплаты в месяцах (месяц — уплата в месяце начисления). Год — тот же
+#: налоговый год, по которому ограничивается перенос убытков: конвенция одна.
+_PERIOD_MONTHS = {"month": 1, "quarter": 3, "year": TAX_YEAR_MONTHS}
 
 
 @dataclass

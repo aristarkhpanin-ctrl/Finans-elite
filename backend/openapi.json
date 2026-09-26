@@ -10261,6 +10261,7 @@
               "interest_norm_multiple": "1",
               "inventory_method": "average",
               "liquidation_recovery_rate": "0",
+              "loss_carryforward_limit": "0.5",
               "min_cash_balance": "0",
               "payroll_contribution_rate": "0",
               "production_cycle_months": 0,
@@ -10411,6 +10412,7 @@
               "interest_norm_multiple": "1",
               "inventory_method": "average",
               "liquidation_recovery_rate": "0",
+              "loss_carryforward_limit": "0.5",
               "min_cash_balance": "0",
               "payroll_contribution_rate": "0",
               "production_cycle_months": 0,
@@ -10710,6 +10712,21 @@
             "default": "0",
             "title": "Liquidation Recovery Rate"
           },
+          "loss_carryforward_limit": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0.5",
+            "title": "Loss Carryforward Limit"
+          },
           "min_cash_balance": {
             "anyOf": [
               {
@@ -10955,6 +10972,12 @@
             "default": "0",
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Liquidation Recovery Rate",
+            "type": "string"
+          },
+          "loss_carryforward_limit": {
+            "default": "0.5",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Loss Carryforward Limit",
             "type": "string"
           },
           "min_cash_balance": {
@@ -16079,7 +16102,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.43"
+    "version": "0.9.44"
   },
   "openapi": "3.1.0",
   "paths": {

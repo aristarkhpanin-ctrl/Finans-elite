@@ -1030,7 +1030,8 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
         "I25": add(i25_fx, loan_reval, i25_sales, i25_fixed, i25_materials),
     }
     income = build_income(
-        income_leaves, n, settings.profit_tax_rate, settings.profit_tax_benefit_share)
+        income_leaves, n, settings.profit_tax_rate, settings.profit_tax_benefit_share,
+        loss_limit=settings.loss_carryforward_limit)
 
     # --- Использование прибыли (нераспределённая прибыль = B32) ---
     profit_use = build_profit_use(

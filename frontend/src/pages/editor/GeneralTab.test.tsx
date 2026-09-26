@@ -49,3 +49,35 @@ describe("GeneralTab — настраиваемые налоги", () => {
     expect(onEnv).toHaveBeenCalledWith({ fx_open: "1", fx_rate: [], taxes: [] });
   });
 });
+
+describe("GeneralTab — перенос убытков прошлых лет", () => {
+  function renderSettings(patch: Partial<ProjectSettings>, onSettings = vi.fn()) {
+    render(
+      <GeneralTab header={header} settings={{ ...settings, ...patch }}
+                  environment={{ fx_open: "1", fx_rate: [] }}
+                  onHeader={vi.fn()} onSettings={onSettings} onEnvironment={vi.fn()} />,
+    );
+    return onSettings;
+  }
+
+  it("по умолчанию — норма 0,5, и подсказка называет её основание", () => {
+    renderSettings({});
+    const field = screen.getByDisplayValue("0.5");
+    expect(field).toBeTruthy();
+    expect(screen.getByText(/ст\. 283 НК РФ/)).toBeTruthy();
+  });
+
+  it("доля пишется в модель", () => {
+    const onSettings = renderSettings({});
+    fireEvent.change(screen.getByDisplayValue("0.5"), { target: { value: "1" } });
+    expect(onSettings).toHaveBeenCalledWith(expect.objectContaining({ loss_carryforward_limit: "1" }));
+  });
+
+  it("«0,5» — не ошибка (сервер такое примет), «1,5» — ошибка", () => {
+    renderSettings({ loss_carryforward_limit: "0,5" });
+    expect(screen.queryByText("Значение должно быть от 0 до 1")).toBeNull();
+    cleanup();
+    renderSettings({ loss_carryforward_limit: "1,5" });
+    expect(screen.getByText("Значение должно быть от 0 до 1")).toBeTruthy();
+  });
+});
