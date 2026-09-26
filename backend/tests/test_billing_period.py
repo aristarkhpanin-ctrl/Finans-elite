@@ -220,7 +220,7 @@ def test_the_script_records_what_the_derivation_already_decided(client, register
                                                                 db_session):
     """Доступ скрипт не решает — он оставляет **след**: вывод состояния отвечает «как
     сейчас» и не отвечает «когда это произошло», а отток — вопрос о переходах."""
-    from scripts.expire_subscriptions import overdue_subscriptions
+    from app.scheduler import overdue_subscriptions
 
     headers = register()
     org = _org_id(client, headers)
@@ -239,7 +239,7 @@ def test_the_script_records_what_the_derivation_already_decided(client, register
 def test_the_script_is_idempotent(client, register, db_session):
     """Повторный запуск ничего не меняет: отбор идёт по расхождению хранимого с
     выведенным, а после первой записи расхождения нет."""
-    from scripts.expire_subscriptions import overdue_subscriptions
+    from app.scheduler import overdue_subscriptions
 
     headers = register()
     org = _org_id(client, headers)
@@ -255,7 +255,7 @@ def test_the_script_is_idempotent(client, register, db_session):
 
 def test_the_script_leaves_a_paid_and_a_free_subscription_alone(client, register,
                                                                 db_session):
-    from scripts.expire_subscriptions import overdue_subscriptions
+    from app.scheduler import overdue_subscriptions
 
     headers = register()
     org = _org_id(client, headers)

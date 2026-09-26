@@ -1,11 +1,15 @@
 """Фоновые задачи анализа (Celery-воркер)."""
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from calc_core import ProjectModel
 from calc_core.montecarlo import run_monte_carlo
 
+from . import scheduler
 from .analysis_service import build_mc_config
 from .celery_app import celery_app
+from .database import SessionLocal
 from .schemas import MonteCarloRequest, monte_carlo_response
 
 
@@ -21,3 +25,16 @@ def monte_carlo_task(model_json: dict, request_json: dict) -> dict:
     body = MonteCarloRequest.model_validate(request_json)
     result = run_monte_carlo(model, build_mc_config(body))
     return monte_carlo_response(result).model_dump(mode="json")
+
+
+# --- Задачи планировщика (пакет G, G3) ---
+#
+# Тонкие обёртки: работа живёт в ``app.scheduler``, её же зовут скрипты эксплуатации.
+# Имя каждой задачи начинается с ``scheduler.`` и стоит в ``beat_schedule`` — перечень
+# сверяется тестом в обе стороны.
+
+@celery_app.task(name="scheduler.expire_subscriptions")
+def expire_subscriptions_task() -> int:
+    """Суточная сверка неоплаты. Возвращает, сколько подписок переведено в неоплату."""
+    with SessionLocal() as db:
+        return len(scheduler.expire_overdue(db, datetime.now(timezone.utc)))

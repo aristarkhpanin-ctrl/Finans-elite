@@ -1,4 +1,5 @@
-# Полный стек Finans-Elite: PostgreSQL + Redis + API (FastAPI) + worker (Celery) + web (nginx).
+# Полный стек Finans-Elite: PostgreSQL + Redis + API (FastAPI) + worker (Celery) +
+# beat (планировщик Celery) + web (nginx).
 #
 # Единая точка входа — web на :8080; API наружу не публикуется, доступен только
 # через nginx-прокси (/api, /health), поэтому фронт и бэк живут на одном origin
@@ -71,6 +72,20 @@ services:
   worker:
     build: ./backend
     command: celery -A app.celery_app worker --loglevel=info --concurrency=2
+    environment: *backend-env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # Планировщик (пакет G, G3): ставит в очередь суточные задачи платформы — сверку
+  # неоплаты, письма о деньгах, продление. Считает их тот же worker. Процесс beat должен
+  # быть **ровно один**: два поставили бы каждую задачу дважды. Расписание — в
+  # app/celery_app.py (beat_schedule), каждый запуск оставляет след в служебном журнале.
+  beat:
+    build: ./backend
+    command: celery -A app.celery_app beat --loglevel=info --schedule=/tmp/celerybeat-schedule
     environment: *backend-env
     depends_on:
       db:

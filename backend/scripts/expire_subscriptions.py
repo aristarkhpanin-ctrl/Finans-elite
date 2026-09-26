@@ -1,22 +1,17 @@
-"""Записать в базу подписки, у которых льготный срок уже вышел (OPEN-DECISIONS §1).
+"""Сверка неоплаты вручную — та же, что проводит планировщик (OPEN-DECISIONS §1, пакет G).
+
+С пакета G сверку каждую ночь ставит планировщик (Celery beat, ``app.celery_app``), и
+запускать скрипт по крону больше не нужно. Он остаётся инструментом эксплуатации:
+посмотреть, что изменилось бы (``--dry-run``), или провести сверку сейчас.
+
+**Своей копии сверки у скрипта нет** — он зовёт ``app.scheduler.expire_overdue``, ту же
+функцию, что и задача планировщика: две копии одного правила однажды разошлись бы. След
+запуска подписан источником («скрипт эксплуатации»), чтобы ручной запуск не выглядел
+работающим планировщиком.
 
 **Доступ этот скрипт ничего не решает.** Режим чтения и выгрузки считается из даты конца
-периода на каждом запросе (``app/billing_period.effective_status``), и запускать его
-ради ограничения не нужно: пока скрипт не запущен, неплательщик всё равно ограничен —
-просто в базе у него по-прежнему написано ``active``.
-
-Нужен он ради **следа**. Вывод состояния отвечает «как сейчас» и не отвечает «когда это
-произошло»: отток тарифов — вопрос о переходах, а переходы существуют только записанными.
-Скрипт приводит хранимое состояние к выведенному и пишет строку в журнал организации;
-по этим строкам метрика оттока и считается, когда её заведут.
-
-Почему скрипт, а не фоновая задача внутри приложения: фоновых задач у платформы нет
-вовсе. Заводить планировщик ради одной ежесуточной сверки — это новая точка отказа,
-которую надо разворачивать, мониторить и чинить; крон эксплуатации делает то же самое и
-уже существует у любого хостинга. Решение о том, **чем** его запускать, принадлежит
-эксплуатации, и скрипт его не навязывает.
-
-Идемпотентен: повторный запуск в тот же день ничего не меняет и ничего не пишет.
+периода на каждом запросе (``app/billing_period.effective_status``): пока сверку не
+провели, неплательщик всё равно ограничен — просто в базе у него ещё ``active``.
 
 Запуск (из каталога ``backend``)::
 
@@ -34,27 +29,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from sqlalchemy import select  # noqa: E402
-
-from app import crud  # noqa: E402
-from app.billing_period import (  # noqa: E402
-    OVERDUE_STATUS,
-    days_overdue,
-    effective_status,
-)
-from app.database import SessionLocal, as_tenant  # noqa: E402
-from app.db_models import Subscription  # noqa: E402
-
-
-def overdue_subscriptions(db, now: datetime) -> list[Subscription]:
-    """Подписки, у которых выведенный статус разошёлся с хранимым.
-
-    Отбор идёт по **выведенному** состоянию, а не по SQL-условию на дату: условие было
-    бы второй копией правила, и разойтись с ``effective_status`` ему ничего не мешает.
-    """
-    rows = db.execute(select(Subscription)).scalars().all()
-    return [s for s in rows
-            if effective_status(s.status, s.current_period_end, now) != s.status]
+from app.billing_period import OVERDUE_STATUS  # noqa: E402
+from app.database import SessionLocal  # noqa: E402
+from app.scheduler import SOURCE_SCRIPT, expire_overdue  # noqa: E402
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -63,32 +40,17 @@ def main(argv: list[str] | None = None) -> int:
                         help="показать, что изменилось бы, и ничего не писать")
     args = parser.parse_args(argv)
 
-    now = datetime.now(timezone.utc)
     with SessionLocal() as db:
-        stale = overdue_subscriptions(db, now)
-        if not stale:
+        changed = expire_overdue(db, datetime.now(timezone.utc), dry_run=args.dry_run,
+                                 source=SOURCE_SCRIPT)
+        if not changed:
             print("Просроченных подписок нет.")
             return 0
-
-        for sub in stale:
-            days = days_overdue(sub.current_period_end, now)
+        for sub, days in changed:
             print(f"{sub.organization_id} · {sub.product} · {sub.plan_code}: "
-                  f"{sub.status} → {OVERDUE_STATUS} (просрочено {days} дн.)")
-            if args.dry_run:
-                continue
-            sub.status = OVERDUE_STATUS
-            db.commit()
-            # Журнал под RLS, а запись идёт в чужую организацию: заходим в неё той же
-            # дверью, что и все остальные (правило C3), и выходим обратно.
-            with as_tenant(db, sub.organization_id):
-                crud.log_action(
-                    db, sub.organization_id, None, "billing.overdue",
-                    entity_type="organization", entity_id=sub.organization_id,
-                    entity_name=sub.plan_code,
-                    details=f"{sub.product}: оплаченный период и льготный срок истекли "
-                            f"({days} дн. с конца периода)")
+                  f"→ {OVERDUE_STATUS} (просрочено {days} дн.)")
         if args.dry_run:
-            print(f"\n--dry-run: изменений не внесено ({len(stale)} шт.)")
+            print(f"\n--dry-run: изменений не внесено ({len(changed)} шт.)")
     return 0
 
 
