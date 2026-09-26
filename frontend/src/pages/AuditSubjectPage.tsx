@@ -12,6 +12,7 @@ import {
   REVALUABLE_LINES,
   analyzeAuditRisk,
   analyzeAuditSubject,
+  createAuditSubject,
   downloadAuditReport,
   getAuditSubject,
   updateAuditSubject,
@@ -24,6 +25,7 @@ import {
   type UserMetric,
 } from "../api/audit";
 import { httpDetail, httpFieldError } from "../api/client";
+import { EditConflictModal, useEditConflict } from "../components/EditConflict";
 import { IconDownload, IconPrint, IconTrash, IconUpload } from "../components/icons";
 import { useToast } from "../components/Toast";
 import { Button } from "../components/ui";
@@ -177,8 +179,14 @@ export function AuditSubjectPage() {
   // отчётность за несколько периодов: потерянный ввод здесь стоит столько же.
   const { tryNav, pending: pendingLeave, cancel: cancelLeave } = useUnsavedGuard(dirty);
 
+  // Конфликт одновременной правки (G2): ревизия — из загруженного дела; после сохранения
+  // её обновляет setQueryData ниже. «Сохранить поверх» передаёт свежую ревизию явно.
+  const conflict = useEditConflict();
+  const [resolving, setResolving] = useState(false);
+
   const save = useMutation({
-    mutationFn: () => updateAuditSubject(id, name, model!),
+    mutationFn: (freshRevision?: string) =>
+      updateAuditSubject(id, name, model!, freshRevision ?? data?.revision),
     onSuccess: (s) => {
       qc.setQueryData(["audit-subject", id], s);
       qc.invalidateQueries({ queryKey: ["audit-subjects"] });
@@ -189,8 +197,10 @@ export function AuditSubjectPage() {
     },
     // Отказ по одному полю называет это поле: раньше вся правка отклонялась общим
     // «не удалось сохранить», и виновную ячейку искали глазами.
-    onError: (e) => toast(httpFieldError(e) ?? httpDetail(e) ?? "Не удалось сохранить",
-                          { kind: "error" }),
+    onError: (e) => {
+      if (conflict.catchConflict(e)) return;   // конфликт объясняет своя модалка
+      toast(httpFieldError(e) ?? httpDetail(e) ?? "Не удалось сохранить", { kind: "error" });
+    },
   });
 
   // Анализ считается по сохранённым данным — только для аналитических вкладок.
@@ -404,7 +414,7 @@ export function AuditSubjectPage() {
               <span style={{ marginLeft: 6 }}>Выгрузка XLSX</span>
             </Button>
           )}
-          <Button onClick={() => save.mutate()} loading={save.isPending} disabled={!dirty}>
+          <Button onClick={() => save.mutate(undefined)} loading={save.isPending} disabled={!dirty}>
             Сохранить
           </Button>
         </div>
@@ -1099,7 +1109,51 @@ export function AuditSubjectPage() {
 
       {/* Вопрос перед уходом: введённую отчётность восстанавливать по памяти нечем. */}
       <UnsavedLeaveModal pending={pendingLeave} saving={save.isPending} onCancel={cancelLeave}
-                         onSave={async () => { await save.mutateAsync(); }} />
+                         onSave={async () => { await save.mutateAsync(undefined); }} />
+      <EditConflictModal kind="case" open={conflict.open} detail={conflict.detail}
+                         busy={resolving} onClose={conflict.close}
+                         onSaveCopy={async () => {
+                           setResolving(true);
+                           try {
+                             const copy = await createAuditSubject(`${name} — мои правки`, model);
+                             conflict.close();
+                             save.reset();
+                             qc.invalidateQueries({ queryKey: ["audit-subjects"] });
+                             toast("Ваши правки сохранены новым делом", { kind: "success" });
+                             navigate(`/audit/${copy.id}`);
+                           } catch (e) {
+                             toast(httpDetail(e) ?? "Не удалось создать дело", { kind: "error" });
+                           } finally {
+                             setResolving(false);
+                           }
+                         }}
+                         onTakeTheirs={async () => {
+                           setResolving(true);
+                           try {
+                             // Данные запроса ведут и имя, и модель: эффект выше заменит
+                             // ввод их версией и снимет признак несохранённых правок.
+                             qc.setQueryData(["audit-subject", id], await getAuditSubject(id));
+                             qc.invalidateQueries({ queryKey: ["audit-analysis", id] });
+                             save.reset();
+                             conflict.close();
+                           } catch (e) {
+                             toast(httpDetail(e) ?? "Не удалось загрузить дело", { kind: "error" });
+                           } finally {
+                             setResolving(false);
+                           }
+                         }}
+                         onOverwrite={async () => {
+                           setResolving(true);
+                           try {
+                             const fresh = await getAuditSubject(id);
+                             conflict.close();
+                             await save.mutateAsync(fresh.revision);
+                           } catch {
+                             // новый конфликт или ошибка уже показаны обычным путём
+                           } finally {
+                             setResolving(false);
+                           }
+                         }} />
     </div>
   );
 }

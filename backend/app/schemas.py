@@ -357,6 +357,9 @@ class ProjectCreate(BaseModel):
 class ProjectUpdate(BaseModel):
     name: Optional[str] = None
     model: Optional[ProjectModel] = None
+    #: Ревизия, которую клиент правил (``revision`` из ответа). Не совпала с текущей →
+    #: 409 с автором и временем чужой правки (G2). Без поля — прежняя перезапись.
+    expected_revision: Optional[str] = None
 
 
 class LastCalcOut(BaseModel):
@@ -384,6 +387,9 @@ class ProjectSummary(BaseModel):
 
 class ProjectOut(ProjectSummary):
     model: ProjectModel
+    #: Отпечаток имени и модели. Меняется **только** вместе с ними — расчёт и финализация
+    #: его не трогают, поэтому ложного конфликта после собственного расчёта нет (G2).
+    revision: str = ""
     # Снимок ревью, которым план был подтверждён при финализации (NULL — не финализирован).
     finalized_review: Optional[ReviewResponse] = None
     # Модель изменилась после финализации (отпечаток не совпадает) — снимок устарел.
@@ -1072,6 +1078,8 @@ class AuditSubjectCreate(BaseModel):
 class AuditSubjectUpdate(BaseModel):
     name: Optional[str] = None
     model: Optional[AuditSubjectModel] = None
+    #: См. ``ProjectUpdate.expected_revision`` (G2).
+    expected_revision: Optional[str] = None
 
 
 class BenchmarkIn(MoneyModel):
@@ -1311,6 +1319,8 @@ class AuditSubjectSummary(BaseModel):
 
 class AuditSubjectOut(AuditSubjectSummary):
     model: AuditSubjectModel
+    #: См. ``ProjectOut.revision`` (G2).
+    revision: str = ""
     # Актив − пассив по периодам (0 — сходится); строки-Decimal (точность без float).
     balance_gap: list[Decimal] = []
 

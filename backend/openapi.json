@@ -3200,6 +3200,11 @@
             "title": "Name",
             "type": "string"
           },
+          "revision": {
+            "default": "",
+            "title": "Revision",
+            "type": "string"
+          },
           "updated_at": {
             "format": "date-time",
             "title": "Updated At",
@@ -3275,6 +3280,17 @@
       },
       "AuditSubjectUpdate": {
         "properties": {
+          "expected_revision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Revision"
+          },
           "model": {
             "anyOf": [
               {
@@ -10143,6 +10159,11 @@
             "title": "Name",
             "type": "string"
           },
+          "revision": {
+            "default": "",
+            "title": "Revision",
+            "type": "string"
+          },
           "status": {
             "default": "draft",
             "title": "Status",
@@ -10750,6 +10771,17 @@
       },
       "ProjectUpdate": {
         "properties": {
+          "expected_revision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Revision"
+          },
           "model": {
             "anyOf": [
               {
@@ -17511,7 +17543,7 @@
         ]
       },
       "put": {
-        "description": "Обновить имя и/или модель субъекта.\n\nДоступен **ключу доступа** с правом на запись (OPEN-DECISIONS §3): отчётность\nприходит из учётной системы, и заставлять человека переносить её руками — ровно то,\nради чего заводят обмен.",
+        "description": "Обновить имя и/или модель субъекта.\n\nДоступен **ключу доступа** с правом на запись (OPEN-DECISIONS §3): отчётность\nприходит из учётной системы, и заставлять человека переносить её руками — ровно то,\nради чего заводят обмен.\n\nЗащита от одновременной правки (G2) — та же, что у проекта: ``expected_revision``\nустарела → 409 с автором и временем; без поля — прежняя перезапись.",
         "operationId": "update_subject_api_v1_audit_subjects__subject_id__put",
         "parameters": [
           {
@@ -22540,7 +22572,7 @@
         ]
       },
       "put": {
-        "description": "Обновить имя и/или модель проекта (право project.update).\n\nДоступен **ключу доступа** с правом на запись (OPEN-DECISIONS §3) — см. создание\nпроекта: автором правки в журнале становится тот, кто выпустил ключ.",
+        "description": "Обновить имя и/или модель проекта (право project.update).\n\nДоступен **ключу доступа** с правом на запись (OPEN-DECISIONS §3) — см. создание\nпроекта: автором правки в журнале становится тот, кто выпустил ключ.\n\n**Защита от одновременной правки (G2).** Пришла ``expected_revision``, а проект с тех\nпор сохранили — 409, и отказ называет, кто и когда. Без поля модель перезаписывается,\nкак раньше: так работают ключи и скрипты, написанные до G2. Интерфейс продукта версию\nприсылает всегда; своим скриптам — стоит.",
         "operationId": "update_project_api_v1_projects__project_id__put",
         "parameters": [
           {

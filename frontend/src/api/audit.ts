@@ -271,6 +271,8 @@ export interface AuditSubjectSummary {
 export interface AuditSubjectOut extends AuditSubjectSummary {
   model: AuditModel;
   balance_gap: string[];   // актив − пассив по периодам (0 — сходится)
+  /** Отпечаток имени и модели (G2): сохранение сверяет его, чтобы не стереть чужие правки. */
+  revision?: string;
 }
 
 // Каталог строк ввода (зеркало audit_core/lines.py).
@@ -332,8 +334,12 @@ export async function createAuditSubject(name: string, model: AuditModel): Promi
   return data;
 }
 
-export async function updateAuditSubject(id: string, name: string, model: AuditModel): Promise<AuditSubjectOut> {
-  const { data } = await api.put<AuditSubjectOut>(`/api/v1/audit/subjects/${id}`, { name, model });
+/** Сохранить дело; ``expectedRevision`` — как у проекта (G2, см. ``updateProject``). */
+export async function updateAuditSubject(id: string, name: string, model: AuditModel,
+                                         expectedRevision?: string): Promise<AuditSubjectOut> {
+  const body: Record<string, unknown> = { name, model };
+  if (expectedRevision) body.expected_revision = expectedRevision;
+  const { data } = await api.put<AuditSubjectOut>(`/api/v1/audit/subjects/${id}`, body);
   return data;
 }
 

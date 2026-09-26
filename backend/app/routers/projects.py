@@ -22,7 +22,7 @@ from calc_core.review.opinion import build_opinion
 from calc_core.sensitivity import SENSITIVITY_PARAMS, run_sensitivity
 from calc_core.whatif import Scenario, ScenarioAdjustment, run_what_if
 
-from .. import billing, crud, usage
+from .. import billing, crud, edit_conflict, usage
 from ..analysis_service import build_mc_config
 from ..database import get_db
 from ..db_models import Project, User
@@ -105,6 +105,7 @@ def _finalized_drift(p: Project) -> bool:
 def _out(p: Project) -> ProjectOut:
     return ProjectOut(id=p.id, name=p.name, created_at=p.created_at,
                       updated_at=p.updated_at, model=crud.load_model(p),
+                      revision=edit_conflict.revision_of(p.name, p.model),
                       last_calc=_last_calc(p), is_stale=_is_stale(p),
                       status=p.status, finalized_at=p.finalized_at,
                       finalized_review=_finalized_review(p), finalized_drift=_finalized_drift(p))
@@ -197,8 +198,16 @@ def update_project(project_id: str, body: ProjectUpdate,
 
     Доступен **ключу доступа** с правом на запись (OPEN-DECISIONS §3) — см. создание
     проекта: автором правки в журнале становится тот, кто выпустил ключ.
+
+    **Защита от одновременной правки (G2).** Пришла ``expected_revision``, а проект с тех
+    пор сохранили — 409, и отказ называет, кто и когда. Без поля модель перезаписывается,
+    как раньше: так работают ключи и скрипты, написанные до G2. Интерфейс продукта версию
+    присылает всегда; своим скриптам — стоит.
     """
     project = _require(db, org_id, project_id)
+    edit_conflict.ensure_fresh(db, org_id, "project", project.id,
+                               current=edit_conflict.revision_of(project.name, project.model),
+                               expected=body.expected_revision)
     updated = crud.update_project(db, project, name=body.name, model=body.model)
     crud.log_action(db, org_id, actor, "project.update", entity_type="project",
                     entity_id=updated.id, entity_name=updated.name,

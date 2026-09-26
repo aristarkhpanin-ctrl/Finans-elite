@@ -26,7 +26,7 @@ from audit_core import (
 from audit_core.opinion import build_opinion
 from audit_core.samples import build_trading_subject
 
-from .. import billing, crud, usage
+from .. import billing, crud, edit_conflict, usage
 from ..audit_docgen import DOCX_MIME, build_audit_docx
 from ..database import get_db
 from ..db_models import AuditGroup, AuditSubject, AuditSubjectVersion, User
@@ -86,6 +86,7 @@ def _out(s: AuditSubject) -> AuditSubjectOut:
     m = crud.load_audit_model(s)
     return AuditSubjectOut(id=s.id, name=s.name, created_at=s.created_at,
                           updated_at=s.updated_at, n_periods=m.n, balanced=m.is_balanced(),
+                          revision=edit_conflict.revision_of(s.name, s.model),
                           model=m, balance_gap=m.balance_gap())
 
 
@@ -140,8 +141,14 @@ def update_subject(subject_id: str, body: AuditSubjectUpdate,
     Доступен **ключу доступа** с правом на запись (OPEN-DECISIONS §3): отчётность
     приходит из учётной системы, и заставлять человека переносить её руками — ровно то,
     ради чего заводят обмен.
+
+    Защита от одновременной правки (G2) — та же, что у проекта: ``expected_revision``
+    устарела → 409 с автором и временем; без поля — прежняя перезапись.
     """
     subject = _require(db, org_id, subject_id)
+    edit_conflict.ensure_fresh(db, org_id, "case", subject.id,
+                               current=edit_conflict.revision_of(subject.name, subject.model),
+                               expected=body.expected_revision)
     updated = crud.update_audit_subject(db, subject, name=body.name, model=body.model)
     crud.log_action(db, org_id, actor, "case.update", entity_type="case",
                     entity_id=updated.id, entity_name=updated.name,

@@ -1188,6 +1188,22 @@ def audit_log_actors(db: Session, org_id: str) -> list[str]:
     return list(rows)
 
 
+def last_log_entry(db: Session, org_id: str, entity_id: str,
+                   actions: Sequence[str]) -> AuditLogEntry | None:
+    """Последняя запись журнала об объекте среди названных действий (или ``None``).
+
+    Нужна, чтобы отказ называл **кто и когда** — а не «кто-то когда-то» (G2).
+    """
+    return db.execute(
+        select(AuditLogEntry)
+        .where(AuditLogEntry.organization_id == org_id,
+               AuditLogEntry.entity_id == entity_id,
+               AuditLogEntry.action.in_(list(actions)))
+        .order_by(AuditLogEntry.created_at.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+
+
 def audit_log_actions(db: Session, org_id: str) -> list[str]:
     """Какие действия встречались — чтобы фильтр предлагал существующее, а не весь каталог."""
     rows = db.execute(

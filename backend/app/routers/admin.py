@@ -75,6 +75,7 @@ from ..schemas import (
     StaffUserOut,
     SuspendIn,
 )
+from ..timefmt import when_utc
 from .jobs import fetch_state
 from .organizations import _log_entry_out, _member_out
 
@@ -712,7 +713,9 @@ def _access_or_403(db: Session, org_id: str):
 
 
 def _when_ru(moment: datetime) -> str:
-    return moment.astimezone(timezone.utc).strftime("%d.%m.%Y %H:%M UTC")
+    # Формат один на все сообщения сервера (``app/timefmt``); имя оставлено ради
+    # вызывающих в этом модуле.
+    return when_utc(moment)
 
 
 def _grant_note(grant) -> str:

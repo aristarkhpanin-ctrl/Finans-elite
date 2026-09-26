@@ -2,8 +2,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import type { ProjectModel } from "../api/model";
-import { httpFieldError } from "../api/client";
-import { getProject, updateProject } from "../api/projects";
+import { httpDetail, httpFieldError, httpStatus } from "../api/client";
+import { createProjectFromModel, getProject, updateProject } from "../api/projects";
+import { EditConflictModal, useEditConflict } from "../components/EditConflict";
+import { useToast } from "../components/Toast";
 import { Button, ErrorState, Loading } from "../components/ui";
 import { UnsavedLeaveModal, useUnsavedGuard } from "../components/UnsavedGuard";
 import { ValidationPanel } from "../components/ValidationPanel";
@@ -80,20 +82,29 @@ export function ProjectEditorPage() {
     return TABS.some(([k]) => k === t) ? (t as TabKey) : "general";
   });
   const savedSnapshot = useRef<string>("");
+  // Ревизия той версии, которую правим (G2). Сервер сверяет её при сохранении: если
+  // проект с тех пор сохранил кто-то другой, он ответит 409, а не сотрёт чужие правки.
+  const revision = useRef<string>("");
+  const conflict = useEditConflict();
+  const [resolving, setResolving] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     if (data) {
       setModel(data.model);
       savedSnapshot.current = JSON.stringify(data.model);
+      revision.current = data.revision ?? "";
     }
   }, [data]);
 
   const save = useMutation({
-    mutationFn: () => updateProject(id, model!.header.name, model!),
-    onSuccess: () => {
+    mutationFn: () => updateProject(id, model!.header.name, model!, revision.current),
+    onSuccess: (saved) => {
       savedSnapshot.current = JSON.stringify(model);
+      revision.current = saved.revision ?? "";
       qc.invalidateQueries({ queryKey: ["projects"] });
     },
+    onError: (e) => { conflict.catchConflict(e); },
   });
 
   const dirty = model != null && JSON.stringify(model) !== savedSnapshot.current;
@@ -112,8 +123,64 @@ export function ProjectEditorPage() {
   };
 
   const calcAndGo = async () => {
-    if (dirty || save.isError) await save.mutateAsync();
+    try {
+      if (dirty || save.isError) await save.mutateAsync();
+    } catch {
+      return;   // причина уже на экране: статус сохранения или модалка конфликта
+    }
     navigate(`/projects/${id}/results`);
+  };
+
+  /** Свои правки — в новый проект: ничьи правки не пропадают (G2). */
+  const saveCopy = async () => {
+    setResolving(true);
+    try {
+      const copy = await createProjectFromModel(`${model.header.name} — мои правки`, model);
+      conflict.close();
+      save.reset();
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      toast("Ваши правки сохранены новым проектом", { kind: "success" });
+      navigate(`/projects/${copy.id}`);
+    } catch (e) {
+      toast(httpDetail(e) ?? "Не удалось создать проект", { kind: "error" });
+    } finally {
+      setResolving(false);
+    }
+  };
+
+  /** Открыть сохранённую другим версию — свои несохранённые правки пропадают. */
+  const takeTheirs = async () => {
+    setResolving(true);
+    try {
+      const fresh = await getProject(id);
+      qc.setQueryData(["project", id], fresh);
+      setModel(fresh.model);
+      savedSnapshot.current = JSON.stringify(fresh.model);
+      revision.current = fresh.revision ?? "";
+      save.reset();
+      conflict.close();
+    } catch (e) {
+      toast(httpDetail(e) ?? "Не удалось загрузить проект", { kind: "error" });
+    } finally {
+      setResolving(false);
+    }
+  };
+
+  /**
+   * Сохранить свои правки поверх — осознанно, после второго нажатия в модалке. Ревизия
+   * берётся свежая: иначе сервер снова ответил бы тем же конфликтом.
+   */
+  const overwrite = async () => {
+    setResolving(true);
+    try {
+      revision.current = (await getProject(id)).revision ?? "";
+      conflict.close();
+      await save.mutateAsync();
+    } catch {
+      // новый конфликт или ошибка сохранения уже показаны тем же путём, что обычно
+    } finally {
+      setResolving(false);
+    }
   };
 
   const saving = save.isPending;
@@ -254,7 +321,9 @@ export function ProjectEditorPage() {
               {/* Отказ по одному полю называет это поле: искать виновную ячейку
                   глазами по всей модели — не работа пользователя. */}
               <span className="save-text--err" title={httpFieldError(save.error) ?? ""}>
-                {httpFieldError(save.error) ?? "Не удалось сохранить · повторите"}
+                {httpStatus(save.error) === 409
+                  ? "Проект сохранил кто-то другой · правки не записаны"
+                  : httpFieldError(save.error) ?? "Не удалось сохранить · повторите"}
               </span>
             </>
           )}
@@ -285,6 +354,9 @@ export function ProjectEditorPage() {
 
       <UnsavedLeaveModal pending={pendingLeave} saving={saving} onCancel={cancelLeave}
                          onSave={async () => { await save.mutateAsync(); }} />
+      <EditConflictModal kind="project" open={conflict.open} detail={conflict.detail}
+                         busy={resolving} onClose={conflict.close} onSaveCopy={saveCopy}
+                         onTakeTheirs={takeTheirs} onOverwrite={overwrite} />
     </div>
   );
 }

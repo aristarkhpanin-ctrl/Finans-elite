@@ -406,6 +406,12 @@ export interface ProjectDetail {
   finalized_at?: string | null;
   finalized_review?: import("./review").ReviewResponse | null;
   finalized_drift?: boolean;
+  /**
+   * Отпечаток имени и модели (G2). Редактор присылает его обратно при сохранении, и
+   * если проект с тех пор сохранил кто-то другой, сервер отвечает 409 с его именем, а
+   * не стирает чужие правки молча.
+   */
+  revision?: string;
 }
 
 export const COST_FUNCTION_LABELS: Record<CostFunction, string> = {

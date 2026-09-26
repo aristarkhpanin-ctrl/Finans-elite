@@ -730,6 +730,9 @@ export interface paths {
          *     Доступен **ключу доступа** с правом на запись (OPEN-DECISIONS §3): отчётность
          *     приходит из учётной системы, и заставлять человека переносить её руками — ровно то,
          *     ради чего заводят обмен.
+         *
+         *     Защита от одновременной правки (G2) — та же, что у проекта: ``expected_revision``
+         *     устарела → 409 с автором и временем; без поля — прежняя перезапись.
          */
         put: operations["update_subject_api_v1_audit_subjects__subject_id__put"];
         post?: never;
@@ -2463,6 +2466,11 @@ export interface paths {
          *
          *     Доступен **ключу доступа** с правом на запись (OPEN-DECISIONS §3) — см. создание
          *     проекта: автором правки в журнале становится тот, кто выпустил ключ.
+         *
+         *     **Защита от одновременной правки (G2).** Пришла ``expected_revision``, а проект с тех
+         *     пор сохранили — 409, и отказ называет, кто и когда. Без поля модель перезаписывается,
+         *     как раньше: так работают ключи и скрипты, написанные до G2. Интерфейс продукта версию
+         *     присылает всегда; своим скриптам — стоит.
          */
         put: operations["update_project_api_v1_projects__project_id__put"];
         post?: never;
@@ -4781,6 +4789,11 @@ export interface components {
             /** Name */
             name: string;
             /**
+             * Revision
+             * @default
+             */
+            revision: string;
+            /**
              * Updated At
              * Format: date-time
              */
@@ -4825,6 +4838,8 @@ export interface components {
         };
         /** AuditSubjectUpdate */
         AuditSubjectUpdate: {
+            /** Expected Revision */
+            expected_revision?: string | null;
             model?: components["schemas"]["AuditSubjectModel-Input"] | null;
             /** Name */
             name?: string | null;
@@ -8746,6 +8761,11 @@ export interface components {
             /** Name */
             name: string;
             /**
+             * Revision
+             * @default
+             */
+            revision: string;
+            /**
              * Status
              * @default draft
              */
@@ -9038,6 +9058,8 @@ export interface components {
         };
         /** ProjectUpdate */
         ProjectUpdate: {
+            /** Expected Revision */
+            expected_revision?: string | null;
             model?: components["schemas"]["ProjectModel-Input"] | null;
             /** Name */
             name?: string | null;
