@@ -64,6 +64,20 @@ describe("applySalesRows", () => {
     expect(res.operating.sales[1].price).toEqual(["80.5", "0"]);
   });
 
+  it("нечитаемая ячейка не становится нулём: ряд не применён, место названо (G13)", () => {
+    const p = plan();
+    const res = applySalesRows(p, [["Хлеб", "Объём", 12, "двенадцать"]], 2);
+    expect(res.matched).toBe(0);
+    expect(res.operating).toBe(p);                                // ряд остался как был
+    expect(res.problems).toEqual(
+      ["строка 1 («Хлеб», Объём): М2: «двенадцать» — не число — ряд не применён"]);
+  });
+
+  it("разряды через пробел в текстовой ячейке читаются, а не обнуляются", () => {
+    const res = applySalesRows(plan(), [["Хлеб", "Цена", "1 200,50", 7]], 2);
+    expect(res.operating.sales[0].price).toEqual(["1200.5", "7"]);
+  });
+
   it("обрезает/дополняет ряд под горизонт", () => {
     const long = applySalesRows(plan(), [["Хлеб", "Объём", 1, 2, 3, 4]], 2);
     expect(long.operating.sales[0].volume).toEqual(["1", "2"]);

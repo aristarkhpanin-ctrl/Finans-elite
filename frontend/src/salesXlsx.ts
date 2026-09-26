@@ -2,6 +2,7 @@
 // XLSX-шаблон (продукты × месяцы, ряды «Объём»/«Цена»), пользователь правит и загружает
 // обратно. К расчётному ядру отношения не имеет — только правит модель (operating_plan).
 import type { OperatingPlan, SalesLine } from "./api/model";
+import { cellSeries } from "./xlsxCells";
 
 /** Ячейка XLSX для write-excel-file (совместима с типами export.ts). */
 type XCell = {
@@ -20,15 +21,6 @@ const num = (v: string | undefined): number => {
   const x = Number(String(v ?? "").replace(",", "."));
   return Number.isFinite(x) ? x : 0;
 };
-
-/** Значение ячейки импорта → строка модели (число нормализуется; пусто → «0»). */
-function cellToStr(v: unknown): string {
-  if (v == null || v === "") return "0";
-  if (typeof v === "number") return String(v);
-  const s = String(v).trim().replace(",", ".");
-  const x = Number(s);
-  return Number.isFinite(x) ? String(x) : "0";
-}
 
 /** Привести ряд к длине n (обрезать/дополнить «0») — синхронно с горизонтом. */
 function fit(values: string[], n: number): string[] {
@@ -59,6 +51,12 @@ export interface ApplyResult {
   matched: number;         // сколько строк продаж обновлено
   skipped: string[];       // имена продуктов из файла, которых нет в модели
   ignored: number;         // строки файла с нераспознанным показателем
+  /**
+   * Ряды, которые не применены, — с местом и причиной (G13). Нечитаемая ячейка раньше
+   * молча становилась нулём, и обнулённый ряд уходил в модель; теперь ряд остаётся как
+   * был, а отчёт называет строку и месяц.
+   */
+  problems: string[];
 }
 
 /**
@@ -81,6 +79,7 @@ export function applySalesRows(
   // Патчи по индексу строки: собираем объём/цену, применяем разом (иммутабельно).
   const patch = new Map<number, Partial<SalesLine>>();
   const skipped = new Set<string>();
+  const problems: string[] = [];
   let ignored = 0;
 
   for (let r = 0; r < rows.length; r++) {
@@ -103,17 +102,24 @@ export function applySalesRows(
       skipped.add(String(row[0] ?? "").trim() || "(без имени)");
       continue;
     }
-    const values = fit(row.slice(2).map(cellToStr), n);
+    const series = cellSeries(row.slice(2), n);
+    if ("error" in series) {
+      problems.push(`строка ${r + 1} («${String(row[0] ?? "").trim()}», ` +
+                    `${String(row[1] ?? "").trim()}): ${series.error} — ряд не применён`);
+      continue;
+    }
+    const values = series.values;
     patch.set(idx, { ...patch.get(idx), ...(isVol ? { volume: values } : { price: values }) });
   }
 
   if (patch.size === 0) {
-    return { operating, matched: 0, skipped: [...skipped], ignored };
+    return { operating, matched: 0, skipped: [...skipped], ignored, problems };
   }
   const sales = operating.sales.map((line, i) =>
     patch.has(i) ? { ...line, ...patch.get(i)! } : line,
   );
-  return { operating: { ...operating, sales }, matched: patch.size, skipped: [...skipped], ignored };
+  return { operating: { ...operating, sales }, matched: patch.size, skipped: [...skipped], ignored,
+           problems };
 }
 
 /** Скачать XLSX-шаблон рядов продаж (write-excel-file грузится лениво). */

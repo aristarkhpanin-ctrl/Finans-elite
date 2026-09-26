@@ -8,10 +8,13 @@ import {
   type OtherFlow,
   type StaffPosition,
 } from "../../api/model";
+import { useRef, useState } from "react";
 import { EField, ESelect } from "../../components/EditorField";
-import { IconBox, IconTrash } from "../../components/icons";
+import { IconBox, IconDownload, IconTrash, IconUpload } from "../../components/icons";
 import { MonthlyGrid } from "../../components/MonthlyGrid";
-import { Button, CountChip, Switch } from "../../components/ui";
+import { useToast } from "../../components/Toast";
+import { Button, CountChip, Modal, Switch } from "../../components/ui";
+import { type CostsImport, downloadCostsTemplate, parseCostsXlsx } from "../../costsXlsx";
 
 interface Props {
   n: number;
@@ -23,6 +26,21 @@ interface Props {
 export function CostsTab({ n, operating, onChange }: Props) {
   const direct = operating.direct_costs;
   const fixed = operating.fixed_costs;
+
+  // Импорт издержек и персонала из Excel (G13): отчёт — модалкой, а не тостом: в нём
+  // созданные статьи с умолчаниями, которые стоит проверить, и строки, что не применены.
+  const fileRef = useRef<HTMLInputElement>(null);
+  const toast = useToast();
+  const [report, setReport] = useState<CostsImport | null>(null);
+  const onImportFile = async (file: File) => {
+    try {
+      const res = await parseCostsXlsx(file, operating, n);
+      if (res.changed) onChange(res.operating);
+      setReport(res);
+    } catch {
+      toast("Не удалось прочитать файл — нужен XLSX по шаблону", { kind: "error" });
+    }
+  };
 
   const addDirect = () =>
     onChange({
@@ -90,7 +108,68 @@ export function CostsTab({ n, operating, onChange }: Props) {
             Себестоимость и операционные расходы по месяцам. Горизонт: {n} мес.
           </div>
         </div>
+        {/* Книга из трёх листов (G13): прямые, постоянные, персонал. Статьи — по имени:
+            найденное обновляется, недостающее создаётся с названными умолчаниями. */}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Button variant="ghost" onClick={async () => {
+            try {
+              await downloadCostsTemplate("Издержки-шаблон.xlsx", operating, n);
+              toast("Шаблон XLSX скачан", { kind: "success",
+                                            sub: "листы: прямые, постоянные, персонал" });
+            } catch {
+              toast("Не удалось сформировать шаблон", { kind: "error" });
+            }
+          }}>
+            <IconDownload size={15} />
+            <span style={{ marginLeft: 6 }}>Шаблон XLSX</span>
+          </Button>
+          <Button variant="ghost" onClick={() => fileRef.current?.click()}>
+            <IconUpload size={15} />
+            <span style={{ marginLeft: 6 }}>Импорт XLSX</span>
+          </Button>
+        </div>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".xlsx"
+          style={{ display: "none" }}
+          aria-label="Файл XLSX с издержками и персоналом"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (file) void onImportFile(file);
+          }}
+        />
       </div>
+
+      <Modal open={report !== null} onClose={() => setReport(null)} title="Импорт из Excel"
+             sub={report?.changed ? "Модель обновлена — сохраните проект" : "Модель не изменилась"}
+             maxWidth={560}
+             actions={<Button onClick={() => setReport(null)}>Понятно</Button>}>
+        {report?.sheets.map((sh) => (
+          <div key={sh.sheet} className="field-note" style={{ marginBottom: 10 }}>
+            <b>{sh.sheet}.</b>{" "}
+            {sh.absent ? "Листа нет в файле — раздел не тронут." : (
+              <>
+                {sh.updated.length > 0 && <>Обновлено: {sh.updated.join(", ")}. </>}
+                {sh.created.length > 0 && (
+                  <>Создано: {sh.created.join(", ")}. <i>Проверьте умолчания:</i> {sh.defaults} </>
+                )}
+                {sh.updated.length + sh.created.length === 0 && sh.problems.length === 0 &&
+                  "Строк со статьями нет."}
+                {sh.problems.length > 0 && (
+                  <ul className="mnotes" style={{ margin: "6px 0 0" }}>
+                    {sh.problems.map((m) => <li key={m}>{m}</li>)}
+                  </ul>
+                )}
+              </>
+            )}
+          </div>
+        ))}
+        <div className="page-sub" style={{ marginTop: 4 }}>
+          Статьи модели, которых нет в файле, не удаляются: импорт дописывает и правит.
+        </div>
+      </Modal>
 
       {/* ─── Прямые ─── */}
       <div className="csec">

@@ -55,6 +55,11 @@ export function SalesTab({ n, operating, company, onChange, onCompany }: Props) 
       const extra: string[] = [];
       if (res.skipped.length) extra.push(`не найдены: ${res.skipped.join(", ")}`);
       if (res.ignored) extra.push(`пропущено строк: ${res.ignored}`);
+      // Нечитаемое не стало нулём (G13): ряд не применён, и место названо.
+      if (res.problems.length) {
+        extra.push(res.problems.length === 1 ? res.problems[0]
+          : `${res.problems[0]} и ещё ${res.problems.length - 1}`);
+      }
       const sub = extra.length ? extra.join(" · ") : undefined;
       if (res.matched > 0) {
         toast(`Импорт из Excel: обновлено рядов — ${res.matched}`, { kind: "success", sub });

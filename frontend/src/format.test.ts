@@ -107,7 +107,7 @@ describe("parseModelNumber / isShare — русское написание, ка
   it("запятая и пробелы в разрядах читаются, мусор — NaN, а не ноль", () => {
     expect(parseModelNumber("0,5")).toBe(0.5);
     expect(parseModelNumber("1 200,50")).toBe(1200.5);
-    expect(parseModelNumber("1 200")).toBe(1200);
+    expect(parseModelNumber("1\u00a0200")).toBe(1200);
     expect(parseModelNumber(0.3)).toBe(0.3);
     expect(Number.isNaN(parseModelNumber("полтора"))).toBe(true);
   });
