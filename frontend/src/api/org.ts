@@ -147,6 +147,55 @@ export async function getQuote(orgId: string, planCode: string,
   return data;
 }
 
+// --- Закрывающие документы (G6) ---
+
+export type BuyerRequisites = Schema<"BuyerRequisitesOut">;
+export type BuyerRequisitesIn = Schema<"BuyerRequisitesIn">;
+export type BillingDocument = Schema<"BillingDocumentOut">;
+export type BillingDocuments = Schema<"BillingDocumentsOut">;
+
+/** Реквизиты организации для счетов и актов — и что с ними не так (словами сервера). */
+export async function getRequisites(orgId: string): Promise<BuyerRequisites> {
+  const { data } = await api.get<BuyerRequisites>(
+    `/api/v1/organizations/${orgId}/billing/requisites`);
+  return data;
+}
+
+export async function saveRequisites(orgId: string,
+                                     body: BuyerRequisitesIn): Promise<BuyerRequisites> {
+  const { data } = await api.put<BuyerRequisites>(
+    `/api/v1/organizations/${orgId}/billing/requisites`, body);
+  return data;
+}
+
+/** Счета и акты — и акты, которых ещё нет, с причиной. */
+export async function getBillingDocuments(orgId: string): Promise<BillingDocuments> {
+  const { data } = await api.get<BillingDocuments>(
+    `/api/v1/organizations/${orgId}/billing/documents`);
+  return data;
+}
+
+export async function createInvoice(orgId: string, planCode: string,
+                                    months: number): Promise<BillingDocument> {
+  const { data } = await api.post<BillingDocument>(
+    `/api/v1/organizations/${orgId}/billing/invoices`, { plan_code: planCode, months });
+  return data;
+}
+
+/** Скачать документ (DOCX) — собирается сервером из снимка, как в день составления. */
+export async function downloadBillingDocument(orgId: string,
+                                              doc: BillingDocument): Promise<void> {
+  const { data } = await api.get<Blob>(
+    `/api/v1/organizations/${orgId}/billing/documents/${doc.id}/docx`,
+    { responseType: "blob" });
+  const href = URL.createObjectURL(data);
+  const a = document.createElement("a");
+  a.href = href;
+  a.download = `${doc.title}.docx`;
+  a.click();
+  URL.revokeObjectURL(href);
+}
+
 /** Выключить автопродление: сохранённый способ оплаты забывается (G5). */
 export async function disableAutoRenew(orgId: string, product: string): Promise<Subscription> {
   const { data } = await api.delete<Subscription>(

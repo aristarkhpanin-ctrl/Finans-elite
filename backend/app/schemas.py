@@ -9,7 +9,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from audit_core import AuditSubjectModel
 from calc_core import ProjectModel
@@ -798,6 +798,80 @@ class CheckoutRequest(BaseModel):
     months: int = 1
     #: Отдельная отметка согласия на автопродление. Без неё деньги не списываются.
     auto_renew: bool = False
+
+
+class BuyerRequisitesIn(BaseModel):
+    """Реквизиты организации-покупателя для счетов и актов (G6).
+
+    Пробелы внутри ИНН и КПП убираются, буквы КПП приводятся к заглавным: так их пишут
+    в документах, а «7707 083893» — та же опечатка, что и «7707083894», только видимая.
+    """
+
+    legal_name: str = Field(default="", max_length=500)
+    inn: str = Field(default="", max_length=20)
+    kpp: str = Field(default="", max_length=20)
+    legal_address: str = Field(default="", max_length=500)
+
+    @field_validator("inn", "kpp")
+    @classmethod
+    def _compact(cls, value: str) -> str:
+        return "".join(value.split()).upper()
+
+
+class BuyerRequisitesOut(BuyerRequisitesIn):
+    #: Что не так — словами. Пусто — документы формируются.
+    problems: list[str] = []
+
+
+class BillingDocumentOut(BaseModel):
+    id: str
+    kind: str                       # invoice | act
+    number: int
+    doc_date: date
+    #: «Счёт № 12 от 26.09.2026» — как документ называют вслух.
+    title: str
+    plan_name: str
+    months: int
+    amount_rub: int
+    period_start: Optional[datetime] = None
+    period_end: Optional[datetime] = None
+
+
+class UpcomingActOut(BaseModel):
+    """Акт, которого ещё нет: ``scheduled`` · ``due`` · ``blocked`` · ``no_period``."""
+
+    payment_id: str
+    paid_at: datetime
+    plan_name: str
+    amount_rub: int
+    act_date: Optional[date] = None
+    state: str
+    reason: str = ""
+
+
+class BillingDocumentsOut(BaseModel):
+    documents: list[BillingDocumentOut] = []
+    upcoming: list[UpcomingActOut] = []
+    #: Готовы ли реквизиты платформы-продавца. Нет — документы не формируются, и
+    #: ``seller_note`` говорит клиенту выход (имена переменных — для экрана готовности).
+    seller_ready: bool = False
+    seller_note: str = ""
+    #: Чего платформа не формирует вовсе (счёт-фактура, УПД) — рядом со списком.
+    not_issued: str = ""
+
+
+class InvoiceRequest(BaseModel):
+    plan_code: str
+    months: int = 1
+
+
+class StaffBillingDocumentOut(BillingDocumentOut):
+    """Документ в служебном списке: чей он — даже когда организации уже нет."""
+
+    organization_id: str
+    #: Покупатель — из снимка в документе, а не из живой организации: её может не быть.
+    buyer_name: str = ""
+    organization_exists: bool = True
 
 
 class CheckoutQuoteOut(BaseModel):

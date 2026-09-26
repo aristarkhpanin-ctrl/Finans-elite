@@ -38,7 +38,11 @@ const downloadMetricsCsv = vi.fn();
 const downloadUsageCsv = vi.fn();
 const assignPlan = vi.fn();
 const getPlans = vi.fn();
+const getStaffBillingDocuments = vi.fn();
+const downloadStaffBillingDocument = vi.fn();
 vi.mock("../api/admin", () => ({
+  getStaffBillingDocuments: (...a: unknown[]) => getStaffBillingDocuments(...a),
+  downloadStaffBillingDocument: (...a: unknown[]) => downloadStaffBillingDocument(...a),
   getStaffOrganizations: (...a: unknown[]) => getStaffOrganizations(...a),
   getStaffOrganization: (...a: unknown[]) => getStaffOrganization(...a),
   getStaffOrgLog: (...a: unknown[]) => getStaffOrgLog(...a),
@@ -774,4 +778,25 @@ it("оговорки списка задач показаны", async () => {
 
   expect(await screen.findByText(/содержимое модели клиента/)).toBeTruthy();
   expect(screen.getByText(/не чистится/)).toBeTruthy();
+});
+
+
+// --- G6: документы платформы, в том числе ушедших клиентов ---
+
+it("документы видны и после ухода клиента — покупатель назван из снимка", async () => {
+  // Документы продавца переживают покупателя (402-ФЗ): хранить их без способа прочесть
+  // значило бы хранить для галочки.
+  const doc = { id: "d1", kind: "act", number: 7, doc_date: "2026-10-20",
+                title: "Акт № 7 от 20.10.2026", plan_name: "Команда", months: 1,
+                amount_rub: 2900, organization_id: "gone", buyer_name: "ООО «Ушедший»",
+                organization_exists: false };
+  getStaffBillingDocuments.mockResolvedValue([doc]);
+  downloadStaffBillingDocument.mockResolvedValue(undefined);
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Документы" }));
+  expect(await screen.findByText("Акт № 7 от 20.10.2026")).toBeTruthy();
+  expect(screen.getByText("ООО «Ушедший»")).toBeTruthy();
+  expect(screen.getByText("организации больше нет")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Скачать DOCX" }));
+  await waitFor(() => expect(downloadStaffBillingDocument).toHaveBeenCalledWith(doc));
 });

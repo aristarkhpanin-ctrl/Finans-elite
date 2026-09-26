@@ -4301,6 +4301,116 @@
         "title": "BenchmarkViewOut",
         "type": "object"
       },
+      "BillingDocumentOut": {
+        "properties": {
+          "amount_rub": {
+            "title": "Amount Rub",
+            "type": "integer"
+          },
+          "doc_date": {
+            "format": "date",
+            "title": "Doc Date",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "months": {
+            "title": "Months",
+            "type": "integer"
+          },
+          "number": {
+            "title": "Number",
+            "type": "integer"
+          },
+          "period_end": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period End"
+          },
+          "period_start": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period Start"
+          },
+          "plan_name": {
+            "title": "Plan Name",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "number",
+          "doc_date",
+          "title",
+          "plan_name",
+          "months",
+          "amount_rub"
+        ],
+        "title": "BillingDocumentOut",
+        "type": "object"
+      },
+      "BillingDocumentsOut": {
+        "properties": {
+          "documents": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/BillingDocumentOut"
+            },
+            "title": "Documents",
+            "type": "array"
+          },
+          "not_issued": {
+            "default": "",
+            "title": "Not Issued",
+            "type": "string"
+          },
+          "seller_note": {
+            "default": "",
+            "title": "Seller Note",
+            "type": "string"
+          },
+          "seller_ready": {
+            "default": false,
+            "title": "Seller Ready",
+            "type": "boolean"
+          },
+          "upcoming": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/UpcomingActOut"
+            },
+            "title": "Upcoming",
+            "type": "array"
+          }
+        },
+        "title": "BillingDocumentsOut",
+        "type": "object"
+      },
       "BomLine-Input": {
         "description": "Строка рецептуры: норма расхода материала на единицу продукта.",
         "properties": {
@@ -4482,6 +4592,75 @@
           }
         },
         "title": "BudgetOut",
+        "type": "object"
+      },
+      "BuyerRequisitesIn": {
+        "description": "Реквизиты организации-покупателя для счетов и актов (G6).\n\nПробелы внутри ИНН и КПП убираются, буквы КПП приводятся к заглавным: так их пишут\nв документах, а «7707 083893» — та же опечатка, что и «7707083894», только видимая.",
+        "properties": {
+          "inn": {
+            "default": "",
+            "maxLength": 20,
+            "title": "Inn",
+            "type": "string"
+          },
+          "kpp": {
+            "default": "",
+            "maxLength": 20,
+            "title": "Kpp",
+            "type": "string"
+          },
+          "legal_address": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Legal Address",
+            "type": "string"
+          },
+          "legal_name": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Legal Name",
+            "type": "string"
+          }
+        },
+        "title": "BuyerRequisitesIn",
+        "type": "object"
+      },
+      "BuyerRequisitesOut": {
+        "properties": {
+          "inn": {
+            "default": "",
+            "maxLength": 20,
+            "title": "Inn",
+            "type": "string"
+          },
+          "kpp": {
+            "default": "",
+            "maxLength": 20,
+            "title": "Kpp",
+            "type": "string"
+          },
+          "legal_address": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Legal Address",
+            "type": "string"
+          },
+          "legal_name": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Legal Name",
+            "type": "string"
+          },
+          "problems": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Problems",
+            "type": "array"
+          }
+        },
+        "title": "BuyerRequisitesOut",
         "type": "object"
       },
       "CalcResponse": {
@@ -6892,6 +7071,24 @@
           }
         },
         "title": "InvestmentPlan",
+        "type": "object"
+      },
+      "InvoiceRequest": {
+        "properties": {
+          "months": {
+            "default": 1,
+            "title": "Months",
+            "type": "integer"
+          },
+          "plan_code": {
+            "title": "Plan Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan_code"
+        ],
+        "title": "InvoiceRequest",
         "type": "object"
       },
       "JobStatusResponse": {
@@ -12357,6 +12554,95 @@
         "title": "StaffAccessOut",
         "type": "object"
       },
+      "StaffBillingDocumentOut": {
+        "description": "Документ в служебном списке: чей он — даже когда организации уже нет.",
+        "properties": {
+          "amount_rub": {
+            "title": "Amount Rub",
+            "type": "integer"
+          },
+          "buyer_name": {
+            "default": "",
+            "title": "Buyer Name",
+            "type": "string"
+          },
+          "doc_date": {
+            "format": "date",
+            "title": "Doc Date",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "months": {
+            "title": "Months",
+            "type": "integer"
+          },
+          "number": {
+            "title": "Number",
+            "type": "integer"
+          },
+          "organization_exists": {
+            "default": true,
+            "title": "Organization Exists",
+            "type": "boolean"
+          },
+          "organization_id": {
+            "title": "Organization Id",
+            "type": "string"
+          },
+          "period_end": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period End"
+          },
+          "period_start": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period Start"
+          },
+          "plan_name": {
+            "title": "Plan Name",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "number",
+          "doc_date",
+          "title",
+          "plan_name",
+          "months",
+          "amount_rub",
+          "organization_id"
+        ],
+        "title": "StaffBillingDocumentOut",
+        "type": "object"
+      },
       "StaffEntityOut": {
         "description": "Проект или дело клиента **в списке** — за живым грантом (F4).\n\nНазвание («Покупка завода в Твери») само по себе коммерческая тайна, поэтому\nсписок закрыт тем же грантом, что и содержимое: без него оператор не узнаёт даже,\nкак называются модели клиента.",
         "properties": {
@@ -14913,6 +15199,58 @@
         "title": "UncertainParamIn",
         "type": "object"
       },
+      "UpcomingActOut": {
+        "description": "Акт, которого ещё нет: ``scheduled`` · ``due`` · ``blocked`` · ``no_period``.",
+        "properties": {
+          "act_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Act Date"
+          },
+          "amount_rub": {
+            "title": "Amount Rub",
+            "type": "integer"
+          },
+          "paid_at": {
+            "format": "date-time",
+            "title": "Paid At",
+            "type": "string"
+          },
+          "payment_id": {
+            "title": "Payment Id",
+            "type": "string"
+          },
+          "plan_name": {
+            "title": "Plan Name",
+            "type": "string"
+          },
+          "reason": {
+            "default": "",
+            "title": "Reason",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "payment_id",
+          "paid_at",
+          "plan_name",
+          "amount_rub",
+          "state"
+        ],
+        "title": "UpcomingActOut",
+        "type": "object"
+      },
       "UsagePolicyOut": {
         "description": "Что платформа собирает о пользовании — человеку, а не в документации.\n\nСкрытая аналитика в продукте, который печатает свои отказы, была бы двойным\nстандартом: тот же экран, где человек забирает свои данные и удаляет учётную запись,\nобязан отвечать и на вопрос «что вы обо мне знаете».",
         "properties": {
@@ -15668,6 +16006,111 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/admin/billing-documents": {
+      "get": {
+        "description": "Счета и акты платформы — **и тех клиентов, которых уже нет** (G6).\n\nДокументы переживают покупателя (402-ФЗ), и хранить их, не имея способа прочесть,\nзначило бы хранить для галочки. Поэтому покупатель назван из снимка в документе, а\nне из живой организации, и отметка «организации нет» стоит рядом. Это метаданные\nбиллинга, а не содержимое моделей: смотреть может и поддержка.",
+        "operationId": "list_billing_documents_api_v1_admin_billing_documents_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "org_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Org Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/StaffBillingDocumentOut"
+                  },
+                  "title": "Response List Billing Documents Api V1 Admin Billing Documents Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Billing Documents",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/billing-documents/{doc_id}/docx": {
+      "get": {
+        "description": "Документ в DOCX для платформы. Выгрузка — в служебный журнал.",
+        "operationId": "download_billing_document_api_v1_admin_billing_documents__doc_id__docx_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "doc_id",
+            "required": true,
+            "schema": {
+              "title": "Doc Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Download Billing Document",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/admin/jobs": {
       "get": {
         "description": "Что происходит в фоновом хозяйстве платформы (F3).\n\n`AnalysisJob` хранил только владение, а состояние живёт в Celery — и опросить задачу\nможно было **только по её идентификатору и только своим арендатором**. Значит\nзависшая задача не видна никому: ни клиенту (он ушёл с экрана), ни платформе, и\nпервый зависший Монте-Карло платформа узнавала от клиента по телефону.\n\n**Метаданные, а не результат.** Числа Монте-Карло — содержимое модели клиента, и\nправило 6 на них распространяется: смотреть содержимое можно только по гранту (F4).\nЗдесь их нет ни в каком виде, и это отдельный тест.\n\n**Недоступный брокер даёт «неизвестно» с причиной**, а не «упало» и не 500: опрос\nхранилища результатов — сеть, а молчание сети это не отказ задачи.",
@@ -21424,6 +21867,167 @@
         ]
       }
     },
+    "/api/v1/organizations/{org_id}/billing/documents": {
+      "get": {
+        "description": "Счета и акты организации — и акты, которых ещё нет, с причиной (G6).",
+        "operationId": "list_billing_documents_api_v1_organizations__org_id__billing_documents_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingDocumentsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Billing Documents",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/api/v1/organizations/{org_id}/billing/documents/{doc_id}/docx": {
+      "get": {
+        "description": "Документ в DOCX — из его снимка. Выгрузка пишется в журнал, как любая выгрузка.",
+        "operationId": "download_billing_document_api_v1_organizations__org_id__billing_documents__doc_id__docx_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "doc_id",
+            "required": true,
+            "schema": {
+              "title": "Doc Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Download Billing Document",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/api/v1/organizations/{org_id}/billing/invoices": {
+      "post": {
+        "description": "Счёт на оплату тарифа по безналу — по запросу клиента (G6).\n\nОткрыт и в режиме чтения при неоплате: счёт — это способ заплатить, и закрыть его\nнеплательщику значило бы запереть его в неоплате.",
+        "operationId": "create_invoice_api_v1_organizations__org_id__billing_invoices_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvoiceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingDocumentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Invoice",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
     "/api/v1/organizations/{org_id}/billing/quote": {
       "get": {
         "description": "Сколько заплатить и до какого дня будет оплачено — **до** оплаты (G5).\n\nТеми же функциями, что и сама оплата: продление того же тарифа продолжает период,\nпереход на другой начинает новый — и тогда названо, сколько дней прежнего пропадёт.",
@@ -21486,6 +22090,110 @@
           }
         ],
         "summary": "Checkout Quote",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/api/v1/organizations/{org_id}/billing/requisites": {
+      "get": {
+        "description": "Реквизиты организации для счетов и актов — и что с ними не так.",
+        "operationId": "get_requisites_api_v1_organizations__org_id__billing_requisites_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerRequisitesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Requisites",
+        "tags": [
+          "billing"
+        ]
+      },
+      "put": {
+        "description": "Сохранить реквизиты целиком. Опечатка в ИНН **не отклоняется** — сохраняется и\nназывается: исправлять её человеку, а документ с ней не сформируется.",
+        "operationId": "update_requisites_api_v1_organizations__org_id__billing_requisites_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BuyerRequisitesIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerRequisitesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Requisites",
         "tags": [
           "billing"
         ]

@@ -4,6 +4,51 @@
  */
 
 export interface paths {
+    "/api/v1/admin/billing-documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Billing Documents
+         * @description Счета и акты платформы — **и тех клиентов, которых уже нет** (G6).
+         *
+         *     Документы переживают покупателя (402-ФЗ), и хранить их, не имея способа прочесть,
+         *     значило бы хранить для галочки. Поэтому покупатель назван из снимка в документе, а
+         *     не из живой организации, и отметка «организации нет» стоит рядом. Это метаданные
+         *     биллинга, а не содержимое моделей: смотреть может и поддержка.
+         */
+        get: operations["list_billing_documents_api_v1_admin_billing_documents_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/billing-documents/{doc_id}/docx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Billing Document
+         * @description Документ в DOCX для платформы. Выгрузка — в служебный журнал.
+         */
+        get: operations["download_billing_document_api_v1_admin_billing_documents__doc_id__docx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/jobs": {
         parameters: {
             query?: never;
@@ -2052,6 +2097,69 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizations/{org_id}/billing/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Billing Documents
+         * @description Счета и акты организации — и акты, которых ещё нет, с причиной (G6).
+         */
+        get: operations["list_billing_documents_api_v1_organizations__org_id__billing_documents_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{org_id}/billing/documents/{doc_id}/docx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Billing Document
+         * @description Документ в DOCX — из его снимка. Выгрузка пишется в журнал, как любая выгрузка.
+         */
+        get: operations["download_billing_document_api_v1_organizations__org_id__billing_documents__doc_id__docx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{org_id}/billing/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Invoice
+         * @description Счёт на оплату тарифа по безналу — по запросу клиента (G6).
+         *
+         *     Открыт и в режиме чтения при неоплате: счёт — это способ заплатить, и закрыть его
+         *     неплательщику значило бы запереть его в неоплате.
+         */
+        post: operations["create_invoice_api_v1_organizations__org_id__billing_invoices_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizations/{org_id}/billing/quote": {
         parameters: {
             query?: never;
@@ -2068,6 +2176,31 @@ export interface paths {
          */
         get: operations["checkout_quote_api_v1_organizations__org_id__billing_quote_get"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{org_id}/billing/requisites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Requisites
+         * @description Реквизиты организации для счетов и актов — и что с ними не так.
+         */
+        get: operations["get_requisites_api_v1_organizations__org_id__billing_requisites_get"];
+        /**
+         * Update Requisites
+         * @description Сохранить реквизиты целиком. Опечатка в ИНН **не отклоняется** — сохраняется и
+         *     называется: исправлять её человеку, а документ с ней не сформируется.
+         */
+        put: operations["update_requisites_api_v1_organizations__org_id__billing_requisites_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -5381,6 +5514,60 @@ export interface components {
             /** Updated At */
             updated_at?: string | null;
         };
+        /** BillingDocumentOut */
+        BillingDocumentOut: {
+            /** Amount Rub */
+            amount_rub: number;
+            /**
+             * Doc Date
+             * Format: date
+             */
+            doc_date: string;
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Months */
+            months: number;
+            /** Number */
+            number: number;
+            /** Period End */
+            period_end?: string | null;
+            /** Period Start */
+            period_start?: string | null;
+            /** Plan Name */
+            plan_name: string;
+            /** Title */
+            title: string;
+        };
+        /** BillingDocumentsOut */
+        BillingDocumentsOut: {
+            /**
+             * Documents
+             * @default []
+             */
+            documents: components["schemas"]["BillingDocumentOut"][];
+            /**
+             * Not Issued
+             * @default
+             */
+            not_issued: string;
+            /**
+             * Seller Note
+             * @default
+             */
+            seller_note: string;
+            /**
+             * Seller Ready
+             * @default false
+             */
+            seller_ready: boolean;
+            /**
+             * Upcoming
+             * @default []
+             */
+            upcoming: components["schemas"]["UpcomingActOut"][];
+        };
         /**
          * BomLine
          * @description Строка рецептуры: норма расхода материала на единицу продукта.
@@ -5475,6 +5662,63 @@ export interface components {
              * @default 0
              */
             total: string;
+        };
+        /**
+         * BuyerRequisitesIn
+         * @description Реквизиты организации-покупателя для счетов и актов (G6).
+         *
+         *     Пробелы внутри ИНН и КПП убираются, буквы КПП приводятся к заглавным: так их пишут
+         *     в документах, а «7707 083893» — та же опечатка, что и «7707083894», только видимая.
+         */
+        BuyerRequisitesIn: {
+            /**
+             * Inn
+             * @default
+             */
+            inn: string;
+            /**
+             * Kpp
+             * @default
+             */
+            kpp: string;
+            /**
+             * Legal Address
+             * @default
+             */
+            legal_address: string;
+            /**
+             * Legal Name
+             * @default
+             */
+            legal_name: string;
+        };
+        /** BuyerRequisitesOut */
+        BuyerRequisitesOut: {
+            /**
+             * Inn
+             * @default
+             */
+            inn: string;
+            /**
+             * Kpp
+             * @default
+             */
+            kpp: string;
+            /**
+             * Legal Address
+             * @default
+             */
+            legal_address: string;
+            /**
+             * Legal Name
+             * @default
+             */
+            legal_name: string;
+            /**
+             * Problems
+             * @default []
+             */
+            problems: string[];
         };
         /** CalcResponse */
         CalcResponse: {
@@ -6810,6 +7054,16 @@ export interface components {
             /** Assets */
             assets?: components["schemas"]["Asset-Output"][];
             calendar?: components["schemas"]["CalendarPlan-Output"];
+        };
+        /** InvoiceRequest */
+        InvoiceRequest: {
+            /**
+             * Months
+             * @default 1
+             */
+            months: number;
+            /** Plan Code */
+            plan_code: string;
         };
         /** JobStatusResponse */
         JobStatusResponse: {
@@ -9987,6 +10241,47 @@ export interface components {
             reason: string;
         };
         /**
+         * StaffBillingDocumentOut
+         * @description Документ в служебном списке: чей он — даже когда организации уже нет.
+         */
+        StaffBillingDocumentOut: {
+            /** Amount Rub */
+            amount_rub: number;
+            /**
+             * Buyer Name
+             * @default
+             */
+            buyer_name: string;
+            /**
+             * Doc Date
+             * Format: date
+             */
+            doc_date: string;
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Months */
+            months: number;
+            /** Number */
+            number: number;
+            /**
+             * Organization Exists
+             * @default true
+             */
+            organization_exists: boolean;
+            /** Organization Id */
+            organization_id: string;
+            /** Period End */
+            period_end?: string | null;
+            /** Period Start */
+            period_start?: string | null;
+            /** Plan Name */
+            plan_name: string;
+            /** Title */
+            title: string;
+        };
+        /**
          * StaffEntityOut
          * @description Проект или дело клиента **в списке** — за живым грантом (F4).
          *
@@ -11543,6 +11838,32 @@ export interface components {
             param: string;
         };
         /**
+         * UpcomingActOut
+         * @description Акт, которого ещё нет: ``scheduled`` · ``due`` · ``blocked`` · ``no_period``.
+         */
+        UpcomingActOut: {
+            /** Act Date */
+            act_date?: string | null;
+            /** Amount Rub */
+            amount_rub: number;
+            /**
+             * Paid At
+             * Format: date-time
+             */
+            paid_at: string;
+            /** Payment Id */
+            payment_id: string;
+            /** Plan Name */
+            plan_name: string;
+            /**
+             * Reason
+             * @default
+             */
+            reason: string;
+            /** State */
+            state: string;
+        };
+        /**
          * UsagePolicyOut
          * @description Что платформа собирает о пользовании — человеку, а не в документации.
          *
@@ -11925,6 +12246,68 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    list_billing_documents_api_v1_admin_billing_documents_get: {
+        parameters: {
+            query?: {
+                org_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffBillingDocumentOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_billing_document_api_v1_admin_billing_documents__doc_id__docx_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doc_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_jobs_api_v1_admin_jobs_get: {
         parameters: {
             query?: {
@@ -15183,6 +15566,104 @@ export interface operations {
             };
         };
     };
+    list_billing_documents_api_v1_organizations__org_id__billing_documents_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingDocumentsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_billing_document_api_v1_organizations__org_id__billing_documents__doc_id__docx_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doc_id: string;
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_invoice_api_v1_organizations__org_id__billing_invoices_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvoiceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingDocumentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     checkout_quote_api_v1_organizations__org_id__billing_quote_get: {
         parameters: {
             query: {
@@ -15204,6 +15685,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CheckoutQuoteOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_requisites_api_v1_organizations__org_id__billing_requisites_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BuyerRequisitesOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_requisites_api_v1_organizations__org_id__billing_requisites_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BuyerRequisitesIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BuyerRequisitesOut"];
                 };
             };
             /** @description Validation Error */

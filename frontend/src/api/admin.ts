@@ -159,6 +159,29 @@ export async function downloadUsageCsv(months = 12): Promise<void> {
   await downloadCsv("/api/v1/admin/usage.csv", { months }, "события-платформы.csv");
 }
 
+/**
+ * Счета и акты платформы (G6) — **и тех клиентов, которых уже нет**: документы
+ * переживают покупателя (402-ФЗ), и покупатель назван из снимка в документе.
+ */
+export type StaffBillingDocument = Schema<"StaffBillingDocumentOut">;
+
+export async function getStaffBillingDocuments(orgId?: string): Promise<StaffBillingDocument[]> {
+  const { data } = await api.get<StaffBillingDocument[]>("/api/v1/admin/billing-documents",
+    { params: orgId ? { org_id: orgId } : {} });
+  return data;
+}
+
+export async function downloadStaffBillingDocument(doc: StaffBillingDocument): Promise<void> {
+  const { data } = await api.get<Blob>(`/api/v1/admin/billing-documents/${doc.id}/docx`,
+    { responseType: "blob" });
+  const href = URL.createObjectURL(data);
+  const a = document.createElement("a");
+  a.href = href;
+  a.download = `${doc.title}.docx`;
+  a.click();
+  URL.revokeObjectURL(href);
+}
+
 async function downloadCsv(url: string, params: Record<string, number>,
                            filename: string): Promise<void> {
   const { data } = await api.get<Blob>(url, { params, responseType: "blob" });

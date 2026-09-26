@@ -32,7 +32,7 @@ from datetime import datetime, timezone
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from . import apikeys, crud
+from . import apikeys, closing_docs, crud
 from .database import as_tenant
 from .db_models import (
     ApiKey,
@@ -100,6 +100,8 @@ def build_export(db: Session, org: Organization) -> dict:
         "и показать сам ключ не может — ни вам, ни себе.",
         "Учётные записи участников здесь не выгружаются — они принадлежат людям, а не "
         "организации. Свои данные каждый забирает сам в профиле.",
+        "Счета и акты перечислены списком; сами бланки скачиваются в разделе «Тариф и "
+        "оплата» — там они собираются из того же снимка, что и в день составления.",
     ]
     if log_total > len(log):
         about.append(f"Записей журнала {log_total}, в файл вошли последние {len(log)}: "
@@ -136,6 +138,19 @@ def build_export(db: Session, org: Organization) -> dict:
             }
             # Без арендатора и с фильтром: у `payments` нет RLS-политики намеренно (F2).
             for p in crud.list_payments(db, org_id, limit=MAX_EXPORT_LOG)
+        ],
+        "документы": [
+            {
+                "документ": closing_docs.title(d),
+                "вид": "счёт на оплату" if d.kind == "invoice" else "акт",
+                "тариф": d.plan_name,
+                "месяцев": d.months,
+                "сумма_руб": d.amount_rub,
+                "период_с": _iso(d.period_start),
+                "период_по": _iso(d.period_end),
+            }
+            # Как и платежи: у `billing_documents` нет RLS, изоляцию держит фильтр (G6).
+            for d in closing_docs.list_documents(db, org_id)
         ],
         "участники": [
             {
@@ -282,6 +297,11 @@ def deletion_plan(db: Session, org: Organization) -> OrgDeletionPlan:
         "собственную подотчётность.",
         "Платёжные документы у платёжного провайдера: платформа ими не распоряжается. "
         "Оплаченный, но не использованный период при удалении не возвращается.",
+        # G6: документы продавца переживают покупателя — и акт за идущий период
+        # появиться уже не сможет, это надо знать до нажатия, а не после.
+        "Счета и акты, уже выставленные платформой: это её первичные документы, и "
+        "закон требует хранить их пять лет. Актов за оплаченные периоды, которые ещё "
+        "не закончились, не будет — скачайте нужное до удаления.",
     ]
     return plan
 

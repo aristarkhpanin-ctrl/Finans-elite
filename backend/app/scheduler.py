@@ -28,7 +28,7 @@ from math import ceil
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import billing, crud, mail
+from . import billing, closing_docs, crud, mail
 from .billing import ChargeResult, PaymentProvider, is_paid_plan
 from .billing_period import (
     GRACE_DAYS,
@@ -52,6 +52,7 @@ TASKS: dict[str, str] = {
     "expire": "scheduler.expire",
     "reminders": "scheduler.reminders",
     "renew": "scheduler.renew",
+    "acts": "scheduler.acts",
 }
 
 
@@ -359,7 +360,7 @@ def settle_renewal(db: Session, payment: Payment, result: ChargeResult, *,
         if result.status == "succeeded":
             crud.mark_payment(db, payment, "succeeded")
             sub = billing.activate_paid_plan(db, org_id, plan, paid_at=now,
-                                             months=payment.months)
+                                             months=payment.months, payment=payment)
             end = sub.current_period_end
             paid_until = when_utc(end) if end else "без срока"
             delivered = _notify_payers(db, org_id, mail.renewal_charged_letter(
@@ -520,3 +521,46 @@ def _renewal_summary(source: str, run: RenewalRun) -> str:
         if value:
             parts.append(f"{label} {value}")
     return f"{source}: " + ", ".join(parts)
+
+
+# --- Акты оказанных услуг (G6) ---
+
+@dataclass
+class ActsRun:
+    """Итог запуска: сколько актов составлено и почему не составлены остальные."""
+
+    issued: int = 0
+    blocked: int = 0       # реквизиты продавца или покупателя не готовы
+    seller_problems: int = 0
+
+
+def issue_acts(db: Session, now: datetime, *, source: str = SOURCE_SCHEDULER) -> ActsRun:
+    """Составить акты по платежам, чей оплаченный период кончился (G6).
+
+    Акт датируется окончанием периода: услуга оказана к нему, не раньше. Не готовы
+    реквизиты — акт не составляется и **ждёт**: следующий запуск после их заполнения
+    составит его той же датой окончания периода. След запуска — всегда, с причинами.
+    """
+    run = ActsRun()
+    run.seller_problems = len(closing_docs.seller_problems())
+    for payment in closing_docs.acts_due(db, now):
+        org = crud.get_organization(db, payment.organization_id)
+        if org is None:
+            continue
+        if run.seller_problems or closing_docs.buyer_problems(org):
+            run.blocked += 1
+            continue
+        doc = closing_docs.issue_act(db, org, payment)
+        with as_tenant(db, org.id):
+            crud.log_action(db, org.id, None, "billing.act_issued",
+                            entity_type="billing_document", entity_id=doc.id,
+                            entity_name=closing_docs.title(doc),
+                            details=f"{payment.amount_rub} ₽ — {closing_docs.service_line(doc)}")
+        run.issued += 1
+    parts = [f"актов составлено {run.issued}"]
+    if run.blocked:
+        parts.append(f"ждут реквизитов {run.blocked}"
+                     + (" (реквизиты продавца заданы не полностью)"
+                        if run.seller_problems else ""))
+    record_run(db, "acts", f"{source}: " + ", ".join(parts))
+    return run

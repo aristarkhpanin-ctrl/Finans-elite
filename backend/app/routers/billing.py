@@ -1,15 +1,20 @@
 """Тарифы, подписка и платежи (биллинг, 6.5)."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from datetime import datetime, timezone
+from urllib.parse import quote
+
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
-from .. import billing, crud, usage
+from .. import billing, closing_docs, crud, usage
 from ..billing import PaymentProvider, get_payment_provider
 from ..billing_period import RENEW_AHEAD
+from ..closing_docx import build_document_docx
 from ..database import get_db
 from ..db_models import User
 from ..deps import current_user, require_membership, require_org_permission
+from ..docgen import DOCX_MIME
 from ..plans import (
     DEFAULT_PLANS,
     PLANS,
@@ -21,12 +26,18 @@ from ..plans import (
 )
 from ..rbac import Perm
 from ..schemas import (
+    BillingDocumentOut,
+    BillingDocumentsOut,
+    BuyerRequisitesIn,
+    BuyerRequisitesOut,
     CheckoutQuoteOut,
     CheckoutRequest,
     CheckoutResponse,
+    InvoiceRequest,
     PlanOut,
     SubscriptionOut,
     SubscriptionUpdate,
+    UpcomingActOut,
 )
 
 router = APIRouter(prefix="/api/v1", tags=["billing"])
@@ -261,6 +272,115 @@ def disable_auto_renew(product: str = "business",
                         + ("; списание, уже отправленное провайдеру, этим не отменено"
                            if in_flight is not None else ""))
     return _subscription_out(db, org_id, product, provider)
+
+
+# --- Закрывающие документы (G6) ---
+
+def document_out(doc) -> BillingDocumentOut:
+    return BillingDocumentOut(id=doc.id, kind=doc.kind, number=doc.number,
+                              doc_date=doc.doc_date, title=closing_docs.title(doc),
+                              plan_name=doc.plan_name, months=doc.months,
+                              amount_rub=doc.amount_rub, period_start=doc.period_start,
+                              period_end=doc.period_end)
+
+
+def _organization(db: Session, org_id: str):
+    org = crud.get_organization(db, org_id)
+    if org is None:
+        raise HTTPException(status_code=404, detail="Организация не найдена")
+    return org
+
+
+def _requisites_out(org) -> BuyerRequisitesOut:
+    return BuyerRequisitesOut(legal_name=org.legal_name, inn=org.inn, kpp=org.kpp,
+                              legal_address=org.legal_address,
+                              problems=closing_docs.buyer_problems(org))
+
+
+@router.get("/organizations/{org_id}/billing/requisites", response_model=BuyerRequisitesOut)
+def get_requisites(org_id: str = Depends(require_membership),
+                   db: Session = Depends(get_db)) -> BuyerRequisitesOut:
+    """Реквизиты организации для счетов и актов — и что с ними не так."""
+    return _requisites_out(_organization(db, org_id))
+
+
+@router.put("/organizations/{org_id}/billing/requisites", response_model=BuyerRequisitesOut)
+def update_requisites(body: BuyerRequisitesIn,
+                      org_id: str = Depends(require_org_permission(Perm.BILLING_MANAGE)),
+                      user: User = Depends(current_user),
+                      db: Session = Depends(get_db)) -> BuyerRequisitesOut:
+    """Сохранить реквизиты целиком. Опечатка в ИНН **не отклоняется** — сохраняется и
+    называется: исправлять её человеку, а документ с ней не сформируется."""
+    org = _organization(db, org_id)
+    org.legal_name = body.legal_name.strip()
+    org.inn = body.inn[:12]
+    org.kpp = body.kpp[:9]
+    org.legal_address = body.legal_address.strip()
+    db.commit()
+    crud.log_action(db, org_id, user, "org.requisites_update", entity_type="organization",
+                    entity_id=org_id, entity_name=org.name,
+                    details=f"{org.legal_name or '—'}, ИНН {org.inn or '—'}")
+    return _requisites_out(org)
+
+
+@router.get("/organizations/{org_id}/billing/documents", response_model=BillingDocumentsOut)
+def list_billing_documents(org_id: str = Depends(require_membership),
+                           db: Session = Depends(get_db)) -> BillingDocumentsOut:
+    """Счета и акты организации — и акты, которых ещё нет, с причиной (G6)."""
+    org = _organization(db, org_id)
+    ready = not closing_docs.seller_problems()
+    upcoming = closing_docs.upcoming_acts(db, org, datetime.now(timezone.utc))
+    return BillingDocumentsOut(
+        documents=[document_out(d) for d in closing_docs.list_documents(db, org_id)],
+        upcoming=[UpcomingActOut(payment_id=u.payment_id, paid_at=u.paid_at,
+                                 plan_name=u.plan_name, amount_rub=u.amount_rub,
+                                 act_date=u.act_date, state=u.state, reason=u.reason)
+                  for u in upcoming],
+        seller_ready=ready, seller_note="" if ready else closing_docs.SELLER_NOT_READY,
+        not_issued=closing_docs.NOT_ISSUED)
+
+
+@router.post("/organizations/{org_id}/billing/invoices", response_model=BillingDocumentOut)
+def create_invoice(body: InvoiceRequest,
+                   org_id: str = Depends(require_org_permission(Perm.BILLING_MANAGE)),
+                   user: User = Depends(current_user),
+                   db: Session = Depends(get_db)) -> BillingDocumentOut:
+    """Счёт на оплату тарифа по безналу — по запросу клиента (G6).
+
+    Открыт и в режиме чтения при неоплате: счёт — это способ заплатить, и закрыть его
+    неплательщику значило бы запереть его в неоплате.
+    """
+    if not is_valid_plan(body.plan_code):
+        raise HTTPException(status_code=422, detail=f"Неизвестный тариф: {body.plan_code}")
+    org = _organization(db, org_id)
+    try:
+        doc = closing_docs.create_invoice(db, org, get_plan(body.plan_code), body.months,
+                                          requested_by=user.email,
+                                          today=datetime.now(timezone.utc).date())
+    except closing_docs.DocumentRefused as exc:
+        raise HTTPException(status_code=409, detail=exc.reason) from exc
+    crud.log_action(db, org_id, user, "billing.invoice", entity_type="billing_document",
+                    entity_id=doc.id, entity_name=closing_docs.title(doc),
+                    details=f"{doc.plan_name}, {doc.months} мес., {doc.amount_rub} ₽")
+    return document_out(doc)
+
+
+@router.get("/organizations/{org_id}/billing/documents/{doc_id}/docx")
+def download_billing_document(doc_id: str, org_id: str = Depends(require_membership),
+                              user: User = Depends(current_user),
+                              db: Session = Depends(get_db)) -> Response:
+    """Документ в DOCX — из его снимка. Выгрузка пишется в журнал, как любая выгрузка."""
+    doc = closing_docs.get_document(db, org_id, doc_id)
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Документ не найден")
+    content = build_document_docx(doc)
+    crud.log_action(db, org_id, user, "billing.document_download",
+                    entity_type="billing_document", entity_id=doc.id,
+                    entity_name=closing_docs.title(doc), details="DOCX")
+    ascii_name = f"{'invoice' if doc.kind == 'invoice' else 'act'}-{doc.number}-{doc.year}.docx"
+    return Response(content=content, media_type=DOCX_MIME, headers={
+        "Content-Disposition": f"attachment; filename=\"{ascii_name}\"; "
+                               f"filename*=UTF-8''{quote(closing_docs.title(doc) + '.docx')}"})
 
 
 @router.post("/billing/webhook/yookassa")

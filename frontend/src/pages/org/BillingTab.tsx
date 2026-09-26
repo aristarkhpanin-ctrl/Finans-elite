@@ -5,6 +5,7 @@ import { changePlan, checkout, disableAutoRenew, getPlans, getQuote, getSubscrip
          type CheckoutQuote, type Plan, type Subscription } from "../../api/org";
 import { useToast } from "../../components/Toast";
 import { Button, Modal, Skeleton } from "../../components/ui";
+import { BillingDocuments } from "./BillingDocuments";
 
 /** Сумма в рублях: «2 900 ₽». */
 const rub = (n: number) => `${n.toLocaleString("ru-RU")} ₽`;
@@ -275,6 +276,8 @@ export function BillingTab({ orgId, canManage }: { orgId: string; canManage: boo
           🔒 Смена тарифа доступна только владельцу организации.
         </p>
       )}
+
+      <BillingDocuments orgId={orgId} canManage={canManage} plans={plans.data ?? []} />
 
       {/* Модал смены тарифа */}
       <Modal

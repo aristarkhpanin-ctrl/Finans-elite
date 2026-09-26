@@ -19,6 +19,11 @@ const getQuote = vi.fn();
 const disableAutoRenew = vi.fn();
 vi.mock("../../api/org", async (orig) => ({
   ...(await orig<typeof import("../../api/org")>()),
+  // Раздел документов (G6) проверяется своим файлом; здесь он лишь не ходит в сеть.
+  getBillingDocuments: () => Promise.resolve({ documents: [], upcoming: [],
+    seller_ready: true, seller_note: "", not_issued: "" }),
+  getRequisites: () => Promise.resolve({ legal_name: "", inn: "", kpp: "",
+    legal_address: "", problems: [] }),
   getPlans: (...a: unknown[]) => getPlans(...a),
   getSubscription: (...a: unknown[]) => getSubscription(...a),
   checkout: (...a: unknown[]) => checkout(...a),

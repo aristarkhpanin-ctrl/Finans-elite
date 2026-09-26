@@ -6,12 +6,13 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Optional
 
 from sqlalchemy import (
     JSON,
     Boolean,
+    Date,
     DateTime,
     ForeignKey,
     Integer,
@@ -71,6 +72,8 @@ NO_RLS_POLICY: dict[str, str] = {
     "staff_log": "журнал платформы о себе: организация в нём — адресат визита, а не "
                  "владелец записи",
     "usage_events": "обезличенные события пользования — данные платформы о себе",
+    "billing_documents": "первичные документы платформы-продавца: переживают клиента "
+                         "(402-ФЗ) и читаются платформой, когда арендатора уже нет",
 }
 
 
@@ -102,6 +105,16 @@ class Organization(Base):
     #: Причина. Показывается **самой организации**: приостановка без объяснения
     #: неотличима от поломки, и клиент пойдёт не в поддержку, а в отзывы.
     suspend_reason: Mapped[str] = mapped_column(String(500), default="", server_default="")
+
+    # --- Реквизиты покупателя для счетов и актов (G6) ---
+    #: Полное наименование («ООО «Ромашка»», «ИП Иванов Иван Иванович»). Отдельно от
+    #: ``name``: имя в продукте — как организацию зовут свои, наименование — как её
+    #: зовёт налоговая, и подменять одно другим в первичном документе нельзя.
+    legal_name: Mapped[str] = mapped_column(String(500), default="", server_default="")
+    inn: Mapped[str] = mapped_column(String(12), default="", server_default="")
+    #: КПП есть у юридического лица и нет у ИП — пустой у ИП правилен, а не пропущен.
+    kpp: Mapped[str] = mapped_column(String(9), default="", server_default="")
+    legal_address: Mapped[str] = mapped_column(String(500), default="", server_default="")
 
 
 class User(Base):
@@ -347,6 +360,16 @@ class Payment(Base):
     #: Автоматическое списание: какой конец периода оно продлевает. По нему же
     #: сверяется повтор — один конец периода не продлевается дважды.
     renews_period_end: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    #: Какой период оплатил платёж (G6) — записывается в момент, когда платёж включил
+    #: тариф. По нему датируется акт: услуга оказана к концу периода. У платежей до G6
+    #: периода нет, и акт по ним автоматически не формируется — это названо, а не
+    #: угадано по дате платежа.
+    period_start: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    period_end: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
@@ -978,3 +1001,52 @@ class UsageEvent(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_now, index=True
     )
+
+
+class BillingDocument(Base):
+    """Счёт на оплату или акт оказанных услуг — первичный документ **платформы** (G6).
+
+    Документ принадлежит продавцу, а не покупателю: ст. 29 402-ФЗ требует хранить
+    первичные документы пять лет, и удаление организации-клиента их **не стирает**
+    (`personal_data.KEPT_AFTER_ORGANIZATION`). Поэтому здесь нет внешних ключей ни на
+    организацию, ни на платёж: и то и другое уходит вместе с клиентом (F6), а документ
+    остаётся — и обязан читаться без них.
+
+    Отсюда же **снимки**: реквизиты продавца и покупателя, тариф, сумма и период
+    записаны в самом документе на дату его составления. Перепечатка через год даёт тот
+    же документ, даже если с тех пор сменились реквизиты, цена или сама организация.
+
+    Номер — свой ряд у каждого вида в пределах календарного года («Счёт № 12»,
+    «Акт № 7»); уникальность ряда держит база.
+    """
+
+    __tablename__ = "billing_documents"
+    __table_args__ = (UniqueConstraint("kind", "year", "number", name="uq_billing_doc_number"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    #: Чей документ — без внешнего ключа (см. выше): организация может исчезнуть.
+    organization_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
+    #: ``invoice`` — счёт на оплату; ``act`` — акт оказанных услуг.
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    year: Mapped[int] = mapped_column(Integer, nullable=False)
+    number: Mapped[int] = mapped_column(Integer, nullable=False)
+    doc_date: Mapped[date] = mapped_column(Date, nullable=False)
+    plan_code: Mapped[str] = mapped_column(String(32), nullable=False)
+    #: Название тарифа и продукта на дату документа — снимок, а не ссылка на каталог.
+    plan_name: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    product: Mapped[str] = mapped_column(String(16), nullable=False, default="business")
+    months: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    amount_rub: Mapped[int] = mapped_column(Integer, nullable=False)
+    #: Период услуги (у акта); у счёта — пусто: период начнётся с оплаты.
+    period_start: Mapped[datetime | None] = mapped_column(DateTime(timezone=True),
+                                                          nullable=True)
+    period_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True),
+                                                        nullable=True)
+    #: Платёж, закрытый актом. Уникален: один платёж — один акт. Без внешнего ключа.
+    payment_id: Mapped[str | None] = mapped_column(String(36), unique=True, nullable=True)
+    seller: Mapped[dict] = mapped_column(JSONType, nullable=False, default=dict)
+    buyer: Mapped[dict] = mapped_column(JSONType, nullable=False, default=dict)
+    #: Кто запросил (почта — «надгробие», как в журнале); у акта — пусто: его составляет
+    #: платформа по факту оплаты, а не человек.
+    created_by: Mapped[str] = mapped_column(String(320), nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

@@ -57,5 +57,11 @@ celery_app.conf.update(
             "task": "scheduler.renew_subscriptions",
             "schedule": crontab(hour=4, minute=0),
         },
+        # Акты (G6) — после автопродления: платёж, прошедший ночью, акта ещё не требует
+        # (его период только начался), а закончившиеся периоды к утру закрыты актами.
+        "issue-acts": {
+            "task": "scheduler.issue_acts",
+            "schedule": crontab(hour=5, minute=0),
+        },
     },
 )

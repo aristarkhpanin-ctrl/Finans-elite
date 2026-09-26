@@ -28,15 +28,19 @@ from __future__ import annotations
 import csv
 import io
 from datetime import datetime, timedelta, timezone
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Response
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .. import billing as billing_mod
-from .. import crud, job_state, support_access, usage
+from .. import closing_docs, crud, job_state, support_access, usage
+from ..closing_docx import build_document_docx
 from ..database import as_tenant, get_db
-from ..db_models import User
+from ..db_models import BillingDocument, Organization, User
 from ..deps import require_operator, require_staff
+from ..docgen import DOCX_MIME
 from ..metrics import (
     ChurnRecord,
     PlatformMetrics,
@@ -57,6 +61,7 @@ from ..schemas import (
     RetentionPointOut,
     RevenuePointOut,
     StaffAccessOut,
+    StaffBillingDocumentOut,
     StaffEntityOut,
     StaffJobOut,
     StaffJobsOut,
@@ -76,6 +81,7 @@ from ..schemas import (
     SuspendIn,
 )
 from ..timefmt import when_utc
+from .billing import document_out
 from .jobs import fetch_state
 from .organizations import _log_entry_out, _member_out
 
@@ -335,9 +341,13 @@ def assign_subscription(org_id: str, body: StaffPlanAssign,
                       period_end=None, paid=True)
         paid_rub = 0
     else:
-        billing_mod.activate_paid_plan(db, org_id, plan, months=months)
         paid_rub = plan.price_rub * months
-        payment = crud.create_payment(db, org_id, plan.code, paid_rub, provider="manual")
+        # Платёж заводится **до** включения тарифа: ему записывается оплаченный период,
+        # по которому потом датируется акт (G6), и число месяцев — без него платёж за
+        # квартал выглядел бы месячным.
+        payment = crud.create_payment(db, org_id, plan.code, paid_rub, provider="manual",
+                                      months=months)
+        billing_mod.activate_paid_plan(db, org_id, plan, months=months, payment=payment)
         crud.mark_payment(db, payment, "succeeded")
 
     details = (f"{plan.name}: оплачено {months} мес., {paid_rub} ₽" if months
@@ -918,3 +928,43 @@ def read_staff_log(limit: int = 200, actor: str = "", org_id: str = "",
                          organization_id=e.organization_id,
                          organization_name=e.organization_name, details=e.details,
                          created_at=e.created_at) for e in entries])
+
+
+# --- Закрывающие документы (G6) ---
+
+@router.get("/billing-documents", response_model=list[StaffBillingDocumentOut])
+def list_billing_documents(org_id: str | None = None, staff: User = Depends(require_staff),
+                           db: Session = Depends(get_db)) -> list[StaffBillingDocumentOut]:
+    """Счета и акты платформы — **и тех клиентов, которых уже нет** (G6).
+
+    Документы переживают покупателя (402-ФЗ), и хранить их, не имея способа прочесть,
+    значило бы хранить для галочки. Поэтому покупатель назван из снимка в документе, а
+    не из живой организации, и отметка «организации нет» стоит рядом. Это метаданные
+    биллинга, а не содержимое моделей: смотреть может и поддержка.
+    """
+    query = select(BillingDocument).order_by(BillingDocument.created_at.desc()).limit(500)
+    if org_id:
+        query = query.where(BillingDocument.organization_id == org_id)
+    docs = list(db.execute(query).scalars())
+    alive = set(db.execute(select(Organization.id).where(
+        Organization.id.in_({d.organization_id for d in docs}))).scalars())
+    return [StaffBillingDocumentOut(
+        **document_out(d).model_dump(), organization_id=d.organization_id,
+        buyer_name=str(d.buyer.get("legal_name") or d.buyer.get("name") or ""),
+        organization_exists=d.organization_id in alive) for d in docs]
+
+
+@router.get("/billing-documents/{doc_id}/docx")
+def download_billing_document(doc_id: str, staff: User = Depends(require_staff),
+                              db: Session = Depends(get_db)) -> Response:
+    """Документ в DOCX для платформы. Выгрузка — в служебный журнал."""
+    doc = db.get(BillingDocument, doc_id)
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Документ не найден")
+    content = build_document_docx(doc)
+    crud.log_staff_action(db, staff, "staff.document_download", org_id=doc.organization_id,
+                          org_name=str(doc.buyer.get("name") or ""),
+                          details=closing_docs.title(doc))
+    return Response(content=content, media_type=DOCX_MIME, headers={
+        "Content-Disposition": f"attachment; filename=\"document-{doc.number}-{doc.year}.docx\"; "
+                               f"filename*=UTF-8''{quote(closing_docs.title(doc) + '.docx')}"})

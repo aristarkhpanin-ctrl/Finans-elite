@@ -22,7 +22,8 @@ from .plans import UNIT_NAME, Plan, get_plan
 
 
 def activate_paid_plan(db: Session, org_id: str, plan: Plan,
-                       paid_at: datetime | None = None, months: int = 1) -> Subscription:
+                       paid_at: datetime | None = None, months: int = 1,
+                       payment: Payment | None = None) -> Subscription:
     """Включить тариф **по факту оплаты** — и начать отсчёт оплаченного периода.
 
     Одна дверь на **всех**, кто проводит оплату: ручной провайдер (разработка), ЮKassa,
@@ -37,6 +38,10 @@ def activate_paid_plan(db: Session, org_id: str, plan: Plan,
     Новый период — новый счёт попыток автопродления: неудачи прошлого конца периода к
     следующему не относятся. Причина прошлой неудачи стирается, только пока согласие
     живо: если автопродление выключено, она объясняет, **почему** оно выключено.
+
+    ``payment`` — платёж, который включает тариф: ему записывается оплаченный период
+    (G6). По нему датируется акт, и записать его можно только здесь — в единственном
+    месте, где период известен точно, а не выводится задним числом из даты платежа.
     """
     paid_at = paid_at or datetime.now(timezone.utc)
     current = crud.get_subscription(db, org_id, plan.product)
@@ -49,6 +54,9 @@ def activate_paid_plan(db: Session, org_id: str, plan: Plan,
     sub.renew_attempted_at = None
     if sub.auto_renew:
         sub.renew_error = ""
+    if payment is not None and end is not None:
+        payment.period_start = start
+        payment.period_end = end
     db.commit()
     db.refresh(sub)
     return sub
@@ -392,7 +400,8 @@ def settle_payment(db: Session, payment: Payment, *, saved_method_id: str | None
     """
     crud.mark_payment(db, payment, "succeeded")
     plan = get_plan(payment.plan_code)
-    sub = activate_paid_plan(db, payment.organization_id, plan, months=payment.months)
+    sub = activate_paid_plan(db, payment.organization_id, plan, months=payment.months,
+                             payment=payment)
     if payment.auto_renew_consent:
         if saved_method_id:
             crud.enable_auto_renew(db, sub, method_id=saved_method_id,

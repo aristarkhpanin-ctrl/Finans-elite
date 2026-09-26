@@ -3,6 +3,8 @@ import { useState } from "react";
 import {
   assignPlan,
   blockUser,
+  downloadStaffBillingDocument,
+  getStaffBillingDocuments,
   getOrgProject,
   getOrgProjects,
   getOrgSubject,
@@ -60,6 +62,7 @@ const TABS = [
   ["metrics", "Сводка"],
   ["staff", "Сотрудники"],
   ["jobs", "Эксплуатация"],
+  ["docs", "Документы"],
   ["log", "Журнал сотрудников"],
 ] as const;
 
@@ -150,6 +153,7 @@ export function AdminPage() {
       {tab === "metrics" && <MetricsTab />}
       {tab === "staff" && <StaffTab />}
       {tab === "jobs" && <JobsTab />}
+      {tab === "docs" && <DocumentsTab />}
       {tab === "log" && <StaffLogTab />}
     </div>
   );
@@ -828,6 +832,65 @@ const JOB_STATUS: Record<string, string> = {
  * открываются они только по его гранту. «Неизвестно» показывается как «неизвестно», с
  * причиной рядом, а не как «упало».
  */
+/**
+ * Счета и акты платформы (G6) — **и ушедших клиентов**. Документы продавца переживают
+ * покупателя (402-ФЗ, пять лет), и хранить их без способа прочесть значило бы хранить
+ * для галочки: поэтому здесь, а не только в карточке организации, которой может уже не
+ * быть. Покупатель назван из снимка в документе. Это метаданные биллинга, не модели
+ * клиента: смотреть может и поддержка.
+ */
+function DocumentsTab() {
+  const toast = useToast();
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["admin-billing-docs"], queryFn: () => getStaffBillingDocuments(),
+  });
+  if (isLoading && !data) return <Loading />;
+  if (isError || !data) return <ErrorState text="Не удалось загрузить документы"
+                                           onRetry={() => refetch()} />;
+  if (data.length === 0) {
+    return (
+      <div className="tab-empty">
+        <div className="tab-empty__title">Документов пока нет</div>
+        <div className="tab-empty__sub">
+          Счета выставляют клиенты сами, акты составляются по оплатам после окончания
+          оплаченного периода. Если документов ждали, проверьте реквизиты продавца
+          (SELLER_*): без них документы не формируются.
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="log-list" role="table" aria-label="Документы платформы">
+      <div className="log-row adm-row adm-row--head" role="row">
+        <div role="columnheader">Документ</div>
+        <div role="columnheader">Покупатель</div>
+        <div role="columnheader">Сумма</div>
+        <div role="columnheader" />
+      </div>
+      {data.map((doc) => (
+        <div className="log-row adm-row" role="row" key={doc.id}>
+          <div role="rowheader">
+            {doc.title}
+            <div className="adm-sub">{doc.plan_name}, {doc.months} мес.</div>
+          </div>
+          <div role="cell">
+            {doc.buyer_name || "—"}
+            {!doc.organization_exists && <div className="adm-sub">организации больше нет</div>}
+          </div>
+          <div role="cell">{doc.amount_rub.toLocaleString("ru-RU")} ₽</div>
+          <div role="cell">
+            <button type="button" className="link-btn"
+                    onClick={() => downloadStaffBillingDocument(doc).catch(
+                      () => toast("Не удалось скачать документ", { kind: "error" }))}>
+              Скачать DOCX
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function JobsTab() {
   const [hours, setHours] = useState(24);
   const { data, isLoading, isError, refetch } = useQuery({

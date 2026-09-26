@@ -42,6 +42,10 @@ const ACTION: Record<string, string> = {
   "billing.auto_renew_off": "Автопродление выключено",
   "billing.auto_renew_charged": "Автопродление: оплата списана",
   "billing.auto_renew_failed": "Автопродление: списание не прошло",
+  "org.requisites_update": "Изменены реквизиты организации",
+  "billing.invoice": "Выставлен счёт на оплату",
+  "billing.act_issued": "Сформирован акт",
+  "billing.document_download": "Скачан документ об оплате",
   // Платформа и её поддержка в вашей организации. Ради этих строк журнал и заводили:
   // приход постороннего клиент должен прочесть словами, а не кодом.
   "staff.org_view": "Платформа: просмотр карточки организации",
@@ -131,6 +135,7 @@ const TONE: Record<string, string> = {
   "audit_log.export": "log-row--attn",
   "org.export": "log-row--attn",
   "user.data_export": "log-row--attn",
+  "billing.document_download": "log-row--attn",
   // Посторонний в данных организации и новые двери в неё — тоже.
   "staff.org_view": "log-row--attn",
   "staff.audit_log_view": "log-row--attn",

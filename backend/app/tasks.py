@@ -54,3 +54,10 @@ def renew_subscriptions_task() -> int:
     with SessionLocal() as db:
         return scheduler.renew_subscriptions(db, get_payment_provider(),
                                              datetime.now(timezone.utc)).charged
+
+
+@celery_app.task(name="scheduler.issue_acts")
+def issue_acts_task() -> int:
+    """Акты по закончившимся оплаченным периодам (G6). Возвращает, сколько составлено."""
+    with SessionLocal() as db:
+        return scheduler.issue_acts(db, datetime.now(timezone.utc)).issued

@@ -3234,6 +3234,14 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .pay-terms__consent input { margin-top: 2px; flex: none; }
 .pay-terms__consent input:disabled + span { color: var(--subtle); }
 
+/* Документы об оплате (G6): реквизиты, счёт, список счетов и актов */
+.billing-docs { margin-top: 28px; }
+.billing-docs__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+@media (max-width: 800px) { .billing-docs__grid { grid-template-columns: 1fr; } }
+.billing-docs__grid .field { margin-top: 10px; }
+.billing-docs__problems { margin: 8px 0 10px; padding-left: 18px; }
+.billing-docs__grid .btn { margin-top: 12px; }
+
 /* Diff в модале смены тарифа */
 .plan-diff { display: flex; align-items: center; gap: 12px; margin: 4px 0 14px; }
 .plan-diff__box { flex: 1; text-align: center; padding: 12px; border-radius: 10px; background: var(--surface-2); }
