@@ -28,27 +28,35 @@ from math import ceil
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import crud, mail
-from .billing import is_paid_plan
+from . import billing, crud, mail
+from .billing import ChargeResult, PaymentProvider, is_paid_plan
 from .billing_period import (
     GRACE_DAYS,
     OVERDUE_STATUS,
+    RENEW_MAX_ATTEMPTS,
+    RENEW_RETRY_AFTER,
     days_overdue,
     effective_status,
     reminder_stage,
+    renewal_due,
 )
 from .database import as_tenant
-from .db_models import AuditLogEntry, StaffLogEntry, Subscription, User
-from .plans import PRODUCT_NAME, get_plan
+from .db_models import AuditLogEntry, Payment, StaffLogEntry, Subscription, User
+from .plans import PRODUCT_NAME, Plan, get_plan
 from .rbac import Perm, has_permission
-from .timefmt import when_utc
+from .timefmt import day_utc, when_utc
 
 #: Задачи планировщика и их действие в служебном журнале. Перечень закрыт: экран
 #: готовности читает ровно эти строки, и задача мимо перечня была бы невидимой.
 TASKS: dict[str, str] = {
     "expire": "scheduler.expire",
     "reminders": "scheduler.reminders",
+    "renew": "scheduler.renew",
 }
+
+
+def _aware(moment: datetime) -> datetime:
+    return moment if moment.tzinfo else moment.replace(tzinfo=timezone.utc)
 
 
 def record_run(db: Session, task: str, details: str) -> None:
@@ -130,6 +138,10 @@ STAGE_LABEL = {
     "overdue": "письмо о закрытии изменения данных",
 }
 
+#: Письмо за неделю при включённом автопродлении — предупреждение о списании (G5).
+#: Ключ у него тот же, что у обычного напоминания: одно письмо на конец периода.
+NOTICE_LABEL = "предупреждение о предстоящем автосписании"
+
 
 @dataclass
 class ReminderRun:
@@ -178,17 +190,41 @@ def _days_until(moment: datetime, now: datetime) -> int:
     return max(1, ceil((aware - now) / timedelta(days=1)))
 
 
+def _consent_problem(sub: Subscription, plan: Plan) -> str | None:
+    """Почему данное согласие больше не покрывает списание (``None`` — покрывает).
+
+    Одна проверка на два места — письмо за неделю и само списание: выросшую цену лучше
+    назвать за неделю, чем в день списания, но и в день списания её обязаны поймать.
+    """
+    if plan.price_on_request or plan.price_rub <= 0:
+        return "тариф не продлевается оплатой"
+    amount = billing.checkout_amount(plan, sub.renew_months)
+    if amount > sub.renew_amount_rub:
+        return (f"цена выросла: согласие давалось на {mail.rub(sub.renew_amount_rub)}, "
+                f"сейчас {mail.rub(amount)} — другую сумму без нового согласия не списываем")
+    return None
+
+
 def _billing_letter(stage: str, sub: Subscription, organization: str,
-                    now: datetime) -> mail.Letter:
+                    now: datetime, note: str = "") -> mail.Letter:
     end = sub.current_period_end
     assert end is not None
-    plan = get_plan(sub.plan_code, sub.product).name
+    plan_obj = get_plan(sub.plan_code, sub.product)
+    plan = plan_obj.name
     product = PRODUCT_NAME.get(sub.product, sub.product)
     link = mail.billing_url()
+    if stage == "ending" and sub.auto_renew:
+        # При автопродлении письмо за неделю — то самое предупреждение, без которого
+        # деньги не списываются: сумма, способ и как отказаться.
+        return mail.renewal_notice_letter(
+            organization=organization, product=product, plan=plan,
+            amount=billing.checkout_amount(plan_obj, sub.renew_months),
+            months=sub.renew_months, method=sub.payment_method_title,
+            ends=when_utc(end), days=_days_until(end, now), link=link)
     if stage == "ending":
         return mail.period_ending_letter(
             organization=organization, product=product, plan=plan, ends=when_utc(end),
-            days=_days_until(end, now), grace_days=GRACE_DAYS, link=link)
+            days=_days_until(end, now), grace_days=GRACE_DAYS, link=link, note=note)
     if stage == "ended":
         grace_end = end + timedelta(days=GRACE_DAYS)
         return mail.period_ended_letter(
@@ -226,16 +262,26 @@ def send_billing_reminders(db: Session, now: datetime, *,
             if not recipients:
                 run.no_recipients += 1
                 continue
+            note = ""
+            if stage == "ending" and sub.auto_renew:
+                problem = _consent_problem(sub, get_plan(sub.plan_code, sub.product))
+                if problem:
+                    crud.decline_auto_renew(db, sub, problem)
+                    note = (f"Автопродление выключено: {problem}. Включить его снова "
+                            "можно оплатой с отметкой согласия.")
+            label = (NOTICE_LABEL if stage == "ending" and sub.auto_renew
+                     else STAGE_LABEL[stage])
             organization = crud.get_organization(db, org_id)
             letter = _billing_letter(stage, sub,
-                                     organization.name if organization else "", now)
+                                     organization.name if organization else "", now,
+                                     note=note)
             results = [(user.email, mail.send(user.email, letter)) for user in recipients]
             delivered = [email for email, sent in results if sent.ok]
             if delivered:
                 crud.log_action(db, org_id, None, "billing.reminder",
                                 entity_type="organization", entity_id=org_id,
                                 entity_name=key,
-                                details=f"{STAGE_LABEL[stage]}: письмо ушло "
+                                details=f"{label}: письмо ушло "
                                         f"({len(delivered)} адресатам)")
                 run.sent += 1
             else:
@@ -243,7 +289,7 @@ def send_billing_reminders(db: Session, now: datetime, *,
                 crud.log_action(db, org_id, None, "billing.reminder_failed",
                                 entity_type="organization", entity_id=org_id,
                                 entity_name=key,
-                                details=f"{STAGE_LABEL[stage]}: письмо не ушло — "
+                                details=f"{label}: письмо не ушло — "
                                         f"{reasons or 'причина не названа'}")
                 run.failed += 1
     record_run(db, "reminders", _reminder_summary(source, run))
@@ -256,4 +302,221 @@ def _reminder_summary(source: str, run: ReminderRun) -> str:
         parts.append(f"почта выключена — не отправлено {run.mail_off}")
     if run.no_recipients:
         parts.append(f"некому отправить {run.no_recipients}")
+    return f"{source}: " + ", ".join(parts)
+
+
+# --- Автопродление (G5) ---
+
+@dataclass
+class RenewalRun:
+    """Итог запуска автопродления — по подпискам."""
+
+    charged: int = 0       # списано, период продлён
+    pending: int = 0       # ждёт итога от провайдера (в т.ч. исход неизвестен)
+    failed: int = 0        # отказ с причиной; клиенту написано
+    unknown: int = 0       # провайдер не ответил — повтора не будет
+    not_warned: int = 0    # письмо-предупреждение не ушло: не списывали
+    stopped: int = 0       # согласие погашено: цена выросла, тариф без срока
+    blocked: int = 0       # автопродление на установке недоступно (нет оплаты/почты)
+
+
+def _notify_payers(db: Session, org_id: str, letter: mail.Letter) -> str:
+    """Письмо всем, кто вправе платить; итог — словами для журнала. Три состояния:
+    не пытались (почта выключена), ушло, не ушло с причиной."""
+    if not mail.mail_enabled():
+        return "письмо не отправляли: почта выключена"
+    recipients = _payers(db, org_id)
+    if not recipients:
+        return "письмо некому отправить"
+    results = [mail.send(user.email, letter) for user in recipients]
+    delivered = sum(1 for sent in results if sent.ok)
+    if delivered:
+        return f"письмо ушло ({delivered} адресатам)"
+    reasons = "; ".join(sorted({sent.error for sent in results if sent.error}))
+    return f"письмо не ушло — {reasons or 'причина не названа'}"
+
+
+def settle_renewal(db: Session, payment: Payment, result: ChargeResult, *,
+                   now: datetime | None = None) -> str:
+    """Дописать итог автоматического списания: деньги, срок, журнал, письмо.
+
+    **Одна дверь на два источника итога**: сам запуск (провайдер ответил сразу) и
+    уведомление провайдера (ответил позже или не ответил вовсе). Две копии разошлись бы
+    в первом же случае, который случается редко, — то есть там, где их никто не
+    проверял бы. Возвращает исход для счётчиков запуска.
+    """
+    now = now or datetime.now(timezone.utc)
+    org_id = payment.organization_id
+    plan = get_plan(payment.plan_code)
+    product = PRODUCT_NAME.get(plan.product, plan.product)
+    sub = crud.get_subscription(db, org_id, plan.product)
+    with as_tenant(db, org_id):
+        organization = crud.get_organization(db, org_id)
+        org_name = organization.name if organization else ""
+        method = sub.payment_method_title if sub and sub.payment_method_title else "способ оплаты"
+        link = mail.billing_url()
+
+        if result.status == "succeeded":
+            crud.mark_payment(db, payment, "succeeded")
+            sub = billing.activate_paid_plan(db, org_id, plan, paid_at=now,
+                                             months=payment.months)
+            end = sub.current_period_end
+            paid_until = when_utc(end) if end else "без срока"
+            delivered = _notify_payers(db, org_id, mail.renewal_charged_letter(
+                organization=org_name, product=product, plan=plan.name,
+                amount=payment.amount_rub, months=payment.months, method=method,
+                paid_until=paid_until, link=link))
+            crud.log_action(db, org_id, None, "billing.auto_renew_charged",
+                            entity_type="organization", entity_id=org_id,
+                            entity_name=plan.code,
+                            details=f"{plan.product}: списано {payment.amount_rub} ₽ за "
+                                    f"{payment.months} мес., оплачено до {paid_until}; "
+                                    f"{delivered}")
+            return "charged"
+
+        if sub is None:
+            return "failed"
+        if result.status == "pending":
+            sub.renew_error = "Списание ждёт подтверждения провайдера."
+            db.commit()
+            return "pending"
+
+        if result.status == "unknown":
+            sub.renew_error = ("Провайдер не ответил — неизвестно, прошло ли списание. "
+                               "Повторно не списываем, чтобы не взять деньги дважды; если "
+                               "списания нет в выписке, оплатите вручную.")
+            db.commit()
+            delivered = _notify_payers(db, org_id, mail.renewal_unknown_letter(
+                organization=org_name, product=product, plan=plan.name,
+                amount=payment.amount_rub, method=method, link=link))
+            crud.log_action(db, org_id, None, "billing.auto_renew_failed",
+                            entity_type="organization", entity_id=org_id,
+                            entity_name=plan.code,
+                            details=f"{plan.product}: исход списания {payment.amount_rub} ₽ "
+                                    f"неизвестен — {result.reason}; повтора не будет; "
+                                    f"{delivered}")
+            return "unknown"
+
+        crud.mark_payment(db, payment, "canceled")
+        attempt = sub.renew_attempts
+        if result.method_unusable:
+            crud.decline_auto_renew(db, sub, f"способ оплаты «{method}» больше не "
+                                             f"принимается ({result.reason})")
+            left = 0
+        else:
+            sub.renew_error = f"Списание не прошло: {result.reason}."
+            db.commit()
+            left = max(0, RENEW_MAX_ATTEMPTS - attempt)
+        end = sub.current_period_end
+        delivered = _notify_payers(db, org_id, mail.renewal_failed_letter(
+            organization=org_name, product=product, plan=plan.name,
+            amount=payment.amount_rub, method=method, reason=result.reason,
+            next_try=day_utc(now + timedelta(days=1)), attempts_left=left,
+            stopped=result.method_unusable, ends=when_utc(end) if end else "—",
+            grace_days=GRACE_DAYS, link=link))
+        crud.log_action(db, org_id, None, "billing.auto_renew_failed",
+                        entity_type="organization", entity_id=org_id,
+                        entity_name=plan.code,
+                        details=f"{plan.product}: {payment.amount_rub} ₽ не списаны — "
+                                f"{result.reason} (попытка {attempt} из "
+                                f"{RENEW_MAX_ATTEMPTS}); {delivered}")
+        return "failed"
+
+
+def _renew(db: Session, provider: PaymentProvider, sub: Subscription,
+           now: datetime) -> str:
+    """Одно продление: проверки согласия, предупреждения и повтора — затем списание."""
+    org_id = sub.organization_id
+    end = sub.current_period_end
+    assert end is not None and sub.payment_method_id is not None
+    if crud.open_renewal_payment(db, org_id, end) is not None:
+        return "pending"
+    plan = get_plan(sub.plan_code, sub.product)
+    problem = _consent_problem(sub, plan)
+    if problem:
+        # Названия берутся **до** погашения согласия: оно стирает и способ, и сумму.
+        method = sub.payment_method_title or "способ оплаты"
+        amount = (billing.checkout_amount(plan, sub.renew_months) if plan.price_rub > 0
+                  else sub.renew_amount_rub)
+        crud.decline_auto_renew(db, sub, problem)
+        organization = crud.get_organization(db, org_id)
+        delivered = _notify_payers(db, org_id, mail.renewal_failed_letter(
+            organization=organization.name if organization else "",
+            product=PRODUCT_NAME.get(sub.product, sub.product), plan=plan.name,
+            amount=amount, method=method, reason=problem, next_try="", attempts_left=0,
+            stopped=True, ends=when_utc(end), grace_days=GRACE_DAYS,
+            link=mail.billing_url()))
+        crud.log_action(db, org_id, None, "billing.auto_renew_failed",
+                        entity_type="organization", entity_id=org_id,
+                        entity_name=plan.code,
+                        details=f"{sub.product}: не списано — {problem}; {delivered}")
+        return "stopped"
+    # Деньги не списываются без письма **до** них. Согласие включается только оплатой, а
+    # оплата сдвигает конец периода, — поэтому письмо о конце **этого** периода либо
+    # уже предупреждало о списании, либо не отправлялось вовсе.
+    if not _already_sent(db, org_id, _reminder_key(sub, "ending")):
+        sub.renew_error = ("Не списано: письмо о предстоящем списании не ушло, а без "
+                           "предупреждения деньги не списываются. Оплатить можно вручную.")
+        db.commit()
+        return "not_warned"
+    payers = _payers(db, org_id)
+    if not payers:
+        sub.renew_error = ("Не списано: некому отправить чек и письмо — нет действующего "
+                           "участника с правом оплаты.")
+        db.commit()
+        return "not_warned"
+    amount = billing.checkout_amount(plan, sub.renew_months)
+    payment = crud.create_payment(db, org_id, plan.code, amount,
+                                  provider=billing.provider_kind(provider),
+                                  months=sub.renew_months, auto_renew_consent=True,
+                                  renews_period_end=end)
+    # Попытка засчитывается **до** обращения к провайдеру: упади процесс посреди
+    # запроса, повтор через минуту был бы второй попыткой в те же сутки.
+    sub.renew_attempts += 1
+    sub.renew_attempted_at = now
+    db.commit()
+    result = provider.charge_saved(db, payment, plan, sub.payment_method_id, payers[0].email)
+    return settle_renewal(db, payment, result, now=now)
+
+
+def renew_subscriptions(db: Session, provider: PaymentProvider, now: datetime, *,
+                        source: str = SOURCE_SCHEDULER) -> RenewalRun:
+    """Списать продление тем, у кого включено автопродление и подходит срок (G5).
+
+    Не больше одной попытки в сутки и трёх на один конец периода; пока исход прошлой
+    неизвестен, новой нет. Запуск оставляет след всегда, как и остальные задачи.
+    """
+    run = RenewalRun()
+    unavailable = billing.auto_renew_unavailable(provider)
+    subs = db.execute(select(Subscription).where(
+        Subscription.auto_renew.is_(True))).scalars().all()
+    for sub in subs:
+        if not sub.payment_method_id or not renewal_due(sub.current_period_end, now):
+            continue
+        if sub.renew_attempts >= RENEW_MAX_ATTEMPTS:
+            continue
+        last = sub.renew_attempted_at
+        if last is not None and _aware(now) - _aware(last) < RENEW_RETRY_AFTER:
+            continue
+        if unavailable:
+            sub.renew_error = f"Не списано: {unavailable}"
+            db.commit()
+            run.blocked += 1
+            continue
+        with as_tenant(db, sub.organization_id):
+            outcome = _renew(db, provider, sub, now)
+        setattr(run, outcome, getattr(run, outcome) + 1)
+    record_run(db, "renew", _renewal_summary(source, run))
+    return run
+
+
+def _renewal_summary(source: str, run: RenewalRun) -> str:
+    parts = [f"списано {run.charged}", f"не прошло {run.failed}"]
+    for label, value in (("ждут провайдера", run.pending),
+                         ("исход неизвестен", run.unknown),
+                         ("не предупреждены — не списывали", run.not_warned),
+                         ("согласие погашено", run.stopped),
+                         ("автопродление недоступно", run.blocked)):
+        if value:
+            parts.append(f"{label} {value}")
     return f"{source}: " + ", ".join(parts)

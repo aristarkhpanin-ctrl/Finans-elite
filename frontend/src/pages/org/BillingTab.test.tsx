@@ -15,12 +15,16 @@ const getPlans = vi.fn();
 const getSubscription = vi.fn();
 const checkout = vi.fn();
 const changePlan = vi.fn();
+const getQuote = vi.fn();
+const disableAutoRenew = vi.fn();
 vi.mock("../../api/org", async (orig) => ({
   ...(await orig<typeof import("../../api/org")>()),
   getPlans: (...a: unknown[]) => getPlans(...a),
   getSubscription: (...a: unknown[]) => getSubscription(...a),
   checkout: (...a: unknown[]) => checkout(...a),
   changePlan: (...a: unknown[]) => changePlan(...a),
+  getQuote: (...a: unknown[]) => getQuote(...a),
+  disableAutoRenew: (...a: unknown[]) => disableAutoRenew(...a),
 }));
 const toast = vi.fn();
 vi.mock("../../components/Toast", () => ({ useToast: () => toast }));
@@ -30,13 +34,23 @@ beforeEach(() => {
   vi.clearAllMocks();
   checkout.mockResolvedValue({ activated: true, confirmation_url: null });
   changePlan.mockResolvedValue({});
+  disableAutoRenew.mockResolvedValue({});
+  getQuote.mockImplementation((_o: string, code: string, months: number) => Promise.resolve({
+    plan_code: code, plan_name: "Команда", months,
+    amount_rub: months === 12 ? 31320 : 2900, full_price_rub: 2900 * months,
+    discount_percent: months === 12 ? 10 : 0, starts_at: "2026-09-20T00:00:00Z",
+    ends_at: months === 12 ? "2027-09-15T00:00:00Z" : "2026-10-20T00:00:00Z",
+    continues: false, lost_days: 0, auto_renew_available: true,
+    auto_renew_unavailable_reason: "",
+  }));
 });
 
 const BUSINESS_PLANS: Plan[] = [
   { code: "free", product: "business", name: "Бесплатный", price_rub: 0,
     price_on_request: false, max_units: 5, unit_name: "проектов", max_members: 5 },
   { code: "team", product: "business", name: "Команда", price_rub: 2900,
-    price_on_request: false, max_units: 50, unit_name: "проектов", max_members: 25 },
+    price_on_request: false, max_units: 50, unit_name: "проектов", max_members: 25,
+    annual_price_rub: 31320, annual_discount_percent: 10 },
 ] as Plan[];
 
 const AUDIT_PLANS: Plan[] = [
@@ -55,7 +69,9 @@ function sub(product: string): Subscription {
         max_members: 5, used_units: 2, used_members: 1 } as Subscription
     : { product, plan_code: "free", plan_name: "Бесплатный", status: "active",
         price_rub: 0, price_on_request: false, max_units: 5, unit_name: "проектов",
-        max_members: 5, used_units: 1, used_members: 1 } as Subscription;
+        max_members: 5, used_units: 1, used_members: 1, auto_renew: false,
+        auto_renew_available: true, auto_renew_unavailable_reason: "",
+        renew_error: "" } as Subscription;
 }
 
 async function show(over: Partial<Subscription> = {}) {
@@ -67,6 +83,9 @@ async function show(over: Partial<Subscription> = {}) {
   render(<QueryClientProvider client={qc}><BillingTab orgId="o1" canManage /></QueryClientProvider>);
   await screen.findByText("Тарифные планы");
 }
+
+/** Текст без неразрывных пробелов: суммы «2 900 ₽» форматируются через ru-RU. */
+const plain = (el: Element | null) => (el?.textContent ?? "").replace(/\u00a0/g, " ");
 
 /** Названия тарифов из карточек каталога (в блоке текущего тарифа имя повторяется). */
 const cardNames = () =>
@@ -126,10 +145,11 @@ describe("Как меняется тариф", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Подтвердить" }));
   };
 
-  it("платный тариф включается оплатой", async () => {
+  it("платный тариф включается оплатой — за месяц и без согласия по умолчанию", async () => {
     await show();
     await confirm("Команда");
-    await waitFor(() => expect(checkout).toHaveBeenCalledWith("o1", "team"));
+    await waitFor(() => expect(checkout).toHaveBeenCalledWith(
+      "o1", "team", { months: 1, autoRenew: false }));
     expect(changePlan).not.toHaveBeenCalled();
   });
 
@@ -190,5 +210,104 @@ describe("Отказ сервера доходит до человека", () =>
     await pick("Команда");
     await waitFor(() => expect(toast).toHaveBeenCalledWith(
       "Не удалось сменить тариф", { kind: "error" }));
+  });
+});
+
+/**
+ * Срок, сумма и согласие (G5). Согласие на автопродление — отдельная отметка, выключенная
+ * по умолчанию: деньги клиента не списываются без его явного решения. Сумму и срок
+ * называет сервер — у экрана нет своей копии правил скидки и продления.
+ */
+describe("Оплата: срок и согласие", () => {
+  const openPay = async (planName = "Команда") => {
+    fireEvent.click([...document.querySelectorAll(".plan-card")]
+      .find((c) => c.textContent?.includes(planName))!
+      .querySelector("button")!);
+    await screen.findByRole("button", { name: "Подтвердить" });
+  };
+
+  it("год — со скидкой владельца, и оплата уходит за 12 месяцев", async () => {
+    await show();
+    await openPay();
+    fireEvent.click(screen.getByRole("button", { name: /Год · 31\s320/ }));
+    await screen.findByText(/вместо 34\s800\s₽ — скидка 10\s%/);
+    expect(getQuote).toHaveBeenLastCalledWith("o1", "team", 12);
+    fireEvent.click(screen.getByRole("button", { name: "Подтвердить" }));
+    await waitFor(() => expect(checkout).toHaveBeenCalledWith(
+      "o1", "team", { months: 12, autoRenew: false }));
+  });
+
+  it("согласие отмечается отдельно и называет сумму, на которую даётся", async () => {
+    await show();
+    await openPay();
+    const box = screen.getByRole("checkbox") as HTMLInputElement;
+    expect(box.checked).toBe(false);
+    expect(plain(box.closest("label"))).toContain("2 900 ₽");
+    fireEvent.click(box);
+    fireEvent.click(screen.getByRole("button", { name: "Подтвердить" }));
+    await waitFor(() => expect(checkout).toHaveBeenCalledWith(
+      "o1", "team", { months: 1, autoRenew: true }));
+  });
+
+  it("отметка не переживает повторного открытия окна", async () => {
+    await show();
+    await openPay();
+    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(screen.getByRole("button", { name: "Отмена" }));
+    await openPay();
+    expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(false);
+  });
+
+  it("где автопродление невозможно, отметка выключена и названа причина", async () => {
+    await show({ auto_renew_available: false,
+                 auto_renew_unavailable_reason: "Автопродление требует почты." });
+    await openPay();
+    expect((screen.getByRole("checkbox") as HTMLInputElement).disabled).toBe(true);
+    expect(screen.getByText("Автопродление требует почты.")).toBeTruthy();
+  });
+
+  it("срок назван датой, а потерянные дни прежнего тарифа — числом", async () => {
+    getQuote.mockResolvedValue({
+      plan_code: "team", plan_name: "Команда", months: 1, amount_rub: 2900,
+      full_price_rub: 2900, discount_percent: 0, starts_at: "2026-09-20T00:00:00Z",
+      ends_at: "2026-10-20T00:00:00Z", continues: false, lost_days: 12,
+      auto_renew_available: true, auto_renew_unavailable_reason: "" });
+    await show();
+    await openPay();
+    await screen.findByText(/Будет оплачено до/);
+    expect(screen.getByText(/Оставшиеся 12 дн\. тарифа «Бесплатный» не переносятся/))
+      .toBeTruthy();
+  });
+});
+
+describe("Автопродление на карточке тарифа", () => {
+  const renewing = {
+    plan_code: "team", plan_name: "Команда", price_rub: 2900,
+    current_period_end: "2026-10-20T00:00:00Z", auto_renew: true,
+    payment_method_title: "MasterCard *4444", renew_months: 1, renew_amount_rub: 2900,
+    next_charge_at: "2026-10-19T00:00:00Z",
+  } as Partial<Subscription>;
+
+  it("называет сумму, способ и дату, а дату периода — «оплачено до»", async () => {
+    await show(renewing);
+    const card = plain(document.querySelector(".plan-current"));
+    expect(card).toContain("Оплачено до");
+    expect(card).not.toContain("Продление");
+    expect(card).toContain("2 900 ₽");
+    expect(card).toContain("MasterCard *4444");
+  });
+
+  it("причина неудачи показывается словами сервера", async () => {
+    await show({ ...renewing, renew_error: "Списание не прошло: недостаточно средств." });
+    expect(screen.getByText("Списание не прошло: недостаточно средств.")).toBeTruthy();
+  });
+
+  it("выключение — через подтверждение, где названы последствия", async () => {
+    await show(renewing);
+    fireEvent.click(screen.getByRole("button", { name: "Выключить автопродление" }));
+    expect(await screen.findByText(/способ\s+оплаты будет забыт/)).toBeTruthy();
+    expect(disableAutoRenew).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Выключить" }));
+    await waitFor(() => expect(disableAutoRenew).toHaveBeenCalledWith("o1", "business"));
   });
 });

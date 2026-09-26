@@ -50,5 +50,12 @@ celery_app.conf.update(
             "task": "scheduler.billing_reminders",
             "schedule": crontab(hour=6, minute=0),
         },
+        # Автопродление (G5) — после сверки неоплаты и до писем: списание, прошедшее в
+        # 04:00, продлевает период раньше, чем письмо 09:00 МСК успело бы назвать его
+        # закончившимся.
+        "renew-subscriptions": {
+            "task": "scheduler.renew_subscriptions",
+            "schedule": crontab(hour=4, minute=0),
+        },
     },
 )

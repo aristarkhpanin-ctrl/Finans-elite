@@ -330,18 +330,106 @@ _BY_INVOICE = ("Оплачиваете по счёту? Напишите пла�
                "сама, и отсчёт начнётся с оплаты.")
 
 
+def rub(amount: int) -> str:
+    """Сумма словами письма: «2 900 ₽». Разряды — пробелом, как пишут по-русски."""
+    return f"{amount:,} ₽".replace(",", " ")
+
+
 def period_ending_letter(*, organization: str, product: str, plan: str, ends: str,
-                         days: int, grace_days: int, link: str) -> Letter:
-    """За неделю до конца оплаченного периода."""
+                         days: int, grace_days: int, link: str, note: str = "") -> Letter:
+    """За неделю до конца оплаченного периода.
+
+    ``note`` — почему автопродление, на которое клиент рассчитывал, не сработает (G5):
+    выключилось оно не его рукой, и узнать об этом он должен за неделю, а не по
+    закрытой записи.
+    """
     return Letter(
         subject=f"Оплаченный период «{product}» заканчивается — {organization}",
         text=(f"Оплаченный период тарифа «{plan}» ({product}) у организации "
               f"«{organization}» закончится {ends} — через {days} дн.\n\n"
-              f"Чтобы работа не прерывалась, продлите оплату {_pay_where(link)}\n\n"
+              + (f"{note}\n\n" if note else "")
+              + f"Чтобы работа не прерывалась, продлите оплату {_pay_where(link)}\n\n"
               f"Если не продлить, после окончания периода ещё {grace_days} дней всё "
               "работает как обычно. Затем изменение данных закроется до оплаты — "
               "просмотр, расчёт и выгрузка останутся: ваши числа остаются вашими.\n\n"
               + _BY_INVOICE + _SIGNATURE),
+    )
+
+
+# --- Автопродление (G5) ---
+#
+# Все дверные: они о деньгах, списанных (или не списанных) с карты клиента, и запереть
+# их за подтверждением адреса значило бы списывать молча. Каждое называет сумму, способ
+# и выход — выключить автопродление или оплатить вручную.
+
+def renewal_notice_letter(*, organization: str, product: str, plan: str, amount: int,
+                          months: int, method: str, ends: str, days: int,
+                          link: str) -> Letter:
+    """За неделю до списания: деньги клиента не списываются без письма **до** этого."""
+    return Letter(
+        subject=f"Автопродление «{product}»: скоро списание {rub(amount)} — {organization}",
+        text=(f"У организации «{organization}» включено автопродление тарифа «{plan}» "
+              f"({product}). Оплаченный период закончится {ends} — через {days} дн.\n\n"
+              f"В течение суток до конца периода с «{method}» будет списано {rub(amount)} "
+              f"за {months} мес., и период продолжится без перерыва.\n\n"
+              f"Если продлевать не нужно, выключите автопродление {_pay_where(link)}\n"
+              "Тогда ничего списано не будет, и период просто закончится." + _SIGNATURE),
+    )
+
+
+def renewal_charged_letter(*, organization: str, product: str, plan: str, amount: int,
+                           months: int, method: str, paid_until: str, link: str) -> Letter:
+    return Letter(
+        subject=f"Автопродление «{product}»: списано {rub(amount)} — {organization}",
+        text=(f"С «{method}» списано {rub(amount)} за {months} мес. тарифа «{plan}» "
+              f"({product}) организации «{organization}». Оплачено до {paid_until}.\n\n"
+              f"Выключить автопродление можно {_pay_where(link)}" + _SIGNATURE),
+    )
+
+
+def renewal_failed_letter(*, organization: str, product: str, plan: str, amount: int,
+                          method: str, reason: str, next_try: str, attempts_left: int,
+                          stopped: bool, ends: str, grace_days: int, link: str) -> Letter:
+    """Списание не прошло: почему, что дальше и как оплатить самому.
+
+    Три продолжения, и письмо называет своё: будет следующая попытка (с датой и числом
+    оставшихся); попыток больше не будет; автопродление выключено совсем (способ больше
+    не принимается или выросла цена) — тогда сказано, как включить его снова.
+    """
+    if stopped:
+        then = ("Автопродление выключено, сохранённый способ оплаты забыт. Включить его "
+                "снова можно оплатой с отметкой согласия.")
+    elif attempts_left > 0:
+        then = (f"Следующая попытка — {next_try}, осталось попыток: {attempts_left}. "
+                "Если за это время оплатить вручную, повторного списания не будет.")
+    else:
+        then = "Попыток списания больше не будет."
+    return Letter(
+        subject=f"Автопродление «{product}» не прошло — {organization}",
+        text=(f"Списание {rub(amount)} с «{method}» за тариф «{plan}» ({product}) "
+              f"организации «{organization}» не состоялось: {reason}.\n\n{then}\n\n"
+              f"Оплаченный период заканчивается {ends}; после него ещё {grace_days} дней "
+              "всё работает как обычно, затем изменение данных закроется до оплаты — "
+              "просмотр, расчёт и выгрузка останутся.\n\n"
+              f"Оплатить вручную можно {_pay_where(link)}\n\n" + _BY_INVOICE + _SIGNATURE),
+    )
+
+
+def renewal_unknown_letter(*, organization: str, product: str, plan: str, amount: int,
+                           method: str, link: str) -> Letter:
+    """Провайдер не ответил: **неизвестно**, прошло ли списание — так и сказано.
+
+    Назвать это отказом значило бы предложить оплатить второй раз, а успехом — продлить
+    период за деньги, которых, может быть, не было.
+    """
+    return Letter(
+        subject=f"Автопродление «{product}»: списание не подтверждено — {organization}",
+        text=(f"Мы попытались списать {rub(amount)} с «{method}» за тариф «{plan}» "
+              f"({product}) организации «{organization}», но платёжный провайдер не "
+              "ответил, и неизвестно, прошло ли списание.\n\n"
+              "Повторно не списываем, чтобы не взять деньги дважды. Если провайдер "
+              "подтвердит платёж, период продлится сам. Если в выписке списания нет, "
+              f"оплатите вручную {_pay_where(link)}" + _SIGNATURE),
     )
 
 

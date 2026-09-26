@@ -1,15 +1,48 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { httpDetail, httpStatus } from "../../api/client";
 import { useState } from "react";
-import { changePlan, checkout, getPlans, getSubscription,
-         type Plan } from "../../api/org";
+import { changePlan, checkout, disableAutoRenew, getPlans, getQuote, getSubscription,
+         type CheckoutQuote, type Plan, type Subscription } from "../../api/org";
 import { useToast } from "../../components/Toast";
 import { Button, Modal, Skeleton } from "../../components/ui";
 
+/** Сумма в рублях: «2 900 ₽». */
+const rub = (n: number) => `${n.toLocaleString("ru-RU")} ₽`;
+
 /** Цена тарифа. «По запросу» — не ноль: ноль на экране читается как «бесплатно». */
 const price = (p: { price_rub: number; price_on_request: boolean }) =>
-  p.price_on_request ? "По запросу" : p.price_rub === 0 ? "Бесплатно"
-    : `${p.price_rub.toLocaleString("ru-RU")} ₽`;
+  p.price_on_request ? "По запросу" : p.price_rub === 0 ? "Бесплатно" : rub(p.price_rub);
+
+/** Платный тариф оплачивается в продукте (а не назначается платформой и не бесплатен). */
+const payable = (p: Plan) => p.price_rub > 0 && !p.price_on_request;
+
+const day = (iso: string) => new Date(iso).toLocaleDateString("ru-RU");
+
+/**
+ * Автопродление на карточке текущего тарифа (G5): что спишут, когда и откуда — и почему
+ * не прошло, если не прошло. Причина приходит с сервера словами и показывается как есть:
+ * выключенное не рукой клиента автопродление, о котором молчит экран, клиент обнаружил
+ * бы по закрытой записи.
+ */
+function AutoRenewNote({ s }: { s: Subscription }) {
+  return (
+    <>
+      {s.auto_renew && (
+        <div className="plan-current__note">
+          Автопродление: {rub(s.renew_amount_rub ?? 0)} за {s.renew_months} мес.
+          с «{s.payment_method_title}»
+          {s.next_charge_at && <>, не раньше {day(s.next_charge_at)}</>}.
+          Письмо о списании приходит за неделю.
+        </div>
+      )}
+      {s.renew_error && (
+        <div className="field-note field-note--warn" style={{ marginTop: 6 }}>
+          {s.renew_error}
+        </div>
+      )}
+    </>
+  );
+}
 
 /** Продукты платформы: тарифы у каждого свои, поэтому и экран тарифа переключается. */
 const PRODUCTS: [string, string][] = [
@@ -52,10 +85,35 @@ export function BillingTab({ orgId, canManage }: { orgId: string; canManage: boo
   const toast = useToast();
   const [target, setTarget] = useState<Plan | null>(null);
   const [product, setProduct] = useState("business");
+  // Срок и согласие выбираются в окне оплаты и сбрасываются при каждом открытии: отметка
+  // согласия, оставшаяся от прошлого окна, была бы согласием, которого не давали.
+  const [months, setMonths] = useState(1);
+  const [autoRenew, setAutoRenew] = useState(false);
+  const [confirmOff, setConfirmOff] = useState(false);
+
+  const open = (p: Plan) => { setTarget(p); setMonths(1); setAutoRenew(false); };
 
   const sub = useQuery({ queryKey: ["subscription", orgId, product],
                          queryFn: () => getSubscription(orgId, product) });
   const plans = useQuery({ queryKey: ["plans", product], queryFn: () => getPlans(product) });
+  /** Сумма и срок — с сервера, теми же функциями, что и оплата: своей копии правила
+   *  «продление продолжает период» у экрана нет. */
+  const quote = useQuery({
+    queryKey: ["quote", orgId, target?.code, months],
+    queryFn: () => getQuote(orgId, target!.code, months),
+    enabled: !!target && payable(target),
+  });
+
+  const turnOff = useMutation({
+    mutationFn: () => disableAutoRenew(orgId, product),
+    onSuccess: () => {
+      setConfirmOff(false);
+      qc.invalidateQueries({ queryKey: ["subscription", orgId] });
+      toast("Автопродление выключено", { kind: "success" });
+    },
+    onError: (e: unknown) =>
+      toast(httpDetail(e) ?? "Не удалось выключить автопродление", { kind: "error" }),
+  });
 
   /**
    * Две дороги, и они не взаимозаменяемы (F1).
@@ -70,8 +128,8 @@ export function BillingTab({ orgId, canManage }: { orgId: string; canManage: boo
    */
   const change = useMutation({
     mutationFn: (plan: Plan) =>
-      plan.price_rub > 0 && !plan.price_on_request
-        ? checkout(orgId, plan.code)
+      payable(plan)
+        ? checkout(orgId, plan.code, { months, autoRenew })
         : changePlan(orgId, plan.code).then(
             () => ({ activated: true, confirmation_url: null })),
     onSuccess: (res) => {
@@ -141,10 +199,19 @@ export function BillingTab({ orgId, canManage }: { orgId: string; canManage: boo
             {currentPlan && !currentPlan.price_on_request && currentPlan.price_rub > 0 &&
               <span style={{ color: "var(--subtle)", fontWeight: 500 }}> / мес</span>}
           </div>
+          {/* «Продление» без автопродления обещало бы списание, которого не будет:
+              дата — это конец оплаченного, и названа она так. */}
           {s.current_period_end && (
             <div className="plan-current__note">
-              Продление {new Date(s.current_period_end).toLocaleDateString("ru-RU")}
+              Оплачено до {day(s.current_period_end)}
             </div>
+          )}
+          <AutoRenewNote s={s} />
+          {s.auto_renew && canManage && (
+            <Button variant="ghost" style={{ marginTop: 10 }}
+                    onClick={() => setConfirmOff(true)}>
+              Выключить автопродление
+            </Button>
           )}
         </div>
 
@@ -194,7 +261,7 @@ export function BillingTab({ orgId, canManage }: { orgId: string; canManage: boo
                     Напишите нам: заявку этот экран не отправляет.
                   </div>
                 ) : (
-                  <Button disabled={!canManage} onClick={() => setTarget(p)}>
+                  <Button disabled={!canManage} onClick={() => open(p)}>
                     {p.price_rub > 0 ? "Перейти" : "Перейти на бесплатный"}
                   </Button>
                 )}
@@ -239,18 +306,135 @@ export function BillingTab({ orgId, canManage }: { orgId: string; canManage: boo
                 <div className="plan-diff__val">{target.name}</div>
               </div>
             </div>
-            <div className="modal__sub" style={{ margin: 0 }}>
-              Стоимость нового тарифа — <b style={{ color: "var(--text)" }}>
-                {price(target)}{!target.price_on_request && target.price_rub > 0 ? " / мес" : ""}</b>.
-              {target.price_rub > 0
-                ? " После подтверждения откроется страница оплаты."
-                : " Тариф сменится сразу. Квота станет меньше: то, что уже заведено, "
+            {payable(target) ? (
+              <PayTerms plan={target} current={s} months={months} setMonths={setMonths}
+                        autoRenew={autoRenew} setAutoRenew={setAutoRenew}
+                        quote={quote.data} quoteFailed={quote.isError} />
+            ) : (
+              <div className="modal__sub" style={{ margin: 0 }}>
+                Стоимость нового тарифа — <b style={{ color: "var(--text)" }}>{price(target)}</b>.
+                {" Тариф сменится сразу. Квота станет меньше: то, что уже заведено, "
                   + "останется на месте, а новое можно будет добавлять в пределах "
                   + "бесплатного тарифа."}
-            </div>
+                {s.auto_renew && " Автопродление выключится, сохранённый способ оплаты будет забыт."}
+              </div>
+            )}
           </>
         )}
       </Modal>
+
+      {/* Выключение автопродления: последствия — до нажатия. */}
+      <Modal
+        open={confirmOff}
+        onClose={() => !turnOff.isPending && setConfirmOff(false)}
+        title="Выключить автопродление?"
+        maxWidth={440}
+        actions={
+          <>
+            <Button variant="ghost" disabled={turnOff.isPending}
+                    onClick={() => setConfirmOff(false)}>
+              Оставить
+            </Button>
+            <Button loading={turnOff.isPending} onClick={() => turnOff.mutate()}>
+              Выключить
+            </Button>
+          </>
+        }
+      >
+        <div className="modal__sub" style={{ margin: 0 }}>
+          Больше ничего не будет списано, и период просто закончится
+          {s.current_period_end ? ` ${day(s.current_period_end)}` : ""}. Сохранённый способ
+          оплаты будет забыт: включить автопродление снова можно только новой оплатой с
+          отметкой согласия.
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+/**
+ * Условия оплаты в окне: срок, сумма, до какого дня будет оплачено и согласие (G5).
+ *
+ * **Согласие — отдельная отметка, и выключена по умолчанию**: деньги клиента не
+ * списываются без его явного решения. Отметка называет сумму и срок, на которые оно
+ * даётся, и что будет до списания (письмо за неделю). Где автопродление невозможно
+ * (нет оплаты в продукте или почты), отметка не прячется, а стоит выключенной с
+ * причиной: исчезнувшая функция читается как «здесь такого нет», а она есть.
+ */
+function PayTerms({ plan, current, months, setMonths, autoRenew, setAutoRenew, quote,
+                    quoteFailed }: {
+  plan: Plan;
+  current: Subscription;
+  months: number;
+  setMonths: (m: number) => void;
+  autoRenew: boolean;
+  setAutoRenew: (v: boolean) => void;
+  quote: CheckoutQuote | undefined;
+  quoteFailed: boolean;
+}) {
+  const annual = plan.annual_price_rub ?? null;
+  const amount = quote?.amount_rub ?? (months === 12 && annual !== null ? annual
+                                                                           : plan.price_rub);
+  return (
+    <div className="pay-terms">
+      <div className="seg" role="group" aria-label="Срок оплаты">
+        <button type="button" aria-pressed={months === 1}
+                className={"seg__btn" + (months === 1 ? " seg__btn--active" : "")}
+                onClick={() => setMonths(1)}>
+          Месяц · {rub(plan.price_rub)}
+        </button>
+        {annual !== null && (
+          <button type="button" aria-pressed={months === 12}
+                  className={"seg__btn" + (months === 12 ? " seg__btn--active" : "")}
+                  onClick={() => setMonths(12)}>
+            Год · {rub(annual)}
+            {(plan.annual_discount_percent ?? 0) > 0 && ` (−${plan.annual_discount_percent} %)`}
+          </button>
+        )}
+      </div>
+      <div className="field-note" style={{ marginTop: 6 }}>
+        Месяц — 30 дней, год — 12 таких периодов.
+      </div>
+
+      <div className="pay-terms__sum">
+        К оплате: <b>{rub(amount)}</b>
+        {quote && quote.discount_percent > 0 &&
+          <> вместо {rub(quote.full_price_rub)} — скидка {quote.discount_percent} %</>}
+      </div>
+      {quote?.ends_at && (
+        <div className="field-note">
+          Будет оплачено до {day(quote.ends_at)}
+          {quote.continues && " — период продолжится от конца текущего, дни не теряются"}.
+        </div>
+      )}
+      {quote && quote.lost_days > 0 && (
+        <div className="field-note field-note--warn">
+          Оставшиеся {quote.lost_days} дн. тарифа «{current.plan_name}» не переносятся:
+          новый тариф начнёт свой период с оплаты.
+        </div>
+      )}
+      {quoteFailed && (
+        <div className="field-note field-note--warn">
+          Не удалось рассчитать срок заранее — сумму и дату назовёт страница оплаты.
+        </div>
+      )}
+
+      <label className="pay-terms__consent">
+        <input type="checkbox" checked={autoRenew}
+               disabled={!current.auto_renew_available}
+               onChange={(e) => setAutoRenew(e.target.checked)} />
+        <span>
+          Продлевать автоматически: списывать {rub(amount)} каждые {months} мес. с
+          сохранённого способа оплаты. Письмо о списании придёт за неделю, выключить
+          можно в любой момент.
+        </span>
+      </label>
+      {!current.auto_renew_available && (
+        <div className="field-note">{current.auto_renew_unavailable_reason}</div>
+      )}
+      <div className="field-note" style={{ marginTop: 10 }}>
+        После подтверждения откроется страница оплаты.
+      </div>
     </div>
   );
 }

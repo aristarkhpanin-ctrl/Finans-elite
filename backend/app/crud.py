@@ -127,6 +127,12 @@ def set_plan(db: Session, org_id: str, plan_code: str, status: str = "active",
     ``period_end=None`` при ``paid=True`` означает «тариф не истекает» (бесплатный,
     пробный, «по запросу») и **стирает** прежнюю дату: перейдя с платного на бесплатный,
     организация не должна тащить за собой чужой срок.
+
+    **Смена тарифа гасит согласие на автопродление** (G5). Согласие давалось на тариф и
+    сумму; списать за другой тариф — взять деньги, на которые его не давали. Правило
+    живёт здесь, а не в маршрутах: тариф меняют четыре дороги (понижение клиентом,
+    назначение оператором, ручной провайдер, вебхук ЮKassa), и в одной из них его
+    однажды забыли бы. Запись об этом уходит в журнал организации с причиной.
     """
     sub = get_subscription(db, org_id, product)
     if sub is None:
@@ -134,11 +140,83 @@ def set_plan(db: Session, org_id: str, plan_code: str, status: str = "active",
                            product=product, current_period_end=period_end)
         db.add(sub)
     else:
+        was = sub.plan_code
         sub.plan_code = plan_code
         sub.status = status
         if paid:
             sub.current_period_end = period_end
+        if sub.auto_renew and was != plan_code:
+            decline_auto_renew(db, sub, f"тариф сменился ({was} → {plan_code}): согласие "
+                                        "давалось на прежний тариф и сумму")
+        elif sub.auto_renew and paid and period_end is None:
+            decline_auto_renew(db, sub, "у тарифа больше нет срока — продлевать нечего")
     db.commit()
+    db.refresh(sub)
+    return sub
+
+
+def decline_auto_renew(db: Session, sub: Subscription, reason: str) -> None:
+    """Погасить согласие **не по воле клиента** — и сказать почему (G5).
+
+    Смена тарифа, выросшая цена, отозванное разрешение на списание, способ, который
+    провайдер не сохранил. Причина остаётся на подписке (экран тарифа показывает её
+    рядом с выключенной отметкой) и уходит в журнал организации: автопродление, которое
+    выключилось молча, клиент обнаружил бы по закрытой записи.
+
+    Клиент, выключивший автопродление сам, сюда не попадает: его действие пишет маршрут,
+    с его именем, а объяснять человеку его собственное решение незачем.
+    """
+    forget_auto_renew(sub)
+    sub.renew_error = f"Автопродление выключено: {reason}."[:500]
+    db.commit()
+    with as_tenant(db, sub.organization_id):
+        log_action(db, sub.organization_id, None, "billing.auto_renew_off",
+                   entity_type="organization", entity_id=sub.organization_id,
+                   entity_name=sub.plan_code,
+                   details=f"{sub.product}: {reason}; сохранённый способ оплаты забыт"[:500])
+
+
+def forget_auto_renew(sub: Subscription) -> None:
+    """Погасить согласие: выключить автопродление и **забыть** способ оплаты.
+
+    Забывается идентификатор у провайдера, а не только флаг: «выключено, но способ
+    лежит» означало бы, что включить обратно можно без клиента. Включить снова —
+    только новой оплатой с отметкой согласия. Коммит — за вызывающим: гасят согласие
+    посреди большей правки подписки.
+    """
+    sub.auto_renew = False
+    sub.payment_method_id = None
+    sub.payment_method_title = ""
+    sub.renew_amount_rub = 0
+    sub.renew_months = 1
+    sub.renew_attempts = 0
+    sub.renew_attempted_at = None
+
+
+def enable_auto_renew(db: Session, sub: Subscription, *, method_id: str, method_title: str,
+                      months: int, amount_rub: int) -> Subscription:
+    """Включить автопродление по согласию, данному вместе с оплатой (G5).
+
+    Зовётся **после** оплаты, подтверждённой провайдером, и только если плательщик
+    отметил согласие: сохранённый способ без нашей отметки ничего не включает. В журнал
+    организации — без автора (подтверждение пришло от провайдера), автор согласия
+    записан при оформлении оплаты (`billing.checkout`).
+    """
+    sub.auto_renew = True
+    sub.payment_method_id = method_id
+    sub.payment_method_title = method_title[:120]
+    sub.renew_months = months
+    sub.renew_amount_rub = amount_rub
+    sub.renew_attempts = 0
+    sub.renew_attempted_at = None
+    sub.renew_error = ""
+    db.commit()
+    with as_tenant(db, sub.organization_id):
+        log_action(db, sub.organization_id, None, "billing.auto_renew_on",
+                   entity_type="organization", entity_id=sub.organization_id,
+                   entity_name=sub.plan_code,
+                   details=f"{sub.product}: автопродление включено — "
+                           f"{amount_rub} ₽ за {months} мес., способ «{sub.payment_method_title}»")
     db.refresh(sub)
     return sub
 
@@ -146,13 +224,30 @@ def set_plan(db: Session, org_id: str, plan_code: str, status: str = "active",
 # --- Платежи ---
 
 def create_payment(db: Session, org_id: str, plan_code: str, amount_rub: int,
-                   provider: str = "yookassa") -> Payment:
+                   provider: str = "yookassa", *, months: int = 1,
+                   auto_renew_consent: bool = False,
+                   renews_period_end: datetime | None = None) -> Payment:
     payment = Payment(organization_id=org_id, plan_code=plan_code, amount_rub=amount_rub,
-                      provider=provider, status="pending")
+                      provider=provider, status="pending", months=months,
+                      auto_renew_consent=auto_renew_consent,
+                      renews_period_end=renews_period_end)
     db.add(payment)
     db.commit()
     db.refresh(payment)
     return payment
+
+
+def open_renewal_payment(db: Session, org_id: str,
+                         period_end: datetime) -> Payment | None:
+    """Автоматическое списание за этот конец периода, исход которого ещё не известен.
+
+    Пока оно есть, второе не начинается: ожидающее подтверждения провайдера — и тем
+    более то, о котором провайдер не ответил вовсе, — могло пройти, и повтор взял бы
+    деньги дважды.
+    """
+    return db.scalar(select(Payment).where(
+        Payment.organization_id == org_id, Payment.renews_period_end == period_end,
+        Payment.status == "pending").limit(1))
 
 
 def get_payment(db: Session, payment_id: str) -> Payment | None:

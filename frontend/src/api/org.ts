@@ -16,6 +16,7 @@ export type Member = Schema<"MemberOut">;
 export type Plan = Schema<"PlanOut">;
 export type Subscription = Schema<"SubscriptionOut">;
 export type CheckoutResponse = Schema<"CheckoutResponse">;
+export type CheckoutQuote = Schema<"CheckoutQuoteOut">;
 export type AuditLogEntry = Schema<"AuditLogEntryOut">;
 export type AuditLogPage = Schema<"AuditLogPage">;
 
@@ -117,11 +118,39 @@ export async function changePlan(orgId: string, planCode: string): Promise<Subsc
   return data;
 }
 
-export async function checkout(orgId: string, planCode: string): Promise<CheckoutResponse> {
+/**
+ * Оплатить тариф: месяц или год, и — отдельной отметкой — согласие на автопродление (G5).
+ * Без отметки деньги потом не списываются; сервер отказывает с причиной, если на этой
+ * установке автопродление невозможно (нет оплаты в продукте или почты).
+ */
+export async function checkout(orgId: string, planCode: string,
+                               opts: { months?: number; autoRenew?: boolean } = {},
+): Promise<CheckoutResponse> {
   const { data } = await api.post<CheckoutResponse>(`/api/v1/organizations/${orgId}/billing/checkout`, {
     plan_code: planCode,
-    return_url: window.location.origin + "/organization",
+    return_url: window.location.origin + "/organization?tab=billing",
+    months: opts.months ?? 1,
+    auto_renew: opts.autoRenew ?? false,
   });
+  return data;
+}
+
+/**
+ * Что случится при оплате — до неё: сумма, скидка, до какого дня будет оплачено и
+ * сколько дней прежнего тарифа пропадёт. Считает сервер теми же функциями, что и оплату:
+ * своей копии правила «продление продолжает период» у экрана нет.
+ */
+export async function getQuote(orgId: string, planCode: string,
+                               months: number): Promise<CheckoutQuote> {
+  const { data } = await api.get<CheckoutQuote>(
+    `/api/v1/organizations/${orgId}/billing/quote`, { params: { plan_code: planCode, months } });
+  return data;
+}
+
+/** Выключить автопродление: сохранённый способ оплаты забывается (G5). */
+export async function disableAutoRenew(orgId: string, product: string): Promise<Subscription> {
+  const { data } = await api.delete<Subscription>(
+    `/api/v1/organizations/${orgId}/billing/auto-renew`, { params: { product } });
   return data;
 }
 

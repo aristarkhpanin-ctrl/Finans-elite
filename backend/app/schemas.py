@@ -745,6 +745,11 @@ class PlanOut(BaseModel):
     max_units: Optional[int] = None
     unit_name: str = "проектов"
     max_members: Optional[int] = None
+    #: Цена года (12 месяцев) со скидкой владельца, если она задана (G5). ``None`` —
+    #: годом этот тариф не оплачивается (бесплатный, «по запросу»). Считает сервер: вторая
+    #: копия скидки на клиенте однажды показала бы одну сумму, а списала бы другую.
+    annual_price_rub: Optional[int] = None
+    annual_discount_percent: int = 0
 
 
 class SubscriptionOut(BaseModel):
@@ -762,6 +767,24 @@ class SubscriptionOut(BaseModel):
     max_members: Optional[int] = None
     used_units: int = 0
     used_members: int
+    # --- Автопродление (G5) ---
+    auto_renew: bool = False
+    #: Как назван сохранённый способ («MasterCard *4444»). Его идентификатор у
+    #: провайдера наружу не отдаётся.
+    payment_method_title: str = ""
+    renew_months: int = 1
+    #: Сумма, на которую дано согласие. ``None`` — автопродление выключено.
+    renew_amount_rub: Optional[int] = None
+    #: Не раньше какого момента будет списание — за сутки до конца периода.
+    next_charge_at: Optional[datetime] = None
+    #: Почему последнее продление не состоялось или почему автопродление выключилось
+    #: не рукой клиента — словами. Пусто, когда объяснять нечего.
+    renew_error: str = ""
+    renew_attempts: int = 0
+    #: Можно ли включить автопродление на этой установке, и если нет — почему. Отметка
+    #: согласия без этого была бы обещанием, которое продукт не выполнит.
+    auto_renew_available: bool = False
+    auto_renew_unavailable_reason: str = ""
 
 
 class SubscriptionUpdate(BaseModel):
@@ -771,6 +794,34 @@ class SubscriptionUpdate(BaseModel):
 class CheckoutRequest(BaseModel):
     plan_code: str
     return_url: str = "https://example.com/billing/return"
+    #: Сколько месяцев оплатить: 1 или 12 (G5). Другой срок — оплата по счёту.
+    months: int = 1
+    #: Отдельная отметка согласия на автопродление. Без неё деньги не списываются.
+    auto_renew: bool = False
+
+
+class CheckoutQuoteOut(BaseModel):
+    """Что случится при оплате — до неё (G5): сумма, срок и что пропадёт.
+
+    Считается теми же функциями, что и сама оплата: экран не хранит своей копии
+    правила «продление продолжает период».
+    """
+
+    plan_code: str
+    plan_name: str
+    months: int
+    amount_rub: int
+    #: Цена без скидки — чтобы скидка была видна числом, а не угадывалась.
+    full_price_rub: int
+    discount_percent: int = 0
+    starts_at: datetime
+    ends_at: Optional[datetime] = None
+    #: Оплата продолжает текущий период (тот же тариф), а не начинает новый.
+    continues: bool = False
+    #: Сколько оплаченных суток прежнего тарифа пропадёт: перерасчёта у платформы нет.
+    lost_days: int = 0
+    auto_renew_available: bool = False
+    auto_renew_unavailable_reason: str = ""
 
 
 class CheckoutResponse(BaseModel):
@@ -2166,6 +2217,11 @@ class StaffSubscriptionOut(BaseModel):
     plan_name: str
     status: str
     current_period_end: Optional[datetime] = None
+    #: Включено ли автопродление и почему последнее не прошло (G5) — чтобы на звонок
+    #: «почему списали» или «почему не продлилось» ответ был в карточке, а не в догадке.
+    #: Способ оплаты не показывается вовсе: он клиенту, а не платформе.
+    auto_renew: bool = False
+    renew_error: str = ""
 
 
 class StaffOrgOut(BaseModel):
@@ -2215,6 +2271,9 @@ class StaffPaymentOut(BaseModel):
     amount_rub: int = 0
     status: str
     provider: str = ""
+    #: Сколько месяцев оплачено и было ли это автоматическое списание (G5).
+    months: int = 1
+    automatic: bool = False
 
 
 class StaffJobOut(BaseModel):

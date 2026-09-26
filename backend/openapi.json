@@ -4757,8 +4757,95 @@
         "title": "ChecklistOut",
         "type": "object"
       },
+      "CheckoutQuoteOut": {
+        "description": "Что случится при оплате — до неё (G5): сумма, срок и что пропадёт.\n\nСчитается теми же функциями, что и сама оплата: экран не хранит своей копии\nправила «продление продолжает период».",
+        "properties": {
+          "amount_rub": {
+            "title": "Amount Rub",
+            "type": "integer"
+          },
+          "auto_renew_available": {
+            "default": false,
+            "title": "Auto Renew Available",
+            "type": "boolean"
+          },
+          "auto_renew_unavailable_reason": {
+            "default": "",
+            "title": "Auto Renew Unavailable Reason",
+            "type": "string"
+          },
+          "continues": {
+            "default": false,
+            "title": "Continues",
+            "type": "boolean"
+          },
+          "discount_percent": {
+            "default": 0,
+            "title": "Discount Percent",
+            "type": "integer"
+          },
+          "ends_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ends At"
+          },
+          "full_price_rub": {
+            "title": "Full Price Rub",
+            "type": "integer"
+          },
+          "lost_days": {
+            "default": 0,
+            "title": "Lost Days",
+            "type": "integer"
+          },
+          "months": {
+            "title": "Months",
+            "type": "integer"
+          },
+          "plan_code": {
+            "title": "Plan Code",
+            "type": "string"
+          },
+          "plan_name": {
+            "title": "Plan Name",
+            "type": "string"
+          },
+          "starts_at": {
+            "format": "date-time",
+            "title": "Starts At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan_code",
+          "plan_name",
+          "months",
+          "amount_rub",
+          "full_price_rub",
+          "starts_at"
+        ],
+        "title": "CheckoutQuoteOut",
+        "type": "object"
+      },
       "CheckoutRequest": {
         "properties": {
+          "auto_renew": {
+            "default": false,
+            "title": "Auto Renew",
+            "type": "boolean"
+          },
+          "months": {
+            "default": 1,
+            "title": "Months",
+            "type": "integer"
+          },
           "plan_code": {
             "title": "Plan Code",
             "type": "string"
@@ -8966,6 +9053,22 @@
       "PlanOut": {
         "description": "Тариф каталога. Единица квоты зависит от продукта: проект у «Элит», дело у «Аудита».\n\nПоэтому поле называется ``max_units``, а не ``max_projects``: имя, верное лишь для\nполовины каталога, однажды прочитают буквально. ``unit_name`` даёт подпись для экрана.",
         "properties": {
+          "annual_discount_percent": {
+            "default": 0,
+            "title": "Annual Discount Percent",
+            "type": "integer"
+          },
+          "annual_price_rub": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Annual Price Rub"
+          },
           "code": {
             "title": "Code",
             "type": "string"
@@ -12822,6 +12925,11 @@
             "title": "Amount Rub",
             "type": "integer"
           },
+          "automatic": {
+            "default": false,
+            "title": "Automatic",
+            "type": "boolean"
+          },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
@@ -12830,6 +12938,11 @@
           "id": {
             "title": "Id",
             "type": "string"
+          },
+          "months": {
+            "default": 1,
+            "title": "Months",
+            "type": "integer"
           },
           "plan_code": {
             "title": "Plan Code",
@@ -13008,6 +13121,11 @@
       "StaffSubscriptionOut": {
         "description": "Подписка организации на один продукт — взгляд оператора.",
         "properties": {
+          "auto_renew": {
+            "default": false,
+            "title": "Auto Renew",
+            "type": "boolean"
+          },
           "current_period_end": {
             "anyOf": [
               {
@@ -13030,6 +13148,11 @@
           },
           "product": {
             "title": "Product",
+            "type": "string"
+          },
+          "renew_error": {
+            "default": "",
+            "title": "Renew Error",
             "type": "string"
           },
           "status": {
@@ -14096,6 +14219,21 @@
       "SubscriptionOut": {
         "description": "Подписка организации на один продукт: тариф, статус и использование квот.",
         "properties": {
+          "auto_renew": {
+            "default": false,
+            "title": "Auto Renew",
+            "type": "boolean"
+          },
+          "auto_renew_available": {
+            "default": false,
+            "title": "Auto Renew Available",
+            "type": "boolean"
+          },
+          "auto_renew_unavailable_reason": {
+            "default": "",
+            "title": "Auto Renew Unavailable Reason",
+            "type": "string"
+          },
           "current_period_end": {
             "anyOf": [
               {
@@ -14130,6 +14268,23 @@
             ],
             "title": "Max Units"
           },
+          "next_charge_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Charge At"
+          },
+          "payment_method_title": {
+            "default": "",
+            "title": "Payment Method Title",
+            "type": "string"
+          },
           "plan_code": {
             "title": "Plan Code",
             "type": "string"
@@ -14152,6 +14307,32 @@
             "default": "business",
             "title": "Product",
             "type": "string"
+          },
+          "renew_amount_rub": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Renew Amount Rub"
+          },
+          "renew_attempts": {
+            "default": 0,
+            "title": "Renew Attempts",
+            "type": "integer"
+          },
+          "renew_error": {
+            "default": "",
+            "title": "Renew Error",
+            "type": "string"
+          },
+          "renew_months": {
+            "default": 1,
+            "title": "Renew Months",
+            "type": "integer"
           },
           "status": {
             "title": "Status",
@@ -21127,6 +21308,64 @@
         ]
       }
     },
+    "/api/v1/organizations/{org_id}/billing/auto-renew": {
+      "delete": {
+        "description": "Выключить автопродление — в любой момент, и сохранённый способ забывается (G5).\n\nЗабывается идентификатор способа у провайдера, а не только флаг: включить обратно\nможно лишь новой оплатой с отметкой согласия. Списание, которое провайдер уже\nполучил, этим не отменяется — если оно пройдёт, период продлится; журнал говорит\nоб этом, чтобы «я же выключил» не спорило с выпиской.",
+        "operationId": "disable_auto_renew_api_v1_organizations__org_id__billing_auto_renew_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "product",
+            "required": false,
+            "schema": {
+              "default": "business",
+              "title": "Product",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Disable Auto Renew",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
     "/api/v1/organizations/{org_id}/billing/checkout": {
       "post": {
         "description": "Инициировать смену тарифа через провайдера (ЮKassa — ссылка оплаты; ручной — сразу).\n\n**Тариф «по запросу» через оплату не проходит** (F1). Его цена — ноль, и ручной\nпровайдер включал его немедленно и бесплатно, а ЮKassa получила бы платёж на 0 ₽.\nУсловия такого тарифа согласуют вне продукта, и назначает его платформа.",
@@ -21180,6 +21419,73 @@
           }
         ],
         "summary": "Checkout",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/api/v1/organizations/{org_id}/billing/quote": {
+      "get": {
+        "description": "Сколько заплатить и до какого дня будет оплачено — **до** оплаты (G5).\n\nТеми же функциями, что и сама оплата: продление того же тарифа продолжает период,\nпереход на другой начинает новый — и тогда названо, сколько дней прежнего пропадёт.",
+        "operationId": "checkout_quote_api_v1_organizations__org_id__billing_quote_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "plan_code",
+            "required": true,
+            "schema": {
+              "title": "Plan Code",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "months",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "title": "Months",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutQuoteOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Checkout Quote",
         "tags": [
           "billing"
         ]

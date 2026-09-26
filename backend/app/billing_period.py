@@ -41,6 +41,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from math import ceil
 
 from .plans import Plan
 
@@ -56,6 +57,47 @@ GRACE_DAYS = 14
 
 #: Статус, в который переводит неуплата. Один: см. третье решение в шапке модуля.
 OVERDUE_STATUS = "past_due"
+
+
+def period_start(current_plan: str | None, current_end: datetime | None, plan: Plan,
+                 paid_at: datetime) -> datetime:
+    """С какого момента считается период, оплаченный в ``paid_at`` (G5).
+
+    **Продление того же тарифа продолжает период**, а не начинает новый. Раньше отсчёт
+    всегда шёл от даты платежа: заплатив за неделю до конца, клиент терял оставшиеся
+    семь дней — платил за тридцать, а получал двадцать три.
+
+    Продолжение действует и в льготный срок: эти дни работа шла как обычно, и начни
+    период с даты платежа — платить в последний день льготы стало бы выгоднее всего
+    (до 44 дней за цену 30). Так якорь периода не сдвигается, как у любой подписки.
+
+    **С даты платежа** начинается период, когда продолжать нечего:
+    * тариф другой — оставшиеся дни прежнего тарифа не переносятся (перерасчёта у
+      платформы нет, и экран оплаты говорит об этом **до** оплаты, называя число дней);
+    * срока не было (бесплатный, «по запросу»);
+    * льготный срок кончился и запись уже закрывалась — эти дни работой не были, и
+      брать за них деньги нельзя.
+    """
+    if current_plan != plan.code or current_end is None:
+        return paid_at
+    if days_overdue(current_end, paid_at) > GRACE_DAYS:
+        return paid_at
+    return _aware(current_end)
+
+
+def lost_days(current_plan: str | None, current_end: datetime | None, plan: Plan,
+              paid_at: datetime) -> int:
+    """Сколько оплаченных суток прежнего тарифа пропадёт при переходе на ``plan``.
+
+    Ноль, когда тариф тот же (период продолжится) или прежний период уже кончился.
+    Число, а не «часть периода»: «вы потеряете 12 дней» человек взвешивает, «часть
+    периода не переносится» — нет. Неполные сутки считаются целыми: занизить потерю
+    значило бы уговаривать платить.
+    """
+    if current_plan is None or current_plan == plan.code or current_end is None:
+        return 0
+    left = _aware(current_end) - _aware(paid_at)
+    return max(0, ceil(left / timedelta(days=1)))
 
 
 def paid_period_end(plan: Plan, paid_at: datetime, months: int = 1) -> datetime | None:
@@ -145,3 +187,29 @@ def reminder_stage(status: str, period_end: datetime | None,
     if end - current <= timedelta(days=REMINDER_DAYS):
         return "ending"
     return None
+
+
+# --- Автопродление (G5) ---
+
+#: За сколько до конца периода списывать. Сутки — чтобы неудача была видна, пока период
+#: ещё идёт, и вторая попытка пришлась на день окончания, а не на льготный срок целиком.
+RENEW_AHEAD = timedelta(days=1)
+
+#: Сколько попыток на один конец периода. Три — это «сегодня, завтра, послезавтра»:
+#: достаточно, чтобы пережить временный отказ банка, и мало, чтобы не превратить
+#: неудачу в серию списаний, о которых клиент узнаёт из выписки.
+RENEW_MAX_ATTEMPTS = 3
+
+#: Не чаще одной попытки в сутки. Двадцать часов, а не двадцать четыре: запуск по
+#: расписанию сдвигается на минуты, и строгие сутки съедали бы целый день попытки.
+RENEW_RETRY_AFTER = timedelta(hours=20)
+
+
+def renewal_due(period_end: datetime | None, now: datetime) -> bool:
+    """Пора ли списывать: до конца периода меньше :data:`RENEW_AHEAD`, а льготный срок
+    ещё идёт. После него запись закрыта и период начинается заново с оплаты — списание
+    «задним числом» за дни без работы было бы тем, от чего бережёт :func:`period_start`."""
+    if period_end is None:
+        return False
+    return (_aware(now) >= _aware(period_end) - RENEW_AHEAD
+            and days_overdue(period_end, now) <= GRACE_DAYS)

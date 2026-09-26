@@ -269,6 +269,35 @@ class Subscription(Base):
         DateTime(timezone=True), default=_now, onupdate=_now
     )
 
+    # --- Автопродление (пакет G, G5) ---
+    #
+    # Согласие клиента — это **тариф, сумма, срок и способ оплаты вместе**: списать другую
+    # сумму или за другой тариф значило бы взять деньги, на которые согласия не давали.
+    # Поэтому смена тарифа гасит согласие целиком (`crud.set_plan`), а рост цены
+    # останавливает списание. Включается согласие только оплатой с отдельной отметкой.
+
+    #: Включено ли автопродление. Без сохранённого способа оплаты не бывает.
+    auto_renew: Mapped[bool] = mapped_column(Boolean, default=False,
+                                             server_default=text("false"), nullable=False)
+    #: Идентификатор сохранённого способа оплаты **у провайдера** (не карта: её платформа
+    #: не видит). Наружу не отдаётся; при отключении стирается.
+    payment_method_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    #: Как способ назвать человеку («MasterCard *4444») — чтобы письмо о списании
+    #: называло, откуда возьмут деньги.
+    payment_method_title: Mapped[str] = mapped_column(String(120), default="",
+                                                      server_default="")
+    #: Сколько месяцев оплачивает каждое продление и на какую сумму дано согласие.
+    renew_months: Mapped[int] = mapped_column(default=1, server_default="1")
+    renew_amount_rub: Mapped[int] = mapped_column(default=0, server_default="0")
+    #: Попытки списания за **текущий** конец периода: не больше одной в сутки и не
+    #: больше трёх. Любая оплата, двигающая период, обнуляет счёт.
+    renew_attempts: Mapped[int] = mapped_column(default=0, server_default="0")
+    renew_attempted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    #: Почему последнее продление не состоялось — словами, для экрана и письма.
+    renew_error: Mapped[str] = mapped_column(String(500), default="", server_default="")
+
 
 class Payment(Base):
     """Платёж за смену тарифа (для интеграции с провайдером, 6.5b).
@@ -306,6 +335,20 @@ class Payment(Base):
     plan_code: Mapped[str] = mapped_column(String(32), nullable=False)
     amount_rub: Mapped[int] = mapped_column(default=0)
     status: Mapped[str] = mapped_column(String(32), default="pending")  # pending/succeeded/canceled
+    #: Сколько месяцев оплачивает платёж (G5): годовая оплата — 12. Период по нему
+    #: считает `billing.activate_paid_plan`, а не сумма: деление суммы на цену угадывало
+    #: бы срок, как только появится скидка.
+    months: Mapped[int] = mapped_column(default=1, server_default="1")
+    #: Дал ли плательщик согласие на автопродление **этим** платежом. Сохранённый
+    #: провайдером способ без нашей отметки согласия автопродления не включает.
+    auto_renew_consent: Mapped[bool] = mapped_column(Boolean, default=False,
+                                                     server_default=text("false"),
+                                                     nullable=False)
+    #: Автоматическое списание: какой конец периода оно продлевает. По нему же
+    #: сверяется повтор — один конец периода не продлевается дважды.
+    renews_period_end: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_now, onupdate=_now

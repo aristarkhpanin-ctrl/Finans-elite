@@ -3223,6 +3223,17 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .plan-feat__check { color: var(--accent); flex: none; }
 .plan-card .btn { margin-top: auto; }
 
+/* Условия оплаты в модале (G5): срок, сумма, согласие на автопродление */
+.pay-terms { margin-top: 4px; }
+.pay-terms__sum { font: 500 13px var(--font-ui); color: var(--muted); margin: 12px 0 4px; }
+.pay-terms__sum b { font: 600 15px var(--font-mono); color: var(--text); }
+.pay-terms__consent {
+  display: flex; align-items: flex-start; gap: 8px; margin-top: 14px;
+  font: 400 12.5px/1.45 var(--font-ui); color: var(--muted); cursor: pointer;
+}
+.pay-terms__consent input { margin-top: 2px; flex: none; }
+.pay-terms__consent input:disabled + span { color: var(--subtle); }
+
 /* Diff в модале смены тарифа */
 .plan-diff { display: flex; align-items: center; gap: 12px; margin: 4px 0 14px; }
 .plan-diff__box { flex: 1; text-align: center; padding: 12px; border-radius: 10px; background: var(--surface-2); }

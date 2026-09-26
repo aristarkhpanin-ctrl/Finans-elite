@@ -403,10 +403,13 @@ function OrgCard({ orgId, onBack }: { orgId: string; onBack: () => void }) {
             Срок не ставится: за этот тариф не платят помесячно. Он не будет истекать.
           </div>
         ) : (
+          /* Правило отсчёта названо словами, а не посчитано здесь: считает его сервер
+             (G5), и вторая копия на экране однажды пообещала бы другую дату. */
           <Field label="Оплачено месяцев" type="number" value={months}
-                 note={`Отсчёт начнётся сегодня. Платёж на ${
-                   (chosen?.price_rub ?? 0) * (Number(months) || 0)} ₽ останется в истории `
-                   + "платежей организации."}
+                 note={"Тот же тариф продлевается от конца текущего периода (если он ещё "
+                   + "идёт или идёт льготный срок), другой — начинает период сегодня. "
+                   + `Платёж на ${(chosen?.price_rub ?? 0) * (Number(months) || 0)} ₽ `
+                   + "останется в истории платежей организации."}
                  onChange={(e) => setMonths(e.target.value)} />
         )}
         <Field label="Основание" value={note} placeholder="счёт № 42 от 01.09.2026"
@@ -424,6 +427,10 @@ function OrgCard({ orgId, onBack }: { orgId: string; onBack: () => void }) {
             {s.current_period_end && (
               <div className="adm-sub">оплачено до {day(s.current_period_end)}</div>
             )}
+            {/* Ответ на звонок «почему списали» и «почему не продлилось» (G5). Способа
+                оплаты здесь нет: он клиенту, а не платформе. */}
+            {s.auto_renew && <div className="adm-sub">автопродление включено</div>}
+            {s.renew_error && <div className="adm-sub">{s.renew_error}</div>}
           </div>
         ))}
         <div className="adm-card">
@@ -495,7 +502,11 @@ function OrgCard({ orgId, onBack }: { orgId: string; onBack: () => void }) {
                 <div role="cell">
                   {p.plan_code}
                   <div className="adm-sub">
-                    {p.provider === "manual" ? "по счёту, провёл оператор" : p.provider}
+                    {/* Автосписание ручного провайдера (разработка) — тоже «manual», и
+                        без этой развилки оно подписалось бы оплатой по счёту. */}
+                    {p.automatic ? `автопродление · ${p.provider}`
+                      : p.provider === "manual" ? "по счёту, провёл оператор" : p.provider}
+                    {(p.months ?? 1) > 1 && ` · за ${p.months} мес.`}
                   </div>
                 </div>
                 <div role="cell">{p.amount_rub.toLocaleString("ru-RU")} ₽</div>

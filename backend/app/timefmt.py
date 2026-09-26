@@ -21,3 +21,10 @@ def when_utc(moment: datetime) -> str:
     """
     aware = moment if moment.tzinfo is not None else moment.replace(tzinfo=timezone.utc)
     return aware.astimezone(timezone.utc).strftime("%d.%m.%Y %H:%M UTC")
+
+
+def day_utc(moment: datetime) -> str:
+    """«05.09.2026» — когда важен день, а не минута (запуск по расписанию не обещает
+    часа: «следующая попытка — 06.09.2026», а не «в 04:00»)."""
+    aware = moment if moment.tzinfo is not None else moment.replace(tzinfo=timezone.utc)
+    return aware.astimezone(timezone.utc).strftime("%d.%m.%Y")

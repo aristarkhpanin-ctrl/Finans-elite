@@ -2003,6 +2003,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizations/{org_id}/billing/auto-renew": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Disable Auto Renew
+         * @description Выключить автопродление — в любой момент, и сохранённый способ забывается (G5).
+         *
+         *     Забывается идентификатор способа у провайдера, а не только флаг: включить обратно
+         *     можно лишь новой оплатой с отметкой согласия. Списание, которое провайдер уже
+         *     получил, этим не отменяется — если оно пройдёт, период продлится; журнал говорит
+         *     об этом, чтобы «я же выключил» не спорило с выпиской.
+         */
+        delete: operations["disable_auto_renew_api_v1_organizations__org_id__billing_auto_renew_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizations/{org_id}/billing/checkout": {
         parameters: {
             query?: never;
@@ -2021,6 +2046,29 @@ export interface paths {
          *     Условия такого тарифа согласуют вне продукта, и назначает его платформа.
          */
         post: operations["checkout_api_v1_organizations__org_id__billing_checkout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{org_id}/billing/quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Checkout Quote
+         * @description Сколько заплатить и до какого дня будет оплачено — **до** оплаты (G5).
+         *
+         *     Теми же функциями, что и сама оплата: продление того же тарифа продолжает период,
+         *     переход на другой начинает новый — и тогда названо, сколько дней прежнего пропадёт.
+         */
+        get: operations["checkout_quote_api_v1_organizations__org_id__billing_quote_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5575,8 +5623,69 @@ export interface components {
              */
             updated_at: string;
         };
+        /**
+         * CheckoutQuoteOut
+         * @description Что случится при оплате — до неё (G5): сумма, срок и что пропадёт.
+         *
+         *     Считается теми же функциями, что и сама оплата: экран не хранит своей копии
+         *     правила «продление продолжает период».
+         */
+        CheckoutQuoteOut: {
+            /** Amount Rub */
+            amount_rub: number;
+            /**
+             * Auto Renew Available
+             * @default false
+             */
+            auto_renew_available: boolean;
+            /**
+             * Auto Renew Unavailable Reason
+             * @default
+             */
+            auto_renew_unavailable_reason: string;
+            /**
+             * Continues
+             * @default false
+             */
+            continues: boolean;
+            /**
+             * Discount Percent
+             * @default 0
+             */
+            discount_percent: number;
+            /** Ends At */
+            ends_at?: string | null;
+            /** Full Price Rub */
+            full_price_rub: number;
+            /**
+             * Lost Days
+             * @default 0
+             */
+            lost_days: number;
+            /** Months */
+            months: number;
+            /** Plan Code */
+            plan_code: string;
+            /** Plan Name */
+            plan_name: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+        };
         /** CheckoutRequest */
         CheckoutRequest: {
+            /**
+             * Auto Renew
+             * @default false
+             */
+            auto_renew: boolean;
+            /**
+             * Months
+             * @default 1
+             */
+            months: number;
             /** Plan Code */
             plan_code: string;
             /**
@@ -7975,6 +8084,13 @@ export interface components {
          *     половины каталога, однажды прочитают буквально. ``unit_name`` даёт подпись для экрана.
          */
         PlanOut: {
+            /**
+             * Annual Discount Percent
+             * @default 0
+             */
+            annual_discount_percent: number;
+            /** Annual Price Rub */
+            annual_price_rub?: number | null;
             /** Code */
             code: string;
             /** Max Members */
@@ -10283,12 +10399,22 @@ export interface components {
              */
             amount_rub: number;
             /**
+             * Automatic
+             * @default false
+             */
+            automatic: boolean;
+            /**
              * Created At
              * Format: date-time
              */
             created_at: string;
             /** Id */
             id: string;
+            /**
+             * Months
+             * @default 1
+             */
+            months: number;
             /** Plan Code */
             plan_code: string;
             /**
@@ -10398,6 +10524,11 @@ export interface components {
          * @description Подписка организации на один продукт — взгляд оператора.
          */
         StaffSubscriptionOut: {
+            /**
+             * Auto Renew
+             * @default false
+             */
+            auto_renew: boolean;
             /** Current Period End */
             current_period_end?: string | null;
             /** Plan Code */
@@ -10406,6 +10537,11 @@ export interface components {
             plan_name: string;
             /** Product */
             product: string;
+            /**
+             * Renew Error
+             * @default
+             */
+            renew_error: string;
             /** Status */
             status: string;
         };
@@ -10954,12 +11090,34 @@ export interface components {
          * @description Подписка организации на один продукт: тариф, статус и использование квот.
          */
         SubscriptionOut: {
+            /**
+             * Auto Renew
+             * @default false
+             */
+            auto_renew: boolean;
+            /**
+             * Auto Renew Available
+             * @default false
+             */
+            auto_renew_available: boolean;
+            /**
+             * Auto Renew Unavailable Reason
+             * @default
+             */
+            auto_renew_unavailable_reason: string;
             /** Current Period End */
             current_period_end?: string | null;
             /** Max Members */
             max_members?: number | null;
             /** Max Units */
             max_units?: number | null;
+            /** Next Charge At */
+            next_charge_at?: string | null;
+            /**
+             * Payment Method Title
+             * @default
+             */
+            payment_method_title: string;
             /** Plan Code */
             plan_code: string;
             /** Plan Name */
@@ -10979,6 +11137,23 @@ export interface components {
              * @default business
              */
             product: string;
+            /** Renew Amount Rub */
+            renew_amount_rub?: number | null;
+            /**
+             * Renew Attempts
+             * @default 0
+             */
+            renew_attempts: number;
+            /**
+             * Renew Error
+             * @default
+             */
+            renew_error: string;
+            /**
+             * Renew Months
+             * @default 1
+             */
+            renew_months: number;
             /** Status */
             status: string;
             /**
@@ -14940,6 +15115,39 @@ export interface operations {
             };
         };
     };
+    disable_auto_renew_api_v1_organizations__org_id__billing_auto_renew_delete: {
+        parameters: {
+            query?: {
+                product?: string;
+            };
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     checkout_api_v1_organizations__org_id__billing_checkout_post: {
         parameters: {
             query?: never;
@@ -14962,6 +15170,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CheckoutResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    checkout_quote_api_v1_organizations__org_id__billing_quote_get: {
+        parameters: {
+            query: {
+                plan_code: string;
+                months?: number;
+            };
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutQuoteOut"];
                 };
             };
             /** @description Validation Error */

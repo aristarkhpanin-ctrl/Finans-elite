@@ -607,6 +607,21 @@ it("оплата по счёту названа проведённой опер�
   expect(await screen.findByText(/по счёту, провёл оператор/)).toBeTruthy();
 });
 
+it("автоматическое списание не выдаётся за оплату по счёту", async () => {
+  // Ручной провайдер (разработка) пишет «manual» и в автосписание — без развилки оно
+  // подписалось бы «по счёту, провёл оператор» (G5).
+  getStaffOrganization.mockResolvedValue({
+    ...org(), members_list: [], payments_total: 1,
+    payments: [{ id: "p1", created_at: "2026-09-01T10:00:00Z", plan_code: "team",
+                 amount_rub: 31320, status: "succeeded", provider: "manual",
+                 months: 12, automatic: true }],
+  } as unknown as StaffOrgDetail);
+  show();
+  fireEvent.click(await screen.findByText("ООО «Клиент»"));
+  expect(await screen.findByText(/автопродление · manual · за 12 мес\./)).toBeTruthy();
+  expect(screen.queryByText(/по счёту, провёл оператор/)).toBeNull();
+});
+
 it("пустые платежи объясняют себя, а не молчат", async () => {
   // Ноль читался бы как «клиент не платил», хотя платформа просто не видит переводов
   // мимо продукта.

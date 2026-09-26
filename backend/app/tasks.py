@@ -8,6 +8,7 @@ from calc_core.montecarlo import run_monte_carlo
 
 from . import scheduler
 from .analysis_service import build_mc_config
+from .billing import get_payment_provider
 from .celery_app import celery_app
 from .database import SessionLocal
 from .schemas import MonteCarloRequest, monte_carlo_response
@@ -45,3 +46,11 @@ def billing_reminders_task() -> int:
     """Письма о деньгах (G4). Возвращает, скольким подпискам письмо ушло."""
     with SessionLocal() as db:
         return scheduler.send_billing_reminders(db, datetime.now(timezone.utc)).sent
+
+
+@celery_app.task(name="scheduler.renew_subscriptions")
+def renew_subscriptions_task() -> int:
+    """Автопродление (G5). Возвращает, скольким подпискам списано продление."""
+    with SessionLocal() as db:
+        return scheduler.renew_subscriptions(db, get_payment_provider(),
+                                             datetime.now(timezone.utc)).charged

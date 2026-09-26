@@ -98,7 +98,9 @@ def _subscriptions_out(db: Session, org_id: str) -> list[StaffSubscriptionOut]:
         out.append(StaffSubscriptionOut(
             product=product, plan_code=plan.code, plan_name=plan.name,
             status=sub.status if sub else "none",
-            current_period_end=sub.current_period_end if sub else None))
+            current_period_end=sub.current_period_end if sub else None,
+            auto_renew=bool(sub and sub.auto_renew),
+            renew_error=sub.renew_error if sub else ""))
     return out
 
 
@@ -123,7 +125,8 @@ def _org_detail(db: Session, org) -> StaffOrgDetail:
     # намеренно (см. `Payment`), и изоляцию здесь держит именно этот фильтр.
     payments = [StaffPaymentOut(id=p.id, created_at=p.created_at, plan_code=p.plan_code,
                                 amount_rub=p.amount_rub, status=p.status,
-                                provider=p.provider)
+                                provider=p.provider, months=p.months,
+                                automatic=p.renews_period_end is not None)
                 for p in crud.list_payments(db, org.id)]
     return StaffOrgDetail(**base.model_dump(), members_list=members, payments=payments,
                           payments_total=crud.count_payments(db, org.id),
