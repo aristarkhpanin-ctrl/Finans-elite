@@ -39,8 +39,10 @@ const downloadUsageCsv = vi.fn();
 const assignPlan = vi.fn();
 const getPlans = vi.fn();
 const getStaffBillingDocuments = vi.fn();
+const getReadiness = vi.fn();
 const downloadStaffBillingDocument = vi.fn();
 vi.mock("../api/admin", () => ({
+  getReadiness: (...a: unknown[]) => getReadiness(...a),
   getStaffBillingDocuments: (...a: unknown[]) => getStaffBillingDocuments(...a),
   downloadStaffBillingDocument: (...a: unknown[]) => downloadStaffBillingDocument(...a),
   getStaffOrganizations: (...a: unknown[]) => getStaffOrganizations(...a),
@@ -799,4 +801,25 @@ it("документы видны и после ухода клиента — п
   expect(screen.getByText("организации больше нет")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Скачать DOCX" }));
   await waitFor(() => expect(downloadStaffBillingDocument).toHaveBeenCalledWith(doc));
+});
+
+
+// --- G9: готовность установки ---
+
+it("готовность: выключенное — серым, ошибка настройки — проблемой, с тем, что не работает", async () => {
+  getReadiness.mockResolvedValue([
+    { key: "events", title: "События пользования", status: "off", state: "не собираются",
+      impact: "удержание — «не измеряется»", how: "USAGE_EVENTS=1" },
+    { key: "tracker", title: "Трекер ошибок", status: "problem",
+      state: "SENTRY_DSN не принят", impact: "об ошибках узнаём от клиента",
+      how: "SENTRY_DSN" },
+    { key: "mail", title: "Почта", status: "ok", state: "smtp: mail.example.ru",
+      impact: "", how: "" },
+  ]);
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Готовность" }));
+  expect(await screen.findByText("Проблем в настройке: 1. Выключенное по решению владельца — не проблема.", { exact: false })).toBeTruthy();
+  expect(screen.getByText("выключено")).toBeTruthy();
+  expect(screen.getByText("проблема")).toBeTruthy();
+  expect(screen.getByText("Не работает: об ошибках узнаём от клиента")).toBeTruthy();
 });

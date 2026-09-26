@@ -35,7 +35,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .. import billing as billing_mod
-from .. import closing_docs, crud, job_state, support_access, usage
+from .. import closing_docs, crud, job_state, readiness, support_access, usage
 from ..closing_docx import build_document_docx
 from ..database import as_tenant, get_db
 from ..db_models import BillingDocument, Organization, User
@@ -58,6 +58,7 @@ from ..schemas import (
     MetricPointOut,
     PlanSliceOut,
     PlatformMetricsOut,
+    ReadinessItemOut,
     RetentionPointOut,
     RevenuePointOut,
     StaffAccessOut,
@@ -968,3 +969,19 @@ def download_billing_document(doc_id: str, staff: User = Depends(require_staff),
     return Response(content=content, media_type=DOCX_MIME, headers={
         "Content-Disposition": f"attachment; filename=\"document-{doc.number}-{doc.year}.docx\"; "
                                f"filename*=UTF-8''{quote(closing_docs.title(doc) + '.docx')}"})
+
+
+# --- Готовность установки (G9) ---
+
+@router.get("/readiness", response_model=list[ReadinessItemOut])
+def read_readiness(staff: User = Depends(require_staff),
+                   provider: billing_mod.PaymentProvider = Depends(billing_mod.get_payment_provider),
+                   db: Session = Depends(get_db)) -> list[ReadinessItemOut]:
+    """Что включено на установке и что из-за выключенного не работает (G9).
+
+    Та же функция, что у скрипта эксплуатации (``scripts/check_readiness.py``). Только
+    читает. Журнал не пишет: это взгляд контура на себя, а не приход к клиенту.
+    """
+    return [ReadinessItemOut(key=i.key, title=i.title, status=i.status, state=i.state,
+                             impact=i.impact, how=i.how)
+            for i in readiness.check(db, provider=provider)]

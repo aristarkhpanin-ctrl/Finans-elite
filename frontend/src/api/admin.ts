@@ -160,6 +160,17 @@ export async function downloadUsageCsv(months = 12): Promise<void> {
 }
 
 /**
+ * Готовность установки (G9): по каждому пункту — состояние, что из-за него не работает и
+ * чем включить. Выключенное по решению владельца — «выключено», а не проблема.
+ */
+export type ReadinessItem = Schema<"ReadinessItemOut">;
+
+export async function getReadiness(): Promise<ReadinessItem[]> {
+  const { data } = await api.get<ReadinessItem[]>("/api/v1/admin/readiness");
+  return data;
+}
+
+/**
  * Счета и акты платформы (G6) — **и тех клиентов, которых уже нет**: документы
  * переживают покупателя (402-ФЗ), и покупатель назван из снимка в документе.
  */

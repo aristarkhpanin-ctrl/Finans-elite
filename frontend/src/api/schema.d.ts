@@ -388,6 +388,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Readiness
+         * @description Что включено на установке и что из-за выключенного не работает (G9).
+         *
+         *     Та же функция, что у скрипта эксплуатации (``scripts/check_readiness.py``). Только
+         *     читает. Журнал не пишет: это взгляд контура на себя, а не приход к клиенту.
+         */
+        get: operations["read_readiness_api_v1_admin_readiness_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/staff": {
         parameters: {
             query?: never;
@@ -9575,6 +9598,32 @@ export interface components {
             };
         };
         /**
+         * ReadinessItemOut
+         * @description Пункт готовности установки (G9): что сейчас, что из-за этого не работает и чем
+         *     включить. ``status``: ``ok`` · ``off`` (выключено по решению владельца — не
+         *     проблема) · ``problem`` (ошибка настройки).
+         */
+        ReadinessItemOut: {
+            /**
+             * How
+             * @default
+             */
+            how: string;
+            /**
+             * Impact
+             * @default
+             */
+            impact: string;
+            /** Key */
+            key: string;
+            /** State */
+            state: string;
+            /** Status */
+            status: string;
+            /** Title */
+            title: string;
+        };
+        /**
          * RealizedFlag
          * @description Отметка аналитика: сработал ли флаг после сделки и во что обошёлся (Прил. Т.4).
          *
@@ -12814,6 +12863,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_readiness_api_v1_admin_readiness_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessItemOut"][];
                 };
             };
         };

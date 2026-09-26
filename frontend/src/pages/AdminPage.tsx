@@ -4,6 +4,7 @@ import {
   assignPlan,
   blockUser,
   downloadStaffBillingDocument,
+  getReadiness,
   getStaffBillingDocuments,
   getOrgProject,
   getOrgProjects,
@@ -62,6 +63,7 @@ const TABS = [
   ["metrics", "Сводка"],
   ["staff", "Сотрудники"],
   ["jobs", "Эксплуатация"],
+  ["ready", "Готовность"],
   ["docs", "Документы"],
   ["log", "Журнал сотрудников"],
 ] as const;
@@ -153,6 +155,7 @@ export function AdminPage() {
       {tab === "metrics" && <MetricsTab />}
       {tab === "staff" && <StaffTab />}
       {tab === "jobs" && <JobsTab />}
+      {tab === "ready" && <ReadinessTab />}
       {tab === "docs" && <DocumentsTab />}
       {tab === "log" && <StaffLogTab />}
     </div>
@@ -832,6 +835,54 @@ const JOB_STATUS: Record<string, string> = {
  * открываются они только по его гранту. «Неизвестно» показывается как «неизвестно», с
  * причиной рядом, а не как «упало».
  */
+const READINESS_CHIP: Record<string, ["active" | "neutral" | "problem", string]> = {
+  ok: ["active", "в порядке"],
+  off: ["neutral", "выключено"],
+  problem: ["problem", "проблема"],
+};
+
+/**
+ * Готовность установки (G9). Решения владельца — почта, события, трекер, реквизиты —
+ * кодом не принимаются; здесь выключенное **видно**: что сейчас, что из-за этого не
+ * работает и чем включить. Выключенное по решению — серым, а не красным: красный
+ * подталкивал бы к решению, которое продукт принимать не вправе. Экран только читает.
+ */
+function ReadinessTab() {
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["admin-readiness"], queryFn: getReadiness,
+  });
+  if (isLoading && !data) return <Loading />;
+  if (isError || !data) return <ErrorState text="Не удалось проверить готовность"
+                                           onRetry={() => refetch()} />;
+  const problems = data.filter((i) => i.status === "problem").length;
+  return (
+    <div>
+      <div className="page-sub" style={{ marginBottom: 12 }}>
+        {problems
+          ? `Проблем в настройке: ${problems}. Выключенное по решению владельца — не проблема.`
+          : "Ошибок настройки нет. Выключенное — решение владельца, а не поломка."}
+        {" "}Та же проверка — скрипт <code>scripts/check_readiness.py</code>.
+      </div>
+      <div className="log-list" role="table" aria-label="Готовность установки">
+        {data.map((item) => {
+          const [kind, label] = READINESS_CHIP[item.status] ?? ["neutral", item.status];
+          return (
+            <div className="log-row adm-row" role="row" key={item.key}>
+              <div role="rowheader">{item.title}</div>
+              <div role="cell"><Chip kind={kind}>{label}</Chip></div>
+              <div role="cell">
+                {item.state}
+                {item.impact && <div className="adm-sub">Не работает: {item.impact}</div>}
+              </div>
+              <div role="cell">{item.how && <div className="adm-sub">{item.how}</div>}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /**
  * Счета и акты платформы (G6) — **и ушедших клиентов**. Документы продавца переживают
  * покупателя (402-ФЗ, пять лет), и хранить их без способа прочесть значило бы хранить

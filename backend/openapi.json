@@ -11330,6 +11330,45 @@
         "title": "RatiosOut",
         "type": "object"
       },
+      "ReadinessItemOut": {
+        "description": "Пункт готовности установки (G9): что сейчас, что из-за этого не работает и чем\nвключить. ``status``: ``ok`` · ``off`` (выключено по решению владельца — не\nпроблема) · ``problem`` (ошибка настройки).",
+        "properties": {
+          "how": {
+            "default": "",
+            "title": "How",
+            "type": "string"
+          },
+          "impact": {
+            "default": "",
+            "title": "Impact",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "status",
+          "state"
+        ],
+        "title": "ReadinessItemOut",
+        "type": "object"
+      },
       "RealizedFlag-Input": {
         "description": "Отметка аналитика: сработал ли флаг после сделки и во что обошёлся (Прил. Т.4).\n\nРеализовался ли риск, платформа не знает — она видит отчётность, а не причины.\nПредсказанное влияние берётся из реестра флагов (посчитано платформой), фактическая\nпотеря **вводится**; обе половины подписаны, и «дисконт окупился» — сравнение\nвведённого с посчитанным, а не одного вычисления с другим.\n\n``actual_cost`` — ``None``, когда факт ещё не оценён: это не «обошёлся в ноль».",
         "properties": {
@@ -16997,6 +17036,37 @@
           }
         ],
         "summary": "Suspend Organization",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/readiness": {
+      "get": {
+        "description": "Что включено на установке и что из-за выключенного не работает (G9).\n\nТа же функция, что у скрипта эксплуатации (``scripts/check_readiness.py``). Только\nчитает. Журнал не пишет: это взгляд контура на себя, а не приход к клиенту.",
+        "operationId": "read_readiness_api_v1_admin_readiness_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReadinessItemOut"
+                  },
+                  "title": "Response Read Readiness Api V1 Admin Readiness Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Readiness",
         "tags": [
           "admin"
         ]

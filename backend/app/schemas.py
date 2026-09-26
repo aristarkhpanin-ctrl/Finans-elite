@@ -865,6 +865,19 @@ class InvoiceRequest(BaseModel):
     months: int = 1
 
 
+class ReadinessItemOut(BaseModel):
+    """Пункт готовности установки (G9): что сейчас, что из-за этого не работает и чем
+    включить. ``status``: ``ok`` · ``off`` (выключено по решению владельца — не
+    проблема) · ``problem`` (ошибка настройки)."""
+
+    key: str
+    title: str
+    status: str
+    state: str
+    impact: str = ""
+    how: str = ""
+
+
 class StaffBillingDocumentOut(BillingDocumentOut):
     """Документ в служебном списке: чей он — даже когда организации уже нет."""
 
