@@ -291,9 +291,11 @@ def test_a_dead_mail_server_does_not_break_the_login(client, register, monkeypat
 # --- Что видно экрану ---
 
 def test_capabilities_tell_the_screen_whether_mail_works(client, post):
-    assert client.get("/api/v1/auth/capabilities").json() == {"mail": True}
+    # Только своё поле: возможностей у установки несколько (G7 добавил трекер), и
+    # каждую проверяет её собственный модуль.
+    assert client.get("/api/v1/auth/capabilities").json()["mail"] is True
 
 
 def test_capabilities_without_mail(client):
     # «Забыли пароль?», нарисованная там, где письма не уходят, ведёт в тупик.
-    assert client.get("/api/v1/auth/capabilities").json() == {"mail": False}
+    assert client.get("/api/v1/auth/capabilities").json()["mail"] is False
