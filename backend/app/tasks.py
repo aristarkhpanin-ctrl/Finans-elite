@@ -61,3 +61,13 @@ def issue_acts_task() -> int:
     """Акты по закончившимся оплаченным периодам (G6). Возвращает, сколько составлено."""
     with SessionLocal() as db:
         return scheduler.issue_acts(db, datetime.now(timezone.utc)).issued
+
+
+@celery_app.task(name="scheduler.stuck_jobs")
+def stuck_jobs_task() -> int:
+    """Зависшие задачи анализа (G8). Возвращает, сколько зависло дольше порога."""
+    from .routers.jobs import fetch_state
+
+    with SessionLocal() as db:
+        return scheduler.check_stuck_jobs(db, datetime.now(timezone.utc),
+                                          fetch=fetch_state).stuck

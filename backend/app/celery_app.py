@@ -64,6 +64,13 @@ celery_app.conf.update(
             "task": "scheduler.issue_acts",
             "schedule": crontab(hour=5, minute=0),
         },
+        # Зависшие задачи (G8) — часто: состояние задачи Celery хранит час, и проверка
+        # реже, чем «час минус порог», пропускала бы зависшие молча. След такой задачи
+        # пишется не чаще раза в час, если нового нет (`record_run(quiet=True)`).
+        "stuck-jobs": {
+            "task": "scheduler.stuck_jobs",
+            "schedule": crontab(minute="*/10"),
+        },
     },
 )
 

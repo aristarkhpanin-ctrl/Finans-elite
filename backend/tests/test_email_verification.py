@@ -245,7 +245,11 @@ def test_every_letter_declares_whether_it_is_informational():
                      if "informational=True" in inspect.getsource(obj)}
     # Информационные — рассказ о чужой активности: вход с нового устройства и обе
     # разновидности письма об обсуждении. Остальные дверные: ими входят.
+    # G8: письмо операторам о зависших задачах — тоже рассказ о чужой активности
+    # (задача клиента и его название): опечатка в адресе сотрудника увезла бы их в чужой
+    # ящик.
     assert informational == {"app.mail.new_device_letter",
+                             "app.mail.stuck_jobs_letter",
                              "app.routers.comments._mention_letter",
                              "app.routers.comments._reply_letter"}
 

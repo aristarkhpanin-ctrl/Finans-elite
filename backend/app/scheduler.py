@@ -21,6 +21,8 @@
 """
 from __future__ import annotations
 
+import os
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from math import ceil
@@ -28,7 +30,7 @@ from math import ceil
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import billing, closing_docs, crud, mail
+from . import billing, closing_docs, crud, job_state, mail
 from .billing import ChargeResult, PaymentProvider, is_paid_plan
 from .billing_period import (
     GRACE_DAYS,
@@ -53,6 +55,7 @@ TASKS: dict[str, str] = {
     "reminders": "scheduler.reminders",
     "renew": "scheduler.renew",
     "acts": "scheduler.acts",
+    "stuck": "scheduler.stuck",
 }
 
 
@@ -60,8 +63,27 @@ def _aware(moment: datetime) -> datetime:
     return moment if moment.tzinfo else moment.replace(tzinfo=timezone.utc)
 
 
-def record_run(db: Session, task: str, details: str) -> None:
-    """След запуска в служебном журнале. Автора нет — это платформа, а не человек."""
+#: Как часто пишется след у **частой** задачи, когда нового нет (G8). Каждый запуск
+#: раз в десять минут утопил бы служебный журнал, а молчание журнала обязано значить
+#: «не запускался»: тихий запуск пишет след, если прошлому больше этого.
+QUIET_TRACE_EVERY = timedelta(hours=1)
+
+
+def _wall_clock() -> datetime:
+    """Настоящее время — им меряется давность следа (он записан настоящим временем)."""
+    return datetime.now(timezone.utc)
+
+
+def record_run(db: Session, task: str, details: str, *, quiet: bool = False) -> None:
+    """След запуска в служебном журнале. Автора нет — это платформа, а не человек.
+
+    ``quiet`` — запуску нечего сообщить: след пишется, только если прошлому следу этой
+    задачи больше :data:`QUIET_TRACE_EVERY`. Запуск с новостью пишет всегда.
+    """
+    if quiet:
+        last = last_runs(db).get(task)
+        if last is not None and _wall_clock() - _aware(last) < QUIET_TRACE_EVERY:
+            return
     crud.log_staff_action(db, None, TASKS[task], details=details)
 
 
@@ -564,3 +586,127 @@ def issue_acts(db: Session, now: datetime, *, source: str = SOURCE_SCHEDULER) ->
                         if run.seller_problems else ""))
     record_run(db, "acts", f"{source}: " + ", ".join(parts))
     return run
+
+
+# --- Зависшие задачи анализа (G8) ---
+
+#: Порог «зависла», минуты. **По умолчанию выключено**: порог — решение эксплуатации
+#: (фаза F отказалась от рассылки «с порогами, которых неоткуда взять»), и здесь его
+#: задаёт человек.
+STUCK_ENV = "STUCK_JOB_ALERT_MINUTES"
+
+
+def stuck_threshold() -> tuple[int | None, str | None]:
+    """Порог из окружения и почему он не применяется (``None`` — применяется либо не задан).
+
+    Больше часа порог не бывает: состояние задачи Celery хранит час
+    (``job_state.RESULT_TTL``), и после него «зависла» не отличить от «посчитана давно» —
+    такой порог не сработал бы ни разу, а выглядел бы включённым.
+    """
+    raw = os.getenv(STUCK_ENV, "").strip()
+    if not raw or raw == "0":
+        return None, None
+    try:
+        minutes = int(raw)
+    except ValueError:
+        return None, f"{STUCK_ENV}=«{raw}» — не целое число минут; зависшие не проверяются"
+    limit = int(job_state.RESULT_TTL.total_seconds() // 60)
+    if not 1 <= minutes < limit:
+        return None, (f"{STUCK_ENV}={minutes} — порог должен быть от 1 до {limit - 1} мин: "
+                      f"состояние задачи хранится {limit} мин, и дольше «зависла» не "
+                      "отличить от «посчитана давно»; зависшие не проверяются")
+    return minutes, None
+
+
+@dataclass
+class StuckRun:
+    threshold: int | None = None
+    stuck: int = 0          # зависли дольше порога
+    alerted: int = 0        # о скольких из них письмо ушло
+    unknown: int = 0        # брокер не ответил — состояние неизвестно
+    problem: str = ""       # почему проверка не шла или письмо не ушло
+
+
+def _operators(db: Session) -> list[User]:
+    """Кому писать о зависшем: операторы платформы, действующие и с адресом."""
+    return [u for u in crud.list_staff(db)
+            if u.staff_role == crud.STAFF_OPERATOR and u.blocked_at is None and u.email]
+
+
+def _alerted(db: Session, job_id: str) -> bool:
+    return db.execute(select(StaffLogEntry.id).where(
+        StaffLogEntry.action == STUCK_ALERT_ACTION,
+        StaffLogEntry.details.like(f"{job_id}:%")).limit(1)).first() is not None
+
+
+#: Действие служебного журнала «о зависшей задаче написали» — по нему сверяется повтор.
+STUCK_ALERT_ACTION = "jobs.stuck_alert"
+
+
+def check_stuck_jobs(db: Session, now: datetime, *,
+                     fetch: Callable[[str], tuple[str, object]],
+                     source: str = SOURCE_SCHEDULER) -> StuckRun:
+    """Найти задачи анализа, которые стоят в очереди или считаются дольше порога, и
+    написать операторам — один раз на задачу (G8).
+
+    Зависла — «в очереди» или «считается» дольше порога. **Упавшая — не зависла**: она
+    уже сказала своё, и её видно на вкладке «Эксплуатация». **Молчание брокера — не
+    зависла**, а «неизвестно»: писем о нём нет, след называет его. Смотрятся задачи не
+    старше часа хранения состояния — старше их судьбу уже не узнать.
+    """
+    run = StuckRun()
+    run.threshold, problem = stuck_threshold()
+    if run.threshold is None:
+        record_run(db, "stuck", f"{source}: " + (problem or "порог не задан — зависшие "
+                                                  "задачи не проверяются; их видно на "
+                                                  "вкладке «Эксплуатация»"), quiet=True)
+        return run
+    names = {o.id: o.name for o in crud.list_organizations(db, limit=1000)}
+    fresh: list[tuple[str, str]] = []
+    for job in crud.list_analysis_jobs(db, now - job_state.RESULT_TTL):
+        state, _ = job_state.poll(job.id, fetch)
+        verdict = job_state.interpret(state, created_at=job.created_at, now=now)
+        if verdict.status == job_state.UNKNOWN:
+            run.unknown += 1
+            continue
+        age = job_state.age_minutes(job.created_at, now)
+        if verdict.status not in ("pending", "running") or age < run.threshold:
+            continue
+        run.stuck += 1
+        if not _alerted(db, job.id):
+            label = "в очереди" if verdict.status == "pending" else "считается"
+            fresh.append((job.id, f"«{names.get(job.organization_id, '—')}»: {job.kind}, "
+                                  f"{label} {age} мин"))
+    if fresh:
+        _alert(db, run, fresh)
+    parts = [f"порог {run.threshold} мин", f"зависли {run.stuck}",
+             f"письмо о новых ушло {run.alerted}"]
+    if run.unknown:
+        parts.append(f"состояние {run.unknown} неизвестно — хранилище результатов не "
+                     "ответило")
+    if run.problem:
+        parts.append(run.problem)
+    record_run(db, "stuck", f"{source}: " + ", ".join(parts),
+               quiet=not (run.stuck or run.unknown or run.problem))
+    return run
+
+
+def _alert(db: Session, run: StuckRun, fresh: list[tuple[str, str]]) -> None:
+    if not mail.mail_enabled():
+        run.problem = "почта выключена — операторам не написали"
+        return
+    letter = mail.stuck_jobs_letter(jobs=[line for _, line in fresh],
+                                    threshold=run.threshold or 0)
+    recipients = [u for u in _operators(db) if u.email_verified_at is not None]
+    if not recipients:
+        run.problem = ("некому написать: нет действующего оператора с подтверждённым "
+                       "адресом")
+        return
+    results = [mail.send(u.email, letter) for u in recipients]
+    if not any(r.ok for r in results):
+        reasons = "; ".join(sorted({r.error for r in results if r.error}))
+        run.problem = f"письмо не ушло — {reasons or 'причина не названа'}"
+        return
+    for job_id, line in fresh:
+        crud.log_staff_action(db, None, STUCK_ALERT_ACTION, details=f"{job_id}: {line}")
+    run.alerted = len(fresh)
