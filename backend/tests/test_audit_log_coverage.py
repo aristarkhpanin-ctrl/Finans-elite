@@ -20,6 +20,7 @@ from app.routers import (
     audit,
     auth,
     billing,
+    client_errors,
     comments,
     holdings,
     integrator,
@@ -31,7 +32,7 @@ from app.routers import (
 #: Роутеры продукта. Перечислены явно: авто-обход внутренностей приложения зависел бы от
 #: устройства фреймворка, а список роутеров — часть самого продукта.
 ROUTERS = [admin.router, apikeys.router, audit.router, auth.router, billing.router,
-           comments.router, holdings.router, integrator.router, jobs.router,
+           client_errors.router, comments.router, holdings.router, integrator.router, jobs.router,
            organizations.router, projects.router]
 
 #: Изменяющие маршруты, которые журнал **не** пишут — каждый с причиной.
@@ -55,6 +56,9 @@ NOT_LOGGED: dict[str, str] = {
     # запись «начал настраивать» в журнале организации отвечала бы на вопрос, которого
     # никто не задаёт. Включение, выключение и сброс — пишутся.
     "POST /api/v1/auth/totp/setup": "секрет заведён, но второй фактор ещё не действует",
+    # Ошибка интерфейса (G7) — сведения о поломке экрана, а не данные организации; у неё
+    # нет даже организации (ломается и экран входа). Уходит в трекер, если он включён.
+    "POST /api/v1/client-errors": "ошибка интерфейса — не данные организации",
     # Биллинг: подтверждение провайдера приходит без пользователя-актора.
     "POST /api/v1/billing/webhook/yookassa": "внешнее уведомление провайдера, актора нет",
     # Реплика обсуждения (D3) сама себя журналирует: у неё есть автор, время, текст и

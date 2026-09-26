@@ -12,6 +12,7 @@ import os
 
 from celery import Celery
 from celery.schedules import crontab
+from celery.signals import beat_init, worker_process_init
 
 
 def _truthy(value: str | None) -> bool:
@@ -65,3 +66,17 @@ celery_app.conf.update(
         },
     },
 )
+
+
+# Трекер ошибок в фоновых процессах (G7). Инициализация — в каждом процессе пула, а не
+# в родителе: клиент трекера не переживает fork. Без SENTRY_DSN — ничего не делает.
+@worker_process_init.connect
+def _worker_error_tracking(**_kwargs) -> None:
+    from .error_tracking import init_error_tracking
+    init_error_tracking(component="worker")
+
+
+@beat_init.connect
+def _beat_error_tracking(**_kwargs) -> None:
+    from .error_tracking import init_error_tracking
+    init_error_tracking(component="beat")

@@ -15,7 +15,7 @@ from fastapi import (
 )
 from sqlalchemy.orm import Session
 
-from .. import crud, totp, usage
+from .. import crud, error_tracking, totp, usage
 from ..database import get_db
 from ..db_models import User, UserSession
 from ..deps import account_blocked_detail, current_session, current_user
@@ -324,7 +324,8 @@ def capabilities() -> CapabilitiesOut:
     где письма не уходят, ведёт человека в тупик — а тупик, который выглядит как выход,
     хуже, чем честно названное его отсутствие.
     """
-    return CapabilitiesOut(mail=mail_enabled())
+    return CapabilitiesOut(mail=mail_enabled(),
+                           error_tracking=error_tracking.state().enabled)
 
 
 #: Один ответ на любой адрес — существующий, чужой, выдуманный. Разный текст превратил

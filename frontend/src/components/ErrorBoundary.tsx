@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { reportClientError } from "../errorReport";
 
 interface Props {
   children: ReactNode;
@@ -20,8 +21,9 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
-    // Точка для отправки в сервис ошибок в проде (Sentry и т.п.).
     console.error("Ошибка рендера интерфейса:", error, info.componentStack);
+    // В трекер платформы (G7) — только если он включён на этой установке.
+    void reportClientError(error);
   }
 
   render(): ReactNode {

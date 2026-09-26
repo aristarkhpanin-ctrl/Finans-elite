@@ -22,6 +22,7 @@ from calc_core.samples import TEMPLATES, build_sample_project
 from calc_core.templates import INDUSTRY_TEMPLATES, NOT_A_BENCHMARK
 
 from .database import get_db, init_db
+from .error_tracking import init_error_tracking
 from .observability import setup_observability
 from .routers import (
     admin,
@@ -29,6 +30,7 @@ from .routers import (
     audit,
     auth,
     billing,
+    client_errors,
     comments,
     holdings,
     integrator,
@@ -44,6 +46,9 @@ async def lifespan(app: FastAPI):
     init_db()  # dev/test: создать таблицы (в продакшене — Alembic)
     yield
 
+
+# Трекер ошибок (G7): без SENTRY_DSN выключен и не отправляет ничего.
+init_error_tracking(component="api")
 
 app = FastAPI(
     title="Финансовая модель — API",
@@ -73,6 +78,7 @@ app.include_router(apikeys.router)
 app.include_router(audit.router)
 app.include_router(auth.router)
 app.include_router(billing.router)
+app.include_router(client_errors.router)
 app.include_router(comments.router)
 app.include_router(holdings.router)
 app.include_router(integrator.router)

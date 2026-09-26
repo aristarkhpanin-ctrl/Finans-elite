@@ -12,10 +12,12 @@ import { BrowserRouter } from "react-router-dom";
 import { App } from "./App";
 import { AuthProvider } from "./auth/AuthContext";
 import { applyTheme, getTheme } from "./components/theme";
+import { installGlobalErrorReporting } from "./errorReport";
 import "./i18n";
 import "./styles.css";
 
 applyTheme(getTheme());
+installGlobalErrorReporting();
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },

@@ -1575,6 +1575,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/client-errors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report Client Error
+         * @description Принять ошибку интерфейса. Вход не нужен: ломается и экран входа.
+         *
+         *     Трекер выключен — ответ тот же (204), и ничего не происходит: сломанный интерфейс
+         *     не должен получать вторую ошибку из-за того, что установка решила ошибок не
+         *     собирать. Экран и так не шлёт их там, где трекера нет (``/auth/capabilities``).
+         */
+        post: operations["report_client_error_api_v1_client_errors_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/comments/subscription": {
         parameters: {
             query?: never;
@@ -5817,6 +5841,11 @@ export interface components {
          */
         CapabilitiesOut: {
             /**
+             * Error Tracking
+             * @default false
+             */
+            error_tracking: boolean;
+            /**
              * Mail
              * @default false
              */
@@ -6053,6 +6082,30 @@ export interface components {
              * @default 0
              */
             stopped: number;
+        };
+        /**
+         * ClientErrorIn
+         * @description Ошибка интерфейса: что, где и в какой сборке. Без содержимого экрана и адреса
+         *     страницы целиком — путь без строки запроса (в ней ходят токены ссылок).
+         */
+        ClientErrorIn: {
+            /** Message */
+            message: string;
+            /**
+             * Path
+             * @default
+             */
+            path: string;
+            /**
+             * Release
+             * @default
+             */
+            release: string;
+            /**
+             * Stack
+             * @default
+             */
+            stack: string;
         };
         /**
          * CommentCreate
@@ -14558,6 +14611,37 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CalcResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_client_error_api_v1_client_errors_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClientErrorIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

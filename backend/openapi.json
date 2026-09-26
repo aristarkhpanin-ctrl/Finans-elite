@@ -4858,6 +4858,11 @@
       "CapabilitiesOut": {
         "description": "Что платформа умеет **в этой установке** — для экранов, которые иначе обещали бы\nнесуществующее (D1).\n\nОтправка писем включается на месте, и экран входа обязан знать о ней с сервера:\n«Забыли пароль?», нарисованная там, где письма не уходят, ведёт человека в тупик.",
         "properties": {
+          "error_tracking": {
+            "default": false,
+            "title": "Error Tracking",
+            "type": "boolean"
+          },
           "mail": {
             "default": false,
             "title": "Mail",
@@ -5233,6 +5238,39 @@
           "month"
         ],
         "title": "ChurnPointOut",
+        "type": "object"
+      },
+      "ClientErrorIn": {
+        "description": "Ошибка интерфейса: что, где и в какой сборке. Без содержимого экрана и адреса\nстраницы целиком — путь без строки запроса (в ней ходят токены ссылок).",
+        "properties": {
+          "message": {
+            "maxLength": 500,
+            "title": "Message",
+            "type": "string"
+          },
+          "path": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Path",
+            "type": "string"
+          },
+          "release": {
+            "default": "",
+            "maxLength": 40,
+            "title": "Release",
+            "type": "string"
+          },
+          "stack": {
+            "default": "",
+            "maxLength": 4000,
+            "title": "Stack",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "title": "ClientErrorIn",
         "type": "object"
       },
       "CommentCreate": {
@@ -19975,6 +20013,41 @@
         "summary": "Calculate",
         "tags": [
           "calc"
+        ]
+      }
+    },
+    "/api/v1/client-errors": {
+      "post": {
+        "description": "Принять ошибку интерфейса. Вход не нужен: ломается и экран входа.\n\nТрекер выключен — ответ тот же (204), и ничего не происходит: сломанный интерфейс\nне должен получать вторую ошибку из-за того, что установка решила ошибок не\nсобирать. Экран и так не шлёт их там, где трекера нет (``/auth/capabilities``).",
+        "operationId": "report_client_error_api_v1_client_errors_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientErrorIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Report Client Error",
+        "tags": [
+          "errors"
         ]
       }
     },

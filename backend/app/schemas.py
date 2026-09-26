@@ -2773,6 +2773,8 @@ class CapabilitiesOut(BaseModel):
 
     #: Настроена ли отправка писем. `False` — платформа писем не шлёт вовсе.
     mail: bool = False
+    #: Собирает ли установка ошибки (G7). `False` — интерфейс их не отправляет вовсе.
+    error_tracking: bool = False
 
 
 class ForgotPasswordIn(BaseModel):
