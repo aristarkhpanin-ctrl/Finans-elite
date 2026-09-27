@@ -6,10 +6,11 @@
 """
 from __future__ import annotations
 
+from datetime import date
 from decimal import Decimal
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import Response
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
@@ -26,7 +27,7 @@ from audit_core import (
 from audit_core.opinion import build_opinion
 from audit_core.samples import build_trading_subject
 
-from .. import billing, crud, edit_conflict, usage
+from .. import audit_bridge, billing, crud, edit_conflict, usage
 from ..audit_docgen import DOCX_MIME, build_audit_docx
 from ..database import get_db
 from ..db_models import AuditGroup, AuditSubject, AuditSubjectVersion, User
@@ -55,6 +56,7 @@ from ..schemas import (
     AuditVersionDiffOut,
     AuditVersionOut,
     AuditVersionSummary,
+    BusinessPlanDraftOut,
     ModelChangeOut,
     VersionCreate,
     audit_analysis_response,
@@ -129,6 +131,32 @@ def get_subject(subject_id: str,
                 db: Session = Depends(get_db)) -> AuditSubjectOut:
     """Получить субъект с моделью и сходимостью баланса по периодам."""
     return _out(_require(db, org_id, subject_id))
+
+
+@router.get("/subjects/{subject_id}/business-plan-draft", response_model=BusinessPlanDraftOut)
+def business_plan_draft(
+        subject_id: str, months: int = Query(36, ge=1, le=600),
+        scale: int = Query(1, description="1 — суммы дела в рублях, 1000 — в тысячах"),
+        org_id: str = Depends(require_permission(Perm.PROJECT_READ, product="audit")),
+        db: Session = Depends(get_db)) -> BusinessPlanDraftOut:
+    """Черновик модели «Элиты» из последнего периода дела (G14): стартовый баланс, дата
+    старта после периода, происхождение разделом плана — и оговорки, что куда отнесено.
+
+    **Ничего не сохраняет**: проект создаётся обычным сохранением «Элиты» — с её тарифом,
+    квотой и журналом. Не собирается (нет периодов, баланс не сходится) — 422 с причиной.
+    """
+    subject = _require(db, org_id, subject_id)
+    today = date.today()
+    first_of_next = date(today.year + (today.month == 12), today.month % 12 + 1, 1)
+    try:
+        draft = audit_bridge.business_plan_draft(
+            subject.name, crud.load_audit_model(subject), default_start=first_of_next,
+            months=months, scale=scale)
+    except audit_bridge.BridgeError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return BusinessPlanDraftOut(model=draft.model, notes=draft.notes,
+                                period_label=draft.period_label, start_date=draft.start_date,
+                                revaluations=draft.revaluations)
 
 
 @router.put("/subjects/{subject_id}", response_model=AuditSubjectOut)

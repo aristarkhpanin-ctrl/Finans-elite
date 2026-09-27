@@ -16,12 +16,22 @@ import { nextMonthStart, ProjectOnboardingPage, splitByGoal } from "./ProjectOnb
 
 const createProject = vi.fn();
 const createProjectFromTemplate = vi.fn();
+const createProjectFromModel = vi.fn();
 const listTemplates = vi.fn();
 vi.mock("../api/projects", async (orig) => ({
   ...(await orig<typeof import("../api/projects")>()),
   createProject: (...a: unknown[]) => createProject(...a),
   createProjectFromTemplate: (...a: unknown[]) => createProjectFromTemplate(...a),
+  createProjectFromModel: (...a: unknown[]) => createProjectFromModel(...a),
   listTemplates: () => listTemplates(),
+}));
+
+const listAuditSubjects = vi.fn();
+const getBusinessPlanDraft = vi.fn();
+vi.mock("../api/audit", async (orig) => ({
+  ...(await orig<typeof import("../api/audit")>()),
+  listAuditSubjects: () => listAuditSubjects(),
+  getBusinessPlanDraft: (...a: unknown[]) => getBusinessPlanDraft(...a),
 }));
 
 // Куб-марка — анимированная сцена на RAF; в тесте она не нужна и только шумит.
@@ -44,6 +54,19 @@ beforeEach(() => {
   listTemplates.mockResolvedValue(TEMPLATES);
   createProject.mockResolvedValue({ id: "p1", name: "Новый проект" });
   createProjectFromTemplate.mockResolvedValue({ id: "p2", name: "Кофейня" });
+  createProjectFromModel.mockResolvedValue({ id: "p3", name: "ООО «Цель» — бизнес-план" });
+  listAuditSubjects.mockResolvedValue([
+    { id: "s1", name: "ООО «Цель»", industry: "Перевозки", balanced: true, n_periods: 3,
+      created_at: "", updated_at: "", light: null },
+    { id: "s2", name: "ООО «Кривой баланс»", industry: "", balanced: false, n_periods: 1,
+      created_at: "", updated_at: "", light: null },
+  ]);
+  getBusinessPlanDraft.mockResolvedValue({
+    model: { header: { name: "ООО «Цель»", start_date: "2026-01-01", duration_months: 36 },
+             company: { starting_balance: { cash: "300000" } } },
+    notes: ["Краткосрочные обязательства → краткосрочные займы (B22): форма дела не делит их."],
+    period_label: "2025", start_date: "2026-01-01", revaluations: [],
+  });
 });
 
 function show() {
@@ -147,8 +170,91 @@ describe("Мастер", () => {
     expect(screen.getByRole("button", { name: /Пустая модель/ })).toBeTruthy();
   });
 
-  it("третьей цели («из дела „Аудита“») нет, пока нет моста между продуктами", () => {
+});
+
+describe("Из дела «Аудита» (G14)", () => {
+  const toAuditStep = async () => {
     show();
-    expect(screen.queryByText(/Аудит/)).toBeNull();
+    fireEvent.click(screen.getByRole("radio", { name: /Из дела «Аудита»/ }));
+    click("Дальше");
+    return screen.findByRole("button", { name: /ООО «Цель»/ });
+  };
+
+  it("единицу сумм называет человек: без неё черновик не запрашивается", async () => {
+    fireEvent.click(await toAuditStep());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(getBusinessPlanDraft).not.toHaveBeenCalled();
+    expect(screen.getByText(/Единицы у дела нет/)).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Дальше" }) as HTMLButtonElement).disabled)
+      .toBe(true);
+    fireEvent.click(screen.getByRole("radio", { name: /В тысячах рублей/ }));
+    await waitFor(() => expect(getBusinessPlanDraft).toHaveBeenCalledWith("s1", 1000, 36));
+  });
+
+  it("оговорки черновика — до создания; проект — одним запросом из черновика", async () => {
+    fireEvent.click(await toAuditStep());
+    fireEvent.click(screen.getByRole("radio", { name: /В рублях/ }));
+    expect(await screen.findByText(/краткосрочные займы \(B22\)/)).toBeTruthy();
+    expect((screen.getByLabelText("Дата старта") as HTMLInputElement).value)
+      .toBe("2026-01-01");                                     // дата — после периода дела
+    fill("Горизонт, месяцев", "24");
+    click("Дальше");
+    await screen.findByLabelText("Название проекта");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(createProjectFromModel).not.toHaveBeenCalled();
+    click("Создать проект");
+    expect(await screen.findByText(/Происхождение модели/)).toBeTruthy();
+    expect(createProjectFromModel).toHaveBeenCalledTimes(1);
+    const [title, model] = createProjectFromModel.mock.calls[0];
+    expect(title).toBe("ООО «Цель» — бизнес-план");
+    expect(model.header).toMatchObject({ start_date: "2026-01-01", duration_months: 24 });
+    expect(model.company.starting_balance.cash).toBe("300000");
+  });
+
+  it("своя дата старта не затирается черновиком", async () => {
+    fireEvent.click(await toAuditStep());
+    fireEvent.click(screen.getByRole("radio", { name: /В рублях/ }));
+    await screen.findByText(/краткосрочные займы/);
+    fill("Дата старта", "2026-04-01");
+    expect((screen.getByLabelText("Дата старта") as HTMLInputElement).value).toBe("2026-04-01");
+  });
+
+  it("отказ сервера назван его словами, дальше не пройти", async () => {
+    getBusinessPlanDraft.mockRejectedValue(Object.assign(new Error("422"), {
+      isAxiosError: true,
+      response: { status: 422, data: { detail: "актив не равен пассиву, разница 100,00" } },
+    }));
+    fireEvent.click(await toAuditStep());
+    expect(screen.getByText(/баланс не сходится — перенести его нельзя/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("radio", { name: /В рублях/ }));
+    expect(await screen.findByText(/разница 100,00/)).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Дальше" }) as HTMLButtonElement).disabled)
+      .toBe(true);
+  });
+
+  it("со страницы дела мастер открывается с выбранным делом", async () => {
+    render(
+      <QueryClientProvider client={new QueryClient({
+        defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      })}>
+        <MemoryRouter initialEntries={["/projects/onboarding?from=audit&subject=s1"]}>
+          <Routes>
+            <Route path="/projects/onboarding" element={<ProjectOnboardingPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    const picked = await screen.findByRole("button", { name: /ООО «Цель»/ });
+    expect(picked.getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByText(/Единицы у дела нет/)).toBeTruthy();       // единицы — всё равно спрашиваются
+  });
+
+  it("нет доступа к «Аудиту» — сказано, а не пусто", async () => {
+    listAuditSubjects.mockRejectedValue(Object.assign(new Error("403"), {
+      isAxiosError: true, response: { status: 403, data: {} } }));
+    show();
+    fireEvent.click(screen.getByRole("radio", { name: /Из дела «Аудита»/ }));
+    click("Дальше");
+    expect(await screen.findByText(/Нет доступа к делам «Аудита»/)).toBeTruthy();
   });
 });

@@ -840,6 +840,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/audit/subjects/{subject_id}/business-plan-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Business Plan Draft
+         * @description Черновик модели «Элиты» из последнего периода дела (G14): стартовый баланс, дата
+         *     старта после периода, происхождение разделом плана — и оговорки, что куда отнесено.
+         *
+         *     **Ничего не сохраняет**: проект создаётся обычным сохранением «Элиты» — с её тарифом,
+         *     квотой и журналом. Не собирается (нет периодов, баланс не сходится) — 422 с причиной.
+         */
+        get: operations["business_plan_draft_api_v1_audit_subjects__subject_id__business_plan_draft_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit/subjects/{subject_id}/comments": {
         parameters: {
             query?: never;
@@ -5709,6 +5733,25 @@ export interface components {
              * @default 0
              */
             total: string;
+        };
+        /**
+         * BusinessPlanDraftOut
+         * @description Черновик модели «Элиты» из дела «Аудита» (G14). Не сохранён: проект из него
+         *     создаётся обычным сохранением, со всеми проверками «Элиты».
+         */
+        BusinessPlanDraftOut: {
+            model: components["schemas"]["ProjectModel-Output"];
+            /** Notes */
+            notes: string[];
+            /** Period Label */
+            period_label: string;
+            /**
+             * Revaluations
+             * @default []
+             */
+            revaluations: string[];
+            /** Start Date */
+            start_date?: string | null;
         };
         /**
          * BuyerRequisitesIn
@@ -13641,6 +13684,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuditAnalysisOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    business_plan_draft_api_v1_audit_subjects__subject_id__business_plan_draft_get: {
+        parameters: {
+            query?: {
+                months?: number;
+                /** @description 1 — суммы дела в рублях, 1000 — в тысячах */
+                scale?: number;
+            };
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessPlanDraftOut"];
                 };
             };
             /** @description Validation Error */

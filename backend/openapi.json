@@ -4594,6 +4594,52 @@
         "title": "BudgetOut",
         "type": "object"
       },
+      "BusinessPlanDraftOut": {
+        "description": "Черновик модели «Элиты» из дела «Аудита» (G14). Не сохранён: проект из него\nсоздаётся обычным сохранением, со всеми проверками «Элиты».",
+        "properties": {
+          "model": {
+            "$ref": "#/components/schemas/ProjectModel-Output"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "period_label": {
+            "title": "Period Label",
+            "type": "string"
+          },
+          "revaluations": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Revaluations",
+            "type": "array"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          }
+        },
+        "required": [
+          "model",
+          "notes",
+          "period_label"
+        ],
+        "title": "BusinessPlanDraftOut",
+        "type": "object"
+      },
       "BuyerRequisitesIn": {
         "description": "Реквизиты организации-покупателя для счетов и актов (G6).\n\nПробелы внутри ИНН и КПП убираются, буквы КПП приводятся к заглавным: так их пишут\nв документах, а «7707 083893» — та же опечатка, что и «7707083894», только видимая.",
         "properties": {
@@ -18439,6 +18485,94 @@
           }
         ],
         "summary": "Analyze Subject",
+        "tags": [
+          "audit"
+        ]
+      }
+    },
+    "/api/v1/audit/subjects/{subject_id}/business-plan-draft": {
+      "get": {
+        "description": "Черновик модели «Элиты» из последнего периода дела (G14): стартовый баланс, дата\nстарта после периода, происхождение разделом плана — и оговорки, что куда отнесено.\n\n**Ничего не сохраняет**: проект создаётся обычным сохранением «Элиты» — с её тарифом,\nквотой и журналом. Не собирается (нет периодов, баланс не сходится) — 422 с причиной.",
+        "operationId": "business_plan_draft_api_v1_audit_subjects__subject_id__business_plan_draft_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "title": "Subject Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "months",
+            "required": false,
+            "schema": {
+              "default": 36,
+              "maximum": 600,
+              "minimum": 1,
+              "title": "Months",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "1 — суммы дела в рублях, 1000 — в тысячах",
+            "in": "query",
+            "name": "scale",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "description": "1 — суммы дела в рублях, 1000 — в тысячах",
+              "title": "Scale",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessPlanDraftOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Business Plan Draft",
         "tags": [
           "audit"
         ]

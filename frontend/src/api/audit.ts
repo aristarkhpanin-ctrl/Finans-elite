@@ -3,6 +3,7 @@ import { api } from "./client";
 // Версии дела — обвязка API, а не модель субъекта: типы берём из сгенерированной
 // схемы (как в `api/org.ts`), ручное зеркало ниже остаётся про модель.
 import type { Schema } from "./gen";
+import type { ProjectModel } from "./model";
 
 /** Отчётный период: подпись + тип (задаёт длину периода и приведение потоков к году). */
 export interface AuditPeriod {
@@ -321,6 +322,31 @@ export function emptyAuditModel(): AuditModel {
 
 export async function listAuditSubjects(): Promise<AuditSubjectSummary[]> {
   const { data } = await api.get<AuditSubjectSummary[]>("/api/v1/audit/subjects");
+  return data;
+}
+
+/**
+ * Черновик модели «Элиты» из дела (G14): стартовый баланс последнего периода, дата старта
+ * после него, происхождение разделом плана — и оговорки, что куда отнесено. **Не
+ * сохранён**: проект из него создаётся обычным сохранением «Элиты». Модель типизирована
+ * ручным зеркалом, как ответ шаблона (`createProjectFromTemplate`), — её же и отправят.
+ */
+export interface BusinessPlanDraftOut {
+  model: ProjectModel;
+  notes: string[];
+  period_label: string;
+  /** `null` — подпись периода не читается как дата однозначно, и она не угадана. */
+  start_date: string | null;
+  revaluations: string[];
+}
+
+/** Единиц у дела нет — суммы вводятся «как есть»; в чём они, говорит человек. */
+export type DraftScale = 1 | 1000;
+
+export async function getBusinessPlanDraft(id: string, scale: DraftScale,
+                                           months: number): Promise<BusinessPlanDraftOut> {
+  const { data } = await api.get<BusinessPlanDraftOut>(
+    `/api/v1/audit/subjects/${id}/business-plan-draft`, { params: { scale, months } });
   return data;
 }
 

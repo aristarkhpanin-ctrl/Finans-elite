@@ -414,6 +414,13 @@ export function AuditSubjectPage() {
               <span style={{ marginLeft: 6 }}>Выгрузка XLSX</span>
             </Button>
           )}
+          {/* Бизнес-план из дела (G14): черновик строится с **сохранённой** модели, поэтому
+              переход идёт через страж несохранённых правок. */}
+          <Button variant="ghost"
+                  onClick={() => tryNav("Бизнес-план",
+                                        () => navigate(`/projects/onboarding?from=audit&subject=${id}`))}>
+            Бизнес-план из дела
+          </Button>
           <Button onClick={() => save.mutate(undefined)} loading={save.isPending} disabled={!dirty}>
             Сохранить
           </Button>

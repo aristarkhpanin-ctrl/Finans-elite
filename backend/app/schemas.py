@@ -2930,6 +2930,19 @@ class ThreadUnsubscribeRequest(BaseModel):
 
 # --- Отраслевые шаблоны и чек-листы (D4) ---
 
+class BusinessPlanDraftOut(BaseModel):
+    """Черновик модели «Элиты» из дела «Аудита» (G14). Не сохранён: проект из него
+    создаётся обычным сохранением, со всеми проверками «Элиты»."""
+
+    model: ProjectModel
+    #: Что и куда перенесено, что не перенесено и почему — показывается **до** создания.
+    notes: list[str]
+    period_label: str
+    #: `None` — подпись периода не читается как дата однозначно, и она не угадана.
+    start_date: Optional[date] = None
+    revaluations: list[str] = []
+
+
 class TemplateOut(BaseModel):
     """Шаблон быстрого старта: модель + **честный список допущений**.
 
