@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  fmtAxis, fmtDateOnly, fmtMillions, fmtMoney, fmtRatio, fmtTable, fracToPct, isShare, parseModelNumber,
+  fmtAxis, fmtDateOnly, fmtMillions, fmtMoney, fmtRatio, fmtTable, fracToPct, initials, isShare,
+  parseModelNumber,
   pctToFrac, percent,
 } from "./format";
 
@@ -37,6 +38,17 @@ describe("fmtMoney / fmtMillions / fmtAxis / fmtRatio", () => {
     expect(fmtAxis(12000000)).toBe("12м");
     expect(fmtAxis(320000)).toBe("320к");
     expect(fmtAxis(500)).toBe("500");
+  });
+  it("fmtAxis: дробная ось в миллионах не превращается в нули", () => {
+    // Кривые чувствительности (P13, G15): деления −0,5…0 млн печатались «0» пять раз.
+    const ticks = [-0.5, -0.375, -0.25, -0.125, 0].map((v) => fmtAxis(v, 0.125));
+    expect(ticks).toEqual(["-0,50", "-0,38", "-0,25", "-0,13", "0,00"]);
+    expect(new Set(ticks).size).toBe(5);
+    expect(fmtAxis(2.5, 2.5)).toBe("2,5");                 // а не «3»
+    expect(fmtAxis(-1e-17, 0.125)).toBe("0,00");          // ноль с погрешностью — ноль
+    // Рубли и крупные шаги — как прежде: целые и сокращения.
+    expect(fmtAxis(250, 250)).toBe("250");
+    expect(fmtAxis(-54000, 80000)).toBe("-54к");
   });
   it("fmtRatio: запятая-десятичная, фикс. знаки", () => {
     expect(fmtRatio(1.2345)).toBe("1,23");
@@ -119,5 +131,20 @@ describe("parseModelNumber / isShare — русское написание, ка
     expect(isShare("1,5")).toBe(false);
     expect(isShare("-0,1")).toBe(false);
     expect(isShare("полтора")).toBe(false);
+  });
+});
+
+describe("initials — буквы, а не первый символ слова", () => {
+  it("кавычка в названии организации не становится инициалом", () => {
+    expect(initials("ООО «Матрица»")).toBe("ОМ");
+    expect(initials("Финмодель Консалтинг")).toBe("ФК");
+    expect(initials("  иван   петров  сидоров ")).toBe("ИП");
+    expect(initials("ivan@example.test")).toBe("I");
+  });
+
+  it("пусто и одни знаки — запасной символ", () => {
+    expect(initials("")).toBe("•");
+    expect(initials(null)).toBe("•");
+    expect(initials("«» —", "?")).toBe("?");
   });
 });

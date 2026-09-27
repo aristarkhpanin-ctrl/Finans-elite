@@ -1,36 +1,78 @@
 import type { ReactNode } from "react";
+import { aggregateStatement, defaultPeriod, periodLabels, type Period } from "../aggregate";
 import { type CalcResponse, type StatementOut } from "../api/calc";
 import type { ProjectModel } from "../api/model";
 import { fmtDateOnly, fmtMillions, fmtTable, percent } from "../format";
 import { GRANDS, SUBTOTALS } from "./StatementTable";
 
 /**
- * Печатный отчёт (макет «Этап 16»): A4 альбомная, 5 страниц — титул со сводкой
- * и 4 финансовых отчёта. Цвета фиксированные («чернильные»), не зависят от темы,
- * поэтому печать одинаково светлая из светлой и тёмной темы.
+ * Печатный отчёт (макет «Этап 16»): A4 альбомная — титул со сводкой и 4 финансовых
+ * отчёта. Цвета фиксированные («чернильные»), не зависят от темы, поэтому печать
+ * одинаково светлая из светлой и тёмной темы.
+ *
+ * Период — тот, что выбран на экране («Месяц | Квартал | Год»), и свёртка та же
+ * (`aggregate.ts`, зеркало DOCX): печать показывает то, что человек видел.
  */
 
-const TABLE_PAGES: Array<{ key: keyof typeof SUBTOTALS; title: string; sub: string }> = [
-  { key: "income", title: "Отчёт о прибылях и убытках", sub: "Помесячный финансовый результат, ₽" },
-  { key: "cashflow", title: "Отчёт о движении денежных средств", sub: "Притоки и оттоки по месяцам, ₽" },
-  { key: "balance", title: "Баланс", sub: "Активы и пассивы на конец каждого месяца, ₽" },
+type TableKey = keyof typeof SUBTOTALS;
+
+const TABLE_PAGES: Array<{ key: TableKey; title: string; sub: string }> = [
+  { key: "income", title: "Отчёт о прибылях и убытках", sub: "Финансовый результат, ₽" },
+  { key: "cashflow", title: "Отчёт о движении денежных средств", sub: "Притоки и оттоки, ₽" },
+  { key: "balance", title: "Баланс", sub: "Активы и пассивы на конец периода, ₽" },
   { key: "profit_use", title: "Использование прибыли", sub: "Распределение чистой прибыли, ₽" },
 ];
 
-function PaperFooter({ page }: { page: number }) {
+const PERIOD_WORDS: Record<Period, string> = {
+  month: "помесячно", quarter: "по кварталам", year: "по годам проекта",
+};
+
+/**
+ * Колонок на листе — не больше 12: под эту ширину сделан макет (66px на колонку).
+ * Длинный ряд продолжается на следующем листе, а не сужает колонки: 24 месяца в одну
+ * строку давали колонку 33px, и шестизначные числа соседних месяцев наезжали друг на
+ * друга (матрица скриншотов P13, G15).
+ */
+export const PRINT_COLS = 12;
+
+export interface PrintSheet {
+  key: TableKey;
+  title: string;
+  sub: string;
+  /** Полуинтервал колонок [from, to) свёрнутого отчёта. */
+  from: number;
+  to: number;
+}
+
+/** Листы отчётов по порядку: каждый отчёт — столько листов, сколько нужно его колонкам. */
+export function printSheets(n: number, period: Period): PrintSheet[] {
+  const cols = periodLabels(n, period).length;
+  return TABLE_PAGES.flatMap((tp) =>
+    Array.from({ length: Math.ceil(cols / PRINT_COLS) }, (_, k) => (
+      { ...tp, from: k * PRINT_COLS, to: Math.min((k + 1) * PRINT_COLS, cols) }
+    )));
+}
+
+/** Всего страниц документа: титул + листы отчётов. */
+export function printPageCount(n: number, period: Period): number {
+  return 1 + printSheets(n, period).length;
+}
+
+function PaperFooter({ page, total }: { page: number; total: number }) {
   return (
     <div className="pr-footer">
       <span>Финанс-Элит · финансовое моделирование</span>
       <span>Конфиденциально</span>
-      <span>Страница {page} из 5</span>
+      <span>Страница {page} из {total}</span>
     </div>
   );
 }
 
 function TablePage({
   stmt,
-  n,
-  cellW,
+  labels,
+  from,
+  to,
   kind,
   title,
   sub,
@@ -38,24 +80,30 @@ function TablePage({
   engineVersion,
   dateStr,
   page,
+  total,
 }: {
   stmt: StatementOut;
-  n: number;
-  cellW: number;
-  kind: keyof typeof SUBTOTALS;
+  labels: string[];
+  from: number;
+  to: number;
+  kind: TableKey;
   title: string;
   sub: string;
   projectName: string;
   engineVersion: string;
   dateStr: string;
   page: number;
+  total: number;
 }) {
-  const months = Array.from({ length: n }, (_, i) => i);
+  const months = Array.from({ length: to - from }, (_, i) => from + i);
+  // Ширина колонки под их число на листе (альбомный A4, метка 232px); больше 66px не
+  // бывает — колонок на листе не больше PRINT_COLS.
+  const cellW = Math.max(30, Math.min(66, Math.floor(800 / months.length)));
   const subs = SUBTOTALS[kind];
   const grands = GRANDS[kind];
   return (
     <div className="pr-paper">
-      <div className="pr-pagenum">стр. {page} / 5</div>
+      <div className="pr-pagenum">стр. {page} / {total}</div>
       <div className="pr-runhead">
         <span className="pr-runproj">{projectName}</span>
         <span className="pr-runver">
@@ -71,7 +119,7 @@ function TablePage({
           </div>
           {months.map((i) => (
             <div key={i} className="pr-tmonth" style={{ width: cellW }}>
-              М{i + 1}
+              {labels[i]}
             </div>
           ))}
         </div>
@@ -99,7 +147,7 @@ function TablePage({
           );
         })}
       </div>
-      <PaperFooter page={page} />
+      <PaperFooter page={page} total={total} />
     </div>
   );
 }
@@ -108,10 +156,13 @@ export function PrintReport({
   data,
   title,
   model,
+  period,
 }: {
   data: CalcResponse;
   title: string;
   model?: ProjectModel;
+  /** Период отчётов — как на экране; не задан — по горизонту, как и там. */
+  period?: Period;
 }) {
   const m = data.metrics;
   const v = data.valuation;
@@ -119,8 +170,10 @@ export function PrintReport({
   const good = npv > 0;
   const dateStr = new Date().toLocaleDateString("ru-RU");
   const n = data.n;
-  // Ширина колонки под число месяцев (альбомный A4, метка 232px)
-  const cellW = Math.max(30, Math.min(66, Math.floor(800 / n)));
+  const per = period ?? defaultPeriod(n);
+  const labels = periodLabels(n, per);
+  const sheets = printSheets(n, per);
+  const total = 1 + sheets.length;
 
   const rate = model?.settings.discount_rate_annual;
   const meta: Array<[string, string]> = [
@@ -190,7 +243,7 @@ export function PrintReport({
     <div className="print-report">
       {/* Страница 1 — титул и сводка */}
       <div className="pr-paper">
-        <div className="pr-pagenum">стр. 1 / 5</div>
+        <div className="pr-pagenum">стр. 1 / {total}</div>
         <div className="pr-band">
           <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
             <div className="pr-logo">
@@ -249,25 +302,33 @@ export function PrintReport({
           ))}
         </div>
 
-        <PaperFooter page={1} />
+        <PaperFooter page={1} total={total} />
       </div>
 
-      {/* Страницы 2–5 — финансовые отчёты */}
-      {TABLE_PAGES.map((tp, idx) => (
-        <TablePage
-          key={tp.key}
-          stmt={data[tp.key]}
-          n={n}
-          cellW={cellW}
-          kind={tp.key}
-          title={tp.title}
-          sub={tp.sub}
-          projectName={title}
-          engineVersion={data.engine_version}
-          dateStr={dateStr}
-          page={idx + 2}
-        />
-      ))}
+      {/* Дальше — финансовые отчёты, по листу на каждые PRINT_COLS колонок */}
+      {sheets.map((s, idx) => {
+        const agg = aggregateStatement(data[s.key], s.key === "balance" ? "balance" : "flow", n, per);
+        // Продолжение называет свой отрезок: лист «М13–М24» без подписи читался бы как
+        // тот же отчёт, напечатанный дважды.
+        const range = labels.length > PRINT_COLS ? ` · ${labels[s.from]}–${labels[s.to - 1]}` : "";
+        return (
+          <TablePage
+            key={`${s.key}-${s.from}`}
+            stmt={agg}
+            labels={labels}
+            from={s.from}
+            to={s.to}
+            kind={s.key}
+            title={s.title}
+            sub={`${s.sub} · ${PERIOD_WORDS[per]}${range}`}
+            projectName={title}
+            engineVersion={data.engine_version}
+            dateStr={dateStr}
+            page={idx + 2}
+            total={total}
+          />
+        );
+      })}
     </div>
   );
 }

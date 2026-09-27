@@ -8,6 +8,7 @@ import { ESelect } from "../../components/EditorField";
 import { IconArrowRight, IconKey, IconRows, IconTrash, IconWarning } from "../../components/icons";
 import { useToast } from "../../components/Toast";
 import { Button, Modal, Skeleton } from "../../components/ui";
+import { initials } from "../../format";
 
 const AVATAR_BG = ["#5E93FF", "#C77DFF", "var(--primary)", "#E0A23A", "#5FD9A6"];
 
@@ -59,11 +60,6 @@ const ROLE_DESC: Record<string, string> = {
 
 /** Роли, назначаемые при приглашении/смене (владелец — только у создателя). */
 const ASSIGNABLE = ROLES.filter(([k]) => k !== "owner");
-
-function initials(name: string, fallback: string): string {
-  const words = (name || fallback).trim().split(/\s+/).filter(Boolean);
-  return words.slice(0, 2).map((w) => w[0]!.toUpperCase()).join("") || "•";
-}
 
 export function MembersTab({ orgId, myRole, myUserId, onShowActions }: {
   orgId: string;
@@ -230,7 +226,7 @@ export function MembersTab({ orgId, myRole, myUserId, onShowActions }: {
               <div className="org-row" key={m.user_id}>
                 <div className="org-col-user">
                   <div className="org-avatar-lg" style={{ background: AVATAR_BG[i % AVATAR_BG.length] }}>
-                    {initials(m.full_name, m.email)}
+                    {initials(m.full_name || m.email)}
                   </div>
                   <div style={{ minWidth: 0 }}>
                     <div className="org-uname">

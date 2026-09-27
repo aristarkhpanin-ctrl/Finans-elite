@@ -40,16 +40,21 @@ export function ProjectAnalysisPage() {
             )}
             <span className="status-chip status-chip--info">Анализ рисков</span>
           </div>
-          <div className="mode-seg">
-            <button type="button" className="mode-seg__btn" onClick={() => navigate(`/projects/${id}`)}>
-              Редактор
-            </button>
-            <button type="button" className="mode-seg__btn" onClick={() => navigate(`/projects/${id}/results`)}>
-              Результаты
-            </button>
-            <button type="button" className="mode-seg__btn mode-seg__btn--active">
-              Анализ
-            </button>
+          {/* Обёртка `esub__actions` — как у редактора: на телефоне она уходит своей
+              строкой. Без неё переключатель делил строку с кнопкой «назад» и ложился
+              поверх неё, а название проекта пропадало (матрица P13, G15). */}
+          <div className="esub__actions">
+            <div className="mode-seg">
+              <button type="button" className="mode-seg__btn" onClick={() => navigate(`/projects/${id}`)}>
+                Редактор
+              </button>
+              <button type="button" className="mode-seg__btn" onClick={() => navigate(`/projects/${id}/results`)}>
+                Результаты
+              </button>
+              <button type="button" className="mode-seg__btn mode-seg__btn--active">
+                Анализ
+              </button>
+            </div>
           </div>
         </div>
       </div>

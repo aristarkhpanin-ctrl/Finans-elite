@@ -78,12 +78,23 @@ export function fmtMoney(v: number | string | null | undefined): string {
   return (neg ? MINUS : "") + groupNbsp(Math.abs(Math.round(x))) + NBSP + "₽";
 }
 
-/** Короткая подпись оси («Этап 15»): ≥1 млн → «8,4м»/«12м», ≥1 тыс → «320к», иначе целое. */
-export function fmtAxis(v: number): string {
+/**
+ * Короткая подпись оси («Этап 15»): ≥1 млн → «8,4м»/«12м», ≥1 тыс → «320к», иначе число.
+ *
+ * Ниже тысячи знаков после запятой столько, сколько нужно шагу делений `step`: ошибка
+ * округления — не больше 5% шага. Без этого ось в миллионах (кривые чувствительности NPV,
+ * значения меньше единицы) печатала «0» на каждом делении (матрица скриншотов P13, G15).
+ * Без шага — целое, как прежде.
+ */
+export function fmtAxis(v: number, step?: number): string {
   const a = Math.abs(v);
   if (a >= 1e6) return (v / 1e6).toFixed(a < 1e7 ? 1 : 0).replace(".", ",") + "м";
   if (a >= 1e3) return String(Math.round(v / 1e3)) + "к";
-  return String(Math.round(v));
+  if (!step || step <= 0) return String(Math.round(v));
+  const digits = Math.min(3, Math.max(0, Math.ceil(-Math.log10(step)) + 1));
+  if (!digits) return String(Math.round(v));
+  // Деление в нуле, посчитанное с погрешностью (−1e−17), — ноль, а не «-0,0».
+  return (a < step / 1e3 ? 0 : v).toFixed(digits).replace(".", ",");
 }
 
 /**
@@ -171,6 +182,19 @@ export function parseModelNumber(v: string | number | null | undefined): number 
 export function isShare(v: string | number | null | undefined): boolean {
   const x = parseModelNumber(v);
   return Number.isFinite(x) && x >= 0 && x <= 1;
+}
+
+/**
+ * Инициалы для аватара: «Финмодель Консалтинг» → «ФК», «ООО «Матрица»» → «ОМ». Берётся
+ * первая **буква или цифра** слова, а не первый символ: у русских названий организаций
+ * второе слово почти всегда начинается с кавычки, и аватар показывал «О«» (найдено
+ * матрицей скриншотов P13, G15). Копий было две — в шапке и в списке участников.
+ */
+export function initials(name: string | null | undefined, fallback = "•"): string {
+  const letters = (name ?? "").trim().split(/\s+/)
+    .map((w) => w.match(/[\p{L}\p{N}]/u)?.[0])
+    .filter((c): c is string => !!c);
+  return letters.length ? letters.slice(0, 2).join("").toUpperCase() : fallback;
 }
 
 /**

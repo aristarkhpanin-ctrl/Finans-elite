@@ -825,8 +825,12 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   display: flex; align-items: center; justify-content: center; color: var(--subtle);
 }
 .afield--error .afield__affix { color: var(--danger); }
+/* `width: 0` при `flex: 1` — не опечатка: у <input> своя «естественная» ширина (~20
+   символов), и `min-width: 0` её из минимальной ширины предков не убирает. На телефоне
+   (шрифт 16px) поле с «глазом» требовало 346px при доступных 318 — карточка входа
+   вылезала за экран и обрезалась (найдено матрицей скриншотов P13, G15). */
 .afield__input {
-  flex: 1; min-width: 0; height: 100%; border: none; outline: none; background: transparent;
+  flex: 1; width: 0; min-width: 0; height: 100%; border: none; outline: none; background: transparent;
   color: var(--text); font: 500 14px var(--font-ui); padding: 0 14px 0 0;
 }
 .afield__input::placeholder { color: inherit; opacity: 0.42; }
@@ -2305,8 +2309,11 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   font: 600 11px var(--font-ui); letter-spacing: 0.05em; text-transform: uppercase;
   color: var(--subtle); margin: 18px 0 12px;
 }
-.terms-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 16px; }
-@media (max-width: 640px) { .terms-grid { grid-template-columns: 1fr; } }
+/* `minmax(0, 1fr)`, а не `1fr`: у `1fr` нижняя граница — «естественная» ширина поля
+   (~20 символов у <input>), и на планшете три поля условий оплаты вместе с суффиксами
+   не помещались в карточку строки сбыта — третье уходило за экран (матрица P13, G15). */
+.terms-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 16px; }
+@media (max-width: 640px) { .terms-grid { grid-template-columns: minmax(0, 1fr); } }
 
 /* Пустое состояние вкладки */
 .tab-empty {
@@ -2833,9 +2840,12 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
     display: flex; align-items: center; justify-content: space-between; gap: 14px;
     flex-wrap: wrap; margin-bottom: 20px;
   }
-  .print-mode .print-report { display: block; }
+  /* Превью — это бумага: лист A4 не сужается под экран, узкий экран листает его вбок.
+     Сжатый лист обрезал таблицы (`overflow: hidden` у .pr-table) и показывал на планшете
+     и телефоне не то, что уйдёт на печать (матрица P13, G15). */
+  .print-mode .print-report { display: block; overflow-x: auto; }
   .print-mode .print-report .pr-paper {
-    box-shadow: var(--shadow); border: 1px solid var(--border);
+    max-width: none; box-shadow: var(--shadow); border: 1px solid var(--border);
   }
 }
 
@@ -2999,8 +3009,10 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .leg-toggle__dot { width: 12px; height: 3px; border-radius: 2px; flex: none; }
 
 /* Таблица чувствительности с профиль-баром */
-.sens-table { border: 1px solid var(--border); border-radius: 13px; overflow: hidden; background: var(--surface); margin-top: 16px; }
-.sens-row { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--grid-line); }
+/* Узкий экран листает таблицу вбок: на телефоне NPV, Δ, IRR и профиль обрезались без
+   прокрутки (матрица P13, G15). Ширина строки — сумма колонок, чтобы они совпадали. */
+.sens-table { border: 1px solid var(--border); border-radius: 13px; overflow-x: auto; background: var(--surface); margin-top: 16px; }
+.sens-row { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--grid-line); min-width: 600px; }
 .sens-row:last-child { border-bottom: none; }
 .sens-row--head { background: var(--surface-2); font: 600 10.5px var(--font-ui); letter-spacing: 0.04em; text-transform: uppercase; color: var(--subtle); }
 .sens-row:not(.sens-row--head):hover { background: var(--hov); }
@@ -3076,6 +3088,13 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   border: 1px solid var(--border); background: var(--surface); color: var(--muted); font: 600 12px var(--font-ui);
 }
 .scn-edit:hover { background: var(--surface-2); border-color: var(--border-strong); color: var(--text); }
+/* На телефоне корректировки — своей строкой: в одну строку им оставалось ~70px, и кнопка
+   «Изменить» ложилась поверх чипа — сценарий не говорил, что в нём меняется (P13, G15). */
+@media (max-width: 640px) {
+  .scn-row { flex-wrap: wrap; row-gap: 10px; }
+  .scn-edit { margin-left: auto; }
+  .scn-adj { order: 1; flex-basis: 100%; }
+}
 
 /* Таблица сравнения What-If */
 .cmp-tbl { border: 1px solid var(--border); border-radius: 13px; overflow-x: auto; background: var(--surface); margin-top: 12px; }
@@ -3110,6 +3129,13 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .member-name { flex: 1; min-width: 0; font: 600 14px var(--font-ui); color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .member-npv { width: 120px; flex: none; text-align: right; font: 600 13px var(--font-mono); }
 .member-role-sel { width: 150px; flex: none; }
+/* На телефоне имя — своей строкой: NPV, роль и кнопка съедали всю ширину, название
+   проекта сжималось до нуля, а кнопка «исключить» обрезалась (матрица P13, G15). */
+@media (max-width: 640px) {
+  .member-row { flex-wrap: wrap; row-gap: 8px; }
+  .member-name { flex-basis: calc(100% - 20px); }
+  .member-npv { flex: 1; width: auto; margin-left: 20px; text-align: left; }
+}
 
 /* Сводный бюджет: мета-чипы */
 .consol-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
@@ -3143,8 +3169,11 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 }
 
 /* Организация: таблица участников */
-.org-tbl { border: 1px solid var(--border); border-radius: 13px; overflow: hidden; background: var(--surface); }
-.org-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--grid-line); }
+/* Узкий экран листает таблицу вбок, а не сжимает колонку участника: при фиксированных
+   роли, отметке, статусе и действиях на телефоне ей оставалось 0px — роль ложилась на имя,
+   а статус и кнопки действий обрезались без прокрутки (матрица P13, G15). */
+.org-tbl { border: 1px solid var(--border); border-radius: 13px; overflow-x: auto; background: var(--surface); }
+.org-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--grid-line); min-width: 700px; }
 .org-row:last-child { border-bottom: none; }
 .org-row--head { background: var(--surface-2); font: 600 10.5px var(--font-ui); letter-spacing: 0.04em; text-transform: uppercase; color: var(--subtle); }
 .org-avatar-lg {

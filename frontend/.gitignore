@@ -11,3 +11,7 @@ dist-ssr/
 /playwright-report/
 /blob-report/
 /.playwright/
+
+# Матрица скриншотов P13 (G15, `npm run screens`): снимки и галерея — для просмотра,
+# не для репозитория (под две сотни PNG).
+/screens/

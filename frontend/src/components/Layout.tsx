@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, matchPath, useLocation, useNavigate } from "react-router-dom";
 import { createOrganization, roleLabel } from "../api/org";
 import { useAuth } from "../auth/AuthContext";
+import { initials } from "../format";
 import { CubeHero } from "./CubeHero";
 import { applyProduct, PRODUCTS, productFromPath } from "./product";
 import { LOGIN_NOTICE_KEY } from "../pages/LoginPage";
@@ -14,16 +15,6 @@ import { Button, Field, Modal } from "./ui";
  * Каркас приложения (макет «Этап 3»): шапка с куб-маркой и навигацией,
  * орг-селектор с меню, тумблер темы, user-меню, мобильный drawer.
  */
-
-/** Инициалы из названия/имени: «Финмодель Консалтинг» → «ФК». */
-function initials(name: string | null | undefined, fallback = "•"): string {
-  const words = (name ?? "").trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return fallback;
-  return words
-    .slice(0, 2)
-    .map((w) => w[0]!.toUpperCase())
-    .join("");
-}
 
 /** Палитра аватаров организаций в списке (цикл из макета). */
 const ORG_AVATAR_BG = ["", "#5E93FF", "#C77DFF"];

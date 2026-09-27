@@ -9,7 +9,7 @@ import { getProject } from "../api/projects";
 import { HintBadge } from "../components/EditorField";
 import { IconPrint } from "../components/icons";
 import { PlanFactView } from "../components/PlanFactView";
-import { PrintReport } from "../components/PrintReport";
+import { printPageCount, PrintReport } from "../components/PrintReport";
 import { ReviewBanner } from "../components/ReviewBanner";
 import { RatiosView } from "../components/RatiosView";
 import { ResultCharts } from "../components/ResultCharts";
@@ -19,7 +19,7 @@ import { useToast } from "../components/Toast";
 import { Button, Skeleton } from "../components/ui";
 import { downloadBusinessPlanDocx, downloadCsv, downloadPdf, downloadXlsx, statementsToCsv } from "../export";
 import { Comments } from "../components/Comments";
-import { fmtMillions, percent } from "../format";
+import { fmtMillions, percent, plural } from "../format";
 import { fmtInt } from "../components/monthlyGrid.logic";
 
 const STATEMENTS = [
@@ -256,13 +256,19 @@ export function ProjectResultsPage() {
     );
   };
 
+  // Печать — в том же периоде, что отчёты на экране; число страниц считает та же функция,
+  // что раскладывает листы, — «5 страниц» у 24-месячного проекта были бы неправдой.
+  const printPeriod = period ?? defaultPeriod(data.n);
+  const pages = printPageCount(data.n, printPeriod);
+
   return (
     <div className={printMode ? "print-mode" : ""}>
       <div className="print-toolbar">
         <div style={{ minWidth: 0 }}>
           <div className="print-toolbar__title">Печатная версия · PDF (A4, альбом)</div>
           <div className="print-toolbar__sub">
-            5 страниц: титул и сводка + 4 финансовых отчёта · печать-дружественные цвета,
+            {pages} {plural(pages, "страница", "страницы", "страниц")}: титул и сводка + 4
+            финансовых отчёта · период — как на экране · печать-дружественные цвета,
             аккуратные переносы.
           </div>
         </div>
@@ -596,7 +602,8 @@ export function ProjectResultsPage() {
         </div>
       </div>
 
-      <PrintReport data={data} title={title || "Результаты"} model={projectQuery.data?.model} />
+      <PrintReport data={data} title={title || "Результаты"} model={projectQuery.data?.model}
+                   period={printPeriod} />
     </div>
   );
 }
