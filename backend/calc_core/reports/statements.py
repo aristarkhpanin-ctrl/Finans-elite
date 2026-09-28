@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+from datetime import date
 from decimal import Decimal
 
 from ..series import add, sub, zeros
@@ -34,13 +35,26 @@ class Statement:
         self[code] = series
 
 
-#: Налоговый год — 12 месяцев от старта проекта: та же конвенция, что у периодичности
-#: уплаты налогов (``engine.taxes``), чтобы «год» в модели значил одно и то же.
+#: Налоговый год — календарный (ст. 285 НК РФ), 12 месяцев с 1 января. Граница года и
+#: квартала одна на перенос убытков и на периоды уплаты (``engine.taxes``), чтобы «год» в
+#: модели значил одно и то же.
 TAX_YEAR_MONTHS = 12
 
 
-def carry_losses(bases: list[Decimal], limit: Decimal, *,
-                 year_offset: int = 0) -> list[Decimal]:
+def tax_year_offset(start: date) -> int:
+    """Сколько месяцев календарного года прошло к старту проекта (0 — старт в январе).
+
+    Одна дверь для всего, что зависит от границы налогового года или квартала: переноса
+    убытков (:func:`carry_losses`) и графика уплаты профильных и настраиваемых налогов
+    (``engine.taxes._payment_schedule``). До 0.9.46 год считался от старта проекта, и при
+    старте не в январе налоговый период модели расходился с календарным: убыток декабря
+    гасил прибыль января как «свой», а квартальный налог платился в месяцы, которые ни
+    одним кварталом не кончаются.
+    """
+    return start.month - 1
+
+
+def carry_losses(bases: list[Decimal], limit: Decimal, *, year_offset: int) -> list[Decimal]:
     """Перенос убытков (`I22`) по базе до переноса ``bases`` (`I23 + I25`) — SPEC §11.
 
     Убыток месяца копится в пуле. Убыток **своего** налогового года гасит прибыль
@@ -54,9 +68,9 @@ def carry_losses(bases: list[Decimal], limit: Decimal, *,
     не уменьшает — он гасит прибыль следующих месяцев, а если год на нём кончается,
     становится убытком прошлых лет. Это расхождение с нормой названо в карте методики.
 
-    ``year_offset`` — сколько месяцев налогового года прошло к старту проекта. Движок
-    считает год от старта (0, конвенция периодичности уплаты); календарный год — сдвиг
-    ``месяц старта − 1``: им карта методики проверяет, сказывается ли конвенция на числах.
+    ``year_offset`` — сколько месяцев налогового года прошло к старту проекта
+    (:func:`tax_year_offset`). Обязателен: умолчание «год от старта» было прежней
+    конвенцией движка, и забытый аргумент молча вернул бы её.
 
     ``limit ≥ 1`` — расчёт до ограничения (пул закрывает базу целиком) **той же
     операцией**, что и раньше, а не выведенной из общей формулы: промежуточное вычитание
@@ -85,7 +99,8 @@ def carry_losses(bases: list[Decimal], limit: Decimal, *,
 
 
 def build_income(leaves: dict[str, list[Decimal]], n: int, profit_tax_rate: Decimal,
-                 benefit_share: Decimal = Decimal(0), *, loss_limit: Decimal) -> Statement:
+                 benefit_share: Decimal = Decimal(0), *, loss_limit: Decimal,
+                 year_offset: int) -> Statement:
     """Собрать ОПУ (I1–I28). ``leaves`` содержит листовые строки; итоги вычисляются здесь.
 
     Налоговый блок (SPEC §11, §22.7) считается **последовательно**: убыток периода
@@ -93,8 +108,8 @@ def build_income(leaves: dict[str, list[Decimal]], n: int, profit_tax_rate: Deci
     ограничением доли ``loss_limit`` для убытков прошлых лет — :func:`carry_losses`);
     доля ``benefit_share`` налогооблагаемой прибыли освобождается от налога (льгота).
 
-    ``loss_limit`` обязателен: умолчание здесь молча выбрало бы одну из двух методик за
-    того, кто забыл передать настройку.
+    ``loss_limit`` и ``year_offset`` обязательны: умолчание здесь молча выбрало бы одну из
+    двух методик за того, кто забыл передать настройку.
     """
     s = Statement(L.INCOME_LINES, n)
     for code, series in leaves.items():
@@ -111,7 +126,7 @@ def build_income(leaves: dict[str, list[Decimal]], n: int, profit_tax_rate: Deci
     # --- Налоговый блок: перенос убытков (I22) + льгота + налог (последовательно) ---
     # База до переноса = I23 + I25 (I24 — невычитаемые, в базу не входят, см. §22.1).
     bases = add(s["I23"], s["I25"])
-    i22 = carry_losses(bases, loss_limit)
+    i22 = carry_losses(bases, loss_limit, year_offset=year_offset)
     i26 = zeros(n)
     i27 = zeros(n)
     for t in range(n):

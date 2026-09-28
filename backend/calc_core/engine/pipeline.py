@@ -30,6 +30,7 @@ from ..reports.statements import (
     build_cashflow,
     build_income,
     build_profit_use,
+    tax_year_offset,
 )
 from ..series import add, cumulative, zeros
 from .calendar import product_start_months, stage_assets, stage_expenses
@@ -1034,9 +1035,12 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
         "I24": add(i24_fixed, loan_interest_profit, other_exp_profit, taxes.profit),
         "I25": add(i25_fx, loan_reval, i25_sales, i25_fixed, i25_materials),
     }
+    # Налоговый год и кварталы уплаты — календарные (ст. 285): граница одна на перенос
+    # убытков и на график уплаты (SPEC §11).
+    tax_offset = tax_year_offset(model.header.start_date)
     income = build_income(
         income_leaves, n, settings.profit_tax_rate, settings.profit_tax_benefit_share,
-        loss_limit=settings.loss_carryforward_limit)
+        loss_limit=settings.loss_carryforward_limit, year_offset=tax_offset)
 
     # --- Использование прибыли (нераспределённая прибыль = B32) ---
     profit_use = build_profit_use(
@@ -1091,9 +1095,11 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
         c2 = list(c2)
         c2[0] += sb.payables
     # Периодичность уплаты профильных налогов (SPEC §11): прибыль и НДС платятся в
-    # последнем месяце периода; начисление (I27, vat_to_budget) не меняется, отсрочка → B21.
-    profit_paid = _payment_schedule(income["I27"], settings.profit_tax_periodicity, n)
-    vat_paid = _payment_schedule(vat_to_budget, settings.vat_periodicity, n)
+    # последнем месяце календарного периода; начисление (I27, vat_to_budget) не меняется,
+    # отсрочка → B21.
+    profit_paid = _payment_schedule(income["I27"], settings.profit_tax_periodicity, n,
+                                    offset=tax_offset)
+    vat_paid = _payment_schedule(vat_to_budget, settings.vat_periodicity, n, offset=tax_offset)
     profit_defer = cumulative([income["I27"][t] - profit_paid[t] for t in range(n)])
     vat_pay_defer = cumulative([vat_to_budget[t] - vat_paid[t] for t in range(n)])
     # Налоги в кассе: прибыль + имущество + налог с продаж + НДС + настраиваемые (SPEC §22.9).

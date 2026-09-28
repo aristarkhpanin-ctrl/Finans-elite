@@ -292,23 +292,30 @@ def test_a_loss_after_taxed_profit_of_the_same_year_is_named_where_it_bites():
     assert retail.divergence == "" and "late_year_losses" not in retail.evidence
 
 
-def test_the_project_year_is_named_only_where_the_calendar_would_change_numbers():
-    """Налоговый год — 12 месяцев от старта (конвенция периодичности уплаты), а по закону —
-    календарный. При старте в январе это одно и то же; иначе — названо, если сказывается."""
+def test_the_tax_year_is_the_calendar_one_and_no_longer_a_divergence():
+    """До 0.9.46 налоговый год считался от старта проекта, и при старте не в январе карта
+    называла это расхождением со ст. 285. Теперь год календарный у самого движка: перенос
+    на проекте с июльским стартом идёт по календарю, и предупреждения нет."""
     from datetime import date as _date
 
+    from calc_core.reports.statements import carry_losses, tax_year_offset
     from calc_core.templates import INDUSTRY_TEMPLATES
 
-    assert "календарный год" not in _loss_item(INDUSTRY_TEMPLATES["saas"].build()).divergence
     july = INDUSTRY_TEMPLATES["saas"].build()
     july.header.start_date = _date(2026, 7, 1)
     item = _loss_item(july)
-    assert "календарный год" in item.divergence and item.evidence["start_month"] == 7
+    assert "календарный год" not in item.divergence and "start_month" not in item.evidence
+    assert "календарный" in item.chosen
 
-    # Кофейня гасит убытки внутри первого года — граница года ей не важна.
-    cafe = INDUSTRY_TEMPLATES["cafe"].build()
-    cafe.header.start_date = _date(2026, 7, 1)
-    assert "календарный год" not in _loss_item(cafe).divergence
+    result = run(july)
+    bases = [a + b for a, b in zip(result.income["I23"], result.income["I25"], strict=True)]
+    offset = tax_year_offset(july.header.start_date)
+    assert offset == 6
+    assert result.income["I22"] == carry_losses(
+        bases, july.settings.loss_carryforward_limit, year_offset=offset)
+    # И это действительно другие числа, чем при годе от старта: граница сдвинулась.
+    assert result.income["I22"] != carry_losses(
+        bases, july.settings.loss_carryforward_limit, year_offset=0)
 
 
 def test_the_advance_vat_divergence_is_gone_from_the_shipment_basis():

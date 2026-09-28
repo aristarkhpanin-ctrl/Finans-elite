@@ -54,7 +54,7 @@ from .models import ProjectModel
 from .models.common import VatBasis
 from .models.project import LOSS_CARRYFORWARD_NORM
 from .reports.result import CalcResult
-from .reports.statements import TAX_YEAR_MONTHS, carry_losses
+from .reports.statements import TAX_YEAR_MONTHS, carry_losses, tax_year_offset
 
 #: Как закрывается **открытый вопрос** пункта. Три состояния, и все три заняты: свободных
 #: «на будущее» здесь нет по той же причине, по которой закрыт перечень событий
@@ -428,21 +428,22 @@ def _limit_words(limit: Decimal) -> str:
     return words
 
 
-def _late_year_losses(bases: list[Decimal], tax: list[Decimal]) -> Decimal:
+def _late_year_losses(bases: list[Decimal], tax: list[Decimal], offset: int) -> Decimal:
     """Убытки, пришедшие **после** обложенной прибыли того же налогового года.
 
     Помесячная база их назад не сворачивает: налог, начисленный раньше в этом году, ими
     не уменьшается, хотя закон считает базу нарастающим итогом года. Годы — те же, что
-    у движка (:data:`TAX_YEAR_MONTHS` от старта проекта).
+    у движка: календарные (``offset`` — :func:`tax_year_offset` даты старта).
     """
     total = Decimal(0)
-    for start in range(0, len(bases), TAX_YEAR_MONTHS):
-        taxed = False
-        for t in range(start, min(start + TAX_YEAR_MONTHS, len(bases))):
-            if tax[t] > 0:
-                taxed = True
-            elif bases[t] < 0 and taxed:
-                total += -bases[t]
+    taxed = False
+    for t, base in enumerate(bases):
+        if (t + offset) % TAX_YEAR_MONTHS == 0:
+            taxed = False                    # новый налоговый год
+        if tax[t] > 0:
+            taxed = True
+        elif base < 0 and taxed:
+            total += -base
     return total
 
 
@@ -458,11 +459,12 @@ def _loss_carryforward(model: ProjectModel, result: CalcResult) -> Choice:
     # предупреждение появляется, только если числа действительно другие.
     bases = [a + b for a, b in zip(_line(result, "income", "I23"),
                                    _line(result, "income", "I25"), strict=True)]
+    offset = tax_year_offset(model.header.start_date)
     evidence: dict = {"i22_total": str(carried), "benefit_share": str(benefit),
                       "loss_limit": str(limit)}
     parts = []
     if limit > LOSS_CARRYFORWARD_NORM:
-        at_norm = carry_losses(bases, LOSS_CARRYFORWARD_NORM)
+        at_norm = carry_losses(bases, LOSS_CARRYFORWARD_NORM, year_offset=offset)
         if at_norm != i22:
             evidence["i22_at_norm_total"] = str(_nonzero(at_norm))
             parts.append(
@@ -472,7 +474,7 @@ def _loss_carryforward(model: ProjectModel, result: CalcResult) -> Choice:
                 "первых прибыльных лет занижен, а уплата сдвинута вперёд. Ставить долю выше "
                 "нормы оправдано, только если ограничение к базе не применяется (часть "
                 "пониженных ставок) или срок его действия истёк.")
-    late = _late_year_losses(bases, _line(result, "income", "I27"))
+    late = _late_year_losses(bases, _line(result, "income", "I27"), offset)
     if late > 0:
         evidence["late_year_losses"] = str(late)
         parts.append(
@@ -483,29 +485,20 @@ def _loss_carryforward(model: ProjectModel, result: CalcResult) -> Choice:
             "следующий как убыток прошлых лет, под ограничение доли. Налог уплачивается "
             "раньше, чем требует норма, а убыток конца последнего года горизонта может не "
             "зачесться вовсе.")
-    start_month = model.header.start_date.month
-    if start_month != 1 and carry_losses(bases, limit, year_offset=start_month - 1) != i22:
-        evidence["start_month"] = start_month
-        parts.append(
-            "Налоговый год в модели — 12 месяцев от старта проекта, а налоговый период по "
-            "закону — календарный год (ст. 285 НК РФ). Проект начинается не в январе, и в "
-            "этой модели это сказывается на переносе: часть убытков, которые по календарю "
-            "были бы убытками прошлых лет (под ограничение доли), здесь гасит прибыль как "
-            "убыток своего года — или наоборот.")
     return Choice(
         id="tax.loss_carryforward",
         number=7,
         title="Перенос убытков и льгота по налогу на прибыль",
         spec="SPEC §11",
-        chosen="Налоговый год — 12 месяцев от старта проекта (с календарным совпадает при "
-               "старте в январе), база — помесячная. Убыток месяца гасит прибыль следующих "
+        chosen="Налоговый год — календарный (ст. 285 НК РФ): и перенос убытков, и кварталы "
+               "уплаты считаются от 1 января. База — помесячная. Убыток месяца гасит прибыль "
+               "следующих "
                f"месяцев своего года целиком; {_limit_words(limit)}; неиспользованный "
                "остаток переносится бессрочно. Льгота освобождает заданную долю базы.",
         controls=["settings.profit_tax_rate", "settings.profit_tax_benefit_share",
                   "settings.loss_carryforward_limit"],
         open_question="Стартовый налоговый убыток (понесённый до начала проекта) не "
-                      "задаётся; налоговый год считается от старта проекта — как у "
-                      "периодичности уплаты, — а не по календарю.",
+                      "задаётся.",
         resolution="citable",
         proposed_basis="п. 2.1 ст. 283 НК РФ: в периоды с 2017 по 2030 г. база уменьшается "
                        "на убытки прошлых лет **не более чем на 50%**; к базе по ряду "

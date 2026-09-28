@@ -6,8 +6,8 @@
 
 Правила, которые здесь проверяются:
 
-* налоговый год — 12 месяцев от старта проекта (та же конвенция, что у периодичности
-  уплаты);
+* налоговый год — календарный (с 0.9.46; здесь старт в январе, поэтому это те же
+  12 месяцев от старта — календарь проверяет ``test_calendar_tax_year.py``);
 * убыток **текущего** года гасит прибыль того же года **полностью** — это не перенос;
 * убытки **прошлых** лет уменьшают базу месяца не больше чем на долю
   ``loss_carryforward_limit`` (по умолчанию 0,5); неиспользованное переходит дальше —
@@ -46,7 +46,8 @@ RATE = D("0.20")
 
 def _income(bases: list[Decimal], limit: Decimal):
     """ОПУ, где налоговая база месяца — ровно ``bases``: прочие строки нулевые."""
-    return build_income({"I1": list(bases)}, len(bases), RATE, loss_limit=limit)
+    return build_income({"I1": list(bases)}, len(bases), RATE, loss_limit=limit,
+                        year_offset=0)
 
 
 def _old_algorithm(bases: list[Decimal]) -> list[Decimal]:
