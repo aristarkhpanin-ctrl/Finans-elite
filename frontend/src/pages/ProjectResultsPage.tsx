@@ -259,7 +259,7 @@ export function ProjectResultsPage() {
   // Печать — в том же периоде, что отчёты на экране; число страниц считает та же функция,
   // что раскладывает листы, — «5 страниц» у 24-месячного проекта были бы неправдой.
   const printPeriod = period ?? defaultPeriod(data.n);
-  const pages = printPageCount(data.n, printPeriod);
+  const pages = printPageCount(data, printPeriod);
 
   return (
     <div className={printMode ? "print-mode" : ""}>

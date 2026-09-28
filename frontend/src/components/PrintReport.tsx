@@ -35,27 +35,60 @@ const PERIOD_WORDS: Record<Period, string> = {
  */
 export const PRINT_COLS = 12;
 
+/** Ширина знака печатных чисел: 10px моноширинного шрифта — 0,6 em, с запасом. */
+const DIGIT_PX = 6.2;
+/** Поля ячейки (8 + 8) и ширина колонки макета. */
+const CELL_PAD = 16;
+const MIN_CELL = 66;
+/** Место под колонки на листе: 1052px полезной ширины A4 минус колонка статей 232px. */
+const COLS_PX = 820;
+
+/**
+ * Ширина колонки — по **самому длинному числу** отчёта, а не константа: в колонку макета
+ * помещается десять знаков, и «(1 234 567)» упиралось в соседа (предел, названный в G15).
+ * Колонок на листе — сколько таких помещается, но не больше PRINT_COLS.
+ */
+export function cellWidth(stmt: StatementOut): number {
+  let longest = 0;
+  for (const line of stmt.lines)
+    for (const v of line.values) longest = Math.max(longest, fmtTable(v).text.length);
+  return Math.max(MIN_CELL, Math.ceil(longest * DIGIT_PX + CELL_PAD));
+}
+
+export function colsPerSheet(width: number): number {
+  return Math.max(1, Math.min(PRINT_COLS, Math.floor(COLS_PX / width)));
+}
+
 export interface PrintSheet {
   key: TableKey;
   title: string;
   sub: string;
+  /** Отчёт, уже свёрнутый по периоду печати (свёртка — одна на лист). */
+  stmt: StatementOut;
   /** Полуинтервал колонок [from, to) свёрнутого отчёта. */
   from: number;
   to: number;
+  /** Ширина колонки — одна на все листы отчёта, чтобы продолжение совпадало с началом. */
+  cellW: number;
 }
 
 /** Листы отчётов по порядку: каждый отчёт — столько листов, сколько нужно его колонкам. */
-export function printSheets(n: number, period: Period): PrintSheet[] {
-  const cols = periodLabels(n, period).length;
-  return TABLE_PAGES.flatMap((tp) =>
-    Array.from({ length: Math.ceil(cols / PRINT_COLS) }, (_, k) => (
-      { ...tp, from: k * PRINT_COLS, to: Math.min((k + 1) * PRINT_COLS, cols) }
-    )));
+export function printSheets(data: CalcResponse, period: Period): PrintSheet[] {
+  const cols = periodLabels(data.n, period).length;
+  return TABLE_PAGES.flatMap((tp) => {
+    const stmt = aggregateStatement(data[tp.key], tp.key === "balance" ? "balance" : "flow",
+                                    data.n, period);
+    const cellW = cellWidth(stmt);
+    const per = colsPerSheet(cellW);
+    return Array.from({ length: Math.ceil(cols / per) }, (_, k) => (
+      { ...tp, stmt, cellW, from: k * per, to: Math.min((k + 1) * per, cols) }
+    ));
+  });
 }
 
 /** Всего страниц документа: титул + листы отчётов. */
-export function printPageCount(n: number, period: Period): number {
-  return 1 + printSheets(n, period).length;
+export function printPageCount(data: CalcResponse, period: Period): number {
+  return 1 + printSheets(data, period).length;
 }
 
 function PaperFooter({ page, total }: { page: number; total: number }) {
@@ -73,6 +106,7 @@ function TablePage({
   labels,
   from,
   to,
+  cellW,
   kind,
   title,
   sub,
@@ -86,6 +120,7 @@ function TablePage({
   labels: string[];
   from: number;
   to: number;
+  cellW: number;
   kind: TableKey;
   title: string;
   sub: string;
@@ -96,9 +131,6 @@ function TablePage({
   total: number;
 }) {
   const months = Array.from({ length: to - from }, (_, i) => from + i);
-  // Ширина колонки под их число на листе (альбомный A4, метка 232px); больше 66px не
-  // бывает — колонок на листе не больше PRINT_COLS.
-  const cellW = Math.max(30, Math.min(66, Math.floor(800 / months.length)));
   const subs = SUBTOTALS[kind];
   const grands = GRANDS[kind];
   return (
@@ -172,7 +204,7 @@ export function PrintReport({
   const n = data.n;
   const per = period ?? defaultPeriod(n);
   const labels = periodLabels(n, per);
-  const sheets = printSheets(n, per);
+  const sheets = printSheets(data, per);
   const total = 1 + sheets.length;
 
   const rate = model?.settings.discount_rate_annual;
@@ -307,17 +339,17 @@ export function PrintReport({
 
       {/* Дальше — финансовые отчёты, по листу на каждые PRINT_COLS колонок */}
       {sheets.map((s, idx) => {
-        const agg = aggregateStatement(data[s.key], s.key === "balance" ? "balance" : "flow", n, per);
         // Продолжение называет свой отрезок: лист «М13–М24» без подписи читался бы как
         // тот же отчёт, напечатанный дважды.
-        const range = labels.length > PRINT_COLS ? ` · ${labels[s.from]}–${labels[s.to - 1]}` : "";
+        const range = s.to - s.from < labels.length ? ` · ${labels[s.from]}–${labels[s.to - 1]}` : "";
         return (
           <TablePage
             key={`${s.key}-${s.from}`}
-            stmt={agg}
+            stmt={s.stmt}
             labels={labels}
             from={s.from}
             to={s.to}
+            cellW={s.cellW}
             kind={s.key}
             title={s.title}
             sub={`${s.sub} · ${PERIOD_WORDS[per]}${range}`}
