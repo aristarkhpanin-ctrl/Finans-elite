@@ -166,6 +166,7 @@ export function MonthlyGrid({ n, rows, hint = true }: { n: number; rows: Monthly
         >
           <input
             className="input"
+            aria-label="Значение для всех месяцев"
             style={{ width: "100%", fontFamily: "var(--font-mono)", textAlign: "right" }}
             inputMode="decimal"
             autoFocus

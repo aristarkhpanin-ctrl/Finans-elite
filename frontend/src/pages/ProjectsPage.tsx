@@ -22,7 +22,7 @@ import {
   IconTrash,
 } from "../components/icons";
 import { useToast } from "../components/Toast";
-import { Button, Modal, Skeleton } from "../components/ui";
+import { Button, ErrorState, Modal, Skeleton } from "../components/ui";
 import { fmtMillions, percent } from "../format";
 
 /** Вид списка (localStorage). */
@@ -205,14 +205,9 @@ export function ProjectsPage() {
       )}
 
       {isError && (
-        <div className="error-state" style={{ padding: "56px 24px" }}>
-          <div className="error-state__ico">!</div>
-          <div className="error-state__title">Не удалось загрузить проекты</div>
-          <div className="page-sub" style={{ maxWidth: 380, textAlign: "center" }}>
-            Проверьте соединение и попробуйте снова. Если ошибка повторяется — обратитесь в поддержку.
-          </div>
-          <Button onClick={() => refetch()}>↻&nbsp;&nbsp;Повторить</Button>
-        </div>
+        <ErrorState text="Не удалось загрузить проекты" style={{ padding: "56px 24px" }}
+                    sub="Проверьте соединение и попробуйте снова. Если ошибка повторяется — обратитесь в поддержку."
+                    actions={<Button onClick={() => refetch()}>↻&nbsp;&nbsp;Повторить</Button>} />
       )}
 
       {data && (
@@ -318,6 +313,7 @@ export function ProjectsPage() {
                   </div>
                   <div className="view-toggle">
                     <button
+                      aria-pressed={view === "cards"}
                       type="button"
                       title="Карточки"
                       className={"view-toggle__btn" + (view === "cards" ? " view-toggle__btn--active" : "")}
@@ -331,6 +327,7 @@ export function ProjectsPage() {
                       </svg>
                     </button>
                     <button
+                      aria-pressed={view === "rows"}
                       type="button"
                       title="Список"
                       className={"view-toggle__btn" + (view === "rows" ? " view-toggle__btn--active" : "")}

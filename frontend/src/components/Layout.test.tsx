@@ -179,9 +179,14 @@ describe("Меню шапки с клавиатуры (H6)", () => {
     renderShell("/projects");
     const burger = screen.getByRole("button", { name: "Меню" });
     expect(burger.getAttribute("aria-expanded")).toBe("false");
+    burger.focus();                                  // с клавиатуры: фокус на кнопке
     fireEvent.click(burger);
     expect(burger.getAttribute("aria-expanded")).toBe("true");
+    // Панель — диалог: фокус уходит в неё (пакет I).
+    const drawer = screen.getByRole("dialog", { name: "Меню" });
+    expect(drawer.contains(document.activeElement)).toBe(true);
     fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("dialog", { name: "Меню" })).toBeNull();
     expect(document.activeElement).toBe(burger);
   });
 });

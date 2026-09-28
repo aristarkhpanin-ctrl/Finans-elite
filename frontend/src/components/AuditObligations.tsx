@@ -10,7 +10,7 @@ import {
 } from "../api/audit";
 import { useEffect, useState } from "react";
 import { IconTrash } from "./icons";
-import { Button } from "./ui";
+import { Button, ScrollRegion } from "./ui";
 import { fmtMoney, fracToPct, pctToFrac, plural } from "../format";
 
 /**
@@ -376,7 +376,7 @@ export function AuditObligations({
 
       {/* ── Свод строк реестра ── */}
       {rows.length > 0 && (
-        <div style={{ overflowX: "auto" }}>
+        <ScrollRegion className="x-scroll" label="Свод строк реестра обязательств">
           <table className="audit-grid obl-table">
             <thead>
               <tr>
@@ -414,7 +414,7 @@ export function AuditObligations({
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollRegion>
       )}
     </div>
   );

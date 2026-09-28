@@ -143,7 +143,7 @@ export function AdminPage() {
       <div className="etabs-wrap" style={{ margin: "0 0 20px", borderTop: "none", padding: 0 }}>
         <div className="etabs">
           {TABS.map(([key, label]) => (
-            <button key={key} type="button"
+            <button aria-pressed={tab === key} key={key} type="button"
                     className={"etab" + (tab === key ? " etab--active" : "")}
                     onClick={() => setTab(key)}>{label}</button>
           ))}

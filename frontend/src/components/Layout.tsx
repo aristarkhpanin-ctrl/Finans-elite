@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Outlet, matchPath, useLocation, useNavigate } from "react-router-dom";
 import { createOrganization, roleLabel } from "../api/org";
 import { useAuth } from "../auth/AuthContext";
@@ -9,7 +9,7 @@ import { LOGIN_NOTICE_KEY } from "../pages/LoginPage";
 import { RestrictionBanner } from "./RestrictionBanner";
 import { useToast } from "./Toast";
 import { getTheme, toggleTheme, type Theme } from "./theme";
-import { Button, Field, Modal } from "./ui";
+import { Button, Field, Modal, useDialogFocus } from "./ui";
 
 /**
  * Каркас приложения (макет «Этап 3»): шапка с куб-маркой и навигацией,
@@ -64,8 +64,13 @@ export function Layout() {
     toast(notice, { kind: "warn" });
   }, [toast]);
 
+  // Выдвижная панель — диалог (пакет I): фокус внутрь, Tab по кругу, Esc и возврат на
+  // кнопку — тот же хук, что у модалки. Её Esc обрабатывает он, а не обработчик меню ниже.
+  const drawerRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(open === "mobile", drawerRef, () => setOpen(null));
+
   useEffect(() => {
-    if (!open) return;
+    if (!open || open === "mobile") return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       // Фокус — на кнопку, открывшую меню (она одна в шапке говорит «развёрнуто»):
@@ -148,6 +153,7 @@ export function Layout() {
               <div className="menu menu--product">
                 <div className="menu__head">Продукт</div>
                 <button
+                  aria-pressed={product.id === "business"}
                   type="button"
                   className={"menu__item" + (product.id === "business" ? " menu__item--active" : "")}
                   onClick={() => { setOpen(null); navigate(PRODUCTS.business.home); }}
@@ -159,6 +165,7 @@ export function Layout() {
                   {product.id === "business" && <span className="menu__check">✓</span>}
                 </button>
                 <button
+                  aria-pressed={product.id === "audit"}
                   type="button"
                   className={"menu__item" + (product.id === "audit" ? " menu__item--active" : "")}
                   onClick={() => { setOpen(null); navigate(PRODUCTS.audit.home); }}
@@ -216,6 +223,7 @@ export function Layout() {
                       <div className="menu__head">Организации</div>
                       {orgMenu.map((o) => (
                         <button
+                          aria-pressed={o.active}
                           key={o.id}
                           type="button"
                           className={"menu__item" + (o.active ? " menu__item--active" : "")}
@@ -354,7 +362,7 @@ export function Layout() {
       {open === "mobile" && (
         <>
           <div className="drawer-overlay" onClick={() => setOpen(null)} />
-          <div className="drawer" role="dialog" aria-label="Меню">
+          <div className="drawer" role="dialog" aria-modal="true" aria-label="Меню" ref={drawerRef} tabIndex={-1}>
             <div className="drawer__head">
               <span className="shell-word">
                 Финанс<span>{product.brand}</span>
@@ -404,6 +412,7 @@ export function Layout() {
 
             <div className="drawer__label">Продукт</div>
             <button
+              aria-pressed={product.id === "business"}
               type="button"
               className={"drawer__item" + (product.id === "business" ? " drawer__item--active" : "")}
               onClick={() => navigate(PRODUCTS.business.home)}
@@ -412,6 +421,7 @@ export function Layout() {
               Финанс-Элит · Бизнес-план
             </button>
             <button
+              aria-pressed={product.id === "audit"}
               type="button"
               className={"drawer__item" + (product.id === "audit" ? " drawer__item--active" : "")}
               onClick={() => navigate(PRODUCTS.audit.home)}

@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 
 /**
  * Клавиатура (пакет H, H6): продуктом можно пользоваться без мыши.
@@ -151,4 +151,100 @@ test("модалка: фокус внутри, печать не прерыва�
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
   await expect(opener).toBeFocused();
+});
+
+async function authHeaders(page: Page): Promise<Record<string, string>> {
+  const [token, org] = await page.evaluate(
+    () => [localStorage.getItem("fe_token"), localStorage.getItem("fe_org")]);
+  return { Authorization: `Bearer ${token}`, "X-Organization-Id": org ?? "" };
+}
+
+/** Проект из шаблона, посчитанный: у результатов и анализа должно быть что показать. */
+async function project(api: APIRequestContext, headers: Record<string, string>): Promise<string> {
+  const model = await (await api.get("/api/v1/templates/production", { headers })).json();
+  const { id } = await (await api.post("/api/v1/projects",
+    { headers, data: { name: "Клавиатурный проект", model } })).json();
+  expect((await api.post(`/api/v1/projects/${id}/calculate`, { headers })).ok()).toBeTruthy();
+  return id;
+}
+
+/** Нажимать Tab, пока фокус не встанет на элемент; сколько нажатий — столько и надо. */
+async function tabTo(page: Page, target: ReturnType<Page["locator"]>, limit = 60): Promise<number> {
+  for (let i = 1; i <= limit; i++) {
+    await page.keyboard.press("Tab");
+    if (await target.evaluate((el) => el === document.activeElement)) return i;
+  }
+  throw new Error(`за ${limit} нажатий Tab фокус до элемента не дошёл`);
+}
+
+test("редактор: вкладка, поле и сохранение — без мыши", async ({ page }) => {
+  await register(page);
+  const id = await project(page.request, await authHeaders(page));
+  await page.goto(`/projects/${id}`);
+  const sales = page.getByRole("button", { name: /^Сбыт/ });
+  await tabTo(page, sales);
+  await page.keyboard.press("Enter");
+  // Выбранная вкладка названа не только цветом: диктор слышит «нажата».
+  await expect(sales).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: /^Проект/ }).first()).toHaveAttribute("aria-pressed", "false");
+
+  await page.getByRole("button", { name: /^Проект/ }).first().focus();
+  await page.keyboard.press("Enter");
+  const loss = page.getByLabel("Налоговый убыток на старте");
+  await tabTo(page, loss, 120);
+  await page.keyboard.type("1000");
+  const saveBtn = page.getByRole("button", { name: "Сохранить" });
+  await tabTo(page, saveBtn, 200);
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("Все изменения сохранены")).toBeVisible();
+});
+
+test("результаты и анализ: отчёт, период и расчёт — с клавиатуры", async ({ page }) => {
+  await register(page);
+  const id = await project(page.request, await authHeaders(page));
+  await page.goto(`/projects/${id}/results`);
+  const cash = page.getByRole("button", { name: "Кэш-фло", exact: true }).first();
+  await expect(cash).toBeVisible({ timeout: 30_000 });
+  await tabTo(page, cash);
+  await page.keyboard.press("Enter");
+  await expect(cash).toHaveAttribute("aria-pressed", "true");
+  const quarter = page.getByRole("button", { name: "Квартал" });
+  await tabTo(page, quarter);
+  await page.keyboard.press("Enter");
+  await expect(quarter).toHaveAttribute("aria-pressed", "true");
+
+  await page.goto(`/projects/${id}/analysis`);
+  const sens = page.getByRole("button", { name: /Чувствительность/ }).first();
+  await tabTo(page, sens);
+  await page.keyboard.press("Enter");
+  // Коэффициенты: была <div onClick> — с клавиатуры не открывалась вовсе (H6).
+  const factors = page.getByRole("button", { name: /^Коэффициенты/ });
+  await tabTo(page, factors);
+  await page.keyboard.press("Enter");
+  await expect(page.getByLabel("Коэффициенты")).toBeFocused();
+  await page.keyboard.press("Enter");                  // закрыть правку тем же ключом
+  const calc = page.getByRole("button", { name: "Рассчитать" });
+  await tabTo(page, calc);
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("NPV в зависимости от коэффициента")).toBeVisible({ timeout: 60_000 });
+});
+
+test("телефон: выдвижная панель — фокус внутри, Esc возвращает на кнопку", async ({ page }) => {
+  await page.setViewportSize({ width: 402, height: 874 });
+  await register(page);
+  const burger = page.getByRole("button", { name: "Меню" });
+  await burger.focus();
+  await page.keyboard.press("Enter");
+  const drawer = page.getByRole("dialog", { name: "Меню" });
+  await expect(drawer).toBeVisible();
+  // Панель — диалог: фокус уходит в неё и табуляцией из неё не выходит.
+  expect(await drawer.evaluate((d) => d.contains(document.activeElement))).toBe(true);
+  for (let i = 0; i < 30; i++) {
+    await page.keyboard.press("Tab");
+    expect(await drawer.evaluate((d) => d.contains(document.activeElement)),
+           `после ${i + 1} нажатий Tab фокус ушёл из панели`).toBe(true);
+  }
+  await page.keyboard.press("Escape");
+  await expect(drawer).toBeHidden();
+  await expect(burger).toBeFocused();
 });

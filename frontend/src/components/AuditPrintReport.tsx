@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import type { AuditAnalysis, ReportingStandard } from "../api/audit";
 import { REPORTING_STANDARDS } from "../api/audit";
 import { fmtDateOnly, plural } from "../format";
+import { ScrollRegion } from "./ui";
 
 /**
  * Печатное заключение «Финанс-Аудит» (макет «Экран 5» и `Заключение (печать).dc.html`).
@@ -407,14 +408,17 @@ export function AuditPrintReport({
   ];
 
   return (
-    <div className="ap-root">
+    // Превью — бумага, как у «Элиты» (G15): лист A4 не сужается под экран, узкий экран
+    // листает его вбок. Сжатый лист показывал на телефоне не то, что уйдёт на печать
+    // (матрица «Аудита», пакет I).
+    <ScrollRegion className="ap-root x-scroll" label="Предпросмотр печатного бланка">
       <PageSetup />
       {sheets.map((content, i) => (
         // Число листов считается, а не пишется: разделы условны (без оценки лист
         // короче), и «1 / 2» на трёхстраничном документе — ошибка в самом документе.
         <Sheet key={i} page={i + 1} total={sheets.length}>{content}</Sheet>
       ))}
-    </div>
+    </ScrollRegion>
   );
 }
 

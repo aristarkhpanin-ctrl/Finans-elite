@@ -16,7 +16,7 @@ import { ResultCharts } from "../components/ResultCharts";
 import { GRANDS, StatementTable, SUBTOTALS } from "../components/StatementTable";
 import { SummaryView } from "../components/SummaryView";
 import { useToast } from "../components/Toast";
-import { Button, Skeleton } from "../components/ui";
+import { Button, ErrorState, ScrollRegion, Skeleton } from "../components/ui";
 import { downloadBusinessPlanDocx, downloadCsv, downloadPdf, downloadXlsx, statementsToCsv } from "../export";
 import { Comments } from "../components/Comments";
 import { fmtMillions, percent, plural } from "../format";
@@ -164,12 +164,8 @@ export function ProjectResultsPage() {
     return (
       <div className="screen-only">
         {header}
-        <div className="error-state" style={{ marginTop: 24, padding: "48px 24px" }}>
-          <div className="error-state__ico">!</div>
-          <div className="error-state__title">Ошибка расчёта</div>
-          <div className="page-sub" style={{ maxWidth: 480, textAlign: "center" }}>
-            {detail}
-          </div>
+        <ErrorState text="Ошибка расчёта" style={{ marginTop: 24, padding: "48px 24px" }} sub={detail}
+                    actions={
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
             <Button variant="ghost" onClick={() => navigate(`/projects/${id}`)}>
               ← К редактору
@@ -180,7 +176,7 @@ export function ProjectResultsPage() {
               </Button>
             )}
           </div>
-        </div>
+                    } />
       </div>
     );
   }
@@ -236,14 +232,14 @@ export function ProjectResultsPage() {
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <div className="report-switch" aria-label="Период отображения">
               {(["month", "quarter", "year"] as const).map((p) => (
-                <button key={p} type="button" className={eff === p ? "on" : ""} onClick={() => setPeriod(p)}>
+                <button aria-pressed={eff === p} key={p} type="button" className={eff === p ? "on" : ""} onClick={() => setPeriod(p)}>
                   {p === "month" ? "Месяц" : p === "quarter" ? "Квартал" : "Год"}
                 </button>
               ))}
             </div>
             <div className="report-switch">
               {STATEMENTS.map(([k, label]) => (
-                <button key={k} type="button" className={tab === k ? "on" : ""} onClick={() => setTab(k)}>
+                <button aria-pressed={tab === k} key={k} type="button" className={tab === k ? "on" : ""} onClick={() => setTab(k)}>
                   {label}
                 </button>
               ))}
@@ -367,7 +363,7 @@ export function ProjectResultsPage() {
         {tab === "summary" && data.product_margins.products.length > 0 && (
           <>
             <div className="rsection-label">Маржа по продуктам (рецептура)</div>
-            <div className="contrib-wrap">
+            <ScrollRegion className="contrib-wrap" label="Маржа по продуктам">
               <div className="contrib-row contrib-row--head">
                 <div className="contrib-label">Продукт</div>
                 <div className="contrib-cell">Выручка</div>
@@ -393,7 +389,7 @@ export function ProjectResultsPage() {
                   </div>
                 );
               })}
-            </div>
+            </ScrollRegion>
             {Number(data.product_margins.unallocated_direct) > 0 && (
               <div className="field-note" style={{ marginTop: 8 }}>
                 Суммовые прямые издержки {fmtMillions(data.product_margins.unallocated_direct, { digits: 2 })} не
@@ -406,7 +402,7 @@ export function ProjectResultsPage() {
         {tab === "summary" && (data.division_margins ?? []).length > 0 && (
           <>
             <div className="rsection-label">Доходы подразделений</div>
-            <div className="contrib-wrap">
+            <ScrollRegion className="contrib-wrap" label="Доходы подразделений">
               <div className="contrib-row contrib-row--head">
                 <div className="contrib-label">Подразделение</div>
                 <div className="contrib-cell">Выручка</div>
@@ -435,7 +431,7 @@ export function ProjectResultsPage() {
                   </div>
                 );
               })}
-            </div>
+            </ScrollRegion>
             <div className="field-note" style={{ marginTop: 8 }}>
               Свёртка маржи продуктов по бизнес-единицам; продукты без рецептуры/подразделения в свёртку не входят.
             </div>
@@ -445,7 +441,7 @@ export function ProjectResultsPage() {
         {tab === "summary" && (data.subscription_base ?? []).length > 0 && (
           <>
             <div className="rsection-label">Абонентская база</div>
-            <div className="contrib-wrap">
+            <ScrollRegion className="contrib-wrap" label="Абонентская база">
               <div className="contrib-row contrib-row--head">
                 <div className="contrib-label">Продукт</div>
                 <div className="contrib-cell">На старте</div>
@@ -469,7 +465,7 @@ export function ProjectResultsPage() {
                   </div>
                 );
               })}
-            </div>
+            </ScrollRegion>
             <div className="field-note" style={{ marginTop: 8 }}>
               База на конец месяца и есть объём продаж подписки. «Ушло» — выбытие по
               заданному оттоку; при нулевом оттоке эта колонка пуста не потому, что никто
@@ -481,7 +477,7 @@ export function ProjectResultsPage() {
         {tab === "summary" && (data.participants ?? []).length > 0 && (
           <>
             <div className="rsection-label">Доходы участников финансирования</div>
-            <div className="contrib-wrap">
+            <ScrollRegion className="contrib-wrap" label="Доходы участников финансирования">
               <div className="contrib-row contrib-row--head">
                 <div className="contrib-label">Участник</div>
                 <div className="contrib-cell">Вложено</div>
@@ -512,7 +508,7 @@ export function ProjectResultsPage() {
                   </div>
                 );
               })}
-            </div>
+            </ScrollRegion>
             <div className="field-note" style={{ marginTop: 8 }}>
               NPV и «IRR с уч. остатка» — с условным возвратом на конец горизонта: акционерам —
               собственного капитала (B33), кредиторам — непогашенного тела займа.
@@ -524,6 +520,7 @@ export function ProjectResultsPage() {
           <div className="etabs fe-scroll">
             {tabs.map((key) => (
               <button
+                aria-pressed={tab === key || (isStatement && key === tab)}
                 key={key}
                 type="button"
                 className={"etab" + (tab === key || (isStatement && key === tab) ? " etab--active" : "")}

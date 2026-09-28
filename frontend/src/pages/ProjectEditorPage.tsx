@@ -244,6 +244,7 @@ export function ProjectEditorPage() {
             const badge = tabBadge(model, key);
             return (
               <button
+                aria-pressed={tab === key}
                 key={key}
                 type="button"
                 className={"etab" + (tab === key ? " etab--active" : "")}

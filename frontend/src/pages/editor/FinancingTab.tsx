@@ -150,6 +150,7 @@ export function FinancingTab({ n, financing, onChange }: Props) {
           <div className="fin-toc__head">Разделы</div>
           {SECTIONS.map(([key, label]) => (
             <button
+              aria-current={active === key ? "true" : undefined}
               key={key}
               type="button"
               className={"fin-toc__item" + (active === key ? " fin-toc__item--active" : "")}

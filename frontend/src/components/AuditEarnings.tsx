@@ -5,7 +5,7 @@ import {
   type EarningsAdjustment,
 } from "../api/audit";
 import { IconTrash } from "./icons";
-import { Button } from "./ui";
+import { Button, ScrollRegion } from "./ui";
 import { fmtMoney } from "../format";
 
 /**
@@ -87,7 +87,7 @@ export function AuditEarnings({
         )}
       </div>
 
-      <div style={{ overflowX: "auto" }}>
+      <ScrollRegion className="x-scroll" label="Нормализация прибыли">
         <table className="audit-grid eq-table">
           <thead>
             <tr>
@@ -117,7 +117,7 @@ export function AuditEarnings({
             </tr>
           </tbody>
         </table>
-      </div>
+      </ScrollRegion>
 
       <div className="audit-block">
         <div className="tab-head" style={{ marginBottom: 10 }}>

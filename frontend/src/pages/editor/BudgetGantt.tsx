@@ -279,7 +279,7 @@ export function BudgetGantt({ n, startDate, stages, resources, budget, sched,
       <div className="bg-gantt__toolbar">
         <div className="seg seg--sm">
           {SCALES.map(([key, text]) => (
-            <button key={key} type="button"
+            <button aria-pressed={scale === key} key={key} type="button"
                     className={"seg__btn" + (scale === key ? " seg__btn--active" : "")}
                     onClick={() => setScale(key)}>
               {text}

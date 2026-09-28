@@ -34,10 +34,11 @@ interface Shot {
 }
 const shots: Shot[] = [];
 
-/** Нарушения доступности (axe-core, WCAG 2.1 A/AA) — по экрану и теме, H6. */
+/** Нарушения доступности (axe-core, WCAG 2.1 A/AA) — по экрану, ширине и теме (H6, I2). */
 interface A11yEntry {
   row: string;
   screen: string;
+  width: Width;
   theme: string;
   violations: Array<{ id: string; impact: string | null; help: string; nodes: number;
                       targets: string[] }>;
@@ -53,16 +54,16 @@ function contrastSample(node: { target: unknown[]; any: Array<{ data?: unknown }
 const a11y: A11yEntry[] = [];
 
 /**
- * Проверка доступности кадра. Только на настольной ширине: контраст зависит от темы, а
- * разметка (подписи полей, имена кнопок, роли) от ширины почти не зависит — гонять её
- * трижды значило бы втрое удлинить прогон ради тех же находок.
+ * Проверка доступности кадра — на каждой ширине. В H6 она шла только на настольной
+ * («разметка от ширины почти не зависит»), но на телефоне разметка другая: меню живёт в
+ * выдвижной панели, таблицы переходят в карточки, и «почти» оставалось непроверенным (I2).
  */
-async function audit(page: Page, row: string, screen: string, theme: string) {
+async function audit(page: Page, row: string, screen: string, width: Width, theme: string) {
   const result = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
     .analyze();
   a11y.push({
-    row, screen, theme,
+    row, screen, width, theme,
     violations: result.violations.map((v) => ({
       id: v.id, impact: v.impact ?? null, help: v.help, nodes: v.nodes.length,
       targets: v.nodes.slice(0, 5).map((n) =>
@@ -146,7 +147,7 @@ async function capture(page: Page, row: string, screen: string,
       await page.screenshot({ path: `${OUT}/${file}`, fullPage: true, animations: "disabled",
                               clip: { x: 0, y: 0, width: w, height: Math.min(height, MAX_HEIGHT) } });
       shots.push({ row, screen, width, theme, file, overflow });
-      if (width === "desktop") await audit(page, row, screen, theme);
+      await audit(page, row, screen, width, theme);
     }
   }
 }
@@ -203,15 +204,16 @@ async function failResponses(page: Page, url: RegExp, status: number, detail: st
   }
 }
 
-async function register(page: Page, org: string) {
-  await page.addInitScript(() => localStorage.setItem("fe_product", "business"));
+async function register(page: Page, org: string, product: "business" | "audit" = "business") {
+  await page.addInitScript((pr) => localStorage.setItem("fe_product", pr), product);
   await page.goto("/register");
   await page.getByLabel("ФИО").fill("Матрица Скриншотов");
   await page.getByLabel("Email").fill(`screens-${stamp()}@example.test`);
   await page.getByLabel("Пароль").fill("screens-pass-123");
   await page.getByLabel("Название организации").fill(org);
   await page.getByRole("button", { name: /Создать аккаунт/ }).click();
-  await expect(page.getByRole("heading", { name: "Проекты" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: product === "audit" ? "Дела" : "Проекты" }))
+    .toBeVisible();
 }
 
 /** Почта на прогон: база живёт между запусками. */
@@ -471,6 +473,55 @@ test("матрица скриншотов P13", async ({ page, browser }) => {
       await p.waitForTimeout(2_500);                 // один повтор запроса — и ответ экрана
     }));
 
+    // Состояния, не снятые в H5 (пакет I, I1): холдинги, карточка холдинга, тариф,
+    // Монте-Карло и What-If.
+    const HOLDING = new RegExp(`/api/v1/holdings/${holding.id}$`);
+    const SUBSCRIPTION = /\/api\/v1\/organizations\/[^/]+\/subscription(\?.*)?$/;
+    const MC = /\/monte-carlo\/async$/;
+    const WHATIF = /\/what-if$/;
+    await holdResponses(page, HOLDINGS, () => capture(page, "states", "holdings-loading", async (p) => {
+      await p.goto("/holdings");
+      await expect(p.getByRole("heading", { name: "Холдинги" })).toBeVisible();
+      await p.waitForTimeout(400);
+    }));
+    await holdResponses(page, HOLDING, () => capture(page, "states", "holding-loading", async (p) => {
+      await p.goto(`/holdings/${holding.id}`);
+      await expect(p.getByRole("status").first()).toBeVisible();
+    }));
+    await failResponses(page, HOLDING, 500, down, () => capture(page, "states", "holding-error", async (p) => {
+      await p.goto(`/holdings/${holding.id}`);
+      await expect(p.getByText("Не удалось загрузить холдинг.")).toBeVisible({ timeout: 15_000 });
+    }));
+    await holdResponses(page, SUBSCRIPTION, () => capture(page, "states", "billing-loading", async (p) => {
+      await p.goto("/organization?tab=billing");
+      await expect(p.getByRole("heading", { name: "ООО «Матрица»" })).toBeVisible();
+      await p.waitForTimeout(400);
+    }));
+    await failResponses(page, SUBSCRIPTION, 500, down, () => capture(page, "states", "billing-error", async (p) => {
+      await p.goto("/organization?tab=billing");
+      await expect(p.getByText("Не удалось загрузить тариф")).toBeVisible({ timeout: 15_000 });
+    }));
+    await holdResponses(page, MC, () => capture(page, "states", "montecarlo-loading", async (p) => {
+      await analysis(p, "Монте-Карло");
+      await p.getByRole("button", { name: "Запустить" }).click();
+      await expect(p.getByRole("button", { name: /Симуляция/ })).toBeVisible();
+    }));
+    await failResponses(page, MC, 500, down, () => capture(page, "states", "montecarlo-error", async (p) => {
+      await analysis(p, "Монте-Карло");
+      await p.getByRole("button", { name: "Запустить" }).click();
+      await expect(p.getByText("Не удалось выполнить симуляцию")).toBeVisible({ timeout: 15_000 });
+    }));
+    await capture(page, "states", "whatif-empty", async (p) => {
+      await analysis(p, "What-If");
+      await p.getByRole("button", { name: /Удалить сценарий/ }).click();
+      await p.waitForTimeout(300);
+    });
+    await failResponses(page, WHATIF, 500, down, () => capture(page, "states", "whatif-error", async (p) => {
+      await analysis(p, "What-If");
+      await p.getByRole("button", { name: "Сравнить" }).click();
+      await expect(p.getByText("Не удалось сравнить сценарии")).toBeVisible({ timeout: 15_000 });
+    }));
+
     // Пустые экраны — новая организация без проектов и холдингов.
     const fresh = await (await browser.newContext()).newPage();
     await fresh.emulateMedia({ reducedMotion: "reduce" });
@@ -491,6 +542,16 @@ test("матрица скриншотов P13", async ({ page, browser }) => {
       await p.goto(`/projects/${blank.id}?tab=sales`);
       await expect(p.getByText("Пока нет ни одного продукта")).toBeVisible();
     });
+    // Пустые вкладки второй строки редактора (I1): у пустой модели каждая говорит сама.
+    for (const [key, tab, label] of [["financing-empty", "financing", "Финансирование"],
+                                      ["currency-empty", "currency", "Валюта и старт"],
+                                      ["actual-empty", "actual", "Факт"]] as const) {
+      await capture(fresh, "states", key, async (p) => {
+        await p.goto(`/projects/${blank.id}?tab=${tab}`);
+        await expect(p.getByRole("button", { name: new RegExp(label) }).first()).toBeVisible();
+        await p.waitForTimeout(400);
+      });
+    }
     const emptyGroup = await (await fresh.request.post("/api/v1/holdings",
       { headers: freshHeaders, data: { name: "Группа без участников" } })).json();
     await capture(fresh, "states", "holding-empty", async (p) => {
@@ -517,6 +578,130 @@ test("матрица скриншотов P13", async ({ page, browser }) => {
     });
     await stranger.context().close();
 
+  } finally {
+    writeGallery();
+  }
+});
+
+/**
+ * «Финанс-Аудит» в той же матрице (пакет I, I4). До неё экраны второго продукта не
+ * снимались ни по ширинам, ни на вылет за край, ни `axe-core`: G15 и H6 проверяли
+ * «Элиту». Съёмщик, детектор и проверка — те же, что выше (второй копии нет).
+ */
+test("матрица скриншотов «Финанс-Аудита»", async ({ page, browser }) => {
+  mkdirSync(OUT, { recursive: true });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  try {
+    // --- До входа: вход и регистрация второго продукта ---
+    const guest = await (await browser.newContext()).newPage();
+    await guest.emulateMedia({ reducedMotion: "reduce" });
+    await guest.addInitScript(() => localStorage.setItem("fe_product", "audit"));
+    await capture(guest, "audit-auth", "login", async (p) => {
+      await p.goto("/login");
+      await expect(p.getByRole("button", { name: /Войти/ }).first()).toBeVisible();
+    });
+    await capture(guest, "audit-auth", "register", async (p) => {
+      await p.goto("/register");
+      await expect(p.getByLabel("Email")).toBeVisible();
+    });
+    await guest.context().close();
+
+    await register(page, "ООО «Проверка»", "audit");
+    await capture(page, "audit-home", "empty", async (p) => {
+      await p.goto("/audit");
+      await expect(p.getByRole("heading", { name: "Дела" })).toBeVisible();
+      await expect(p.getByRole("button", { name: /Посмотреть демо-дело/ })).toBeVisible();
+    });
+    await capture(page, "audit-home", "onboarding", async (p) => {
+      await p.goto("/audit/onboarding");
+      await expect(p.getByRole("heading", { name: "Дело о фирме-цели" })).toBeVisible();
+    });
+
+    // --- Данные: два демо-дела и сохранённая группа из них ---
+    const headers = await authHeaders(page);
+    const api = page.request;
+    const demo = await (await api.post("/api/v1/audit/subjects/demo", { headers })).json();
+    const other = await (await api.post("/api/v1/audit/subjects/demo", { headers })).json();
+    await api.post("/api/v1/audit/groups", { headers, data: {
+      name: "Группа «Проверка»",
+      model: { members: [{ subject_id: demo.id, name: demo.name },
+                         { subject_id: other.id, name: other.name }], elimination: null },
+    } });
+
+    await capture(page, "audit-home", "list", async (p) => {
+      await p.goto("/audit");
+      await expect(p.getByRole("heading", { name: "Дела" })).toBeVisible();
+      await expect(p.getByText(demo.name).first()).toBeVisible();
+    });
+
+    // --- Дело: каждый раздел и каждая вкладка раздела ---
+    const openCase = async (p: Page, section: string, sub?: string) => {
+      await p.goto(`/audit/${demo.id}`);
+      await p.locator(".seg__btn", { hasText: new RegExp(`^${section}$`) }).click();
+      if (sub) await p.getByRole("tab", { name: sub }).click();
+      await expect(p.getByText("Считаем анализ…")).toHaveCount(0, { timeout: 30_000 });
+      await p.waitForTimeout(500);
+    };
+    const sections: Array<[string, string, string?]> = [
+      ["summary", "Сводка"], ["subject", "Субъект"],
+      ["input", "Отчётность", "Ввод отчётности"], ["reports", "Отчётность", "Отчёты"],
+      ["ratios", "Финансовое состояние", "Коэффициенты"],
+      ["trends", "Финансовое состояние", "Тренды"],
+      ["diagnostics", "Финансовое состояние", "Диагностика"],
+      ["earnings", "Качество прибыли"], ["flags", "Реестр флагов"],
+      ["obligations", "Обязательства"], ["procedures", "Процедуры"],
+      ["valuation", "Оценка", "Оценка стоимости"], ["planfact", "План-факт"],
+      ["versions", "Версии"], ["methods", "Методики"], ["opinion", "Заключение"],
+    ];
+    for (const [key, section, sub] of sections) {
+      await capture(page, "audit-case", key, (p) => openCase(p, section, sub));
+    }
+    // Анализ рисков — стохастика считается при открытии вкладки (deep).
+    await capture(page, "audit-case", "risk", async (p) => {
+      await openCase(p, "Оценка", "Анализ рисков");
+      await expect(p.getByText("Считаем прогоны Монте-Карло…")).toHaveCount(0, { timeout: 90_000 });
+    });
+    // Оценка в демо-деле выключена, и вкладки «Оценка» и «Анализ рисков» честно говорят
+    // «не посчитана». Чтобы снять и сами числа, оценка включается через API — последней,
+    // чтобы не менять остальные кадры дела (пакет I).
+    const subj = await (await api.get(`/api/v1/audit/subjects/${demo.id}`, { headers })).json();
+    const valuation = { enabled: true, horizon_years: 5, wacc: "0.20", terminal_growth: "0.03",
+                        tax_rate: "0.20", growth: ["0.08"], capex: [], nwc_change: [],
+                        minority_interest: "0", asking_price: "15000", ...(subj.model.valuation ?? {}) };
+    valuation.enabled = true;
+    // Демо-дело не несёт справочной строки амортизации, и включённая оценка честно
+    // называет это препятствием — числа оценки на экране не появляются. Строка вводится
+    // здесь: иначе таблицы оценки (поток, чувствительность) не попали бы в кадр вовсе.
+    const income = { ...subj.model.income, M_DEPRECIATION: ["300", "350", "400"] };
+    expect((await api.put(`/api/v1/audit/subjects/${demo.id}`, { headers,
+      data: { name: subj.name, model: { ...subj.model, income, valuation } } })).ok()).toBeTruthy();
+    await capture(page, "audit-case", "valuation-on", (p) => openCase(p, "Оценка", "Оценка стоимости"));
+    await capture(page, "audit-case", "risk-on", async (p) => {
+      await openCase(p, "Оценка", "Анализ рисков");
+      await expect(p.getByText("Считаем прогоны Монте-Карло…")).toHaveCount(0, { timeout: 90_000 });
+    });
+    await capture(page, "audit-case", "print", async (p) => {
+      await openCase(p, "Заключение");
+      await p.getByRole("button", { name: /Печатный бланк/ }).click();
+      await expect(p.getByText(/Печатный бланк · PDF/)).toBeVisible();
+    });
+
+    // --- Сравнение дел и группа ---
+    await capture(page, "audit-group", "compare", async (p) => {
+      await p.goto("/audit/compare");
+      await expect(p.getByRole("heading", { name: "Сравнение дел" })).toBeVisible();
+      // Демо-дела зовутся одинаково — выбираем по месту в списке, а не по имени.
+      for (const i of [0, 1]) await p.locator(".cmp-pick input").nth(i).check();
+      await p.getByRole("button", { name: /^Сравнить/ }).click();
+      await p.waitForTimeout(1_500);
+    });
+    await capture(page, "audit-group", "consolidation", async (p) => {
+      await p.goto("/audit/group");
+      await expect(p.getByRole("heading", { name: "Консолидация группы" })).toBeVisible();
+      await p.getByText("Группа «Проверка»").click();
+      await p.getByRole("button", { name: "Построить свод" }).click();
+      await p.waitForTimeout(1_500);
+    });
   } finally {
     writeGallery();
   }

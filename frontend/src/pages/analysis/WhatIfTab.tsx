@@ -76,6 +76,7 @@ export function WhatIfTab({ projectId }: { projectId: string }) {
               type="button"
               className="scn-del"
               title="Удалить сценарий"
+              aria-label={`Удалить сценарий «${s.name}»`}
               onClick={() => setScenarios(scenarios.filter((_, k) => k !== i))}
             >
               ✕
@@ -91,7 +92,14 @@ export function WhatIfTab({ projectId }: { projectId: string }) {
         </button>
       </div>
 
-      <Button loading={run.isPending} onClick={() => run.mutate()}>
+      {/* Без сценариев сравнивать не с чем: базовый вариант сам с собой — не сравнение.
+          Пустой список называет это, а не молчит рядом с активной кнопкой (пакет I). */}
+      {scenarios.length === 0 && (
+        <div className="field-note" style={{ marginBottom: 10 }}>
+          Сценариев нет — добавьте хотя бы один, чтобы было с чем сравнивать базовый вариант.
+        </div>
+      )}
+      <Button loading={run.isPending} disabled={scenarios.length === 0} onClick={() => run.mutate()}>
         {run.isPending ? "Сравнение…" : "Сравнить"}
       </Button>
 

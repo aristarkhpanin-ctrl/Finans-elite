@@ -5,7 +5,7 @@ import { BENCHMARK_METRICS, getBenchmarks, putBenchmarks,
          type BenchmarkIn } from "../../api/org";
 import { IconTrash } from "../../components/icons";
 import { useToast } from "../../components/Toast";
-import { Button, Skeleton } from "../../components/ui";
+import { Button, ScrollRegion, Skeleton } from "../../components/ui";
 
 /**
  * Справочник отраслевых ориентиров организации (SPEC, Прил. Ф).
@@ -95,7 +95,7 @@ export function BenchmarksTab({ orgId, canManage }: { orgId: string; canManage: 
       </p>
 
       {isLoading && (
-        <div className="org-tbl">
+        <div className="org-tbl" aria-busy="true">
           {[0, 1].map((i) => (
             <div className="org-row" key={i}><Skeleton width={280} height={22} /></div>
           ))}
@@ -118,7 +118,7 @@ export function BenchmarksTab({ orgId, canManage }: { orgId: string; canManage: 
       )}
 
       {rows.length > 0 && (
-        <div className="audit-block" style={{ overflowX: "auto" }}>
+        <ScrollRegion className="audit-block x-scroll" label="Отраслевые ориентиры">
           <table className="audit-grid bm-tbl">
             <thead>
               <tr>
@@ -177,7 +177,7 @@ export function BenchmarksTab({ orgId, canManage }: { orgId: string; canManage: 
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollRegion>
       )}
 
       {/* Кнопка остаётся и когда на экране не осталось ни строки: иначе удалить

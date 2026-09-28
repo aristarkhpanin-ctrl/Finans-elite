@@ -84,10 +84,11 @@ function InflationByYear({
               {Array.from({ length: years }, (_, y) => (
                 <tr key={y}>
                   <td className="infl-grid__year">{y + 1}</td>
-                  {INFL_GROUPS.map(([key]) => (
+                  {INFL_GROUPS.map(([key, , groupLabel]) => (
                     <td key={key}>
                       <input
                         inputMode="decimal"
+                        aria-label={`Инфляция «${groupLabel}», год ${y + 1}, %`}
                         value={fracToPct(cell(key, y))}
                         onChange={(e) => updCell(key, y, pctToFrac(e.target.value))}
                       />

@@ -175,6 +175,7 @@ export function AssetsTab({ investment, onChange }: Props) {
 
                   <div className="opt-toggle-row">
                     <button
+                      aria-pressed={saleOn}
                       type="button"
                       className={"opt-toggle" + (saleOn ? " opt-toggle--on" : "")}
                       onClick={() =>
@@ -190,6 +191,7 @@ export function AssetsTab({ investment, onChange }: Props) {
                       Продаётся в течение проекта
                     </button>
                     <button
+                      aria-pressed={revOn}
                       type="button"
                       className={"opt-toggle" + (revOn ? " opt-toggle--on" : "")}
                       onClick={() =>

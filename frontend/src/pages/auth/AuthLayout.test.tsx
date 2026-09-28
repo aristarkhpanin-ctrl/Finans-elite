@@ -224,3 +224,14 @@ describe("Поле входа не пересоздаётся под пальц�
     expect(document.activeElement).toBe(input);
   });
 });
+
+describe("Марка на узкой ширине (пакет I)", () => {
+  it("хвост маленькой марки без прозрачности — цвет задаёт тема", () => {
+    // Прозрачность поверх --subtle давала 2,1:1; axe-core нашёл это только на телефоне и
+    // планшете, где крупная панель бренда скрыта и видна маленькая марка.
+    show("login");
+    const tail = document.querySelector(".auth-word-sm > span") as HTMLElement;
+    expect(tail).toBeTruthy();
+    expect(tail.style.opacity).toBe("");
+  });
+});

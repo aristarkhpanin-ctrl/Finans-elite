@@ -54,8 +54,9 @@ export function DocumentTab({ sections, onChange }: Props) {
                          onChange={(e) => upd(i, { title: e.target.value })} />
                 </div>
                 <button type="button" className="doc-sec__move" title="Выше" disabled={i === 0}
-                        onClick={() => move(i, -1)}>↑</button>
+                        aria-label={`Раздел ${i + 1} выше`} onClick={() => move(i, -1)}>↑</button>
                 <button type="button" className="doc-sec__move" title="Ниже"
+                        aria-label={`Раздел ${i + 1} ниже`}
                         disabled={i === sections.length - 1} onClick={() => move(i, 1)}>↓</button>
                 <button type="button" className="line-card__del" title="Удалить раздел"
                         onClick={() => rm(i)}>

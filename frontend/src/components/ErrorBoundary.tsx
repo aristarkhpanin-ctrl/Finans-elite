@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { reportClientError } from "../errorReport";
+import { ErrorState } from "./ui";
 
 interface Props {
   children: ReactNode;
@@ -29,17 +30,14 @@ export class ErrorBoundary extends Component<Props, State> {
   render(): ReactNode {
     if (this.state.error) {
       return (
-        <div className="error-state" role="alert" style={{ maxWidth: 460, margin: "18vh auto" }}>
-          <div className="error-state__ico">!</div>
-          <div className="error-state__title">Что-то пошло не так</div>
-          <p className="muted" style={{ margin: "6px 0 16px" }}>
-            Непредвиденная ошибка в интерфейсе. Перезагрузите страницу — данные проекта
-            сохранены на сервере.
-          </p>
-          <button type="button" className="btn" onClick={() => window.location.reload()}>
-            Перезагрузить
-          </button>
-        </div>
+        <ErrorState text="Что-то пошло не так" style={{ maxWidth: 460, margin: "18vh auto" }}
+                    sub={"Непредвиденная ошибка в интерфейсе. Перезагрузите страницу — данные "
+                         + "проекта сохранены на сервере."}
+                    actions={
+                      <button type="button" className="btn" onClick={() => window.location.reload()}>
+                        Перезагрузить
+                      </button>
+                    } />
       );
     }
     return this.props.children;

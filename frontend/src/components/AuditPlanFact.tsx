@@ -6,6 +6,7 @@ import {
   type RealizedFlag,
 } from "../api/audit";
 import { fmtMoney } from "../format";
+import { ScrollRegion } from "./ui";
 
 /**
  * План-факт после сделки (макет «Экран 17»; методика — SPEC, Приложение Т).
@@ -99,7 +100,7 @@ export function AuditPlanFact({
                 сравниваются периоды: {result.periods.join(", ")}
               </span>
             </div>
-            <div style={{ overflowX: "auto" }}>
+            <ScrollRegion className="x-scroll" label="Прогноз продавца против факта">
               <table className="audit-grid pf-table">
                 <thead>
                   <tr>
@@ -125,7 +126,7 @@ export function AuditPlanFact({
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollRegion>
           </div>
 
           <div className="audit-block">
@@ -163,7 +164,7 @@ export function AuditPlanFact({
             Периоды не заданы — вносить план не к чему.
           </div>
         ) : (
-          <div style={{ overflowX: "auto" }}>
+          <ScrollRegion className="x-scroll" label="План продавца по периодам">
             <table className="audit-grid">
               <thead>
                 <tr>
@@ -190,7 +191,7 @@ export function AuditPlanFact({
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollRegion>
         )}
       </div>
 

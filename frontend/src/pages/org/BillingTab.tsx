@@ -4,7 +4,7 @@ import { useState } from "react";
 import { changePlan, checkout, disableAutoRenew, getPlans, getQuote, getSubscription,
          type CheckoutQuote, type Plan, type Subscription } from "../../api/org";
 import { useToast } from "../../components/Toast";
-import { Button, Modal, Skeleton } from "../../components/ui";
+import { Button, ErrorState, Modal, Skeleton } from "../../components/ui";
 import { BillingDocuments } from "./BillingDocuments";
 
 /** Сумма в рублях: «2 900 ₽». */
@@ -163,11 +163,8 @@ export function BillingTab({ orgId, canManage }: { orgId: string; canManage: boo
   }
   if (sub.isError || !sub.data) {
     return (
-      <div className="error-state">
-        <div className="error-state__ico">!</div>
-        <div className="error-state__title">Не удалось загрузить тариф</div>
-        <Button onClick={() => sub.refetch()}>Повторить</Button>
-      </div>
+      <ErrorState text="Не удалось загрузить тариф"
+                  actions={<Button onClick={() => sub.refetch()}>Повторить</Button>} />
     );
   }
 
@@ -304,7 +301,7 @@ export function BillingTab({ orgId, canManage }: { orgId: string; canManage: boo
                 <div className="plan-diff__val">{s.plan_name}</div>
               </div>
               <span className="plan-diff__arrow">→</span>
-              <div className="plan-diff__box" style={{ background: "var(--primary-soft)" }}>
+              <div className="plan-diff__box plan-diff__box--new">
                 <div className="plan-diff__label">Новый</div>
                 <div className="plan-diff__val">{target.name}</div>
               </div>

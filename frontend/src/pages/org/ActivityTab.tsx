@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { getActivity, roleLabel } from "../../api/org";
-import { Loading } from "../../components/ui";
+import { Loading, ScrollRegion } from "../../components/ui";
 
 /**
  * Активность организации (E1): кто работает и что живо.
@@ -36,7 +36,7 @@ export function ActivityTab({ orgId }: { orgId: string }) {
         <div className="page-sub" style={{ marginTop: 0 }}>
           Действия — за последние {data.window_days} дн.
         </div>
-        <div className="org-tbl" style={{ marginTop: 10 }}>
+        <ScrollRegion className="org-tbl" label="Активность участников" style={{ marginTop: 10 }}>
           <div className="org-row org-row--head">
             <div className="org-col-user">Участник</div>
             <div className="org-col-role">Роль</div>
@@ -73,7 +73,7 @@ export function ActivityTab({ orgId }: { orgId: string }) {
               </div>
             </div>
           ))}
-        </div>
+        </ScrollRegion>
       </div>
 
       <div className="audit-block">
@@ -85,7 +85,7 @@ export function ActivityTab({ orgId }: { orgId: string }) {
                <b>{sleeping}</b>; открытых обсуждений: <b>{questions}</b>.</>}
         </div>
         {data.entities.length > 0 && (
-          <div className="org-tbl" style={{ marginTop: 10 }}>
+          <ScrollRegion className="org-tbl" label="Проекты и дела" style={{ marginTop: 10 }}>
             <div className="org-row org-row--head">
               <div className="org-col-user">Название</div>
               <div className="org-col-role">Что это</div>
@@ -124,7 +124,7 @@ export function ActivityTab({ orgId }: { orgId: string }) {
                 </div>
               </div>
             ))}
-          </div>
+          </ScrollRegion>
         )}
       </div>
 

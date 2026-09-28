@@ -2,7 +2,7 @@ import type { AuditBenchmarkView, AuditValuation as Result,
               ValuationAssumptions } from "../api/audit";
 import { emptyValuation } from "../api/audit";
 import { AuditBenchmark } from "./AuditBenchmark";
-import { Button } from "./ui";
+import { Button, ScrollRegion } from "./ui";
 import { fmtMoney, fracToPct, pctToFrac } from "../format";
 import { useEffect, useState } from "react";
 
@@ -237,7 +237,7 @@ export function AuditValuation({
               FCFF = EBIT × (1 − ставка налога) + Амортизация − Капвложения −
               ΔОборотный капитал. Амортизация растёт вместе с показателем.
             </div>
-            <div style={{ overflowX: "auto" }}>
+            <ScrollRegion className="x-scroll" label="Дисконтированный поток">
               <table className="audit-grid">
                 <thead>
                   <tr>
@@ -272,7 +272,7 @@ export function AuditValuation({
                   </tr>
                 </tbody>
               </table>
-            </div>
+            </ScrollRegion>
           </div>
 
           <div className="audit-block">
@@ -283,7 +283,7 @@ export function AuditValuation({
               они отвечали бы на тот же вопрос. Пустая клетка — рост не ниже ставки:
               стоимости там не существует, и ноль читался бы как «ничего не стоит».
             </div>
-            <div style={{ overflowX: "auto" }}>
+            <ScrollRegion className="x-scroll" label="Чувствительность оценки">
               <table className="audit-grid val-sens">
                 <thead>
                   <tr>
@@ -309,7 +309,7 @@ export function AuditValuation({
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollRegion>
           </div>
 
           {/* Сравнение с ориентиром показывается там, где есть чему сравниваться:

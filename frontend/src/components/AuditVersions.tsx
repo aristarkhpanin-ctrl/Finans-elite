@@ -10,7 +10,7 @@ import {
   type AuditVersionDiff,
 } from "../api/audit";
 import { useToast } from "./Toast";
-import { Button } from "./ui";
+import { Button, ScrollRegion } from "./ui";
 import { fmtMillions, percent } from "../format";
 
 /**
@@ -66,7 +66,7 @@ function DiffView({ diff }: { diff: AuditVersionDiff }) {
       {changed.length === 0 ? (
         <div className="field-note">Вердикт, находки, охват и оценка не изменились.</div>
       ) : (
-        <div className="contrib-wrap">
+        <ScrollRegion className="contrib-wrap" label="Что изменилось в деле">
           <div className="contrib-row contrib-row--head">
             <div className="contrib-label">Величина</div>
             <div className="contrib-cell">Было</div>
@@ -79,7 +79,7 @@ function DiffView({ diff }: { diff: AuditVersionDiff }) {
               <div className="contrib-cell">{fmtMetric(m.key, m.new)}</div>
             </div>
           ))}
-        </div>
+        </ScrollRegion>
       )}
 
       <div className="rsection-label" style={{ marginTop: 16 }}>

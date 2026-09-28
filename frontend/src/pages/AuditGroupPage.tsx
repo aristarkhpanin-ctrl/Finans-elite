@@ -17,7 +17,7 @@ import {
 } from "../api/audit";
 import { IconBriefcase, IconDownload, IconTrash } from "../components/icons";
 import { useToast } from "../components/Toast";
-import { Button } from "../components/ui";
+import { Button, ScrollRegion } from "../components/ui";
 import { UnsavedLeaveModal, useUnsavedGuard } from "../components/UnsavedGuard";
 import { downloadAuditXlsx } from "../auditExport";
 
@@ -377,7 +377,7 @@ export function AuditGroupPage() {
                 одинаковым подписям (например «2024»).
               </div>
             ) : (
-              <div style={{ overflowX: "auto" }}>
+              <ScrollRegion className="x-scroll" label="Свод отчётности группы">
                 <table className="audit-grid">
                   <thead>
                     <tr>
@@ -396,7 +396,7 @@ export function AuditGroupPage() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </ScrollRegion>
             )}
           </div>
 
@@ -409,7 +409,7 @@ export function AuditGroupPage() {
                 return (
                   <div className="audit-block" key={key}>
                     <div className="audit-block__title">Коэффициенты группы — {title.toLowerCase()}</div>
-                    <div style={{ overflowX: "auto" }}>
+                    <ScrollRegion className="x-scroll" label={`Коэффициенты группы — ${title.toLowerCase()}`}>
                       <table className="audit-grid">
                         <thead>
                           <tr>
@@ -428,7 +428,7 @@ export function AuditGroupPage() {
                           ))}
                         </tbody>
                       </table>
-                    </div>
+                    </ScrollRegion>
                   </div>
                 );
               })}

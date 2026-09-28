@@ -6,7 +6,7 @@ import {
   type AuditComparison,
   type AuditCompareRow,
 } from "../api/audit";
-import { Button } from "../components/ui";
+import { Button, ScrollRegion } from "../components/ui";
 import { fmtMoney } from "../format";
 
 /**
@@ -67,7 +67,7 @@ function Comparison({ data }: { data: AuditComparison }) {
         </div>
       </div>
 
-      <div style={{ overflowX: "auto" }}>
+      <ScrollRegion className="x-scroll" label="Сравнение дел">
         <table className="audit-grid cmp-table">
           <thead>
             <tr>
@@ -98,7 +98,7 @@ function Comparison({ data }: { data: AuditComparison }) {
             ))}
           </tbody>
         </table>
-      </div>
+      </ScrollRegion>
 
       {data.caveats.length > 0 && (
         <div className="proc-limits">

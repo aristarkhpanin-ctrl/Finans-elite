@@ -80,7 +80,15 @@ const AA = 4.5;
 /** Текстовые токены × фоны, на которых стоит текст. */
 const TEXT = ["--text", "--muted", "--subtle", "--accent", "--danger", "--danger-text",
               "--warn-text", "--good", "--info"];
-const GROUNDS = ["--page-bg", "--app-bg", "--surface", "--surface-2"];
+const GROUNDS = ["--page-bg", "--app-bg", "--surface", "--surface-2", "--seg-bg"];
+/**
+ * Цветные подложки: предупреждение, риск, инфо, успех, выделение. Третичный текст на них
+ * не живёт — внутри таких блоков он переназначен на вторичный (`--subtle: var(--muted)`,
+ * страж ниже), поэтому здесь проверяются основной и вторичный. Подложка полупрозрачная и
+ * лежит то на карточке, то на подложке карточки — проверяются оба случая (пакет I:
+ * матрица «Аудита» нашла третичный текст 3,8:1 на тёплой подложке тёмной темы).
+ */
+const TINTS = ["--warn-bg", "--danger-bg", "--info-bg", "--good-bg", "--primary-soft", "--primary-bg"];
 /** Чип, бейдж, выбранная вкладка: свой цвет текста на своей заливке. */
 const CHIPS: [string, string][] = [
   ["--accent", "--primary-bg"], ["--accent", "--primary-soft"], ["--good", "--good-bg"],
@@ -91,6 +99,16 @@ const CHIPS: [string, string][] = [
 function weakPairs(th: Record<string, string>): string[] {
   const card = rgb(th["--surface"]);
   const weak: string[] = [];
+  const cardAlt = flatten(th["--surface-2"], card);
+  for (const tint of TINTS) {
+    for (const [under, base] of [["--surface", card], ["--surface-2", cardAlt]] as const) {
+      const ground = flatten(th[tint], base);
+      for (const fg of ["--text", "--muted"]) {
+        const ratio = contrast(flatten(th[fg], ground), ground);
+        if (ratio < AA) weak.push(`${fg} на ${tint} поверх ${under}: ${ratio.toFixed(2)}:1`);
+      }
+    }
+  }
   const pairs = [...TEXT.flatMap((t) => GROUNDS.map((g) => [t, g] as [string, string])), ...CHIPS];
   for (const [fg, bg] of pairs) {
     const ground = flatten(th[bg], card);
@@ -116,6 +134,45 @@ describe("контраст текста — WCAG AA", () => {
       .toContain("--accent на --surface: 4.42:1");
     expect(weakPairs({ ...THEMES["Элит, тёмная"], "--subtle": "#677D64" }).length).toBeGreaterThan(0);
     expect(weakPairs({ ...THEMES["Аудит, тёмная"], "--subtle": "#6A5C86" }).length).toBeGreaterThan(0);
+  });
+
+  it("на цветной подложке третичный текст переназначен на вторичный", () => {
+    // Иначе третичный текст на тёплой подложке тёмной темы — 3,8:1 (пакет I). Поднять сам
+    // третичный нельзя: он сравнялся бы с вторичным, и иерархия исчезла бы. Правило одно:
+    // любое правило с цветной подложкой объявляет `--subtle: var(--muted)`.
+    const tinted = new RegExp(`background(?:-color)?\\s*:\\s*var\\((${TINTS.join("|")})\\)`);
+    const missing: string[] = [];
+    for (const m of css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const selector = m[1].trim();
+      if (selector.startsWith(":root") || selector.startsWith("[data-theme")) continue;
+      if (tinted.test(m[2]) && !/--subtle\s*:\s*var\(--muted\)/.test(m[2])) missing.push(selector);
+    }
+    expect(missing, "цветная подложка без переназначения третичного текста").toEqual([]);
+  });
+
+  it("текст не приглушается прозрачностью", () => {
+    // Прозрачность поверх цвета роняет контраст мимо токенов: примечание «светофора»
+    // диагностики с opacity 0,75 давало 3,4:1 (матрица «Аудита», пакет I), а тест
+    // токенов этого не видел. Тон — цветом; исключения названы с причиной.
+    const allowed: Record<string, string> = {
+      "input::placeholder": "заполнитель — пример, а не содержимое: его бледность отличает «пусто» от «0», а в «Аудите» это разные утверждения",
+      ".afield__input::placeholder": "то же, у полей входа",
+      ".splash__wordmark span": "логотип (WCAG 1.4.3 не требует контраста у логотипов)",
+      ".auth-banner__x": "значок «✕» с именем «Скрыть» — нетекстовый контраст 3:1 проходит",
+    };
+    const dimmed: string[] = [];
+    for (const m of css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const selector = m[1].trim();
+      const body = m[2];
+      if (!/(^|[;\s])opacity\s*:\s*0?\.\d/.test(body)) continue;
+      if (!/(^|[;\s])(font|font-size|font-weight|color)\s*:/.test(body)) continue;
+      if (selector in allowed || /:disabled|--disabled/.test(selector)) continue;
+      dimmed.push(selector);
+    }
+    expect(dimmed, "текст приглушён прозрачностью — задайте тон цветом").toEqual([]);
+    for (const selector of Object.keys(allowed)) {
+      expect(css.includes(selector + " {"), `исключение ${selector} устарело — удалите`).toBe(true);
+    }
   });
 
   it("неоновая заливка не служит цветом текста", () => {

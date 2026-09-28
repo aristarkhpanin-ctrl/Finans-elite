@@ -4,7 +4,7 @@ import { useState } from "react";
 import { runSensitivity, SENSITIVITY_PARAMS, type SensitivityResponse } from "../../api/analysis";
 import { CAT, MultiLineChart, type Series } from "../../components/charts";
 import { ESelect } from "../../components/EditorField";
-import { Button } from "../../components/ui";
+import { Button, ScrollRegion } from "../../components/ui";
 import { fmtMillions, percent } from "../../format";
 
 const DEFAULT_FACTORS = "0.8, 0.9, 1.0, 1.1, 1.2";
@@ -174,7 +174,7 @@ export function SensitivityTab({ projectId }: { projectId: string }) {
             </div>
           </div>
 
-          <div className="sens-table">
+          <ScrollRegion className="sens-table" label="Таблица чувствительности NPV">
             <div className="sens-row sens-row--head">
               <div className="sens-col-coeff">Коэффициент</div>
               <div className="sens-col-num">NPV, млн ₽</div>
@@ -222,7 +222,7 @@ export function SensitivityTab({ projectId }: { projectId: string }) {
                 </div>
               );
             })}
-          </div>
+          </ScrollRegion>
         </>
       )}
     </div>

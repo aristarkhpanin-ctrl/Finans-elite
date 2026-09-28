@@ -63,7 +63,9 @@ const BRAND: Record<Product, BrandCopy> = {
 function Wordmark({ product, small }: { product: Product; small?: boolean }) {
   return (
     <span className={small ? "auth-word-sm" : "auth-brand__word"}>
-      Финанс<span style={{ opacity: 0.5, fontWeight: 500 }}>{PRODUCTS[product].brand}</span>
+      {/* У маленькой марки (телефон, планшет) цвет хвоста задаёт CSS (`--subtle`): прозрачность
+          поверх него давала 2,1:1 — `axe-core` нашёл это только на узких ширинах (пакет I). */}
+      Финанс<span style={small ? undefined : { opacity: 0.5, fontWeight: 500 }}>{PRODUCTS[product].brand}</span>
     </span>
   );
 }

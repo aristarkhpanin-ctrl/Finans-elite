@@ -63,6 +63,7 @@ export function OrganizationPage() {
         <div className="etabs">
           {TABS.map(([key, label]) => (
             <button
+              aria-pressed={tab === key}
               key={key}
               type="button"
               className={"etab" + (tab === key ? " etab--active" : "")}

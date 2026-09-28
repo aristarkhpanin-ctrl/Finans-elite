@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { getJob, submitMonteCarloAsync, SENSITIVITY_PARAMS, type UncertainParamIn } from "../../api/analysis";
+import { httpDetail } from "../../api/client";
 import { CAT, HistogramChart } from "../../components/charts";
 import { CubeHero } from "../../components/CubeHero";
 import { ESelect } from "../../components/EditorField";
@@ -88,7 +89,9 @@ export function MonteCarloTab({ projectId }: { projectId: string }) {
   const d = job.data?.status === "success" ? job.data.result : undefined;
   const failed = job.data?.status === "failure";
   const running = submit.isPending || (jobId != null && !d && !failed);
-  const idle = jobId == null && !submit.isPending;
+  // Приглашение «Запустите симуляцию» — только пока не запускали: рядом с ошибкой оно
+  // говорило бы, что ничего не произошло (матрица состояний, пакет I).
+  const idle = jobId == null && !submit.isPending && !submit.isError;
   const errored = submit.isError || failed;
   const start = () => submit.mutate();
 
@@ -190,6 +193,7 @@ export function MonteCarloTab({ projectId }: { projectId: string }) {
                 className="scn-del"
                 style={{ alignSelf: "flex-end" }}
                 title="Удалить параметр"
+                aria-label={`Удалить параметр ${i + 1}`}
                 onClick={() => setRows(rows.filter((_, k) => k !== i))}
               >
                 ✕
@@ -237,7 +241,10 @@ export function MonteCarloTab({ projectId }: { projectId: string }) {
           <div style={{ minWidth: 0 }}>
             <div className="an-err__title">Не удалось выполнить симуляцию</div>
             <div className="an-err__sub">
-              {(failed && job.data?.error) || "Проверьте распределения параметров и повторите."}
+              {/* Причину называет сервер — как у соседних вкладок анализа; догадка — только
+                  когда причины нет. */}
+              {(failed && job.data?.error) || httpDetail(submit.error)
+                || "Проверьте распределения параметров и повторите."}
             </div>
             <Button variant="ghost" onClick={start}>
               Повторить

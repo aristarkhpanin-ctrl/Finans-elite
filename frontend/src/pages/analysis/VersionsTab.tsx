@@ -10,7 +10,7 @@ import {
   type VersionDiff,
 } from "../../api/versions";
 import { useToast } from "../../components/Toast";
-import { Button } from "../../components/ui";
+import { Button, ScrollRegion } from "../../components/ui";
 import { fmtMillions, percent } from "../../format";
 
 const fmtDate = (iso: string) =>
@@ -34,7 +34,7 @@ function DiffView({ diff }: { diff: VersionDiff }) {
       {metricChanged.length === 0 ? (
         <div className="field-note">Показатели не изменились.</div>
       ) : (
-        <div className="contrib-wrap">
+        <ScrollRegion className="contrib-wrap" label="Изменения показателей">
           <div className="contrib-row contrib-row--head">
             <div className="contrib-label">Показатель</div>
             <div className="contrib-cell">Было</div>
@@ -47,7 +47,7 @@ function DiffView({ diff }: { diff: VersionDiff }) {
               <div className="contrib-cell">{m.key.includes("irr") ? percent(m.new, 1) : fmtMillions(m.new, { digits: 2 })}</div>
             </div>
           ))}
-        </div>
+        </ScrollRegion>
       )}
 
       <div className="rsection-label" style={{ marginTop: 16 }}>

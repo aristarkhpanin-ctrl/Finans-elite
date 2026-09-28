@@ -7,7 +7,7 @@ import { addMember, blockMember, getMembers, issueAccessLink, patchMemberRole, r
 import { ESelect } from "../../components/EditorField";
 import { IconArrowRight, IconKey, IconRows, IconTrash, IconWarning } from "../../components/icons";
 import { useToast } from "../../components/Toast";
-import { Button, ErrorState, Field, Modal, Skeleton } from "../../components/ui";
+import { Button, ErrorState, Field, Modal, ScrollRegion, Skeleton } from "../../components/ui";
 import { initials } from "../../format";
 
 const AVATAR_BG = ["#5E93FF", "#C77DFF", "var(--primary)", "#E0A23A", "#5FD9A6"];
@@ -195,7 +195,7 @@ export function MembersTab({ orgId, myRole, myUserId, onShowActions }: {
       </div>
 
       {isLoading && (
-        <div className="org-tbl">
+        <div className="org-tbl" aria-busy="true">
           {[0, 1, 2].map((i) => (
             <div className="org-row" key={i}>
               <Skeleton width={200} height={22} />
@@ -213,7 +213,7 @@ export function MembersTab({ orgId, myRole, myUserId, onShowActions }: {
       )}
 
       {data && (
-        <div className="org-tbl">
+        <ScrollRegion className="org-tbl" label="Участники организации">
           <div className="org-row org-row--head">
             <div className="org-col-user">Участник</div>
             <div className="org-col-role">Роль</div>
@@ -317,6 +317,7 @@ export function MembersTab({ orgId, myRole, myUserId, onShowActions }: {
                       type="button"
                       className="icon-action"
                       title={`Вернуть доступ: ${m.block_reason || "без причины"}`}
+                      aria-label={`Вернуть доступ: ${m.full_name || m.email}`}
                       disabled={unblock.isPending}
                       onClick={() => unblock.mutate(m.user_id)}
                     >
@@ -356,7 +357,7 @@ export function MembersTab({ orgId, myRole, myUserId, onShowActions }: {
               </div>
             );
           })}
-        </div>
+        </ScrollRegion>
       )}
 
       {data && data.length === 1 && (

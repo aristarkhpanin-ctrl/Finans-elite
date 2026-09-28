@@ -28,7 +28,7 @@ import { httpDetail, httpFieldError } from "../api/client";
 import { EditConflictModal, useEditConflict } from "../components/EditConflict";
 import { IconDownload, IconPrint, IconTrash, IconUpload } from "../components/icons";
 import { useToast } from "../components/Toast";
-import { Button } from "../components/ui";
+import { Button, ErrorState, ScrollRegion } from "../components/ui";
 import { AuditInputIssues } from "../components/AuditInputIssues";
 import { AuditEarnings } from "../components/AuditEarnings";
 import { AuditFlags } from "../components/AuditFlags";
@@ -314,7 +314,7 @@ export function AuditSubjectPage() {
     <div className="audit-block">
       <div className="audit-block__title">{title}</div>
       {note && <div className="field-note" style={{ marginBottom: 10 }}>{note}</div>}
-      <div style={{ overflowX: "auto" }}>
+      <ScrollRegion className="x-scroll" label={title}>
         <table className="audit-grid">
           <thead>
             <tr>
@@ -333,6 +333,7 @@ export function AuditSubjectPage() {
                     <input
                       className="audit-cell"
                       inputMode="decimal"
+                      aria-label={`${label}, ${m.periods[t]?.label || `период ${t + 1}`}`}
                       value={m[which][code]?.[t] ?? ""}
                       placeholder="0"
                       onChange={(e) => setCell(which, code, t, e.target.value)}
@@ -343,7 +344,7 @@ export function AuditSubjectPage() {
             ))}
           </tbody>
         </table>
-      </div>
+      </ScrollRegion>
     </div>
   );
 
@@ -430,6 +431,7 @@ export function AuditSubjectPage() {
       <div className="seg" style={{ marginBottom: 10, flexWrap: "wrap" }}>
         {SECTIONS.map(([key, label, tabs]) => (
           <button
+            aria-pressed={sectionOf(tab) === key}
             key={key}
             className={"seg__btn" + (sectionOf(tab) === key ? " seg__btn--active" : "")}
             onClick={() => setTab(tabs[0])}
@@ -522,7 +524,7 @@ export function AuditSubjectPage() {
               <div className="ft-row" key={i}>
                 <input className="efield__input" value={p.label} placeholder={`Период ${i + 1} (напр. 2024)`}
                        onChange={(e) => setPeriod(i, { label: e.target.value })} />
-                <select className="efield__input" value={p.kind}
+                <select className="efield__input" value={p.kind} aria-label={`Вид периода ${i + 1}`}
                         onChange={(e) => setPeriod(i, { kind: e.target.value as AuditPeriod["kind"] })}>
                   <option value="year">Год</option>
                   <option value="quarter">Квартал</option>
@@ -625,7 +627,7 @@ export function AuditSubjectPage() {
                 {revals.map((rv, i) => (
                   <div key={i} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     <div className="ft-row">
-                      <select className="efield__input" value={rv.code}
+                      <select className="efield__input" value={rv.code} aria-label={`Статья поправки ${i + 1}`}
                               onChange={(e) => updReval(i, { code: e.target.value })}>
                         {REVALUABLE_LINES.map(([code, label]) => (
                           <option value={code} key={code}>{label}</option>
@@ -639,7 +641,7 @@ export function AuditSubjectPage() {
                         <IconTrash size={15} />
                       </button>
                     </div>
-                    <div style={{ overflowX: "auto" }}>
+                    <ScrollRegion className="x-scroll" label={`Суммы поправки ${i + 1}`}>
                       <table className="audit-grid">
                         <thead>
                           <tr>
@@ -653,6 +655,7 @@ export function AuditSubjectPage() {
                             {m.periods.map((_, t) => (
                               <td key={t}>
                                 <input className="audit-cell" inputMode="decimal"
+                                       aria-label={`Поправка ${i + 1}, ${m.periods[t]?.label || `период ${t + 1}`}`}
                                        value={rv.amounts?.[t] ?? ""} placeholder="0"
                                        onChange={(e) => setRevalAmount(i, t, e.target.value)} />
                               </td>
@@ -660,7 +663,7 @@ export function AuditSubjectPage() {
                           </tr>
                         </tbody>
                       </table>
-                    </div>
+                    </ScrollRegion>
                   </div>
                 ))}
               </div>
@@ -674,11 +677,8 @@ export function AuditSubjectPage() {
       ) : analysis.isLoading ? (
         <div className="page-sub" style={{ padding: 24 }}>Считаем анализ…</div>
       ) : analysis.isError || !analysis.data ? (
-        <div className="error-state" style={{ padding: "40px 24px" }}>
-          <div className="error-state__ico">!</div>
-          <div className="error-state__title">Не удалось выполнить анализ</div>
-          <Button variant="ghost" onClick={() => analysis.refetch()}>Повторить</Button>
-        </div>
+        <ErrorState text="Не удалось выполнить анализ" style={{ padding: "40px 24px" }}
+                    onRetry={() => void analysis.refetch()} />
       ) : analysis.data.n === 0 ? (
         <div className="tab-empty">
           <div className="tab-empty__title">Нет периодов</div>
@@ -702,7 +702,7 @@ export function AuditSubjectPage() {
             return (
               <div className="audit-block" key={key}>
                 <div className="audit-block__title">{title}</div>
-                <div style={{ overflowX: "auto" }}>
+                <ScrollRegion className="x-scroll" label={title}>
                   <table className="audit-grid">
                     <thead>
                       <tr>
@@ -725,7 +725,7 @@ export function AuditSubjectPage() {
                       ))}
                     </tbody>
                   </table>
-                </div>
+                </ScrollRegion>
               </div>
             );
           })}
@@ -786,12 +786,13 @@ export function AuditSubjectPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {thresholds.map((th, i) => (
                   <div className="ft-row" key={i}>
-                    <select className="efield__input" value={th.ratio}
+                    <select className="efield__input" value={th.ratio} aria-label={`Показатель норматива ${i + 1}`}
                             onChange={(e) => updThreshold(i, { ratio: e.target.value })}>
                       <option value="">— выберите показатель —</option>
                       {ratioNames.map((nm) => <option key={nm} value={nm}>{nm}</option>)}
                     </select>
                     <select className="efield__input" value={th.direction}
+                            aria-label={`Направление норматива ${i + 1}`}
                             onChange={(e) => updThreshold(i, { direction: e.target.value as RatioThreshold["direction"] })}>
                       <option value="higher">Больше — лучше</option>
                       <option value="lower">Меньше — лучше</option>
@@ -834,7 +835,7 @@ export function AuditSubjectPage() {
           {analysis.data.user_metrics.length > 0 && (
             <div className="audit-block">
               <div className="audit-block__title">Результат (по сохранённым данным)</div>
-              <div style={{ overflowX: "auto" }}>
+              <ScrollRegion className="x-scroll" label="Результат пользовательских показателей">
                 <table className="audit-grid">
                   <thead>
                     <tr>
@@ -856,7 +857,7 @@ export function AuditSubjectPage() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </ScrollRegion>
               {analysis.data.user_metrics.filter((u) => u.error).map((u, i) => (
                 <div className="field-note field-note--warn" key={i} style={{ marginTop: 8 }}>
                   {u.name}: {u.error}
@@ -902,11 +903,8 @@ export function AuditSubjectPage() {
           // «считаем» честнее пустого экрана.
           <div className="page-sub" style={{ padding: 24 }}>Считаем прогоны Монте-Карло…</div>
         ) : risk.isError ? (
-          <div className="error-state" style={{ padding: "40px 24px" }}>
-            <div className="error-state__ico">!</div>
-            <div className="error-state__title">Не удалось посчитать риски</div>
-            <Button variant="ghost" onClick={() => risk.refetch()}>Повторить</Button>
-          </div>
+          <ErrorState text="Не удалось посчитать риски" style={{ padding: "40px 24px" }}
+                      onRetry={() => void risk.refetch()} />
         ) : (
           <AuditRisk
             result={risk.data ?? analysis.data.risk}
@@ -983,7 +981,7 @@ export function AuditSubjectPage() {
 
             <div className="audit-block">
               <div className="audit-block__title">Модели диагностики банкротства</div>
-              <div style={{ overflowX: "auto" }}>
+              <ScrollRegion className="x-scroll" label="Модели диагностики банкротства">
                 <table className="audit-grid">
                   <thead>
                     <tr>
@@ -1009,7 +1007,7 @@ export function AuditSubjectPage() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </ScrollRegion>
               {analysis.data.diagnostics.scores.map((s) => (
                 <div className="field-note" key={s.id} style={{ marginTop: 8 }}>{s.name}: {s.note}</div>
               ))}
@@ -1017,7 +1015,7 @@ export function AuditSubjectPage() {
 
             <div className="audit-block">
               <div className="audit-block__title">Оценка показателей по нормативам</div>
-              <div style={{ overflowX: "auto" }}>
+              <ScrollRegion className="x-scroll" label="Оценка показателей по нормативам">
                 <table className="audit-grid">
                   <thead>
                     <tr>
@@ -1040,7 +1038,7 @@ export function AuditSubjectPage() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </ScrollRegion>
             </div>
           </>
         )
@@ -1048,7 +1046,7 @@ export function AuditSubjectPage() {
         <>
           <div className="audit-block">
             <div className="audit-block__title">Горизонтальный анализ (изменение к предыдущему периоду)</div>
-            <div style={{ overflowX: "auto" }}>
+            <ScrollRegion className="x-scroll" label="Горизонтальный анализ">
               <table className="audit-grid">
                 <thead>
                   <tr>
@@ -1079,12 +1077,12 @@ export function AuditSubjectPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollRegion>
           </div>
 
           <div className="audit-block">
             <div className="audit-block__title">Вертикальный анализ (структура: доля в активе / выручке)</div>
-            <div style={{ overflowX: "auto" }}>
+            <ScrollRegion className="x-scroll" label="Вертикальный анализ">
               <table className="audit-grid">
                 <thead>
                   <tr>
@@ -1101,7 +1099,7 @@ export function AuditSubjectPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollRegion>
           </div>
         </>
       )}
@@ -1181,7 +1179,7 @@ function StatementTable({ title, periods, lines }: {
   return (
     <div className="audit-block">
       <div className="audit-block__title">{title}</div>
-      <div style={{ overflowX: "auto" }}>
+      <ScrollRegion className="x-scroll" label={title}>
         <table className="audit-grid">
           <thead>
             <tr>
@@ -1198,7 +1196,7 @@ function StatementTable({ title, periods, lines }: {
             ))}
           </tbody>
         </table>
-      </div>
+      </ScrollRegion>
     </div>
   );
 }

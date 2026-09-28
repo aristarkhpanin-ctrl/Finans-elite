@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef } from "react";
-import type { ButtonHTMLAttributes, CSSProperties, InputHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, CSSProperties, InputHTMLAttributes, ReactNode, RefObject } from "react";
 import { createPortal } from "react-dom";
 
 /* ─── Кнопка ─────────────────────────────────────────────────────────────── */
@@ -379,13 +379,14 @@ export function MetricCard({
  * клавиатуры была недостижима (`axe-core`, матрица P13). Имя обязательно: «область»
  * без имени диктор так и читает — «область».
  */
-export function ScrollRegion({ label, className, children }: {
+export function ScrollRegion({ label, className, style, children }: {
   label: string;
   className: string;
+  style?: CSSProperties;
   children: ReactNode;
 }) {
   return (
-    <div className={`${className} scroll-region`} role="region" aria-label={label} tabIndex={0}>
+    <div className={`${className} scroll-region`} style={style} role="region" aria-label={label} tabIndex={0}>
       {children}
     </div>
   );
@@ -449,19 +450,31 @@ export function EmptyState({
 export function ErrorState({
   text = "Не удалось загрузить данные.",
   onRetry,
+  sub,
+  actions,
+  style,
 }: {
   text?: string;
   onRetry?: () => void;
+  /** Пояснение под заголовком: причина с сервера, что делать дальше. */
+  sub?: ReactNode;
+  /** Свои выходы вместо «Повторить» — например, «← К редактору». */
+  actions?: ReactNode;
+  style?: CSSProperties;
 }) {
+  // Одна карточка на все экраны (пакет I): копии разметки жили на шести страницах, и ни
+  // в одной не было `role="alert"` — диктор о сбое не узнавал. Перечень-тест
+  // `a11yMarkup.test.ts` не даёт завести седьмую.
   return (
-    <div className="error-state" role="alert">
+    <div className="error-state" role="alert" style={style}>
       <div className="error-state__ico" aria-hidden="true">!</div>
       <div className="error-state__title">{text}</div>
-      {onRetry && (
+      {sub && <div className="page-sub" style={{ maxWidth: 480, textAlign: "center" }}>{sub}</div>}
+      {actions ?? (onRetry && (
         <Button variant="ghost" onClick={onRetry}>
           Повторить
         </Button>
-      )}
+      ))}
     </div>
   );
 }
@@ -500,6 +513,47 @@ function trapTab(e: KeyboardEvent, node: HTMLElement) {
   }
 }
 
+/**
+ * Поведение диалога с клавиатуры — одно на модалку и выдвижную панель (H6, пакет I):
+ * фокус внутрь при открытии (поле с `autoFocus` не перебивается), Tab по кругу внутри,
+ * Esc закрывает, фокус возвращается туда, откуда открыли. Панель на телефоне была
+ * объявлена диалогом, но фокус в неё не переходил и табуляцией уходил на страницу под ней.
+ */
+export function useDialogFocus(open: boolean, ref: RefObject<HTMLElement | null>, onClose: () => void) {
+  // Кто был в фокусе **до** открытия. Запоминается при отрисовке, а не в эффекте:
+  // `autoFocus` поля внутри срабатывает раньше эффектов, и эффект запомнил бы само поле.
+  const opener = useMemo(
+    () => (open ? (document.activeElement as HTMLElement | null) : null),
+    [open],
+  );
+  // `onClose` почти всегда стрелочная функция — новая на каждой перерисовке владельца, а
+  // владелец перерисовывается на каждую букву в поле модалки. В зависимостях эффекта она
+  // перезапускала бы фокус и отнимала его у поля после первой же буквы (H6).
+  const closeRef = useRef(onClose);
+  useEffect(() => {
+    closeRef.current = onClose;
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    const node = ref.current;
+    // Поле с `autoFocus` уже взяло фокус — не перебивать; иначе фокус на сам диалог,
+    // чтобы Esc и Tab работали сразу.
+    if (node && !node.contains(document.activeElement)) node.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeRef.current();
+      else if (e.key === "Tab" && node) trapTab(e, node);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      // Фокус — туда, откуда открыли: иначе после Esc он падает на <body>, и человек с
+      // клавиатуры начинает обход страницы с самого начала.
+      if (opener?.isConnected) opener.focus();
+    };
+  }, [open, opener, ref]);
+}
+
 export function Modal({
   open,
   onClose,
@@ -518,38 +572,7 @@ export function Modal({
   maxWidth?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  // Кто был в фокусе **до** открытия. Запоминается при отрисовке, а не в эффекте:
-  // `autoFocus` поля внутри срабатывает раньше эффектов, и эффект запомнил бы само поле.
-  const opener = useMemo(
-    () => (open ? (document.activeElement as HTMLElement | null) : null),
-    [open],
-  );
-  // `onClose` почти всегда стрелочная функция — новая на каждой перерисовке владельца, а
-  // владелец перерисовывается на каждую букву в поле модалки. В зависимостях эффекта она
-  // перезапускала бы фокус и отнимала его у поля после первой же буквы (H6).
-  const closeRef = useRef(onClose);
-  useEffect(() => {
-    closeRef.current = onClose;
-  });
-
-  useEffect(() => {
-    if (!open) return;
-    const node = ref.current;
-    // Поле с `autoFocus` уже взяло фокус — не перебивать; иначе фокус на саму модалку,
-    // чтобы Esc и Tab работали сразу.
-    if (node && !node.contains(document.activeElement)) node.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeRef.current();
-      else if (e.key === "Tab" && node) trapTab(e, node);
-    };
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      // Фокус — туда, откуда модалку открыли: иначе после Esc он падает на <body>, и
-      // человек с клавиатуры начинает обход страницы с самого начала.
-      if (opener?.isConnected) opener.focus();
-    };
-  }, [open, opener]);
+  useDialogFocus(open, ref, onClose);
 
   if (!open) return null;
   return createPortal(

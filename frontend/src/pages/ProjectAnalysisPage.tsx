@@ -63,6 +63,7 @@ export function ProjectAnalysisPage() {
         <div className="etabs fe-scroll">
           {TABS.map(([key, label, sub]) => (
             <button
+              aria-pressed={tab === key}
               key={key}
               type="button"
               className={"etab atab" + (tab === key ? " etab--active atab--active" : "")}
