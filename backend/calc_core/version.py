@@ -6,4 +6,4 @@
 """
 from __future__ import annotations
 
-ENGINE_VERSION = "0.9.50"
+ENGINE_VERSION = "0.9.51"

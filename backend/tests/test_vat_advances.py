@@ -43,6 +43,9 @@ D = Decimal
 
 def _model(payment: PaymentTerms, volume: list[Decimal], *,
            basis: VatBasis = VatBasis.SHIPMENT) -> ProjectModel:
+    # Лишний месяц без продаж: НДС платится в месяце, **следующем** за признанием (0.9.51),
+    # и признание последнего месяца без него ушло бы за горизонт (см. ``_vat_paid``).
+    volume = [*volume, D(0)]
     n = len(volume)
     return ProjectModel(
         header=ProjectHeader(name="vat", start_date=date(2026, 1, 1), duration_months=n),
@@ -60,9 +63,11 @@ def _model(payment: PaymentTerms, volume: list[Decimal], *,
 
 
 def _vat_paid(result) -> list[Decimal]:
-    """НДС в кассе по месяцам — слагаемое C12, сохранённое конвейером."""
+    """НДС, **признанный** в каждом месяце: уплата (слагаемое C12, сохранённое конвейером),
+    сдвинутая на месяц назад. С 0.9.51 помесячный НДС платится в следующем месяце, а
+    правила этого файла — о моменте признания, и ожидания оставлены в его терминах."""
     c12 = next(d for d in result.details if d.code == "C12")
-    return next(item.values for item in c12.items if item.name == "НДС к уплате")
+    return list(next(item.values for item in c12.items if item.name == "НДС к уплате")[1:])
 
 
 def _balanced(result) -> bool:

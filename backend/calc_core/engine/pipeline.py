@@ -1137,12 +1137,13 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
         c1[0] += sb.receivables
         c2 = list(c2)
         c2[0] += sb.payables
-    # Периодичность уплаты профильных налогов (SPEC §11): прибыль и НДС платятся в
-    # последнем месяце календарного периода; начисление (I27, vat_to_budget) не меняется,
-    # отсрочка → B21.
+    # Сроки уплаты профильных налогов (SPEC §11, пакет J): прибыль — в месяце после
+    # периода, годовой — в марте (ст. 287); НДС за квартал — тремя долями в трёх следующих
+    # месяцах (ст. 174). Начисление (I27, vat_to_budget) не меняется, отсрочка → B21.
     profit_paid = _payment_schedule(income["I27"], settings.profit_tax_periodicity, n,
-                                    offset=tax_offset)
-    vat_paid = _payment_schedule(vat_to_budget, settings.vat_periodicity, n, offset=tax_offset)
+                                    offset=tax_offset, due="profit")
+    vat_paid = _payment_schedule(vat_to_budget, settings.vat_periodicity, n, offset=tax_offset,
+                                 due="vat")
     profit_defer = cumulative([income["I27"][t] - profit_paid[t] for t in range(n)])
     vat_pay_defer = cumulative([vat_to_budget[t] - vat_paid[t] for t in range(n)])
     # Налоги в кассе: прибыль + имущество + налог с продаж + НДС + настраиваемые (SPEC §22.9).

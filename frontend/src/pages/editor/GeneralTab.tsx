@@ -145,9 +145,17 @@ const PERIODICITY_OPTIONS: [string, string][] = [
 ];
 
 /** Периоды уплаты календарные (с 0.9.46): при старте не в январе первый период неполный. */
-const PERIODICITY_HINT =
-  "Квартал и год — календарные: уплата в марте, июне, сентябре и декабре (за год — в " +
-  "декабре). При старте не в январе первый период неполный.";
+// Сроки уплаты — по закону (движок 0.9.51): подсказка говорит, когда деньги уходят, а не
+// только как копится период. Периоды календарные; при старте не в январе первый неполный.
+const PROFIT_DUE_HINT =
+  "Периоды календарные. Уплата — в месяце после периода (до 28-го), налог за год — в " +
+  "марте следующего года (ст. 287 НК РФ). Не уплаченное к концу горизонта остаётся " +
+  "задолженностью.";
+const VAT_DUE_HINT =
+  "По закону — квартал: три равные доли в трёх месяцах после него (ст. 174 НК РФ). " +
+  "«Ежемесячно» и «ежегодно» — упрощения модели: уплата в месяце после периода.";
+const CUSTOM_DUE_HINT =
+  "Периоды календарные; уплата — в месяце, следующем за периодом.";
 
 
 /** Настраиваемые налоги (SPEC §22.9): список «база × ставка» поверх профильных ставок. */
@@ -209,7 +217,7 @@ function CustomTaxes({ environment, onChange }: { environment: Environment; onCh
                 />
                 <ESelect
                   label="Периодичность уплаты"
-                  hint={PERIODICITY_HINT}
+                  hint={CUSTOM_DUE_HINT}
                   value={t.periodicity}
                   onChange={(v) => upd(i, { periodicity: v as CustomTax["periodicity"] })}
                   options={[
@@ -399,7 +407,7 @@ export function GeneralTab({ header, settings, environment, onHeader, onSettings
         />
         <ESelect
           label="Уплата налога на прибыль"
-          hint={PERIODICITY_HINT}
+          hint={PROFIT_DUE_HINT}
           value={settings.profit_tax_periodicity ?? "month"}
           onChange={(v) => set({ profit_tax_periodicity: v as ProjectSettings["profit_tax_periodicity"] })}
           options={PERIODICITY_OPTIONS}
@@ -424,7 +432,7 @@ export function GeneralTab({ header, settings, environment, onHeader, onSettings
         />
         <ESelect
           label="Уплата НДС"
-          hint={PERIODICITY_HINT}
+          hint={VAT_DUE_HINT}
           value={settings.vat_periodicity ?? "month"}
           onChange={(v) => set({ vat_periodicity: v as ProjectSettings["vat_periodicity"] })}
           options={PERIODICITY_OPTIONS}

@@ -64,24 +64,62 @@ def test_january_start_is_the_old_convention():
 
 @pytest.mark.parametrize(("offset", "quarter_ends"), [
     (0, [2, 5, 8, 11]),        # январь: март, июнь, сентябрь, декабрь
-    (1, [1, 4, 7, 10]),        # февраль: первый квартал неполный — платится в марте
+    (1, [1, 4, 7, 10]),        # февраль: первый квартал неполный — кончается в марте
     (6, [2, 5, 8, 11]),        # июль: сентябрь, декабрь, март, июнь
     (10, [1, 4, 7, 10]),       # ноябрь: декабрь, март, июнь, сентябрь
 ])
 def test_a_quarter_ends_in_march_june_september_or_december(offset, quarter_ends):
+    """Период — календарный квартал; срок — месяц, следующий за ним (пакет J, J3)."""
     accrual = [D(1)] * 12
-    paid = _payment_schedule(accrual, "quarter", 12, offset=offset)
-    assert [t for t, v in enumerate(paid) if v] == quarter_ends
-    assert sum(paid) + (12 - 1 - quarter_ends[-1]) == 12      # хвост — неуплата в B21
+    paid = _payment_schedule(accrual, "quarter", 12, offset=offset, due="next_month")
+    due_months = [e + 1 for e in quarter_ends if e + 1 < 12]
+    assert [t for t, v in enumerate(paid) if v] == due_months
     first = quarter_ends[0]
-    assert paid[first] == D(first + 1)            # первый период — с месяца старта
+    assert paid[first + 1] == D(first + 1)        # первый период — с месяца старта
+    # Срок которых не наступил к концу горизонта — задолженность (B21), а не уплата.
+    assert sum(paid) == quarter_ends[len(due_months) - 1] + 1
 
 
-def test_a_year_ends_in_december():
-    paid = _payment_schedule([D(1)] * 24, "year", 24, offset=9)   # старт в октябре
-    assert [t for t, v in enumerate(paid) if v] == [2, 14]
-    assert paid[2] == D(3)                        # октябрь–декабрь — неполный первый год
-    assert paid[14] == D(12)
+def test_a_year_ends_in_december_and_its_profit_tax_is_due_in_march():
+    """Год — календарный; налог на прибыль за год — до 28 марта (п. 4 ст. 289, ст. 287)."""
+    paid = _payment_schedule([D(1)] * 24, "year", 24, offset=9, due="profit")   # октябрь
+    assert [t for t, v in enumerate(paid) if v] == [5, 17]    # март 2027 и март 2028
+    assert paid[5] == D(3)                        # октябрь–декабрь — неполный первый год
+    assert paid[17] == D(12)
+
+
+def test_profit_advances_are_due_next_month_and_the_year_in_march():
+    """Помесячные авансы (п. 2 ст. 286) — в следующем месяце; декабрь — это уже налог за
+    год, и он платится в марте, а не в январе."""
+    accrual = [D(t + 1) for t in range(24)]
+    paid = _payment_schedule(accrual, "month", 24, offset=0, due="profit")
+    assert paid[0] == 0
+    assert paid[1] == D(1) and paid[11] == D(11)             # январь → февраль, …, ноябрь
+    assert paid[12] == 0 and paid[13] == D(13)               # январь 2027: декабрь не тут
+    assert paid[14] == D(12) + D(14)                         # март: год + аванс февраля
+    quarterly = _payment_schedule(accrual, "quarter", 24, offset=0, due="profit")
+    assert [t for t, v in enumerate(quarterly) if v] == [3, 6, 9, 14, 15, 18, 21]
+    assert quarterly[14] == sum(accrual[9:12], D(0))         # IV квартал — в марте
+
+
+def test_vat_for_a_quarter_is_due_in_three_equal_parts():
+    """НДС за квартал — равными долями не позднее 28-го числа каждого из трёх месяцев,
+    следующих за ним (п. 1 ст. 174). Доли в сумме — ровно начисленное: пыль деления в B21
+    не копится."""
+    accrual = [D(10), D(0), D(0)] + [D(0)] * 9
+    paid = _payment_schedule(accrual, "quarter", 12, offset=0, due="vat")
+    assert [t for t, v in enumerate(paid) if v] == [3, 4, 5]
+    assert paid[3] == paid[4] == D(10) / 3
+    assert paid[3] + paid[4] + paid[5] == D(10)
+    # Квартал, чьи доли выходят за горизонт, платится частично: остальное — в B21.
+    tail = _payment_schedule([D(0)] * 9 + [D(9)] + [D(0)] * 3, "quarter", 13, offset=0,
+                             due="vat")
+    assert tail[12] == D(3) and sum(tail) == D(3)
+
+
+def test_the_due_rule_is_named_explicitly():
+    with pytest.raises(ValueError):
+        _payment_schedule([D(1)] * 3, "month", 3, offset=0, due="last_month")  # type: ignore[arg-type]
 
 
 def _project(start: date, *, vat="0", profit="month", vat_period="month",
@@ -121,17 +159,27 @@ def test_the_engine_carries_losses_by_the_calendar():
     assert january.income["I22"][6] == 0 and january.income["I27"][6] == 0
 
 
-def test_quarterly_profit_and_vat_are_paid_at_calendar_quarter_ends():
+def _c12(r, name: str) -> list[D]:
+    items = next(d.items for d in r.details if d.code == "C12")
+    return next(i.values for i in items if i.name == name)
+
+
+def test_quarterly_profit_and_vat_are_paid_by_the_law():
     model = _project(date(2026, 8, 1), vat="0.20", profit="quarter", vat_period="quarter")
     r = run(model)
-    monthly = run(_project(date(2026, 8, 1), vat="0.20"))
-    # Разница кассы налогов относительно помесячной уплаты: ненулевые «доплаты» — только
-    # в месяцы, которыми кончается календарный квартал (сентябрь = t1, декабрь = t4, …).
-    ends = {t for t in range(r.n) if (t + tax_year_offset(model.header.start_date)) % 3 == 2}
-    assert ends == {1, 4, 7, 10, 13, 16, 19, 22}
-    for t in range(r.n):
-        if t not in ends:
-            assert r.cashflow["C12"][t] <= monthly.cashflow["C12"][t]
+    offset = tax_year_offset(model.header.start_date)
+    ends = [t for t in range(r.n) if (t + offset) % 3 == 2]
+    assert ends == [1, 4, 7, 10, 13, 16, 19, 22]
+    december = {e for e in ends if (e + offset) % 12 == 11}
+    assert december == {4, 16}
+    profit_months = {t for t, v in enumerate(_c12(r, "Налог на прибыль")) if v}
+    assert profit_months and profit_months <= {e + (3 if e in december else 1) for e in ends}
+    vat = _c12(r, "НДС к уплате")
+    vat_months = {t for t, v in enumerate(vat) if v}
+    assert vat_months and vat_months <= {e + k for e in ends for k in (1, 2, 3)}
+    for e in ends:
+        if e + 3 < r.n and vat[e + 1]:
+            assert vat[e + 1] == vat[e + 2]                   # равные доли квартала
     assert all(almost_equal(r.balance["B20"][t], r.balance["B34"][t]) for t in range(r.n))
 
 
@@ -139,10 +187,10 @@ def test_custom_taxes_follow_the_same_calendar():
     tax = Tax(name="Сбор", rate=D("0.01"), base="revenue", periodicity="quarter",
               allocation="expense")
     r = run(_project(date(2026, 5, 1), taxes=[tax]))
-    items = next(d.items for d in r.details if d.code == "C12")
-    series = next(i.values for i in items if i.name == "Сбор")
-    # Старт в мае, выручка — с ноября (t6): платится в декабре (t7), марте, июне, сентябре.
+    series = _c12(r, "Сбор")
+    # Старт в мае, выручка — с ноября (t6): IV квартал кончается в декабре (t7) и
+    # платится в январе (t8), дальше — апрель, июль, октябрь.
     paid_months = [t for t, v in enumerate(series) if v]
-    assert paid_months[:4] == [7, 10, 13, 16]
-    assert all((t + 4) % 3 == 2 for t in paid_months)       # только концы кварталов
+    assert paid_months[:4] == [8, 11, 14, 17]
+    assert all((t + 4) % 3 == 0 for t in paid_months)       # месяц после конца квартала
     assert all(almost_equal(r.balance["B20"][t], r.balance["B34"][t]) for t in range(r.n))

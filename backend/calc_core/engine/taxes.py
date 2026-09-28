@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from decimal import Decimal
+from typing import Literal, get_args
 
 from ..formula import FormulaError, evaluate
 from ..formula.functions import as_series
@@ -50,29 +51,63 @@ class TaxInjection:
         return cls(expense=zeros(n), profit=zeros(n), cash=zeros(n), deferred=zeros(n))
 
 
+#: Правило срока уплаты (пакет J, J3). Обязательный аргумент :func:`_payment_schedule`:
+#: прежняя конвенция «в последнем месяце периода» вернулась бы молча у того, кто его забыл.
+#:
+#: - ``next_month`` — в месяце, следующем за периодом (до 28-го числа; настраиваемые
+#:   налоги, взносы и подобное);
+#: - ``profit`` — налог на прибыль (ст. 287 НК РФ): авансы — в месяце, следующем за
+#:   отчётным периодом; налог за год (период, кончающийся в декабре) — в марте;
+#: - ``vat`` — НДС (ст. 174): за квартал — тремя равными долями в трёх следующих месяцах;
+#:   месяц и год (упрощения модели, законом не предусмотренные) — в следующем месяце.
+Due = Literal["next_month", "profit", "vat"]
+DUE_RULES: tuple[str, ...] = get_args(Due)
+
+
+def _due_parts(due: Due, size: int, december: bool) -> list[tuple[int, int]]:
+    """Сдвиги уплаты от последнего месяца периода: (через сколько месяцев, доля из 3)."""
+    if due == "vat" and size == 3:
+        return [(1, 1), (2, 1), (3, 1)]
+    if due == "profit" and december:
+        return [(3, 3)]
+    return [(1, 3)]
+
+
 def _payment_schedule(accrual: list[Decimal], periodicity: str, n: int, *,
-                      offset: int) -> list[Decimal]:
-    """Уплата по периодичности: в последнем месяце **календарного** периода — накопленное.
+                      offset: int, due: Due) -> list[Decimal]:
+    """Уплата накопленного за **календарный** период — в срок по закону (пакет J, J3).
 
     ``offset`` — :func:`~calc_core.reports.statements.tax_year_offset` даты старта:
     квартал кончается в марте, июне, сентябре и декабре, год — в декабре (ст. 285, 163
-    НК РФ). Первый период при старте не в январе неполный — он платится в конце своего
-    календарного периода. Обязателен: прежняя конвенция «период от старта проекта»
-    вернулась бы молча у того, кто его забыл.
+    НК РФ). Первый период при старте не в январе неполный — он платится по сроку своего
+    календарного периода. ``due`` — правило срока (``DUE_RULES``).
 
-    Хвост неполного периода остаётся неуплаченным (честная задолженность в B21);
-    принудительного закрытия в конце горизонта нет (решение Q5).
+    До 0.9.51 налог платился в последнем месяце своего периода (при помесячной уплате — в
+    месяце начисления), то есть на месяц раньше закона, а годовой налог на прибыль — на
+    три месяца раньше. Уплата после конца горизонта остаётся задолженностью в B21 — как и
+    хвост неполного периода (решение Q5: принудительного закрытия нет).
+
+    Доли НДС — две трети по трети и остаток последней: сумма долей равна начисленному
+    до копейки, иначе в B21 копилась бы пыль деления.
     """
     size = _PERIOD_MONTHS[periodicity]
-    if size == 1:
-        return list(accrual)
+    if due not in DUE_RULES:
+        raise ValueError(f"Неизвестное правило срока уплаты: {due}")
     paid = zeros(n)
     acc = ZERO
     for t in range(n):
         acc += accrual[t]
-        if (t + offset) % size == size - 1:
-            paid[t] = acc
-            acc = ZERO
+        if (t + offset) % size != size - 1:
+            continue
+        parts = _due_parts(due, size, december=(t + offset) % 12 == 11)
+        third = acc / 3
+        left = acc
+        for i, (lag, thirds) in enumerate(parts):
+            amount = left if i == len(parts) - 1 else third * thirds
+            left -= amount
+            if t + lag < n:
+                paid[t + lag] += amount
+        acc = ZERO
     return paid
 
 
@@ -94,7 +129,8 @@ def compute_custom_taxes(model: ProjectModel, income: Statement, cashflow: State
         except FormulaError as exc:
             raise ModelError(f"Налог «{tax.name}»: ошибка базы — {exc}") from exc
         accrual = [base[t] * tax.rate for t in range(n)]
-        paid = _payment_schedule(accrual, tax.periodicity, n, offset=offset)
+        paid = _payment_schedule(accrual, tax.periodicity, n, offset=offset,
+                                 due="next_month")
         target = inj.expense if tax.allocation == "expense" else inj.profit
         outstanding = ZERO
         for t in range(n):

@@ -250,4 +250,5 @@ def test_a_custom_profit_tax_is_reversed_with_the_profile_one():
     items = next(d.items for d in r.details if d.code == "C12")
     surcharge = next(i.values for i in items if i.name == "Надбавка")
     assert any(v < 0 for v in r.income["I27"])                   # сторно есть
-    assert sum(surcharge, D(0)) == sum(r.income["I26"], D(0)) * D("0.05")
+    # Уплата — в следующем месяце: декабрьское (сторно) начисление — за горизонтом.
+    assert sum(surcharge, D(0)) == sum(r.income["I26"][:-1], D(0)) * D("0.05")

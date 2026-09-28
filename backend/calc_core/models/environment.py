@@ -40,8 +40,8 @@ class Tax(MoneyModel):
     rate: Decimal = Decimal(0)
     base: Literal["revenue", "payroll", "property", "profit", "formula"] = "revenue"
     formula: str = ""            # база-формула при base='formula'
-    # Уплата: месяц — в месяце начисления; квартал/год — в последнем месяце периода
-    # проекта; неуплаченный остаток — в B21 (отсроченные налоговые платежи).
+    # Уплата: накопленное за календарный месяц/квартал/год — в месяце, следующем за
+    # периодом (0.9.51); неуплаченный остаток — в B21 (отсроченные налоговые платежи).
     periodicity: Literal["month", "quarter", "year"] = "month"
     # Отнесение: вычитаемые (→ I21) либо за счёт прибыли (→ I24, базу прибыли не уменьшают).
     allocation: Literal["expense", "profit"] = "expense"

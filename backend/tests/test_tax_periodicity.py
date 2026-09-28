@@ -42,32 +42,39 @@ def test_month_periodicity_matches_current():
     assert plain.balance["B21"] == explicit.balance["B21"]
 
 
+def _profit_paid(r) -> list[Decimal]:
+    items = next(d.items for d in r.details if d.code == "C12")
+    return next(i.values for i in items if i.name == "Налог на прибыль")
+
+
 def test_quarterly_profit_tax_shifts_payment_and_b21():
-    """Квартальная уплата прибыли: C12-прибыль в мес.3/6/9/12, между — долг в B21."""
+    """Квартальная уплата прибыли: I–III кварталы — в апреле, июле, октябре; налог за год
+    (IV квартал) — в марте, за горизонтом. Помесячная — в следующем месяце (ст. 287)."""
     monthly = run(_model())
     quarterly = run(_model(profit_period="quarter"))
     i27 = monthly.income["I27"]
     # начисление (I27) не изменилось
     assert quarterly.income["I27"] == i27
-    # уплата прибыли сдвинута: разница C12 относительно помесячной
-    dc = [quarterly.cashflow["C12"][t] - monthly.cashflow["C12"][t] for t in range(12)]
+    q = _profit_paid(quarterly)
     for t in range(12):
-        if t % 3 == 2:                                   # конец квартала — доплата накопленного
-            assert dc[t] == sum(i27[t - 2:t + 1], Decimal(0)) - i27[t]
-        else:                                            # внутри квартала — недоплата
-            assert dc[t] == -i27[t]
-    # B21 внутри квартала растёт, в конце обнуляется (относительно помесячной задолженности)
-    assert quarterly.balance["B21"][0] == monthly.balance["B21"][0] + i27[0]
-    assert quarterly.balance["B21"][2] == monthly.balance["B21"][2]
+        expected = sum(i27[t - 3:t], Decimal(0)) if t in (3, 6, 9) else Decimal(0)
+        assert q[t] == expected
+    m = _profit_paid(monthly)
+    assert m[0] == 0 and all(m[t] == i27[t - 1] for t in range(1, 12))
+    # B21: внутри квартала копится, в месяце уплаты — только начисленное в нём
+    assert quarterly.balance["B21"][2] - monthly.balance["B21"][2] == i27[0] + i27[1]
+    assert quarterly.balance["B21"][3] == monthly.balance["B21"][3]
+    # Налог за IV квартал (год) к концу горизонта не уплачен — задолженность в B21.
+    assert quarterly.balance["B21"][11] == sum(i27[9:12], Decimal(0))
 
 
 def test_yearly_vat_tail_in_b21():
-    """Годовая уплата НДС на 14 мес.: уплата в мес.12, хвост 2 мес. — в B21."""
+    """Годовая уплата НДС на 14 мес.: год — в январе (мес. 12), хвост — в B21."""
     monthly = run(_model(n=14, vat="0.20"))
     yearly = run(_model(n=14, vat="0.20", vat_period="year"))
-    # начисление НДС (сумма к уплате) неизменно → годовая сумма C12 за 12 мес. совпадает
-    assert almost_equal(sum(yearly.cashflow["C12"][:12], Decimal(0)),
-                        sum(monthly.cashflow["C12"][:12], Decimal(0)))
+    # Начисление НДС неизменно: к январю (мес. 12) обе схемы уплатили один и тот же год.
+    assert almost_equal(sum(yearly.cashflow["C12"][:13], Decimal(0)),
+                        sum(monthly.cashflow["C12"][:13], Decimal(0)))
     # хвост (мес.12,13) остаётся задолженностью → B21 в конце выше помесячной
     assert yearly.balance["B21"][13] > monthly.balance["B21"][13]
 

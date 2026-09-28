@@ -43,7 +43,9 @@ def test_per_line_vat_rates():
     r = run(_model(sales))
     assert q(r.income["I1"][0]) == D("2000.00")       # нетто-выручка без НДС
     assert q(r.cashflow["C1"][0]) == D("2300.00")     # 1100 (10%) + 1200 (20%)
-    assert q(r.cashflow["C12"][0]) == D("300.00")     # НДС к уплате: 100 + 200
+    # НДС к уплате: 100 + 200 — срок в следующем месяце, пока задолженность (B21)
+    assert q(r.cashflow["C12"][0]) == D("0.00")
+    assert q(r.balance["B21"][0]) == D("300.00")
     assert [q(v) for v in r.balance["B20"]] == [q(v) for v in r.balance["B34"]]
 
 

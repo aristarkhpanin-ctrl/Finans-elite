@@ -28,7 +28,7 @@ def _model(n=12, volume=10, price=1000) -> ProjectModel:
 
 
 def test_revenue_tax_expense_allocation():
-    """База «выручка»: начисление = I1 × ставка → I21, уплата помесячно → C12."""
+    """База «выручка»: начисление = I1 × ставка → I21, уплата — в следующем месяце → C12."""
     model = _model()
     model.environment.taxes = [Tax(name="Сбор 1%", rate=Decimal("0.01"), base="revenue")]
     base = run(_model())                      # без налога
@@ -40,9 +40,14 @@ def test_revenue_tax_expense_allocation():
     rate = model.settings.profit_tax_rate
     shield = [base.income["I27"][t] - result.income["I27"][t] for t in range(12)]
     assert shield == [v * rate for v in expected]
-    assert result.cashflow["C12"] == [base.cashflow["C12"][t] + expected[t] - shield[t]
-                                      for t in range(12)]
-    assert all(v == 0 for v in result.balance["B21"])        # помесячно — задолженности нет
+    # Сбор и налог на прибыль платятся в следующем месяце (декабрьский налог на прибыль —
+    # в марте, за горизонтом): разница кассы — начисление прошлого месяца за вычетом щита.
+    assert result.cashflow["C12"][0] == base.cashflow["C12"][0]
+    assert result.cashflow["C12"][1:] == [base.cashflow["C12"][t] + expected[t - 1]
+                                          - shield[t - 1] for t in range(1, 12)]
+    # Задолженность — ровно начисленное в текущем месяце (уплата — в следующем).
+    assert [result.balance["B21"][t] - base.balance["B21"][t] for t in range(12)] \
+        == [expected[t] - shield[t] for t in range(12)]
     assert result.income["I28"][0] < base.income["I28"][0]
 
 
@@ -60,7 +65,8 @@ def test_profit_allocation_does_not_reduce_tax_base():
 
 
 def test_quarterly_payment_and_b21():
-    """Квартальная уплата: C12 — в месяцах 3/6/9/12 периода, между ними долг в B21."""
+    """Квартальная уплата: в месяце после квартала (апрель, июль, октябрь), между — долг
+    в B21; IV квартал платится в январе — за горизонтом."""
     model = _model()
     # allocation='profit' → налогового щита нет, дельты C12/B21 — чистый настраиваемый налог
     model.environment.taxes = [Tax(name="Квартальный", rate=Decimal("0.10"),
@@ -71,18 +77,21 @@ def test_quarterly_payment_and_b21():
     monthly = [v * Decimal("0.10") for v in base.income["I1"]]
     extra_cash = [result.cashflow["C12"][t] - base.cashflow["C12"][t] for t in range(12)]
     for t in range(12):
-        if t % 3 == 2:
-            assert extra_cash[t] == sum(monthly[t - 2:t + 1], Decimal(0))
+        if t in (3, 6, 9):
+            assert extra_cash[t] == sum(monthly[t - 3:t], Decimal(0))
         else:
             assert extra_cash[t] == 0
-    # B21: внутри квартала копится, в конце квартала обнуляется
-    assert result.balance["B21"][0] == monthly[0]
-    assert result.balance["B21"][1] == monthly[0] + monthly[1]
-    assert result.balance["B21"][2] == 0
+    # B21 (сверх задолженности базы — налог на прибыль тоже платится через месяц):
+    # копится весь квартал и до уплаты; в месяце уплаты — только новое
+    debt = [result.balance["B21"][t] - base.balance["B21"][t] for t in range(12)]
+    assert debt[0] == monthly[0]
+    assert debt[2] == monthly[0] + monthly[1] + monthly[2]
+    assert debt[3] == monthly[3]
+    assert debt[11] == sum(monthly[9:12], Decimal(0))
 
 
 def test_yearly_tail_stays_in_b21():
-    """Годовая уплата на горизонте 14 мес.: уплата в мес. 12, хвост 2 мес. висит в B21."""
+    """Годовая уплата на горизонте 14 мес.: год — в январе (мес. 12), хвост висит в B21."""
     model = _model(n=14)
     model.environment.taxes = [Tax(name="Годовой", rate=Decimal("0.10"),
                                    base="revenue", periodicity="year",
@@ -91,9 +100,10 @@ def test_yearly_tail_stays_in_b21():
     result = run(model)
     monthly = [v * Decimal("0.10") for v in base.income["I1"]]
     extra_cash = [result.cashflow["C12"][t] - base.cashflow["C12"][t] for t in range(14)]
-    assert extra_cash[11] == sum(monthly[:12], Decimal(0))
-    assert sum(extra_cash[12:], Decimal(0)) == 0
-    assert result.balance["B21"][13] == monthly[12] + monthly[13]   # честная задолженность
+    assert extra_cash[12] == sum(monthly[:12], Decimal(0))
+    assert sum(extra_cash[:12], Decimal(0)) == 0 and extra_cash[13] == 0
+    assert result.balance["B21"][13] - base.balance["B21"][13] \
+        == monthly[12] + monthly[13]                                 # честная задолженность
 
 
 def test_payroll_property_profit_bases():

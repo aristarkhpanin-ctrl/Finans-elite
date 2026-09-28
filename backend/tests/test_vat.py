@@ -88,6 +88,8 @@ def test_vat_in_taxes_line():
         ),
     )
     r = run(m)
-    # НДС к уплате (20% от 10000 = 2000/мес) входит в строку «Налоги» C12
-    assert r.cashflow["C12"][0] == Decimal("2000")
+    # НДС к уплате (20% от 10000 = 2000/мес) входит в строку «Налоги» C12 — в месяце,
+    # следующем за начислением (пакет J, J3)
+    assert r.cashflow["C12"][0] == 0
+    assert r.cashflow["C12"][1] == Decimal("2000")
     assert total(r.cashflow["C12"]) > 0
