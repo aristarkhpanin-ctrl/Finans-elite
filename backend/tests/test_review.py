@@ -130,8 +130,12 @@ def test_sample_project_is_flagged_as_marginal():
     review = run_review(ReviewContext(model=model, result=run(model)))
     assert review.light == "risk"
     ids = {f.id for f in review.findings}
-    assert {"viability.npv_negative", "viability.pi_below_one",
-            "viability.no_payback", "viability.irr_undefined"} <= ids
+    # IRR у эталона есть (−70%, 0.9.49): до пакета J её прятал отрицательный последний
+    # месяц, и ревью говорило «IRR не определена» (info) там, где правда — «ниже
+    # требуемой доходности» (risk). Поток меняет знак больше раза — это названо отдельно.
+    assert {"viability.npv_negative", "viability.pi_below_one", "viability.no_payback",
+            "viability.irr_below_hurdle", "viability.irr_unreliable"} <= ids
+    assert "viability.irr_undefined" not in ids
 
 
 # --- R2: liquidity ---

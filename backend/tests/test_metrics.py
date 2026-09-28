@@ -53,6 +53,78 @@ def test_irr_is_none_when_there_was_no_investment():
     assert irr_annual(with_investment) is not None
 
 
+def test_irr_survives_a_negative_last_month():
+    """Отрицательный последний месяц — квартальная уплата налогов, покупка, выкуп лизинга —
+    не прячет доходность прибыльного проекта (пакет J, найдено на демо-данных).
+
+    Раньше бисекция требовала смены знака NPV на концах отрезка [−99%; 1000%] в месяц, а
+    на нижнем конце NPV решает последний месяц (множитель 100^t): у такого потока минус
+    был на обоих концах, и под NPV > 0 печаталось «IRR не определена».
+    """
+    flow = [Decimal(-1000)] + [Decimal(150)] * 10 + [Decimal(-60)]
+    irr = irr_annual(flow)
+    assert irr is not None
+    monthly = (ONE + irr) ** (ONE / 12) - ONE
+    assert abs(npv(flow, monthly)) < Decimal("1e-6")
+    # Выбран переход «+ → −» (ниже корня вложение окупается, выше — нет), а не след хвоста
+    # на ставках около −100% в месяц.
+    assert npv(flow, monthly - Decimal("0.001")) > 0 > npv(flow, monthly + Decimal("0.001"))
+    assert monthly > 0
+
+
+def test_irr_of_a_losing_project_with_negative_tail_is_negative_not_missing():
+    """Эталон `sample_project`: вложили ~272 тыс., за год вернули ~130 тыс., последний
+    месяц в минусе. Доходность такого проекта глубоко отрицательна — и это число, а не
+    «не определена»: NPV < 0 и PI < 1 рядом с прочерком читались бы как «не посчитали»."""
+    flow = [Decimal(-228337), Decimal(-43906)] + [Decimal(4050)] * 4 \
+        + [Decimal(23950)] * 5 + [Decimal(-6107)]
+    irr = irr_annual(flow)
+    assert irr is not None and irr < 0
+    monthly = (ONE + irr) ** (ONE / 12) - ONE
+    assert abs(npv(flow, monthly)) < Decimal("1e-6")
+
+
+def test_irr_takes_the_highest_break_even_rate_among_several():
+    """Поток с тремя корнями — месячные 4%, 15% и 40% (NPV = −(y−1,04)(y−1,15)(y−1,4)/y³,
+    y = 1 + r). Переходов «+ → −» два, 4% и 40%; правило — **наибольший**: самая высокая
+    ставка, при которой вложение ещё окупается. Такие потоки неоднозначны по природе,
+    и однозначный ответ для них — MIRR, которая печатается рядом."""
+    flow = [Decimal(-1), Decimal("3.59"), Decimal("-4.262"), Decimal("1.6744")]
+    irr = irr_annual(flow)
+    assert irr is not None
+    monthly = (ONE + irr) ** (ONE / 12) - ONE
+    assert abs(monthly - Decimal("0.4")) < Decimal("1e-12")
+
+
+def test_irr_agrees_with_npv_sign_under_a_small_negative_tail():
+    """Свойство, ради которого IRR и печатают рядом с NPV: доходность выше ставки ⟺ NPV
+    по этой ставке положителен. Проверяется на потоках «вложение → притоки → небольшой
+    отрицательный хвост» (хвост меньше половины притока месяца)."""
+    import random
+
+    rng = random.Random(20260928)
+    for _ in range(60):
+        n = rng.randint(4, 40)
+        c = Decimal(rng.randint(50, 400))
+        flow = [Decimal(-rng.randint(500, 5000))] + [c] * (n - 2) \
+            + [-Decimal(rng.randint(1, int(c) // 2))]
+        irr = irr_annual(flow)
+        for rate in (Decimal(0), Decimal("0.01"), Decimal("0.02")):
+            value = npv(flow, rate)
+            if irr is None:
+                assert value < 0, (flow, rate)
+                continue
+            monthly = (ONE + irr) ** (ONE / 12) - ONE
+            if abs(monthly - rate) > Decimal("1e-9"):
+                assert (monthly > rate) == (value > 0), (flow, rate, irr)
+
+
+def test_irr_is_none_when_the_investment_never_pays_back():
+    """Вложение, за которым только расходы: NPV отрицателен при любой ставке — корня нет,
+    и «не определена» здесь правда, а не прочерк на месте числа."""
+    assert irr_annual([Decimal(-100), Decimal(-10), Decimal(-5)]) is None
+
+
 def test_payback():
     # накопленный поток: -100, -60, -20, +20 → неотрицателен в 4-м периоде (1-индексация)
     assert payback_months([Decimal(-100), Decimal(40), Decimal(40), Decimal(40)]) == 4
