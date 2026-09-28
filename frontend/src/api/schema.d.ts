@@ -9068,6 +9068,7 @@ export interface components {
              *       "liquidation_recovery_rate": "0",
              *       "loss_carryforward_limit": "0.5",
              *       "min_cash_balance": "0",
+             *       "opening_tax_loss": "0",
              *       "payroll_contribution_rate": "0",
              *       "production_cycle_months": 0,
              *       "profit_tax_benefit_share": "0",
@@ -9207,6 +9208,7 @@ export interface components {
              *       "liquidation_recovery_rate": "0",
              *       "loss_carryforward_limit": "0.5",
              *       "min_cash_balance": "0",
+             *       "opening_tax_loss": "0",
              *       "payroll_contribution_rate": "0",
              *       "production_cycle_months": 0,
              *       "profit_tax_benefit_share": "0",
@@ -9338,6 +9340,11 @@ export interface components {
              */
             min_cash_balance: number | string;
             /**
+             * Opening Tax Loss
+             * @default 0
+             */
+            opening_tax_loss: number | string;
+            /**
              * Payroll Contribution Rate
              * @default 0
              */
@@ -9467,6 +9474,11 @@ export interface components {
              * @default 0
              */
             min_cash_balance: string;
+            /**
+             * Opening Tax Loss
+             * @default 0
+             */
+            opening_tax_loss: string;
             /**
              * Payroll Contribution Rate
              * @default 0

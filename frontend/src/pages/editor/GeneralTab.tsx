@@ -1,7 +1,7 @@
 import type { CustomTax, Environment, ProjectHeader, ProjectSettings } from "../../api/model";
 import { EField, EPercentField, ESelect } from "../../components/EditorField";
 import { IconTrash } from "../../components/icons";
-import { fracToPct, isShare, pctToFrac } from "../../format";
+import { fracToPct, isShare, parseModelNumber, pctToFrac } from "../../format";
 
 type SeriesKey =
   | "inflation_sales_series"
@@ -257,6 +257,10 @@ export function GeneralTab({ header, settings, environment, onHeader, onSettings
   const benefitErr = !isShare(settings.profit_tax_benefit_share) ? "Значение должно быть от 0 до 1" : "";
   const lossLimit = settings.loss_carryforward_limit ?? "0.5";
   const lossErr = !isShare(lossLimit) ? "Значение должно быть от 0 до 1" : "";
+  const openingLoss = settings.opening_tax_loss ?? "0";
+  const openingValue = parseModelNumber(openingLoss);
+  const openingErr = !Number.isFinite(openingValue) || openingValue < 0
+    ? "Сумма от нуля и больше" : "";
   // Вторая валюта настроена → показываем ставку дисконтирования во второй валюте (gap 1.4).
   const fxNum = (v: string | number | undefined | null) => Number(String(v ?? "").replace(",", "."));
   const hasSecondCurrency =
@@ -351,6 +355,14 @@ export function GeneralTab({ header, settings, environment, onHeader, onSettings
           error={lossErr}
           value={lossLimit}
           onChange={(v) => set({ loss_carryforward_limit: v })}
+        />
+        <EField
+          label="Налоговый убыток на старте"
+          suffix="₽"
+          hint="Неиспользованный налоговый убыток прошлых лет на дату старта — у действующего бизнеса он почти всегда есть. Гасит базу под той же долей, что и убытки горизонта. 0 — нет"
+          error={openingErr}
+          value={openingLoss}
+          onChange={(v) => set({ opening_tax_loss: v })}
         />
         <EPercentField
           label="Ставка рефинансирования ЦБ"

@@ -61,6 +61,12 @@ export function validateModel(m: ProjectModel): Issue[] {
   shareWarn(num(s.loss_carryforward_limit ?? "0.5"), "Перенос убытков прошлых лет");
   shareWarn(num(s.sales_tax_rate), "Налог с продаж");
 
+  // Стартовый налоговый убыток — сумма ≥ 0: отрицательную сервер отклонит при сохранении.
+  const opening = parseModelNumber(s.opening_tax_loss ?? "0");
+  if (!Number.isFinite(opening) || opening < 0) {
+    issues.push({ severity: "error", message: "Налоговый убыток на старте: нужна сумма от нуля и больше.", where: "Проект" });
+  }
+
   // Предоплата по каждой строке сбыта — доля 0–1.
   m.operating_plan.sales.forEach((line, i) => {
     const p = num(line.payment.prepayment_share);

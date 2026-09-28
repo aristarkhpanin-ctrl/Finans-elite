@@ -1040,7 +1040,8 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
     tax_offset = tax_year_offset(model.header.start_date)
     income = build_income(
         income_leaves, n, settings.profit_tax_rate, settings.profit_tax_benefit_share,
-        loss_limit=settings.loss_carryforward_limit, year_offset=tax_offset)
+        loss_limit=settings.loss_carryforward_limit, year_offset=tax_offset,
+        opening_loss=settings.opening_tax_loss)
 
     # --- Использование прибыли (нераспределённая прибыль = B32) ---
     profit_use = build_profit_use(

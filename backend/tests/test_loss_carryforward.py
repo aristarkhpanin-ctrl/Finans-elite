@@ -49,7 +49,7 @@ RATE = D("0.20")
 def _income(bases: list[Decimal], limit: Decimal, benefit: Decimal = D(0)):
     """ОПУ, где налоговая база месяца — ровно ``bases``: прочие строки нулевые."""
     return build_income({"I1": list(bases)}, len(bases), RATE, benefit,
-                        loss_limit=limit, year_offset=0)
+                        loss_limit=limit, year_offset=0, opening_loss=D(0))
 
 
 def _annual_norm(bases: list[Decimal], limit: Decimal, benefit: Decimal = D(0)) -> list[Decimal]:

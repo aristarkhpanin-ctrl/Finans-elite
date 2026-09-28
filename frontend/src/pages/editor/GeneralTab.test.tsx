@@ -73,6 +73,20 @@ describe("GeneralTab — перенос убытков прошлых лет", (
     expect(onSettings).toHaveBeenCalledWith(expect.objectContaining({ loss_carryforward_limit: "1" }));
   });
 
+  it("стартовый налоговый убыток пишется в модель, отрицательный — ошибка", () => {
+    const onSettings = renderSettings({});
+    // Поле ищется через карточку: подпись с полем программно не связана (чинится в H6).
+    const field = screen.getByText("Налоговый убыток на старте").closest(".efield")!.querySelector("input")!;
+    fireEvent.change(field, { target: { value: "1 200 000" } });
+    expect(onSettings).toHaveBeenCalledWith(expect.objectContaining({ opening_tax_loss: "1 200 000" }));
+    cleanup();
+    renderSettings({ opening_tax_loss: "-5" });
+    expect(screen.getByText("Сумма от нуля и больше")).toBeTruthy();
+    cleanup();
+    renderSettings({ opening_tax_loss: "1 200 000,50" });
+    expect(screen.queryByText("Сумма от нуля и больше")).toBeNull();
+  });
+
   it("«0,5» — не ошибка (сервер такое примет), «1,5» — ошибка", () => {
     renderSettings({ loss_carryforward_limit: "0,5" });
     expect(screen.queryByText("Значение должно быть от 0 до 1")).toBeNull();

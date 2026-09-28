@@ -55,6 +55,7 @@ from .models.common import VatBasis
 from .models.project import LOSS_CARRYFORWARD_NORM
 from .reports.result import CalcResult
 from .reports.statements import carry_losses, tax_year_offset
+from .review.text import fmt_rub
 
 #: Как закрывается **открытый вопрос** пункта. Три состояния, и все три заняты: свободных
 #: «на будущее» здесь нет по той же причине, по которой закрыт перечень событий
@@ -434,6 +435,10 @@ def _loss_carryforward(model: ProjectModel, result: CalcResult) -> Choice:
     carried = _nonzero(i22)
     benefit = settings.profit_tax_benefit_share
     limit = settings.loss_carryforward_limit
+    opening = settings.opening_tax_loss
+    # «Задействовано» доказывается числом из отчётов: стартовый убыток, который не во что
+    # зачесть, отчётов не меняет — но причина молчания обязана это назвать, а не сказать
+    # «убытка нет».
     engaged = carried > 0 or benefit > 0
     # Расхождения судятся по числам, а не по полям: та же функция переноса (одна дверь,
     # второй копии правила здесь нет) пересчитывается на тех же базах иначе, и
@@ -442,10 +447,11 @@ def _loss_carryforward(model: ProjectModel, result: CalcResult) -> Choice:
                                    _line(result, "income", "I25"), strict=True)]
     offset = tax_year_offset(model.header.start_date)
     evidence: dict = {"i22_total": str(carried), "benefit_share": str(benefit),
-                      "loss_limit": str(limit)}
+                      "loss_limit": str(limit), "opening_tax_loss": str(opening)}
     parts = []
     if limit > LOSS_CARRYFORWARD_NORM:
-        at_norm = carry_losses(bases, LOSS_CARRYFORWARD_NORM, year_offset=offset)
+        at_norm = carry_losses(bases, LOSS_CARRYFORWARD_NORM, year_offset=offset,
+                               opening_loss=opening)
         if at_norm != i22:
             evidence["i22_at_norm_total"] = str(_nonzero(at_norm))
             parts.append(
@@ -466,14 +472,17 @@ def _loss_carryforward(model: ProjectModel, result: CalcResult) -> Choice:
                "тогда начисленный налог сторнируется; месячные I22, I26, I27 — приросты "
                "годовых величин. Непокрытый убыток года в декабре уходит в перенос: "
                f"{_limit_words(limit)}; неиспользованный остаток переносится бессрочно. "
-               "Льгота освобождает заданную долю базы.",
+               "Налоговый убыток прошлых лет на дату старта (поле модели) входит в тот "
+               "же пул. Льгота освобождает заданную долю базы.",
         controls=["settings.profit_tax_rate", "settings.profit_tax_benefit_share",
                   "settings.loss_carryforward_limit"],
-        open_question="Стартовый налоговый убыток (понесённый до начала проекта) не "
-                      "задаётся. Переплата авансов внутри года возвращается в периоде её "
+        open_question="Переплата авансов внутри года возвращается в периоде её "
                       "возникновения — зачёт в счёт будущих платежей не моделируется; "
                       "уплата — в последнем месяце периода, а не до 28-го числа следующего "
-                      "(ст. 287).",
+                      "(ст. 287). База года старта начинается с месяца старта: результат "
+                      "того же года до старта в модель не входит. Стартовый убыток — "
+                      "налоговый атрибут, отложенный налоговый актив (ПБУ 18/02) не "
+                      "отражается.",
         resolution="citable",
         proposed_basis="п. 2.1 ст. 283 НК РФ: в периоды с 2017 по 2030 г. база уменьшается "
                        "на убытки прошлых лет **не более чем на 50%**; к базе по ряду "
@@ -484,9 +493,12 @@ def _loss_carryforward(model: ProjectModel, result: CalcResult) -> Choice:
                        "поле модели, а не константа расчёта.",
         divergence=" ".join(parts),
         engaged=engaged,
-        silent_because="" if engaged else
-                       "Убытков к переносу нет и льгота не задана: база налога считается "
-                       "прибылью периода.",
+        silent_because="" if engaged else (
+            f"Стартовый налоговый убыток {fmt_rub(opening)} ₽ задан, но зачесть его не во "
+            "что: положительной нарастающей базы в горизонте нет."
+            if opening > 0 else
+            "Убытков прошлых лет нет — ни в горизонте, ни на старте — и льгота не задана: "
+            "база налога — нарастающая прибыль года."),
         evidence=evidence,
     )
 

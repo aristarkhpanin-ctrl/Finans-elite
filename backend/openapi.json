@@ -10309,6 +10309,7 @@
               "liquidation_recovery_rate": "0",
               "loss_carryforward_limit": "0.5",
               "min_cash_balance": "0",
+              "opening_tax_loss": "0",
               "payroll_contribution_rate": "0",
               "production_cycle_months": 0,
               "profit_tax_benefit_share": "0",
@@ -10460,6 +10461,7 @@
               "liquidation_recovery_rate": "0",
               "loss_carryforward_limit": "0.5",
               "min_cash_balance": "0",
+              "opening_tax_loss": "0",
               "payroll_contribution_rate": "0",
               "production_cycle_months": 0,
               "profit_tax_benefit_share": "0",
@@ -10786,6 +10788,20 @@
             "default": "0",
             "title": "Min Cash Balance"
           },
+          "opening_tax_loss": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Opening Tax Loss"
+          },
           "payroll_contribution_rate": {
             "anyOf": [
               {
@@ -11030,6 +11046,12 @@
             "default": "0",
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Min Cash Balance",
+            "type": "string"
+          },
+          "opening_tax_loss": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Opening Tax Loss",
             "type": "string"
           },
           "payroll_contribution_rate": {
@@ -16158,7 +16180,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.47"
+    "version": "0.9.48"
   },
   "openapi": "3.1.0",
   "paths": {

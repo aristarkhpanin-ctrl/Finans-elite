@@ -71,8 +71,8 @@ class ProfitTax:
 
 
 def profit_tax(bases: list[Decimal], *, limit: Decimal, year_offset: int,
-               benefit_share: Decimal = Decimal(0),
-               rate: Decimal = Decimal(0)) -> ProfitTax:
+               benefit_share: Decimal = Decimal(0), rate: Decimal = Decimal(0),
+               opening_loss: Decimal = Decimal(0)) -> ProfitTax:
     """Налог на прибыль по базе до переноса ``bases`` (`I23 + I25`) — SPEC §11.
 
     База считается **нарастающим итогом календарного года** (ст. 274, 286 НК РФ) и в
@@ -85,12 +85,15 @@ def profit_tax(bases: list[Decimal], *, limit: Decimal, year_offset: int,
     периода, то есть нарастающую), остаток переносится бессрочно (п. 2 ст. 283). Льгота —
     доля ``benefit_share`` базы после переноса; налог — ставка от остатка.
 
+    ``opening_loss`` — налоговый убыток прошлых лет на дату старта (действующий бизнес):
+    с него пул начинается и гасит базу под той же долей (0.9.48).
+
     Месячные строки — разности нарастающих величин: так делает и бухгалтер, у которого
     отчётный период — месяц.
     """
     n = len(bases)
     carried, taxable, tax = zeros(n), zeros(n), zeros(n)
-    pool = Decimal(0)                       # непокрытые убытки прошлых лет (≥ 0)
+    pool = opening_loss                     # непокрытые убытки прошлых лет (≥ 0)
     cum = cum_carried = cum_taxable = Decimal(0)
     for t, base in enumerate(bases):
         if (t + year_offset) % TAX_YEAR_MONTHS == 0:
@@ -110,26 +113,30 @@ def profit_tax(bases: list[Decimal], *, limit: Decimal, year_offset: int,
     return ProfitTax(carried=carried, taxable=taxable, tax=tax)
 
 
-def carry_losses(bases: list[Decimal], limit: Decimal, *, year_offset: int) -> list[Decimal]:
+def carry_losses(bases: list[Decimal], limit: Decimal, *, year_offset: int,
+                 opening_loss: Decimal = Decimal(0)) -> list[Decimal]:
     """Перенос убытков прошлых лет (`I22`) — та же операция, что в :func:`profit_tax`.
 
     Её зовёт карта методики, чтобы пересчитать перенос при другой доле: второй копии
-    правила там нет.
+    правила там нет. Стартовый убыток передаётся тот же, что у движка, — иначе пересчёт
+    «при норме» разошёлся бы с числами проекта не из-за доли.
     """
-    return profit_tax(bases, limit=limit, year_offset=year_offset).carried
+    return profit_tax(bases, limit=limit, year_offset=year_offset,
+                      opening_loss=opening_loss).carried
 
 
 def build_income(leaves: dict[str, list[Decimal]], n: int, profit_tax_rate: Decimal,
                  benefit_share: Decimal = Decimal(0), *, loss_limit: Decimal,
-                 year_offset: int) -> Statement:
+                 year_offset: int, opening_loss: Decimal) -> Statement:
     """Собрать ОПУ (I1–I28). ``leaves`` содержит листовые строки; итоги вычисляются здесь.
 
     Налоговый блок (SPEC §11, §22.7) — :func:`profit_tax`: база нарастающим итогом
     календарного года, перенос убытков прошлых лет `I22` с ограничением доли
     ``loss_limit``, льгота ``benefit_share``; месячные `I22`, `I26`, `I27` — приросты.
 
-    ``loss_limit`` и ``year_offset`` обязательны: умолчание здесь молча выбрало бы одну из
-    двух методик за того, кто забыл передать настройку.
+    ``loss_limit``, ``year_offset`` и ``opening_loss`` обязательны: умолчание здесь молча
+    выбрало бы методику (или потеряло бы стартовый убыток) за того, кто забыл передать
+    настройку.
     """
     s = Statement(L.INCOME_LINES, n)
     for code, series in leaves.items():
@@ -146,7 +153,8 @@ def build_income(leaves: dict[str, list[Decimal]], n: int, profit_tax_rate: Deci
     # --- Налоговый блок: нарастающим итогом года (перенос I22, льгота, налог I27) ---
     # База до переноса = I23 + I25 (I24 — невычитаемые, в базу не входят, см. §22.1).
     block = profit_tax(add(s["I23"], s["I25"]), limit=loss_limit, year_offset=year_offset,
-                       benefit_share=benefit_share, rate=profit_tax_rate)
+                       benefit_share=benefit_share, rate=profit_tax_rate,
+                       opening_loss=opening_loss)
     s["I22"] = block.carried
     s["I26"] = block.taxable
     s["I27"] = block.tax
