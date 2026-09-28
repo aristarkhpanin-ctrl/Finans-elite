@@ -286,8 +286,11 @@ def _purge_organization(db: Session, org_id: str) -> None:
     на PostgreSQL ноль строк, оставив организацию с данными, которых никто уже не видит.
     """
     with as_tenant(db, org_id):
-        holdings = [h.id for h in db.execute(
-            select(Holding.id).where(Holding.organization_id == org_id)).scalars()]
+        # ``select(Holding.id)`` отдаёт сами идентификаторы: прежнее ``h.id`` падало на
+        # первой же организации с холдингом, и удалить её было нельзя (найдено на
+        # демо-данных пакета J — повторное заведение удаляет прежнюю организацию).
+        holdings = list(db.execute(
+            select(Holding.id).where(Holding.organization_id == org_id)).scalars())
         for holding_id in holdings:
             for member in db.execute(select(HoldingMember).where(
                     HoldingMember.holding_id == holding_id)).scalars():

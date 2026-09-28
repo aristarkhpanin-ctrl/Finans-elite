@@ -204,6 +204,24 @@ def test_deletion_removes_the_organization_and_its_models(client, register):
     assert client.get("/api/v1/organizations", headers=owner).json() == []
 
 
+def test_an_organization_with_a_holding_can_be_deleted(client, register, db_session):
+    """Холдинг с участниками уходит вместе с организацией. До пакета J удаление падало
+    на первой же организации с холдингом (500): стирание брало ``.id`` у строк, которые
+    уже были идентификаторами. Нашлось на повторном заведении демо-данных."""
+    from app.db_models import Holding, HoldingMember
+
+    owner, org_id = _owner(client, register)
+    headers = {**owner, "X-Organization-Id": org_id}
+    pid = _project(client, owner)
+    holding = client.post("/api/v1/holdings", json={"name": "Группа"}, headers=headers).json()
+    client.post(f"/api/v1/holdings/{holding['id']}/members",
+                json={"project_id": pid, "role": "parent"}, headers=headers)
+
+    assert _delete(client, owner, org_id).status_code == 200
+    assert db_session.query(Holding).count() == 0
+    assert db_session.query(HoldingMember).count() == 0
+
+
 def test_the_report_is_gathered_anew_not_replayed(client, register, db_session):
     """Между «показали» и «сделали» проходит время: показать одно, а стереть другое —
     худший исход необратимого действия."""
