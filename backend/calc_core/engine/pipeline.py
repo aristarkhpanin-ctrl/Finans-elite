@@ -304,6 +304,17 @@ def _foreign_material_schedule(amt_f: list[Decimal], stock_lead: int,
     return purchases_f, b3_hist, mc_hist
 
 
+def payroll_load(model: ProjectModel) -> Decimal:
+    """Множитель ФОТ на страховые взносы: ``1 + payroll_contribution_rate`` (SPEC §8).
+
+    Одна дверь на все выплаты по трудовому договору — оклады штата (I13–I15), сдельную
+    оплату (I6) и её долю в марже продуктов: взносы начисляются на любые такие выплаты
+    (ст. 420 НК РФ). До 0.9.52 сдельная оплата шла без взносов — у производства на
+    сдельщине себестоимость была занижена на треть фонда оплаты.
+    """
+    return ONE + model.settings.payroll_contribution_rate
+
+
 def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal,
                          fx: list[Decimal], fx_prev: list[Decimal],
                          idx_direct: list[Decimal], idx_wages: list[Decimal],
@@ -367,7 +378,9 @@ def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal,
             vat_in_paid = add(vat_in_paid, vat_cash)
             if details is not None:
                 details.put("C2", line.name, cash)
-        else:  # сдельная зарплата — без НДС
+        else:  # сдельная зарплата — без НДС, со страховыми взносами (как у штата)
+            load = payroll_load(model)
+            amt = [amt[t] * load for t in range(n)]
             cash, pay = cost_timing(amt, line.payment_delay_months, n)
             wc = add(wc, amt)
             c3 = add(c3, cash)
@@ -428,7 +441,7 @@ def _fixed(model: ProjectModel, n: int, vat_rate: Decimal,
     i24 = zeros(n)  # издержки, отнесённые на прибыль (невычитаемые)
     payable_f = zeros(n)  # валютная кредиторка (в валюте) — для переоценки
     one_plus = Decimal(1) + vat_rate
-    contrib = ONE + model.settings.payroll_contribution_rate  # загрузка ФОТ страховыми взносами
+    contrib = payroll_load(model)  # загрузка ФОТ страховыми взносами
     # Суммовые статьи + синтетические строки плана персонала — один путь.
     for line in [*model.operating_plan.fixed_costs, *_staff_fixed_lines(model, n)]:
         amt = _pad(line.amount, n)

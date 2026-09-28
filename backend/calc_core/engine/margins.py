@@ -15,7 +15,7 @@ from decimal import Decimal
 
 from ..models import DirectCostKind
 from ..models.project import ProjectModel
-from ..money import ZERO
+from ..money import ONE, ZERO
 from ..reports.result import DivisionMargin, ProductMargin, ProductMargins
 from ..series import zeros
 from .pipeline import (
@@ -24,6 +24,7 @@ from .pipeline import (
     _inflation_index,
     _inflation_year_rates,
     _pad,
+    payroll_load,
 )
 
 
@@ -61,6 +62,7 @@ def compute_product_margins(model: ProjectModel, n: int) -> ProductMargins:
         revenue[line.product_id] = rev
 
     products: list[ProductMargin] = []
+    load = payroll_load(model)   # сдельная оплата — со взносами, как в I6 (одна дверь)
     for p in specs:
         vol = sold.get(p.id, zeros(n))
         rev = revenue.get(p.id, ZERO)
@@ -77,7 +79,7 @@ def compute_product_margins(model: ProjectModel, n: int) -> ProductMargins:
                 rate = fx[t] if m.foreign else idx_direct[t]
                 unit += bl.qty_per_unit * m.unit_price * rate
             bom_cost += vol[t] * unit
-            wages += vol[t] * p.piece_wage_per_unit * idx_wages[t]
+            wages += vol[t] * p.piece_wage_per_unit * idx_wages[t] * load
         margin = rev - bom_cost - wages
         products.append(ProductMargin(
             product_id=p.id, name=p.name, revenue=rev, bom_cost=bom_cost,
@@ -94,7 +96,8 @@ def compute_product_margins(model: ProjectModel, n: int) -> ProductMargins:
                 unallocated += base[t] * fx[t]
             else:
                 idx = idx_direct if dc.kind == DirectCostKind.MATERIALS else idx_wages
-                unallocated += base[t] * idx[t]
+                weight = ONE if dc.kind == DirectCostKind.MATERIALS else payroll_load(model)
+                unallocated += base[t] * idx[t] * weight
     return ProductMargins(products=products, unallocated_direct=unallocated)
 
 
