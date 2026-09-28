@@ -3102,7 +3102,8 @@ export interface paths {
         };
         /**
          * Sample
-         * @description Демонстрационная модель проекта (готова к отправке в /calculate).
+         * @description Демонстрационная модель проекта (готова к отправке в /calculate), по действующим
+         *     общим ставкам налогов — как и шаблоны (пакет J).
          */
         get: operations["sample_api_v1_sample_get"];
         put?: never;
@@ -9073,7 +9074,7 @@ export interface components {
              *       "production_cycle_months": 0,
              *       "profit_tax_benefit_share": "0",
              *       "profit_tax_periodicity": "month",
-             *       "profit_tax_rate": "0.20",
+             *       "profit_tax_rate": "0.25",
              *       "property_tax_rate": "0",
              *       "sales_tax_rate": "0",
              *       "terminal_growth_rate": "0",
@@ -9213,7 +9214,7 @@ export interface components {
              *       "production_cycle_months": 0,
              *       "profit_tax_benefit_share": "0",
              *       "profit_tax_periodicity": "month",
-             *       "profit_tax_rate": "0.20",
+             *       "profit_tax_rate": "0.25",
              *       "property_tax_rate": "0",
              *       "sales_tax_rate": "0",
              *       "terminal_growth_rate": "0",
@@ -9367,7 +9368,7 @@ export interface components {
             profit_tax_periodicity: "month" | "quarter" | "year";
             /**
              * Profit Tax Rate
-             * @default 0.20
+             * @default 0.25
              */
             profit_tax_rate: number | string;
             /**
@@ -9502,7 +9503,7 @@ export interface components {
             profit_tax_periodicity: "month" | "quarter" | "year";
             /**
              * Profit Tax Rate
-             * @default 0.20
+             * @default 0.25
              */
             profit_tax_rate: string;
             /**
@@ -12226,7 +12227,7 @@ export interface components {
             nwc_change?: (number | string)[];
             /**
              * Tax Rate
-             * @default 0.20
+             * @default 0.25
              */
             tax_rate: number | string;
             /**
@@ -12280,7 +12281,7 @@ export interface components {
             nwc_change?: string[];
             /**
              * Tax Rate
-             * @default 0.20
+             * @default 0.25
              */
             tax_rate: string;
             /**

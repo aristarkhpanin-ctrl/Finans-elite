@@ -10314,7 +10314,7 @@
               "production_cycle_months": 0,
               "profit_tax_benefit_share": "0",
               "profit_tax_periodicity": "month",
-              "profit_tax_rate": "0.20",
+              "profit_tax_rate": "0.25",
               "property_tax_rate": "0",
               "sales_tax_rate": "0",
               "terminal_growth_rate": "0",
@@ -10466,7 +10466,7 @@
               "production_cycle_months": 0,
               "profit_tax_benefit_share": "0",
               "profit_tax_periodicity": "month",
-              "profit_tax_rate": "0.20",
+              "profit_tax_rate": "0.25",
               "property_tax_rate": "0",
               "sales_tax_rate": "0",
               "terminal_growth_rate": "0",
@@ -10857,7 +10857,7 @@
                 "type": "string"
               }
             ],
-            "default": "0.20",
+            "default": "0.25",
             "title": "Profit Tax Rate"
           },
           "property_tax_rate": {
@@ -11083,7 +11083,7 @@
             "type": "string"
           },
           "profit_tax_rate": {
-            "default": "0.20",
+            "default": "0.25",
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Profit Tax Rate",
             "type": "string"
@@ -15758,7 +15758,7 @@
                 "type": "string"
               }
             ],
-            "default": "0.20",
+            "default": "0.25",
             "title": "Tax Rate"
           },
           "terminal_growth": {
@@ -15852,7 +15852,7 @@
             "type": "array"
           },
           "tax_rate": {
-            "default": "0.20",
+            "default": "0.25",
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Tax Rate",
             "type": "string"
@@ -25343,7 +25343,7 @@
     },
     "/api/v1/sample": {
       "get": {
-        "description": "Демонстрационная модель проекта (готова к отправке в /calculate).",
+        "description": "Демонстрационная модель проекта (готова к отправке в /calculate), по действующим\nобщим ставкам налогов — как и шаблоны (пакет J).",
         "operationId": "sample_api_v1_sample_get",
         "responses": {
           "200": {

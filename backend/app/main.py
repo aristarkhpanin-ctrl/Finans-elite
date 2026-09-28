@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 from calc_core import ENGINE_VERSION, ProjectModel, run
 from calc_core.engine import ModelError
 from calc_core.samples import TEMPLATES, build_sample_project
-from calc_core.templates import INDUSTRY_TEMPLATES, NOT_A_BENCHMARK
+from calc_core.templates import INDUSTRY_TEMPLATES, NOT_A_BENCHMARK, at_current_rates
 
 from .database import get_db, init_db
 from .error_tracking import init_error_tracking
@@ -116,8 +116,9 @@ def calculate(model: ProjectModel) -> CalcResponse:
 
 @app.get("/api/v1/sample", response_model=ProjectModel, tags=["calc"])
 def sample() -> ProjectModel:
-    """Демонстрационная модель проекта (готова к отправке в /calculate)."""
-    return build_sample_project()
+    """Демонстрационная модель проекта (готова к отправке в /calculate), по действующим
+    общим ставкам налогов — как и шаблоны (пакет J)."""
+    return at_current_rates(build_sample_project())
 
 
 def _shape(model: ProjectModel) -> dict:
@@ -165,4 +166,6 @@ def template(template_id: str) -> ProjectModel:
         return INDUSTRY_TEMPLATES[template_id].build()
     if template_id not in TEMPLATES:
         raise HTTPException(status_code=404, detail="Шаблон не найден")
-    return TEMPLATES[template_id][2]()
+    # Демонстрационные модели — ещё и эталоны golden со ставками прежних лет; пользователю
+    # они отдаются по действующим общим ставкам (пакет J).
+    return at_current_rates(TEMPLATES[template_id][2]())

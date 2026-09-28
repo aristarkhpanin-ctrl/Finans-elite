@@ -61,7 +61,9 @@ class ProjectSettings(MoneyModel):
     valuation_earnings_multiple: Decimal = Decimal("0")
     # Доля возврата активов при ликвидации (0..1; 0 = метод выключен; §20).
     liquidation_recovery_rate: Decimal = Decimal("0")
-    profit_tax_rate: Decimal = Decimal("0.20")        # налог на прибыль
+    # Налог на прибыль: общая ставка с 2025 года — 25% (п. 1 ст. 284 НК РФ в ред. закона
+    # № 176-ФЗ); до пакета J здесь стояли 20%, и новый проект считал налог по старой ставке.
+    profit_tax_rate: Decimal = Decimal("0.25")
     # Доля налогооблагаемой прибыли, освобождаемая от налога (льгота, 0..1; SPEC §22.7).
     profit_tax_benefit_share: Decimal = Field(default=Decimal("0"), ge=0, le=1)
     # Ограничение переноса убытков (SPEC §11): база — нарастающим итогом календарного года,

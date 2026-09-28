@@ -170,8 +170,9 @@ export interface ValuationAssumptions {
 }
 
 export function emptyValuation(): ValuationAssumptions {
+  // Ставка налога — действующая на прибыль (25% с 2025 г., ст. 284 НК), как у сервера.
   return { enabled: false, horizon_years: 5, wacc: "0.20", terminal_growth: "0.03",
-           tax_rate: "0.20", growth: [], capex: [], nwc_change: [],
+           tax_rate: "0.25", growth: [], capex: [], nwc_change: [],
            minority_interest: "0", asking_price: null };
 }
 

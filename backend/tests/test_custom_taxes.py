@@ -35,9 +35,11 @@ def test_revenue_tax_expense_allocation():
     result = run(model)
     expected = [v * Decimal("0.01") for v in base.income["I1"]]
     assert result.income["I21"] == expected
-    # вычитаемый налог даёт налоговый щит: I27 падает на 20% начисления
+    # вычитаемый налог даёт налоговый щит: I27 падает на ставку налога на прибыль от
+    # начисления (ставка — из модели: прежние «20%» здесь стояли числом и пережили закон)
+    rate = model.settings.profit_tax_rate
     shield = [base.income["I27"][t] - result.income["I27"][t] for t in range(12)]
-    assert shield == [v * Decimal("0.20") for v in expected]
+    assert shield == [v * rate for v in expected]
     assert result.cashflow["C12"] == [base.cashflow["C12"][t] + expected[t] - shield[t]
                                       for t in range(12)]
     assert all(v == 0 for v in result.balance["B21"])        # помесячно — задолженности нет

@@ -189,7 +189,7 @@ class ValuationAssumptions(MoneyModel):
     horizon_years: int = Field(default=5, ge=1, le=15)
     wacc: Decimal = Decimal("0.20")
     terminal_growth: Decimal = Decimal("0.03")
-    tax_rate: Decimal = Decimal("0.20")
+    tax_rate: Decimal = Decimal("0.25")                # налог на прибыль с 2025 г. (ст. 284)
     #: Рост показателя по годам прогноза; ряд короче горизонта — последнее значение
     #: продлевается (обнулить хвост значило бы подставить своё допущение).
     growth: list[Decimal] = Field(default_factory=list, max_length=15)

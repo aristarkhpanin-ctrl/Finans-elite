@@ -58,6 +58,34 @@ from .models import (
 d = Decimal
 _START = date(2026, 1, 1)
 
+#: Действующие общие ставки на год старта шаблонов (2026). Налог на прибыль — 25% с 2025
+#: года (п. 1 ст. 284 НК РФ, закон № 176-ФЗ); НДС — 22% с 2026 года (п. 3 ст. 164). До
+#: пакета J шаблоны считали по 20% и 20%, и проверка «правильно ли посчитан налог» на
+#: шаблоне давала верный ответ «нет». Льготные режимы (ЕСХН, 10% НДС) задаёт сама отрасль.
+CURRENT_PROFIT_TAX = d("0.25")
+CURRENT_VAT = d("0.22")
+#: Прежние общие ставки — ими написаны эталоны golden (вход теста, а не витрина).
+_OLD_PROFIT_TAX = d("0.20")
+_OLD_VAT = d("0.20")
+
+
+def at_current_rates(model: ProjectModel) -> ProjectModel:
+    """Демонстрационный шаблон — по действующим общим ставкам.
+
+    Демонстрационные модели (`samples.py`) одновременно эталоны golden: их числа не должны
+    сдвигаться от смены закона, поэтому ставки в них остаются прежними. Пользователь же
+    получает шаблон по ставкам своего года — эта функция меняет **только общие** ставки
+    (20% → 25% на прибыль, 20% → 22% НДС); льготные и нулевые не трогаются.
+    """
+    s = model.settings
+    over: dict[str, Any] = {}
+    if s.profit_tax_rate == _OLD_PROFIT_TAX:
+        over["profit_tax_rate"] = CURRENT_PROFIT_TAX
+    if s.vat_rate == _OLD_VAT:
+        over["vat_rate"] = CURRENT_VAT
+    return model.model_copy(update={"settings": s.model_copy(update=over)}) if over else model
+
+
 #: Оговорка, общая для всех шаблонов. Стоит первой в списке допущений: остальные
 #: уточняют её, а она называет главное — числа здесь ничьи.
 NOT_A_BENCHMARK = (
@@ -91,8 +119,8 @@ def _settings(**over: Any) -> ProjectSettings:
     отраслей. Значения проверяет сам ``ProjectSettings`` при разборе.
     """
     base: dict[str, Any] = dict(
-        discount_rate_annual=d("0.18"), profit_tax_rate=d("0.20"),
-        vat_rate=d("0.20"), payroll_contribution_rate=d("0.30"))
+        discount_rate_annual=d("0.18"), profit_tax_rate=CURRENT_PROFIT_TAX,
+        vat_rate=CURRENT_VAT, payroll_contribution_rate=d("0.30"))
     base.update(over)
     return ProjectSettings(**base)
 
