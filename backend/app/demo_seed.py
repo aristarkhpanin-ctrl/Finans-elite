@@ -427,7 +427,10 @@ def build_translogistic() -> dict[str, Any]:
             "I_TAX": _series(7_400, 8_580, 14_225),
             "M_DEPRECIATION": _series(26_000, 30_500, 34_000),
         },
-        # Балансовые — 96 000 + 58 000 + 56 000 = 210 000 = P_LONG + P_SHORT 2025.
+        # Реестр — процентный долг (он и уходит в мост EV → цена): 96 000 + 58 000 = 154 000.
+        # С балансом (P_LONG + P_SHORT = 210 000) он расходится на 56 000 — это кредиторка
+        # поставщикам, и сверка показывает разницу, как и должна: реестр не место для
+        # оборотного капитала, иначе цена доли занизилась бы на всю кредиторку.
         "obligations": [
             {"creditor": "ПАО Сбербанк", "contract": "КД-7712/23 от 14.03.2023",
              "kind": "credit", "amount": "96000", "rate": "0.17", "maturity_year": 2029,
@@ -437,9 +440,6 @@ def build_translogistic() -> dict[str, Any]:
             {"creditor": "ВТБ Лизинг", "contract": "ДЛ-4471 от 02.08.2024",
              "kind": "lease", "amount": "58000", "rate": "0.21", "maturity_year": 2028,
              "collateral": "предмет лизинга", "pledged_amount": "58000"},
-            {"creditor": "Поставщики топлива и запчастей",
-             "contract": "текущая кредиторская задолженность",
-             "kind": "other", "amount": "56000"},
             {"creditor": "ООО «ТЛ-Склад» (связанная сторона)",
              "contract": "Договор поручительства П-3 от 10.01.2025",
              "kind": "guarantee", "amount": "20000",
@@ -472,7 +472,7 @@ def build_translogistic() -> dict[str, Any]:
             "tax_rate": "0.25", "growth": ["0.10", "0.08", "0.07", "0.06", "0.05"],
             "capex": _series(38_000, 40_000, 42_000, 44_000, 46_000),
             "nwc_change": _series(6_000, 5_000, 5_000, 4_000, 4_000),
-            "asking_price": "240000",
+            "asking_price": "290000",
         },
         "risk": {"iterations": 2000, "seed": 42, "uncertain": [
             {"param": "wacc", "distribution": {"kind": "triangular", "low": "0.18",
@@ -517,7 +517,8 @@ def build_agro_south() -> dict[str, Any]:
             "I_TAX": _series(0, 0, 0),
             "M_DEPRECIATION": _series(9_000, 9_500, 9_800),
         },
-        # Балансовые — 60 000 + 70 000 + 128 500 = 258 500 = P_LONG + P_SHORT 2025.
+        # Реестр — процентный долг 130 000; остальные 128 500 пассива — кредиторка
+        # поставщикам, её показывает сверка с балансом.
         "obligations": [
             {"creditor": "АО Россельхозбанк", "contract": "КД-118/21 от 20.05.2021",
              "kind": "credit", "amount": "60000", "rate": "0.15", "maturity_year": 2028,
@@ -527,9 +528,6 @@ def build_agro_south() -> dict[str, Any]:
             {"creditor": "АО Россельхозбанк", "contract": "ВКЛ-204/24 от 11.02.2024",
              "kind": "credit", "amount": "70000", "rate": "0.18", "maturity_year": 2026,
              "collateral": "урожай 2026 г.", "pledged_amount": "70000"},
-            {"creditor": "Поставщики семян, СЗР и ГСМ",
-             "contract": "текущая кредиторская задолженность", "kind": "other",
-             "amount": "128500"},
         ],
         "report": {
             "number": "DD-2026/015", "date": "2026-09-20",
@@ -727,8 +725,10 @@ def seed(client: _Client, *, passwords: dict[str, str] | None = None,
     owner.call("POST", f"/audit/subjects/{tl_id}/versions",
                {"label": "Перед инвесткомитетом 15.09"})
     analyst.call("POST", f"/audit/subjects/{tl_id}/comments", {
-        "body": "Дебиторка перевозчика-банкрота переоценена на −3,5 млн ₽ (2025). Ковенант "
-                "Сбербанка соблюдён, но запас по Долг/EBITDA небольшой — см. реестр.",
+        "body": "Дебиторка перевозчика-банкрота переоценена на −3,5 млн ₽ (2025). Реестр "
+                "расходится с балансом на 56 млн ₽ — это кредиторка поставщикам, процентного "
+                "долга в ней нет. Ковенант Сбербанка соблюдён: Долг/EBITDA ≈ 154/107 ≈ 1,4 "
+                "при пороге 3,0.",
         "anchor": "tab:obligations", "anchor_label": "Обязательства"})
 
     # 8. Самопроверка: каждый проект считается, баланс сходится помесячно.
