@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 
@@ -44,8 +45,8 @@ TAX_YEAR_MONTHS = 12
 def tax_year_offset(start: date) -> int:
     """Сколько месяцев календарного года прошло к старту проекта (0 — старт в январе).
 
-    Одна дверь для всего, что зависит от границы налогового года или квартала: переноса
-    убытков (:func:`carry_losses`) и графика уплаты профильных и настраиваемых налогов
+    Одна дверь для всего, что зависит от границы налогового года или квартала: базы и
+    переноса убытков (:func:`profit_tax`) и графика уплаты профильных и настраиваемых налогов
     (``engine.taxes._payment_schedule``). До 0.9.46 год считался от старта проекта, и при
     старте не в январе налоговый период модели расходился с календарным: убыток декабря
     гасил прибыль января как «свой», а квартальный налог платился в месяцы, которые ни
@@ -54,48 +55,68 @@ def tax_year_offset(start: date) -> int:
     return start.month - 1
 
 
-def carry_losses(bases: list[Decimal], limit: Decimal, *, year_offset: int) -> list[Decimal]:
-    """Перенос убытков (`I22`) по базе до переноса ``bases`` (`I23 + I25`) — SPEC §11.
+@dataclass(frozen=True)
+class ProfitTax:
+    """Налоговый блок ОПУ по месяцам — **приросты** годовых нарастающих величин.
 
-    Убыток месяца копится в пуле. Убыток **своего** налогового года гасит прибыль
-    следующих месяцев того же года целиком — это не перенос. Убытки **прошлых** лет
-    уменьшают остаток базы месяца не больше чем на долю ``limit`` (п. 2.1 ст. 283 НК РФ),
-    неиспользованное переходит дальше бессрочно (п. 2 ст. 283). Сначала гасится убыток
-    своего года, потом — прошлых.
-
-    База помесячная (как и до ограничения), а закон считает её нарастающим итогом года:
-    убыток, пришедший **после** обложенной прибыли того же года, уже начисленного налога
-    не уменьшает — он гасит прибыль следующих месяцев, а если год на нём кончается,
-    становится убытком прошлых лет. Это расхождение с нормой названо в карте методики.
-
-    ``year_offset`` — сколько месяцев налогового года прошло к старту проекта
-    (:func:`tax_year_offset`). Обязателен: умолчание «год от старта» было прежней
-    конвенцией движка, и забытый аргумент молча вернул бы её.
-
-    ``limit ≥ 1`` — расчёт до ограничения (пул закрывает базу целиком) **той же
-    операцией**, что и раньше, а не выведенной из общей формулы: промежуточное вычитание
-    могло бы разойтись с прежними числами в последнем знаке.
+    ``carried`` (`I22`) — зачтённый убыток прошлых лет, ``taxable`` (`I26`) —
+    налогооблагаемая прибыль после переноса и льготы, ``tax`` (`I27`) — начисленный
+    налог. Сумма месяцев года — годовая величина; внутри года прирост бывает
+    отрицательным: убыток после прибыли того же года уменьшает уже начисленный налог.
     """
-    carried = zeros(len(bases))
-    pool = Decimal(0)        # все непокрытые убытки (≥ 0)
-    this_year = Decimal(0)   # их часть, понесённая в текущем налоговом году
+
+    carried: list[Decimal]
+    taxable: list[Decimal]
+    tax: list[Decimal]
+
+
+def profit_tax(bases: list[Decimal], *, limit: Decimal, year_offset: int,
+               benefit_share: Decimal = Decimal(0),
+               rate: Decimal = Decimal(0)) -> ProfitTax:
+    """Налог на прибыль по базе до переноса ``bases`` (`I23 + I25`) — SPEC §11.
+
+    База считается **нарастающим итогом календарного года** (ст. 274, 286 НК РФ) и в
+    январе начинается заново (``year_offset`` — :func:`tax_year_offset`; обязателен, как
+    и доля). Убыток месяца внутри года просто уменьшает нарастающую базу: убыток,
+    пришедший после обложенной прибыли, уменьшает и начисленный налог — до 0.9.47 база
+    была помесячной, и такой убыток налога не уменьшал. Непокрытый убыток года в декабре
+    уходит в пул **прошлых** лет; он гасит положительную нарастающую базу следующих лет не
+    больше чем на долю ``limit`` (п. 2.1 ст. 283 — ограничение действует на базу отчётного
+    периода, то есть нарастающую), остаток переносится бессрочно (п. 2 ст. 283). Льгота —
+    доля ``benefit_share`` базы после переноса; налог — ставка от остатка.
+
+    Месячные строки — разности нарастающих величин: так делает и бухгалтер, у которого
+    отчётный период — месяц.
+    """
+    n = len(bases)
+    carried, taxable, tax = zeros(n), zeros(n), zeros(n)
+    pool = Decimal(0)                       # непокрытые убытки прошлых лет (≥ 0)
+    cum = cum_carried = cum_taxable = Decimal(0)
     for t, base in enumerate(bases):
         if (t + year_offset) % TAX_YEAR_MONTHS == 0:
-            this_year = Decimal(0)           # год закрыт: его убыток стал «прошлым»
-        if base < 0:
-            pool += -base
-            this_year += -base
-            continue
-        if limit >= 1:
-            cap = base
-        else:
-            own = min(this_year, base)
-            cap = own + (base - own) * limit
-        applied = min(pool, cap)
-        carried[t] = applied
-        pool -= applied
-        this_year -= min(this_year, applied)
-    return carried
+            # Январь: год закрыт. Зачтённое уходит из пула, непокрытый убыток года — в пул.
+            pool = pool - cum_carried + max(Decimal(0), -cum)
+            cum = cum_carried = cum_taxable = Decimal(0)
+        cum += base
+        positive = max(Decimal(0), cum)
+        cap = positive if limit >= 1 else positive * limit
+        now_carried = min(pool, cap)
+        now_taxable = positive - now_carried
+        now_taxable -= benefit_share * now_taxable          # льгота
+        carried[t] = now_carried - cum_carried
+        taxable[t] = now_taxable - cum_taxable
+        tax[t] = taxable[t] * rate
+        cum_carried, cum_taxable = now_carried, now_taxable
+    return ProfitTax(carried=carried, taxable=taxable, tax=tax)
+
+
+def carry_losses(bases: list[Decimal], limit: Decimal, *, year_offset: int) -> list[Decimal]:
+    """Перенос убытков прошлых лет (`I22`) — та же операция, что в :func:`profit_tax`.
+
+    Её зовёт карта методики, чтобы пересчитать перенос при другой доле: второй копии
+    правила там нет.
+    """
+    return profit_tax(bases, limit=limit, year_offset=year_offset).carried
 
 
 def build_income(leaves: dict[str, list[Decimal]], n: int, profit_tax_rate: Decimal,
@@ -103,10 +124,9 @@ def build_income(leaves: dict[str, list[Decimal]], n: int, profit_tax_rate: Deci
                  year_offset: int) -> Statement:
     """Собрать ОПУ (I1–I28). ``leaves`` содержит листовые строки; итоги вычисляются здесь.
 
-    Налоговый блок (SPEC §11, §22.7) считается **последовательно**: убыток периода
-    уменьшает налоговую базу будущих прибыльных периодов (перенос убытков `I22`, с
-    ограничением доли ``loss_limit`` для убытков прошлых лет — :func:`carry_losses`);
-    доля ``benefit_share`` налогооблагаемой прибыли освобождается от налога (льгота).
+    Налоговый блок (SPEC §11, §22.7) — :func:`profit_tax`: база нарастающим итогом
+    календарного года, перенос убытков прошлых лет `I22` с ограничением доли
+    ``loss_limit``, льгота ``benefit_share``; месячные `I22`, `I26`, `I27` — приросты.
 
     ``loss_limit`` и ``year_offset`` обязательны: умолчание здесь молча выбрало бы одну из
     двух методик за того, кто забыл передать настройку.
@@ -123,22 +143,13 @@ def build_income(leaves: dict[str, list[Decimal]], n: int, profit_tax_rate: Deci
     # I23 = I8 − I9 − I16 − I19 + I20 − I21
     s["I23"] = add(sub(sub(sub(s["I8"], s["I9"]), s["I16"]), s["I19"]), sub(s["I20"], s["I21"]))
 
-    # --- Налоговый блок: перенос убытков (I22) + льгота + налог (последовательно) ---
+    # --- Налоговый блок: нарастающим итогом года (перенос I22, льгота, налог I27) ---
     # База до переноса = I23 + I25 (I24 — невычитаемые, в базу не входят, см. §22.1).
-    bases = add(s["I23"], s["I25"])
-    i22 = carry_losses(bases, loss_limit, year_offset=year_offset)
-    i26 = zeros(n)
-    i27 = zeros(n)
-    for t in range(n):
-        base = bases[t]
-        # Убыточный месяц: I26 < 0, налога нет; прибыльный — база за вычетом переноса.
-        taxable = base if base < 0 else base - i22[t]
-        exempt = benefit_share * taxable if taxable > 0 else Decimal(0)  # льгота
-        i26[t] = taxable - exempt
-        i27[t] = max(Decimal(0), i26[t]) * profit_tax_rate
-    s["I22"] = i22
-    s["I26"] = i26
-    s["I27"] = i27
+    block = profit_tax(add(s["I23"], s["I25"]), limit=loss_limit, year_offset=year_offset,
+                       benefit_share=benefit_share, rate=profit_tax_rate)
+    s["I22"] = block.carried
+    s["I26"] = block.taxable
+    s["I27"] = block.tax
     # I28 = I23 + I25 − I24 − I27  (издержки за счёт прибыли уменьшают чистую прибыль).
     s["I28"] = sub(sub(add(s["I23"], s["I25"]), s["I24"]), s["I27"])
     return s

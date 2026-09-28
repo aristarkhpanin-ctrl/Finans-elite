@@ -278,18 +278,19 @@ def test_a_limit_below_the_norm_is_stricter_not_a_divergence():
     assert item.divergence == "" and "строже нормы" in item.chosen and "30%" in item.chosen
 
 
-def test_a_loss_after_taxed_profit_of_the_same_year_is_named_where_it_bites():
-    """База помесячная, а закон считает её нарастающим итогом года: убыток декабря после
-    прибыльной осени налог осени не уменьшает. Найдено при G10 — названо, а не
-    исправлено: правка меняет смысл I27 (он стал бы уменьшаться внутри года)."""
+def test_a_loss_after_taxed_profit_is_no_longer_a_divergence():
+    """До 0.9.47 база была помесячной, и убыток декабря после прибыльной осени налога
+    осени не уменьшал — карта называла это расхождением со ст. 274, 286. Теперь база —
+    нарастающий итог года: у «Растениеводства» декабрьский убыток сторнирует налог
+    (месячный налог отрицателен), и предупреждения нет."""
     from calc_core.templates import INDUSTRY_TEMPLATES
 
-    farming = _loss_item(INDUSTRY_TEMPLATES["farming"].build())   # убыток каждого декабря
-    assert "нарастающим итогом" in farming.divergence and "286" in farming.divergence
-    assert Decimal(farming.evidence["late_year_losses"]) > 0
-
-    retail = _loss_item(INDUSTRY_TEMPLATES["retail"].build())     # прибыль каждый месяц
-    assert retail.divergence == "" and "late_year_losses" not in retail.evidence
+    model = INDUSTRY_TEMPLATES["farming"].build()          # убыток каждого декабря
+    farming = _loss_item(model)
+    assert "нарастающим итогом" not in farming.divergence
+    assert "late_year_losses" not in farming.evidence
+    assert "нарастающим итогом года" in farming.chosen
+    assert any(v < 0 for v in run(model).income["I27"])    # сторно внутри года есть
 
 
 def test_the_tax_year_is_the_calendar_one_and_no_longer_a_divergence():

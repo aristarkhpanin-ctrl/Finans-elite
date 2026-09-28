@@ -196,7 +196,7 @@ function CustomTaxes({ environment, onChange }: { environment: Environment; onCh
                     ["revenue", "Выручка (I1)"],
                     ["payroll", "ФОТ (I6+I13..I15)"],
                     ["property", "Имущество (B13+B14)"],
-                    ["profit", "Прибыль (I26, если > 0)"],
+                    ["profit", "Прибыль (I26, нарастающим итогом года)"],
                     ["formula", "Формула…"],
                   ]}
                 />

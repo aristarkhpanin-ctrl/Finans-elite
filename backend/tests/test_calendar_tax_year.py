@@ -31,7 +31,7 @@ from calc_core.models import (
 )
 from calc_core.models.environment import Tax
 from calc_core.money import almost_equal
-from calc_core.reports.statements import carry_losses, tax_year_offset
+from calc_core.reports.statements import carry_losses, profit_tax, tax_year_offset
 
 D = Decimal
 RATE = D("0.20")
@@ -45,12 +45,15 @@ def test_the_offset_is_the_months_of_the_calendar_year_already_gone(month, offse
 
 def test_a_loss_of_the_previous_calendar_year_is_limited_even_within_twelve_months():
     """Старт в июле: убыток июля–декабря — убыток прошлого года уже в январе, и гасит
-    январскую прибыль не больше чем наполовину. «Год от старта» считал бы его своим."""
+    январскую прибыль не больше чем наполовину. «Год от старта» счёл бы его своим и
+    свернул бы в базу года целиком — налога не было бы вовсе."""
     bases = [D(-100)] * 6 + [D(100)] * 6          # июль–декабрь убыток, январь–июнь прибыль
-    calendar = carry_losses(bases, D("0.5"), year_offset=6)
-    from_start = carry_losses(bases, D("0.5"), year_offset=0)
-    assert calendar[6:] == [D(50)] * 6            # прошлый год — не больше половины базы
-    assert from_start[6:] == [D(100)] * 6         # прежняя конвенция: «свой» год целиком
+    calendar = profit_tax(bases, limit=D("0.5"), year_offset=6, rate=RATE)
+    from_start = profit_tax(bases, limit=D("0.5"), year_offset=0, rate=RATE)
+    assert calendar.carried[6:] == [D(50)] * 6    # прошлый год — не больше половины базы
+    assert sum(calendar.tax) == D(60)             # 20% от непокрытой половины
+    assert from_start.carried == [D(0)] * 12      # «свой» год: убыток в базе, не перенос
+    assert sum(from_start.tax) == 0
 
 
 def test_january_start_is_the_old_convention():
@@ -113,7 +116,9 @@ def test_the_engine_carries_losses_by_the_calendar():
     base_jan = july.income["I23"][6] + july.income["I25"][6]
     assert base_jan > 0
     assert july.income["I22"][6] == base_jan * D("0.5")     # прошлый год — половина
-    assert january.income["I22"][6] == base_jan             # свой год — целиком
+    assert july.income["I27"][6] == base_jan * D("0.5") * RATE
+    # Январский старт: убытки полугодия — свой год, нарастающая база ещё отрицательна.
+    assert january.income["I22"][6] == 0 and january.income["I27"][6] == 0
 
 
 def test_quarterly_profit_and_vat_are_paid_at_calendar_quarter_ends():
