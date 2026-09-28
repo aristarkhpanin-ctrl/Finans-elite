@@ -53,11 +53,14 @@ def _model(volume, admin_cost, *, n, benefit=D("0")) -> ProjectModel:
 
 
 def test_loss_carryforward_reduces_later_tax():
-    """t0 убыток 500, t1 прибыль 2000: убыток уменьшает базу t1 (налог 300 вместо 400)."""
+    """t0 убыток 500, t1 прибыль 2000: убыток уменьшает базу года (налог 300 вместо 400).
+
+    С 0.9.47 база — нарастающий итог года: убыток своего года сидит в базе, а не в
+    переносе (`I22` — только прошлые годы); `I26` — прирост нарастающей базы."""
     r = run(_model(volume=[D(0), D(20)], admin_cost=[D(500), D(0)], n=2))
     assert r.income["I23"] == [D(-500), D(2000)]
-    assert r.income["I22"] == [D(0), D(500)]      # перенесённый убыток применён в t1
-    assert r.income["I26"] == [D(-500), D(1500)]  # база t1 уменьшена на 500
+    assert r.income["I22"] == [D(0), D(0)]        # свой год — не перенос
+    assert r.income["I26"] == [D(0), D(1500)]     # нарастающая база −500 → 1500
     assert r.income["I27"] == [D(0), D(300)]      # налог 20% от 1500 (а не от 2000)
     assert r.income["I28"] == [D(-500), D(1700)]
     assert _balanced(r)
@@ -67,8 +70,8 @@ def test_loss_carryforward_consumed_across_multiple_periods():
     """Убыток 1000 (t0) гасится прибылью t1 (600) и частично t2 (400 из 600)."""
     r = run(_model(volume=[D(0), D(6), D(6)], admin_cost=[D(1000), D(0), D(0)], n=3))
     assert r.income["I23"] == [D(-1000), D(600), D(600)]
-    assert r.income["I22"] == [D(0), D(600), D(400)]   # пул 1000 → 600 + 400
-    assert r.income["I26"] == [D(-1000), D(0), D(200)]
+    assert r.income["I22"] == [D(0), D(0), D(0)]       # свой год — внутри базы
+    assert r.income["I26"] == [D(0), D(0), D(200)]     # нарастающая: −1000, −400, +200
     assert r.income["I27"] == [D(0), D(0), D(40)]      # налог только с остатка 200
     assert _balanced(r)
 

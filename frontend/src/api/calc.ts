@@ -9,6 +9,7 @@ export type RatioGroup = Record<string, (string | null)[]>;
 export type RatiosOut = Schema<"RatiosOut">;
 export type BreakEvenOut = Schema<"BreakEvenOut">;
 export type ValuationOut = Schema<"ValuationOut">;
+export type LineDetailOut = Schema<"LineDetailOut">;
 export type CalcResponse = Schema<"CalcResponse">;
 
 export async function calculateProject(id: string): Promise<CalcResponse> {

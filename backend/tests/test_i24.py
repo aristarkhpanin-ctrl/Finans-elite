@@ -78,8 +78,10 @@ def test_from_profit_overhead_increases_tax_and_reduces_net():
     assert r.income["I27"] == [D(200)]   # налог 20% от 1000
     assert r.income["I28"] == [D(700)]   # чистая прибыль = 1000 − 100 − 200
 
-    # Деньги: 1000 − 100 (издержка) − 200 (налог) = 700; баланс сходится.
-    assert r.cashflow["C29"] == [D(700)]
+    # Деньги: 1000 − 100 (издержка) = 900; налог 200 — в следующем месяце (ст. 287), пока
+    # задолженность в B21. Баланс сходится.
+    assert r.cashflow["C29"] == [D(900)]
+    assert r.balance["B21"] == [D(200)]
     assert r.balance["B32"] == [D(700)]
     assert _balanced(r)
 

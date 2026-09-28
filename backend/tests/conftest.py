@@ -47,6 +47,16 @@ def client():
 
 
 @pytest.fixture
+def db_session(client):
+    """Сессия к тестовой БД (схема уже создана фикстурой ``client``) — для crud-тестов."""
+    db = _TestingSession()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+@pytest.fixture
 def register(client):
     """Фабрика: зарегистрировать пользователя (создаёт организацию) → заголовки Bearer."""
     def _register(email: str = "owner@e.ru", org: str = "Орг") -> dict:

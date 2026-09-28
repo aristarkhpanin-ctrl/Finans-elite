@@ -2,7 +2,10 @@ import { useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
 import { line, type CalcResponse, type StatementOut } from "../api/calc";
 import { fmtAxis, fmtMoney } from "../format";
-import { axisLayer, CAT, EmptyChart, frame, monthLabels, PAL, Svg, type Frame, type P, type TipRow } from "./charts";
+import {
+  axisLayer, CAT, EmptyChart, fitWidth, frame, monthLabels, PAL, Svg, useChartWidth,
+  type Frame, type P, type TipRow,
+} from "./charts";
 
 /**
  * Аналитические графики (макет «Этап 15»): 6 SVG-карточек на единой
@@ -22,6 +25,21 @@ interface Tip {
 
 const sumLine = (stmt: StatementOut, ...codes: string[]) =>
   codes.reduce((acc, code) => acc + line(stmt, code).reduce((s, v) => s + Number(v ?? 0), 0), 0);
+
+/** Место под график: меряет свою ширину и строит график в геометрии по ней. */
+function ChartBox({ height, base, fixed, children }: {
+  height: number;
+  base: P;
+  fixed?: boolean;
+  children: (p: P) => ReactNode;
+}) {
+  const [ref, width] = useChartWidth<HTMLDivElement>();
+  return (
+    <div ref={ref} style={{ height, marginTop: 10 }}>
+      {children(fixed ? base : fitWidth(base, width))}
+    </div>
+  );
+}
 
 export function ResultCharts({ result }: { result: CalcResponse }) {
   const [tip, setTip] = useState<Tip | null>(null);
@@ -61,8 +79,14 @@ export function ResultCharts({ result }: { result: CalcResponse }) {
   const cash = Array.from({ length: n }, (_, i) => num(c29, i));
   const net = Array.from({ length: n }, (_, i) => num(i28, i));
 
+  // Накопленный поток — по **потоку проекта** с сервера (SPEC §17): тому же, по которому
+  // посчитан срок окупаемости. У проекта с лизингом он не равен C13 + C20 (лизинг живёт в
+  // C25), и линия с точкой окупаемости разошлись бы. Старый ответ без поля — C13 + C20.
+  const flow = result.project_flow?.length === n
+    ? result.project_flow.map(Number)
+    : op.map((v, i) => v + inv[i]);
   let running = 0;
-  const cum = op.map((v, i) => (running += v + inv[i]));
+  const cum = flow.map((v) => (running += v));
 
   const b = (code: string) => line(result.balance, code);
   const assetComps: Array<[string, number[]]> = [
@@ -105,8 +129,7 @@ export function ResultCharts({ result }: { result: CalcResponse }) {
   const Ppie: P = { w: 340, h: 240, mL: 10, mR: 10, mT: 10, mB: 10 };
   const Pval: P = { w: 560, h: 240, mL: 34, mR: 14, mT: 26, mB: 36 };
 
-  const chartCashflow = () => {
-    const p = Pfull;
+  const chartCashflow = (p: P) => {
     const f = frame(p);
     let bmin = Math.min(0, ...op, ...inv);
     let bmax = Math.max(0, ...op, ...inv);
@@ -146,8 +169,7 @@ export function ResultCharts({ result }: { result: CalcResponse }) {
     return <Svg p={p}>{kids}</Svg>;
   };
 
-  const chartPayback = () => {
-    const p = Phalf;
+  const chartPayback = (p: P) => {
     const f = frame(p);
     let min = Math.min(0, ...cum);
     let max = Math.max(0, ...cum);
@@ -197,8 +219,7 @@ export function ResultCharts({ result }: { result: CalcResponse }) {
     return <Svg p={p}>{kids}</Svg>;
   };
 
-  const chartNet = () => {
-    const p = Phalf;
+  const chartNet = (p: P) => {
     const f = frame(p);
     let min = Math.min(0, ...net);
     let max = Math.max(0, ...net);
@@ -226,8 +247,7 @@ export function ResultCharts({ result }: { result: CalcResponse }) {
     return <Svg p={p}>{kids}</Svg>;
   };
 
-  const chartAssets = () => {
-    const p = Pfull;
+  const chartAssets = (p: P) => {
     const f = frame(p);
     const comps = assetComps.map(([, arr]) => arr);
     const labels = assetComps.map(([l]) => l);
@@ -255,8 +275,7 @@ export function ResultCharts({ result }: { result: CalcResponse }) {
     return <Svg p={p}>{kids}</Svg>;
   };
 
-  const chartCosts = () => {
-    const p = Ppie;
+  const chartCosts = (p: P) => {
     const total = costItems.reduce((a, [, val]) => a + val, 0) || 1;
     const cx = p.w * 0.42;
     const cy = p.h * 0.52;
@@ -307,8 +326,7 @@ export function ResultCharts({ result }: { result: CalcResponse }) {
     return <Svg p={p}>{kids}</Svg>;
   };
 
-  const chartValuation = () => {
-    const p = Pval;
+  const chartValuation = (p: P) => {
     const f = frame(p);
     const vals = valMethods.map(([, val]) => val);
     let min = Math.min(0, ...vals);
@@ -381,8 +399,10 @@ export function ResultCharts({ result }: { result: CalcResponse }) {
     sub: string;
     legend: LegendItem[];
     empty: boolean;
-    el: () => ReactNode;
+    el: (p: P) => ReactNode;
     p: P;
+    /** Растягивать ли геометрию по ширине карточки (у кольца — нет: оно круглое). */
+    fixed?: boolean;
   }> = [
     {
       id: "cashflow",
@@ -404,7 +424,7 @@ export function ResultCharts({ result }: { result: CalcResponse }) {
       height: 250,
       p: Phalf,
       title: "Накопленный поток · окупаемость",
-      sub: "Кумулятивный поток до финансирования · отметка PB",
+      sub: "Кумулятивный поток проекта · отметка PB",
       legend: [
         { label: "Накопленный поток", color: PAL.pos },
         { label: "Нулевая линия", color: "var(--danger)", line: true },
@@ -440,6 +460,7 @@ export function ResultCharts({ result }: { result: CalcResponse }) {
       id: "costs",
       height: 270,
       p: Ppie,
+      fixed: true,
       title: "Структура издержек",
       sub: "За весь период проекта",
       legend: costItems.map(([label, val], k) => ({
@@ -490,7 +511,9 @@ export function ResultCharts({ result }: { result: CalcResponse }) {
               ))}
             </div>
           )}
-          <div style={{ height: c.height, marginTop: 10 }}>{c.empty ? <EmptyChart p={c.p} /> : c.el()}</div>
+          <ChartBox height={c.height} base={c.p} fixed={c.fixed}>
+            {(p) => (c.empty ? <EmptyChart p={p} /> : c.el(p))}
+          </ChartBox>
           {tip && tip.card === c.id && (
             <div
               className="chart-tip"

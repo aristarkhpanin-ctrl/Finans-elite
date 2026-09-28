@@ -1,27 +1,68 @@
 import { useState } from "react";
+import { ScrollRegion } from "./ui";
 import type { StatementOut } from "../api/calc";
 import { fmtTable } from "../format";
 
+/** Слагаемое детализации строки (drill-down): имя источника + значения по колонкам. */
+export interface DetailRow {
+  name: string;
+  values: string[];
+}
+
 interface Props {
+  /** Название отчёта — имя области прокрутки для диктора (H6). */
+  title: string;
   statement: StatementOut;
   n: number;
   subtotals: Set<string>;
   /** Итоговые строки (grand): I28 / C29 / B20+B34 / P7. */
   grands?: Set<string>;
+  /** Метки колонок (агрегация по периодам, пакет №6); по умолчанию — М1…Мn. */
+  labels?: string[];
+  /** Детализация строк (drill-down, пакет №6): код строки → слагаемые. */
+  details?: Map<string, DetailRow[]>;
 }
 
 /**
  * Финансовая таблица (макет «Этап 13»): sticky-колонка «код | Статья»,
  * субтотальные и итоговые строки, скобки для отрицательных, «—» для нуля,
  * ховер строки и колонки (по mouseenter заголовка месяца), легенда.
+ * Строки с детализацией раскрываются в слагаемые (Σ слагаемых = строка).
  */
-export function StatementTable({ statement, n, subtotals, grands }: Props) {
+export function StatementTable({ title, statement, n, subtotals, grands, labels, details }: Props) {
   const [hoverCol, setHoverCol] = useState<number | null>(null);
-  const months = Array.from({ length: n }, (_, i) => i);
+  const [open, setOpen] = useState<Set<string>>(new Set());
+  const cols = labels ?? Array.from({ length: n }, (_, i) => `М${i + 1}`);
+  const months = cols.map((_, i) => i);
+
+  const toggle = (code: string) =>
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(code)) next.delete(code);
+      else next.add(code);
+      return next;
+    });
+
+  const cells = (values: string[]) =>
+    months.map((i) => {
+      const f = fmtTable(values[i]);
+      return (
+        <div
+          key={i}
+          className={
+            "fin2-cell" +
+            (f.kind === "neg" ? " fin2-cell--neg" : f.kind === "zero" ? " fin2-cell--zero" : "") +
+            (hoverCol === i ? " fin2-cell--colhov" : "")
+          }
+        >
+          {f.text}
+        </div>
+      );
+    });
 
   return (
     <div>
-      <div className="fin2-wrap fe-scroll">
+      <ScrollRegion className="fin2-wrap fe-scroll" label={title}>
         <div className="fin2">
           <div className="fin2-row">
             <div className="fin2-corner">
@@ -34,7 +75,7 @@ export function StatementTable({ statement, n, subtotals, grands }: Props) {
                 onMouseEnter={() => setHoverCol(i)}
                 onMouseLeave={() => setHoverCol(null)}
               >
-                М{i + 1}
+                {cols[i]}
               </div>
             ))}
           </div>
@@ -45,34 +86,41 @@ export function StatementTable({ statement, n, subtotals, grands }: Props) {
               : subtotals.has(l.code)
                 ? " fin2-row--sub"
                 : "";
+            const rows = details?.get(l.code);
+            const expanded = !!rows && open.has(l.code);
             return (
-              <div key={l.code} className={"fin2-row" + kind}>
-                <div className="fin2-label" title={l.label}>
-                  <span className="fin2-code">{l.code}</span>
-                  <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {l.label}
-                  </span>
+              <div key={l.code}>
+                <div className={"fin2-row" + kind}>
+                  <div
+                    className={"fin2-label" + (rows ? " fin2-label--exp" : "")}
+                    title={rows ? "Раскрыть слагаемые" : l.label}
+                    onClick={rows ? () => toggle(l.code) : undefined}
+                  >
+                    <span className="fin2-code">{l.code}</span>
+                    <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {l.label}
+                    </span>
+                    {rows && <span className="fin2-chev">{expanded ? "▾" : "▸"}</span>}
+                  </div>
+                  {cells(l.values)}
                 </div>
-                {months.map((i) => {
-                  const f = fmtTable(l.values[i]);
-                  return (
-                    <div
-                      key={i}
-                      className={
-                        "fin2-cell" +
-                        (f.kind === "neg" ? " fin2-cell--neg" : f.kind === "zero" ? " fin2-cell--zero" : "") +
-                        (hoverCol === i ? " fin2-cell--colhov" : "")
-                      }
-                    >
-                      {f.text}
+                {expanded &&
+                  rows.map((r, ri) => (
+                    <div key={ri} className="fin2-row fin2-row--detail">
+                      <div className="fin2-label fin2-label--detail" title={r.name}>
+                        <span className="fin2-code" />
+                        <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {r.name}
+                        </span>
+                      </div>
+                      {cells(r.values)}
                     </div>
-                  );
-                })}
+                  ))}
               </div>
             );
           })}
         </div>
-      </div>
+      </ScrollRegion>
 
       <div className="fin2-legend">
         <span>
@@ -87,6 +135,7 @@ export function StatementTable({ statement, n, subtotals, grands }: Props) {
           <span className="fin2-cell--zero" style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>—</span>
           ноль
         </span>
+        {details && details.size > 0 && <span>▸ строка раскрывается в слагаемые</span>}
         <span>⇄ таблица прокручивается по горизонтали</span>
       </div>
     </div>

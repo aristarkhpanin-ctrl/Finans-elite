@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:#000;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  a{color:#FFCE3A;}
+  a:hover{color:#FFDF7A;}
+  :root{
+    --type-title:64px; --type-hero:96px; --type-subtitle:44px; --type-body:34px; --type-small:28px; --type-mono:30px;
+    --pad-top:100px; --pad-bottom:80px; --pad-x:100px;
+    --gap-title:52px; --gap-item:28px;
+    --gold:#FFCE3A; --gold-deep:#E2A41A; --ink:#F5F0E4; --muted:#A79E8B; --subtle:#77705F;
+    --line:#2C2719; --line-strong:#4A422B; --surface:#100E09; --surface-2:#191610;
+    --violet:#C77DFF; --green:#7FEE64; --coral:#F0796E; --amber:#E8792B;
+  }
+  @keyframes fd-pulse{from{opacity:.4}to{opacity:1}}
+</style>
+</helmet>
+
+<x-import component-from-global-scope="deck-stage" from="./deck-stage.js" width="1920" height="1080" hint-size="100%,100%">
+
+<section data-label="Титул" data-screen-label="01" data-speaker-notes="Представиться, назвать компанию. Ключевая мысль вступления: мы не продаём отчёты, мы продаём уверенность в цифре перед решением о деньгах." style="display:flex;align-items:center;gap:90px;padding:var(--pad-top) var(--pad-x) var(--pad-bottom);background:radial-gradient(ellipse 70% 90% at 26% 42%, rgba(255,206,58,.13) 0%, rgba(226,164,26,.04) 46%, transparent 78%),#000;">
+  <div style="flex:1;min-width:0;">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:44px;">
+      <span style="width:12px;height:12px;border-radius:50%;background:var(--gold);box-shadow:0 0 16px rgba(255,206,58,.9);animation:fd-pulse 2.2s ease-in-out infinite alternate;"></span>
+      <span style="font:500 var(--type-small)/1 'Inter',sans-serif;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);">ФИНАНС</span>
+    </div>
+    <h1 style="margin:0;font:500 var(--type-hero)/1.04 'Satoshi','Inter',sans-serif;letter-spacing:-.035em;color:var(--ink);max-width:18ch;">Решение о деньгах опирается на проверенную цифру</h1>
+    <p style="margin:44px 0 0;font:400 var(--type-body)/1.55 'Inter',sans-serif;color:var(--muted);max-width:40ch;text-wrap:pretty;">Две платформы для тех, кто вкладывает и покупает: «Финанс-Элит» проверяет проект, «Финанс Аудит» — фирму.</p>
+  </div>
+  <div style="flex:none;width:420px;height:420px;">
+    <dc-import name="Cube Hero (Gold)" backdrop="transparent" style="width:100%;height:100%" hint-size="420px,420px"></dc-import>
+  </div>
+</section>
+
+<section data-label="О чём поговорим" data-screen-label="02" data-speaker-notes="Обозначить рамку: 20 минут, четыре части. Пообещать, что к концу будет видно живое дело целиком и понятна цена." style="padding:var(--pad-top) var(--pad-x) var(--pad-bottom);background:#000;display:flex;flex-direction:column;">
+  <div style="font:500 var(--type-small)/1 'Inter',sans-serif;letter-spacing:.18em;text-transform:uppercase;color:var(--subtle);">О ЧЁМ ПОГОВОРИМ</div>
+  <h2 style="margin:32px 0 0;font:500 var(--type-title)/1.1 'Satoshi','Inter',sans-serif;letter-spacing:-.03em;color:var(--ink);">Четыре части, двадцать минут</h2>
+  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:36px 60px;margin-top:var(--gap-title);">
+    <div style="display:flex;gap:28px;padding:36px;border:1px solid var(--line);border-radius:20px;background:var(--surface);">
+      <span style="flex:none;font:500 var(--type-subtitle)/1 'JetBrains Mono',monospace;color:var(--gold);">01</span>
+      <div style="min-width:0;">
+        <div style="font:500 var(--type-body)/1.2 'Satoshi','Inter',sans-serif;letter-spacing:-.02em;color:var(--ink);">Цена непроверенной цифры</div>
+        <div style="margin-top:16px;font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">Что теряет покупатель, доверяя отчётности продавца</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:28px;padding:36px;border:1px solid var(--line);border-radius:20px;background:var(--surface);">
+      <span style="flex:none;font:500 var(--type-subtitle)/1 'JetBrains Mono',monospace;color:var(--gold);">02</span>
+      <div style="min-width:0;">
+        <div style="font:500 var(--type-body)/1.2 'Satoshi','Inter',sans-serif;letter-spacing:-.02em;color:var(--ink);">Две платформы, одно основание</div>
+        <div style="margin-top:16px;font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">Чем «Элит» отличается от «Аудита» и что у них общего</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:28px;padding:36px;border:1px solid var(--line);border-radius:20px;background:var(--surface);">
+      <span style="flex:none;font:500 var(--type-subtitle)/1 'JetBrains Mono',monospace;color:var(--gold);">03</span>
+      <div style="min-width:0;">
+        <div style="font:500 var(--type-body)/1.2 'Satoshi','Inter',sans-serif;letter-spacing:-.02em;color:var(--ink);">Как работает проверка</div>
+        <div style="margin-top:16px;font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">Живое дело от загрузки отчётности до подписи</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:28px;padding:36px;border:1px solid var(--line);border-radius:20px;background:var(--surface);">
+      <span style="flex:none;font:500 var(--type-subtitle)/1 'JetBrains Mono',monospace;color:var(--gold);">04</span>
+      <div style="min-width:0;">
+        <div style="font:500 var(--type-body)/1.2 'Satoshi','Inter',sans-serif;letter-spacing:-.02em;color:var(--ink);">Сроки, цена, первый шаг</div>
+        <div style="margin-top:16px;font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">Сколько стоит и как начать без своих документов</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section data-label="Раздел · Цена цифры" data-screen-label="03" data-speaker-notes="Пауза. Это первый раздел — переход к боли." style="display:flex;flex-direction:column;justify-content:center;padding:var(--pad-top) var(--pad-x) var(--pad-bottom);background:var(--surface);">
+  <div style="font:500 var(--type-small)/1 'JetBrains Mono',monospace;letter-spacing:.2em;color:var(--gold);">ЧАСТЬ 01</div>
+  <h2 style="margin:44px 0 0;font:500 var(--type-hero)/1.06 'Satoshi','Inter',sans-serif;letter-spacing:-.035em;color:var(--ink);max-width:22ch;">Цена непроверенной цифры</h2>
+  <div style="width:180px;height:6px;margin-top:52px;border-radius:3px;background:var(--gold);"></div>
+</section>
+
+<section data-label="Сколько стоит ошибка" data-screen-label="04" data-speaker-notes="Три цифры из практики. Не спешить: дать зрителю прочитать каждую. Подчеркнуть, что переплата обнаруживается через год, когда торговаться уже нельзя." style="padding:var(--pad-top) var(--pad-x) var(--pad-bottom);background:#000;display:flex;flex-direction:column;">
+  <h2 style="margin:0;font:500 var(--type-title)/1.1 'Satoshi','Inter',sans-serif;letter-spacing:-.03em;color:var(--ink);max-width:26ch;">Переплата вскрывается через год после сделки</h2>
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;margin-top:var(--gap-title);background:var(--line);border:1px solid var(--line);border-radius:20px;overflow:hidden;">
+    <div style="padding:52px 44px;background:#000;">
+      <div style="font:500 var(--type-hero)/1 'JetBrains Mono',monospace;letter-spacing:-.04em;color:var(--gold);">18%</div>
+      <div style="margin-top:28px;font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">средний дисконт, который покупатель отстаивает после проверки</div>
+    </div>
+    <div style="padding:52px 44px;background:#000;">
+      <div style="font:500 var(--type-hero)/1 'JetBrains Mono',monospace;letter-spacing:-.04em;color:var(--gold);">6 нед.</div>
+      <div style="margin-top:28px;font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">занимает классический due diligence силами консультантов</div>
+    </div>
+    <div style="padding:52px 44px;background:#000;">
+      <div style="font:500 var(--type-hero)/1 'JetBrains Mono',monospace;letter-spacing:-.04em;color:var(--coral);">7 из 10</div>
+      <div style="margin-top:28px;font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">сделок закрываются без проверки забалансовых обязательств</div>
+    </div>
+  </div>
+  <p style="margin:var(--gap-title) 0 0;font:400 var(--type-body)/1.5 'Inter',sans-serif;color:var(--muted);max-width:52ch;text-wrap:pretty;">Разница между ценой продавца и справедливой ценой — это не торг. Это стоимость рисков, которые кто-то не посмотрел.</p>
+</section>
+
+<section data-label="Как проверяют сегодня" data-screen-label="05" data-speaker-notes="Честно про альтернативы. Мы не воюем с аудиторами — мы закрываем разрыв между «никак» и «шесть недель за миллион»." style="padding:var(--pad-top) var(--pad-x) var(--pad-bottom);background:#000;display:flex;flex-direction:column;">
+  <h2 style="margin:0;font:500 var(--type-title)/1.1 'Satoshi','Inter',sans-serif;letter-spacing:-.03em;color:var(--ink);">Как проверяют сегодня</h2>
+  <div style="margin-top:var(--gap-title);border-top:2px solid var(--line-strong);">
+    <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;padding:26px 0;border-bottom:1px solid var(--line);">
+      <span style="font:500 var(--type-small)/1.2 'Inter',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--subtle);">Способ</span>
+      <span style="font:500 var(--type-small)/1.2 'Inter',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--subtle);">Срок</span>
+      <span style="font:500 var(--type-small)/1.2 'Inter',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--subtle);">Цена</span>
+      <span style="font:500 var(--type-small)/1.2 'Inter',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--subtle);">Что остаётся непроверенным</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;padding:32px 0;border-bottom:1px solid var(--line);align-items:baseline;">
+      <span style="font:400 var(--type-body)/1.3 'Inter',sans-serif;color:var(--ink);">Поверить продавцу</span>
+      <span style="font:400 var(--type-mono)/1.3 'JetBrains Mono',monospace;color:var(--muted);">0 дней</span>
+      <span style="font:400 var(--type-mono)/1.3 'JetBrains Mono',monospace;color:var(--muted);">0 ₽</span>
+      <span style="font:400 var(--type-small)/1.4 'Inter',sans-serif;color:var(--coral);">всё</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;padding:32px 0;border-bottom:1px solid var(--line);align-items:baseline;">
+      <span style="font:400 var(--type-body)/1.3 'Inter',sans-serif;color:var(--ink);">Своими силами в Excel</span>
+      <span style="font:400 var(--type-mono)/1.3 'JetBrains Mono',monospace;color:var(--muted);">2 недели</span>
+      <span style="font:400 var(--type-mono)/1.3 'JetBrains Mono',monospace;color:var(--muted);">время команды</span>
+      <span style="font:400 var(--type-small)/1.4 'Inter',sans-serif;color:var(--amber);">залоги, связанные стороны</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;padding:32px 0;border-bottom:1px solid var(--line);align-items:baseline;">
+      <span style="font:400 var(--type-body)/1.3 'Inter',sans-serif;color:var(--ink);">Внешний консультант</span>
+      <span style="font:400 var(--type-mono)/1.3 'JetBrains Mono',monospace;color:var(--muted);">6 недель</span>
+      <span style="font:400 var(--type-mono)/1.3 'JetBrains Mono',monospace;color:var(--muted);">от 800 тыс. ₽</span>
+      <span style="font:400 var(--type-small)/1.4 'Inter',sans-serif;color:var(--muted);">почти ничего</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;padding:36px 0 0;border-top:2px solid var(--gold);align-items:baseline;">
+      <span style="font:600 var(--type-body)/1.3 'Inter',sans-serif;color:var(--gold);">Финанс Аудит</span>
+      <span style="font:500 var(--type-mono)/1.3 'JetBrains Mono',monospace;color:var(--gold);">6 дней</span>
+      <span style="font:500 var(--type-mono)/1.3 'JetBrains Mono',monospace;color:var(--gold);">45 000 ₽</span>
+      <span style="font:400 var(--type-small)/1.4 'Inter',sans-serif;color:var(--muted);">видно в заключении явно</span>
+    </div>
+  </div>
+</section>
+
+<section data-label="Что видно и что нет" data-screen-label="06" data-speaker-notes="Это ядро боли. Отчётность не врёт — она умалчивает. Все четыре примера взяты из реальной практики проверок." style="display:flex;align-items:center;gap:80px;padding:var(--pad-top) var(--pad-x) var(--pad-bottom);background:#000;">
+  <div style="flex:1;min-width:0;">
+    <div style="font:500 var(--type-small)/1 'Inter',sans-serif;letter-spacing:.18em;text-transform:uppercase;color:var(--subtle);">ГЛАВНАЯ СЛОЖНОСТЬ</div>
+    <h2 style="margin:32px 0 0;font:500 var(--type-title)/1.1 'Satoshi','Inter',sans-serif;letter-spacing:-.03em;color:var(--ink);max-width:20ch;">Отчётность не врёт — она умалчивает</h2>
+    <p style="margin:36px 0 0;font:400 var(--type-body)/1.55 'Inter',sans-serif;color:var(--muted);max-width:34ch;text-wrap:pretty;">Формы сходятся, аудитор подписал, а половина рисков живёт вне баланса и в пояснениях, которых никто не читает.</p>
+  </div>
+  <div style="flex:none;width:820px;display:flex;flex-direction:column;gap:20px;">
+    <div style="display:flex;align-items:flex-start;gap:24px;padding:32px 36px;border:1px solid var(--line);border-left:4px solid var(--coral);border-radius:16px;background:var(--surface);">
+      <span style="flex:none;font:400 var(--type-body)/1.2 'JetBrains Mono',monospace;color:var(--coral);">01</span>
+      <span style="font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--ink);">Поручительства за связанную сторону — в реестре ФНП, но не в пояснениях</span>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:24px;padding:32px 36px;border:1px solid var(--line);border-left:4px solid var(--coral);border-radius:16px;background:var(--surface);">
+      <span style="flex:none;font:400 var(--type-body)/1.2 'JetBrains Mono',monospace;color:var(--coral);">02</span>
+      <span style="font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--ink);">Прочие доходы в декабре, которых нет в банковской выписке</span>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:24px;padding:32px 36px;border:1px solid var(--line);border-left:4px solid var(--amber);border-radius:16px;background:var(--surface);">
+      <span style="flex:none;font:400 var(--type-body)/1.2 'JetBrains Mono',monospace;color:var(--amber);">03</span>
+      <span style="font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--ink);">Треть выручки на одном заказчике без долгосрочного договора</span>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:24px;padding:32px 36px;border:1px solid var(--line);border-left:4px solid var(--amber);border-radius:16px;background:var(--surface);">
+      <span style="flex:none;font:400 var(--type-body)/1.2 'JetBrains Mono',monospace;color:var(--amber);">04</span>
+      <span style="font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--ink);">Аренда у ИП собственника по ставке выше рынка на 22%</span>
+    </div>
+  </div>
+</section>
+
+<section data-label="Раздел · Две платформы" data-screen-label="07" data-speaker-notes="Переход. Здесь важно не путать продукты: один про проект, другой про фирму." style="display:flex;flex-direction:column;justify-content:center;padding:var(--pad-top) var(--pad-x) var(--pad-bottom);background:var(--surface);">
+  <div style="font:500 var(--type-small)/1 'JetBrains Mono',monospace;letter-spacing:.2em;color:var(--gold);">ЧАСТЬ 02</div>
+  <h2 style="margin:44px 0 0;font:500 var(--type-hero)/1.06 'Satoshi','Inter',sans-serif;letter-spacing:-.035em;color:var(--ink);max-width:22ch;">Две платформы, одно основание</h2>
+  <div style="width:180px;height:6px;margin-top:52px;border-radius:3px;background:var(--gold);"></div>
+</section>
+
+<section data-label="Элит и Аудит" data-screen-label="08" data-speaker-notes="Проговорить разницу одной фразой: Элит отвечает «стоит ли вкладывать в проект», Аудит — «стоит ли покупать эту фирму». Цвет карточки = цвет продукта." style="padding:var(--pad-top) var(--pad-x) var(--pad-bottom);background:#000;display:flex;flex-direction:column;">
+  <h2 style="margin:0;font:500 var(--type-title)/1.1 'Satoshi','Inter',sans-serif;letter-spacing:-.03em;color:var(--ink);">Один вопрос — одна платформа</h2>
+  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:36px;margin-top:var(--gap-title);">
+    <div style="padding:52px;border:1px solid rgba(127,238,100,.34);border-radius:24px;background:rgba(127,238,100,.07);display:flex;flex-direction:column;">
+      <div style="display:flex;align-items:center;gap:20px;">
+        <span style="width:64px;height:64px;flex:none;"><dc-import name="Cube Hero" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="64px,64px"></dc-import></span>
+        <span style="font:600 var(--type-small)/1 'Inter',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--green);">ФИНАНС-ЭЛИТ</span>
+      </div>
+      <div style="margin-top:40px;font:500 var(--type-subtitle)/1.16 'Satoshi','Inter',sans-serif;letter-spacing:-.026em;color:var(--ink);">Стоит ли вкладывать в проект</div>
+      <div style="margin-top:28px;font:400 var(--type-small)/1.55 'Inter',sans-serif;color:var(--muted);">Финансовая модель, чувствительность, сценарии, план-факт. Для инвестора, который считает будущее.</div>
+      <div style="margin-top:auto;padding-top:40px;font:400 var(--type-small)/1.4 'JetBrains Mono',monospace;color:var(--subtle);">проект · модель · доходность</div>
+    </div>
+    <div style="padding:52px;border:1px solid rgba(199,125,255,.34);border-radius:24px;background:rgba(199,125,255,.07);display:flex;flex-direction:column;">
+      <div style="display:flex;align-items:center;gap:20px;">
+        <span style="width:64px;height:64px;flex:none;"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="64px,64px"></dc-import></span>
+        <span style="font:600 var(--type-small)/1 'Inter',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--violet);">ФИНАНС АУДИТ</span>
+      </div>
+      <div style="margin-top:40px;font:500 var(--type-subtitle)/1.16 'Satoshi','Inter',sans-serif;letter-spacing:-.026em;color:var(--ink);">Стоит ли покупать эту фирму</div>
+      <div style="margin-top:28px;font:400 var(--type-small)/1.55 'Inter',sans-serif;color:var(--muted);">Сверка отчётности, качество прибыли, реестр флагов, справедливая цена. Для покупателя, который проверяет прошлое.</div>
+      <div style="margin-top:auto;padding-top:40px;font:400 var(--type-small)/1.4 'JetBrains Mono',monospace;color:var(--subtle);">фирма · факты · цена</div>
+    </div>
+  </div>
+</section>
+
+<section data-label="Что общего" data-screen-label="09" data-speaker-notes="Это важно для тех, кто покупает обе: одна учётная запись, одна команда, один тариф. Данные дел не смешиваются." style="padding:var(--pad-top) var(--pad-x) var(--pad-bottom);background:#000;display:flex;flex-direction:column;">
+  <div style="font:500 var(--type-small)/1 'Inter',sans-serif;letter-spacing:.18em;text-transform:uppercase;color:var(--subtle);">ОБЩЕЕ ОСНОВАНИЕ</div>
+  <h2 style="margin:32px 0 0;font:500 var(--type-title)/1.1 'Satoshi','Inter',sans-serif;letter-spacing:-.03em;color:var(--ink);max-width:28ch;">Одна учётная запись на оба продукта</h2>
+  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:32px 60px;margin-top:var(--gap-title);">
+    <div style="display:flex;align-items:flex-start;gap:24px;">
+      <span style="flex:none;width:14px;height:14px;margin-top:12px;border-radius:4px;background:var(--gold);"></span>
+      <div style="min-width:0;">
+        <div style="font:500 var(--type-body)/1.25 'Inter',sans-serif;color:var(--ink);">Команда и роли</div>
+        <div style="margin-top:14px;font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">Пять уровней доступа от наблюдателя до владельца, доступ выдаётся к конкретному делу</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:24px;">
+      <span style="flex:none;width:14px;height:14px;margin-top:12px;border-radius:4px;background:var(--gold);"></span>
+      <div style="min-width:0;">
+        <div style="font:500 var(--type-body)/1.25 'Inter',sans-serif;color:var(--ink);">Журнал доступа</div>
+        <div style="margin-top:14px;font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">Кто и когда открывал дело, хранение пять лет, требование 152-ФЗ</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:24px;">
+      <span style="flex:none;width:14px;height:14px;margin-top:12px;border-radius:4px;background:var(--gold);"></span>
+      <div style="min-width:0;">
+        <div style="font:500 var(--type-body)/1.25 'Inter',sans-serif;color:var(--ink);">Источники данных</div>
+        <div style="margin-top:14px;font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">ФНС, ЕГРЮЛ, реестр залогов ФНП, банковские выписки — подтягиваются по ИНН</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:24px;">
+      <span style="flex:none;width:14px;height:14px;margin-top:12px;border-radius:4px;background:var(--gold);"></span>
+      <div style="min-width:0;">
+        <div style="font:500 var(--type-body)/1.25 'Inter',sans-serif;color:var(--ink);">Выгрузка</div>
+        <div style="margin-top:14px;font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">Заключение в PDF, таблицы и реестры в Excel, свод по группе компаний</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section data-label="Раздел · Как работает" data-screen-label="10" data-speaker-notes="Самая длинная часть — около восьми минут. Дальше идём по живому делу A-2417." style="display:flex;flex-direction:column;justify-content:center;padding:var(--pad-top) var(--pad-x) var(--pad-bottom);background:var(--surface);">
+  <div style="font:500 var(--type-small)/1 'JetBrains Mono',monospace;letter-spacing:.2em;color:var(--gold);">ЧАСТЬ 03</div>
+  <h2 style="margin:44px 0 0;font:500 var(--type-hero)/1.06 'Satoshi','Inter',sans-serif;letter-spacing:-.035em;color:var(--ink);max-width:22ch;">Как работает проверка</h2>
+  <div style="margin-top:44px;font:400 var(--type-body)/1.5 'Inter',sans-serif;color:var(--muted);max-width:44ch;">Дело A-2417 · ООО «Сибтранс-Логистика» · грузоперевозки, выручка 1,8 млрд ₽</div>
+  <div style="width:180px;height:6px;margin-top:52px;border-radius:3px;background:var(--gold);"></div>
+</section>
+
+<section data-label="Шесть направлений" data-screen-label="11" data-speaker-notes="Шесть направлений, 24 процедуры. Набор настраивается под отрасль: у перевозчика проверяем путевые листы, у подрядчика — незавершёнку." style="padding:var(--pad-top) var(--pad-x) var(--pad-bottom);background:#000;display:flex;flex-direction:column;">
+  <h2 style="margin:0;font:500 var(--type-title)/1.1 'Satoshi','Inter',sans-serif;letter-spacing:-.03em;color:var(--ink);">Шесть направлений, двадцать четыре процедуры</h2>
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;margin-top:var(--gap-title);background:var(--line);border:1px solid var(--line);border-radius:20px;overflow:hidden;">
+    <div style="padding:44px;background:#000;">
+      <div style="font:500 var(--type-small)/1 'JetBrains Mono',monospace;color:var(--gold);">01</div>
+      <div style="margin-top:24px;font:500 var(--type-body)/1.2 'Satoshi','Inter',sans-serif;letter-spacing:-.02em;color:var(--ink);">Отчётность и сверка</div>
+      <div style="margin-top:18px;font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">412 строк против первичных документов и выписки</div>
+    </div>
+    <div style="padding:44px;background:#000;">
+      <div style="font:500 var(--type-small)/1 'JetBrains Mono',monospace;color:var(--gold);">02</div>
+      <div style="margin-top:24px;font:500 var(--type-body)/1.2 'Satoshi','Inter',sans-serif;letter-spacing:-.02em;color:var(--ink);">Качество прибыли</div>
+      <div style="margin-top:18px;font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">Разовые доходы, нормализация EBITDA, связанные стороны</div>
+    </div>
+    <div style="padding:44px;background:#000;">
+      <div style="font:500 var(--type-small)/1 'JetBrains Mono',monospace;color:var(--gold);">03</div>
+      <div style="margin-top:24px;font:500 var(--type-body)/1.2 'Satoshi','Inter',sans-serif;letter-spacing:-.02em;color:var(--ink);">Обязательства и залоги</div>
+      <div style="margin-top:18px;font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">Кредиты, ковенанты, реестр ФНП, забалансовое</div>
+    </div>
+    <div style="padding:44px;background:#000;">
+      <div style="font:500 var(--type-small)/1 'JetBrains Mono',monospace;color:var(--gold);">04</div>
+      <div style="margin-top:24px;font:500 var(--type-body)/1.2 'Satoshi','Inter',sans-serif;letter-spacing:-.02em;color:var(--ink);">Группа компаний</div>
+      <div style="margin-top:18px;font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">Дочерние общества, внутригрупповые обороты, консолидация</div>
+    </div>
+    <div style="padding:44px;background:#000;">
+      <div style="font:500 var(--type-small)/1 'JetBrains Mono',monospace;color:var(--gold);">05</div>
+      <div style="margin-top:24px;font:500 var(--type-body)/1.2 'Satoshi','Inter',sans-serif;letter-spacing:-.02em;color:var(--ink);">Оценка стоимости</div>
+      <div style="margin-top:18px;font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">DCF, мостик до цены доли, сравнимые сделки</div>
+    </div>
+    <div style="padding:44px;background:#000;">
+      <div style="font:500 var(--type-small)/1 'JetBrains Mono',monospace;color:var(--gold);">06</div>
+      <div style="margin-top:24px;font:500 var(--type-body)/1.2 'Satoshi','Inter',sans-serif;letter-spacing:-.02em;color:var(--ink);">Анализ рисков</div>
+      <div style="margin-top:18px;font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">Чувствительность, Монте-Карло, сценарии сделки</div>
+    </div>
+  </div>
+</section>
+
+<section data-label="Риск-скан и вердикт" data-screen-label="12" data-speaker-notes="Главный экран продукта. Вердикт — не «всё плохо» и не «всё хорошо», а конкретное действие с ценой: покупать с дисконтом 18%." style="display:flex;align-items:center;gap:72px;padding:var(--pad-top) var(--pad-x) var(--pad-bottom);background:#000;">
+  <div style="flex:none;width:520px;">
+    <div style="font:500 var(--type-small)/1 'JetBrains Mono',monospace;letter-spacing:.18em;color:var(--gold);">ШАГ 1 · ЧЕТЫРЕ МИНУТЫ</div>
+    <h2 style="margin:32px 0 0;font:500 var(--type-title)/1.1 'Satoshi','Inter',sans-serif;letter-spacing:-.03em;color:var(--ink);">Риск-скан и вердикт</h2>
+    <p style="margin:32px 0 0;font:400 var(--type-small)/1.6 'Inter',sans-serif;color:var(--muted);">Загрузили ИНН — через четыре минуты видно вердикт, семь красных флагов и разницу между ценой продавца и справедливой ценой.</p>
+    <div style="margin-top:44px;padding:32px;border:1px solid rgba(255,206,58,.32);border-radius:18px;background:rgba(255,206,58,.08);">
+      <div style="font:500 var(--type-small)/1 'Inter',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--subtle);">ВЕРДИКТ</div>
+      <div style="margin-top:20px;font:500 var(--type-subtitle)/1.14 'Satoshi','Inter',sans-serif;letter-spacing:-.026em;color:var(--gold);">Покупать с дисконтом 18%</div>
+    </div>
+  </div>
+  <div style="flex:1;min-width:0;padding:24px;border:1px solid var(--line);border-radius:20px;background:var(--surface);">
+    <img src="shots/screen-1-verdict.png" alt="Экран риск-скана: вердикт, семь флагов, справедливая цена" style="display:block;width:100%;height:auto;border-radius:12px;">
+  </div>
+</section>
+
+<section data-label="Сверка отчётности" data-screen-label="13" data-speaker-notes="Ключевое отличие от отчёта на 80 страниц: расхождение видно в самой строке, от неё один клик до первичного документа." style="display:flex;align-items:center;gap:72px;padding:var(--pad-top) var(--pad-x) var(--pad-bottom);background:#000;">
+  <div style="flex:1;min-width:0;padding:24px;border:1px solid var(--line);border-radius:20px;background:var(--surface);">
+    <img src="shots/screen-2-reconciliation.png" alt="Экран сверки отчётности: расхождение подсвечено в строке" style="display:block;width:100%;height:auto;border-radius:12px;">
+  </div>
+  <div style="flex:none;width:520px;">
+    <div style="font:500 var(--type-small)/1 'JetBrains Mono',monospace;letter-spacing:.18em;color:var(--gold);">ШАГ 2</div>
+    <h2 style="margin:32px 0 0;font:500 var(--type-title)/1.1 'Satoshi','Inter',sans-serif;letter-spacing:-.03em;">Расхождение видно в строке</h2>
+    <p style="margin:32px 0 0;font:400 var(--type-small)/1.6 'Inter',sans-serif;color:var(--muted);">Не сноска на последней странице, а подсвеченная строка, от которой можно провалиться в банковскую выписку.</p>
+    <div style="margin-top:44px;display:flex;flex-direction:column;gap:20px;">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:24px;padding-bottom:20px;border-bottom:1px solid var(--line);">
+        <span style="font:400 var(--type-small)/1.3 'Inter',sans-serif;color:var(--muted);">Прочие доходы по отчёту</span>
+        <span style="font:400 var(--type-mono)/1.3 'JetBrains Mono',monospace;color:var(--ink);">61</span>
+      </div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:24px;padding-bottom:20px;border-bottom:1px solid var(--line);">
+        <span style="font:400 var(--type-small)/1.3 'Inter',sans-serif;color:var(--muted);">Подтверждено выпиской</span>
+        <span style="font:500 var(--type-mono)/1.3 'JetBrains Mono',monospace;color:var(--coral);">19</span>
+      </div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:24px;">
+        <span style="font:500 var(--type-small)/1.3 'Inter',sans-serif;color:var(--ink);">Расхождение</span>
+        <span style="font:600 var(--type-mono)/1.3 'JetBrains Mono',monospace;color:var(--coral);">(42)</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section data-label="Качество прибыли" data-screen-label="14" data-speaker-notes="Здесь продавцу больнее всего: прибыль, которую он показывает, и прибыль, за которую платят, — разные числа. Проговорить каждую корректировку." style="padding:var(--pad-top) var(--pad-x) var(--pad-bottom);background:#000;display:flex;flex-direction:column;">
+  <div style="font:500 var(--type-small)/1 'JetBrains Mono',monospace;letter-spacing:.18em;color:var(--gold);">ШАГ 3</div>
+  <h2 style="margin:32px 0 0;font:500 var(--type-title)/1.1 'Satoshi','Inter',sans-serif;letter-spacing:-.03em;color:var(--ink);">Прибыль, за которую платят</h2>
+  <div style="margin-top:var(--gap-title);border-top:2px solid var(--line-strong);max-width:1200px;">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:40px;padding:30px 0;border-bottom:1px solid var(--line);">
+      <span style="font:400 var(--type-body)/1.3 'Inter',sans-serif;color:var(--muted);">EBITDA по отчётности продавца</span>
+      <span style="font:400 var(--type-mono)/1.3 'JetBrains Mono',monospace;color:var(--ink);">292</span>
+    </div>
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:40px;padding:30px 0;border-bottom:1px solid var(--line);">
+      <span style="font:400 var(--type-body)/1.3 'Inter',sans-serif;color:var(--muted);">Прочие доходы без подтверждения выпиской</span>
+      <span style="font:400 var(--type-mono)/1.3 'JetBrains Mono',monospace;color:var(--coral);">(42)</span>
+    </div>
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:40px;padding:30px 0;border-bottom:1px solid var(--line);">
+      <span style="font:400 var(--type-body)/1.3 'Inter',sans-serif;color:var(--muted);">Аренда у собственника выше рынка</span>
+      <span style="font:400 var(--type-mono)/1.3 'JetBrains Mono',monospace;color:var(--coral);">(15)</span>
+    </div>
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:40px;padding:30px 0;border-bottom:1px solid var(--line);">
+      <span style="font:400 var(--type-body)/1.3 'Inter',sans-serif;color:var(--muted);">Возврат разовых расходов на реорганизацию</span>
+      <span style="font:400 var(--type-mono)/1.3 'JetBrains Mono',monospace;color:var(--ink);">+33</span>
+    </div>
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:40px;padding:36px 0 0;border-top:2px solid var(--gold);">
+      <span style="font:600 var(--type-body)/1.3 'Inter',sans-serif;color:var(--ink);">EBITDA нормализованная</span>
+      <span style="font:600 var(--type-subtitle)/1.1 'JetBrains Mono',monospace;letter-spacing:-.03em;color:var(--gold);">268</span>
+    </div>
+  </div>
+  <p style="margin:44px 0 0;font:400 var(--type-small)/1.55 'Inter',sans-serif;color:var(--subtle);max-width:56ch;">Минус 8,2% к цифре продавца. При мультипликаторе 6,6× это 158 млн ₽ разницы в цене — до всяких переговоров.</p>
+</section>
+
+<section data-label="Реестр флагов" data-screen-label="15" data-speaker-notes="Самый практичный слайд для покупателя. Каждая находка не «риск», а сумма, которую можно предъявить продавцу." style="padding:var(--pad-top) var(--pad-x) var(--pad-bottom);background:#000;display:flex;flex-direction:column;">
+  <div style="font:500 var(--type-small)/1 'JetBrains Mono',monospace;letter-spacing:.18em;color:var(--gold);">ШАГ 4</div>
+  <h2 style="margin:32px 0 0;font:500 var(--type-title)/1.1 'Satoshi','Inter',sans-serif;letter-spacing:-.03em;color:var(--ink);">Каждая находка — сумма, а не формулировка</h2>
+  <div style="margin-top:var(--gap-title);border-top:2px solid var(--line-strong);">
+    <div style="display:grid;grid-template-columns:1fr 200px 240px;padding:24px 0;border-bottom:1px solid var(--line);">
+      <span style="font:500 var(--type-small)/1.2 'Inter',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--subtle);">Наблюдение</span>
+      <span style="text-align:center;font:500 var(--type-small)/1.2 'Inter',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--subtle);">Уровень</span>
+      <span style="text-align:right;font:500 var(--type-small)/1.2 'Inter',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--subtle);">Влияние, млн ₽</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 200px 240px;padding:28px 0;border-bottom:1px solid var(--line);align-items:baseline;">
+      <span style="font:400 var(--type-small)/1.4 'Inter',sans-serif;color:var(--ink);">Концентрация дебиторки на одном контрагенте</span>
+      <span style="text-align:center;font:500 var(--type-small)/1.4 'JetBrains Mono',monospace;color:var(--coral);">критич.</span>
+      <span style="text-align:right;font:400 var(--type-mono)/1.4 'JetBrains Mono',monospace;color:var(--coral);">(84)</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 200px 240px;padding:28px 0;border-bottom:1px solid var(--line);align-items:baseline;">
+      <span style="font:400 var(--type-small)/1.4 'Inter',sans-serif;color:var(--ink);">Разрыв отчёта о прибылях и банковской выписки</span>
+      <span style="text-align:center;font:500 var(--type-small)/1.4 'JetBrains Mono',monospace;color:var(--coral);">критич.</span>
+      <span style="text-align:right;font:400 var(--type-mono)/1.4 'JetBrains Mono',monospace;color:var(--coral);">(62)</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 200px 240px;padding:28px 0;border-bottom:1px solid var(--line);align-items:baseline;">
+      <span style="font:400 var(--type-small)/1.4 'Inter',sans-serif;color:var(--ink);">Забалансовые поручительства за связанную сторону</span>
+      <span style="text-align:center;font:500 var(--type-small)/1.4 'JetBrains Mono',monospace;color:var(--amber);">средний</span>
+      <span style="text-align:right;font:400 var(--type-mono)/1.4 'JetBrains Mono',monospace;color:var(--ink);">(41)</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 200px 240px;padding:28px 0;border-bottom:1px solid var(--line);align-items:baseline;">
+      <span style="font:400 var(--type-small)/1.4 'Inter',sans-serif;color:var(--ink);">Аренда склада без индексации до 2029 года</span>
+      <span style="text-align:center;font:500 var(--type-small)/1.4 'JetBrains Mono',monospace;color:var(--amber);">средний</span>
+      <span style="text-align:right;font:400 var(--type-mono)/1.4 'JetBrains Mono',monospace;color:var(--ink);">(24)</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 200px 240px;padding:32px 0 0;border-top:2px solid var(--gold);align-items:baseline;">
+      <span style="font:600 var(--type-body)/1.3 'Inter',sans-serif;color:var(--ink);">Итого по семи флагам</span>
+      <span style="text-align:center;font:400 var(--type-small)/1.4 'JetBrains Mono',monospace;color:var(--subtle);">—</span>
+      <span style="text-align:right;font:600 var(--type-subtitle)/1.1 'JetBrains Mono',monospace;letter-spacing:-.03em;color:var(--gold);">(220)</span>
+    </div>
+  </div>
+</section>
+
+<section data-label="Мостик до цены" data-screen-label="16" data-speaker-notes="Показать, что цена не берётся из воздуха. Разница 220 млн ₽ между моделью продавца и нашей — это ровно сумма семи флагов с предыдущего слайда." style="display:flex;align-items:center;gap:72px;padding:var(--pad-top) var(--pad-x) var(--pad-bottom);background:#000;">
+  <div style="flex:none;width:560px;">
+    <div style="font:500 var(--type-small)/1 'JetBrains Mono',monospace;letter-spacing:.18em;color:var(--gold);">ШАГ 5</div>
+    <h2 style="margin:32px 0 0;font:500 var(--type-title)/1.1 'Satoshi','Inter',sans-serif;letter-spacing:-.03em;color:var(--ink);">Мостик до цены доли</h2>
+    <div style="margin-top:44px;border-top:2px solid var(--line-strong);">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:32px;padding:24px 0;border-bottom:1px solid var(--line);">
+        <span style="font:400 var(--type-small)/1.3 'Inter',sans-serif;color:var(--muted);">Enterprise Value, DCF при WACC 18,5%</span>
+        <span style="font:400 var(--type-mono)/1.3 'JetBrains Mono',monospace;color:var(--ink);">1 767</span>
+      </div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:32px;padding:24px 0;border-bottom:1px solid var(--line);">
+        <span style="font:400 var(--type-small)/1.3 'Inter',sans-serif;color:var(--muted);">Долг и займы</span>
+        <span style="font:400 var(--type-mono)/1.3 'JetBrains Mono',monospace;color:var(--coral);">(831)</span>
+      </div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:32px;padding:24px 0;border-bottom:1px solid var(--line);">
+        <span style="font:400 var(--type-small)/1.3 'Inter',sans-serif;color:var(--muted);">Денежные средства</span>
+        <span style="font:400 var(--type-mono)/1.3 'JetBrains Mono',monospace;color:var(--ink);">+96</span>
+      </div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:32px;padding:24px 0;border-bottom:1px solid var(--line);">
+        <span style="font:400 var(--type-small)/1.3 'Inter',sans-serif;color:var(--muted);">Миноритарные доли</span>
+        <span style="font:400 var(--type-mono)/1.3 'JetBrains Mono',monospace;color:var(--coral);">(12)</span>
+      </div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:32px;padding:30px 0 0;border-top:2px solid var(--gold);">
+        <span style="font:600 var(--type-small)/1.3 'Inter',sans-serif;color:var(--ink);">Цена за 100% доли</span>
+        <span style="font:600 var(--type-subtitle)/1.1 'JetBrains Mono',monospace;letter-spacing:-.03em;color:var(--gold);">1 020</span>
+      </div>
+    </div>
+  </div>
+  <div style="flex:1;min-width:0;padding:24px;border:1px solid var(--line);border-radius:20px;background:var(--surface);">
+    <img src="shots/screen-4-valuation.png" alt="Экран оценки стоимости: DCF, мостик до цены доли, сценарии" style="display:block;width:100%;height:auto;border-radius:12px;">
+  </div>
+</section>
+
+<section data-label="Анализ рисков" data-screen-label="17" data-speaker-notes="Для тех, кто спросит «а насколько вы уверены». Монте-Карло отвечает вероятностью, а не словом «примерно»." style="padding:var(--pad-top) var(--pad-x) var(--pad-bottom);background:#000;display:flex;flex-direction:column;">
+  <div style="font:500 var(--type-small)/1 'JetBrains Mono',monospace;letter-spacing:.18em;color:var(--gold);">ШАГ 6</div>
+  <h2 style="margin:32px 0 0;font:500 var(--type-title)/1.1 'Satoshi','Inter',sans-serif;letter-spacing:-.03em;color:var(--ink);">Насколько устойчива эта цена</h2>
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:32px;margin-top:var(--gap-title);">
+    <div style="padding:44px;border:1px solid var(--line);border-radius:20px;background:var(--surface);">
+      <div style="font:500 var(--type-small)/1 'Inter',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--subtle);">ЧУВСТВИТЕЛЬНОСТЬ</div>
+      <div style="margin-top:28px;font:500 var(--type-subtitle)/1.1 'JetBrains Mono',monospace;letter-spacing:-.03em;color:var(--gold);">864 — 1 209</div>
+      <div style="margin-top:24px;font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">Разброс цены при отклонении ставки и роста на 1 п.п.</div>
+    </div>
+    <div style="padding:44px;border:1px solid var(--line);border-radius:20px;background:var(--surface);">
+      <div style="font:500 var(--type-small)/1 'Inter',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--subtle);">МОНТЕ-КАРЛО</div>
+      <div style="margin-top:28px;font:500 var(--type-subtitle)/1.1 'JetBrains Mono',monospace;letter-spacing:-.03em;color:var(--gold);">99%</div>
+      <div style="margin-top:24px;font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">прогонов из десяти тысяч дают цену ниже запрошенной продавцом</div>
+    </div>
+    <div style="padding:44px;border:1px solid var(--line);border-radius:20px;background:var(--surface);">
+      <div style="font:500 var(--type-small)/1 'Inter',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--subtle);">СТРЕСС-СЦЕНАРИЙ</div>
+      <div style="margin-top:28px;font:500 var(--type-subtitle)/1.1 'JetBrains Mono',monospace;letter-spacing:-.03em;color:var(--coral);">640</div>
+      <div style="margin-top:24px;font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">млн ₽, если ключевой заказчик уйдёт в первый год</div>
+    </div>
+  </div>
+  <p style="margin:var(--gap-title) 0 0;font:400 var(--type-body)/1.5 'Inter',sans-serif;color:var(--muted);max-width:54ch;text-wrap:pretty;">Даже верхняя граница диапазона ниже цены продавца. Это уже не мнение аналитика, а свойство модели.</p>
+</section>
+
+<section data-label="Заключение" data-screen-label="18" data-speaker-notes="Финал третьей части. То, что уходит на инвесткомитет: две страницы A4 с подписями, а не 80 страниц приложений." style="display:flex;align-items:center;gap:80px;padding:var(--pad-top) var(--pad-x) var(--pad-bottom);background:#000;">
+  <div style="flex:1;min-width:0;">
+    <div style="font:500 var(--type-small)/1 'JetBrains Mono',monospace;letter-spacing:.18em;color:var(--gold);">РЕЗУЛЬТАТ</div>
+    <h2 style="margin:32px 0 0;font:500 var(--type-title)/1.1 'Satoshi','Inter',sans-serif;letter-spacing:-.03em;color:var(--ink);max-width:20ch;">Две страницы, которые несут на инвесткомитет</h2>
+    <div style="margin-top:44px;display:flex;flex-direction:column;gap:26px;">
+      <div style="display:flex;align-items:flex-start;gap:20px;">
+        <span style="flex:none;font:600 var(--type-small)/1.5 'JetBrains Mono',monospace;color:var(--gold);">✓</span>
+        <span style="font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">Вердикт и справедливая цена на первом экране, без листания</span>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:20px;">
+        <span style="flex:none;font:600 var(--type-small)/1.5 'JetBrains Mono',monospace;color:var(--gold);">✓</span>
+        <span style="font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">Реестр флагов с влиянием каждого в рублях</span>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:20px;">
+        <span style="flex:none;font:600 var(--type-small)/1.5 'JetBrains Mono',monospace;color:var(--gold);">✓</span>
+        <span style="font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">Границы проверки: что не проверялось и почему — явно</span>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:20px;">
+        <span style="flex:none;font:600 var(--type-small)/1.5 'JetBrains Mono',monospace;color:var(--gold);">✓</span>
+        <span style="font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">Подписи руководителя проверки и партнёра</span>
+      </div>
+    </div>
+  </div>
+  <div style="flex:none;width:760px;display:flex;gap:28px;">
+    <div style="flex:1;aspect-ratio:210/297;padding:36px 32px;background:#FFFFFF;border-radius:6px;box-shadow:0 40px 80px -30px rgba(0,0,0,.9);">
+      <div style="display:flex;align-items:center;gap:10px;padding-bottom:14px;border-bottom:2px solid #17141C;">
+        <span style="width:12px;height:12px;border-radius:3px;background:#7A2BC4;"></span>
+        <span style="font:600 11px/1 'Inter',sans-serif;letter-spacing:.16em;color:#17141C;">ФИНАНС АУДИТ</span>
+      </div>
+      <div style="margin-top:22px;font:500 22px/1.1 'Satoshi','Inter',sans-serif;letter-spacing:-.028em;color:#17141C;">ООО «Сибтранс-Логистика»</div>
+      <div style="margin-top:20px;padding:16px;border-left:3px solid #7A2BC4;background:#F4EDFB;">
+        <div style="font:500 9px/1 'Inter',sans-serif;letter-spacing:.14em;color:#8C8598;">ВЕРДИКТ</div>
+        <div style="margin-top:10px;font:500 16px/1.15 'Satoshi','Inter',sans-serif;color:#17141C;">Покупать с дисконтом 18%</div>
+      </div>
+      <div style="margin-top:20px;height:1px;background:#E3DEE8;"></div>
+      <div style="margin-top:16px;font:400 10px/1.7 'Inter',sans-serif;color:#5A5364;">Проверка выполнена по данным бухгалтерской отчётности за 2023–2025 годы, банковских выписок по четырём счетам и реестра залогов ФНП.</div>
+      <div style="margin-top:20px;display:flex;flex-direction:column;gap:10px;">
+        <div style="height:1px;background:#E3DEE8;"></div>
+        <div style="height:1px;background:#E3DEE8;"></div>
+        <div style="height:1px;background:#E3DEE8;"></div>
+      </div>
+    </div>
+    <div style="flex:1;aspect-ratio:210/297;padding:36px 32px;background:#FFFFFF;border-radius:6px;box-shadow:0 40px 80px -30px rgba(0,0,0,.9);">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:2px solid #17141C;">
+        <span style="font:600 11px/1 'Inter',sans-serif;letter-spacing:.16em;color:#17141C;">РЕЕСТР ФЛАГОВ</span>
+        <span style="font:500 9px/1 'JetBrains Mono',monospace;color:#8C8598;">2 / 2</span>
+      </div>
+      <div style="margin-top:22px;display:flex;flex-direction:column;gap:14px;">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-bottom:10px;border-bottom:1px solid #E3DEE8;">
+          <span style="font:400 10px/1.3 'Inter',sans-serif;color:#17141C;">Концентрация дебиторки</span>
+          <span style="font:400 10px/1.3 'JetBrains Mono',monospace;color:#A53A30;">(84)</span>
+        </div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-bottom:10px;border-bottom:1px solid #E3DEE8;">
+          <span style="font:400 10px/1.3 'Inter',sans-serif;color:#17141C;">Разрыв ОПУ и выписки</span>
+          <span style="font:400 10px/1.3 'JetBrains Mono',monospace;color:#A53A30;">(62)</span>
+        </div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-bottom:10px;border-bottom:1px solid #E3DEE8;">
+          <span style="font:400 10px/1.3 'Inter',sans-serif;color:#17141C;">Поручительства</span>
+          <span style="font:400 10px/1.3 'JetBrains Mono',monospace;color:#17141C;">(41)</span>
+        </div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-top:8px;border-top:1.5px solid #17141C;">
+          <span style="font:600 10px/1.3 'Inter',sans-serif;color:#17141C;">Итого дисконт</span>
+          <span style="font:600 11px/1.3 'JetBrains Mono',monospace;color:#A53A30;">(220)</span>
+        </div>
+      </div>
+      <div style="margin-top:auto;padding-top:28px;display:flex;gap:16px;">
+        <div style="flex:1;"><div style="height:1px;background:#CFC7DA;"></div><div style="margin-top:8px;font:400 8px/1.3 'Inter',sans-serif;color:#8C8598;">Руководитель проверки</div></div>
+        <div style="flex:1;"><div style="height:1px;background:#CFC7DA;"></div><div style="margin-top:8px;font:400 8px/1.3 'Inter',sans-serif;color:#8C8598;">Партнёр</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section data-label="Раздел · Что это даёт" data-screen-label="19" data-speaker-notes="Последняя содержательная часть. Тон меняется: от «как устроено» к «что вы получите»." style="display:flex;flex-direction:column;justify-content:center;padding:var(--pad-top) var(--pad-x) var(--pad-bottom);background:var(--surface);">
+  <div style="font:500 var(--type-small)/1 'JetBrains Mono',monospace;letter-spacing:.2em;color:var(--gold);">ЧАСТЬ 04</div>
+  <h2 style="margin:44px 0 0;font:500 var(--type-hero)/1.06 'Satoshi','Inter',sans-serif;letter-spacing:-.035em;color:var(--ink);max-width:22ch;">Что это даёт покупателю</h2>
+  <div style="width:180px;height:6px;margin-top:52px;border-radius:3px;background:var(--gold);"></div>
+</section>
+
+<section data-label="Итог по делу" data-screen-label="20" data-speaker-notes="Три числа, которые стоит произнести медленно. 220 млн — это в 4 900 раз больше цены проверки." style="display:flex;flex-direction:column;justify-content:center;padding:var(--pad-top) var(--pad-x) var(--pad-bottom);background:radial-gradient(ellipse 60% 80% at 70% 50%, rgba(255,206,58,.12) 0%, transparent 72%),#000;">
+  <div style="font:500 var(--type-small)/1 'JetBrains Mono',monospace;letter-spacing:.2em;color:var(--gold);">ДЕЛО A-2417 · ШЕСТЬ ДНЕЙ РАБОТЫ</div>
+  <div style="margin-top:52px;font:500 220px/.9 'JetBrains Mono',monospace;letter-spacing:-.05em;color:var(--gold);">220</div>
+  <div style="margin-top:36px;font:500 var(--type-subtitle)/1.2 'Satoshi','Inter',sans-serif;letter-spacing:-.026em;color:var(--ink);max-width:34ch;">млн ₽ разницы между ценой продавца и справедливой ценой</div>
+  <div style="margin-top:44px;display:flex;gap:80px;">
+    <div>
+      <div style="font:400 var(--type-small)/1 'Inter',sans-serif;color:var(--subtle);">Просил продавец</div>
+      <div style="margin-top:14px;font:400 var(--type-body)/1 'JetBrains Mono',monospace;color:var(--muted);">1 240 млн ₽</div>
+    </div>
+    <div>
+      <div style="font:400 var(--type-small)/1 'Inter',sans-serif;color:var(--subtle);">Справедливая цена</div>
+      <div style="margin-top:14px;font:500 var(--type-body)/1 'JetBrains Mono',monospace;color:var(--gold);">1 020 млн ₽</div>
+    </div>
+    <div>
+      <div style="font:400 var(--type-small)/1 'Inter',sans-serif;color:var(--subtle);">Стоимость проверки</div>
+      <div style="margin-top:14px;font:400 var(--type-body)/1 'JetBrains Mono',monospace;color:var(--muted);">45 000 ₽</div>
+    </div>
+  </div>
+</section>
+
+<section data-label="План-факт" data-speaker-notes="Самое сильное доказательство: через 18 месяцев после сделки риски реализовались почти ровно на ту сумму, за которую мы снизили цену." data-screen-label="21" style="padding:var(--pad-top) var(--pad-x) var(--pad-bottom);background:#000;display:flex;flex-direction:column;">
+  <h2 style="margin:0;font:500 var(--type-title)/1.1 'Satoshi','Inter',sans-serif;letter-spacing:-.03em;color:var(--ink);">Через полтора года после сделки</h2>
+  <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:60px;margin-top:var(--gap-title);align-items:start;">
+    <div style="border-top:2px solid var(--line-strong);">
+      <div style="display:grid;grid-template-columns:1fr 180px 180px;padding:24px 0;border-bottom:1px solid var(--line);">
+        <span style="font:500 var(--type-small)/1.2 'Inter',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--subtle);">Флаг</span>
+        <span style="text-align:right;font:500 var(--type-small)/1.2 'Inter',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--subtle);">Прогноз</span>
+        <span style="text-align:right;font:500 var(--type-small)/1.2 'Inter',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--subtle);">Факт</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 180px 180px;padding:26px 0;border-bottom:1px solid var(--line);align-items:baseline;">
+        <span style="font:400 var(--type-small)/1.4 'Inter',sans-serif;color:var(--ink);">Ключевой заказчик ушёл</span>
+        <span style="text-align:right;font:400 var(--type-mono)/1.3 'JetBrains Mono',monospace;color:var(--subtle);">(380)</span>
+        <span style="text-align:right;font:500 var(--type-mono)/1.3 'JetBrains Mono',monospace;color:var(--coral);">(412)</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 180px 180px;padding:26px 0;border-bottom:1px solid var(--line);align-items:baseline;">
+        <span style="font:400 var(--type-small)/1.4 'Inter',sans-serif;color:var(--ink);">Спорные доходы не подтвердились</span>
+        <span style="text-align:right;font:400 var(--type-mono)/1.3 'JetBrains Mono',monospace;color:var(--subtle);">(62)</span>
+        <span style="text-align:right;font:500 var(--type-mono)/1.3 'JetBrains Mono',monospace;color:var(--coral);">(62)</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 180px 180px;padding:26px 0;border-bottom:1px solid var(--line);align-items:baseline;">
+        <span style="font:400 var(--type-small)/1.4 'Inter',sans-serif;color:var(--ink);">Дебиторка списана</span>
+        <span style="text-align:right;font:400 var(--type-mono)/1.3 'JetBrains Mono',monospace;color:var(--subtle);">(84)</span>
+        <span style="text-align:right;font:500 var(--type-mono)/1.3 'JetBrains Mono',monospace;color:var(--coral);">(78)</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 180px 180px;padding:26px 0;border-bottom:1px solid var(--line);align-items:baseline;">
+        <span style="font:400 var(--type-small)/1.4 'Inter',sans-serif;color:var(--ink);">Поручительства сняты продавцом</span>
+        <span style="text-align:right;font:400 var(--type-mono)/1.3 'JetBrains Mono',monospace;color:var(--subtle);">(41)</span>
+        <span style="text-align:right;font:500 var(--type-mono)/1.3 'JetBrains Mono',monospace;color:var(--muted);">0</span>
+      </div>
+    </div>
+    <div style="padding:52px;border:1px solid rgba(255,206,58,.32);border-radius:24px;background:rgba(255,206,58,.08);">
+      <div style="font:500 var(--type-small)/1 'Inter',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--subtle);">ДИСКОНТ ОКУПИЛСЯ</div>
+      <div style="margin-top:32px;font:500 96px/1 'JetBrains Mono',monospace;letter-spacing:-.04em;color:var(--gold);">214<span style="font-size:56px;color:var(--muted);"> / 220</span></div>
+      <div style="margin-top:32px;font:400 var(--type-small)/1.6 'Inter',sans-serif;color:var(--muted);">Риски, за которые мы снизили цену на 220 млн ₽, обошлись покупателю в 214 млн ₽ фактических потерь. Без дисконта сделка ушла бы в минус.</div>
+    </div>
+  </div>
+</section>
+
+<section data-label="Сроки" data-screen-label="22" data-speaker-notes="Шесть дней — это не «быстрее ради быстроты». Это возможность торговаться, пока сделка не подписана." style="padding:var(--pad-top) var(--pad-x) var(--pad-bottom);background:#000;display:flex;flex-direction:column;">
+  <h2 style="margin:0;font:500 var(--type-title)/1.1 'Satoshi','Inter',sans-serif;letter-spacing:-.03em;color:var(--ink);">Шесть дней вместо шести недель</h2>
+  <div style="display:flex;align-items:stretch;gap:0;margin-top:var(--gap-title);">
+    <div style="flex:1;padding:44px 36px;border:1px solid var(--line);border-right:0;border-radius:20px 0 0 20px;background:var(--surface);">
+      <div style="font:500 var(--type-small)/1 'JetBrains Mono',monospace;color:var(--gold);">ДЕНЬ 1</div>
+      <div style="margin-top:24px;font:500 var(--type-body)/1.2 'Satoshi','Inter',sans-serif;letter-spacing:-.02em;color:var(--ink);">ИНН и скан</div>
+      <div style="margin-top:18px;font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">Отчётность из ФНС, залоги из ФНП, первые находки через четыре минуты</div>
+    </div>
+    <div style="flex:1;padding:44px 36px;border:1px solid var(--line);border-right:0;background:var(--surface);">
+      <div style="font:500 var(--type-small)/1 'JetBrains Mono',monospace;color:var(--gold);">ДНИ 2–3</div>
+      <div style="margin-top:24px;font:500 var(--type-body)/1.2 'Satoshi','Inter',sans-serif;letter-spacing:-.02em;color:var(--ink);">Сверка и запросы</div>
+      <div style="margin-top:18px;font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">Расхождения уходят продавцу письмом со ссылкой на загрузку</div>
+    </div>
+    <div style="flex:1;padding:44px 36px;border:1px solid var(--line);border-right:0;background:var(--surface);">
+      <div style="font:500 var(--type-small)/1 'JetBrains Mono',monospace;color:var(--gold);">ДНИ 4–5</div>
+      <div style="margin-top:24px;font:500 var(--type-body)/1.2 'Satoshi','Inter',sans-serif;letter-spacing:-.02em;color:var(--ink);">Оценка и риски</div>
+      <div style="margin-top:18px;font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">Мостик до цены, чувствительность, сценарии сделки</div>
+    </div>
+    <div style="flex:1;padding:44px 36px;border:1px solid var(--gold);border-radius:0 20px 20px 0;background:rgba(255,206,58,.08);">
+      <div style="font:500 var(--type-small)/1 'JetBrains Mono',monospace;color:var(--gold);">ДЕНЬ 6</div>
+      <div style="margin-top:24px;font:500 var(--type-body)/1.2 'Satoshi','Inter',sans-serif;letter-spacing:-.02em;color:var(--ink);">Заключение</div>
+      <div style="margin-top:18px;font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">Две страницы A4 с подписями, выгрузка в PDF и Excel</div>
+    </div>
+  </div>
+  <p style="margin:var(--gap-title) 0 0;font:400 var(--type-body)/1.5 'Inter',sans-serif;color:var(--muted);max-width:54ch;text-wrap:pretty;">Скорость нужна не сама по себе: она даёт возможность торговаться, пока сделка не подписана.</p>
+</section>
+
+<section data-label="Тарифы" data-screen-label="23" data-speaker-notes="Не оправдываться за цену. Сравнить с одним пунктом дисконта: он всегда больше стоимости проверки." style="padding:var(--pad-top) var(--pad-x) var(--pad-bottom);background:#000;display:flex;flex-direction:column;">
+  <h2 style="margin:0;font:500 var(--type-title)/1.1 'Satoshi','Inter',sans-serif;letter-spacing:-.03em;color:var(--ink);">Сколько стоит</h2>
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:32px;margin-top:var(--gap-title);">
+    <div style="padding:48px 44px;border:1px solid var(--line);border-radius:24px;background:var(--surface);display:flex;flex-direction:column;">
+      <div style="font:500 var(--type-small)/1 'Inter',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--subtle);">РАЗОВО</div>
+      <div style="margin-top:28px;font:500 var(--type-hero)/1 'JetBrains Mono',monospace;letter-spacing:-.04em;color:var(--ink);">45 000</div>
+      <div style="margin-top:16px;font:400 var(--type-small)/1.4 'JetBrains Mono',monospace;color:var(--subtle);">₽ за одно дело</div>
+      <div style="margin-top:36px;padding-top:32px;border-top:1px solid var(--line);font:400 var(--type-small)/1.6 'Inter',sans-serif;color:var(--muted);">Полная проверка, заключение на печать, три участника в деле</div>
+    </div>
+    <div style="padding:48px 44px;border:1px solid var(--gold);border-radius:24px;background:rgba(255,206,58,.08);display:flex;flex-direction:column;">
+      <div style="font:500 var(--type-small)/1 'Inter',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);">КОМАНДА · ВЫГОДНЕЕ ОТ ДВУХ СДЕЛОК</div>
+      <div style="margin-top:28px;font:500 var(--type-hero)/1 'JetBrains Mono',monospace;letter-spacing:-.04em;color:var(--gold);">24 000</div>
+      <div style="margin-top:16px;font:400 var(--type-small)/1.4 'JetBrains Mono',monospace;color:var(--subtle);">₽ в месяц · 10 дел</div>
+      <div style="margin-top:36px;padding-top:32px;border-top:1px solid rgba(255,206,58,.32);font:400 var(--type-small)/1.6 'Inter',sans-serif;color:var(--muted);">Обе платформы, 8 мест, роли и журнал доступа, выгрузка в Excel</div>
+    </div>
+    <div style="padding:48px 44px;border:1px solid var(--line);border-radius:24px;background:var(--surface);display:flex;flex-direction:column;">
+      <div style="font:500 var(--type-small)/1 'Inter',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--subtle);">КОРПОРАТИВНЫЙ</div>
+      <div style="margin-top:28px;font:500 var(--type-subtitle)/1.1 'Satoshi','Inter',sans-serif;letter-spacing:-.026em;color:var(--ink);">По запросу</div>
+      <div style="margin-top:16px;font:400 var(--type-small)/1.4 'JetBrains Mono',monospace;color:var(--subtle);">договор и SLA</div>
+      <div style="margin-top:36px;padding-top:32px;border-top:1px solid var(--line);font:400 var(--type-small)/1.6 'Inter',sans-serif;color:var(--muted);">Дела без ограничений, изолированный контур, свой бланк заключения</div>
+    </div>
+  </div>
+  <p style="margin:var(--gap-title) 0 0;font:400 var(--type-body)/1.5 'Inter',sans-serif;color:var(--muted);max-width:56ch;text-wrap:pretty;">Один процентный пункт дисконта в сделке на миллиард — это 10 млн ₽. Проверка стоит 45 тысяч.</p>
+</section>
+
+<section data-label="Как начать" data-screen-label="24" data-speaker-notes="Снять последний барьер: смотреть продукт можно без своих документов, на готовом деле. Назвать конкретный следующий шаг и срок." style="display:flex;align-items:center;gap:80px;padding:var(--pad-top) var(--pad-x) var(--pad-bottom);background:#000;">
+  <div style="flex:1;min-width:0;">
+    <div style="font:500 var(--type-small)/1 'Inter',sans-serif;letter-spacing:.18em;text-transform:uppercase;color:var(--subtle);">ПЕРВЫЙ ШАГ</div>
+    <h2 style="margin:32px 0 0;font:500 var(--type-title)/1.1 'Satoshi','Inter',sans-serif;letter-spacing:-.03em;color:var(--ink);max-width:22ch;">Посмотреть можно без своих документов</h2>
+    <p style="margin:36px 0 0;font:400 var(--type-body)/1.55 'Inter',sans-serif;color:var(--muted);max-width:38ch;text-wrap:pretty;">В аккаунте лежит готовое демо-дело со всеми находками и заключением. Ходите по нему как по своему, а когда будете готовы — введите ИНН цели.</p>
+  </div>
+  <div style="flex:none;width:760px;display:flex;flex-direction:column;gap:24px;">
+    <div style="display:flex;align-items:center;gap:28px;padding:40px;border:1px solid var(--gold);border-radius:20px;background:rgba(255,206,58,.08);">
+      <span style="flex:none;width:56px;height:56px;border-radius:14px;background:var(--gold);color:#1F1705;text-align:center;font:600 26px/56px 'JetBrains Mono',monospace;">1</span>
+      <div style="min-width:0;">
+        <div style="font:500 var(--type-body)/1.2 'Satoshi','Inter',sans-serif;letter-spacing:-.02em;color:var(--ink);">Открыть демо-дело</div>
+        <div style="margin-top:14px;font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">Пять минут, документы не нужны, лимит не расходуется</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:28px;padding:40px;border:1px solid var(--line);border-radius:20px;background:var(--surface);">
+      <span style="flex:none;width:56px;height:56px;border-radius:14px;background:var(--surface-2);color:var(--muted);text-align:center;font:600 26px/56px 'JetBrains Mono',monospace;">2</span>
+      <div style="min-width:0;">
+        <div style="font:500 var(--type-body)/1.2 'Satoshi','Inter',sans-serif;letter-spacing:-.02em;color:var(--ink);">Ввести ИНН своей цели</div>
+        <div style="margin-top:14px;font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">Отчётность за три года подтянется сама, скан начнётся сразу</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:28px;padding:40px;border:1px solid var(--line);border-radius:20px;background:var(--surface);">
+      <span style="flex:none;width:56px;height:56px;border-radius:14px;background:var(--surface-2);color:var(--muted);text-align:center;font:600 26px/56px 'JetBrains Mono',monospace;">3</span>
+      <div style="min-width:0;">
+        <div style="font:500 var(--type-body)/1.2 'Satoshi','Inter',sans-serif;letter-spacing:-.02em;color:var(--ink);">Получить заключение</div>
+        <div style="margin-top:14px;font:400 var(--type-small)/1.5 'Inter',sans-serif;color:var(--muted);">Шесть рабочих дней от загрузки до подписи</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section data-label="Финал" data-screen-label="25" data-speaker-notes="Закрыть той же мыслью, с которой начали. Оставить контакт на экране и перейти к вопросам." style="display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:var(--pad-top) var(--pad-x) var(--pad-bottom);background:radial-gradient(ellipse 60% 80% at 50% 46%, rgba(255,206,58,.14) 0%, transparent 74%),#000;">
+  <div style="width:280px;height:280px;">
+    <dc-import name="Cube Hero (Gold)" backdrop="transparent" style="width:100%;height:100%" hint-size="280px,280px"></dc-import>
+  </div>
+  <h2 style="margin:52px 0 0;font:500 var(--type-title)/1.12 'Satoshi','Inter',sans-serif;letter-spacing:-.03em;color:var(--ink);max-width:26ch;">Проверенная цифра стоит дешевле, чем ошибка</h2>
+  <div style="margin-top:40px;font:400 var(--type-body)/1.4 'JetBrains Mono',monospace;color:var(--gold);">finans.ru · sales@finans.ru</div>
+</section>
+
+</x-import>
+
+</x-dc>
+</body>
+</html>

@@ -85,4 +85,5 @@ def test_liquidation_value():
 
 def test_empty_horizon_returns_default():
     """Защитный возврат для n ≤ 0 (балансы/потоки не читаются)."""
-    assert compute_valuation(None, None, None, D("0.15"), D("0"), D("0"), D("0"), 0) == BusinessValuation()
+    assert compute_valuation(None, None, None, [], D("0.15"), D("0"), D("0"), D("0"), 0) \
+        == BusinessValuation()

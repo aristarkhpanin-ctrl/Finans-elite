@@ -1,6 +1,7 @@
 import { line, type CalcResponse } from "../api/calc";
 import { fmtMillions, fmtTable } from "../format";
 import { GRANDS, SUBTOTALS } from "./StatementTable";
+import { ScrollRegion } from "./ui";
 
 const num = (v: string | undefined): number => {
   const x = Number(v ?? 0);
@@ -73,7 +74,7 @@ export function PlanFactView({ result, factUntil }: { result: CalcResponse; fact
         <span className="tbl-caption__strong">Факт за прошедшие периоды</span>
         <span className="tbl-caption__hint">план — серым над фактом · ₽</span>
       </div>
-      <div className="fin2-wrap fe-scroll">
+      <ScrollRegion className="fin2-wrap fe-scroll" label="Факт за прошедшие периоды">
         <div className="fin2">
           <div className="fin2-row">
             <div className="fin2-corner">
@@ -114,7 +115,7 @@ export function PlanFactView({ result, factUntil }: { result: CalcResponse; fact
             );
           })}
         </div>
-      </div>
+      </ScrollRegion>
 
       {/* Таблица 2: отклонение (факт − план) */}
       <div className="tbl-caption tbl-caption--2">
@@ -122,7 +123,7 @@ export function PlanFactView({ result, factUntil }: { result: CalcResponse; fact
         <span className="tbl-caption__strong">Отклонение (факт − план)</span>
         <span className="tbl-caption__hint">зелёный — лучше плана, красный — хуже</span>
       </div>
-      <div className="fin2-wrap fe-scroll">
+      <ScrollRegion className="fin2-wrap fe-scroll" label="Отклонение: факт минус план">
         <div className="fin2">
           <div className="fin2-row">
             <div className="fin2-corner">
@@ -164,7 +165,7 @@ export function PlanFactView({ result, factUntil }: { result: CalcResponse; fact
             );
           })}
         </div>
-      </div>
+      </ScrollRegion>
 
       <div className="pf-legend">
         <span className="pf-legend__item">

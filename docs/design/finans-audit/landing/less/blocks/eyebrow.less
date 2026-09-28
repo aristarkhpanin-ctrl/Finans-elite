@@ -1,0 +1,23 @@
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: @space-16;
+  font-weight: 500;
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--c-accent-text);
+
+  &__dot {
+    flex: none;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--c-accent);
+    box-shadow: var(--glow);
+
+    .motion-safe({ animation: fn-pulse 2.2s ease-in-out infinite alternate; });
+  }
+}

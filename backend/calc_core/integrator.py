@@ -20,7 +20,6 @@ from .reports.lines import (
 )
 from .reports.result import CalcResult, build_investment_metrics
 from .reports.statements import Statement, opening_balance
-from .series import add
 from .version import ENGINE_VERSION
 
 
@@ -62,7 +61,9 @@ def consolidate_detailed(
     balance = _sum_statements([r.balance for r in results], BALANCE_LINES, n)
     profit_use = _sum_statements([r.profit_use for r in results], PROFIT_USE_LINES, n)
 
-    net_flow = add(cashflow["C13"], cashflow["C20"])
+    # Поток группы — сумма потоков проектов (SPEC §17): лизинг каждого учтён как у
+    # покупки. Из суммарного C13 + C20 его не восстановить — лизинг живёт в C25.
+    net_flow = [sum((r.project_flow[t] for r in results), D(0)) for t in range(n)]
     r_m = annual_to_monthly(group_discount_rate)
     metrics = build_investment_metrics(net_flow, r_m)
     # Стартовый баланс группы = сумма стартовых балансов проектов (для средних в коэф-тах).

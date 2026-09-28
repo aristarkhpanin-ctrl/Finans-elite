@@ -10,6 +10,8 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Iterator
+from contextlib import contextmanager
 
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
@@ -50,6 +52,38 @@ def set_tenant(db: Session, org_id: str) -> None:
     if db.bind is not None and db.bind.dialect.name == "postgresql":
         db.execute(text("SELECT set_config(:name, :val, false)"),
                    {"name": _TENANT_GUC, "val": org_id})
+
+
+def current_tenant(db: Session) -> str:
+    """Кто сейчас выставлен арендатором (пустая строка = никто). На SQLite — всегда ''."""
+    if db.bind is not None and db.bind.dialect.name == "postgresql":
+        return db.execute(text("SELECT coalesce(current_setting(:name, true), '')"),
+                          {"name": _TENANT_GUC}).scalar_one()
+    return ""
+
+
+@contextmanager
+def as_tenant(db: Session, org_id: str) -> Iterator[None]:
+    """Войти в организацию как арендатор и выйти из неё, вернув прежнего.
+
+    Дверь одна на всех, кто ходит по организациям в обход маршрута: служебный контур
+    (B1), сводка платформы (B3) и свои данные человека (C3). **Обхода RLS у платформы
+    нет** — входят через ту же дверь, что и участники организации, по одной.
+
+    Оставленный от предыдущей организации арендатор — открытая дверь в чужие данные,
+    которую никто не заметит: следующий запрос той же сессии прочитал бы не то, что
+    просил. Выход обязателен и потому оформлен контекстом, а не парой вызовов.
+
+    Возвращается **прежний** арендатор, а не пустота: дверь зовут и изнутри запроса, у
+    которого арендатор уже выставлен (``deps.current_org_id``), и «выход в никуда»
+    оставил бы остаток такого запроса без единой видимой строки.
+    """
+    previous = current_tenant(db)
+    set_tenant(db, org_id)
+    try:
+        yield
+    finally:
+        set_tenant(db, previous)
 
 
 class Base(DeclarativeBase):

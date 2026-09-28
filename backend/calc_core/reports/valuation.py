@@ -12,7 +12,7 @@
   горизонта (``доля_возврата·B20 − (B20−B33)``); ``None`` при нулевой доле возврата.
 
 Нормализация — последние ≤12 месяцев, приведённые к году. Рыночные чистые активы и точные
-конвенции — к сверке по эталону.
+конвенции нормализации — открытый методический вопрос (SPEC §22).
 """
 from __future__ import annotations
 
@@ -40,15 +40,19 @@ def _annualized(series: list[Decimal], n: int, k: int) -> Decimal:
 
 
 def compute_valuation(income: Statement, cashflow: Statement, balance: Statement,
+                      project_flow: list[Decimal],
                       discount_rate_annual, growth_rate, earnings_multiple,
                       liquidation_recovery, n: int) -> BusinessValuation:
+    """Оценка бизнеса. Свободный поток — **поток проекта** (``project_flow``, SPEC §17):
+    тот же, что у NPV, с лизингом как у покупки; до пакета J здесь стояло ``C13 + C20``,
+    и аренда парка в свободный поток не попадала."""
     if n <= 0:
         return BusinessValuation()
     net_assets = balance["B33"][n - 1]
 
     # Нормализованные годовые величины (последние ≤12 месяцев → к году).
     k = min(12, n)
-    annual_fcf = _annualized([cashflow["C13"][t] + cashflow["C20"][t] for t in range(n)], n, k)
+    annual_fcf = _annualized(project_flow, n, k)
     annual_dividends = _annualized(cashflow["C26"], n, k)
     annual_earnings = _annualized(income["I28"], n, k)
 

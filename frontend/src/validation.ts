@@ -1,4 +1,5 @@
 import type { ProjectModel } from "./api/model";
+import { parseModelNumber } from "./format";
 
 export type Severity = "error" | "warn";
 export interface Issue {
@@ -8,8 +9,13 @@ export interface Issue {
   where: string;
 }
 
+/**
+ * Число из поля модели. Запятая и пробелы в разрядах — обычное русское написание, и
+ * сервер их принимает (`calc_core/decimals.py`); без той же терпимости здесь панель
+ * читала бы «1 200,50» как ноль и сообщала о несходящемся балансе, которого нет.
+ */
 const num = (s: string | number | undefined | null): number => {
-  const x = Number(s ?? 0);
+  const x = parseModelNumber(s);
   return Number.isFinite(x) ? x : 0;
 };
 
@@ -52,7 +58,14 @@ export function validateModel(m: ProjectModel): Issue[] {
   shareWarn(num(s.profit_tax_rate), "Налог на прибыль");
   shareWarn(num(s.vat_rate), "НДС");
   shareWarn(num(s.profit_tax_benefit_share), "Льгота по прибыли");
+  shareWarn(num(s.loss_carryforward_limit ?? "0.5"), "Перенос убытков прошлых лет");
   shareWarn(num(s.sales_tax_rate), "Налог с продаж");
+
+  // Стартовый налоговый убыток — сумма ≥ 0: отрицательную сервер отклонит при сохранении.
+  const opening = parseModelNumber(s.opening_tax_loss ?? "0");
+  if (!Number.isFinite(opening) || opening < 0) {
+    issues.push({ severity: "error", message: "Налоговый убыток на старте: нужна сумма от нуля и больше.", where: "Проект" });
+  }
 
   // Предоплата по каждой строке сбыта — доля 0–1.
   m.operating_plan.sales.forEach((line, i) => {

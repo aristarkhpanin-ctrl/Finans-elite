@@ -5,7 +5,7 @@ import { createHolding, deleteHolding, listHoldings } from "../api/holdings";
 import { CubeHero } from "../components/CubeHero";
 import { IconTrash } from "../components/icons";
 import { useToast } from "../components/Toast";
-import { Button, Modal, Skeleton } from "../components/ui";
+import { Button, ErrorState, Modal, Skeleton } from "../components/ui";
 import { fmtMillions } from "../format";
 
 function plural(n: number, one: string, few: string, many: string): string {
@@ -51,10 +51,11 @@ export function HoldingsPage() {
     <div className="create-card">
       <div className="create-card__row">
         <div style={{ flex: 1, minWidth: 0 }}>
-          <label className="auth-label" style={{ display: "block", marginBottom: 7 }}>
+          <label className="auth-label" htmlFor="new-holding-name" style={{ display: "block", marginBottom: 7 }}>
             Название холдинга
           </label>
           <input
+            id="new-holding-name"
             className="input"
             style={{ width: "100%" }}
             placeholder="Напр. «Группа «Вертикаль»"
@@ -97,11 +98,8 @@ export function HoldingsPage() {
       )}
 
       {isError && (
-        <div className="error-state" style={{ padding: "48px 24px" }}>
-          <div className="error-state__ico">!</div>
-          <div className="error-state__title">Не удалось загрузить холдинги</div>
-          <Button onClick={() => refetch()}>↻&nbsp;&nbsp;Повторить</Button>
-        </div>
+        <ErrorState text="Не удалось загрузить холдинги" style={{ padding: "48px 24px" }}
+                    actions={<Button onClick={() => refetch()}>↻&nbsp;&nbsp;Повторить</Button>} />
       )}
 
       {data && (

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
 import { fmtAxis, fmtMoney } from "../format";
 
@@ -56,6 +56,7 @@ export function axisLayer(
 ): ReactNode[] {
   const kids: ReactNode[] = [];
   const ticks = 4;
+  const step = (max - min) / ticks;
   for (let k = 0; k <= ticks; k++) {
     const v = min + ((max - min) * k) / ticks;
     const y = f.y0 - ((v - min) / (max - min || 1)) * f.ih;
@@ -71,7 +72,7 @@ export function axisLayer(
         strokeWidth={zero && zeroEmph ? 1.4 : 1}
       />,
       <text key={`gl${k}`} x={f.x0 - 8} y={y + 3.5} textAnchor="end" style={{ font: AXIS_FONT, fill: "var(--subtle)" }}>
-        {fmtAxis(v)}
+        {fmtAxis(v, step)}
       </text>,
     );
   }
@@ -93,6 +94,40 @@ export function axisLayer(
     });
   }
   return kids;
+}
+
+/**
+ * Ширина графика — по месту, а не константой макета. Геометрия «Этапа 15» задана под
+ * настольную карточку, и `meet` вписывал её в карточку телефона целиком: график 1100×240
+ * становился полосой высотой ~70px с подписями в 3px (матрица скриншотов P13, G15). Теперь
+ * ширина `viewBox` — ширина места, и подписи остаются своего размера. Не уже
+ * `CHART_MIN_W`: у́же подписи оси X налезают друг на друга. Пока ширина неизвестна (среда
+ * без раскладки, как в юнит-тестах), остаётся геометрия макета.
+ */
+export const CHART_MIN_W = 360;
+
+export function fitWidth(p: P, width: number | null): P {
+  return width ? { ...p, w: Math.max(CHART_MIN_W, width) } : p;
+}
+
+/** Ширина элемента: сразу при монтировании (без кадра в чужой геометрии) и при каждом
+ *  изменении — поворот телефона, открытое меню, смена колонок сетки. */
+export function useChartWidth<T extends HTMLElement>(): [(el: T | null) => void, number | null] {
+  const [width, setWidth] = useState<number | null>(null);
+  const observer = useRef<ResizeObserver | null>(null);
+  const ref = useCallback((el: T | null) => {
+    observer.current?.disconnect();
+    observer.current = null;
+    if (!el) return;
+    const measure = (w: number) => {
+      if (w > 0) setWidth(Math.round(w));
+    };
+    measure(el.getBoundingClientRect().width);
+    if (typeof ResizeObserver === "undefined") return;
+    observer.current = new ResizeObserver((entries) => measure(entries[0]?.contentRect.width ?? 0));
+    observer.current.observe(el);
+  }, []);
+  return [ref, width];
 }
 
 export const Svg = ({ p, children }: { p: P; children: ReactNode }) => (
@@ -174,7 +209,8 @@ export function SimpleLineChart({
   valueLabel?: string;
 }) {
   const { tip, mkTip, clearTip } = useLocalTip();
-  const p: P = { w: 900, h: 240, mL: 52, mR: 16, mT: 16, mB: 26 };
+  const [host, width] = useChartWidth<HTMLDivElement>();
+  const p = fitWidth({ w: 900, h: 240, mL: 52, mR: 16, mT: 16, mB: 26 }, width);
   const f = frame(p);
   const n = points.length;
   if (n === 0) return <EmptyChart p={p} />;
@@ -211,7 +247,7 @@ export function SimpleLineChart({
       />,
     );
   return (
-    <div data-chart-host style={{ position: "relative", height }}>
+    <div ref={host} data-chart-host style={{ position: "relative", height }}>
       <Svg p={p}>{kids}</Svg>
       {tip && <TipCard tip={tip} />}
     </div>
@@ -244,7 +280,8 @@ export function MultiLineChart({
   yUnit?: string;
 }) {
   const { tip, mkTip, clearTip } = useLocalTip();
-  const p: P = { w: 900, h: 260, mL: 48, mR: 16, mT: 22, mB: 28 };
+  const [host, width] = useChartWidth<HTMLDivElement>();
+  const p = fitWidth({ w: 900, h: 260, mL: 48, mR: 16, mT: 22, mB: 28 }, width);
   const f = frame(p);
   const nx = labels.length;
   if (series.length === 0 || nx === 0) return <EmptyChart p={p} />;
@@ -320,7 +357,7 @@ export function MultiLineChart({
       />,
     );
   return (
-    <div data-chart-host style={{ position: "relative", height }}>
+    <div ref={host} data-chart-host style={{ position: "relative", height }}>
       <Svg p={p}>{kids}</Svg>
       {tip && <TipCard tip={tip} />}
     </div>
@@ -340,7 +377,8 @@ export function HistogramChart({
   height?: number;
 }) {
   const { tip, mkTip, clearTip } = useLocalTip();
-  const p: P = { w: 900, h: 240, mL: 44, mR: 16, mT: 16, mB: 30 };
+  const [host, width] = useChartWidth<HTMLDivElement>();
+  const p = fitWidth({ w: 900, h: 240, mL: 44, mR: 16, mT: 16, mB: 30 }, width);
   const f = frame(p);
   if (bins.length === 0) return <EmptyChart p={p} />;
   const lo = bins[0].from;
@@ -411,7 +449,7 @@ export function HistogramChart({
     ),
   );
   return (
-    <div data-chart-host style={{ position: "relative", height }}>
+    <div ref={host} data-chart-host style={{ position: "relative", height }}>
       <Svg p={p}>{kids}</Svg>
       {tip && <TipCard tip={tip} />}
     </div>
@@ -429,7 +467,8 @@ export function SimpleBarChart({
   valueLabel?: string;
 }) {
   const { tip, mkTip, clearTip } = useLocalTip();
-  const p: P = { w: 900, h: 240, mL: 52, mR: 16, mT: 16, mB: 30 };
+  const [host, width] = useChartWidth<HTMLDivElement>();
+  const p = fitWidth({ w: 900, h: 240, mL: 52, mR: 16, mT: 16, mB: 30 }, width);
   const f = frame(p);
   const n = items.length;
   if (n === 0) return <EmptyChart p={p} />;
@@ -468,7 +507,7 @@ export function SimpleBarChart({
     );
   });
   return (
-    <div data-chart-host style={{ position: "relative", height }}>
+    <div ref={host} data-chart-host style={{ position: "relative", height }}>
       <Svg p={p}>{kids}</Svg>
       {tip && <TipCard tip={tip} />}
     </div>

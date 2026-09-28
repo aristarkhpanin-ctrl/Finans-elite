@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  input,button{font-family:inherit;}
+  input::placeholder{color:inherit;opacity:.4;}
+  a{color:#C77DFF;}
+  a:hover{color:#D69AFF;}
+  @keyframes fa-pulse{from{opacity:.4}to{opacity:1}}
+  @keyframes fa-fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes fa-scan{0%{transform:translateY(-130%)}100%{transform:translateY(760%)}}
+  @keyframes fa-spin{to{transform:rotate(360deg)}}
+  @keyframes fa-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+  @keyframes fa-pop{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.06)}100%{transform:scale(1);opacity:1}}
+  @keyframes fa-grow{from{width:0}to{width:100%}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:11px;min-width:0;">
+      <div style="{{ s.barCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="30px,30px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Экран 3 · Аутентификация</span>
+        <span style="{{ s.barSub }}">витрина куба · вход, регистрация, состояния</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Свет</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тьма</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Состояние</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLogin }}" onClick="{{ setLogin }}">Вход</button><button style="{{ s.segReg }}" onClick="{{ setReg }}">Регистрация</button><button style="{{ s.segError }}" onClick="{{ setError }}">Ошибка</button><button style="{{ s.segDone }}" onClick="{{ setDone }}">Успех</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}" data-screen-label="Экран 3 — Аутентификация">
+      <div style="{{ s.split }}">
+
+        <div style="{{ s.brandPane }}">
+          <div style="{{ s.brandBeam }}"></div>
+          <div style="{{ s.brandTop }}">
+            <div style="{{ s.brandMark }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="32px,32px"></dc-import></div>
+            <span style="{{ s.brandName }}">Финанс&nbsp;Аудит</span>
+          </div>
+          <div style="{{ s.brandCubeBox }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" style="width:100%;height:100%" hint-size="100%,100%"></dc-import></div>
+          <div style="{{ s.brandBottom }}">
+            <div style="{{ s.eyebrow }}"><span style="{{ s.eyebrowDot }}"></span>DUE DILIGENCE ЗА ШЕСТЬ МИНУТ</div>
+            <div style="{{ s.brandTitle }}">Выгодно ли покупать эту фирму</div>
+            <div style="{{ s.brandLead }}">Загрузите отчётность цели — система просветит 24 процедуры, найдёт красные флаги и назовёт справедливую цену вместо запрошенной.</div>
+            <div style="{{ s.brandStats }}">
+              <sc-for list="{{ brandStats }}" as="b" hint-placeholder-count="3"><div style="{{ s.brandStat }}"><div style="{{ b.valueStyle }}">{{ b.value }}</div><div style="{{ s.brandStatLabel }}">{{ b.label }}</div></div></sc-for>
+            </div>
+          </div>
+        </div>
+
+        <div style="{{ s.formPane }}">
+          <sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ s.doneWrap }}">
+            <div style="{{ s.doneCubeBox }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" style="width:100%;height:100%" hint-size="112px,112px"></dc-import></div>
+            <div style="{{ s.doneCheck }}">✓</div>
+            <div style="{{ s.doneTitle }}">Рабочее пространство готово</div>
+            <div style="{{ s.doneLead }}">Открываем дело № A-2417 — «Сибтранс-Логистика». Скан запустится автоматически.</div>
+            <div style="{{ s.doneTrack }}"><div style="{{ s.doneFill }}"></div></div>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ showForm }}" hint-placeholder-val="{{ true }}">
+          <div style="{{ s.formWrap }}">
+            <div style="{{ s.formHead }}">
+              <div style="{{ s.formTitle }}">{{ formTitle }}</div>
+              <div style="{{ s.formLead }}">{{ formLead }}</div>
+            </div>
+
+            <sc-if value="{{ isError }}" hint-placeholder-val="{{ false }}">
+            <div style="{{ s.banner }}"><span style="{{ s.bannerIcon }}">!</span><span style="{{ s.bannerText }}">Неверная пара e-mail и пароль. Осталось 3 попытки до блокировки на 15 минут.</span></div>
+            </sc-if>
+
+            <div style="{{ s.fields }}">
+              <sc-if value="{{ isReg }}" hint-placeholder-val="{{ false }}">
+              <div style="{{ s.field }}"><span style="{{ s.label }}">Организация</span><input style="{{ s.input }}" style-focus="{{ s.inputFocus }}" placeholder="ООО «Инвест-Партнёр»"></div>
+              </sc-if>
+              <div style="{{ s.field }}"><span style="{{ s.label }}">Рабочий e-mail</span><input style="{{ s.inputMail }}" style-focus="{{ s.inputFocus }}" placeholder="a.petrov@invest-partner.ru"></div>
+              <div style="{{ s.field }}">
+                <div style="{{ s.labelRow }}"><span style="{{ s.label }}">Пароль</span><a style="{{ s.smallLink }}">{{ passHint }}</a></div>
+                <input style="{{ s.inputPass }}" style-focus="{{ s.inputFocus }}" type="password" placeholder="••••••••••">
+                <sc-if value="{{ isError }}" hint-placeholder-val="{{ false }}"><span style="{{ s.fieldError }}">Пароль не совпадает с записью</span></sc-if>
+              </div>
+              <sc-if value="{{ isReg }}" hint-placeholder-val="{{ false }}">
+              <div style="{{ s.checkRow }}"><span style="{{ s.checkbox }}"></span><span style="{{ s.checkText }}">Принимаю условия обработки данных и соглашение о конфиденциальности по сделкам</span></div>
+              </sc-if>
+            </div>
+
+            <button style="{{ s.btnPrimary }}" style-hover="{{ s.btnPrimaryHover }}">{{ submitLabel }}</button>
+            <div style="{{ s.divider }}"><span style="{{ s.dividerLine }}"></span><span style="{{ s.dividerText }}">или</span><span style="{{ s.dividerLine }}"></span></div>
+            <button style="{{ s.btnGhost }}" style-hover="{{ s.btnGhostHover }}">Войти по SSO организации</button>
+            <div style="{{ s.switchRow }}">{{ switchText }} <a style="{{ s.textLink }}" onClick="{{ toggleMode }}">{{ switchAction }}</a></div>
+            <div style="{{ s.legal }}">Данные отчётности хранятся в РФ · 152-ФЗ · журнал доступа по каждой сделке</div>
+          </div>
+          </sc-if>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { theme:'dark', device:'desktop', view:'login' };
+
+  THEME(){
+    const dark={
+      pageBg:'#000000', bg:'#000000', surface:'#0E0B14', surface2:'#171122', surface3:'#241A38', sk:'#171122',
+      border:'#2B2140', borderStrong:'#4B3A6E', gridLine:'#191324',
+      text:'#F2E8FF', muted:'#9C8FB5', subtle:'#6A5C86',
+      primary:'#C77DFF', primaryHover:'#D69AFF', primaryText:'#17061F', accent:'#C77DFF',
+      primaryBg:'rgba(199,125,255,0.15)', primarySoft:'rgba(199,125,255,0.09)',
+      good:'#C77DFF', goodBg:'rgba(199,125,255,0.15)', goodBorder:'rgba(199,125,255,0.34)',
+      danger:'#F0796E', dangerHover:'#F4988F', dangerBg:'rgba(240,121,110,0.15)', dangerBorder:'rgba(240,121,110,0.34)',
+      warn:'#E0A23A', warnBg:'rgba(224,162,58,0.16)', warnBorder:'rgba(224,162,58,0.32)',
+      info:'#B9A6E8', infoBg:'rgba(185,166,232,0.15)',
+      ring:'rgba(199,125,255,0.40)',
+      shadow:'0 30px 70px -34px rgba(0,0,0,.9)', glow:'0 0 18px rgba(199,125,255,.35)',
+      barBg:'#0A0710', segBg:'#0A0710', segActiveBg:'#241A38', headerBg:'#0E0B14'
+    };
+    const light={
+      pageBg:'#F2EDFA', bg:'#FAF7FE', surface:'#FFFFFF', surface2:'#F4EEFA', surface3:'#E8DEF4', sk:'#EDE6F6',
+      border:'#DED2EC', borderStrong:'#C2B0D6', gridLine:'#EDE6F6',
+      text:'#1B1523', muted:'#4E4459', subtle:'#756884',
+      primary:'#C77DFF', primaryHover:'#B968F5', primaryText:'#17061F', accent:'#7A2BC4',
+      primaryBg:'#EEE0FB', primarySoft:'#F6EFFD',
+      good:'#7A2BC4', goodBg:'#EEE0FB', goodBorder:'#D9BFF0',
+      danger:'#C0473B', dangerHover:'#A53A30', dangerBg:'#FAE7E4', dangerBorder:'#EECFCA',
+      warn:'#B07A12', warnBg:'#FBF0D8', warnBorder:'#ECDDB4',
+      info:'#6B5E8C', infoBg:'#EDE9F6',
+      ring:'rgba(199,125,255,0.34)',
+      shadow:'0 18px 44px -22px rgba(40,20,60,.22), 0 2px 6px rgba(40,20,60,.05)', glow:'none',
+      barBg:'#FFFFFF', segBg:'#EDE6F6', segActiveBg:'#FFFFFF', headerBg:'#FFFFFF'
+    };
+    return this.state.theme==='dark'?dark:light;
+  }
+
+  DIM(){
+    const d=this.state.device;
+    if(d==='mobile') return {frame:402, radius:26, dir:'column', brandPad:'24px 18px 26px', formPad:'26px 18px 30px', h1:26, cube:170, showBrandCube:true, brandMin:0, formW:'100%', statCols:3};
+    if(d==='tablet') return {frame:864, radius:30, dir:'column', brandPad:'30px 26px 32px', formPad:'32px 26px 36px', h1:32, cube:240, showBrandCube:true, brandMin:0, formW:'100%', statCols:3};
+    return {frame:1180, radius:30, dir:'row', brandPad:'34px 34px 36px', formPad:'44px 46px 46px', h1:36, cube:300, showBrandCube:true, brandMin:600, formW:'400px', statCols:3};
+  }
+
+  setLight=()=>this.setState({theme:'light'});
+  setDark=()=>this.setState({theme:'dark'});
+  setDesktop=()=>this.setState({device:'desktop'});
+  setTablet=()=>this.setState({device:'tablet'});
+  setMobile=()=>this.setState({device:'mobile'});
+  setLogin=()=>this.setState({view:'login'});
+  setReg=()=>this.setState({view:'reg'});
+  setError=()=>this.setState({view:'error'});
+  setDone=()=>this.setState({view:'done'});
+  toggleMode=()=>this.setState(st=>({view:st.view==='reg'?'login':'reg'}));
+
+  segBtn(active,t){
+    return 'height:28px;padding:0 11px;border:0;border-radius:7px;cursor:pointer;font:'+(active?'600':'500')+' 11.5px/1 Inter,sans-serif;letter-spacing:-.01em;'+
+      (active?('background:'+t.segActiveBg+';color:'+t.text+';'):('background:transparent;color:'+t.subtle+';'));
+  }
+
+  renderVals(){
+    const t=this.THEME(), d=this.DIM(), dark=this.state.theme==='dark', v=this.state.view;
+    const mono='JetBrains Mono,ui-monospace,monospace';
+    const disp='Satoshi,Inter,sans-serif';
+    const isReg=v==='reg', isError=v==='error';
+    const inputBase='width:100%;height:44px;padding:0 14px;border-radius:8px;background:'+(dark?t.pageBg:t.surface)+';color:'+t.text+';font:400 13.5px/1 Inter,sans-serif;outline:none;';
+
+    const s={
+      page:'min-height:100vh;background:'+t.pageBg+';display:flex;flex-direction:column;align-items:center;padding:0 0 60px;',
+      bar:'position:sticky;top:0;z-index:20;width:100%;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:12px 20px;background:'+t.barBg+';border-bottom:1px solid '+t.border+';',
+      barCube:'width:30px;height:30px;flex:none;',
+      barTitle:'font:600 13px/1.2 Inter,sans-serif;letter-spacing:-.015em;color:'+t.text+';',
+      barSub:'font:400 10.5px/1.2 '+mono+';color:'+t.subtle+';',
+      barLabel:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+      seg:'display:flex;gap:2px;padding:3px;border-radius:9px;background:'+t.segBg+';border:1px solid '+t.border+';',
+      segLight:this.segBtn(!dark,t), segDark:this.segBtn(dark,t),
+      segDesktop:this.segBtn(this.state.device==='desktop',t),
+      segTablet:this.segBtn(this.state.device==='tablet',t),
+      segMobile:this.segBtn(this.state.device==='mobile',t),
+      segLogin:this.segBtn(v==='login',t), segReg:this.segBtn(isReg,t), segError:this.segBtn(isError,t), segDone:this.segBtn(v==='done',t),
+      stage:'width:100%;display:flex;justify-content:center;padding:26px 18px 0;',
+      frame:'width:100%;max-width:'+d.frame+'px;border:1px solid '+t.border+';border-radius:'+d.radius+'px;background:'+t.bg+';overflow:hidden;'+(dark?'':'box-shadow:'+t.shadow+';'),
+      split:'display:flex;flex-direction:'+d.dir+';align-items:stretch;',
+
+      brandPane:'position:relative;flex:1;min-width:0;display:flex;flex-direction:column;justify-content:space-between;gap:18px;padding:'+d.brandPad+';overflow:hidden;min-height:'+d.brandMin+'px;background:'+(dark?'radial-gradient(ellipse 72% 78% at 34% 40%, rgba(199,125,255,.17) 0%, rgba(123,63,228,.05) 46%, transparent 78%)':'linear-gradient(158deg,'+t.primarySoft+' 0%, '+t.bg+' 64%)')+';'+(d.dir==='row'?'border-right:1px solid '+t.border+';':'border-bottom:1px solid '+t.border+';'),
+      brandBeam:'position:absolute;left:0;right:0;top:0;height:90px;pointer-events:none;background:linear-gradient(to bottom,transparent,'+(dark?'rgba(199,125,255,.11)':'rgba(199,125,255,.15)')+',transparent);animation:fa-scan 10s linear infinite;',
+      brandTop:'position:relative;display:flex;align-items:center;gap:10px;',
+      brandMark:'width:32px;height:32px;flex:none;',
+      brandName:'font:600 11px/1 Inter,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:'+t.text+';',
+      brandCubeBox:'position:relative;align-self:center;width:'+d.cube+'px;height:'+d.cube+'px;flex:none;',
+      brandBottom:'position:relative;',
+      eyebrow:'display:flex;align-items:center;gap:7px;font:500 9.5px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:'+t.accent+';margin-bottom:13px;',
+      eyebrowDot:'width:5px;height:5px;border-radius:50%;background:'+t.primary+';'+(dark?'box-shadow:0 0 8px rgba(199,125,255,.9);':'')+'animation:fa-pulse 2s ease-in-out infinite alternate;',
+      brandTitle:'font:500 '+d.h1+'px/1.08 '+disp+';letter-spacing:-.028em;color:'+t.text+';max-width:17ch;',
+      brandLead:'margin-top:14px;font:400 13.5px/1.66 Inter,sans-serif;color:'+t.muted+';max-width:50ch;text-wrap:pretty;',
+      brandStats:'display:grid;grid-template-columns:repeat('+d.statCols+',minmax(0,1fr));gap:14px;margin-top:24px;padding-top:20px;border-top:1px solid '+t.border+';',
+      brandStat:'display:flex;flex-direction:column;gap:6px;min-width:0;',
+      brandStatLabel:'font:400 10px/1.35 Inter,sans-serif;color:'+t.subtle+';',
+
+      formPane:'flex:none;width:'+(d.dir==='row'?'520px':'100%')+';display:flex;align-items:center;justify-content:center;padding:'+d.formPad+';background:'+t.bg+';',
+      formWrap:'width:100%;max-width:'+d.formW+';display:flex;flex-direction:column;gap:18px;animation:fa-fade .32s ease-out both;',
+      formHead:'display:flex;flex-direction:column;gap:8px;',
+      formTitle:'font:500 '+(d.frame<500?23:27)+'px/1.14 '+disp+';letter-spacing:-.026em;color:'+t.text+';',
+      formLead:'font:400 13px/1.6 Inter,sans-serif;color:'+t.muted+';',
+
+      banner:'display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:1px solid '+t.dangerBorder+';border-radius:12px;background:'+t.dangerBg+';animation:fa-shake .4s ease-out both;',
+      bannerIcon:'flex:none;width:18px;height:18px;border-radius:50%;background:'+t.danger+';color:'+(dark?'#17061F':'#FFFFFF')+';font:700 11px/18px Inter,sans-serif;text-align:center;',
+      bannerText:'font:400 12px/1.5 Inter,sans-serif;color:'+t.danger+';',
+
+      fields:'display:flex;flex-direction:column;gap:14px;',
+      field:'display:flex;flex-direction:column;gap:7px;',
+      labelRow:'display:flex;align-items:baseline;justify-content:space-between;gap:10px;',
+      label:'font:500 9.5px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+      smallLink:'font:500 11px/1 Inter,sans-serif;color:'+t.accent+';text-decoration:none;cursor:pointer;',
+      input:inputBase+'border:1.5px solid '+t.border+';',
+      inputMail:inputBase+'border:1.5px solid '+t.border+';',
+      inputPass:inputBase+'border:1.5px solid '+(isError?t.danger:t.border)+';'+(isError?'animation:fa-shake .4s ease-out both;':''),
+      inputFocus:'border-color:'+t.primary+';box-shadow:0 0 0 3px '+t.ring+';',
+      fieldError:'font:400 11px/1.4 '+mono+';color:'+t.danger+';',
+      checkRow:'display:flex;align-items:flex-start;gap:10px;',
+      checkbox:'flex:none;width:16px;height:16px;margin-top:1px;border:1.5px solid '+t.borderStrong+';border-radius:4px;background:transparent;',
+      checkText:'font:400 11.5px/1.5 Inter,sans-serif;color:'+t.muted+';',
+
+      btnPrimary:'height:46px;border:0;border-radius:4px;background:'+t.primary+';color:'+t.primaryText+';font:600 13.5px/1 Inter,sans-serif;letter-spacing:-.01em;cursor:pointer;'+(dark?'box-shadow:'+t.glow+';':''),
+      btnPrimaryHover:'background:'+t.primaryHover+';',
+      btnGhost:'height:44px;border:1px solid '+t.borderStrong+';border-radius:4px;background:transparent;color:'+t.text+';font:500 13px/1 Inter,sans-serif;cursor:pointer;',
+      btnGhostHover:'border-color:'+t.primary+';color:'+t.accent+';',
+      divider:'display:flex;align-items:center;gap:12px;',
+      dividerLine:'flex:1;height:1px;background:'+t.border+';',
+      dividerText:'font:400 10.5px/1 '+mono+';color:'+t.subtle+';',
+      switchRow:'font:400 12.5px/1.5 Inter,sans-serif;color:'+t.muted+';',
+      textLink:'font:500 12.5px/1.5 Inter,sans-serif;color:'+t.accent+';text-decoration:none;cursor:pointer;',
+      legal:'font:400 10.5px/1.55 '+mono+';color:'+t.subtle+';padding-top:14px;border-top:1px solid '+t.border+';',
+
+      doneWrap:'display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;width:100%;max-width:'+d.formW+';animation:fa-fade .32s ease-out both;',
+      doneCubeBox:'width:112px;height:112px;opacity:.9;',
+      doneCheck:'width:46px;height:46px;margin-top:-16px;border-radius:50%;background:'+t.primary+';color:'+t.primaryText+';font:600 22px/46px Inter,sans-serif;animation:fa-pop .4s cubic-bezier(.16,1,.3,1) both;'+(dark?'box-shadow:0 0 24px rgba(199,125,255,.55);':''),
+      doneTitle:'margin-top:6px;font:500 '+(d.frame<500?21:25)+'px/1.14 '+disp+';letter-spacing:-.024em;color:'+t.text+';',
+      doneLead:'font:400 13px/1.6 Inter,sans-serif;color:'+t.muted+';max-width:44ch;',
+      doneTrack:'width:100%;max-width:260px;height:5px;margin-top:10px;border-radius:3px;background:'+t.surface2+';overflow:hidden;',
+      doneFill:'height:100%;background:'+t.primary+';animation:fa-grow 1.6s linear both;'
+    };
+
+    const stat=(value,label,accent)=>({
+      value, label,
+      valueStyle:'font:500 17px/1 '+mono+';letter-spacing:-.02em;color:'+(accent?t.accent:t.text)+';'
+    });
+
+    return {
+      s,
+      setLight:this.setLight, setDark:this.setDark,
+      setDesktop:this.setDesktop, setTablet:this.setTablet, setMobile:this.setMobile,
+      setLogin:this.setLogin, setReg:this.setReg, setError:this.setError, setDone:this.setDone,
+      toggleMode:this.toggleMode,
+      isReg, isError, isDone:v==='done', showForm:v!=='done',
+      formTitle:isReg?'Создать рабочее пространство':'Вход в рабочее пространство',
+      formLead:isReg?'Одно пространство на организацию: дела, документы и журнал доступа не смешиваются между сделками.':'Дела и заключения доступны только участникам сделки.',
+      submitLabel:isReg?'Создать пространство':'Войти',
+      passHint:isReg?'от 10 символов':'Забыли пароль?',
+      switchText:isReg?'Уже есть пространство?':'Впервые здесь?',
+      switchAction:isReg?'Войти':'Создать пространство',
+      brandStats:[
+        stat('24','процедуры проверки',false),
+        stat('06:00','среднее время скана',false),
+        stat('18%','средний дисконт к цене',true)
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  input,button{font-family:inherit;}
+  a{color:#C77DFF;}
+  a:hover{color:#D69AFF;}
+  @keyframes fa-pulse{from{opacity:.4}to{opacity:1}}
+  @keyframes fa-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes fa-grow-x{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+  @keyframes fa-grow-y{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:11px;min-width:0;">
+      <div style="{{ s.barCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="30px,30px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Экран 13 · Анализ рисков</span>
+        <span style="{{ s.barSub }}">чувствительность · Монте-Карло · сценарии</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Свет</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тьма</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Метод</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segSens }}" onClick="{{ setSens }}">Чувствительность</button><button style="{{ s.segMc }}" onClick="{{ setMc }}">Монте-Карло</button><button style="{{ s.segScen }}" onClick="{{ setScen }}">Сценарии</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}" data-screen-label="Экран 13 — Анализ рисков">
+
+      <div style="{{ s.nav }}">
+        <div style="{{ s.navLeft }}">
+          <div style="{{ s.navCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="24px,24px"></dc-import></div>
+          <span style="{{ s.navBrand }}">Финанс&nbsp;Аудит</span>
+          <div style="{{ s.navTabs }}">
+            <sc-for list="{{ navTabs }}" as="n" hint-placeholder-count="6"><span style="{{ n.style }}">{{ n.label }}</span></sc-for>
+          </div>
+        </div>
+        <div style="{{ s.navRight }}">
+          <span style="{{ s.navCase }}">ДЕЛО A-2417</span>
+          <button style="{{ s.btnPrimarySm }}" style-hover="{{ s.btnPrimaryHover }}">Пересчитать</button>
+        </div>
+      </div>
+
+      <div style="{{ s.subhead }}">
+        <div style="min-width:0;">
+          <div style="{{ s.h1 }}">{{ title }}</div>
+          <div style="{{ s.h1Sub }}">{{ subtitle }}</div>
+        </div>
+        <div style="{{ s.subheadRight }}">
+          <sc-for list="{{ headMetrics }}" as="m" hint-placeholder-count="3"><div style="{{ s.headMetric }}"><div style="{{ s.headMetricLabel }}">{{ m.label }}</div><div style="{{ m.valueStyle }}">{{ m.value }}</div></div></sc-for>
+        </div>
+      </div>
+
+      <sc-if value="{{ isSens }}" hint-placeholder-val="{{ true }}">
+      <div style="{{ s.main }}">
+        <div style="{{ s.col }}">
+
+          <div style="{{ s.panel }}">
+            <div style="{{ s.panelHead }}"><span style="{{ s.panelTitle }}">Что двигает цену сильнее всего</span><span style="{{ s.panelMeta }}">отклонение цены за 100% доли, млн ₽</span></div>
+            <div style="{{ s.tornado }}">
+              <sc-for list="{{ tornado }}" as="p" hint-placeholder-count="7">
+              <div style="{{ s.tornRow }}">
+                <div style="{{ s.tornLabel }}"><span style="{{ s.tornName }}">{{ p.name }}</span><span style="{{ s.tornStep }}">{{ p.step }}</span></div>
+                <div style="{{ s.tornTrack }}">
+                  <div style="{{ s.tornAxis }}"></div>
+                  <div style="{{ p.negStyle }}"></div>
+                  <div style="{{ p.posStyle }}"></div>
+                </div>
+                <div style="{{ s.tornNums }}"><span style="{{ s.tornNeg }}">{{ p.neg }}</span><span style="{{ s.tornPos }}">{{ p.pos }}</span></div>
+              </div>
+              </sc-for>
+            </div>
+            <div style="{{ s.tornFoot }}">Каждый параметр смещается отдельно, остальные держатся на базовом уровне. База — {{ base }} млн ₽.</div>
+          </div>
+
+          <div style="{{ s.panel }}">
+            <div style="{{ s.panelHead }}"><span style="{{ s.panelTitle }}">WACC против роста в постпрогнозе</span><span style="{{ s.panelMeta }}">цена за 100% доли, млн ₽</span></div>
+            <div style="{{ s.gridWrap }}">
+              <div style="{{ s.gridHead }}">
+                <div style="{{ s.gridCorner }}">WACC ↓ / рост →</div>
+                <sc-for list="{{ growthCols }}" as="g" hint-placeholder-count="5"><div style="{{ s.gridColHead }}">{{ g.label }}</div></sc-for>
+              </div>
+              <sc-for list="{{ gridRows }}" as="r" hint-placeholder-count="5">
+              <div style="{{ s.gridRow }}">
+                <div style="{{ r.headStyle }}">{{ r.wacc }}</div>
+                <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="5"><div style="{{ c.style }}">{{ c.value }}</div></sc-for>
+              </div>
+              </sc-for>
+            </div>
+            <div style="{{ s.legend }}">
+              <sc-for list="{{ legend }}" as="l" hint-placeholder-count="4"><div style="{{ s.legendItem }}"><span style="{{ l.dotStyle }}"></span><span style="{{ s.legendText }}">{{ l.label }}</span></div></sc-for>
+            </div>
+          </div>
+        </div>
+
+        <div style="{{ s.aside }}">
+          <div style="{{ s.cardAccent }}">
+            <div style="{{ s.cardHead }}">Вывод</div>
+            <div style="{{ s.asideBig }}">864 — 1 209</div>
+            <div style="{{ s.asideLead }}">Разброс цены при отклонении WACC и роста на 1 п.п. Даже верхняя граница ниже запрошенных 1 240 млн ₽ — цена продавца не выдерживает ни одного из благоприятных сценариев.</div>
+          </div>
+          <div style="{{ s.card }}">
+            <div style="{{ s.cardHead }}">Базовые допущения</div>
+            <sc-for list="{{ assumptions }}" as="a" hint-placeholder-count="6">
+            <div style="{{ s.kvRow }}"><span style="{{ s.kvKey }}">{{ a.key }}</span><span style="{{ a.valueStyle }}">{{ a.value }}</span></div>
+            </sc-for>
+            <button style="{{ s.btnGhostSm }}" style-hover="{{ s.btnGhostHover }}">Изменить допущения</button>
+          </div>
+          <div style="{{ s.card }}">
+            <div style="{{ s.cardHead }}">Как читать</div>
+            <sc-for list="{{ sensNotes }}" as="n" hint-placeholder-count="3">
+            <div style="{{ s.noteRow }}"><span style="{{ n.dotStyle }}"></span><span style="{{ s.noteText }}">{{ n.text }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isMc }}" hint-placeholder-val="{{ false }}">
+      <div style="{{ s.main }}">
+        <div style="{{ s.col }}">
+
+          <div style="{{ s.panel }}">
+            <div style="{{ s.panelHead }}"><span style="{{ s.panelTitle }}">Распределение справедливой цены</span><span style="{{ s.panelMeta }}">10 000 прогонов · 1.8 с</span></div>
+            <div style="{{ s.histWrap }}">
+              <div style="{{ s.histBars }}">
+                <sc-for list="{{ hist }}" as="h" hint-placeholder-count="24">
+                <div style="{{ h.colStyle }}"><div style="{{ h.barStyle }}"></div></div>
+                </sc-for>
+              </div>
+              <div style="{{ s.histAxis }}">
+                <sc-for list="{{ histTicks }}" as="tk" hint-placeholder-count="5"><span style="{{ s.histTick }}">{{ tk.label }}</span></sc-for>
+              </div>
+            </div>
+            <div style="{{ s.pctRow }}">
+              <sc-for list="{{ percentiles }}" as="p" hint-placeholder-count="5">
+              <div style="{{ p.cardStyle }}"><div style="{{ s.pctLabel }}">{{ p.label }}</div><div style="{{ p.valueStyle }}">{{ p.value }}</div><div style="{{ s.pctNote }}">{{ p.note }}</div></div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="{{ s.panel }}">
+            <div style="{{ s.panelHead }}"><span style="{{ s.panelTitle }}">Вероятности, которые важны для торга</span><span style="{{ s.panelMeta }}">доля прогонов из 10 000</span></div>
+            <div style="{{ s.probList }}">
+              <sc-for list="{{ probs }}" as="p" hint-placeholder-count="4">
+              <div style="{{ s.probRow }}">
+                <span style="{{ s.probLabel }}">{{ p.label }}</span>
+                <div style="{{ s.probTrack }}"><div style="{{ p.fillStyle }}"></div></div>
+                <span style="{{ p.valueStyle }}">{{ p.value }}</span>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <div style="{{ s.aside }}">
+          <div style="{{ s.cardAccent }}">
+            <div style="{{ s.cardHead }}">Медиана</div>
+            <div style="{{ s.asideBig }}">1 020 млн ₽</div>
+            <div style="{{ s.asideLead }}">Совпала с оценкой по базовому сценарию — модель устойчива. Половина прогонов легла ниже этой отметки.</div>
+          </div>
+          <div style="{{ s.card }}">
+            <div style="{{ s.cardHead }}">Что случайно в прогоне</div>
+            <sc-for list="{{ mcInputs }}" as="m" hint-placeholder-count="5">
+            <div style="{{ s.mcRow }}"><span style="{{ s.mcName }}">{{ m.name }}</span><span style="{{ s.mcDist }}">{{ m.dist }}</span></div>
+            </sc-for>
+          </div>
+          <div style="{{ s.card }}">
+            <div style="{{ s.cardHead }}">Параметры прогона</div>
+            <sc-for list="{{ mcParams }}" as="p" hint-placeholder-count="4">
+            <div style="{{ s.kvRow }}"><span style="{{ s.kvKey }}">{{ p.key }}</span><span style="{{ p.valueStyle }}">{{ p.value }}</span></div>
+            </sc-for>
+            <button style="{{ s.btnGhostSm }}" style-hover="{{ s.btnGhostHover }}">Запустить ещё раз</button>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isScen }}" hint-placeholder-val="{{ false }}">
+      <div style="{{ s.main }}">
+        <div style="{{ s.col }}">
+
+          <div style="{{ s.scenGrid }}">
+            <sc-for list="{{ scenarios }}" as="sc" hint-placeholder-count="4">
+            <div style="{{ sc.cardStyle }}">
+              <div style="{{ s.scenTop }}"><span style="{{ sc.chipStyle }}">{{ sc.tag }}</span><span style="{{ s.scenProb }}">{{ sc.prob }}</span></div>
+              <div style="{{ s.scenName }}">{{ sc.name }}</div>
+              <div style="{{ sc.priceStyle }}">{{ sc.price }}</div>
+              <div style="{{ sc.deltaStyle }}">{{ sc.delta }}</div>
+              <div style="{{ s.scenLead }}">{{ sc.lead }}</div>
+              <div style="{{ s.scenParams }}">
+                <sc-for list="{{ sc.params }}" as="p" hint-placeholder-count="3">
+                <div style="{{ s.scenParamRow }}"><span style="{{ s.scenParamKey }}">{{ p.key }}</span><span style="{{ s.scenParamVal }}">{{ p.value }}</span></div>
+                </sc-for>
+              </div>
+            </div>
+            </sc-for>
+          </div>
+
+          <div style="{{ s.panel }}">
+            <div style="{{ s.panelHead }}"><span style="{{ s.panelTitle }}">Сравнение сценариев</span><span style="{{ s.panelMeta }}">млн ₽, кроме мультипликатора</span></div>
+            <sc-if value="{{ cmpWide }}" hint-placeholder-val="{{ true }}">
+            <div style="{{ s.cmpWrap }}">
+              <div style="{{ s.cmpHead }}">
+                <div style="{{ s.cmpFirst }}">Показатель</div>
+                <sc-for list="{{ scenCols }}" as="c" hint-placeholder-count="4"><div style="{{ c.style }}">{{ c.label }}</div></sc-for>
+              </div>
+              <sc-for list="{{ cmpRows }}" as="r" hint-placeholder-count="6">
+              <div style="{{ r.rowStyle }}">
+                <div style="{{ r.firstStyle }}">{{ r.label }}</div>
+                <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="4"><div style="{{ c.style }}">{{ c.value }}</div></sc-for>
+              </div>
+              </sc-for>
+            </div>
+            </sc-if>
+
+            <sc-if value="{{ cmpNarrow }}" hint-placeholder-val="{{ false }}">
+            <div style="{{ s.cmpCardList }}">
+              <sc-for list="{{ cmpCards }}" as="c" hint-placeholder-count="6">
+              <div style="{{ c.cardStyle }}">
+                <div style="{{ c.cardLabelStyle }}">{{ c.label }}</div>
+                <div style="{{ s.cmpCardGrid }}">
+                  <sc-for list="{{ c.cells }}" as="x" hint-placeholder-count="4">
+                  <div style="{{ s.cmpCardCell }}"><span style="{{ x.nameStyle }}">{{ x.name }}</span><span style="{{ x.valueStyle }}">{{ x.value }}</span></div>
+                  </sc-for>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+            </sc-if>
+          </div>
+        </div>
+
+        <div style="{{ s.aside }}">
+          <div style="{{ s.cardAccent }}">
+            <div style="{{ s.cardHead }}">Рекомендация</div>
+            <div style="{{ s.asideBig }}">1 020 млн ₽</div>
+            <div style="{{ s.asideLead }}">Выходить на сделку по базовому сценарию с оговоркой: 120 млн ₽ в эскроу до подтверждения спорных доходов и снятия поручительств.</div>
+            <button style="{{ s.btnPrimary }}" style-hover="{{ s.btnPrimaryHover }}">В заключение</button>
+          </div>
+          <div style="{{ s.card }}">
+            <div style="{{ s.cardHead }}">Триггеры пересчёта</div>
+            <sc-for list="{{ triggers }}" as="tr" hint-placeholder-count="4">
+            <div style="{{ s.noteRow }}"><span style="{{ tr.dotStyle }}"></span><span style="{{ s.noteText }}">{{ tr.text }}</span></div>
+            </sc-for>
+          </div>
+          <div style="{{ s.cardWarn }}">
+            <div style="{{ s.warnEyebrow }}">СТРЕСС-СЦЕНАРИЙ</div>
+            <div style="{{ s.warnTitle }}">Потеря контрагента</div>
+            <div style="{{ s.warnLead }}">30% выручки приходится на одного заказчика без долгосрочного договора. Его уход уводит цену к 640 млн ₽ — это половина запрошенного.</div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:960}}">
+class Component extends DCLogic {
+  state = { theme:'dark', device:'desktop', view:'sens' };
+
+  THEME(){
+    const dark={
+      pageBg:'#000000', bg:'#000000', surface:'#0E0B14', surface2:'#171122', surface3:'#241A38', sk:'#171122',
+      border:'#2B2140', borderStrong:'#4B3A6E', gridLine:'#191324',
+      text:'#F2E8FF', muted:'#9C8FB5', subtle:'#6A5C86',
+      primary:'#C77DFF', primaryHover:'#D69AFF', primaryText:'#17061F', accent:'#C77DFF',
+      primaryBg:'rgba(199,125,255,0.15)', primarySoft:'rgba(199,125,255,0.09)',
+      goodBg:'rgba(199,125,255,0.15)', goodBorder:'rgba(199,125,255,0.34)',
+      danger:'#F0796E', dangerBg:'rgba(240,121,110,0.15)', dangerBorder:'rgba(240,121,110,0.34)',
+      warn:'#E0A23A', warnBg:'rgba(224,162,58,0.16)', warnBorder:'rgba(224,162,58,0.32)',
+      info:'#B9A6E8', infoBg:'rgba(185,166,232,0.15)',
+      ring:'rgba(199,125,255,0.40)',
+      shadow:'0 30px 70px -34px rgba(0,0,0,.9)', glow:'0 0 18px rgba(199,125,255,.35)',
+      barBg:'#0A0710', segBg:'#0A0710', segActiveBg:'#241A38', headerBg:'#0E0B14'
+    };
+    const light={
+      pageBg:'#F2EDFA', bg:'#FAF7FE', surface:'#FFFFFF', surface2:'#F4EEFA', surface3:'#E8DEF4', sk:'#EDE6F6',
+      border:'#DED2EC', borderStrong:'#C2B0D6', gridLine:'#EDE6F6',
+      text:'#1B1523', muted:'#4E4459', subtle:'#756884',
+      primary:'#C77DFF', primaryHover:'#B968F5', primaryText:'#17061F', accent:'#7A2BC4',
+      primaryBg:'#EEE0FB', primarySoft:'#F6EFFD',
+      goodBg:'#EEE0FB', goodBorder:'#D9BFF0',
+      danger:'#C0473B', dangerBg:'#FAE7E4', dangerBorder:'#EECFCA',
+      warn:'#B07A12', warnBg:'#FBF0D8', warnBorder:'#ECDDB4',
+      info:'#6B5E8C', infoBg:'#EDE9F6',
+      ring:'rgba(199,125,255,0.34)',
+      shadow:'0 18px 44px -22px rgba(40,20,60,.22), 0 2px 6px rgba(40,20,60,.05)', glow:'none',
+      barBg:'#FFFFFF', segBg:'#EDE6F6', segActiveBg:'#FFFFFF', headerBg:'#FFFFFF'
+    };
+    return this.state.theme==='dark'?dark:light;
+  }
+
+  DIM(){
+    const d=this.state.device;
+    if(d==='mobile') return {frame:402, radius:26, pad:16, h1:22, mainCols:'1fr', tabsShown:2, compact:true, tornLabel:'96px', tornNums:'86px', gridLabel:'62px', cmpLabel:'92px', histH:150, scenCols:'1fr'};
+    if(d==='tablet') return {frame:864, radius:30, pad:20, h1:26, mainCols:'1fr', tabsShown:5, compact:false, tornLabel:'168px', tornNums:'104px', gridLabel:'84px', cmpLabel:'150px', histH:180, scenCols:'repeat(2,minmax(0,1fr))'};
+    return {frame:1180, radius:30, pad:24, h1:30, mainCols:'1fr 300px', tabsShown:6, compact:false, tornLabel:'196px', tornNums:'112px', gridLabel:'92px', cmpLabel:'168px', histH:196, scenCols:'repeat(2,minmax(0,1fr))'};
+  }
+
+  setLight=()=>this.setState({theme:'light'});
+  setDark=()=>this.setState({theme:'dark'});
+  setDesktop=()=>this.setState({device:'desktop'});
+  setTablet=()=>this.setState({device:'tablet'});
+  setMobile=()=>this.setState({device:'mobile'});
+  setSens=()=>this.setState({view:'sens'});
+  setMc=()=>this.setState({view:'mc'});
+  setScen=()=>this.setState({view:'scen'});
+
+  segBtn(active,t){
+    return 'height:28px;padding:0 12px;border:0;border-radius:7px;cursor:pointer;font:'+(active?'600':'500')+' 11.5px/1 Inter,sans-serif;letter-spacing:-.01em;'+
+      (active?('background:'+t.segActiveBg+';color:'+t.text+';'):('background:transparent;color:'+t.subtle+';'));
+  }
+
+  // FCF/(WACC−g) − долг 831 + деньги 96 − миноритарные доли 12
+  equity(w,g){ return Math.round(273.9/((w-g)/100) - 747); }
+  fmt(n){ return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g,' '); }
+
+  renderVals(){
+    const t=this.THEME(), d=this.DIM(), dark=this.state.theme==='dark', v=this.state.view;
+    const mono='JetBrains Mono,ui-monospace,monospace';
+    const disp='Satoshi,Inter,sans-serif';
+    const card='border:1px solid '+t.border+';border-radius:16px;background:'+t.surface+';'+(dark?'':'box-shadow:'+t.shadow+';');
+    const chip=(bg,bd,c)=>'display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;background:'+bg+';border:1px solid '+bd+';font:500 10px/1.3 '+mono+';color:'+c+';';
+    const gcols=d.gridLabel+' repeat(5,minmax(0,1fr))';
+    const ccols=d.cmpLabel+' repeat(4,minmax(0,1fr))';
+
+    const s={
+      page:'min-height:100vh;background:'+t.pageBg+';display:flex;flex-direction:column;align-items:center;padding:0 0 60px;',
+      bar:'position:sticky;top:0;z-index:20;width:100%;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:12px 20px;background:'+t.barBg+';border-bottom:1px solid '+t.border+';',
+      barCube:'width:30px;height:30px;flex:none;',
+      barTitle:'font:600 13px/1.2 Inter,sans-serif;letter-spacing:-.015em;color:'+t.text+';',
+      barSub:'font:400 10.5px/1.2 '+mono+';color:'+t.subtle+';',
+      barLabel:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+      seg:'display:flex;gap:2px;padding:3px;border-radius:9px;background:'+t.segBg+';border:1px solid '+t.border+';',
+      segLight:this.segBtn(!dark,t), segDark:this.segBtn(dark,t),
+      segDesktop:this.segBtn(this.state.device==='desktop',t),
+      segTablet:this.segBtn(this.state.device==='tablet',t),
+      segMobile:this.segBtn(this.state.device==='mobile',t),
+      segSens:this.segBtn(v==='sens',t), segMc:this.segBtn(v==='mc',t), segScen:this.segBtn(v==='scen',t),
+      stage:'width:100%;display:flex;justify-content:center;padding:26px 18px 0;',
+      frame:'width:100%;max-width:'+d.frame+'px;border:1px solid '+t.border+';border-radius:'+d.radius+'px;background:'+t.bg+';overflow:hidden;'+(dark?'':'box-shadow:'+t.shadow+';'),
+
+      nav:'display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 '+d.pad+'px;background:'+t.headerBg+';border-bottom:1px solid '+t.border+';',
+      navLeft:'display:flex;align-items:center;gap:11px;min-width:0;',
+      navCube:'width:24px;height:24px;flex:none;',
+      navBrand:'font:600 12.5px/1 Inter,sans-serif;letter-spacing:-.01em;color:'+t.text+';white-space:nowrap;',
+      navTabs:'display:'+(d.frame<500?'none':'flex')+';align-items:center;gap:2px;',
+      navRight:'display:flex;align-items:center;gap:10px;flex:none;',
+      navCase:'display:'+(d.frame<500?'none':'inline')+';font:500 10px/1 '+mono+';letter-spacing:.06em;color:'+t.subtle+';',
+
+      subhead:'display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:18px '+d.pad+'px;border-bottom:1px solid '+t.border+';',
+      h1:'font:500 '+d.h1+'px/1.14 '+disp+';letter-spacing:-.028em;color:'+t.text+';',
+      h1Sub:'margin-top:7px;font:400 12px/1.5 Inter,sans-serif;color:'+t.muted+';max-width:64ch;',
+      subheadRight:'display:flex;align-items:flex-start;gap:'+(d.compact?16:22)+'px;flex-wrap:wrap;',
+      headMetric:'display:flex;flex-direction:column;gap:6px;',
+      headMetricLabel:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+
+      main:'display:grid;grid-template-columns:'+d.mainCols+';gap:'+(d.compact?14:18)+'px;padding:'+(d.compact?16:20)+'px '+d.pad+'px;align-items:start;',
+      col:'display:flex;flex-direction:column;gap:'+(d.compact?14:18)+'px;min-width:0;',
+      aside:'display:flex;flex-direction:column;gap:'+(d.compact?14:18)+'px;min-width:0;',
+      panel:card+'padding:'+(d.compact?14:18)+'px;display:flex;flex-direction:column;gap:14px;min-width:0;animation:fa-fade .3s ease-out both;',
+      panelHead:'display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;',
+      panelTitle:'font:500 '+(d.compact?14:15.5)+'px/1.2 '+disp+';letter-spacing:-.02em;color:'+t.text+';',
+      panelMeta:'font:400 10.5px/1.3 '+mono+';color:'+t.subtle+';',
+
+      tornado:'display:flex;flex-direction:column;gap:9px;',
+      tornRow:'display:grid;grid-template-columns:'+d.tornLabel+' 1fr '+d.tornNums+';gap:10px;align-items:center;',
+      tornLabel:'display:flex;flex-direction:column;gap:3px;min-width:0;',
+      tornName:'font:400 '+(d.compact?11:12)+'px/1.35 Inter,sans-serif;color:'+t.text+';',
+      tornStep:'font:400 '+(d.compact?9:9.5)+'px/1 '+mono+';color:'+t.subtle+';',
+      tornTrack:'position:relative;height:20px;',
+      tornAxis:'position:absolute;top:0;bottom:0;left:50%;width:1px;background:'+t.borderStrong+';',
+      tornNums:'display:flex;align-items:center;justify-content:space-between;gap:8px;',
+      tornNeg:'font:500 '+(d.compact?10:10.5)+'px/1 '+mono+';color:'+t.danger+';',
+      tornPos:'font:500 '+(d.compact?10:10.5)+'px/1 '+mono+';color:'+t.primary+';',
+      tornFoot:'padding-top:12px;border-top:1px solid '+t.border+';font:400 11px/1.55 Inter,sans-serif;color:'+t.subtle+';',
+
+      gridWrap:'min-width:0;overflow:hidden;',
+      gridHead:'display:grid;grid-template-columns:'+gcols+';gap:2px;margin-bottom:2px;',
+      gridCorner:'font:500 '+(d.compact?8:8.5)+'px/1.25 Inter,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:'+t.subtle+';display:flex;align-items:flex-end;',
+      gridColHead:'text-align:center;padding:5px 0;font:500 '+(d.compact?9.5:10.5)+'px/1 '+mono+';color:'+t.muted+';',
+      gridRow:'display:grid;grid-template-columns:'+gcols+';gap:2px;margin-bottom:2px;',
+      legend:'display:flex;flex-wrap:wrap;gap:'+(d.compact?10:16)+'px;padding-top:12px;border-top:1px solid '+t.border+';',
+      legendItem:'display:flex;align-items:center;gap:6px;',
+      legendText:'font:400 10.5px/1.3 Inter,sans-serif;color:'+t.muted+';',
+
+      histWrap:'display:flex;flex-direction:column;gap:8px;',
+      histBars:'display:flex;align-items:flex-end;gap:'+(d.compact?2:3)+'px;height:'+d.histH+'px;padding-bottom:1px;border-bottom:1px solid '+t.borderStrong+';',
+      histAxis:'display:flex;align-items:baseline;justify-content:space-between;',
+      histTick:'font:400 '+(d.compact?9:9.5)+'px/1 '+mono+';color:'+t.subtle+';',
+      pctRow:'display:grid;grid-template-columns:repeat('+(d.compact?2:5)+',minmax(0,1fr));gap:'+(d.compact?8:10)+'px;padding-top:14px;border-top:1px solid '+t.border+';',
+      pctLabel:'font:500 9px/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:'+t.subtle+';',
+      pctNote:'margin-top:5px;font:400 9.5px/1.35 Inter,sans-serif;color:'+t.subtle+';',
+
+      probList:'display:flex;flex-direction:column;gap:11px;',
+      probRow:'display:grid;grid-template-columns:1fr '+(d.compact?'80px':'150px')+' 46px;gap:'+(d.compact?8:12)+'px;align-items:center;',
+      probLabel:'font:400 '+(d.compact?11:12)+'px/1.4 Inter,sans-serif;color:'+t.text+';min-width:0;',
+      probTrack:'height:6px;border-radius:999px;background:'+t.surface3+';overflow:hidden;',
+
+      mcRow:'display:flex;align-items:baseline;justify-content:space-between;gap:10px;',
+      mcName:'font:400 11.5px/1.4 Inter,sans-serif;color:'+t.text+';',
+      mcDist:'flex:none;font:400 10px/1.3 '+mono+';color:'+t.subtle+';',
+
+      scenGrid:'display:grid;grid-template-columns:'+d.scenCols+';gap:'+(d.compact?12:14)+'px;',
+      scenTop:'display:flex;align-items:center;justify-content:space-between;gap:10px;',
+      scenProb:'font:400 10px/1 '+mono+';color:'+t.subtle+';',
+      scenName:'margin-top:12px;font:500 '+(d.compact?15:16.5)+'px/1.2 '+disp+';letter-spacing:-.02em;color:'+t.text+';',
+      scenLead:'margin-top:10px;font:400 11.5px/1.6 Inter,sans-serif;color:'+t.muted+';',
+      scenParams:'display:flex;flex-direction:column;gap:6px;margin-top:12px;padding-top:11px;border-top:1px solid '+t.border+';',
+      scenParamRow:'display:flex;align-items:baseline;justify-content:space-between;gap:10px;',
+      scenParamKey:'font:400 10.5px/1.35 Inter,sans-serif;color:'+t.subtle+';',
+      scenParamVal:'flex:none;font:400 10.5px/1.35 '+mono+';color:'+t.muted+';',
+
+      cmpWrap:'min-width:0;',
+      cmpCardList:'display:flex;flex-direction:column;gap:10px;animation:fa-fade .3s ease-out both;',
+      cmpCardGrid:'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:11px;padding-top:10px;border-top:1px solid '+t.gridLine+';',
+      cmpCardCell:'display:flex;flex-direction:column;gap:5px;min-width:0;',
+      cmpHead:'display:grid;grid-template-columns:'+ccols+';column-gap:12px;align-items:flex-end;padding:8px 0;border-top:1px solid '+t.border+';border-bottom:1px solid '+t.border+';',
+      cmpFirst:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.muted+';',
+
+      cardAccent:'padding:16px;border:1px solid '+t.goodBorder+';border-radius:16px;background:'+t.goodBg+';display:flex;flex-direction:column;gap:11px;',
+      card:card+'padding:16px;display:flex;flex-direction:column;gap:11px;',
+      cardWarn:'padding:16px;border:1px solid '+t.warnBorder+';border-radius:16px;background:'+t.warnBg+';display:flex;flex-direction:column;gap:10px;',
+      cardHead:'font:500 9.5px/1 Inter,sans-serif;letter-spacing:.13em;text-transform:uppercase;color:'+t.subtle+';',
+      asideBig:'font:500 '+(d.compact?24:27)+'px/1 '+mono+';letter-spacing:-.03em;color:'+t.accent+';',
+      asideLead:'font:400 11.5px/1.6 Inter,sans-serif;color:'+t.muted+';',
+      warnEyebrow:'font:500 9px/1 '+mono+';letter-spacing:.12em;color:'+t.warn+';',
+      warnTitle:'font:500 15px/1.2 '+disp+';letter-spacing:-.02em;color:'+t.text+';',
+      warnLead:'font:400 11.5px/1.55 Inter,sans-serif;color:'+t.muted+';',
+
+      kvRow:'display:flex;align-items:baseline;justify-content:space-between;gap:10px;',
+      kvKey:'font:400 11.5px/1.4 Inter,sans-serif;color:'+t.muted+';',
+      noteRow:'display:flex;align-items:flex-start;gap:9px;',
+      noteText:'font:400 11.5px/1.55 Inter,sans-serif;color:'+t.muted+';',
+
+      btnPrimary:'height:38px;padding:0 16px;border:0;border-radius:4px;background:'+t.primary+';color:'+t.primaryText+';font:600 12px/1 Inter,sans-serif;cursor:pointer;'+(dark?'box-shadow:'+t.glow+';':''),
+      btnPrimarySm:'height:32px;padding:0 13px;border:0;border-radius:4px;background:'+t.primary+';color:'+t.primaryText+';font:600 11.5px/1 Inter,sans-serif;cursor:pointer;white-space:nowrap;'+(dark?'box-shadow:'+t.glow+';':''),
+      btnPrimaryHover:'background:'+t.primaryHover+';',
+      btnGhostSm:'height:32px;padding:0 13px;border:1px solid '+t.border+';border-radius:4px;background:transparent;color:'+t.text+';font:500 11.5px/1 Inter,sans-serif;cursor:pointer;',
+      btnGhostHover:'border-color:'+t.borderStrong+';background:'+t.surface2+';'
+    };
+
+    const tabs=['Обзор','Сверка','Качество прибыли','Флаги','Оценка','Риски'].slice(0,d.tabsShown).map(label=>{
+      const on=label==='Риски'||(d.tabsShown===2&&label==='Обзор'&&false);
+      return {label, style:'padding:16px 11px;font:'+(on?'500':'400')+' 12px/1 Inter,sans-serif;letter-spacing:-.01em;color:'+(on?t.text:t.muted)+';cursor:pointer;white-space:nowrap;'+(on?'box-shadow:inset 0 -2px 0 '+t.primary+';':'')};
+    });
+
+    // ——— чувствительность
+    const torn=[
+      {name:'WACC', step:'± 1 п.п.', neg:-107, pos:122},
+      {name:'Маржа EBITDA', step:'± 1 п.п.', neg:-95, pos:95},
+      {name:'Рост в постпрогнозе', step:'± 0,5 п.п.', neg:-55, pos:59},
+      {name:'Резерв по дебиторской', step:'± 40 млн ₽', neg:-40, pos:40},
+      {name:'Оборотный капитал', step:'± 15%', neg:-34, pos:34},
+      {name:'Капитальные затраты', step:'± 20%', neg:-29, pos:29},
+      {name:'Ставка налога', step:'± 2 п.п.', neg:-24, pos:24}
+    ];
+    const tornMax=125;
+    const tornado=torn.map(p=>({
+      name:p.name, step:p.step,
+      neg:this.fmt(p.neg), pos:'+'+this.fmt(p.pos),
+      negStyle:'position:absolute;top:3px;bottom:3px;right:50%;width:'+(Math.abs(p.neg)/tornMax*50).toFixed(1)+'%;border-radius:3px 0 0 3px;background:'+t.danger+';opacity:.82;transform-origin:right center;animation:fa-grow-x .5s cubic-bezier(.22,1,.36,1) both;',
+      posStyle:'position:absolute;top:3px;bottom:3px;left:50%;width:'+(p.pos/tornMax*50).toFixed(1)+'%;border-radius:0 3px 3px 0;background:'+t.primary+';transform-origin:left center;animation:fa-grow-x .5s cubic-bezier(.22,1,.36,1) both;'
+    }));
+
+    const waccs=[16.5,17.5,18.5,19.5,20.5], growths=[2.0,2.5,3.0,3.5,4.0];
+    const cellTone=(val)=>{
+      if(val>=1240) return {bg:t.primaryBg, bd:t.goodBorder, c:t.accent, w:'500'};
+      if(val>=1020) return {bg:t.primarySoft, bd:t.border, c:t.text, w:'400'};
+      if(val>=900) return {bg:'transparent', bd:t.border, c:t.muted, w:'400'};
+      return {bg:t.dangerBg, bd:t.dangerBorder, c:t.danger, w:'400'};
+    };
+    const gridRows=waccs.map(w=>({
+      wacc:w.toFixed(1).replace('.',',')+'%',
+      headStyle:'display:flex;align-items:center;font:'+(w===18.5?'600':'400')+' '+(d.compact?9.5:10.5)+'px/1 '+mono+';color:'+(w===18.5?t.text:t.muted)+';',
+      cells:growths.map(g=>{
+        const val=this.equity(w,g), base=(w===18.5&&g===3.0), tone=cellTone(val);
+        return {
+          value:this.fmt(val),
+          style:'text-align:center;padding:'+(d.compact?7:9)+'px 0;border:1px solid '+(base?t.primary:tone.bd)+';border-radius:6px;background:'+(base?t.primaryBg:tone.bg)+';font:'+(base?'600':tone.w)+' '+(d.compact?10:11.5)+'px/1 '+mono+';color:'+(base?t.accent:tone.c)+';'
+        };
+      })
+    }));
+
+    // ——— Монте-Карло
+    const bins=24, lo=760, hi=1330, step=(hi-lo)/bins, mu=1020, sigma=92;
+    const raw=[];
+    for(let i=0;i<bins;i++){
+      const x=lo+step*(i+0.5);
+      raw.push(Math.exp(-Math.pow(x-mu,2)/(2*sigma*sigma)));
+    }
+    const rawMax=Math.max.apply(null,raw);
+    const hist=raw.map((val,i)=>{
+      const x=lo+step*(i+0.5);
+      const inBand=x>=869&&x<=1171;
+      const isMedian=Math.abs(x-mu)<step/2;
+      return {
+        colStyle:'flex:1;min-width:0;display:flex;align-items:flex-end;height:100%;',
+        barStyle:'width:100%;height:'+Math.max(3,val/rawMax*100).toFixed(1)+'%;border-radius:2px 2px 0 0;background:'+(isMedian?t.primary:(inBand?t.primary:t.surface3))+';opacity:'+(isMedian?1:(inBand?0.62:0.85))+';transform-origin:bottom;animation:fa-grow-y .55s cubic-bezier(.22,1,.36,1) '+(i*0.014).toFixed(3)+'s both;'
+      };
+    });
+
+    const pct=(label,value,note,kind)=>({
+      label, value, note,
+      cardStyle:'padding:'+(d.compact?10:11)+'px;border:1px solid '+(kind==='mid'?t.primary:t.border)+';border-radius:10px;background:'+(kind==='mid'?t.primaryBg:t.surface2)+';',
+      valueStyle:'margin-top:7px;font:'+(kind==='mid'?'600':'500')+' '+(d.compact?13:14.5)+'px/1 '+mono+';letter-spacing:-.02em;color:'+(kind==='mid'?t.accent:t.text)+';'
+    });
+
+    const prob=(label,value,kind)=>({
+      label, value:value+'%',
+      fillStyle:'height:100%;width:'+value+'%;border-radius:999px;background:'+(kind==='bad'?t.danger:(kind==='warn'?t.warn:t.primary))+';transform-origin:left center;animation:fa-grow-x .55s cubic-bezier(.22,1,.36,1) both;',
+      valueStyle:'text-align:right;font:500 11.5px/1 '+mono+';color:'+(kind==='bad'?t.danger:(kind==='warn'?t.warn:t.accent))+';'
+    });
+
+    // ——— сценарии
+    const scen=(tag,name,price,delta,lead,params,kind,prob)=>({
+      tag, name, price, delta, lead, params, prob,
+      cardStyle:'padding:'+(d.compact?14:16)+'px;border:1px solid '+(kind==='base'?t.primary:(kind==='bad'?t.dangerBorder:t.border))+';border-radius:16px;background:'+(kind==='base'?t.primaryBg:(kind==='bad'?t.dangerBg:t.surface))+';'+(dark||kind!=='plain'?'':'box-shadow:'+t.shadow+';'),
+      chipStyle:kind==='base'?chip(t.primaryBg,t.primary,t.accent):(kind==='bad'?chip(t.dangerBg,t.dangerBorder,t.danger):(kind==='good'?chip(t.goodBg,t.goodBorder,t.accent):chip('transparent',t.border,t.muted))),
+      priceStyle:'margin-top:12px;font:500 '+(d.compact?24:28)+'px/1 '+mono+';letter-spacing:-.03em;color:'+(kind==='bad'?t.danger:(kind==='base'?t.accent:t.text))+';',
+      deltaStyle:'margin-top:7px;font:400 11px/1 '+mono+';color:'+(kind==='base'?t.subtle:(kind==='good'?t.accent:t.danger))+';'
+    });
+
+    const scenNames=['База','Продавец','Осторожный','Стресс'];
+    const scenCols=scenNames.map((label,i)=>({
+      label,
+      style:'text-align:right;font:500 9px/1.25 Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:'+(i===0?t.accent:t.muted)+';'
+    }));
+
+    const cmpRow=(label,cells,kind)=>({
+      label,
+      rowStyle:'display:grid;grid-template-columns:'+ccols+';column-gap:12px;padding:'+(kind==='total'?11:9)+'px 0;'+(kind==='total'?'border-top:1px solid '+t.borderStrong+';':'border-bottom:1px solid '+t.gridLine+';')+'align-items:baseline;',
+      firstStyle:'font:'+(kind==='total'?'600':'400')+' '+(d.compact?11:12)+'px/1.4 Inter,sans-serif;color:'+t.text+';',
+      cells:cells.map((c,i)=>({
+        value:c,
+        style:'text-align:right;font:'+(kind==='total'?'600':'400')+' '+(d.compact?10.5:11.5)+'px/1.4 '+mono+';color:'+(kind==='total'?(i===0?t.accent:t.text):(i===3?t.danger:t.muted))+';'
+      }))
+    });
+
+    const cmpData=[
+      ['Выручка', ['1 842','1 934','1 806','1 290'], 'plain'],
+      ['EBITDA нормализованная', ['268','292','254','188'], 'plain'],
+      ['Enterprise Value', ['1 767','1 987','1 619','1 387'], 'plain'],
+      ['Долг и займы', ['(831)','(831)','(831)','(831)'], 'plain'],
+      ['Денежные средства', ['+96','+96','+96','+96'], 'plain'],
+      ['Миноритарные доли', ['(12)','(12)','(12)','(12)'], 'plain'],
+      ['Цена за 100% доли', ['1 020','1 240','872','640'], 'total']
+    ];
+
+    const cmpCards=cmpData.map(function(item){
+      var label=item[0], cells=item[1], kind=item[2];
+      return {
+        label,
+        cardStyle:'padding:13px;border:1px solid '+(kind==='total'?t.primary:t.border)+';border-radius:14px;background:'+(kind==='total'?t.primaryBg:t.surface2)+';',
+        cardLabelStyle:'font:'+(kind==='total'?'600':'500')+' 12.5px/1.3 Inter,sans-serif;letter-spacing:-.01em;color:'+t.text+';',
+        cells:cells.map(function(value,i){
+          return {
+            value, name:scenNames[i],
+            nameStyle:'font:500 8.5px/1.2 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:'+(i===0?t.accent:t.subtle)+';',
+            valueStyle:'font:'+(kind==='total'?'600':'400')+' 12.5px/1 '+mono+';color:'+(kind==='total'?(i===0?t.accent:t.text):(i===3?t.danger:t.muted))+';'
+          };
+        })
+      };
+    });
+
+    return {
+      s,
+      setLight:this.setLight, setDark:this.setDark,
+      setDesktop:this.setDesktop, setTablet:this.setTablet, setMobile:this.setMobile,
+      setSens:this.setSens, setMc:this.setMc, setScen:this.setScen,
+      isSens:v==='sens', isMc:v==='mc', isScen:v==='scen',
+      navTabs:tabs,
+      base:'1 020',
+      title:v==='sens'?'Чувствительность оценки':(v==='mc'?'Монте-Карло: 10 000 прогонов':'Сценарии сделки'),
+      subtitle:v==='sens'?'ООО «Сибтранс-Логистика» · как цена реагирует на каждое допущение по отдельности'
+        :(v==='mc'?'ООО «Сибтранс-Логистика» · пять входных параметров разыграны случайно, остальные держатся на базе'
+        :'ООО «Сибтранс-Логистика» · четыре версии будущего и цена, которую каждая оправдывает'),
+      headMetrics:[
+        {label:'База', value:'1 020 млн ₽', kind:'accent'},
+        {label:'Просит продавец', value:'1 240 млн ₽', kind:'bad'},
+        {label:v==='mc'?'Разброс P5–P95':'Разброс ±1 п.п.', value:v==='mc'?'869 — 1 171':'864 — 1 209', kind:'text'}
+      ].map(m=>({
+        label:m.label, value:m.value,
+        valueStyle:'font:500 15px/1 '+mono+';letter-spacing:-.02em;color:'+(m.kind==='accent'?t.accent:(m.kind==='bad'?t.danger:t.text))+';'
+      })),
+
+      tornado,
+      growthCols:growths.map(g=>({label:g.toFixed(1).replace('.',',')+'%'})),
+      gridRows,
+      legend:[
+        {label:'выше цены продавца', dotStyle:'width:9px;height:9px;border-radius:3px;background:'+t.primary+';'},
+        {label:'выше нашей оценки', dotStyle:'width:9px;height:9px;border-radius:3px;border:1px solid '+t.border+';background:'+t.primarySoft+';'},
+        {label:'900 — 1 020', dotStyle:'width:9px;height:9px;border-radius:3px;border:1px solid '+t.border+';background:transparent;'},
+        {label:'ниже 900 — сделка теряет смысл', dotStyle:'width:9px;height:9px;border-radius:3px;background:'+t.danger+';'}
+      ],
+      assumptions:[
+        {key:'WACC', value:'18,5%'},
+        {key:'Рост в постпрогнозе', value:'3,0%'},
+        {key:'Маржа EBITDA', value:'14,5%'},
+        {key:'Долг и займы', value:'831 млн ₽'},
+        {key:'Денежные средства', value:'96 млн ₽'},
+        {key:'Миноритарные доли', value:'12 млн ₽'}
+      ].map(a=>({key:a.key, value:a.value, valueStyle:'flex:none;font:500 11.5px/1.4 '+mono+';color:'+t.text+';'})),
+      sensNotes:[
+        {text:'Ячейка подсвечена фиолетовым только там, где цена превышает запрошенные продавцом 1 240 млн ₽. Таких ячеек четыре из двадцати пяти.', dotStyle:'flex:none;width:5px;height:5px;margin-top:6px;border-radius:50%;background:'+t.primary+';'},
+        {text:'WACC вдвое влиятельнее роста: одна десятая процента ставки стоит дороже полугода роста выручки.', dotStyle:'flex:none;width:5px;height:5px;margin-top:6px;border-radius:50%;background:'+t.primary+';'},
+        {text:'Разница с моделью продавца — 220 млн ₽ — единственное, что двигается за столом переговоров, а не в модели.', dotStyle:'flex:none;width:5px;height:5px;margin-top:6px;border-radius:50%;background:'+t.warn+';'}
+      ],
+
+      hist,
+      histTicks:[{label:'760'},{label:'900'},{label:'1 040'},{label:'1 180'},{label:'1 330'}],
+      percentiles:[
+        pct('P5','869','5% прогонов ниже'),
+        pct('P25','958','четверть ниже'),
+        pct('P50','1 020','медиана','mid'),
+        pct('P75','1 082','четверть выше'),
+        pct('P95','1 171','5% прогонов выше')
+      ],
+      probs:[
+        prob('Цена ниже запрошенных 1 240 млн ₽','99'),
+        prob('Цена ниже нашей оценки 1 020 млн ₽','50','warn'),
+        prob('Цена ниже 900 млн ₽ — порог отказа','10','bad'),
+        prob('Цена выше 1 100 млн ₽ — можно уступить','19')
+      ],
+      mcInputs:[
+        {name:'WACC', dist:'норм. 18,5% ± 1,2'},
+        {name:'Рост в постпрогнозе', dist:'норм. 3,0% ± 0,6'},
+        {name:'Маржа EBITDA', dist:'норм. 14,5% ± 0,9'},
+        {name:'Спорные доходы подтвердятся', dist:'бернулли p = 0,25'},
+        {name:'Потеря контрагента', dist:'бернулли p = 0,15'}
+      ],
+      mcParams:[
+        {key:'Прогонов', value:'10 000'},
+        {key:'Время расчёта', value:'1,8 с'},
+        {key:'Зерно', value:'42 · воспроизводимо'},
+        {key:'Обновлено', value:'25.08, 13:04'}
+      ].map(p=>({key:p.key, value:p.value, valueStyle:'flex:none;font:500 11.5px/1.4 '+mono+';color:'+t.text+';'})),
+
+      scenarios:[
+        scen('НАША ОЦЕНКА','База','1 020 млн ₽','к запрошенной цене −18%','Спорные 42 млн не подтверждаются, поручительства остаются, дебиторка резервируется частично.',
+          [{key:'WACC',value:'18,5%'},{key:'Разница с моделью продавца',value:'(220)'},{key:'Мультипликатор',value:'6,6× EV/EBITDA'}],'base','вероятность 45%'),
+        scen('ОПТИМИСТИЧНЫЙ','Продавец прав','1 240 млн ₽','к базе +220','Все спорные доходы подтверждены выпиской, поручительства сняты до сделки, ключевой договор продлён на три года.',
+          [{key:'WACC',value:'17,5%'},{key:'Разница с моделью продавца',value:'0'},{key:'Мультипликатор',value:'6,8× EV/EBITDA'}],'good','вероятность 15%'),
+        scen('ОСТОРОЖНЫЙ','Резервы по максимуму','872 млн ₽','к базе −148','Дебиторка по проблемному контрагенту списана полностью, аренда индексируется с 2027 года.',
+          [{key:'WACC',value:'19,0%'},{key:'Разница с моделью продавца',value:'(368)'},{key:'Мультипликатор',value:'6,4× EV/EBITDA'}],'plain','вероятность 25%'),
+        scen('СТРЕСС','Потеря контрагента','640 млн ₽','к базе −380','Заказчик с 30% выручки уходит в первый год после сделки, маржа падает до 11%.',
+          [{key:'WACC',value:'20,5%'},{key:'Разница с моделью продавца',value:'(600)'},{key:'Мультипликатор',value:'7,4× EV/EBITDA'}],'bad','вероятность 15%')
+      ],
+      scenCols,
+      cmpWide:this.state.device!=='mobile',
+      cmpNarrow:this.state.device==='mobile',
+      cmpCards,
+      cmpRows:[
+        cmpRow('Выручка', ['1 842','1 934','1 806','1 290']),
+        cmpRow('EBITDA нормализованная', ['268','292','254','188']),
+        cmpRow('Enterprise Value', ['1 767','1 987','1 619','1 387']),
+        cmpRow('Долг и займы', ['(831)','(831)','(831)','(831)']),
+        cmpRow('Денежные средства', ['+96','+96','+96','+96']),
+        cmpRow('Миноритарные доли', ['(12)','(12)','(12)','(12)']),
+        cmpRow('Цена за 100% доли', ['1 020','1 240','872','640'],'total')
+      ],
+      triggers:[
+        {text:'Продавец приносит выписку по 42 млн прочих доходов — цена растёт на 62 млн.', dotStyle:'flex:none;width:5px;height:5px;margin-top:6px;border-radius:50%;background:'+t.primary+';'},
+        {text:'Поручительства за связанную сторону сняты — цена растёт на 41 млн.', dotStyle:'flex:none;width:5px;height:5px;margin-top:6px;border-radius:50%;background:'+t.primary+';'},
+        {text:'Договор с ключевым заказчиком продлён на три года — стресс-сценарий уходит из расчёта.', dotStyle:'flex:none;width:5px;height:5px;margin-top:6px;border-radius:50%;background:'+t.primary+';'},
+        {text:'Ставка ЦБ меняется на 1 п.п. — пересчёт WACC и всей модели.', dotStyle:'flex:none;width:5px;height:5px;margin-top:6px;border-radius:50%;background:'+t.warn+';'}
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

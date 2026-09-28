@@ -111,6 +111,11 @@ def _histogram(ordered: list[Decimal], bins: int = HISTOGRAM_BINS) -> list[Histo
 
     Границы — Decimal (точность сохраняется). Каждое значение попадает ровно в один
     столбец (последний — полузакрытый справа, чтобы max не выпал); сумма count = len.
+
+    Границы считаются **один раз** списком, и крайние — ровно min и max: верхний край,
+    набранный как ``lo + width·bins``, уходил от max в последнем знаке, и гистограмма
+    показывала максимум, которого в данных нет (найдено при H2, когда сдвинулись числа
+    NPV). Соседние столбцы делят одну и ту же границу.
     """
     lo, hi = ordered[0], ordered[-1]
     if hi == lo:
@@ -125,10 +130,8 @@ def _histogram(ordered: list[Decimal], bins: int = HISTOGRAM_BINS) -> list[Histo
         if idx >= bins:
             idx = bins - 1  # max попадает в последний столбец
         counts[idx] += 1
-    return [
-        HistogramBin(from_=lo + width * k, to=lo + width * (k + 1), count=counts[k])
-        for k in range(bins)
-    ]
+    edges = [lo + width * k for k in range(bins)] + [hi]
+    return [HistogramBin(from_=edges[k], to=edges[k + 1], count=counts[k]) for k in range(bins)]
 
 
 def _statistics(npvs: list[Decimal]) -> MonteCarloResult:

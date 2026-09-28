@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { BreakEvenOut, RatioGroup, RatiosOut } from "../api/calc";
-import { CountChip, SegmentControl } from "./ui";
+import { CountChip, ScrollRegion, SegmentControl } from "./ui";
 
 const VIEW_KEY = "fe_ratios_view";
 type View = "table" | "spark";
@@ -106,7 +106,7 @@ function GroupSection({
       </div>
 
       {view === "table" ? (
-        <div className="fin2-wrap fe-scroll">
+        <ScrollRegion className="fin2-wrap fe-scroll" label="Коэффициенты по периодам">
           <div className="fin2">
             <div className="fin2-row">
               <div className="fin2-corner">Показатель</div>
@@ -144,7 +144,7 @@ function GroupSection({
               );
             })}
           </div>
-        </div>
+        </ScrollRegion>
       ) : (
         <div className="spark-grid">
           {names.map((name) => {

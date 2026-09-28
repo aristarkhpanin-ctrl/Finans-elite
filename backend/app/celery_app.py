@@ -1,4 +1,4 @@
-"""Celery-приложение: фоновые задачи тяжёлого анализа (Фаза D).
+"""Celery-приложение: фоновые задачи тяжёлого анализа (Фаза D) и планировщик (пакет G).
 
 Брокер и бэкенд результатов — Redis (``CELERY_BROKER_URL`` / ``CELERY_RESULT_BACKEND``).
 Тяжёлые прогоны (Монте-Карло) выносятся из воркеров API, чтобы не занимать их надолго.
@@ -11,6 +11,8 @@ from __future__ import annotations
 import os
 
 from celery import Celery
+from celery.schedules import crontab
+from celery.signals import beat_init, worker_process_init
 
 
 def _truthy(value: str | None) -> bool:
@@ -32,4 +34,56 @@ celery_app.conf.update(
     task_always_eager=_truthy(os.getenv("CELERY_TASK_ALWAYS_EAGER")),
     task_store_eager_result=True,      # eager-результат доступен через AsyncResult
     task_eager_propagates=False,       # ошибка eager → FAILURE, а не исключение в запросе
+    # Расписание планировщика (пакет G, G3). Часовой пояс назван явно: «в три ночи» без
+    # пояса значило бы разное время на разных серверах. Процесс beat — ровно один.
+    timezone="UTC",
+    beat_schedule={
+        # Сверка неоплаты — ночью, когда нагрузка ниже; идемпотентна, пропуск дня не
+        # страшен: выведенный статус и так ограничивает, сверка лишь оставляет след.
+        "expire-subscriptions": {
+            "task": "scheduler.expire_subscriptions",
+            "schedule": crontab(hour=3, minute=10),
+        },
+        # Письма о деньгах — после ночной сверки и к началу рабочего дня по Москве
+        # (06:00 UTC = 09:00 МСК): письмо о закрытии записи, пришедшее ночью, прочли бы
+        # утром, уже упёршись в закрытую запись.
+        "billing-reminders": {
+            "task": "scheduler.billing_reminders",
+            "schedule": crontab(hour=6, minute=0),
+        },
+        # Автопродление (G5) — после сверки неоплаты и до писем: списание, прошедшее в
+        # 04:00, продлевает период раньше, чем письмо 09:00 МСК успело бы назвать его
+        # закончившимся.
+        "renew-subscriptions": {
+            "task": "scheduler.renew_subscriptions",
+            "schedule": crontab(hour=4, minute=0),
+        },
+        # Акты (G6) — после автопродления: платёж, прошедший ночью, акта ещё не требует
+        # (его период только начался), а закончившиеся периоды к утру закрыты актами.
+        "issue-acts": {
+            "task": "scheduler.issue_acts",
+            "schedule": crontab(hour=5, minute=0),
+        },
+        # Зависшие задачи (G8) — часто: состояние задачи Celery хранит час, и проверка
+        # реже, чем «час минус порог», пропускала бы зависшие молча. След такой задачи
+        # пишется не чаще раза в час, если нового нет (`record_run(quiet=True)`).
+        "stuck-jobs": {
+            "task": "scheduler.stuck_jobs",
+            "schedule": crontab(minute="*/10"),
+        },
+    },
 )
+
+
+# Трекер ошибок в фоновых процессах (G7). Инициализация — в каждом процессе пула, а не
+# в родителе: клиент трекера не переживает fork. Без SENTRY_DSN — ничего не делает.
+@worker_process_init.connect
+def _worker_error_tracking(**_kwargs) -> None:
+    from .error_tracking import init_error_tracking
+    init_error_tracking(component="worker")
+
+
+@beat_init.connect
+def _beat_error_tracking(**_kwargs) -> None:
+    from .error_tracking import init_error_tracking
+    init_error_tracking(component="beat")
