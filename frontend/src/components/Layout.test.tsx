@@ -161,3 +161,27 @@ describe("Рейл продукта", () => {
     expect(screen.getByText("Экран группы")).toBeTruthy();
   });
 });
+
+describe("Меню шапки с клавиатуры (H6)", () => {
+  it("Esc закрывает меню и возвращает фокус на кнопку, которая его открыла", () => {
+    renderShell("/projects");
+    switcher().focus();
+    fireEvent.click(switcher());
+    // Человек ушёл вглубь меню — пункт в фокусе исчезнет вместе с меню.
+    screen.getByText("Финанс-Аудит").closest("button")?.focus();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByText("Финанс-Аудит")).toBeNull();
+    expect(switcher().getAttribute("aria-expanded")).toBe("false");
+    expect(document.activeElement).toBe(switcher());
+  });
+
+  it("у кнопки меню на телефоне есть имя и состояние", () => {
+    renderShell("/projects");
+    const burger = screen.getByRole("button", { name: "Меню" });
+    expect(burger.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(burger);
+    expect(burger.getAttribute("aria-expanded")).toBe("true");
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(document.activeElement).toBe(burger);
+  });
+});

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ScrollRegion } from "./ui";
 import type { StatementOut } from "../api/calc";
 import { fmtTable } from "../format";
 
@@ -9,6 +10,8 @@ export interface DetailRow {
 }
 
 interface Props {
+  /** Название отчёта — имя области прокрутки для диктора (H6). */
+  title: string;
   statement: StatementOut;
   n: number;
   subtotals: Set<string>;
@@ -26,7 +29,7 @@ interface Props {
  * ховер строки и колонки (по mouseenter заголовка месяца), легенда.
  * Строки с детализацией раскрываются в слагаемые (Σ слагаемых = строка).
  */
-export function StatementTable({ statement, n, subtotals, grands, labels, details }: Props) {
+export function StatementTable({ title, statement, n, subtotals, grands, labels, details }: Props) {
   const [hoverCol, setHoverCol] = useState<number | null>(null);
   const [open, setOpen] = useState<Set<string>>(new Set());
   const cols = labels ?? Array.from({ length: n }, (_, i) => `М${i + 1}`);
@@ -59,7 +62,7 @@ export function StatementTable({ statement, n, subtotals, grands, labels, detail
 
   return (
     <div>
-      <div className="fin2-wrap fe-scroll">
+      <ScrollRegion className="fin2-wrap fe-scroll" label={title}>
         <div className="fin2">
           <div className="fin2-row">
             <div className="fin2-corner">
@@ -117,7 +120,7 @@ export function StatementTable({ statement, n, subtotals, grands, labels, detail
             );
           })}
         </div>
-      </div>
+      </ScrollRegion>
 
       <div className="fin2-legend">
         <span>

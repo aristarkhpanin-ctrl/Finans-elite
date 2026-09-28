@@ -7,7 +7,7 @@ import { addMember, blockMember, getMembers, issueAccessLink, patchMemberRole, r
 import { ESelect } from "../../components/EditorField";
 import { IconArrowRight, IconKey, IconRows, IconTrash, IconWarning } from "../../components/icons";
 import { useToast } from "../../components/Toast";
-import { Button, ErrorState, Modal, Skeleton } from "../../components/ui";
+import { Button, ErrorState, Field, Modal, Skeleton } from "../../components/ui";
 import { initials } from "../../format";
 
 const AVATAR_BG = ["#5E93FF", "#C77DFF", "var(--primary)", "#E0A23A", "#5FD9A6"];
@@ -232,7 +232,9 @@ export function MembersTab({ orgId, myRole, myUserId, onShowActions }: {
             return (
               <div className="org-row" key={m.user_id}>
                 <div className="org-col-user">
-                  <div className="org-avatar-lg" style={{ background: AVATAR_BG[i % AVATAR_BG.length] }}>
+                  {/* Инициалы повторяют имя рядом — диктору их читать незачем. */}
+                  <div className="org-avatar-lg" aria-hidden="true"
+                       style={{ background: AVATAR_BG[i % AVATAR_BG.length] }}>
                     {initials(m.full_name || m.email)}
                   </div>
                   <div style={{ minWidth: 0 }}>
@@ -245,7 +247,8 @@ export function MembersTab({ orgId, myRole, myUserId, onShowActions }: {
                 </div>
                 <div className="org-col-role">
                   {editable ? (
-                    <ESelect label="" value={m.role} onChange={(r) => patch.mutate({ uid: m.user_id, r })} options={ASSIGNABLE} />
+                    <ESelect label={`Роль: ${m.full_name || m.email}`} hideLabel value={m.role}
+                             onChange={(r) => patch.mutate({ uid: m.user_id, r })} options={ASSIGNABLE} />
                   ) : (
                     <span className="role-badge">
                       {roleLabel(m.role)}
@@ -400,24 +403,25 @@ export function MembersTab({ orgId, myRole, myUserId, onShowActions }: {
           </>
         }
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <div className="field" style={{ marginBottom: 0 }}>
-            <label>Email</label>
-            <input className="input" type="email" placeholder="name@company.ru" value={email} onChange={(e) => setEmail(e.target.value)} />
-          </div>
-          <div className="field" style={{ marginBottom: 0 }}>
-            <label>ФИО</label>
-            <input className="input" placeholder="Иван Петров" value={fullName} onChange={(e) => setFullName(e.target.value)} />
-          </div>
+        {/* Отступ между полями даёт сам `.field` (14px снизу) — зазор контейнера его бы удвоил. */}
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <Field label="Email" type="email" placeholder="name@company.ru" value={email}
+                 onChange={(e) => setEmail(e.target.value)} />
+          <Field label="ФИО" placeholder="Иван Петров" value={fullName}
+                 onChange={(e) => setFullName(e.target.value)} />
           <div>
-            <label className="auth-label" style={{ display: "block", marginBottom: 8 }}>
+            {/* Подпись группы, а не поля: карточки ролей — выбор одного из нескольких, и
+                диктор объявляет их группой с этим именем (H6). */}
+            <div className="auth-label" id="invite-role" style={{ display: "block", marginBottom: 8 }}>
               Роль
-            </label>
-            <div className="role-cards">
+            </div>
+            <div className="role-cards" role="radiogroup" aria-labelledby="invite-role">
               {ASSIGNABLE.map(([key, label]) => (
                 <button
                   key={key}
                   type="button"
+                  role="radio"
+                  aria-checked={role === key}
                   className={"role-pick" + (role === key ? " role-pick--on" : "")}
                   onClick={() => setRole(key)}
                 >
@@ -430,7 +434,7 @@ export function MembersTab({ orgId, myRole, myUserId, onShowActions }: {
               ))}
             </div>
           </div>
-          {inviteErr && <div className="field-error">{inviteErr}</div>}
+          {inviteErr && <div className="field-error" style={{ marginTop: 14 }}>{inviteErr}</div>}
         </div>
       </Modal>
 
@@ -454,12 +458,8 @@ export function MembersTab({ orgId, myRole, myUserId, onShowActions }: {
           доступ возвращается одной кнопкой. В других организациях, если он там состоит,
           он продолжит работать: это решают их администраторы.
         </div>
-        <div className="field" style={{ marginBottom: 0 }}>
-          <label>Причина</label>
-          <input className="input" autoFocus placeholder="напр. увольнение, проверка СБ"
-                 aria-label="Причина приостановки"
-                 value={blockReason} onChange={(e) => setBlockReason(e.target.value)} />
-        </div>
+        <Field label="Причина приостановки" autoFocus placeholder="напр. увольнение, проверка СБ"
+               value={blockReason} onChange={(e) => setBlockReason(e.target.value)} />
         <div className="field-note" style={{ marginTop: 8 }}>
           Причину увидит сам участник в отказе и любой, кто откроет журнал. Она остаётся
           в журнале навсегда — даже после того, как доступ вернут.

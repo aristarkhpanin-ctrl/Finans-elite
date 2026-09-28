@@ -207,3 +207,20 @@ describe("Регистрация", () => {
     expect(screen.getByText("Список дел")).toBeTruthy();
   });
 });
+
+describe("Поле входа не пересоздаётся под пальцами (H6)", () => {
+  it("ошибка исчезла — поле то же, фокус на месте", () => {
+    // Рамка поля получала key от ошибки, чтобы перезапустить «встряску», и React
+    // пересоздавал её вместе с <input>. Человек, вернувшийся в поле с ошибкой, терял
+    // фокус в тот момент, когда адрес становился верным, — остаток набора уходил в никуда.
+    show("login");
+    const input = screen.getByLabelText("Email");
+    input.focus();
+    fireEvent.blur(input);                       // ушёл с пустым полем — ошибка
+    expect(screen.getByText(/email/i, { selector: ".auth-err" })).toBeTruthy();
+    input.focus();
+    fireEvent.change(input, { target: { value: "a@b.r" } });   // стал верным
+    expect(screen.getByLabelText("Email")).toBe(input);
+    expect(document.activeElement).toBe(input);
+  });
+});

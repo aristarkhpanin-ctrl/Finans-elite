@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { InputHTMLAttributes, ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { CubeHero } from "../../components/CubeHero";
@@ -249,6 +249,17 @@ export function AuthField({
   const cls = ["afield", error ? "afield--error" : "", error && shakeKey ? "afield--shake" : ""]
     .filter(Boolean)
     .join(" ");
+  // Повторная неудачная отправка — ошибка та же, класс уже стоит, и CSS-анимация сама не
+  // повторится. Перезапуск — через саму анимацию. Раньше здесь был `key` от ошибки: он
+  // пересоздавал рамку вместе с <input>, и когда ошибка исчезала посреди набора (адрес
+  // стал верным), фокус пропадал из-под пальцев, а остаток набора уходил в никуда (H6).
+  const boxRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    for (const a of boxRef.current?.getAnimations?.() ?? []) {
+      a.cancel();
+      a.play();
+    }
+  }, [shakeKey]);
   return (
     <div className="auth-field">
       {labelRight ? (
@@ -263,7 +274,7 @@ export function AuthField({
           {label}
         </label>
       )}
-      <div className={cls} key={error ? shakeKey : undefined}>
+      <div className={cls} ref={boxRef}>
         <span className="afield__affix">{icon}</span>
         <input className="afield__input" {...input} />
         {trailing}

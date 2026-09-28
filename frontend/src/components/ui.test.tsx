@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ErrorState, Field, Loading, SelectField } from "./ui";
+import { ErrorState, Field, Loading, Modal, SelectField } from "./ui";
 
 /**
  * Доступность поля ввода. Оба инварианта — из разряда тех, что не видно глазом и
@@ -86,5 +87,70 @@ describe("Ошибка и загрузка — карточкой, а не сл�
     render(<Loading />);
     expect(screen.getByRole("status").className).toBe("load-card");
     expect(screen.getByRole("status").textContent).toBe("Загрузка…");
+  });
+});
+
+/**
+ * Модалка и клавиатура (H6). Почти все вызовы передают `onClose` стрелочной функцией —
+ * новой на каждой перерисовке владельца, — а владелец перерисовывается на каждое нажатие
+ * клавиши в поле модалки. Модалка, перезапускающая по этому поводу свой фокус, забирала
+ * его у поля после первой же буквы.
+ */
+function Owner() {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)}>Открыть</button>
+      <button type="button">Под затемнением</button>
+      <Modal open={open} onClose={() => setOpen(false)} title="Новая организация">
+        <label htmlFor="org-name">Название</label>
+        <input id="org-name" autoFocus value={name} onChange={(e) => setName(e.target.value)} />
+        <button type="button">Создать</button>
+      </Modal>
+    </>
+  );
+}
+
+describe("Модалка — фокус", () => {
+  it("печать в поле не отнимает у него фокус", () => {
+    render(<Owner />);
+    const opener = screen.getByRole("button", { name: "Открыть" });
+    opener.focus();
+    fireEvent.click(opener);
+    const input = screen.getByLabelText("Название");
+    for (const text of ["О", "ОО", "ООО"]) {
+      fireEvent.change(document.activeElement as HTMLInputElement, { target: { value: text } });
+    }
+    expect(input).toHaveProperty("value", "ООО");
+    expect(document.activeElement).toBe(input);
+  });
+
+  it("autoFocus поля внутри не перебивается фокусом на саму модалку", () => {
+    render(<Owner />);
+    fireEvent.click(screen.getByRole("button", { name: "Открыть" }));
+    expect(document.activeElement).toBe(screen.getByLabelText("Название"));
+  });
+
+  it("Esc закрывает и возвращает фокус на кнопку, которая открыла", () => {
+    render(<Owner />);
+    const opener = screen.getByRole("button", { name: "Открыть" });
+    opener.focus();
+    fireEvent.click(opener);
+    act(() => { fireEvent.keyDown(document, { key: "Escape" }); });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it("Tab не уходит за модалку: с последнего — на первый, Shift+Tab — обратно", () => {
+    render(<Owner />);
+    fireEvent.click(screen.getByRole("button", { name: "Открыть" }));
+    const input = screen.getByLabelText("Название");
+    const create = screen.getByRole("button", { name: "Создать" });
+    create.focus();
+    fireEvent.keyDown(document, { key: "Tab" });
+    expect(document.activeElement).toBe(input);
+    fireEvent.keyDown(document, { key: "Tab", shiftKey: true });
+    expect(document.activeElement).toBe(create);
   });
 });

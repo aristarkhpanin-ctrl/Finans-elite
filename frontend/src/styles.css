@@ -19,17 +19,20 @@
   --grid-line: #E8F1E5;
   --text: #16201A;
   --muted: #46584A;
-  --subtle: #6E8270;
+  /* Отступления от макета ради контраста WCAG AA (4,5:1 для обычного текста; H6,
+     проверка — themeContrast.test.ts). Значение макета — в комментарии. */
+  --subtle: #5D6E5F;             /* макет #6E8270: 3,5:1 на фоне страницы */
   --primary: #7FEE64;            /* Reactor — только заливки действия */
   --primary-hover: #6FE253;
   --primary-text: #06210E;
-  --accent: #138A45;             /* Deep Reactor — зелёный текст/ссылки (AA) */
+  --accent: #11793C;             /* Deep Reactor — зелёный текст/ссылки. Макет #138A45
+                                    с пометкой «AA» давал 4,42:1 к белому — ниже нормы */
   --primary-bg: #DBF3D2;
   --primary-soft: #EAF8E4;
   --good: #0E7A4F;
   --good-bg: #DBF1E2;
   --good-border: #B7DEC6;
-  --danger: #C0473B;
+  --danger: #B54338;             /* макет #C0473B: 4,3:1 на фоне страницы */
   --danger-hover: #A53A30;
   --danger-bg: #FAE7E4;
   --danger-border: #EECFCA;
@@ -38,7 +41,7 @@
   --warn-bg: #FBF0D8;
   --warn-border: #ECDDB4;
   --warn-text: #8A5300;
-  --info: #3E7D52;
+  --info: #3A754D;               /* макет #3E7D52: 4,2:1 на своей заливке */
   --info-bg: #E6EFE2;
   --ring: rgba(56, 194, 75, 0.30);
   --shadow: 0 18px 44px -22px rgba(20, 40, 24, 0.22), 0 2px 6px rgba(20, 40, 24, 0.05);
@@ -104,8 +107,10 @@
   --border-strong: #677D64;
   --grid-line: #232823;
   --text: #DDFFDC;
-  --muted: #93A091;
-  --subtle: #677D64;
+  /* Отступления ради контраста (H6): третичный текст макета давал 3,0:1 на подложке;
+     вторичный поднят следом, иначе две ступени иерархии слились бы в одну. */
+  --muted: #A6B1A4;              /* макет #93A091 */
+  --subtle: #889E86;             /* макет #677D64: 3,0:1 на --surface-2 */
   --primary: #7FEE64;
   --primary-hover: #95F47D;
   --primary-text: #000000;
@@ -186,7 +191,7 @@
   --grid-line: #EDE6F6;
   --text: #1B1523;
   --muted: #4E4459;
-  --subtle: #756884;
+  --subtle: #736682;             /* канон #756884: 4,49:1 на фоне страницы (H6) */
   --primary: #C77DFF;
   --primary-hover: #B968F5;
   --primary-text: #17061F;
@@ -233,7 +238,7 @@
   --grid-line: #191324;
   --text: #F2E8FF;
   --muted: #9C8FB5;
-  --subtle: #6A5C86;
+  --subtle: #8778A3;             /* канон #6A5C86: 3,1:1 на подложке (H6) */
   --primary: #C77DFF;
   --primary-hover: #D69AFF;
   --primary-text: #17061F;
@@ -391,6 +396,17 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 
 .muted { color: var(--muted); }
 .error { color: var(--danger); font-size: 13px; }
+
+/* Только для экранного диктора (H6): подпись поля, у которого на экране смысл задаёт
+   колонка или строка, — есть, но не видна. `display: none` убрал бы её и из имени. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* Область со своей прокруткой (ScrollRegion) — в фокусе с клавиатуры: видно, что
+   стрелки сейчас двигают таблицу. */
+.scroll-region:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .app { min-height: 100%; display: flex; flex-direction: column; }
 .content { flex: 1; padding: 32px; max-width: 1180px; width: 100%; margin: 0 auto; }
@@ -846,7 +862,7 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
    уходят: ссылка в установке без почты вела бы в тупик. */
 .auth-link-btn {
   appearance: none; background: none; border: none; padding: 0; cursor: pointer;
-  font: 600 12.5px var(--font-ui); color: var(--primary);
+  font: 600 12.5px var(--font-ui); color: var(--accent);
 }
 .auth-link-btn:hover { text-decoration: underline; }
 .auth-submit {
@@ -999,7 +1015,8 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .org-avatar--30 { width: 30px; height: 30px; border-radius: 7px; font-size: 11px; }
 .user-avatar {
   width: 30px; height: 30px; border-radius: 8px; flex: none;
-  background: linear-gradient(150deg, #7c5cff, #5e93ff); color: #fff;
+  /* Концы градиента затемнены: белые инициалы на #5E93FF давали 2,96:1 (H6). */
+  background: linear-gradient(150deg, #7756ff, #2069ff); color: #fff;
   font: 700 11px var(--font-mono); display: flex; align-items: center; justify-content: center;
 }
 .user-avatar--lg { width: 40px; height: 40px; border-radius: 10px; font-size: 14px; }
@@ -1743,7 +1760,8 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
    темы документ обязан выходить таким же белым, как из светлой. Значения — из THEME()
    стиль-гайда, раздел «Печать». */
 .ap-paper {
-  --paper: #FFFFFF; --ink: #17141C; --muted: #5A5364; --faint: #8C8598;
+  --paper: #FFFFFF; --ink: #17141C; --muted: #5A5364;
+  --faint: #797186;               /* канон #8C8598: 3,5:1 к бумаге (H6) */
   --rule: #E3DEE8; --rule-strong: #CFC7DA;
   --accent: #7A2BC4; --accent-soft: #F4EDFB;
   --neg: #A53A30; --attn: #8A5E0C;
@@ -2533,7 +2551,10 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   border-right: 1px solid var(--grid-line); border-bottom: 1px solid var(--grid-line);
   background: var(--cell-bg); padding: 4px 0 3px;
 }
-.fact-cell--off { background: var(--surface-2); opacity: 0.6; }
+/* Месяц без факта — фоном, а не прозрачностью: `opacity` делал нечитаемым план в ячейке
+   и подпись месяца (1,8:1, axe в матрице P13, H6). Поле ввода там и так выключено. */
+.fact-cell--off { background: var(--surface-2); }
+.mgrid-month--off { background: var(--surface); font-weight: 500; border-bottom-style: dashed; }
 .fact-cell__plan { font: 500 9.5px var(--font-mono); color: var(--subtle); text-align: right; padding: 0 9px; white-space: nowrap; overflow: hidden; }
 .fact-cell__input {
   border: none; outline: none; background: transparent; color: var(--text);
@@ -2715,9 +2736,9 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 
 /* Детализация строк (drill-down, пакет №6): раскрываемая строка + под-строки слагаемых */
 .fin2-label--exp { cursor: pointer; }
-.fin2-label--exp:hover { color: var(--primary); }
+.fin2-label--exp:hover { color: var(--accent); }
 .fin2-chev { margin-left: auto; flex: none; font-size: 10px; color: var(--subtle); }
-.fin2-label--exp:hover .fin2-chev { color: var(--primary); }
+.fin2-label--exp:hover .fin2-chev { color: var(--accent); }
 .fin2-row--detail .fin2-label { font-weight: 400; color: var(--muted); background: var(--surface-2); }
 .fin2-row--detail .fin2-cell { font-weight: 400; color: var(--muted); background: var(--surface-2); }
 .fin2-row--detail .fin2-label span:last-child { padding-left: 6px; }
@@ -2855,7 +2876,12 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 
 /* Бумага: фиксированные «чернильные» цвета — одинаковы в обеих темах */
 .pr-paper {
-  --ink: #1C1917; --sub: #6E655E; --faint: #A8A29E; --line: #D9D4CE; --line2: #ECE8E3;
+  --ink: #1C1917; --line: #D9D4CE; --line2: #ECE8E3;
+  /* Отступления от макета ради контраста (H6): текст листа читается на бумаге, подложке
+     подытога и итога. Код строки итога стоит на --grandbg — там макетный #A8A29E давал
+     2,1:1; вторичный затемнён следом, чтобы ступени не слились. */
+  --sub: #5E5650;                 /* макет #6E655E: 4,4:1 на подложке итога */
+  --faint: #69625E;               /* макет #A8A29E */
   --subbg: #F3F0EC; --grandbg: #E7E1DA; --neg: #B23A2E; --accent: #0C7250; --chip: #F4F1ED;
   position: relative; width: 1140px; max-width: 100%; min-height: 780px; background: #fff;
   border-radius: 3px; padding: 40px 44px 30px; margin: 0 auto 22px;
@@ -2962,7 +2988,9 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   padding: 6px 10px; border-radius: 8px; background: var(--input-bg);
   border: 1.5px solid var(--border); cursor: text;
 }
-.coeff-box:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px var(--ring); }
+/* Чипы — кнопка (H6): прежний <div onClick> с клавиатуры не открывался вовсе. */
+button.coeff-box { width: 100%; font: inherit; color: inherit; text-align: left; }
+.coeff-box:focus-within, .coeff-box:focus-visible { border-color: var(--primary); box-shadow: 0 0 0 3px var(--ring); outline: none; }
 .coeff-chip {
   font: 600 12px var(--font-mono); color: var(--accent); background: var(--primary-bg);
   padding: 3px 9px; border-radius: 6px; white-space: nowrap;
@@ -3177,7 +3205,8 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .org-row:last-child { border-bottom: none; }
 .org-row--head { background: var(--surface-2); font: 600 10.5px var(--font-ui); letter-spacing: 0.04em; text-transform: uppercase; color: var(--subtle); }
 .org-avatar-lg {
-  width: 34px; height: 34px; border-radius: 9px; flex: none; color: #fff;
+  /* Инициалы — тёмные: белые на ярких цветах аватаров давали 1,5–3,0:1 (H6). */
+  width: 34px; height: 34px; border-radius: 9px; flex: none; color: #10141A;
   font: 700 12px var(--font-mono); display: flex; align-items: center; justify-content: center;
 }
 .org-col-user { flex: 1; min-width: 0; display: flex; align-items: center; gap: 11px; }
@@ -3335,7 +3364,7 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .rv-finding__title { font: 600 14px var(--font-ui); color: var(--text); }
 .rv-finding__detail { font: 400 12.5px/1.5 var(--font-ui); color: var(--muted); margin-top: 4px; }
 .rv-finding__rec { display: flex; gap: 7px; font: 500 12.5px/1.45 var(--font-ui); color: var(--text); margin-top: 8px; }
-.rv-finding__arrow { color: var(--primary); font-weight: 700; flex: none; }
+.rv-finding__arrow { color: var(--accent); font-weight: 700; flex: none; }
 .rv-finding__evi { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
 .rv-evi-chip {
   font: 500 10.5px var(--font-mono); color: var(--subtle); background: var(--surface-2);
@@ -3972,7 +4001,7 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .adm-row--head { font: 600 11px var(--font-ui); letter-spacing: .04em; text-transform: uppercase; }
 .adm-sub { font: 400 12px/1.5 var(--font-ui); color: var(--muted); }
 .adm-link {
-  font: 600 13px var(--font-ui); color: var(--primary); background: none;
+  font: 600 13px var(--font-ui); color: var(--accent); background: none;
   border: none; padding: 0; cursor: pointer; text-align: left;
 }
 .adm-link:hover { text-decoration: underline; }
@@ -4057,7 +4086,7 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px;
   padding: 10px 12px; word-break: break-all; margin-bottom: 8px;
 }
-.totp-link { font: 400 12px var(--font-ui); color: var(--primary); display: inline-block; margin-bottom: 10px; }
+.totp-link { font: 400 12px var(--font-ui); color: var(--accent); display: inline-block; margin-bottom: 10px; }
 .totp-codes {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 6px;
   font: 500 13px var(--font-mono, ui-monospace, monospace);
@@ -4074,7 +4103,7 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .cmt__head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 .cmt__title { font: 700 14px var(--font-ui); color: var(--text); }
 .cmt__count { font: 500 11.5px var(--font-ui); color: var(--subtle); }
-.cmt__anchor { font: 500 11.5px var(--font-mono); color: var(--primary); margin-top: 3px; }
+.cmt__anchor { font: 500 11.5px var(--font-mono); color: var(--accent); margin-top: 3px; }
 .cmt__list { display: flex; flex-direction: column; gap: 10px; margin: 12px 0; }
 .cmt-row { border-left: 3px solid var(--primary); padding: 2px 0 2px 10px; }
 .cmt-row--done { border-left-color: var(--good); opacity: 0.8; }
@@ -4089,14 +4118,14 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
    стоит рядом со ссылкой, а не в документации, которую не откроют. */
 .cmt-row__links { display: grid; gap: 3px; margin-top: 6px; }
 .cmt-link {
-  font: 500 12px var(--font-ui); color: var(--primary);
+  font: 500 12px var(--font-ui); color: var(--accent);
   overflow-wrap: anywhere;      /* длинный адрес комнаты данных не рвёт колонку */
 }
 .cmt-row__note { font: 400 11px/1.45 var(--font-ui); color: var(--subtle); margin-top: 4px; }
 .cmt-row__acts { display: flex; gap: 10px; margin-top: 5px; }
 .cmt-act {
   appearance: none; background: none; border: none; padding: 0; cursor: pointer;
-  font: 600 11.5px var(--font-ui); color: var(--primary);
+  font: 600 11.5px var(--font-ui); color: var(--accent);
 }
 .cmt-act--danger { color: var(--danger); }
 .cmt-act:hover { text-decoration: underline; }
@@ -4106,7 +4135,7 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .cmt__hint { font: 500 11.5px var(--font-ui); color: var(--subtle); }
 
 /* Шаблоны быстрого старта (D4): отрасль под именем, оговорки — в предпросмотре. */
-.tpl-card__ind { font: 600 10.5px var(--font-ui); color: var(--primary); margin-top: 2px; }
+.tpl-card__ind { font: 600 10.5px var(--font-ui); color: var(--accent); margin-top: 2px; }
 .tpl-assume__head {
   font: 700 12px var(--font-ui); color: var(--text); margin: 12px 0 6px;
 }

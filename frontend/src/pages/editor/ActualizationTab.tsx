@@ -144,7 +144,7 @@ export function ActualizationTab({ n, actualization, onChange }: Props) {
               <div className="mgrid-row">
                 <div className="mgrid-corner">Статья{NBSP}→</div>
                 {Array.from({ length: n }, (_, i) => (
-                  <div key={i} className="mgrid-month" style={i > until ? { opacity: 0.45 } : undefined}>
+                  <div key={i} className={"mgrid-month" + (i > until ? " mgrid-month--off" : "")}>
                     М{i + 1}
                   </div>
                 ))}

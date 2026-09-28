@@ -4,6 +4,7 @@ import { type CalcResponse, type StatementOut } from "../api/calc";
 import type { ProjectModel } from "../api/model";
 import { fmtDateOnly, fmtMillions, fmtTable, percent } from "../format";
 import { GRANDS, SUBTOTALS } from "./StatementTable";
+import { ScrollRegion } from "./ui";
 
 /**
  * Печатный отчёт (макет «Этап 16»): A4 альбомная — титул со сводкой и 4 финансовых
@@ -272,7 +273,7 @@ export function PrintReport({
   );
 
   return (
-    <div className="print-report">
+    <ScrollRegion className="print-report" label="Предпросмотр печати">
       {/* Страница 1 — титул и сводка */}
       <div className="pr-paper">
         <div className="pr-pagenum">стр. 1 / {total}</div>
@@ -361,6 +362,6 @@ export function PrintReport({
           />
         );
       })}
-    </div>
+    </ScrollRegion>
   );
 }

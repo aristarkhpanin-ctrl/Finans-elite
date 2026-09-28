@@ -122,8 +122,9 @@ export function MonteCarloTab({ projectId }: { projectId: string }) {
 
       <div className="cfg-card">
         <div className="cfg-field" style={{ width: 150 }}>
-          <label className="efield__label">Итераций</label>
+          <label className="efield__label" htmlFor="mc-iterations">Итераций</label>
           <input
+            id="mc-iterations"
             className="input"
             style={{ height: 42, fontFamily: "var(--font-mono)" }}
             inputMode="numeric"
@@ -132,8 +133,9 @@ export function MonteCarloTab({ projectId }: { projectId: string }) {
           />
         </div>
         <div className="cfg-field" style={{ width: 130 }}>
-          <label className="efield__label">Seed</label>
+          <label className="efield__label" htmlFor="mc-seed">Seed</label>
           <input
+            id="mc-seed"
             className="input"
             style={{ height: 42, fontFamily: "var(--font-mono)" }}
             inputMode="numeric"
@@ -163,21 +165,25 @@ export function MonteCarloTab({ projectId }: { projectId: string }) {
           <div className="mc-row" key={i}>
             <div className="mc-col-param">
               <span className="dot-label" style={{ background: CAT[i % CAT.length] }} />
-              <ESelect label="" value={r.param} onChange={(v) => upd(i, { param: v })} options={SENSITIVITY_PARAMS} />
+              <ESelect label={`Параметр ${i + 1}`} hideLabel value={r.param}
+                       onChange={(v) => upd(i, { param: v })} options={SENSITIVITY_PARAMS} />
             </div>
             <div className="mc-col-dist">
-              <ESelect label="" value={r.kind} onChange={(v) => upd(i, { kind: v as Kind })} options={DIST_OPTIONS} />
+              <ESelect label={`Распределение параметра ${i + 1}`} hideLabel value={r.kind}
+                       onChange={(v) => upd(i, { kind: v as Kind })} options={DIST_OPTIONS} />
             </div>
             <div className="mc-col-fields">
               {FIELDS[r.kind].map((fl) => (
-                <div className="mc-field" key={fl.key}>
+                // Подпись оборачивает поле — так она его имя: «0.8» из значения
+                // поля именем не было (H6).
+                <label className="mc-field" key={fl.key}>
                   <span className="mc-field__label">{fl.label}</span>
                   <input
                     inputMode="decimal"
                     value={r[fl.key]}
                     onChange={(e) => upd(i, { [fl.key]: e.target.value } as Partial<Row>)}
                   />
-                </div>
+                </label>
               ))}
               <button
                 type="button"

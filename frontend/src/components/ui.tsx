@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useMemo, useRef } from "react";
 import type { ButtonHTMLAttributes, CSSProperties, InputHTMLAttributes, ReactNode } from "react";
 import { createPortal } from "react-dom";
 
@@ -133,14 +133,17 @@ export function NumberField({
   disabled?: boolean;
 }) {
   const inputCls = ["input", error ? "input--error" : ""].filter(Boolean).join(" ");
+  // Та же связка, что у Field: подпись — имя поля, подсказка — его описание (H6).
+  const id = useId();
+  const hintId = `${id}-hint`;
   return (
     <div className="field">
-      <label>
-        {label}
-        {hint && <Hint text={hint} />}
-      </label>
+      <label htmlFor={id}>{label}</label>
+      {hint && <Hint text={hint} id={hintId} />}
       <InputWrap prefix={prefix} suffix={suffix}>
         <input
+          id={id}
+          aria-describedby={hint ? hintId : undefined}
           className={inputCls}
           type="number"
           step={step}
@@ -368,6 +371,26 @@ export function MetricCard({
   );
 }
 
+/* ─── Область с прокруткой (H6) ─────────────────────────────────────────── */
+
+/**
+ * Область со своей прокруткой — таблица шире экрана. Колесом и пальцем её крутят и так,
+ * а стрелками — только в фокусе: без `tabIndex` таблица, в которой нечего нажать, с
+ * клавиатуры была недостижима (`axe-core`, матрица P13). Имя обязательно: «область»
+ * без имени диктор так и читает — «область».
+ */
+export function ScrollRegion({ label, className, children }: {
+  label: string;
+  className: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={`${className} scroll-region`} role="region" aria-label={label} tabIndex={0}>
+      {children}
+    </div>
+  );
+}
+
 /* ─── Состояния данных (Р9) ──────────────────────────────────────────────── */
 
 /**
@@ -445,6 +468,38 @@ export function ErrorState({
 
 /* ─── Модальное окно (Р8) ────────────────────────────────────────────────── */
 
+/** Что в модалке получает фокус с клавиатуры — для удержания Tab внутри неё. */
+const FOCUSABLE = [
+  "a[href]", "button:not([disabled])", "input:not([disabled]):not([type=hidden])",
+  "select:not([disabled])", "textarea:not([disabled])", '[tabindex]:not([tabindex="-1"])',
+].join(",");
+
+/**
+ * Tab по кругу внутри модалки: `aria-modal` обещает, что страница под затемнением
+ * недоступна, и фокус, ушедший туда табуляцией, это обещание нарушал бы.
+ */
+function trapTab(e: KeyboardEvent, node: HTMLElement) {
+  const items = [...node.querySelectorAll<HTMLElement>(FOCUSABLE)];
+  const active = document.activeElement;
+  if (items.length === 0) {
+    e.preventDefault();
+    node.focus();
+    return;
+  }
+  const first = items[0];
+  const last = items[items.length - 1];
+  if (!node.contains(active)) {
+    e.preventDefault();
+    (e.shiftKey ? last : first).focus();
+  } else if (e.shiftKey && (active === first || active === node)) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && active === last) {
+    e.preventDefault();
+    first.focus();
+  }
+}
+
 export function Modal({
   open,
   onClose,
@@ -463,21 +518,38 @@ export function Modal({
   maxWidth?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  // Кто был в фокусе **до** открытия. Запоминается при отрисовке, а не в эффекте:
+  // `autoFocus` поля внутри срабатывает раньше эффектов, и эффект запомнил бы само поле.
+  const opener = useMemo(
+    () => (open ? (document.activeElement as HTMLElement | null) : null),
+    [open],
+  );
+  // `onClose` почти всегда стрелочная функция — новая на каждой перерисовке владельца, а
+  // владелец перерисовывается на каждую букву в поле модалки. В зависимостях эффекта она
+  // перезапускала бы фокус и отнимала его у поля после первой же буквы (H6).
+  const closeRef = useRef(onClose);
+  useEffect(() => {
+    closeRef.current = onClose;
+  });
 
   useEffect(() => {
     if (!open) return;
+    const node = ref.current;
+    // Поле с `autoFocus` уже взяло фокус — не перебивать; иначе фокус на саму модалку,
+    // чтобы Esc и Tab работали сразу.
+    if (node && !node.contains(document.activeElement)) node.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") closeRef.current();
+      else if (e.key === "Tab" && node) trapTab(e, node);
     };
     document.addEventListener("keydown", onKey);
-    // Фокус внутрь модалки, чтобы Esc и таб-навигация работали сразу
-    const prev = document.activeElement as HTMLElement | null;
-    ref.current?.focus();
     return () => {
       document.removeEventListener("keydown", onKey);
-      prev?.focus?.();
+      // Фокус — туда, откуда модалку открыли: иначе после Esc он падает на <body>, и
+      // человек с клавиатуры начинает обход страницы с самого начала.
+      if (opener?.isConnected) opener.focus();
     };
-  }, [open, onClose]);
+  }, [open, opener]);
 
   if (!open) return null;
   return createPortal(

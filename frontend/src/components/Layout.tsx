@@ -67,7 +67,12 @@ export function Layout() {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(null);
+      if (e.key !== "Escape") return;
+      // Фокус — на кнопку, открывшую меню (она одна в шапке говорит «развёрнуто»):
+      // пункт меню исчезает вместе с ним, и без этого фокус падал бы на <body>.
+      const trigger = document.querySelector<HTMLElement>('.shell-header [aria-expanded="true"]');
+      setOpen(null);
+      trigger?.focus();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
@@ -331,7 +336,8 @@ export function Layout() {
             </div>
           )}
 
-          <button type="button" className="icon-btn38 shell-burger-btn" title="Меню" onClick={() => setOpen("mobile")}>
+          <button type="button" className="icon-btn38 shell-burger-btn" title="Меню" aria-label="Меню"
+                  aria-expanded={open === "mobile"} onClick={() => setOpen("mobile")}>
             <div className="shell-burger">
               <span />
               <span />

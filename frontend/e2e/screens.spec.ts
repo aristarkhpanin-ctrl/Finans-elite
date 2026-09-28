@@ -42,6 +42,14 @@ interface A11yEntry {
   violations: Array<{ id: string; impact: string | null; help: string; nodes: number;
                       targets: string[] }>;
 }
+
+/** Для контраста — сами цвета и отношение: «ниже нормы» без пары цветов не починить. */
+function contrastSample(node: { target: unknown[]; any: Array<{ data?: unknown }> }): string {
+  const d = node.any[0]?.data as
+    { fgColor?: string; bgColor?: string; contrastRatio?: number } | undefined;
+  const where = node.target.join(" ");
+  return d?.fgColor ? `${where}: ${d.fgColor} на ${d.bgColor} = ${d.contrastRatio}:1` : where;
+}
 const a11y: A11yEntry[] = [];
 
 /**
@@ -57,7 +65,8 @@ async function audit(page: Page, row: string, screen: string, theme: string) {
     row, screen, theme,
     violations: result.violations.map((v) => ({
       id: v.id, impact: v.impact ?? null, help: v.help, nodes: v.nodes.length,
-      targets: v.nodes.slice(0, 5).map((n) => n.target.join(" ")),
+      targets: v.nodes.slice(0, 5).map((n) =>
+        v.id === "color-contrast" ? contrastSample(n) : n.target.join(" ")),
     })),
   });
 }

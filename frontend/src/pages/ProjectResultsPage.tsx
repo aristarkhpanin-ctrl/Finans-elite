@@ -250,7 +250,8 @@ export function ProjectResultsPage() {
             </div>
           </div>
         </div>
-        <StatementTable statement={agg} n={labels.length} subtotals={SUBTOTALS[key]}
+        <StatementTable title={TAB_LABELS[key] ?? STATEMENTS.find(([k]) => k === key)?.[1] ?? "Отчёт"}
+                        statement={agg} n={labels.length} subtotals={SUBTOTALS[key]}
                         grands={GRANDS[key]} labels={labels} details={details} />
       </>
     );
@@ -579,6 +580,7 @@ export function ProjectResultsPage() {
               </div>
             )}
             <StatementTable
+              title={t.name || "Таблица"}
               statement={{ lines: t.rows.map((r, i) => ({ code: String(i + 1), label: r.name, values: r.values })) }}
               n={data.n}
               subtotals={new Set()}

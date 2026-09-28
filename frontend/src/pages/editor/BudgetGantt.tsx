@@ -4,6 +4,7 @@ import type { Resource, Stage } from "../../api/model";
 import { fmtMoney } from "../../format";
 import { applyDrag, computeBudget, resolveSchedule } from "./calendar.logic";
 import type { Budget, BudgetRow, DragMode, Sched, Treatment } from "./calendar.logic";
+import { ScrollRegion } from "../../components/ui";
 
 /**
  * Бюджетная диаграмма Ганта — календарный план глазами финансового директора.
@@ -364,7 +365,7 @@ export function BudgetGantt({ n, startDate, stages, resources, budget, sched,
         </div>
 
         {/* Диаграмма */}
-        <div className="bg-gantt__chart fe-scroll">
+        <ScrollRegion className="bg-gantt__chart fe-scroll" label="Диаграмма этапов">
           <div style={{ width, position: "relative" }}>
             {/* Шапка периодов */}
             <div className="bg-gantt__timehead" style={{ height: ROW_H * 2 }}>
@@ -501,7 +502,7 @@ export function BudgetGantt({ n, startDate, stages, resources, budget, sched,
               </div>
             ))}
           </div>
-        </div>
+        </ScrollRegion>
       </div>
 
       {overrun && (

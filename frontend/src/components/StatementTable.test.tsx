@@ -22,14 +22,14 @@ const details = new Map<string, DetailRow[]>([
 
 function renderTable(withDetails = true) {
   return render(
-    <StatementTable statement={statement} n={2} subtotals={new Set(["I4"])}
+    <StatementTable title="Отчёт о прибылях" statement={statement} n={2} subtotals={new Set(["I4"])}
                     details={withDetails ? details : undefined} />,
   );
 }
 
 describe("StatementTable drill-down", () => {
   it("метки колонок по умолчанию — М1…Мn; кастомные labels применяются", () => {
-    render(<StatementTable statement={statement} n={2} subtotals={new Set()}
+    render(<StatementTable title="Отчёт о прибылях" statement={statement} n={2} subtotals={new Set()}
                            labels={["Год 1", "Год 2"]} />);
     expect(screen.getByText("Год 1")).toBeTruthy();
     expect(screen.queryByText("М1")).toBeNull();
@@ -52,5 +52,14 @@ describe("StatementTable drill-down", () => {
     cleanup();
     renderTable();
     expect(screen.getByText(/раскрывается в слагаемые/)).toBeTruthy();
+  });
+});
+
+describe("StatementTable с клавиатуры (H6)", () => {
+  it("таблица шире экрана — область с именем, до которой доходит Tab", () => {
+    // Без tabIndex прокрутить стрелками нельзя: в таблице без детализации нажимать нечего.
+    renderTable(false);
+    const region = screen.getByRole("region", { name: "Отчёт о прибылях" });
+    expect(region.tabIndex).toBe(0);
   });
 });

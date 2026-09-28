@@ -9,7 +9,7 @@ import type {
 } from "../../api/model";
 import { EField, ESelect } from "../../components/EditorField";
 import { IconTrash } from "../../components/icons";
-import { Button } from "../../components/ui";
+import { Button, ScrollRegion } from "../../components/ui";
 import { fmtMoney } from "../../format";
 import { BudgetGantt } from "./BudgetGantt";
 import { computeBudget, resolveSchedule, stageCost } from "./calendar.logic";
@@ -136,7 +136,7 @@ export function CalendarTab({ n, startDate, investment, products, onChange }: Pr
           {budget.actualTotal !== null && (
             <div className="gantt-card">
               <div className="gantt-card__title">Смета: план-факт (контроль реализации)</div>
-              <div className="budget-pf fe-scroll">
+              <ScrollRegion className="budget-pf fe-scroll" label="Смета: план-факт">
                 <table>
                   <thead>
                     <tr>
@@ -161,7 +161,7 @@ export function CalendarTab({ n, startDate, investment, products, onChange }: Pr
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </ScrollRegion>
             </div>
           )}
 
@@ -213,7 +213,8 @@ export function CalendarTab({ n, startDate, investment, products, onChange }: Pr
                     )}
                     {hasRes && (
                       <div className="efield">
-                        <label className="efield__label">Стоимость (из ресурсов)</label>
+                        {/* Не поле ввода, а вычисленное значение — подпись, а не <label>. */}
+                        <div className="efield__label">Стоимость (из ресурсов)</div>
                         <div className="efield__ro">{fmtMoney(cost)}</div>
                       </div>
                     )}

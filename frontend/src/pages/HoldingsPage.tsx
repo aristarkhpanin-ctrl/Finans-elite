@@ -51,10 +51,11 @@ export function HoldingsPage() {
     <div className="create-card">
       <div className="create-card__row">
         <div style={{ flex: 1, minWidth: 0 }}>
-          <label className="auth-label" style={{ display: "block", marginBottom: 7 }}>
+          <label className="auth-label" htmlFor="new-holding-name" style={{ display: "block", marginBottom: 7 }}>
             Название холдинга
           </label>
           <input
+            id="new-holding-name"
             className="input"
             style={{ width: "100%" }}
             placeholder="Напр. «Группа «Вертикаль»"

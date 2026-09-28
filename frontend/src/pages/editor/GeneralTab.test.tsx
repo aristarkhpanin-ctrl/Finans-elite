@@ -75,8 +75,7 @@ describe("GeneralTab — перенос убытков прошлых лет", (
 
   it("стартовый налоговый убыток пишется в модель, отрицательный — ошибка", () => {
     const onSettings = renderSettings({});
-    // Поле ищется через карточку: подпись с полем программно не связана (чинится в H6).
-    const field = screen.getByText("Налоговый убыток на старте").closest(".efield")!.querySelector("input")!;
+    const field = screen.getByLabelText("Налоговый убыток на старте");
     fireEvent.change(field, { target: { value: "1 200 000" } });
     expect(onSettings).toHaveBeenCalledWith(expect.objectContaining({ opening_tax_loss: "1 200 000" }));
     cleanup();

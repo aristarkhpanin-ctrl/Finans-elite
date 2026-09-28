@@ -241,10 +241,11 @@ export function ProjectsPage() {
           <div className="create-card">
             <div className="create-card__row">
               <div style={{ flex: 1, minWidth: 0 }}>
-                <label className="auth-label" style={{ display: "block", marginBottom: 7 }}>
+                <label className="auth-label" htmlFor="new-project-name" style={{ display: "block", marginBottom: 7 }}>
                   Название нового проекта
                 </label>
                 <input
+                  id="new-project-name"
                   className="input"
                   style={{ width: "100%" }}
                   placeholder="Напр. «Завод полимерной упаковки»"

@@ -15,7 +15,7 @@ import { listProjects } from "../api/projects";
 import { EPercentField, ESelect } from "../components/EditorField";
 import { IconTrash } from "../components/icons";
 import { useToast } from "../components/Toast";
-import { Button, ErrorState, Loading, Modal } from "../components/ui";
+import { Button, ErrorState, Loading, Modal, ScrollRegion } from "../components/ui";
 import { fmtMillions, fmtTable, percent } from "../format";
 
 const roleColor = (r: string) => (r === "parent" ? "var(--primary)" : "var(--info)");
@@ -157,7 +157,8 @@ export function HoldingDetailPage() {
                 </span>
                 <div className="member-role-sel">
                   <ESelect
-                    label=""
+                    label={`Роль в холдинге: ${projectName(m.project_id)}`}
+                    hideLabel
                     value={m.role}
                     onChange={(role) => patchRole.mutate({ pid: m.project_id, role })}
                     options={HOLDING_ROLES}
@@ -326,7 +327,7 @@ function ConsolidatedBudget({ result, rate }: { result: ConsolidateResponse; rat
       <div className="terms-head" style={{ marginTop: 18 }}>
         Вклад проектов
       </div>
-      <div className="contrib-wrap fe-scroll">
+      <ScrollRegion className="contrib-wrap fe-scroll" label="Вклад проектов">
         <div className="contrib-row contrib-row--head">
           <div className="contrib-label">Показатель</div>
           {per.map((p) => (
@@ -353,7 +354,7 @@ function ConsolidatedBudget({ result, rate }: { result: ConsolidateResponse; rat
             </div>
           </div>
         ))}
-      </div>
+      </ScrollRegion>
     </div>
   );
 }

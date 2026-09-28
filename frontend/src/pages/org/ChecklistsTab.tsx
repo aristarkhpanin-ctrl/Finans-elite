@@ -74,10 +74,12 @@ export function ChecklistsTab({ orgId, canManage }: { orgId: string; canManage: 
                    placeholder="Производство, выручка от 500 млн"
                    note="Свободная подпись автора, а не классификатор: платформа по ней ничего не выбирает."
                    onChange={(e) => patch(i, { scope: e.target.value })} />
-            <label className="auth-label" style={{ display: "block", marginBottom: 6 }}>
+            <label className="auth-label" htmlFor={`checklist-items-${i}`}
+                   style={{ display: "block", marginBottom: 6 }}>
               Процедуры — по одной в строке
             </label>
             <textarea
+              id={`checklist-items-${i}`}
               className="input"
               rows={Math.max(3, (row.items ?? []).length + 1)}
               aria-label={`Процедуры чек-листа ${i + 1}`}
