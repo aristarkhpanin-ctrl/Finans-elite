@@ -370,9 +370,19 @@ export function MetricCard({
 
 /* ─── Состояния данных (Р9) ──────────────────────────────────────────────── */
 
-/** Единообразное состояние загрузки страницы. */
+/**
+ * Единообразное состояние загрузки страницы — карточкой с крутилкой, как «Прогоняем ревью…», а не голым словом в углу:
+ * матрица состояний P13 (H5) показала, что редактор и холдинг при медленном ответе
+ * выглядели пустой страницей со словом «Загрузка…». `role="status"` — её прочтёт и
+ * экранный диктор.
+ */
 export function Loading({ text = "Загрузка…" }: { text?: string }) {
-  return <p className="muted">{text}</p>;
+  return (
+    <div className="load-card" role="status">
+      <span className="save-spinner" aria-hidden="true" />
+      <div className="load-card__title">{text}</div>
+    </div>
+  );
 }
 
 /** Скелетон-строка/блок (пульс). */
@@ -407,7 +417,12 @@ export function EmptyState({
   );
 }
 
-/** Единообразное состояние ошибки загрузки (иконка «!», текст, retry). */
+/**
+ * Единообразное состояние ошибки загрузки (иконка «!», текст, retry) — **всегда**
+ * карточкой. Без обработчика повтора раньше выходила мелкая красная строка в углу, и
+ * упавший редактор выглядел пустой страницей (матрица состояний P13, H5); кнопка
+ * «Повторить» — там, где есть что повторить.
+ */
 export function ErrorState({
   text = "Не удалось загрузить данные.",
   onRetry,
@@ -415,14 +430,15 @@ export function ErrorState({
   text?: string;
   onRetry?: () => void;
 }) {
-  if (!onRetry) return <p className="error">{text}</p>;
   return (
-    <div className="error-state">
-      <div className="error-state__ico">!</div>
+    <div className="error-state" role="alert">
+      <div className="error-state__ico" aria-hidden="true">!</div>
       <div className="error-state__title">{text}</div>
-      <Button variant="ghost" onClick={onRetry}>
-        Повторить
-      </Button>
+      {onRetry && (
+        <Button variant="ghost" onClick={onRetry}>
+          Повторить
+        </Button>
+      )}
     </div>
   );
 }

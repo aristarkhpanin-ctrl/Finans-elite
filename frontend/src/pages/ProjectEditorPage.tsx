@@ -73,7 +73,7 @@ export function ProjectEditorPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { data, isLoading, isError } = useQuery({ queryKey: ["project", id], queryFn: () => getProject(id) });
+  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ["project", id], queryFn: () => getProject(id) });
 
   const [model, setModel] = useState<ProjectModel | null>(null);
   const [tab, setTab] = useState<TabKey>(() => {
@@ -112,7 +112,7 @@ export function ProjectEditorPage() {
   // Страж несохранённого ввода — общий с «Финанс-Аудитом» (components/UnsavedGuard).
   const { tryNav, pending: pendingLeave, cancel: cancelLeave } = useUnsavedGuard(dirty);
 
-  if (isError) return <ErrorState text="Не удалось загрузить проект." />;
+  if (isError) return <ErrorState text="Не удалось загрузить проект." onRetry={() => void refetch()} />;
   if (isLoading || !model) return <Loading />;
 
   const n = model.header.duration_months;

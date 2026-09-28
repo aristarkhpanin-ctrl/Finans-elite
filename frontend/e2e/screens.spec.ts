@@ -1,4 +1,5 @@
 import { mkdirSync, writeFileSync } from "node:fs";
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type APIRequestContext, type Page, type Route } from "@playwright/test";
 
 /**
@@ -32,6 +33,34 @@ interface Shot {
   overflow: Overflow | null;
 }
 const shots: Shot[] = [];
+
+/** Нарушения доступности (axe-core, WCAG 2.1 A/AA) — по экрану и теме, H6. */
+interface A11yEntry {
+  row: string;
+  screen: string;
+  theme: string;
+  violations: Array<{ id: string; impact: string | null; help: string; nodes: number;
+                      targets: string[] }>;
+}
+const a11y: A11yEntry[] = [];
+
+/**
+ * Проверка доступности кадра. Только на настольной ширине: контраст зависит от темы, а
+ * разметка (подписи полей, имена кнопок, роли) от ширины почти не зависит — гонять её
+ * трижды значило бы втрое удлинить прогон ради тех же находок.
+ */
+async function audit(page: Page, row: string, screen: string, theme: string) {
+  const result = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze();
+  a11y.push({
+    row, screen, theme,
+    violations: result.violations.map((v) => ({
+      id: v.id, impact: v.impact ?? null, help: v.help, nodes: v.nodes.length,
+      targets: v.nodes.slice(0, 5).map((n) => n.target.join(" ")),
+    })),
+  });
+}
 
 /**
  * Вылет за край экрана — объективная часть просмотра: глаз пропускает обрезанный на
@@ -108,6 +137,7 @@ async function capture(page: Page, row: string, screen: string,
       await page.screenshot({ path: `${OUT}/${file}`, fullPage: true, animations: "disabled",
                               clip: { x: 0, y: 0, width: w, height: Math.min(height, MAX_HEIGHT) } });
       shots.push({ row, screen, width, theme, file, overflow });
+      if (width === "desktop") await audit(page, row, screen, theme);
     }
   }
 }
@@ -134,9 +164,45 @@ img{display:block;width:220px;height:auto}figcaption{font-size:12px;color:#5b627
 .warn{color:#b3261e}</style>
 </head><body><h1>Матрица скриншотов P13</h1><p>Снимков: ${shots.length}. Снято: ${new Date().toISOString()}.</p>
 ${rows}</body></html>`);
+  writeFileSync(`${OUT}/a11y.json`, JSON.stringify(a11y, null, 2));
   // Переполнение — отдельным файлом: его читают глазами и сверяют между прогонами.
   writeFileSync(`${OUT}/overflow.json`, JSON.stringify(
     shots.filter((s) => s.overflow).map(({ file, overflow }) => ({ file, ...overflow })), null, 2));
+}
+
+/** Удержать ответы API, пока снимается кадр загрузки; отпустить — после всей серии. */
+async function holdResponses(page: Page, url: RegExp, fn: () => Promise<void>) {
+  const held: Route[] = [];
+  await page.route(url, (route) => { held.push(route); });
+  try {
+    await fn();
+  } finally {
+    await page.unroute(url);
+    for (const route of held) await route.continue().catch(() => undefined);
+  }
+}
+
+/** Ответить ошибкой — как ответил бы упавший или отказавший сервер. */
+async function failResponses(page: Page, url: RegExp, status: number, detail: string,
+                       fn: () => Promise<void>) {
+  await page.route(url, (route) => route.fulfill(
+    { status, contentType: "application/json", body: JSON.stringify({ detail }) }));
+  try {
+    await fn();
+  } finally {
+    await page.unroute(url);
+  }
+}
+
+async function register(page: Page, org: string) {
+  await page.addInitScript(() => localStorage.setItem("fe_product", "business"));
+  await page.goto("/register");
+  await page.getByLabel("ФИО").fill("Матрица Скриншотов");
+  await page.getByLabel("Email").fill(`screens-${stamp()}@example.test`);
+  await page.getByLabel("Пароль").fill("screens-pass-123");
+  await page.getByLabel("Название организации").fill(org);
+  await page.getByRole("button", { name: /Создать аккаунт/ }).click();
+  await expect(page.getByRole("heading", { name: "Проекты" })).toBeVisible();
 }
 
 /** Почта на прогон: база живёт между запусками. */
@@ -149,10 +215,16 @@ async function authHeaders(page: Page): Promise<Record<string, string>> {
 }
 
 async function projectFromTemplate(api: APIRequestContext, headers: Record<string, string>,
-                                   name: string, actuals = false, months?: number): Promise<string> {
+                                   name: string, actuals = false, months?: number,
+                                   priceScale = 1): Promise<string> {
   const model = await (await api.get("/api/v1/templates/production", { headers })).json();
   model.header.name = name;
   if (months) model.header.duration_months = months;
+  if (priceScale !== 1) {
+    // Восьмизначные суммы — проверка печати: колонка по самому длинному числу (H4).
+    for (const line of model.operating_plan.sales)
+      line.price = line.price.map((p: string) => String(Number(p) * priceScale));
+  }
   if (actuals) {
     // Три месяца факта: без них вкладки «План-факт» на результатах нет вовсе.
     model.actualization = { actual_until: 2, actuals: { C1: ["900000", "1100000", "950000"] } };
@@ -171,7 +243,7 @@ test("матрица скриншотов P13", async ({ page, browser }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });   // куб — статичным кадром
 
     // --- Вход и регистрация: до входа, в своём контексте ---
-    const guest = await browser.newPage();
+    const guest = await (await browser.newContext()).newPage();
     await guest.emulateMedia({ reducedMotion: "reduce" });
     await guest.addInitScript(() => localStorage.setItem("fe_product", "business"));
     await capture(guest, "auth", "login", async (p) => {
@@ -182,17 +254,10 @@ test("матрица скриншотов P13", async ({ page, browser }) => {
       await p.goto("/register");
       await expect(p.getByLabel("Email")).toBeVisible();
     });
-    await guest.close();
+    await guest.context().close();
 
     // --- Вход и данные ---
-    await page.addInitScript(() => localStorage.setItem("fe_product", "business"));
-    await page.goto("/register");
-    await page.getByLabel("ФИО").fill("Матрица Скриншотов");
-    await page.getByLabel("Email").fill(`screens-${stamp()}@example.test`);
-    await page.getByLabel("Пароль").fill("screens-pass-123");
-    await page.getByLabel("Название организации").fill("ООО «Матрица»");
-    await page.getByRole("button", { name: /Создать аккаунт/ }).click();
-    await expect(page.getByRole("heading", { name: "Проекты" })).toBeVisible();
+    await register(page, "ООО «Матрица»");
 
     const headers = await authHeaders(page);
     const api = page.request;
@@ -201,6 +266,7 @@ test("матрица скриншотов P13", async ({ page, browser }) => {
     // Печатная ширина колонки рассчитана «под 12/24 месяца» (P13) — второй горизонт
     // снимается отдельно, иначе эта половина обещания осталась бы непроверенной.
     const long = await projectFromTemplate(api, headers, "Склад на два года", false, 24);
+    const wide = await projectFromTemplate(api, headers, "Оптовая база", false, undefined, 1000);
     const holding = await (await api.post("/api/v1/holdings",
                                            { headers, data: { name: "Группа «Матрица»" } })).json();
     for (const [pid, role] of [[main, "parent"], [second, "subsidiary"]]) {
@@ -276,6 +342,8 @@ test("матрица скриншотов P13", async ({ page, browser }) => {
     };
     await capture(page, "planfact", "print", print(main));
     await capture(page, "planfact", "print-24", print(long), WIDTHS.filter(([w]) => w === "desktop"));
+    // Восьмизначные суммы: колонка — по самому длинному числу, листов больше (H4).
+    await capture(page, "planfact", "print-wide", print(wide), WIDTHS.filter(([w]) => w === "desktop"));
 
     // --- Анализ ---
     // Каждая вкладка ждёт своего содержимого: ревью, снятое по таймеру, попало в кадр
@@ -293,9 +361,13 @@ test("матрица скриншотов P13", async ({ page, browser }) => {
         await p.getByRole("button", { name: "Рассчитать" }).click();
         await expect(p.getByText("NPV в зависимости от коэффициента")).toBeVisible({ timeout: 60_000 });
       }],
-      // Итог Монте-Карло не снимается: прогон идёт через очередь задач, а в e2e-окружении
-      // брокера нет — вкладка снята в исходном состоянии.
       ["montecarlo", "Монте-Карло", (p) => p.waitForTimeout(400)],
+      // Итог Монте-Карло: для съёмки очередь задач работает «сразу» (playwright.config,
+      // SCREENS=1) — брокера в e2e нет, а сквозные тесты идут прежним путём.
+      ["montecarlo-result", "Монте-Карло", async (p) => {
+        await p.getByRole("button", { name: "Запустить" }).click();
+        await expect(p.getByText("Распределение NPV", { exact: true })).toBeVisible({ timeout: 90_000 });
+      }],
       ["whatif", "What-If", (p) => p.waitForTimeout(400)],
     ];
     for (const [key, tab, ready] of tabs) {
@@ -325,6 +397,116 @@ test("матрица скриншотов P13", async ({ page, browser }) => {
         await p.waitForTimeout(600);
       });
     }
+
+    // --- Состояния: загрузка, пусто, ошибка (столбец «Состояния» P13) ---
+    // Загрузка — удержанием ответа, ошибка — ответом сервера, пустота — вторым
+    // пользователем с новой организацией. Макетов не рисуем: снимается тот экран, который
+    // человек увидел бы при медленном или упавшем сервере.
+    const LIST = /\/api\/v1\/projects(\?.*)?$/;
+    const PROJECT = new RegExp(`/api/v1/projects/${main}$`);
+    const CALC = new RegExp(`/api/v1/projects/${main}/calculate`);
+    const REVIEW = new RegExp(`/api/v1/projects/${main}/review`);
+    const HOLDINGS = /\/api\/v1\/holdings(\?.*)?$/;
+    const MEMBERS = /\/api\/v1\/organizations\/[^/]+\/members(\?.*)?$/;
+    const down = "Сервис временно недоступен";
+
+    await holdResponses(page, LIST, () => capture(page, "states", "projects-loading", async (p) => {
+      await p.goto("/projects");
+      await expect(p.getByRole("heading", { name: "Проекты" })).toBeVisible();
+    }));
+    await failResponses(page, LIST, 500, down, () => capture(page, "states", "projects-error", async (p) => {
+      await p.goto("/projects");
+      await expect(p.getByText("Не удалось загрузить проекты")).toBeVisible({ timeout: 15_000 });
+    }));
+    await holdResponses(page, PROJECT, () => capture(page, "states", "editor-loading", async (p) => {
+      await p.goto(`/projects/${main}`);
+      await p.waitForTimeout(500);
+    }));
+    await failResponses(page, PROJECT, 500, down, () => capture(page, "states", "editor-error", async (p) => {
+      await p.goto(`/projects/${main}`);
+      await expect(p.getByText("Не удалось загрузить проект.")).toBeVisible({ timeout: 15_000 });
+    }));
+    await holdResponses(page, CALC, () => capture(page, "states", "results-loading", async (p) => {
+      await p.goto(`/projects/${main}/results`);
+      await expect(p.getByText("Идёт расчёт модели…")).toBeVisible();
+    }));
+    await failResponses(page, CALC, 422,
+      "Стартовый баланс не сходится: актив 1 000 000 ≠ пассив 900 000 (разница 100 000).",
+      () => capture(page, "states", "results-error", async (p) => {
+        await p.goto(`/projects/${main}/results`);
+        await expect(p.getByText("Ошибка расчёта")).toBeVisible({ timeout: 15_000 });
+      }));
+    await holdResponses(page, REVIEW, () => capture(page, "states", "review-loading", async (p) => {
+      await p.goto(`/projects/${main}/analysis`);
+      await expect(p.getByText("Прогоняем ревью…")).toBeVisible();
+    }));
+    await failResponses(page, /\/sensitivity$/, 500, down,
+      () => capture(page, "states", "sensitivity-error", async (p) => {
+        await p.goto(`/projects/${main}/analysis`);
+        await p.getByRole("button", { name: /Чувствительность/ }).first().click();
+        await p.getByRole("button", { name: "Рассчитать" }).click();
+        await expect(p.getByText("Не удалось рассчитать")).toBeVisible({ timeout: 15_000 });
+      }));
+    await failResponses(page, HOLDINGS, 500, down, () => capture(page, "states", "holdings-error", async (p) => {
+      await p.goto("/holdings");
+      await expect(p.getByText("Не удалось загрузить холдинги")).toBeVisible({ timeout: 15_000 });
+    }));
+    await holdResponses(page, MEMBERS, () => capture(page, "states", "members-loading", async (p) => {
+      await p.goto("/organization?tab=members");
+      await expect(p.getByRole("heading", { name: "ООО «Матрица»" })).toBeVisible();
+      await p.waitForTimeout(400);
+    }));
+    await failResponses(page, MEMBERS, 500, down, () => capture(page, "states", "members-error", async (p) => {
+      await p.goto("/organization?tab=members");
+      await expect(p.getByRole("heading", { name: "ООО «Матрица»" })).toBeVisible();
+      await p.waitForTimeout(2_500);                 // один повтор запроса — и ответ экрана
+    }));
+
+    // Пустые экраны — новая организация без проектов и холдингов.
+    const fresh = await (await browser.newContext()).newPage();
+    await fresh.emulateMedia({ reducedMotion: "reduce" });
+    await register(fresh, "ООО «Пустая»");
+    await capture(fresh, "states", "projects-empty", async (p) => {
+      await p.goto("/projects");
+      await expect(p.getByText("Создайте первый проект")).toBeVisible();
+    });
+    await capture(fresh, "states", "holdings-empty", async (p) => {
+      await p.goto("/holdings");
+      await expect(p.getByText("Создайте первый холдинг")).toBeVisible();
+    });
+    const freshHeaders = await authHeaders(fresh);
+    const blank = await (await fresh.request.post("/api/v1/projects",
+      { headers: freshHeaders,
+        data: { name: "Пустая модель", model: { header: { name: "Пустая модель" } } } })).json();
+    await capture(fresh, "states", "sales-empty", async (p) => {
+      await p.goto(`/projects/${blank.id}?tab=sales`);
+      await expect(p.getByText("Пока нет ни одного продукта")).toBeVisible();
+    });
+    const emptyGroup = await (await fresh.request.post("/api/v1/holdings",
+      { headers: freshHeaders, data: { name: "Группа без участников" } })).json();
+    await capture(fresh, "states", "holding-empty", async (p) => {
+      await p.goto(`/holdings/${emptyGroup.id}`);
+      await expect(p.getByText("В холдинге пока нет проектов")).toBeVisible();
+    });
+    await fresh.context().close();
+
+    // Ошибки входа и регистрации — до входа, в своём контексте.
+    const stranger = await (await browser.newContext()).newPage();
+    await stranger.emulateMedia({ reducedMotion: "reduce" });
+    await stranger.addInitScript(() => localStorage.setItem("fe_product", "business"));
+    await capture(stranger, "states", "login-error", async (p) => {
+      await p.goto("/login");
+      await p.getByLabel("Email").fill("nobody@example.test");
+      await p.getByLabel("Пароль").fill("wrong-password-1");
+      await p.getByRole("button", { name: /Войти/ }).first().click();
+      await expect(p.getByRole("alert")).toBeVisible({ timeout: 15_000 });
+    });
+    await capture(stranger, "states", "register-error", async (p) => {
+      await p.goto("/register");
+      await p.getByRole("button", { name: /Создать аккаунт/ }).click();
+      await p.waitForTimeout(300);
+    });
+    await stranger.context().close();
 
   } finally {
     writeGallery();

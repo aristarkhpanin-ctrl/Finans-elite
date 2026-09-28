@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
-import { Field, SelectField } from "./ui";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { ErrorState, Field, Loading, SelectField } from "./ui";
 
 /**
  * Доступность поля ввода. Оба инварианта — из разряда тех, что не видно глазом и
@@ -63,5 +63,28 @@ describe("Поле выбора", () => {
     expect(describedBy, "подсказка не связана с полем").toBeTruthy();
     expect(document.getElementById(describedBy!)?.getAttribute("aria-label"))
       .toBe("Признак, не пересчёт.");
+  });
+});
+
+describe("Ошибка и загрузка — карточкой, а не словом в углу (матрица состояний P13, H5)", () => {
+  it("ошибка без повтора — всё равно карточка с ролью alert", () => {
+    render(<ErrorState text="Не удалось загрузить проект." />);
+    const card = screen.getByRole("alert");
+    expect(card.className).toBe("error-state");
+    expect(card.textContent).toContain("Не удалось загрузить проект.");
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it("с повтором — кнопка «Повторить»", () => {
+    const retry = vi.fn();
+    render(<ErrorState text="Не удалось" onRetry={retry} />);
+    fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
+    expect(retry).toHaveBeenCalledOnce();
+  });
+
+  it("загрузка — карточка со статусом", () => {
+    render(<Loading />);
+    expect(screen.getByRole("status").className).toBe("load-card");
+    expect(screen.getByRole("status").textContent).toBe("Загрузка…");
   });
 });

@@ -304,3 +304,18 @@ describe("Передача владения организацией", () => {
     expect(handButton("Коллега")).toBeNull();
   });
 });
+
+describe("Список не загрузился", () => {
+  it("называет ошибку и даёт повторить, а не показывает пустоту", async () => {
+    getMembers.mockRejectedValueOnce(new Error("500"));
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <MembersTab orgId="o1" myRole="owner" myUserId="u1" />
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByRole("alert")).toHaveProperty("textContent",
+      expect.stringContaining("Не удалось загрузить участников"));
+    fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
+    expect(await screen.findByText("Коллега")).toBeTruthy();
+  });
+});

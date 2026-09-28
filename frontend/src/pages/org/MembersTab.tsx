@@ -7,7 +7,7 @@ import { addMember, blockMember, getMembers, issueAccessLink, patchMemberRole, r
 import { ESelect } from "../../components/EditorField";
 import { IconArrowRight, IconKey, IconRows, IconTrash, IconWarning } from "../../components/icons";
 import { useToast } from "../../components/Toast";
-import { Button, Modal, Skeleton } from "../../components/ui";
+import { Button, ErrorState, Modal, Skeleton } from "../../components/ui";
 import { initials } from "../../format";
 
 const AVATAR_BG = ["#5E93FF", "#C77DFF", "var(--primary)", "#E0A23A", "#5FD9A6"];
@@ -91,7 +91,8 @@ export function MembersTab({ orgId, myRole, myUserId, onShowActions }: {
   /** Кому передаём владение организацией (C3). Только владелец и только вручную. */
   const [transferTarget, setTransferTarget] = useState<Member | null>(null);
 
-  const { data, isLoading } = useQuery({ queryKey: ["members", orgId], queryFn: () => getMembers(orgId) });
+  const { data, isLoading, isError, refetch } = useQuery(
+    { queryKey: ["members", orgId], queryFn: () => getMembers(orgId) });
   const invalidate = () => qc.invalidateQueries({ queryKey: ["members", orgId] });
 
   const add = useMutation({
@@ -203,6 +204,12 @@ export function MembersTab({ orgId, myRole, myUserId, onShowActions }: {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Упавший список — ошибкой, а не пустотой: без этой ветки вкладка показывала
+          заголовок без таблицы, и это читалось как «участников нет» (матрица P13, H5). */}
+      {isError && (
+        <ErrorState text="Не удалось загрузить участников." onRetry={() => void refetch()} />
       )}
 
       {data && (

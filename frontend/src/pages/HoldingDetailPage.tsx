@@ -80,7 +80,9 @@ export function HoldingDetailPage() {
     },
   });
 
-  if (holdingQuery.isError) return <ErrorState text="Не удалось загрузить холдинг." />;
+  if (holdingQuery.isError) {
+    return <ErrorState text="Не удалось загрузить холдинг." onRetry={() => void holdingQuery.refetch()} />;
+  }
   if (holdingQuery.isLoading || !holdingQuery.data) return <Loading />;
 
   const holding = holdingQuery.data;

@@ -37,6 +37,17 @@ const PREINSTALLED = [
   "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
 ].find((p): p is string => !!p && existsSync(p));
 
+/**
+ * Матрица скриншотов (`npm run screens`, H5) снимает итог Монте-Карло, а прогон идёт
+ * через очередь задач, брокера которой в e2e нет. Только для съёмки задачи выполняются
+ * «сразу» в процессе сервера — так же, как в тестах бэкенда; сквозные тесты и CI идут
+ * прежним путём, их шов не подменяется.
+ */
+const SCREENS_QUEUE = process.env.SCREENS === "1"
+  ? { CELERY_TASK_ALWAYS_EAGER: "1", CELERY_BROKER_URL: "memory://",
+      CELERY_RESULT_BACKEND: "cache+memory://" }
+  : {};
+
 export default defineConfig({
   testDir: "./e2e",
   // Прогон дымовой: параллелить нечего, а общая база на два воркера дала бы гонки.
@@ -71,7 +82,7 @@ export default defineConfig({
       // не виновато ничего из проверяемого. Лишние секунды на старт дешевле такого следа.
       reuseExistingServer: false,
       timeout: 60_000,
-      env: { DATABASE_URL: `sqlite:///${DB}`, APP_ENV: "development" },
+      env: { DATABASE_URL: `sqlite:///${DB}`, APP_ENV: "development", ...SCREENS_QUEUE },
       // Вывод сервера виден: молчащий сервер отлаживать нечем (по умолчанию
       // Playwright прячет stdout, и разбирать падение приходится вслепую).
       stdout: "pipe",
