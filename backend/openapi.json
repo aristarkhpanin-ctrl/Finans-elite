@@ -4813,6 +4813,15 @@
           "profit_use": {
             "$ref": "#/components/schemas/StatementOut"
           },
+          "project_flow": {
+            "default": [],
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Project Flow",
+            "type": "array"
+          },
           "ratios": {
             "$ref": "#/components/schemas/RatiosOut"
           },
@@ -5708,6 +5717,15 @@
           },
           "profit_use": {
             "$ref": "#/components/schemas/StatementOut"
+          },
+          "project_flow": {
+            "default": [],
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Project Flow",
+            "type": "array"
           },
           "ratios": {
             "$ref": "#/components/schemas/RatiosOut"
@@ -16180,7 +16198,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.49"
+    "version": "0.9.50"
   },
   "openapi": "3.1.0",
   "paths": {

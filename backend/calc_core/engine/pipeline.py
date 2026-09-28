@@ -741,6 +741,48 @@ def _fx_series(env, n: int) -> list[Decimal]:
     return out
 
 
+def finance_lease_value(lease) -> Decimal:
+    """Стоимость предмета финансового лизинга — приведённая стоимость платежей по ставке
+    договора (аннуитет). Одна формула на баланс (``B19``/``B26``) и на поток проекта
+    (:func:`lease_project_cost`): разойтись им нельзя, иначе показатели считали бы один
+    предмет, а баланс — другой."""
+    pay, term, r = D(lease.monthly_payment), lease.term_months, lease.monthly_rate()
+    return pay * D(term) if r == ZERO else pay * (ONE - (ONE + r) ** (-term)) / r
+
+
+def lease_project_cost(model: ProjectModel, n: int) -> list[Decimal]:
+    """Лизинговая составляющая **потока проекта** (SPEC §17, пакет J): что вычесть из
+    ``C13 + C20``, чтобы арендованное имущество не было для показателей бесплатным.
+
+    В кэш-фло все лизинговые платежи стоят в финансовой деятельности (``C25``), а
+    показатели эффективности считаются по потоку до финансирования. Без поправки проект
+    с парком в лизинге выглядел сверхдоходным: ни аренда оборудования, ни стоимость
+    предмета финансового лизинга в NPV/IRR не попадали вовсе.
+
+    - **Операционный лизинг** — это аренда: платёж идёт в поток проекта помесячно, как
+      любая издержка (в ОПУ он и так ``I21``).
+    - **Финансовый лизинг** — покупка в долг у лизингодателя: стоимость предмета
+      (:func:`finance_lease_value`) — вложение в месяц начала, а платежи остаются
+      финансированием, как у займа. Предмет, купленный в кредит, и предмет в финансовом
+      лизинге дают проекту одинаковый поток — это проверяется тестом.
+    - **Страхование** предмета — издержка при любом виде лизинга.
+    - **Выкуп** уже проходит через ``C14`` и здесь не повторяется.
+    """
+    cost = zeros(n)
+    for lease in model.financing.leases:
+        s, term = lease.start_month, lease.term_months
+        if term <= 0:
+            continue
+        end = min(s + term, n)
+        monthly = D(lease.insurance_monthly) + (ZERO if lease.finance
+                                                else D(lease.monthly_payment))
+        for t in range(max(s, 0), end):
+            cost[t] += monthly
+        if lease.finance and 0 <= s < n:
+            cost[s] += finance_lease_value(lease)
+    return cost
+
+
 def _leases(model: ProjectModel, n: int):
     """Лизинг → (операц. издержка I21, отток C25, предмет фин. лизинга B19, обязательство
     B26, проценты I18, амортизация I17).
@@ -778,7 +820,7 @@ def _leases(model: ProjectModel, n: int):
             continue
         # Финансовый лизинг: приведённая стоимость платежей = стоимость предмета и долга.
         r = lease.monthly_rate()
-        pv = pay * D(term) if r == ZERO else pay * (ONE - (ONE + r) ** (-term)) / r
+        pv = finance_lease_value(lease)
         d = pv / D(term)            # линейная амортизация предмета за срок лизинга
         bal = pv
         for t in range(max(s, 0), end):

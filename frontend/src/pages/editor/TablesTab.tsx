@@ -48,7 +48,9 @@ export function TablesTab({ tables, onChange }: Props) {
         <div className="ft-help__row"><b>Функции:</b> {FUNCTIONS_HELP}</div>
         <div className="ft-help__row">
           <b>Пример:</b> <code>ОКРУГЛ(I8 / I4 * 100, 1)</code> — валовая маржа, %;{" "}
-          <code>АККУМ(C13 + C20)</code> — накопленный поток до финансирования.
+          <code>АККУМ(C13 + C20)</code> — накопленный поток до финансирования (лизинг в нём
+          не учтён: платежи стоят в C25; показатели эффективности считаются по потоку
+          проекта, где он учтён как покупка).
         </div>
       </div>
 

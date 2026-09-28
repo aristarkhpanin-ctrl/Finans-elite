@@ -79,8 +79,14 @@ export function ResultCharts({ result }: { result: CalcResponse }) {
   const cash = Array.from({ length: n }, (_, i) => num(c29, i));
   const net = Array.from({ length: n }, (_, i) => num(i28, i));
 
+  // Накопленный поток — по **потоку проекта** с сервера (SPEC §17): тому же, по которому
+  // посчитан срок окупаемости. У проекта с лизингом он не равен C13 + C20 (лизинг живёт в
+  // C25), и линия с точкой окупаемости разошлись бы. Старый ответ без поля — C13 + C20.
+  const flow = result.project_flow?.length === n
+    ? result.project_flow.map(Number)
+    : op.map((v, i) => v + inv[i]);
   let running = 0;
-  const cum = op.map((v, i) => (running += v + inv[i]));
+  const cum = flow.map((v) => (running += v));
 
   const b = (code: string) => line(result.balance, code);
   const assetComps: Array<[string, number[]]> = [
@@ -418,7 +424,7 @@ export function ResultCharts({ result }: { result: CalcResponse }) {
       height: 250,
       p: Phalf,
       title: "Накопленный поток · окупаемость",
-      sub: "Кумулятивный поток до финансирования · отметка PB",
+      sub: "Кумулятивный поток проекта · отметка PB",
       legend: [
         { label: "Накопленный поток", color: PAL.pos },
         { label: "Нулевая линия", color: "var(--danger)", line: true },

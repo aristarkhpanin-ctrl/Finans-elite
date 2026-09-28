@@ -223,6 +223,10 @@ class CalcResponse(BaseModel):
     metrics: MetricsOut
     # Показатели во второй валюте (SPEC §17); None, если ставка по валюте не задана.
     metrics_foreign: Optional[MetricsOut] = None
+    #: Поток проекта, по которому посчитаны показатели и оценка (SPEC §17): ``C13 + C20``
+    #: с лизингом как у покупки. По нему же экран строит график окупаемости — иначе
+    #: линия и точка окупаемости разошлись бы у проекта с лизингом.
+    project_flow: list[Decimal] = []
     ratios: RatiosOut
     break_even: BreakEvenOut
     valuation: ValuationOut
@@ -1149,6 +1153,7 @@ def to_response(r: CalcResult) -> CalcResponse:
         profit_use=_statement_out(r.profit_use),
         metrics=_metrics_out(r.metrics),
         metrics_foreign=_metrics_out(r.metrics_foreign),
+        project_flow=list(r.project_flow),
         ratios=RatiosOut(
             liquidity=r.ratios.liquidity,
             activity=r.ratios.activity,

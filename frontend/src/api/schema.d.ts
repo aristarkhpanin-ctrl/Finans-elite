@@ -5863,6 +5863,11 @@ export interface components {
              */
             product_margins: components["schemas"]["ProductMarginsOut"];
             profit_use: components["schemas"]["StatementOut"];
+            /**
+             * Project Flow
+             * @default []
+             */
+            project_flow: string[];
             ratios: components["schemas"]["RatiosOut"];
             /**
              * Subscription Base
@@ -6430,6 +6435,11 @@ export interface components {
              */
             product_margins: components["schemas"]["ProductMarginsOut"];
             profit_use: components["schemas"]["StatementOut"];
+            /**
+             * Project Flow
+             * @default []
+             */
+            project_flow: string[];
             ratios: components["schemas"]["RatiosOut"];
             /**
              * Subscription Base

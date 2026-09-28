@@ -915,7 +915,7 @@
       "0.00"
     ]
   },
-  "engine_version": "0.9.49",
+  "engine_version": "0.9.50",
   "income": {
     "I1": [
       "160000.00",
@@ -1311,15 +1311,15 @@
     ]
   },
   "metrics": {
-    "arr_annual": "0.594804",
+    "arr_annual": "0.467339",
     "dpb_months": null,
-    "irr_annual": "-0.580582",
-    "mirr_annual": "-0.402789",
-    "npv": "-478553.72",
+    "irr_annual": "-0.716287",
+    "mirr_annual": "-0.540976",
+    "npv": "-680010.58",
     "pb_months": null,
-    "peak_financing_need": "1061077.12",
-    "pi": "0.548459",
-    "pv_investments": "1059822.32"
+    "peak_financing_need": "1196417.89",
+    "pi": "0.430899",
+    "pv_investments": "1194886.26"
   },
   "n": 12,
   "participants": [
@@ -1528,6 +1528,20 @@
       "282292.21"
     ]
   },
+  "project_flow": [
+    "-1094646.52",
+    "-70912.12",
+    "-30859.24",
+    "49806.88",
+    "50472.68",
+    "51138.15",
+    "51773.24",
+    "52438.07",
+    "133582.97",
+    "95828.06",
+    "55607.20",
+    "18486.08"
+  ],
   "ratios": {
     "activity": {
       "Оборачиваемость активов": [
@@ -1837,7 +1851,7 @@
   "valuation": {
     "dividend_value": "515000.00",
     "earnings_multiple_value": "2053753.29",
-    "gordon_value": "-3690350.92",
+    "gordon_value": "-5470025.83",
     "liquidation_value": "446832.44",
     "net_assets": "687292.21"
   },

@@ -90,10 +90,13 @@ def _sign_changes(flow: list[Decimal]) -> int:
 def irr_unreliable(ctx: ReviewContext, config: ReviewConfig) -> list[Finding]:
     if ctx.result.metrics.irr_annual is None:
         return []
-    cf = ctx.result.cashflow
-    n = ctx.result.n
-    c13, c20 = series(cf, "C13"), series(cf, "C20")  # операционный + инвестиционный (до финанс.)
-    pre = [(c13[t] if t < len(c13) else ZERO) + (c20[t] if t < len(c20) else ZERO) for t in range(n)]
+    # Смены знака — в том же потоке, по которому посчитана IRR (поток проекта, SPEC §17).
+    pre = list(ctx.result.project_flow)
+    if not pre:  # результат собран не движком — поток до финансирования из отчёта
+        cf, n = ctx.result.cashflow, ctx.result.n
+        c13, c20 = series(cf, "C13"), series(cf, "C20")
+        pre = [(c13[t] if t < len(c13) else ZERO) + (c20[t] if t < len(c20) else ZERO)
+               for t in range(n)]
     changes = _sign_changes(pre)
     if changes < 2:
         return []

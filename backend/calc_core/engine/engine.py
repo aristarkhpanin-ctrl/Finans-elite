@@ -17,7 +17,7 @@ from ..reports.ratios import compute_ratios
 from ..reports.result import CalcResult, InvestmentMetrics, build_investment_metrics
 from ..reports.statements import opening_balance
 from ..reports.valuation import compute_valuation
-from ..series import add, zeros
+from ..series import zeros
 from ..version import ENGINE_VERSION
 from .calendar import compute_budget
 from .errors import InvariantError
@@ -29,6 +29,7 @@ from .pipeline import (
     _expand_subscriptions,
     _fx_series,
     _preexisting_net_open,
+    lease_project_cost,
     run_pipeline,
 )
 from .tables import compute_user_tables
@@ -66,8 +67,9 @@ def _run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
     if options.check_invariants:
         _check_invariants(income, cashflow, balance, profit_use, n)
 
-    metrics = _metrics(model, cashflow)
-    metrics_foreign = _metrics_foreign(model, cashflow)
+    flow = project_flow(model, cashflow)
+    metrics = _metrics(model, flow)
+    metrics_foreign = _metrics_foreign(model, flow)
     product_margins = compute_product_margins(model, n)   # свёртка по подразделениям — из него
     sb = model.company.starting_balance
     # Остаточная стоимость пред-существующих ОС (purchase_month<0) входит в стартовые ОС (t=−1).
@@ -87,7 +89,7 @@ def _run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
     )
     break_even = compute_break_even(income, n)
     valuation = compute_valuation(
-        income, cashflow, balance,
+        income, cashflow, balance, flow,
         model.settings.discount_rate_annual, model.settings.terminal_growth_rate,
         model.settings.valuation_earnings_multiple, model.settings.liquidation_recovery_rate, n,
     )
@@ -109,6 +111,7 @@ def _run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
         profit_use=profit_use,
         metrics=metrics,
         metrics_foreign=metrics_foreign,
+        project_flow=flow,
         ratios=ratios,
         break_even=break_even,
         valuation=valuation,
@@ -233,14 +236,25 @@ def _check_invariants(income, cashflow, balance, profit_use, n: int) -> None:
             )
 
 
-def _metrics(model: ProjectModel, cashflow) -> InvestmentMetrics:
-    # Поток до финансирования = операционная + инвестиционная деятельность (SPEC §17).
-    net_flow = add(cashflow["C13"], cashflow["C20"])
+def project_flow(model: ProjectModel, cashflow) -> list[Decimal]:
+    """Поток проекта для показателей эффективности и оценки (SPEC §17).
+
+    Поток до финансирования (операционная + инвестиционная деятельность), в котором
+    лизинг учтён **как у покупки**: операционный — издержкой, финансовый — стоимостью
+    предмета в месяц начала (:func:`~.pipeline.lease_project_cost`). Без лизинга —
+    ровно ``C13 + C20``. Один источник для NPV/IRR, показателей во второй валюте,
+    оценки бизнеса, свода холдинга, ревью и графика окупаемости на экране.
+    """
+    lease = lease_project_cost(model, model.n)
+    return [cashflow["C13"][t] + cashflow["C20"][t] - lease[t] for t in range(model.n)]
+
+
+def _metrics(model: ProjectModel, flow: list[Decimal]) -> InvestmentMetrics:
     r_m = annual_to_monthly(model.settings.discount_rate_annual)
-    return build_investment_metrics(net_flow, r_m)
+    return build_investment_metrics(flow, r_m)
 
 
-def _metrics_foreign(model: ProjectModel, cashflow) -> InvestmentMetrics | None:
+def _metrics_foreign(model: ProjectModel, flow: list[Decimal]) -> InvestmentMetrics | None:
     """Показатели во второй валюте (SPEC §17): поток пересчитан по курсу, дисконт — своей
     ставкой валюты. None, если ставка дисконтирования по валюте не задана (инертно).
 
@@ -250,8 +264,7 @@ def _metrics_foreign(model: ProjectModel, cashflow) -> InvestmentMetrics | None:
     rate = model.settings.discount_rate_annual_foreign
     if rate <= ZERO:
         return None
-    net_flow = add(cashflow["C13"], cashflow["C20"])
     fx = _fx_series(model.environment, model.n)
-    foreign_flow = [net_flow[t] / fx[t] for t in range(model.n)]
+    foreign_flow = [flow[t] / fx[t] for t in range(model.n)]
     r_m = annual_to_monthly(rate)
     return build_investment_metrics(foreign_flow, r_m)
