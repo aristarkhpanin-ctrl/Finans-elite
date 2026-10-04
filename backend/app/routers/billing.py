@@ -48,13 +48,13 @@ def _plan_out(p) -> PlanOut:
     # «по запросу» годовой цены нет, и ноль вместо неё читался бы как «даром».
     annual = (billing.checkout_amount(p, 12)
               if p.price_rub > 0 and not p.price_on_request else None)
-    discount = (billing.annual_discount_percent()
-                if annual is not None and annual < p.price_rub * 12 else 0)
+    gift = (billing.free_months(12)
+            if annual is not None and annual < p.price_rub * 12 else 0)
     return PlanOut(code=p.code, product=p.product, name=p.name, price_rub=p.price_rub,
                    price_on_request=p.price_on_request, max_units=p.max_units,
                    unit_name=UNIT_NAME.get(p.product, "объектов"),
                    max_members=p.max_members, annual_price_rub=annual,
-                   annual_discount_percent=discount)
+                   annual_free_months=gift)
 
 
 @router.get("/plans", response_model=list[PlanOut])
@@ -236,7 +236,7 @@ def checkout_quote(plan_code: str, months: int = 1,
     unavailable = billing.auto_renew_unavailable(provider)
     return CheckoutQuoteOut(
         plan_code=plan.code, plan_name=plan.name, months=q.months, amount_rub=q.amount_rub,
-        full_price_rub=q.full_price_rub, discount_percent=q.discount_percent,
+        full_price_rub=q.full_price_rub, free_months=q.free_months,
         starts_at=q.starts_at, ends_at=q.ends_at, continues=q.continues,
         lost_days=q.lost_days, auto_renew_available=unavailable is None,
         auto_renew_unavailable_reason=unavailable or "")

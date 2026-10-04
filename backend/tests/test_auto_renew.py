@@ -142,37 +142,60 @@ def test_early_payment_through_the_product_extends_from_the_end(client, register
 
 # --- Сколько платить ---
 
-def test_a_year_is_twelve_periods_at_the_owners_discount(client, register, monkeypatch):
-    monkeypatch.setenv("ANNUAL_DISCOUNT_PERCENT", "10")
+def test_a_year_is_twelve_periods_with_the_owners_gift(client, register, monkeypatch):
+    """«Два месяца в подарок» (решение владельца): 12 периодов по цене десяти."""
+    monkeypatch.setenv("ANNUAL_FREE_MONTHS", "2")
     headers = register()
     org_id = _org(client, headers)
     q = client.get(f"/api/v1/organizations/{org_id}/billing/quote",
                    params={"plan_code": "team", "months": 12}, headers=headers).json()
     assert q["full_price_rub"] == 2900 * 12
-    assert q["amount_rub"] == 2900 * 12 * 90 // 100 and q["discount_percent"] == 10
+    assert q["amount_rub"] == 2900 * 10 and q["free_months"] == 2
     starts, ends = datetime.fromisoformat(q["starts_at"]), datetime.fromisoformat(q["ends_at"])
     assert ends - starts == timedelta(days=PERIOD_DAYS * 12)
+    plans = {p["code"]: p for p in client.get("/api/v1/plans").json()}
+    assert plans["team"]["annual_price_rub"] == 2900 * 10
+    assert plans["team"]["annual_free_months"] == 2
 
 
-def test_no_discount_unless_the_owner_sets_one(client):
+def test_the_gift_is_exact_for_every_plan(monkeypatch):
+    """Процентом «два месяца» не выразить (2/12 = 16,67 %), и сумма разошлась бы с
+    обещанной ценой десяти месяцев. Месяцами — ровно, без округления, у любой цены."""
+    monkeypatch.setenv("ANNUAL_FREE_MONTHS", "2")
+    for plan in PLANS.values():
+        assert billing.checkout_amount(plan, 12) == plan.price_rub * 10, plan.code
+
+
+def test_no_gift_unless_the_owner_sets_one(client):
     plans = {p["code"]: p for p in client.get("/api/v1/plans").json()}
     assert plans["team"]["annual_price_rub"] == 2900 * 12
-    assert plans["team"]["annual_discount_percent"] == 0
+    assert plans["team"]["annual_free_months"] == 0
     # Годом оплачивается только то, что оплачивается помесячно.
     assert plans["free"]["annual_price_rub"] is None
     assert plans["audit_corp"]["annual_price_rub"] is None
 
 
-@pytest.mark.parametrize("raw", ["15%", "90", "-5"])
-def test_a_mistyped_discount_is_not_applied_and_is_named(monkeypatch, raw):
-    monkeypatch.setenv("ANNUAL_DISCOUNT_PERCENT", raw)
+@pytest.mark.parametrize("raw", ["два", "2.5", "2 мес", "12", "-1"])
+def test_a_mistyped_gift_is_not_applied_and_is_named(monkeypatch, raw):
+    """«12» вместо «2» отдало бы год даром: не применяется и названо на «Готовности»."""
+    monkeypatch.setenv("ANNUAL_FREE_MONTHS", raw)
     assert billing.checkout_amount(TEAM, 12) == 2900 * 12
-    assert "не применяется" in (billing.discount_problem() or "")
+    assert "не применяется" in (billing.free_months_problem() or "")
 
 
-def test_the_monthly_price_never_gets_the_annual_discount(monkeypatch):
-    monkeypatch.setenv("ANNUAL_DISCOUNT_PERCENT", "20")
+def test_the_monthly_price_never_gets_the_annual_gift(monkeypatch):
+    monkeypatch.setenv("ANNUAL_FREE_MONTHS", "2")
     assert billing.checkout_amount(TEAM, 1) == 2900
+    assert billing.checkout_amount(TEAM, 11) == 2900 * 11
+    assert billing.free_months(11) == 0
+
+
+def test_the_old_percent_setting_is_no_longer_read(monkeypatch):
+    """Процентная скидка заменена подарком месяцами — две настройки одной цены спорили
+    бы друг с другом. Оставшаяся в чьём-то `.env` строка цену не меняет."""
+    monkeypatch.delenv("ANNUAL_FREE_MONTHS", raising=False)
+    monkeypatch.setenv("ANNUAL_DISCOUNT_PERCENT", "10")
+    assert billing.checkout_amount(TEAM, 12) == 2900 * 12
 
 
 def test_the_quote_names_the_days_a_plan_change_loses(client, register, db_session):

@@ -5994,13 +5994,13 @@ export interface components {
              * @default false
              */
             continues: boolean;
-            /**
-             * Discount Percent
-             * @default 0
-             */
-            discount_percent: number;
             /** Ends At */
             ends_at?: string | null;
+            /**
+             * Free Months
+             * @default 0
+             */
+            free_months: number;
             /** Full Price Rub */
             full_price_rub: number;
             /**
@@ -8471,10 +8471,10 @@ export interface components {
          */
         PlanOut: {
             /**
-             * Annual Discount Percent
+             * Annual Free Months
              * @default 0
              */
-            annual_discount_percent: number;
+            annual_free_months: number;
             /** Annual Price Rub */
             annual_price_rub?: number | null;
             /** Code */

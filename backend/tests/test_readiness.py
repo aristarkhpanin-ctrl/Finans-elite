@@ -35,8 +35,8 @@ def _items(db, provider=None, now=NOW) -> dict[str, readiness.ReadinessItem]:
 
 @pytest.fixture
 def clean_env(monkeypatch):
-    for var in ("MAIL_BACKEND", "PUBLIC_URL", "USAGE_EVENTS", "SENTRY_DSN",
-                "ANNUAL_DISCOUNT_PERCENT", "STUCK_JOB_ALERT_MINUTES", "SMTP_HOST"):
+    for var in ("MAIL_BACKEND", "PUBLIC_URL", "USAGE_EVENTS", "USAGE_SALT", "SENTRY_DSN",
+                "ANNUAL_FREE_MONTHS", "STUCK_JOB_ALERT_MINUTES", "SMTP_HOST"):
         monkeypatch.delenv(var, raising=False)
     for var, _ in readiness.closing_docs.SELLER_ENV.values():
         monkeypatch.delenv(var, raising=False)
@@ -59,11 +59,34 @@ def test_a_decision_is_off_not_a_problem(db_session, clean_env):
     assert _items(db_session)["events"].status == "off"
 
 
+def test_events_without_their_own_salt_are_a_problem(db_session, clean_env):
+    """Сбор включён (решение владельца) — нужны и ряды удержания. Соль, взятая у ключа
+    токенов, порвёт их при первой смене ключа: это называется здесь, а не сломанной
+    сводкой потом."""
+    clean_env.setenv("USAGE_EVENTS", "1")
+    item = _items(db_session)["events"]
+    assert item.status == "problem" and "USAGE_SALT" in item.how
+    clean_env.setenv("USAGE_SALT", "s" * 32)
+    assert _items(db_session)["events"].status == "ok"
+
+
+@pytest.mark.parametrize("raw, state", [
+    ("2", "2 месяца в подарок — год по цене 10 месяцев"),
+    ("1", "1 месяц в подарок — год по цене 11 месяцев"),
+    ("5", "5 месяцев в подарок — год по цене 7 месяцев"),
+    ("0", "нет — год по цене 12 месяцев (решение владельца)"),
+])
+def test_the_annual_gift_is_named_in_the_owners_words(db_session, clean_env, raw, state):
+    clean_env.setenv("ANNUAL_FREE_MONTHS", raw)
+    item = _items(db_session)["discount"]
+    assert (item.status, item.state) == ("ok", state)
+
+
 def test_configuration_mistakes_are_problems(db_session, clean_env):
     clean_env.setenv("SENTRY_DSN", "это не адрес")
     readiness.error_tracking.init_error_tracking(component="api")
     clean_env.setenv("STUCK_JOB_ALERT_MINUTES", "90")
-    clean_env.setenv("ANNUAL_DISCOUNT_PERCENT", "15%")
+    clean_env.setenv("ANNUAL_FREE_MONTHS", "два")
     clean_env.setenv("SELLER_NAME", "ООО «Платформа»")
     items = _items(db_session)
     for key in ("tracker", "stuck", "discount", "seller"):

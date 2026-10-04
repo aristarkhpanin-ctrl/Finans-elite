@@ -42,8 +42,8 @@ beforeEach(() => {
   disableAutoRenew.mockResolvedValue({});
   getQuote.mockImplementation((_o: string, code: string, months: number) => Promise.resolve({
     plan_code: code, plan_name: "Команда", months,
-    amount_rub: months === 12 ? 31320 : 2900, full_price_rub: 2900 * months,
-    discount_percent: months === 12 ? 10 : 0, starts_at: "2026-09-20T00:00:00Z",
+    amount_rub: months === 12 ? 29000 : 2900, full_price_rub: 2900 * months,
+    free_months: months === 12 ? 2 : 0, starts_at: "2026-09-20T00:00:00Z",
     ends_at: months === 12 ? "2027-09-15T00:00:00Z" : "2026-10-20T00:00:00Z",
     continues: false, lost_days: 0, auto_renew_available: true,
     auto_renew_unavailable_reason: "",
@@ -55,7 +55,7 @@ const BUSINESS_PLANS: Plan[] = [
     price_on_request: false, max_units: 5, unit_name: "проектов", max_members: 5 },
   { code: "team", product: "business", name: "Команда", price_rub: 2900,
     price_on_request: false, max_units: 50, unit_name: "проектов", max_members: 25,
-    annual_price_rub: 31320, annual_discount_percent: 10 },
+    annual_price_rub: 29000, annual_free_months: 2 },
 ] as Plan[];
 
 const AUDIT_PLANS: Plan[] = [
@@ -221,7 +221,7 @@ describe("Отказ сервера доходит до человека", () =>
 /**
  * Срок, сумма и согласие (G5). Согласие на автопродление — отдельная отметка, выключенная
  * по умолчанию: деньги клиента не списываются без его явного решения. Сумму и срок
- * называет сервер — у экрана нет своей копии правил скидки и продления.
+ * называет сервер — у экрана нет своей копии правил подарка и продления.
  */
 describe("Оплата: срок и согласие", () => {
   const openPay = async (planName = "Команда") => {
@@ -231,11 +231,11 @@ describe("Оплата: срок и согласие", () => {
     await screen.findByRole("button", { name: "Подтвердить" });
   };
 
-  it("год — со скидкой владельца, и оплата уходит за 12 месяцев", async () => {
+  it("год — с подарком владельца, и оплата уходит за 12 месяцев", async () => {
     await show();
     await openPay();
-    fireEvent.click(screen.getByRole("button", { name: /Год · 31\s320/ }));
-    await screen.findByText(/вместо 34\s800\s₽ — скидка 10\s%/);
+    fireEvent.click(screen.getByRole("button", { name: /Год · 29\s000 ₽ \(2 месяца в подарок\)/ }));
+    await screen.findByText(/вместо 34\s800\s₽ — 12 месяцев по цене 10/);
     expect(getQuote).toHaveBeenLastCalledWith("o1", "team", 12);
     fireEvent.click(screen.getByRole("button", { name: "Подтвердить" }));
     await waitFor(() => expect(checkout).toHaveBeenCalledWith(
@@ -274,7 +274,7 @@ describe("Оплата: срок и согласие", () => {
   it("срок назван датой, а потерянные дни прежнего тарифа — числом", async () => {
     getQuote.mockResolvedValue({
       plan_code: "team", plan_name: "Команда", months: 1, amount_rub: 2900,
-      full_price_rub: 2900, discount_percent: 0, starts_at: "2026-09-20T00:00:00Z",
+      full_price_rub: 2900, free_months: 0, starts_at: "2026-09-20T00:00:00Z",
       ends_at: "2026-10-20T00:00:00Z", continues: false, lost_days: 12,
       auto_renew_available: true, auto_renew_unavailable_reason: "" });
     await show();

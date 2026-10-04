@@ -42,14 +42,14 @@ def app_env() -> set[str]:
     for path in APP.rglob("*.py"):
         text = path.read_text(encoding="utf-8")
         names |= set(re.findall(r'(?:getenv|env|env_int|env_float)\(\s*"([A-Z][A-Z0-9_]+)"', text))
-    names |= {error_tracking.DSN_ENV, billing.DISCOUNT_ENV, scheduler.STUCK_ENV}
+    names |= {error_tracking.DSN_ENV, billing.FREE_MONTHS_ENV, scheduler.STUCK_ENV}
     names |= {var for var, _ in closing_docs.SELLER_ENV.values()}
     return names
 
 
 def test_the_scan_sees_the_settings():
     """Сторож самой выборки: пустая выборка выглядела бы зелёным тестом."""
-    assert {"MAIL_BACKEND", "SELLER_INN", "ANNUAL_DISCOUNT_PERCENT", "USAGE_EVENTS",
+    assert {"MAIL_BACKEND", "SELLER_INN", "ANNUAL_FREE_MONTHS", "USAGE_EVENTS",
             "SENTRY_DSN", "JWT_SECRET", "SMTP_PORT"} <= app_env()
     assert len(compose_env()) > 30
 
@@ -81,4 +81,25 @@ def test_unset_settings_arrive_empty_and_break_nothing(monkeypatch):
     monkeypatch.setenv("SMTP_HOST", "smtp.example.test")
     host, port, _, _, mode = mail._smtp_settings()
     assert (port, mode) == (587, "starttls") and mail._timeout() == 10
-    assert mail.backend() == "off" and billing.annual_discount_percent() == 0
+    assert mail.backend() == "off" and billing.annual_free_months() == 0
+
+
+def _compose_default(name: str) -> str:
+    """Умолчание установки: что придёт контейнеру, если в `.env` переменной нет."""
+    m = re.fullmatch(r"\$\{%s:-(.*)\}" % name, compose_env()[name])
+    assert m, f"{name}: в docker-compose.yml нет умолчания вида ${{{name}:-…}}"
+    return m.group(1)
+
+
+def test_the_owners_decisions_are_the_installation_defaults(monkeypatch):
+    """Решения владельца (`docs/OWNER-SETUP.md`, «Принятые решения») записаны в установку,
+    а не в код: в коде событий по умолчанию не собирают и месяцев не дарят — тесты и
+    разработка идут без них. Здесь — что умолчание установки дошло до приложения и
+    прочитано так, как решено, а не молча отброшено разбором (`«2 мес»` дало бы ноль)."""
+    from app import usage
+
+    monkeypatch.setenv("USAGE_EVENTS", _compose_default("USAGE_EVENTS"))
+    monkeypatch.setenv("ANNUAL_FREE_MONTHS", _compose_default("ANNUAL_FREE_MONTHS"))
+    assert usage.collecting(), "решение владельца: события собираются"
+    assert billing.annual_free_months() == 2, "решение владельца: два месяца в подарок"
+    assert billing.free_months_problem() is None

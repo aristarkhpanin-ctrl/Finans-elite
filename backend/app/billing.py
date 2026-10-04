@@ -68,48 +68,63 @@ def activate_paid_plan(db: Session, org_id: str, plan: Plan,
 #: оплата по счёту через платформу, где его задаёт оператор (F1).
 SELF_SERVICE_MONTHS = (1, 12)
 
-#: Скидка за годовую оплату, в процентах. **Размер скидки — решение владельца, а не
-#: кода**: по умолчанию её нет, и продукт не придумывает её за него.
-DISCOUNT_ENV = "ANNUAL_DISCOUNT_PERCENT"
+#: Сколько месяцев в подарок за оплату года. **Размер подарка — решение владельца, а не
+#: кода**: по умолчанию его нет, и продукт не придумывает его за владельца.
+#:
+#: Подарок задаётся **месяцами, а не процентом** (решение владельца после G5: «два месяца
+#: в подарок»). Процентом такое предложение точно не выразить — 2 из 12 это 16,67 %, и
+#: «17 %» дали бы год по цене 9,96 месяца: сумма на экране разошлась бы с обещанной
+#: «ценой десяти месяцев». Месяцами цена года — ровно ``цена × (12 − подарок)``, без
+#: округления. Процентная настройка (`ANNUAL_DISCOUNT_PERCENT`) заменена, а не оставлена
+#: рядом: две настройки одной цены спорили бы друг с другом.
+FREE_MONTHS_ENV = "ANNUAL_FREE_MONTHS"
 
-#: Выше этого скидка считается опечаткой («90» вместо «9»): отдать год почти даром из-за
-#: одной цифры хуже, чем не дать скидки и сказать об этом на экране готовности.
-MAX_DISCOUNT_PERCENT = 50
+#: Больше полугода в подарок считается опечаткой («12» вместо «2» отдали бы год даром):
+#: не дать подарка и сказать об этом на экране готовности лучше, чем раздать подписку.
+MAX_FREE_MONTHS = 6
 
 
-def _discount_setting() -> tuple[int, str | None]:
-    """Скидка из окружения и почему она не применяется (``None`` — применяется)."""
-    raw = os.getenv(DISCOUNT_ENV, "").strip()
+def _free_months_setting() -> tuple[int, str | None]:
+    """Подарок из окружения и почему он не применяется (``None`` — применяется)."""
+    raw = os.getenv(FREE_MONTHS_ENV, "").strip()
     if not raw:
         return 0, None
     try:
         value = int(raw)
     except ValueError:
-        return 0, f"{DISCOUNT_ENV}=«{raw}» — не целое число процентов; скидка не применяется"
-    if not 0 <= value <= MAX_DISCOUNT_PERCENT:
-        return 0, (f"{DISCOUNT_ENV}={value} — вне пределов 0–{MAX_DISCOUNT_PERCENT}; "
-                   "скидка не применяется")
+        return 0, f"{FREE_MONTHS_ENV}=«{raw}» — не целое число месяцев; подарок не применяется"
+    if not 0 <= value <= MAX_FREE_MONTHS:
+        return 0, (f"{FREE_MONTHS_ENV}={value} — вне пределов 0–{MAX_FREE_MONTHS}; "
+                   "подарок не применяется")
     return value, None
 
 
-def annual_discount_percent() -> int:
-    return _discount_setting()[0]
+def annual_free_months() -> int:
+    """Месяцев в подарок за каждый оплаченный год."""
+    return _free_months_setting()[0]
 
 
-def discount_problem() -> str | None:
-    """Почему скидка из окружения не применяется — для экрана готовности (G9)."""
-    return _discount_setting()[1]
+def free_months_problem() -> str | None:
+    """Почему подарок из окружения не применяется — для экрана готовности (G9)."""
+    return _free_months_setting()[1]
+
+
+def free_months(months: int) -> int:
+    """Сколько из ``months`` оплачиваемых месяцев — подарок: за каждый **полный** год.
+
+    Помесячная оплата подарка не получает. Подарок — это цена, а не отдельная услуга:
+    в счёте и акте стоят все оплаченные месяцы одной суммой (услуга, оказанная даром,
+    для налогов — отдельная операция, и документ не должен её изображать).
+    """
+    return annual_free_months() * (months // 12)
 
 
 def checkout_amount(plan: Plan, months: int) -> int:
-    """Сумма к оплате, руб. — **одна** на экран оплаты, провайдера и автопродление.
+    """Сумма к оплате, руб. — **одна** на экран оплаты, провайдера, счёт и автопродление.
 
-    Скидка — только за год: помесячная оплата идёт по цене прайса. Округление — до
-    рубля, половина вверх; при ценах, кратных сотне, оно не срабатывает вовсе.
+    Год с подарком стоит ровно ``цена × (месяцы − подарок)``: округлять нечего.
     """
-    full = plan.price_rub * months
-    discount = annual_discount_percent() if months >= 12 else 0
-    return (full * (100 - discount) + 50) // 100
+    return plan.price_rub * (months - free_months(months))
 
 
 @dataclass
@@ -124,7 +139,8 @@ class Quote:
     months: int
     amount_rub: int
     full_price_rub: int
-    discount_percent: int
+    #: Сколько оплачиваемых месяцев — подарок (0 — подарка нет).
+    free_months: int
     starts_at: datetime
     ends_at: datetime | None
     #: Продолжает ли оплата текущий период (тот же тариф) — а не начинает новый.
@@ -144,7 +160,7 @@ def quote(db: Session, org_id: str, plan: Plan, months: int,
     amount = checkout_amount(plan, months)
     return Quote(plan_code=plan.code, months=months, amount_rub=amount,
                  full_price_rub=full,
-                 discount_percent=annual_discount_percent() if amount < full else 0,
+                 free_months=free_months(months) if amount < full else 0,
                  starts_at=start, ends_at=paid_period_end(plan, start, months),
                  continues=start != now,
                  lost_days=lost_days(current_plan, current_end, plan, now))

@@ -51,11 +51,13 @@ x-backend-env: &backend-env
   SMTP_TIMEOUT: ${SMTP_TIMEOUT:-}
   MAIL_FROM: ${MAIL_FROM:-}
   MAIL_FROM_NAME: ${MAIL_FROM_NAME:-}
-  USAGE_EVENTS: ${USAGE_EVENTS:-0}
+  # Решение владельца (docs/OWNER-SETUP.md, «Принятые решения»): события собираются.
+  USAGE_EVENTS: ${USAGE_EVENTS:-1}
   USAGE_SALT: ${USAGE_SALT:-}
   SENTRY_DSN: ${SENTRY_DSN:-}
   STUCK_JOB_ALERT_MINUTES: ${STUCK_JOB_ALERT_MINUTES:-}
-  ANNUAL_DISCOUNT_PERCENT: ${ANNUAL_DISCOUNT_PERCENT:-}
+  # Решение владельца: два месяца в подарок за оплату года (год — цена 10 месяцев).
+  ANNUAL_FREE_MONTHS: ${ANNUAL_FREE_MONTHS:-2}
   SELLER_NAME: ${SELLER_NAME:-}
   SELLER_INN: ${SELLER_INN:-}
   SELLER_KPP: ${SELLER_KPP:-}

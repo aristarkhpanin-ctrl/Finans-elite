@@ -5028,11 +5028,6 @@
             "title": "Continues",
             "type": "boolean"
           },
-          "discount_percent": {
-            "default": 0,
-            "title": "Discount Percent",
-            "type": "integer"
-          },
           "ends_at": {
             "anyOf": [
               {
@@ -5044,6 +5039,11 @@
               }
             ],
             "title": "Ends At"
+          },
+          "free_months": {
+            "default": 0,
+            "title": "Free Months",
+            "type": "integer"
           },
           "full_price_rub": {
             "title": "Full Price Rub",
@@ -9372,9 +9372,9 @@
       "PlanOut": {
         "description": "Тариф каталога. Единица квоты зависит от продукта: проект у «Элит», дело у «Аудита».\n\nПоэтому поле называется ``max_units``, а не ``max_projects``: имя, верное лишь для\nполовины каталога, однажды прочитают буквально. ``unit_name`` даёт подпись для экрана.",
         "properties": {
-          "annual_discount_percent": {
+          "annual_free_months": {
             "default": 0,
-            "title": "Annual Discount Percent",
+            "title": "Annual Free Months",
             "type": "integer"
           },
           "annual_price_rub": {

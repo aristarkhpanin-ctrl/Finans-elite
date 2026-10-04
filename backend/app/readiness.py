@@ -92,6 +92,17 @@ def _public_url() -> ReadinessItem:
 
 def _events() -> ReadinessItem:
     if usage.collecting():
+        if not os.getenv("USAGE_SALT", "").strip():
+            # Сбор включён решением владельца — значит, и ряды удержания ему нужны: соль,
+            # взятая у ключа токенов, рвёт их при первой же смене ключа (все участники
+            # станут «новыми»), и узнали бы об этом по сломанной сводке, а не здесь.
+            return ReadinessItem("events", "События пользования", PROBLEM,
+                                 "собираются, но соль отпечатков не задана — взят ключ "
+                                 "токенов JWT_SECRET",
+                                 "смена JWT_SECRET порвёт ряды удержания: все участники "
+                                 "станут «новыми»",
+                                 "USAGE_SALT — случайная строка от 32 символов, отдельная "
+                                 "от JWT_SECRET")
         return ReadinessItem("events", "События пользования", OK, "собираются")
     return ReadinessItem("events", "События пользования", OFF, "не собираются",
                          "удержание на сводке платформы — «не измеряется»",
@@ -164,16 +175,25 @@ def _seller() -> ReadinessItem:
                          "SELLER_* (см. .env.example)")
 
 
-def _discount() -> ReadinessItem:
-    problem = billing.discount_problem()
+def _months(n: int) -> str:
+    """«1 месяц», «2 месяца», «5 месяцев» — подарок не больше полугода."""
+    return f"{n} " + ("месяц" if n == 1 else "месяца" if 2 <= n <= 4 else "месяцев")
+
+
+def _gift() -> ReadinessItem:
+    title = "Подарок за оплату года"
+    problem = billing.free_months_problem()
     if problem:
-        return ReadinessItem("discount", "Скидка за год", PROBLEM, problem,
-                             "год оплачивается без скидки",
-                             f"{billing.DISCOUNT_ENV} — целое число 0–"
-                             f"{billing.MAX_DISCOUNT_PERCENT}")
-    percent = billing.annual_discount_percent()
-    return ReadinessItem("discount", "Скидка за год", OK,
-                         f"{percent}%" if percent else "0% — скидки нет (решение владельца)")
+        return ReadinessItem("discount", title, PROBLEM, problem,
+                             "год оплачивается полной ценой двенадцати месяцев",
+                             f"{billing.FREE_MONTHS_ENV} — целое число 0–"
+                             f"{billing.MAX_FREE_MONTHS}")
+    gift = billing.annual_free_months()
+    if not gift:
+        return ReadinessItem("discount", title, OK,
+                             "нет — год по цене 12 месяцев (решение владельца)")
+    return ReadinessItem("discount", title, OK,
+                         f"{_months(gift)} в подарок — год по цене {12 - gift} месяцев")
 
 
 def _auto_renew(provider: PaymentProvider) -> ReadinessItem:
@@ -231,7 +251,7 @@ def check(db: Session, *, provider: PaymentProvider,
         _safe("payments", "Оплата в продукте", lambda: _payments(provider)),
         _safe("auto_renew", "Автопродление", lambda: _auto_renew(provider)),
         _safe("seller", "Реквизиты продавца", _seller),
-        _safe("discount", "Скидка за год", _discount),
+        _safe("discount", "Подарок за оплату года", _gift),
         _safe("tracker", "Трекер ошибок", _tracker),
         _safe("stuck", "Зависшие задачи", _stuck),
         _safe("events", "События пользования", _events),

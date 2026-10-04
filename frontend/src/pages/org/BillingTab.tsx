@@ -5,10 +5,20 @@ import { changePlan, checkout, disableAutoRenew, getPlans, getQuote, getSubscrip
          type CheckoutQuote, type Plan, type Subscription } from "../../api/org";
 import { useToast } from "../../components/Toast";
 import { Button, ErrorState, Modal, Skeleton } from "../../components/ui";
+import { plural } from "../../format";
 import { BillingDocuments } from "./BillingDocuments";
 
 /** Сумма в рублях: «2 900 ₽». */
 const rub = (n: number) => `${n.toLocaleString("ru-RU")} ₽`;
+
+/** «1 месяц», «2 месяца», «12 месяцев». */
+const monthCount = (n: number) => `${n} ${plural(n, "месяц", "месяца", "месяцев")}`;
+
+/**
+ * Подарок за оплату года — словами владельца: «2 месяца в подарок». Сумму считает сервер
+ * (цена × (12 − подарок)); экран только называет, сколько месяцев подарено.
+ */
+const gift = (n: number) => `${monthCount(n)} в подарок`;
 
 /** Цена тарифа. «По запросу» — не ноль: ноль на экране читается как «бесплатно». */
 const price = (p: { price_rub: number; price_on_request: boolean }) =>
@@ -388,7 +398,7 @@ function PayTerms({ plan, current, months, setMonths, autoRenew, setAutoRenew, q
                   className={"seg__btn" + (months === 12 ? " seg__btn--active" : "")}
                   onClick={() => setMonths(12)}>
             Год · {rub(annual)}
-            {(plan.annual_discount_percent ?? 0) > 0 && ` (−${plan.annual_discount_percent} %)`}
+            {(plan.annual_free_months ?? 0) > 0 && ` (${gift(plan.annual_free_months ?? 0)})`}
           </button>
         )}
       </div>
@@ -398,8 +408,9 @@ function PayTerms({ plan, current, months, setMonths, autoRenew, setAutoRenew, q
 
       <div className="pay-terms__sum">
         К оплате: <b>{rub(amount)}</b>
-        {quote && quote.discount_percent > 0 &&
-          <> вместо {rub(quote.full_price_rub)} — скидка {quote.discount_percent} %</>}
+        {quote && quote.free_months > 0 &&
+          <> вместо {rub(quote.full_price_rub)} — {monthCount(quote.months)} по цене{" "}
+            {quote.months - quote.free_months}</>}
       </div>
       {quote?.ends_at && (
         <div className="field-note">

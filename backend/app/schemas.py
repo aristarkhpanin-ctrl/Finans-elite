@@ -770,11 +770,12 @@ class PlanOut(BaseModel):
     max_units: Optional[int] = None
     unit_name: str = "проектов"
     max_members: Optional[int] = None
-    #: Цена года (12 месяцев) со скидкой владельца, если она задана (G5). ``None`` —
+    #: Цена года (12 месяцев) с подарком владельца, если он задан (G5). ``None`` —
     #: годом этот тариф не оплачивается (бесплатный, «по запросу»). Считает сервер: вторая
-    #: копия скидки на клиенте однажды показала бы одну сумму, а списала бы другую.
+    #: копия правила на клиенте однажды показала бы одну сумму, а списала бы другую.
     annual_price_rub: Optional[int] = None
-    annual_discount_percent: int = 0
+    #: Месяцев в подарок за оплату года (0 — подарка нет): год стоит как 12 − столько.
+    annual_free_months: int = 0
 
 
 class SubscriptionOut(BaseModel):
@@ -923,9 +924,10 @@ class CheckoutQuoteOut(BaseModel):
     plan_name: str
     months: int
     amount_rub: int
-    #: Цена без скидки — чтобы скидка была видна числом, а не угадывалась.
+    #: Цена без подарка — чтобы выгода была видна числом, а не угадывалась.
     full_price_rub: int
-    discount_percent: int = 0
+    #: Сколько из оплачиваемых месяцев — подарок (0 — подарка нет).
+    free_months: int = 0
     starts_at: datetime
     ends_at: Optional[datetime] = None
     #: Оплата продолжает текущий период (тот же тариф), а не начинает новый.
