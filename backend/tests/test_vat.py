@@ -22,16 +22,16 @@ from calc_core.series import total
 
 
 def test_settle_vat_basic():
-    budget, credit = settle_vat([Decimal(100)] * 3, [Decimal(20)] * 3, 3)
-    assert budget == [Decimal(80)] * 3
-    assert credit == [Decimal(0)] * 3
+    s = settle_vat([Decimal(100)] * 3, [Decimal(20)] * 3, 3)
+    assert s.to_budget == [Decimal(80)] * 3
+    assert s.credit == [Decimal(0)] * 3
 
 
 def test_settle_vat_credit_carry_forward():
     # t0: входной 50 > исходящего 0 → к уплате 0, кредит 50; t1: исходящий 200 − кредит 50
-    budget, credit = settle_vat([Decimal(0), Decimal(200)], [Decimal(50), Decimal(0)], 2)
-    assert budget == [Decimal(0), Decimal(150)]
-    assert credit == [Decimal(50), Decimal(0)]
+    s = settle_vat([Decimal(0), Decimal(200)], [Decimal(50), Decimal(0)], 2)
+    assert s.to_budget == [Decimal(0), Decimal(150)]
+    assert s.credit == [Decimal(50), Decimal(0)]
 
 
 def _vat_project(vat: str) -> ProjectModel:

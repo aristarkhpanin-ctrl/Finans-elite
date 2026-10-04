@@ -37,7 +37,7 @@ from .calendar import product_start_months, stage_assets, stage_expenses
 from .errors import ModelError
 from .financing_auto import AutoInjection
 from .inventory import finished_goods, purchase_schedule, work_in_progress
-from .taxes import TaxInjection, _payment_schedule
+from .taxes import _PERIOD_MONTHS, TaxInjection, _payment_schedule
 from .timing import cost_timing, sales_timing
 from .vat import output_on_earliest_date, settle_vat
 
@@ -1123,7 +1123,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
     )
     retained = profit_use["P7"]
 
-    # --- Зачёт НДС (исходящий − входной − кредит → к уплате; избыток → B7) ---
+    # --- Зачёт НДС (исходящий − входной за период → к уплате; излишек → возмещение/B7) ---
     # Капвложения оплачиваются в периоде приобретения (без отсрочки) → вход. НДС «по
     # оплате» совпадает с начисленным.
     vat_in_accrued = add(vat_in_mat, vat_in_fixed, vat_in_capex)
@@ -1136,7 +1136,12 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
     else:
         out_settle = output_on_earliest_date(vat_out, vat_advances)
         in_settle = vat_in_accrued
-    vat_to_budget, credit_carry = settle_vat(out_settle, in_settle, n)
+    # Сальдо — по налоговому периоду (календарному, как и срок уплаты); излишек на конец
+    # периода возмещается через срок проверки (ст. 176) либо переносится в зачёт (K2).
+    vat = settle_vat(out_settle, in_settle, n,
+                     period_months=_PERIOD_MONTHS[settings.vat_periodicity], offset=tax_offset,
+                     refund_lag=settings.vat_refund_lag_months if settings.vat_refund else None)
+    vat_to_budget = vat.to_budget
 
     # Балансовые статьи НДС (разрывы начисление↔признание паркуются, инвариант сохраняется):
     # B7 — НДС-актив (кредит, входной вне зачёта, НДС с полученных авансов, уплаченный до
@@ -1149,10 +1154,11 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
         deferred_out = cum_out_acc[t] - cum_out_set[t]   # начислен, но не признан к уплате
         in_not_settled = cum_in_acc[t] - cum_in_set[t]   # начислен, но не предъявлен к вычету
         b21[t] = max(ZERO, deferred_out)
-        # B7 = неиспользованный НДС-кредит + входной НДС вне зачёта + НДС с авансов
-        # **полученных** (признан раньше отгрузки). Авансов выданных движок не моделирует —
-        # прежняя подпись «выданных» была неверной.
-        b7[t] = credit_carry[t] + in_not_settled + max(ZERO, -deferred_out)
+        # B7 = излишек вычетов (перенесённый в зачёт) + заявленное и не полученное
+        # возмещение + входной НДС вне зачёта + НДС с авансов **полученных** (признан
+        # раньше отгрузки). Авансов выданных движок не моделирует — прежняя подпись
+        # «выданных» была неверной.
+        b7[t] = vat.credit[t] + vat.receivable[t] + in_not_settled + max(ZERO, -deferred_out)
 
     # --- Кэш-фло (оплата, с НДС) ---
     c28 = zeros(n)
@@ -1190,14 +1196,17 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
     profit_defer = cumulative([income["I27"][t] - profit_paid[t] for t in range(n)])
     vat_pay_defer = cumulative([vat_to_budget[t] - vat_paid[t] for t in range(n)])
     property_defer = cumulative([i9[t] - property_paid[t] for t in range(n)])
-    # Налоги в кассе: прибыль + имущество + налог с продаж + НДС + настраиваемые (SPEC §22.9).
-    taxes_cash = add(profit_paid, property_paid, i3, vat_paid, taxes.cash)
+    # Налоги в кассе: прибыль + имущество + налог с продаж + НДС + настраиваемые (SPEC §22.9)
+    # − возмещение НДС, полученное деньгами (K2).
+    vat_refund = [-v for v in vat.refund]
+    taxes_cash = add(profit_paid, property_paid, i3, vat_paid, taxes.cash, vat_refund)
     if details is not None:
         # Детализация C12 (Q7 пакета налогов): профильные налоги + каждый настраиваемый.
         details.put("C12", "Налог на прибыль", profit_paid)
         details.put("C12", "Налог на имущество", property_paid)
         details.put("C12", "Налог с продаж", i3)
         details.put("C12", "НДС к уплате", vat_paid)
+        details.put("C12", "Возмещение НДС", vat_refund)
         for tax_name, tax_paid in taxes.cash_items:
             details.put("C12", tax_name, tax_paid)
     cashflow_leaves = {

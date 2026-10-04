@@ -301,6 +301,12 @@ export interface ProjectSettings {
   sales_tax_rate?: string;
   vat_rate: string;
   vat_basis: VatBasis;
+  /**
+   * Излишек вычетов по итогам квартала: возмещается (ст. 176 НК РФ; по умолчанию) — деньги
+   * через `vat_refund_lag_months` после квартала — либо переносится в зачёт (false).
+   */
+  vat_refund?: boolean;
+  vat_refund_lag_months?: number;
   inventory_method: InventoryMethod;
   production_cycle_months?: number;
   inflation_sales: string;

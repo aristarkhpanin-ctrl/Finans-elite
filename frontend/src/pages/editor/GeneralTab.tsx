@@ -154,6 +154,13 @@ const PROFIT_DUE_HINT =
 const VAT_DUE_HINT =
   "По закону — квартал: три равные доли в трёх месяцах после него (ст. 174 НК РФ). " +
   "«Ежемесячно» и «ежегодно» — упрощения модели: уплата в месяце после периода.";
+// Возмещение излишка (движок 0.9.55): заявляется по итогам квартала — налогового периода
+// НДС, — даже при помесячной уплате; «в зачёт» — прежнее поведение, оно тоже законно.
+const VAT_REFUND_HINT =
+  "Излишек вычетов на конец квартала возмещается после камеральной проверки (ст. 176 НК " +
+  "РФ). «В зачёт» — излишек гасит налог следующих периодов (перенос вычетов, п. 1.1 ст. 172).";
+const VAT_REFUND_LAG_HINT =
+  "Месяцев после конца квартала: декларация — до 25-го числа, проверка — два месяца.";
 const CUSTOM_DUE_HINT =
   "Периоды календарные; уплата — в месяце, следующем за периодом.";
 // Срок взносов (движок 0.9.54) привязан к начислению зарплаты, а не к её выплате: задержка
@@ -443,6 +450,25 @@ export function GeneralTab({ header, settings, environment, onHeader, onSettings
           onChange={(v) => set({ vat_periodicity: v as ProjectSettings["vat_periodicity"] })}
           options={PERIODICITY_OPTIONS}
         />
+        <ESelect
+          label="Излишек входного НДС"
+          hint={VAT_REFUND_HINT}
+          value={settings.vat_refund === false ? "carry" : "refund"}
+          onChange={(v) => set({ vat_refund: v === "refund" })}
+          options={[
+            ["refund", "Возмещать"],
+            ["carry", "Переносить в зачёт"],
+          ]}
+        />
+        {settings.vat_refund !== false && (
+          <EField
+            label="Срок возмещения"
+            suffix="мес."
+            hint={VAT_REFUND_LAG_HINT}
+            value={settings.vat_refund_lag_months ?? 4}
+            onChange={(v) => set({ vat_refund_lag_months: parseInt(v || "4", 10) || 4 })}
+          />
+        )}
         <ESelect
           label="Оценка запасов ГП"
           value={settings.inventory_method ?? "average"}

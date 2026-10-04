@@ -9091,7 +9091,9 @@ export interface components {
              *       "valuation_earnings_multiple": "0",
              *       "vat_basis": "shipment",
              *       "vat_periodicity": "month",
-             *       "vat_rate": "0"
+             *       "vat_rate": "0",
+             *       "vat_refund": true,
+             *       "vat_refund_lag_months": 4
              *     }
              */
             settings: components["schemas"]["ProjectSettings-Input"];
@@ -9231,7 +9233,9 @@ export interface components {
              *       "valuation_earnings_multiple": "0",
              *       "vat_basis": "shipment",
              *       "vat_periodicity": "month",
-             *       "vat_rate": "0"
+             *       "vat_rate": "0",
+             *       "vat_refund": true,
+             *       "vat_refund_lag_months": 4
              *     }
              */
             settings: components["schemas"]["ProjectSettings-Output"];
@@ -9414,6 +9418,16 @@ export interface components {
              * @default 0
              */
             vat_rate: number | string;
+            /**
+             * Vat Refund
+             * @default true
+             */
+            vat_refund: boolean;
+            /**
+             * Vat Refund Lag Months
+             * @default 4
+             */
+            vat_refund_lag_months: number;
         };
         /**
          * ProjectSettings
@@ -9549,6 +9563,16 @@ export interface components {
              * @default 0
              */
             vat_rate: string;
+            /**
+             * Vat Refund
+             * @default true
+             */
+            vat_refund: boolean;
+            /**
+             * Vat Refund Lag Months
+             * @default 4
+             */
+            vat_refund_lag_months: number;
         };
         /** ProjectSummary */
         ProjectSummary: {

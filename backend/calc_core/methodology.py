@@ -229,14 +229,26 @@ def _i24(model: ProjectModel, result: CalcResult) -> Choice:
     )
 
 
-def _vat_paid(result: CalcResult) -> list[Decimal]:
-    """НДС в кассе по месяцам — слагаемое C12, сохранённое конвейером (без него — нули)."""
+#: Слагаемые C12, которые составляют НДС в кассе: уплата и возмещение (с 0.9.55 — со
+#: знаком минус). Возмещение входит, иначе два режима с разным сроком возврата излишка
+#: выглядели бы как расхождение в уплате.
+_VAT_CASH_ITEMS = ("НДС к уплате", "Возмещение НДС")
+
+
+def _c12_item(result: CalcResult, name: str) -> list[Decimal]:
+    """Слагаемое C12, сохранённое конвейером (без него — нули)."""
     for detail in result.details:
         if detail.code == "C12":
             for item in detail.items:
-                if item.name == "НДС к уплате":
+                if item.name == name:
                     return list(item.values)
     return [Decimal(0)] * result.n
+
+
+def _vat_paid(result: CalcResult) -> list[Decimal]:
+    """НДС в кассе по месяцам: уплата минус полученное возмещение."""
+    series = [_c12_item(result, name) for name in _VAT_CASH_ITEMS]
+    return [sum(col, Decimal(0)) for col in zip(*series, strict=True)]
 
 
 def _payment_basis_gap(model: ProjectModel, result: CalcResult) -> Decimal:
@@ -271,8 +283,14 @@ def _vat(model: ProjectModel, result: CalcResult) -> Choice:
     # имущество, и при выключенном НДС непустая C12 читалась бы как «НДС всё-таки есть».
     receivable = _nonzero(_line(result, "balance", "B7"))
     payable = _nonzero(_line(result, "balance", "B21"))
+    refunded = -sum(_c12_item(result, "Возмещение НДС"), Decimal(0))
     evidence: dict = {"vat_rate": str(rate), "vat_receivable_b7": str(receivable),
-                      "vat_payable_b21": str(payable)}
+                      "vat_payable_b21": str(payable), "vat_refunded_total": str(refunded)}
+    lag = model.settings.vat_refund_lag_months
+    excess = (f"Излишек вычетов, оставшийся на конец квартала, возмещается (ст. 176): деньги "
+              f"приходят через {lag} мес. после квартала, до того — в B7."
+              if model.settings.vat_refund else
+              "Излишек вычетов не возмещается, а переносится в зачёт будущих периодов (B7).")
     # НДС с полученных авансов в режиме «по отгрузке» начисляется с 0.9.45 (G11) — там
     # расхождения больше нет. Режим «по оплате» — упрощение: норма признаёт НДС по
     # наиболее ранней дате, а вычет — по принятию на учёт, и где есть отсрочки оплаты,
@@ -297,19 +315,28 @@ def _vat(model: ProjectModel, result: CalcResult) -> Choice:
         spec="SPEC §11",
         chosen=("По отгрузке, на наиболее раннюю из дат: НДС начисляется при реализации, а "
                 "с полученного аванса — при получении денег и принимается к вычету при "
-                "отгрузке; уплаченный НДС с аванса — в B7 до отгрузки."
+                "отгрузке; уплаченный НДС с аванса — в B7 до отгрузки. "
                 if basis == "shipment" else
                 "По оплате: НДС признаётся по факту денег; отложенный исходящий → B21, "
-                "входной вне зачёта и НДС с полученных авансов → B7."),
-        controls=["settings.vat_rate", "settings.vat_basis", "settings.vat_periodicity"],
-        open_question="Режим возврата переплаты НДС в C12.",
+                "входной вне зачёта и НДС с полученных авансов → B7. ") + excess,
+        controls=["settings.vat_rate", "settings.vat_basis", "settings.vat_periodicity",
+                  "settings.vat_refund", "settings.vat_refund_lag_months"],
+        # «Режим возврата переплаты в C12» закрыт в 0.9.55 (K2): возмещение — слагаемое
+        # C12 со знаком минус. Осталось допущение о сроке — у него есть норма, но нет
+        # одного ответа: камеральная проверка бывает короче и дольше.
+        open_question="Срок возмещения — допущение модели: по умолчанию четыре месяца после "
+                      "квартала (декларация — до 25-го числа, камеральная проверка — два "
+                      "месяца). Заявительный порядок (ст. 176.1) короче, продлённая проверка "
+                      "— дольше; отказ в возмещении не моделируется.",
         resolution="citable",
         proposed_basis="п. 1 ст. 167 НК РФ: момент определения базы — **наиболее ранняя** "
                        "из дат отгрузки и оплаты; с полученного аванса НДС начисляется "
                        "сразу, а при отгрузке принимается к вычету (п. 8 ст. 171, п. 6 "
                        "ст. 172) — так считает режим «по отгрузке» с 0.9.45. Вычет входного "
-                       "НДС — по принятию на учёт (п. 1 ст. 172). Возврат переплаты — "
-                       "ст. 176 НК РФ.",
+                       "НДС — по принятию на учёт (п. 1 ст. 172). Излишек вычетов по итогам "
+                       "налогового периода — квартала (ст. 163) — возмещается после "
+                       "камеральной проверки (п. 1–2 ст. 176, п. 2 ст. 88); перенос вычетов "
+                       "на будущие периоды допускает п. 1.1 ст. 172 — это режим «в зачёт».",
         divergence=divergence,
         engaged=rate > 0,
         silent_because="" if rate > 0 else

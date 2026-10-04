@@ -121,6 +121,23 @@ def test_the_shipment_and_payment_bases_are_described_differently():
     assert payment.chosen != shipment.chosen
 
 
+def test_the_vat_choice_says_what_happens_to_the_excess():
+    """«Режим возврата переплаты» был открытым вопросом пункта 2; с 0.9.55 он — выбор
+    модели, и карта называет его словами, со сроком, а не оставляет догадываться."""
+    model = build_showcase_project()
+    refund = _by_id(_map(model), "vat.basis")
+    assert "возмещается (ст. 176)" in refund.chosen and "через 4 мес." in refund.chosen
+    assert {"settings.vat_refund", "settings.vat_refund_lag_months"} <= set(refund.controls)
+    assert Decimal(refund.evidence["vat_refunded_total"]) > 0     # showcase возмещает
+    assert "возврата переплаты" not in refund.open_question
+
+    model.settings.vat_refund = False
+    carry = _by_id(_map(model), "vat.basis")
+    assert "не возмещается" in carry.chosen and "в зачёт" in carry.chosen
+    assert "через 4 мес." not in carry.chosen
+    assert carry.evidence["vat_refunded_total"] == "0"
+
+
 def test_auto_financing_is_silent_when_switched_off():
     model = build_sample_project()
     off = _by_id(methodology_map(model, run(model)), "financing.auto")

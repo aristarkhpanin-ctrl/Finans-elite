@@ -10339,7 +10339,9 @@
               "valuation_earnings_multiple": "0",
               "vat_basis": "shipment",
               "vat_periodicity": "month",
-              "vat_rate": "0"
+              "vat_rate": "0",
+              "vat_refund": true,
+              "vat_refund_lag_months": 4
             }
           },
           "user_tables": {
@@ -10491,7 +10493,9 @@
               "valuation_earnings_multiple": "0",
               "vat_basis": "shipment",
               "vat_periodicity": "month",
-              "vat_rate": "0"
+              "vat_rate": "0",
+              "vat_refund": true,
+              "vat_refund_lag_months": 4
             }
           },
           "user_tables": {
@@ -10956,6 +10960,18 @@
             ],
             "default": "0",
             "title": "Vat Rate"
+          },
+          "vat_refund": {
+            "default": true,
+            "title": "Vat Refund",
+            "type": "boolean"
+          },
+          "vat_refund_lag_months": {
+            "default": 4,
+            "maximum": 24.0,
+            "minimum": 1.0,
+            "title": "Vat Refund Lag Months",
+            "type": "integer"
           }
         },
         "title": "ProjectSettings",
@@ -11149,6 +11165,18 @@
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Vat Rate",
             "type": "string"
+          },
+          "vat_refund": {
+            "default": true,
+            "title": "Vat Refund",
+            "type": "boolean"
+          },
+          "vat_refund_lag_months": {
+            "default": 4,
+            "maximum": 24.0,
+            "minimum": 1.0,
+            "title": "Vat Refund Lag Months",
+            "type": "integer"
           }
         },
         "title": "ProjectSettings",
@@ -16198,7 +16226,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.54"
+    "version": "0.9.55"
   },
   "openapi": "3.1.0",
   "paths": {
