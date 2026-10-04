@@ -331,6 +331,9 @@ export function BudgetGantt({ n, startDate, stages, resources, budget, sched,
                      style={{ paddingLeft: 8 + depth * 14 }}>
                   {hasKids ? (
                     <button type="button" className="bg-gantt__tw"
+                            aria-expanded={!collapsed.has(row.id)}
+                            aria-label={(collapsed.has(row.id) ? "Развернуть группу «" : "Свернуть группу «")
+                              + (row.name || row.id) + "»"}
                             onClick={(e) => { e.stopPropagation(); toggle(row.id); }}>
                       {collapsed.has(row.id) ? "▸" : "▾"}
                     </button>
@@ -393,7 +396,7 @@ export function BudgetGantt({ n, startDate, stages, resources, budget, sched,
               )}
               {/* Связи «финиш → старт». Мышь их не ловит — тянуть надо полосы. */}
               {links.length > 0 && (
-                <svg className="bg-gantt__links" width={width} height={nodes.length * ROW_H}>
+                <svg className="bg-gantt__links" width={width} height={nodes.length * ROW_H} aria-hidden="true">
                   <defs>
                     <marker id="bgGanttArrow" markerWidth="7" markerHeight="7"
                             refX="6" refY="3" orient="auto">

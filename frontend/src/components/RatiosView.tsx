@@ -67,7 +67,7 @@ function Sparkline({ values, color }: { values: (number | null)[]; color: string
     .filter(Boolean)
     .join(" ");
   return (
-    <svg width="100%" height={h + 2} viewBox={`0 0 ${w} ${h + 2}`} preserveAspectRatio="none" style={{ display: "block", marginTop: 8 }}>
+    <svg width="100%" height={h + 2} viewBox={`0 0 ${w} ${h + 2}`} preserveAspectRatio="none" style={{ display: "block", marginTop: 8 }} aria-hidden="true">
       <polyline points={pts} fill="none" stroke={color} strokeWidth="1.6" vectorEffect="non-scaling-stroke" />
     </svg>
   );

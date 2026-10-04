@@ -20,6 +20,7 @@ import { useToast } from "../components/Toast";
 import { Button, ScrollRegion } from "../components/ui";
 import { UnsavedLeaveModal, useUnsavedGuard } from "../components/UnsavedGuard";
 import { downloadAuditXlsx } from "../auditExport";
+import { usePageTitle } from "../pageTitle";
 
 const dec = (v: string | null | undefined): number | null => {
   if (v === null || v === undefined || v === "") return null;
@@ -63,6 +64,7 @@ const ELIM_KINDS: [ElimKey, string, string][] = [
  * заданы явно; иначе выводится оговорка о завышении показателей группы.
  */
 export function AuditGroupPage() {
+  usePageTitle("Консолидация группы");
   const navigate = useNavigate();
   const toast = useToast();
   const qc = useQueryClient();

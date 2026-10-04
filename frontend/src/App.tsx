@@ -4,6 +4,7 @@ import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Layout } from "./components/Layout";
 import { Splash } from "./components/Splash";
+import { RouteAnnouncer } from "./components/RouteAnnouncer";
 import { ToastProvider } from "./components/Toast";
 import { AuditGroupPage } from "./pages/AuditGroupPage";
 import { AuditComparePage } from "./pages/AuditComparePage";
@@ -42,6 +43,9 @@ export function App() {
     <ErrorBoundary>
       <ToastProvider>
         <AppRoutes />
+        {/* Один объявитель на всё приложение — и на каркас, и на вход: переход между
+            «Вход» и «Регистрация» диктору так же нужен, как между проектами. */}
+        <RouteAnnouncer />
       </ToastProvider>
     </ErrorBoundary>
   );

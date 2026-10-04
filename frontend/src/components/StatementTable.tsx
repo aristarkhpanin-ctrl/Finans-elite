@@ -91,17 +91,31 @@ export function StatementTable({ title, statement, n, subtotals, grands, labels,
             return (
               <div key={l.code}>
                 <div className={"fin2-row" + kind}>
-                  <div
-                    className={"fin2-label" + (rows ? " fin2-label--exp" : "")}
-                    title={rows ? "Раскрыть слагаемые" : l.label}
-                    onClick={rows ? () => toggle(l.code) : undefined}
-                  >
-                    <span className="fin2-code">{l.code}</span>
-                    <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {l.label}
-                    </span>
-                    {rows && <span className="fin2-chev">{expanded ? "▾" : "▸"}</span>}
-                  </div>
+                  {rows ? (
+                    // Раскрываемая строка — кнопка (пакет K, K5): прежде это был `div` со
+                    // щелчком, и слагаемые были видны только мыши — ни Tab, ни диктор
+                    // до них не доходили. Состояние — `aria-expanded`, не одна стрелка.
+                    <button
+                      type="button"
+                      className="fin2-label fin2-label--exp"
+                      title={expanded ? "Свернуть слагаемые" : "Раскрыть слагаемые"}
+                      aria-expanded={expanded}
+                      onClick={() => toggle(l.code)}
+                    >
+                      <span className="fin2-code">{l.code}</span>
+                      <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {l.label}
+                      </span>
+                      <span className="fin2-chev" aria-hidden="true">{expanded ? "▾" : "▸"}</span>
+                    </button>
+                  ) : (
+                    <div className="fin2-label" title={l.label}>
+                      <span className="fin2-code">{l.code}</span>
+                      <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {l.label}
+                      </span>
+                    </div>
+                  )}
                   {cells(l.values)}
                 </div>
                 {expanded &&

@@ -24,6 +24,7 @@ import {
 import { useToast } from "../components/Toast";
 import { Button, ErrorState, Modal, Skeleton } from "../components/ui";
 import { fmtMillions, percent } from "../format";
+import { usePageTitle } from "../pageTitle";
 
 /** Вид списка (localStorage). */
 const VIEW_KEY = "fe_projects_view";
@@ -79,6 +80,7 @@ function dateText(p: ProjectSummary): string {
 }
 
 export function ProjectsPage() {
+  usePageTitle("Проекты");
   const qc = useQueryClient();
   const navigate = useNavigate();
   const toast = useToast();
@@ -319,7 +321,7 @@ export function ProjectsPage() {
                       className={"view-toggle__btn" + (view === "cards" ? " view-toggle__btn--active" : "")}
                       onClick={() => setViewPersist("cards")}
                     >
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                         <rect x="3" y="3" width="8" height="8" rx="1.5" />
                         <rect x="13" y="3" width="8" height="8" rx="1.5" />
                         <rect x="3" y="13" width="8" height="8" rx="1.5" />
@@ -333,7 +335,7 @@ export function ProjectsPage() {
                       className={"view-toggle__btn" + (view === "rows" ? " view-toggle__btn--active" : "")}
                       onClick={() => setViewPersist("rows")}
                     >
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                         <rect x="3" y="4" width="18" height="3" rx="1.5" />
                         <rect x="3" y="10.5" width="18" height="3" rx="1.5" />
                         <rect x="3" y="17" width="18" height="3" rx="1.5" />

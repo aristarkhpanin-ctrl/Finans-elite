@@ -8,6 +8,7 @@ import { ReviewTab } from "./analysis/ReviewTab";
 import { SensitivityTab } from "./analysis/SensitivityTab";
 import { VersionsTab } from "./analysis/VersionsTab";
 import { WhatIfTab } from "./analysis/WhatIfTab";
+import { usePageTitle } from "../pageTitle";
 
 const TABS = [
   ["review", "Ревью плана", "находки и гейт"],
@@ -24,6 +25,7 @@ export function ProjectAnalysisPage() {
   const [tab, setTab] = useState<string>("review");
   const projectQuery = useQuery({ queryKey: ["project", id], queryFn: () => getProject(id) });
   const name = projectQuery.data?.name ?? "";
+  usePageTitle("Анализ", name);
 
   return (
     <div>
@@ -33,6 +35,7 @@ export function ProjectAnalysisPage() {
             <button type="button" className="back-btn" onClick={() => navigate(`/projects/${id}`)}>
               ←<span style={{ marginLeft: 6 }}>Редактор</span>
             </button>
+            <h1 className="sr-only">Анализ рисков проекта «{name || "…"}»</h1>
             {name && (
               <span className="subheader__title" style={{ maxWidth: 320 }}>
                 {name}
@@ -51,7 +54,7 @@ export function ProjectAnalysisPage() {
               <button type="button" className="mode-seg__btn" onClick={() => navigate(`/projects/${id}/results`)}>
                 Результаты
               </button>
-              <button type="button" className="mode-seg__btn mode-seg__btn--active">
+              <button type="button" className="mode-seg__btn mode-seg__btn--active" aria-current="page">
                 Анализ
               </button>
             </div>

@@ -44,14 +44,15 @@ describe("fitWidth", () => {
 describe("графики меряют своё место", () => {
   it("гистограмма Монте-Карло", () => {
     placeWidth(338);
-    const { container } = render(<HistogramChart bins={[{ from: -1, to: 0, count: 3 }, { from: 0, to: 1, count: 5 }]} />);
+    const { container } = render(<HistogramChart label="Распределение NPV"
+                                                 bins={[{ from: -1, to: 0, count: 3 }, { from: 0, to: 1, count: 5 }]} />);
     expect(viewBoxes(container)).toEqual([`0 0 ${CHART_MIN_W} 240`]);
   });
 
   it("кривые чувствительности", () => {
     placeWidth(780);
     const { container } = render(
-      <MultiLineChart labels={["0,9", "1", "1,1"]}
+      <MultiLineChart label="Чувствительность" labels={["0,9", "1", "1,1"]}
                       series={[{ key: "a", label: "Цена", color: "red", values: [1, 2, 3] }]} />,
     );
     expect(viewBoxes(container)).toEqual(["0 0 780 260"]);
@@ -71,5 +72,42 @@ describe("графики меряют своё место", () => {
     // Денежный поток, окупаемость, прибыль, активы и оценка — по месту; кольцо — своё.
     expect(widths.filter((w) => w === 780)).toHaveLength(5);
     expect(widths).toContain(340);
+  });
+});
+
+describe("графики для экранного диктора", () => {
+  /**
+   * Рисунок скрыт, имя — у контейнера (пакет K, K5). Раньше SVG без роли и имени диктор
+   * зачитывал россыпью подписей осей; подпись теперь обязательна у каждого графика.
+   */
+  it("рисунок скрыт, контейнер — изображение с подписью", () => {
+    placeWidth(780);
+    const { container, getByRole } = render(
+      <HistogramChart label="Распределение NPV" bins={[{ from: 0, to: 1, count: 5 }]} />,
+    );
+    expect(getByRole("img", { name: "Распределение NPV" })).toBeTruthy();
+    expect([...container.querySelectorAll("svg")].every((s) => s.getAttribute("aria-hidden") === "true"))
+      .toBe(true);
+  });
+
+  it("пустой график называет, что данных нет", () => {
+    const { getByRole } = render(<MultiLineChart label="Чувствительность" labels={[]} series={[]} />);
+    expect(getByRole("img", { name: "Чувствительность: нет данных" })).toBeTruthy();
+  });
+
+  it("карточки результатов названы заголовком и подписью", () => {
+    placeWidth(780);
+    const empty = { lines: [] };
+    const result = {
+      n: 2, income: empty, cashflow: empty, balance: empty, profit_use: empty,
+      metrics: { pb_months: null },
+      valuation: { net_assets: "1000000", gordon_value: null, dividend_value: null,
+                   earnings_multiple_value: null, liquidation_value: null },
+    } as unknown as CalcResponse;
+    const { getAllByRole } = render(<ResultCharts result={result} />);
+    const names = getAllByRole("img").map((el) => el.getAttribute("aria-label") ?? "");
+    expect(names.length).toBeGreaterThanOrEqual(6);
+    expect(names.every((n) => n.length > 10)).toBe(true);
+    expect(names.some((n) => n.startsWith("Накопленный поток"))).toBe(true);
   });
 });

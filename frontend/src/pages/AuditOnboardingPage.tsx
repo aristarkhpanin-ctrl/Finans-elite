@@ -16,6 +16,7 @@ import { CubeHero } from "../components/CubeHero";
 import { PRODUCTS } from "../components/product";
 import { useToast } from "../components/Toast";
 import { Button, Field, SelectField } from "../components/ui";
+import { usePageTitle } from "../pageTitle";
 
 /**
  * Первый вход в «Финанс-Аудит» (макет «Экран 12 — Онбординг»): рейл с шагами слева,
@@ -90,6 +91,7 @@ export function inviteLink(token: string, origin: string): string {
 }
 
 export function AuditOnboardingPage() {
+  usePageTitle("Новое дело");
   const navigate = useNavigate();
   const toast = useToast();
   const { organizations, currentOrgId } = useAuth();

@@ -31,12 +31,14 @@ import {
   Switch,
 } from "../components/ui";
 import { fmtMillions, fmtMoney, fmtRatio, fmtTable, fracToPct, pctToFrac } from "../format";
+import { usePageTitle } from "../pageTitle";
 
 /**
  * Dev-песочница UI-кита (`/dev/ui`, только DEV-сборка): визуальная сверка
  * компонентов с макетами в обеих темах. В прод-бандл не попадает.
  */
 export function DevUiPage() {
+  usePageTitle("Витрина UI");
   const toast = useToast();
   const [theme, setTheme] = useState(getTheme());
   const [on, setOn] = useState(true);

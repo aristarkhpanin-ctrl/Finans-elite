@@ -17,6 +17,7 @@ import { IconCopy, IconTrash } from "../components/icons";
 import { useToast } from "../components/Toast";
 import { Button, Chip, ErrorState, Field, Loading, Modal, SelectField } from "../components/ui";
 import { plural } from "../format";
+import { usePageTitle } from "../pageTitle";
 
 /**
  * Финанс-Аудит — список дел (макет «Экран 6 — Каркас и список дел»).
@@ -81,6 +82,7 @@ function shortDate(iso: string): string {
 }
 
 export function AuditHomePage() {
+  usePageTitle("Дела");
   const qc = useQueryClient();
   const navigate = useNavigate();
   const toast = useToast();

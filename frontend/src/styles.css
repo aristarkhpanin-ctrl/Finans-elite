@@ -406,6 +406,17 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
 }
 
+/* «Перейти к содержимому» (пакет K, K5): первая остановка табуляции, видна только в фокусе */
+.skip-link {
+  position: absolute; left: 12px; top: -48px; z-index: 1000;
+  padding: 9px 14px; border-radius: 10px;
+  background: var(--surface); color: var(--text); border: 1px solid var(--border);
+  font: 600 13px var(--font-ui); text-decoration: none;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+.skip-link:focus { top: 10px; }
+.content:focus { outline: none; }
+
 /* Горизонтальная прокрутка широкой таблицы — классом, а не встроенным стилем: так её
    видит страж `a11yMarkup.test.ts` и требует ScrollRegion (пакет I). */
 .x-scroll { overflow-x: auto; }
@@ -825,7 +836,7 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .auth-mark-sm { width: 30px; height: 30px; flex: none; border-radius: 8px; overflow: hidden; }
 .auth-word-sm { font: 600 17px var(--font-display); letter-spacing: -0.015em; color: var(--text); white-space: nowrap; }
 .auth-word-sm span { color: var(--subtle); font-weight: 500; }
-.auth-title { font: 500 30px var(--font-display); letter-spacing: -0.025em; color: var(--text); }
+.auth-title { font: 500 30px var(--font-display); letter-spacing: -0.025em; color: var(--text); margin: 0; }
 .auth-subtitle { font: 400 14.5px/1.5 var(--font-ui); color: var(--muted); margin: 7px 0 26px; max-width: 360px; }
 .auth-theme-toggle {
   position: absolute; top: 18px; right: 18px; width: 32px; height: 32px; z-index: 2;
@@ -2616,7 +2627,7 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
 }
-.rhead__title { font: 500 20px var(--font-display); letter-spacing: -0.02em; color: var(--text); }
+.rhead__title { font: 500 20px var(--font-display); letter-spacing: -0.02em; color: var(--text); margin: 0; }
 .rhead__sub { font: 500 12px var(--font-ui); color: var(--subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rhead__actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .version-chip {
@@ -2782,6 +2793,9 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 
 /* Детализация строк (drill-down, пакет №6): раскрываемая строка + под-строки слагаемых */
 .fin2-label--exp { cursor: pointer; }
+/* Раскрываемая строка — кнопка (K5): снять оформление кнопки, оставить вид ячейки */
+button.fin2-label { border-top: 0; border-left: 0; margin: 0; text-align: left; }
+button.fin2-label:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .fin2-label--exp:hover { color: var(--accent); }
 .fin2-chev { margin-left: auto; flex: none; font-size: 10px; color: var(--subtle); }
 .fin2-label--exp:hover .fin2-chev { color: var(--accent); }
@@ -3082,6 +3096,8 @@ button.coeff-box { width: 100%; font: inherit; color: inherit; text-align: left;
 
 /* Легенда-toggle графика */
 .leg-toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font: 500 11.5px var(--font-ui); color: var(--muted); user-select: none; }
+button.leg-toggle { border: 0; background: none; padding: 0; }
+button.leg-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 .leg-toggle--off { opacity: 0.45; }
 .leg-toggle__dot { width: 12px; height: 3px; border-radius: 2px; flex: none; }
 

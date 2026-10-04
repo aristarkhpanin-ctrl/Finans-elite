@@ -7,6 +7,7 @@ import { PRODUCTS } from "../components/product";
 import {
   AuthLayout, AuthPasswordField, AuthField, AuthSubmit, isEmailValid, useAuthProduct,
 } from "./auth/AuthLayout";
+import { usePageTitle } from "../pageTitle";
 
 const REDIRECT_DELAY_MS = 1600;
 const MIN_PASSWORD = 8;
@@ -21,6 +22,7 @@ export function RegisterPage() {
   const { register } = useAuth();
   const navigate = useNavigate();
   const product = useAuthProduct();
+  usePageTitle("Регистрация");
   const [form, setForm] = useState({ full_name: "", email: "", password: "", organization_name: "" });
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [submitted, setSubmitted] = useState(false);

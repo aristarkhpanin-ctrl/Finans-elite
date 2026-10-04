@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { MouseEvent } from "react";
 import { NavLink, Outlet, matchPath, useLocation, useNavigate } from "react-router-dom";
 import { createOrganization, roleLabel } from "../api/org";
 import { useAuth } from "../auth/AuthContext";
@@ -24,6 +25,14 @@ const PROJECT_MODES = [
   ["/results", "Результаты"],
   ["/analysis", "Анализ"],
 ] as const;
+
+/** Ссылка «к содержимому»: фокус на `main`, адрес не трогается (см. разметку). */
+function skipToContent(e: MouseEvent<HTMLAnchorElement>) {
+  e.preventDefault();
+  const main = document.getElementById("content");
+  main?.focus();
+  main?.scrollIntoView({ block: "start" });
+}
 
 export function Layout() {
   const { user, organizations, currentOrgId, selectOrg, logout } = useAuth();
@@ -126,6 +135,13 @@ export function Layout() {
 
   return (
     <div className="app">
+      {/* Первая остановка табуляции (пакет K, K5): шапка с продуктом, организациями и
+          меню повторяется на каждой странице, и без обхода её проходят клавишей Tab
+          заново (WCAG 2.4.1). Видна только в фокусе. Переход — фокусом, а не адресом:
+          «#content» в строке адреса роутер принял бы за смену страницы. */}
+      <a href="#content" className="skip-link" onClick={skipToContent}>
+        Перейти к содержимому
+      </a>
       <header className="shell-header">
         <div className="shell-left">
           <NavLink to={product.home} className="shell-brand" style={{ textDecoration: "none" }}>
@@ -556,7 +572,7 @@ export function Layout() {
             ))}
           </aside>
         )}
-        <main className="content">
+        <main className="content" id="content" tabIndex={-1}>
           {/* Режим чтения и выгрузки — над содержимым и на каждом экране: отказ,
               объяснённый один раз на странице тарифа, до того, кто нажимает
               «Сохранить» на третьей вкладке редактора, не доходит. */}

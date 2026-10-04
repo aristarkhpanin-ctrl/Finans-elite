@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { activateInvite } from "../api/auth";
 import { httpDetail, httpStatus, setToken } from "../api/client";
 import { Button, Field } from "../components/ui";
+import { usePageTitle } from "../pageTitle";
 
 /**
  * Активация приглашения (макет «Экран 15»).
@@ -18,6 +19,7 @@ export function ActivatePage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const token = params.get("token") ?? "";
+  usePageTitle("Вход по ссылке");
 
   const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
@@ -59,7 +61,7 @@ export function ActivatePage() {
 
   if (!token) {
     return (
-      <div className="auth-card">
+      <div className="auth-card" role="main">
         <h1 className="auth-title">Ссылка неполная</h1>
         <p className="page-sub">
           В адресе нет кода приглашения. Откройте ссылку из письма целиком или
@@ -71,7 +73,7 @@ export function ActivatePage() {
   }
 
   return (
-    <div className="auth-card">
+    <div className="auth-card" role="main">
       <h1 className="auth-title">Задайте пароль</h1>
       <p className="page-sub" style={{ marginBottom: 18 }}>
         Вас пригласили в организацию. Придумайте пароль — после этого вы сразу

@@ -22,6 +22,7 @@ import { downloadBusinessPlanDocx, downloadCsv, downloadPdf, downloadXlsx, state
 import { Comments } from "../components/Comments";
 import { fmtMillions, percent, plural } from "../format";
 import { fmtInt } from "../components/monthlyGrid.logic";
+import { usePageTitle } from "../pageTitle";
 
 const STATEMENTS = [
   ["income", "Прибыли и убытки"],
@@ -75,6 +76,7 @@ export function ProjectResultsPage() {
   const projectQuery = useQuery({ queryKey: ["project", id], queryFn: () => getProject(id) });
 
   const title = projectQuery.data?.name ?? "";
+  usePageTitle("Результаты", title);
   const isStatement = STATEMENTS.some(([k]) => k === tab);
 
   const header = (
@@ -84,7 +86,7 @@ export function ProjectResultsPage() {
           ←<span style={{ marginLeft: 6 }}>Редактор</span>
         </button>
         <div style={{ minWidth: 0 }}>
-          <div className="rhead__title">Результаты</div>
+          <h1 className="rhead__title">Результаты</h1>
           {title && <div className="rhead__sub">{title}</div>}
         </div>
       </div>

@@ -19,6 +19,7 @@ import { FinancingTab } from "./editor/FinancingTab";
 import { GeneralTab } from "./editor/GeneralTab";
 import { SalesTab } from "./editor/SalesTab";
 import { TablesTab } from "./editor/TablesTab";
+import { usePageTitle } from "../pageTitle";
 
 const TABS = [
   ["general", "Проект"],
@@ -74,6 +75,7 @@ export function ProjectEditorPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { data, isLoading, isError, refetch } = useQuery({ queryKey: ["project", id], queryFn: () => getProject(id) });
+  usePageTitle("Редактор", data?.name);
 
   const [model, setModel] = useState<ProjectModel | null>(null);
   const [tab, setTab] = useState<TabKey>(() => {
@@ -196,14 +198,18 @@ export function ProjectEditorPage() {
             <button type="button" className="back-btn" onClick={() => tryNav("Проекты", () => navigate("/projects"))}>
               ←<span style={{ marginLeft: 6 }}>Проекты</span>
             </button>
+            {/* Заголовок страницы для диктора (K5): видимое имя — поле ввода, а поле
+                заголовком не бывает. */}
+            <h1 className="sr-only">Редактор проекта «{model.header.name || "Без названия"}»</h1>
             <div className="name-wrap" title="Переименовать проект">
               <input
+                aria-label="Название проекта"
                 value={model.header.name}
                 placeholder="Без названия"
                 onChange={(e) => setModel({ ...model, header: { ...model.header, name: e.target.value } })}
               />
               <span className="name-wrap__ico">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                   <path d="M4 20h4L19 9l-4-4L4 16v4z" strokeLinejoin="round" />
                 </svg>
               </span>
@@ -211,7 +217,7 @@ export function ProjectEditorPage() {
           </div>
           <div className="esub__actions">
             <div className="mode-seg">
-              <button type="button" className="mode-seg__btn mode-seg__btn--active">
+              <button type="button" className="mode-seg__btn mode-seg__btn--active" aria-current="page">
                 Редактор
               </button>
               <button

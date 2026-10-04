@@ -15,6 +15,7 @@ import { CubeHero } from "../components/CubeHero";
 import { PRODUCTS } from "../components/product";
 import { useToast } from "../components/Toast";
 import { Button, Field } from "../components/ui";
+import { usePageTitle } from "../pageTitle";
 
 /**
  * Первый проект «Финанс-Элита» (пакет G, G12): цель → основа → название. Устроен как
@@ -102,6 +103,7 @@ function monthsWord(n: number): string {
 }
 
 export function ProjectOnboardingPage() {
+  usePageTitle("Новый проект");
   const navigate = useNavigate();
   const toast = useToast();
   // Пришли со страницы дела («Бизнес-план из дела»): цель и дело уже выбраны.

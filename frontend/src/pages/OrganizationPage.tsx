@@ -13,6 +13,7 @@ import { ApiKeysTab } from "./org/ApiKeysTab";
 import { SupportAccessTab } from "./org/SupportAccessTab";
 import { DataTab } from "./org/DataTab";
 import { OverviewTab } from "./org/OverviewTab";
+import { usePageTitle } from "../pageTitle";
 
 const TABS = [
   ["overview", "Обзор"],
@@ -29,6 +30,7 @@ const TABS = [
 ] as const;
 
 export function OrganizationPage() {
+  usePageTitle("Организация");
   const { currentOrgId, organizations, user } = useAuth();
   const [searchParams] = useSearchParams();
   // ?tab=billing — прямой переход на вкладку. Письма о деньгах (G4) ведут сразу к оплате:

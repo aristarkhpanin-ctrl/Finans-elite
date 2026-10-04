@@ -38,10 +38,17 @@ describe("StatementTable drill-down", () => {
   it("строка с детализацией раскрывается в слагаемые и сворачивается", () => {
     renderTable();
     expect(screen.queryByText("Стул")).toBeNull();               // свёрнуто по умолчанию
-    fireEvent.click(screen.getByTitle("Раскрыть слагаемые"));
+    // Раскрываемая строка — кнопка с состоянием (пакет K, K5): до неё доходят Tab и
+    // диктор, а не только мышь, и раскрытость названа, а не нарисована стрелкой.
+    const row = screen.getByTitle("Раскрыть слагаемые");
+    expect(row.tagName).toBe("BUTTON");
+    expect(row.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(row);
     expect(screen.getByText("Стул")).toBeTruthy();
     expect(screen.getByText("Стол")).toBeTruthy();
-    fireEvent.click(screen.getByTitle("Раскрыть слагаемые"));
+    expect(row.getAttribute("aria-expanded")).toBe("true");
+    expect(row.getAttribute("title")).toBe("Свернуть слагаемые");
+    fireEvent.click(row);
     expect(screen.queryByText("Стул")).toBeNull();
   });
 

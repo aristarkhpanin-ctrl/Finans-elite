@@ -32,6 +32,7 @@ import { useAuth } from "../auth/AuthContext";
 import { useToast } from "../components/Toast";
 import { Button, Chip, ErrorState, Field, Loading, Modal } from "../components/ui";
 import { plural } from "../format";
+import { usePageTitle } from "../pageTitle";
 
 /**
  * Служебный раздел платформы (ADMIN-DECOMPOSITION.md, B1).
@@ -107,6 +108,7 @@ const PAYMENT_STATUS: Record<string, string> = {
 };
 
 export function AdminPage() {
+  usePageTitle("Служебный контур");
   const { user } = useAuth();
   const [tab, setTab] = useState<string>("orgs");
   const [openOrg, setOpenOrg] = useState<string | null>(null);

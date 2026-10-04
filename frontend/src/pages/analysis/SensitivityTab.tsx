@@ -115,7 +115,7 @@ export function SensitivityTab({ projectId }: { projectId: string }) {
       {run.isIdle && (
         <div className="setup-ph">
           <div className="setup-ph__ico">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
               <path d="M4 19V5M4 19h16M8 15l3-3 3 1 4-5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
@@ -159,18 +159,23 @@ export function SensitivityTab({ projectId }: { projectId: string }) {
             <div className="chart-card2__sub">Выделена выбранная переменная · ось Y — млн ₽</div>
             <div className="chart-legend" style={{ marginTop: 10 }}>
               {SENSITIVITY_PARAMS.map(([key, label], i) => (
-                <span
+                // Переключатель серии — кнопка с состоянием (K5): `span` со щелчком был
+                // доступен только мыши, а скрытая серия отличалась лишь бледностью.
+                <button
+                  type="button"
                   key={key}
                   className={"leg-toggle" + (hidden.has(key) ? " leg-toggle--off" : "")}
+                  aria-pressed={!hidden.has(key)}
                   onClick={() => toggleLegend(key)}
                 >
                   <span className="leg-toggle__dot" style={{ background: CAT[i % CAT.length] }} />
                   {label}
-                </span>
+                </button>
               ))}
             </div>
             <div style={{ marginTop: 6 }}>
-              <MultiLineChart series={series} labels={labels} selectedKey={hidden.has(param) ? undefined : param} />
+              <MultiLineChart label="Чувствительность NPV к параметрам, млн ₽" series={series}
+                              labels={labels} selectedKey={hidden.has(param) ? undefined : param} />
             </div>
           </div>
 

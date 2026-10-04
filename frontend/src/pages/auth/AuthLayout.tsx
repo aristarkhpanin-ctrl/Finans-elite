@@ -151,7 +151,7 @@ export function AuthLayout({
   const [theme, setTheme] = useState(getTheme());
 
   return (
-    <div className="auth-page">
+    <main className="auth-page">
       <div className="auth-card auth-card--split">
         <BrandPanel product={product} />
         <div className="auth-form">
@@ -173,7 +173,7 @@ export function AuthLayout({
                           showEnvironment={false} />
               </div>
               <div className="auth-success__circle">
-                <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <path
                     d="M5 12.5l4.2 4.3L19 7.2"
                     stroke="var(--primary-text)"
@@ -198,7 +198,7 @@ export function AuthLayout({
                 </div>
                 <Wordmark product={product} small />
               </div>
-              <div className="auth-title">{title}</div>
+              <h1 className="auth-title">{title}</h1>
               <div className="auth-subtitle">{subtitle}</div>
 
               {serverError && (
@@ -224,7 +224,7 @@ export function AuthLayout({
           )}
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 

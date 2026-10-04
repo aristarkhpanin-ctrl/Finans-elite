@@ -3,7 +3,7 @@ import type { MouseEvent, ReactNode } from "react";
 import { line, type CalcResponse, type StatementOut } from "../api/calc";
 import { fmtAxis, fmtMoney, signedMoney } from "../format";
 import {
-  axisLayer, CAT, EmptyChart, fitWidth, frame, monthLabels, PAL, Svg, useChartWidth,
+  axisLayer, CAT, chartA11y, EmptyChart, fitWidth, frame, monthLabels, PAL, Svg, useChartWidth,
   type Frame, type P, type TipRow,
 } from "./charts";
 
@@ -27,15 +27,18 @@ const sumLine = (stmt: StatementOut, ...codes: string[]) =>
   codes.reduce((acc, code) => acc + line(stmt, code).reduce((s, v) => s + Number(v ?? 0), 0), 0);
 
 /** Место под график: меряет свою ширину и строит график в геометрии по ней. */
-function ChartBox({ height, base, fixed, children }: {
+function ChartBox({ height, base, fixed, label, empty, children }: {
   height: number;
   base: P;
   fixed?: boolean;
+  /** Имя графика для диктора (K5): заголовок карточки и её подпись. */
+  label: string;
+  empty?: boolean;
   children: (p: P) => ReactNode;
 }) {
   const [ref, width] = useChartWidth<HTMLDivElement>();
   return (
-    <div ref={ref} style={{ height, marginTop: 10 }}>
+    <div ref={ref} {...chartA11y(label, empty)} style={{ height, marginTop: 10 }}>
       {children(fixed ? base : fitWidth(base, width))}
     </div>
   );
@@ -521,7 +524,8 @@ export function ResultCharts({ result }: { result: CalcResponse }) {
               ))}
             </div>
           )}
-          <ChartBox height={c.height} base={c.p} fixed={c.fixed}>
+          <ChartBox height={c.height} base={c.p} fixed={c.fixed} label={`${c.title}. ${c.sub}`}
+                    empty={c.empty}>
             {(p) => (c.empty ? <EmptyChart p={p} /> : c.el(p))}
           </ChartBox>
           {tip && tip.card === c.id && (

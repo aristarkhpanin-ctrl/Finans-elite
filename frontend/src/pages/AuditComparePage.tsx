@@ -8,6 +8,7 @@ import {
 } from "../api/audit";
 import { Button, ScrollRegion } from "../components/ui";
 import { fmtMoney } from "../format";
+import { usePageTitle } from "../pageTitle";
 
 /**
  * Сравнение дел (макет «Экран 20»; методика — SPEC, Приложение С).
@@ -120,6 +121,7 @@ function Comparison({ data }: { data: AuditComparison }) {
 }
 
 export function AuditComparePage() {
+  usePageTitle("Сравнение дел");
   const [selected, setSelected] = useState<string[]>([]);
   const subjects = useQuery({ queryKey: ["audit-subjects"], queryFn: listAuditSubjects });
   const compare = useMutation({ mutationFn: () => compareAuditSubjects(selected) });

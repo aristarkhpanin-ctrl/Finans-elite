@@ -70,6 +70,25 @@ const SCROLL_WITH_CONTROLS: Record<string, string> = {
   drawer: "выдвижная панель — диалог со своим фокусом и ссылками",
 };
 
+/** Слова класса — и из `className="…"`, и из строк внутри `className={"…" + …}`. */
+function classWords(tag: string): string[] {
+  const expr = /className=(\{(?:[^{}]|\{[^{}]*\})*\}|"[^"]*")/.exec(tag)?.[1] ?? "";
+  return [...expr.matchAll(/"([^"]*)"/g)].flatMap((m) => m[1].split(/\s+/)).filter(Boolean);
+}
+
+/**
+ * Элементы со щелчком, которым клавиатура не нужна, — с причиной (пакет K, K5). Всё
+ * остальное со щелчком обязано быть кнопкой или ссылкой.
+ */
+const CLICK_WITHOUT_KEYBOARD: Record<string, string> = {
+  "menu-overlay": "подложка меню закрывает его по щелчку; с клавиатуры — Esc",
+  "drawer-overlay": "подложка выдвижной панели; с клавиатуры — Esc",
+  "modal-overlay": "подложка модалки; с клавиатуры — Esc",
+  "modal-wrap": "поле вокруг модалки закрывает её по щелчку; с клавиатуры — Esc",
+  "bg-gantt__row": "строка Гантта лишь подсвечивает карточку этапа; этапы правятся в карточках",
+  "bg-gantt__track": "полоса Гантта — то же выделение; сроки правятся в карточках этапов",
+};
+
 /**
  * Классы, которые делают элемент контейнером с прокруткой, — из самих стилей: правило с
  * `overflow: auto|scroll`, класс субъекта селектора (`.a .b` — это `b`). Медиа-запросы
@@ -231,6 +250,46 @@ describe("разметка доступности", () => {
     for (const name of Object.keys(SCROLL_WITH_CONTROLS)) {
       expect(used.has(name), `исключение ${name} не используется — удалите`).toBe(true);
       expect(SCROLLING.has(name), `${name} больше не прокручивается — удалите исключение`).toBe(true);
+    }
+  });
+
+  it("рисунок либо назван, либо скрыт от диктора", () => {
+    // SVG без роли и имени диктор читал россыпью подписей осей — «8,4м 12м 0 М1…» (пакет K,
+    // K5). Значок рядом со словом — скрыт; график — изображение с подписью у контейнера
+    // (`chartA11y`), а сам рисунок тоже скрыт.
+    const bare: string[] = [];
+    for (const { path, text } of FILES) {
+      for (const { start, tag } of openingTags(text, "svg")) {
+        const hidden = /aria-hidden="true"/.test(tag) || /\{\.\.\.props\}/.test(tag);
+        const named = /role="img"/.test(tag) && /aria-label/.test(tag);
+        if (!hidden && !named) bare.push(`${path}:${lineOf(text, start)}`);
+      }
+    }
+    expect(bare, "SVG без имени и не скрытый").toEqual([]);
+  });
+
+  it("щелчок — у кнопок и ссылок", () => {
+    // Раскрытие слагаемых в отчётах и переключатели легенды чувствительности были `div` и
+    // `span` со щелчком: с клавиатуры и для диктора их не существовало (пакет K, K5).
+    const stray: string[] = [];
+    for (const { path, text } of FILES) {
+      for (const name of ["div", "span", "li", "td", "tr", "p", "section"]) {
+        for (const { start, tag } of openingTags(text, name)) {
+          if (!/\sonClick=/.test(tag)) continue;
+          const cls = classWords(tag);
+          if (cls.some((c) => c in CLICK_WITHOUT_KEYBOARD) || /role="dialog"/.test(tag)) continue;
+          stray.push(`${path}:${lineOf(text, start)} <${name}>`);
+        }
+      }
+    }
+    expect(stray, "щелчок на элементе, до которого не дойти с клавиатуры").toEqual([]);
+  });
+
+  it("исключения щелчка не устарели", () => {
+    const used = new Set(FILES.flatMap(({ text }) =>
+      ["div", "span"].flatMap((name) => openingTags(text, name).flatMap(({ tag }) => classWords(tag)))));
+    for (const name of Object.keys(CLICK_WITHOUT_KEYBOARD)) {
+      expect(used.has(name), `исключение щелчка ${name} не используется — удалите`).toBe(true);
     }
   });
 });

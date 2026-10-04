@@ -10,6 +10,7 @@ import { Button, Field, Modal } from "../components/ui";
 import {
   AuthLayout, AuthPasswordField, AuthField, AuthSubmit, isEmailValid, useAuthProduct,
 } from "./auth/AuthLayout";
+import { usePageTitle } from "../pageTitle";
 
 const REDIRECT_DELAY_MS = 1600; // длительность прогресса success-оверлея
 
@@ -38,6 +39,7 @@ export function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const product = useAuthProduct();
+  usePageTitle("Вход");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [touched, setTouched] = useState<Record<string, boolean>>({});

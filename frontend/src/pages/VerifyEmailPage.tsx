@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { verifyEmail } from "../api/auth";
 import { httpDetail } from "../api/client";
 import { Button } from "../components/ui";
+import { usePageTitle } from "../pageTitle";
 
 /**
  * Подтверждение адреса по ссылке из письма (OPEN-DECISIONS §4).
@@ -21,6 +22,7 @@ import { Button } from "../components/ui";
 export function VerifyEmailPage() {
   const [params] = useSearchParams();
   const token = params.get("token") ?? "";
+  usePageTitle("Подтверждение адреса");
   const [state, setState] = useState<"busy" | "done" | "fail">(token ? "busy" : "fail");
   const [error, setError] = useState(token ? "" : "В ссылке нет токена подтверждения.");
   const [note, setNote] = useState("");
@@ -41,7 +43,7 @@ export function VerifyEmailPage() {
   }, [token]);
 
   return (
-    <div className="auth-card">
+    <div className="auth-card" role="main">
       <h1 className="auth-title">Подтверждение адреса</h1>
       {state === "busy" && <p className="page-sub">Подтверждаем…</p>}
       {state === "done" && <p className="page-sub">{note}</p>}

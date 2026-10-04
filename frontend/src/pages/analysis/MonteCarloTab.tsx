@@ -206,7 +206,7 @@ export function MonteCarloTab({ projectId }: { projectId: string }) {
       {idle && (
         <div className="setup-ph">
           <div className="setup-ph__ico">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
               <path d="M3 3v18h18M7 14l3-4 3 3 5-7" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
@@ -286,6 +286,7 @@ export function MonteCarloTab({ projectId }: { projectId: string }) {
             </div>
             <div style={{ marginTop: 6 }}>
               <HistogramChart
+                label="Распределение NPV по итерациям Монте-Карло, млн ₽"
                 bins={d.histogram.map((b) => ({ from: Number(b.from) / 1e6, to: Number(b.to) / 1e6, count: b.count }))}
               />
             </div>

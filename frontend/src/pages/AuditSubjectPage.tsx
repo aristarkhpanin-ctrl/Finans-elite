@@ -58,6 +58,7 @@ import { allBalanced, balanceGaps, serverGaps } from "../auditBalance";
 import { downloadAuditXlsx } from "../auditExport";
 import { downloadAuditTemplate, parseAuditXlsx } from "../auditXlsx";
 import { fmtMoney } from "../format";
+import { usePageTitle } from "../pageTitle";
 
 type Tab = "summary" | "subject" | "input" | "reports" | "ratios" | "trends" | "diagnostics"
   | "flags" | "earnings" | "obligations" | "procedures" | "valuation" | "risk" | "planfact"
@@ -165,6 +166,7 @@ export function AuditSubjectPage() {
   });
 
   const [name, setName] = useState("");
+  usePageTitle("Дело", data?.name);
   const [model, setModel] = useState<AuditModel | null>(null);
   const [tab, setTab] = useState<Tab>("summary");
   const [printMode, setPrintMode] = useState(false);
@@ -398,6 +400,8 @@ export function AuditSubjectPage() {
         <div style={{ minWidth: 0, flex: 1 }}>
           <button type="button" className="link-back"
                   onClick={() => tryNav("Дела", () => navigate("/audit"))}>← К субъектам</button>
+          {/* Заголовок для диктора (K5): видимое имя дела — поле ввода. */}
+          <h1 className="sr-only">Дело «{data?.name || name || "без названия"}»</h1>
           <input
             className="subject-name"
             aria-label="Название дела"

@@ -18,6 +18,7 @@ import { IconTrash } from "../components/icons";
 import { useToast } from "../components/Toast";
 import { Button, ErrorState, Loading, Modal, ScrollRegion } from "../components/ui";
 import { fmtMillions, fmtTable, percent } from "../format";
+import { usePageTitle } from "../pageTitle";
 
 const roleColor = (r: string) => (r === "parent" ? "var(--primary)" : "var(--info)");
 
@@ -34,6 +35,7 @@ export function HoldingDetailPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const holdingQuery = useQuery({ queryKey: ["holding", id], queryFn: () => getHolding(id) });
+  usePageTitle("Холдинг", holdingQuery.data?.name);
   const projectsQuery = useQuery({ queryKey: ["projects"], queryFn: listProjects });
 
   const invalidate = () => {

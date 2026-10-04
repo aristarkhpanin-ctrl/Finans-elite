@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { unsubscribeByToken } from "../api/comments";
 import { httpDetail } from "../api/client";
 import { Button } from "../components/ui";
+import { usePageTitle } from "../pageTitle";
 
 /**
  * «Не писать мне об этом обсуждении» — по ссылке из письма (OPEN-DECISIONS §5).
@@ -20,6 +21,7 @@ import { Button } from "../components/ui";
 export function UnsubscribePage() {
   const [params] = useSearchParams();
   const token = params.get("token") ?? "";
+  usePageTitle("Письма об обсуждении");
   const [state, setState] = useState<"busy" | "done" | "fail">(token ? "busy" : "fail");
   const [error, setError] = useState(token ? "" : "В ссылке нет токена отписки.");
   const [note, setNote] = useState("");
@@ -49,7 +51,7 @@ export function UnsubscribePage() {
   }, [token]);
 
   return (
-    <div className="auth-card">
+    <div className="auth-card" role="main">
       <h1 className="auth-title">Письма об обсуждении</h1>
       {state === "busy" && <p className="page-sub">Выполняем…</p>}
       {state === "done" && (

@@ -7,6 +7,7 @@ import { IconTrash } from "../components/icons";
 import { useToast } from "../components/Toast";
 import { Button, ErrorState, Modal, Skeleton } from "../components/ui";
 import { fmtMillions } from "../format";
+import { usePageTitle } from "../pageTitle";
 
 function plural(n: number, one: string, few: string, many: string): string {
   const m10 = n % 10;
@@ -17,6 +18,7 @@ function plural(n: number, one: string, few: string, many: string): string {
 }
 
 export function HoldingsPage() {
+  usePageTitle("Холдинги");
   const qc = useQueryClient();
   const navigate = useNavigate();
   const toast = useToast();
