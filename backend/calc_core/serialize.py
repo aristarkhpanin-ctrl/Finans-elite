@@ -193,8 +193,8 @@ def result_to_dict(result: CalcResult) -> dict[str, object]:
         ]
     if result.metrics_foreign is not None:
         snapshot["metrics_foreign"] = metrics_to_dict(result.metrics_foreign)
-    # Поток проекта — только там, где он не равен C13 + C20 (есть лизинг): без лизинга он
-    # ничего не добавляет к снимку, и эталоны без лизинга не сдвигаются.
+    # Поток проекта — только там, где он не равен C13 + C20 (есть лизинг или депозиты):
+    # иначе он ничего не добавляет к снимку, и такие эталоны не сдвигаются.
     pre = [a + b for a, b in zip(result.cashflow["C13"], result.cashflow["C20"], strict=True)]
     if result.project_flow and result.project_flow != pre:
         snapshot["project_flow"] = [_money(v) for v in result.project_flow]
