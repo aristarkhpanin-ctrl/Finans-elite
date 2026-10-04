@@ -2649,6 +2649,98 @@
         "title": "AuditRealizedFlagOut",
         "type": "object"
       },
+      "AuditRegistryOut": {
+        "description": "Снимок сведений ГИР БО об организации — та же форма, что ``RegistrySnapshot``.",
+        "properties": {
+          "address": {
+            "default": "",
+            "title": "Address",
+            "type": "string"
+          },
+          "fetched_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fetched On"
+          },
+          "full_name": {
+            "default": "",
+            "title": "Full Name",
+            "type": "string"
+          },
+          "inn": {
+            "default": "",
+            "title": "Inn",
+            "type": "string"
+          },
+          "kpp": {
+            "default": "",
+            "title": "Kpp",
+            "type": "string"
+          },
+          "notes": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "ogrn": {
+            "default": "",
+            "title": "Ogrn",
+            "type": "string"
+          },
+          "okved": {
+            "default": "",
+            "title": "Okved",
+            "type": "string"
+          },
+          "periods": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Periods",
+            "type": "array"
+          },
+          "short_name": {
+            "default": "",
+            "title": "Short Name",
+            "type": "string"
+          },
+          "source": {
+            "default": "girbo",
+            "title": "Source",
+            "type": "string"
+          },
+          "status_code": {
+            "default": "",
+            "title": "Status Code",
+            "type": "string"
+          },
+          "status_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status Date"
+          }
+        },
+        "title": "AuditRegistryOut",
+        "type": "object"
+      },
       "AuditRiskOut": {
         "description": "Анализ рисков оценки (SPEC, Прил. Р): торнадо, Монте-Карло и оговорки.",
         "properties": {
@@ -2933,6 +3025,16 @@
             "title": "Realized Flags",
             "type": "array"
           },
+          "registry": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RegistrySnapshot"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "report": {
             "$ref": "#/components/schemas/ReportRequisites"
           },
@@ -3088,6 +3190,16 @@
             "maxItems": 50,
             "title": "Realized Flags",
             "type": "array"
+          },
+          "registry": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RegistrySnapshot"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "report": {
             "$ref": "#/components/schemas/ReportRequisites"
@@ -4941,6 +5053,11 @@
           "error_tracking": {
             "default": false,
             "title": "Error Tracking",
+            "type": "boolean"
+          },
+          "girbo": {
+            "default": false,
+            "title": "Girbo",
             "type": "boolean"
           },
           "mail": {
@@ -7100,6 +7217,80 @@
           "label"
         ],
         "title": "FunnelStepOut",
+        "type": "object"
+      },
+      "GirboPreviewOut": {
+        "description": "Отчётность фирмы-цели из ГИР БО (L3) — **предпросмотр**, ничего не сохранено.\n\nПрименяет её экран дела: периоды и строки отчётности заменяются, дальше — обычное\nсохранение, со всеми проверками дела. ``registry`` — снимок сведений ресурса на дату\nзапроса; он уходит в дело и по нему сверяются реквизиты и статус организации.",
+        "properties": {
+          "balance": {
+            "additionalProperties": {
+              "items": {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Balance",
+            "type": "object"
+          },
+          "forms": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Forms",
+            "type": "array"
+          },
+          "income": {
+            "additionalProperties": {
+              "items": {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Income",
+            "type": "object"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "periods": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Periods",
+            "type": "array"
+          },
+          "registry": {
+            "$ref": "#/components/schemas/AuditRegistryOut"
+          },
+          "sources": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "status_label": {
+            "title": "Status Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "periods",
+          "forms",
+          "sources",
+          "balance",
+          "income",
+          "registry",
+          "status_label",
+          "notes"
+        ],
+        "title": "GirboPreviewOut",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -11808,6 +11999,107 @@
           "organization_name"
         ],
         "title": "RegisterRequest",
+        "type": "object"
+      },
+      "RegistrySnapshot": {
+        "description": "Сведения об организации из открытого реестра на дату запроса (пакет L, L3).\n\nХранится **снимок**, а не ссылка: дело предъявляют комитету, и «что говорил реестр,\nкогда мы смотрели» обязано пережить и смену статуса организации, и смену адреса\nресурса. Источник — ГИР БО (ресурс бухгалтерской отчётности ФНС), а **не выписка\nЕГРЮЛ**, и так он называется везде, где показан. Пустой (``None`` у дела) — инертен.",
+        "properties": {
+          "address": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Address",
+            "type": "string"
+          },
+          "fetched_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fetched On"
+          },
+          "full_name": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Full Name",
+            "type": "string"
+          },
+          "inn": {
+            "default": "",
+            "maxLength": 12,
+            "title": "Inn",
+            "type": "string"
+          },
+          "kpp": {
+            "default": "",
+            "maxLength": 9,
+            "title": "Kpp",
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Notes",
+            "type": "array"
+          },
+          "ogrn": {
+            "default": "",
+            "maxLength": 15,
+            "title": "Ogrn",
+            "type": "string"
+          },
+          "okved": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Okved",
+            "type": "string"
+          },
+          "periods": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 48,
+            "title": "Periods",
+            "type": "array"
+          },
+          "short_name": {
+            "default": "",
+            "maxLength": 255,
+            "title": "Short Name",
+            "type": "string"
+          },
+          "source": {
+            "const": "girbo",
+            "default": "girbo",
+            "title": "Source",
+            "type": "string"
+          },
+          "status_code": {
+            "default": "",
+            "maxLength": 40,
+            "title": "Status Code",
+            "type": "string"
+          },
+          "status_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status Date"
+          }
+        },
+        "title": "RegistrySnapshot",
         "type": "object"
       },
       "ReleaseItemOut": {
@@ -18012,6 +18304,70 @@
           }
         ],
         "summary": "Consolidate",
+        "tags": [
+          "audit"
+        ]
+      }
+    },
+    "/api/v1/audit/girbo/{inn}": {
+      "get": {
+        "description": "Отчётность организации из ГИР БО по ИНН — предпросмотр (L3), ничего не сохраняет.\n\nЗапрос уходит **с сервера** платформы на ресурс ФНС (адрес — ``GIRBO_BASE_URL``).\nОтказы словами: ИНН с опечаткой, организации нет в ресурсе, ресурс не отвечает,\nзагрузка выключена на установке. Журнал не пишет — это чтение; событие пользования —\nпишет (без ИНН: чьё дело смотрят, платформе знать незачем).",
+        "operationId": "girbo_preview_api_v1_audit_girbo__inn__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "inn",
+            "required": true,
+            "schema": {
+              "title": "Inn",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GirboPreviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Girbo Preview",
         "tags": [
           "audit"
         ]

@@ -52,6 +52,7 @@ EVENTS: dict[str, str] = {
     "case.create": "завёл дело",
     "case.analyze": "разобрал дело",
     "case.report": "выгрузил заключение",
+    "case.girbo": "загрузил отчётность по ИНН из ГИР БО",
     "member.invite": "пригласил участника",
     "billing.paid": "оплатил тариф",
 }

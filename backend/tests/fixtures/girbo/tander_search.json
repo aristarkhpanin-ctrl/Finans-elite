@@ -1,0 +1,28 @@
+{
+ "content": [
+  {
+   "id": 6765454,
+   "inn": "<strong>2310031475</strong>",
+   "shortName": "АО \"ТАНДЕР\"",
+   "ogrn": "1022301598549",
+   "statusCode": "ACTIVE",
+   "statusDate": "2002-08-12",
+   "okved2": "47.11",
+   "bfo": {
+    "period": "2025",
+    "actualBfoDate": "2026-03-30",
+    "gainSum": 3050026081,
+    "knd": "0710099",
+    "hasAz": true,
+    "hasKs": false,
+    "actualCorrectionNumber": 0,
+    "actualCorrectionDate": "2026-03-30",
+    "isCb": false,
+    "bfoPeriodTypes": [
+     12
+    ]
+   }
+  }
+ ],
+ "totalElements": 1
+}

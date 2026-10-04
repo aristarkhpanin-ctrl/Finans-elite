@@ -26,7 +26,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from . import billing, closing_docs, crud, error_tracking, mail, scheduler, usage
+from . import billing, closing_docs, crud, error_tracking, girbo, mail, scheduler, usage
 from .billing import PaymentProvider
 
 OK, OFF, PROBLEM = "ok", "off", "problem"
@@ -253,6 +253,17 @@ def _demo(db: Session) -> ReadinessItem:
     return ReadinessItem("demo", title, OK, "заведено: " + ", ".join(f"«{n}»" for n in names))
 
 
+def _girbo() -> ReadinessItem:
+    """Отчётность по ИНН (L3). Внешний запрос здесь не делается — «Готовность» только
+    читает настройки; доступность ресурса проверяет сама загрузка и называет отказ."""
+    title = "Отчётность по ИНН (ГИР БО)"
+    if not girbo.enabled():
+        return ReadinessItem("girbo", title, OFF, "выключена",
+                             "в деле нет загрузки отчётности по ИНН — только Excel и ручной "
+                             "ввод", "GIRBO_ENABLED=1")
+    return ReadinessItem("girbo", title, OK, f"включена: запрос с сервера на {girbo.base_url()}")
+
+
 def check(db: Session, *, provider: PaymentProvider,
           now: datetime | None = None) -> list[ReadinessItem]:
     """Все пункты готовности. Только читает — ничего не меняет."""
@@ -270,4 +281,5 @@ def check(db: Session, *, provider: PaymentProvider,
         _safe("stuck", "Зависшие задачи", _stuck),
         _safe("events", "События пользования", _events),
         _safe("demo", "Демо без регистрации", lambda: _demo(db)),
+        _safe("girbo", "Отчётность по ИНН (ГИР БО)", _girbo),
     ]

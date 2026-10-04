@@ -62,6 +62,23 @@ export interface AuditModel {
   seller_plan?: Record<string, string[]>;
   realized_flags?: RealizedFlag[];
   report?: ReportRequisites;
+  /** Снимок ГИР БО на дату загрузки по ИНН (L3); нет — отчётность введена руками. */
+  registry?: AuditRegistry | null;
+}
+
+/**
+ * Сведения об организации из ГИР БО (ресурс отчётности ФНС) на дату запроса (L3).
+ * Это **не** выписка ЕГРЮЛ — так и называется на экране и в документе.
+ */
+export type AuditRegistry = Schema<"AuditRegistryOut">;
+
+/** Отчётность из ГИР БО — предпросмотр (ничего не сохранено). */
+export type GirboPreview = Schema<"GirboPreviewOut">;
+
+/** Отчётность фирмы-цели по ИНН из ГИР БО: запрос идёт с сервера платформы. */
+export async function getGirboPreview(inn: string): Promise<GirboPreview> {
+  const { data } = await api.get<GirboPreview>(`/api/v1/audit/girbo/${encodeURIComponent(inn)}`);
+  return data;
 }
 
 /**

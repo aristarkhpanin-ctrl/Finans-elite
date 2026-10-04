@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Optional
 
+from .girbo import status_label
 from .models import AuditSubjectModel
 from .obligations import (
     OFF_BALANCE_MATERIAL_SHARE,
@@ -118,6 +119,24 @@ def detect_flags(model: AuditSubjectModel, result: AuditResult,
 
     last = n - 1
     add = reg.flags.append
+
+    # ── Организация недействующая по сведениям реестра (L3) ──────────────────
+    # Ликвидация, реорганизация или исключение из реестра меняют сам предмет сделки, и
+    # узнать об этом из сноски к отчётности — поздно. Меры у флага нет: это не сумма, а
+    # вопрос «существует ли то, что покупают».
+    registry = model.registry
+    if registry is not None and registry.status_code and registry.status_code != "ACTIVE":
+        since = (f" с {registry.status_date.strftime('%d.%m.%Y')}"
+                 if registry.status_date else "")
+        on = (f" на {registry.fetched_on.strftime('%d.%m.%Y')}"
+              if registry.fetched_on else "")
+        add(Flag(
+            code="registry_inactive", severity="risk",
+            title="Организация недействующая по сведениям реестра",
+            detail=(f"По сведениям ГИР БО (ФНС){on} организация {status_label(registry.status_code)}"
+                    f"{since}. Проверьте выписку ЕГРЮЛ: ликвидация, реорганизация или "
+                    "исключение из реестра меняют предмет сделки."),
+        ))
 
     # ── Дебиторка растёт быстрее выручки ─────────────────────────────────────
     # Классический признак продаж «в долг» ради красивой выручки перед продажей.

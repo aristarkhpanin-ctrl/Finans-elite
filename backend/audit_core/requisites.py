@@ -116,6 +116,43 @@ def _signature(name: str, role: str, who: str, caveats: list[str]) -> Optional[S
     return None
 
 
+def _norm(text: str) -> str:
+    """Для сравнения: регистр, кавычки всех видов и пробелы не считаются расхождением."""
+    for quote in "«»\"'“”„":
+        text = text.replace(quote, "")
+    return " ".join(text.upper().split())
+
+
+#: Чем заменяется «реквизиты с реестром не сверяются», когда снимок реестра есть.
+REGISTRY_NOT_EGRUL = ("Сверка — со сведениями ГИР БО (ресурс отчётности ФНС), а не с "
+                      "выпиской ЕГРЮЛ: для сделки выписку берут отдельно.")
+
+
+def _compare_with_registry(view: RequisitesView, model: AuditSubjectModel) -> None:
+    """Сверить введённые реквизиты фирмы-цели со снимком реестра (L3).
+
+    Расхождение называется, введённое **не заменяется**: решать, где опечатка — в деле или
+    в устаревшем снимке, — человеку. Совпадение тоже называется: «сверено» без перечня
+    выглядело бы проверкой всего, а сверяются четыре поля.
+    """
+    reg = model.registry
+    assert reg is not None
+    on = reg.fetched_on.strftime("%d.%m.%Y") if reg.fetched_on else "дату запроса"
+    pairs = (("ИНН", view.subject_inn, reg.inn), ("ОГРН", view.subject_ogrn, reg.ogrn),
+             ("наименование", view.subject_full_name, reg.full_name),
+             ("адрес", view.subject_address, reg.address))
+    same = [what for what, mine, theirs in pairs
+            if mine and theirs and _norm(mine) == _norm(theirs)]
+    for what, mine, theirs in pairs:
+        if mine and theirs and _norm(mine) != _norm(theirs):
+            view.caveats.append(f"{what.capitalize()} в деле («{mine}») расходится со "
+                                f"сведениями ГИР БО на {on} («{theirs}»).")
+    if same:
+        view.caveats.append(f"Совпадают со сведениями ГИР БО на {on}: {', '.join(same)}.")
+    view.not_computed = [REGISTRY_NOT_EGRUL if item.startswith("Сверка реквизитов с ЕГРЮЛ")
+                         else item for item in view.not_computed]
+
+
 def build_requisites(model: AuditSubjectModel) -> RequisitesView:
     """Собрать реквизиты документа из модели дела и назвать всё, что не так."""
     r: ReportRequisites = model.report
@@ -142,6 +179,8 @@ def build_requisites(model: AuditSubjectModel) -> RequisitesView:
         subject_ogrn=ogrn, subject_address=r.subject_address.strip(),
         signatures=signatures, caveats=caveats,
     )
+    if model.registry is not None:
+        _compare_with_registry(view, model)
     view.filled = bool(view.number or view.date or view.addressee
                        or view.subject_full_name or inn or ogrn
                        or view.subject_address or signatures)

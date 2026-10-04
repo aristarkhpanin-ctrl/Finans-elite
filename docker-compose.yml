@@ -58,6 +58,8 @@ x-backend-env: &backend-env
   STUCK_JOB_ALERT_MINUTES: ${STUCK_JOB_ALERT_MINUTES:-}
   # Решение владельца: два месяца в подарок за оплату года (год — цена 10 месяцев).
   ANNUAL_FREE_MONTHS: ${ANNUAL_FREE_MONTHS:-2}
+  GIRBO_ENABLED: ${GIRBO_ENABLED:-}
+  GIRBO_BASE_URL: ${GIRBO_BASE_URL:-}
   SELLER_NAME: ${SELLER_NAME:-}
   SELLER_INN: ${SELLER_INN:-}
   SELLER_KPP: ${SELLER_KPP:-}

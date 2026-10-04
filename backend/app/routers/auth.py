@@ -15,7 +15,7 @@ from fastapi import (
 )
 from sqlalchemy.orm import Session
 
-from .. import crud, error_tracking, totp, usage
+from .. import crud, error_tracking, girbo, totp, usage
 from ..database import get_db
 from ..db_models import User, UserSession
 from ..deps import account_blocked_detail, current_session, current_user
@@ -353,7 +353,8 @@ def capabilities(db: Session = Depends(get_db)) -> CapabilitiesOut:
     """
     return CapabilitiesOut(mail=mail_enabled(),
                            error_tracking=error_tracking.state().enabled,
-                           demo=crud.demo_account(db) is not None)
+                           demo=crud.demo_account(db) is not None,
+                           girbo=girbo.enabled())
 
 
 #: Один ответ на любой адрес — существующий, чужой, выдуманный. Разный текст превратил

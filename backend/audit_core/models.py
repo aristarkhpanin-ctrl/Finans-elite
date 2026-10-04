@@ -303,6 +303,34 @@ class ReportRequisites(MoneyModel):
     approver_role: str = Field(default="", max_length=120)
 
 
+class RegistrySnapshot(MoneyModel):
+    """Сведения об организации из открытого реестра на дату запроса (пакет L, L3).
+
+    Хранится **снимок**, а не ссылка: дело предъявляют комитету, и «что говорил реестр,
+    когда мы смотрели» обязано пережить и смену статуса организации, и смену адреса
+    ресурса. Источник — ГИР БО (ресурс бухгалтерской отчётности ФНС), а **не выписка
+    ЕГРЮЛ**, и так он называется везде, где показан. Пустой (``None`` у дела) — инертен.
+    """
+
+    source: Literal["girbo"] = "girbo"
+    #: Дата запроса — «на какую дату это правда».
+    fetched_on: Optional[datetime.date] = None
+    inn: str = Field(default="", max_length=12)
+    ogrn: str = Field(default="", max_length=15)
+    kpp: str = Field(default="", max_length=9)
+    full_name: str = Field(default="", max_length=500)
+    short_name: str = Field(default="", max_length=255)
+    address: str = Field(default="", max_length=500)
+    #: «47.11 — Торговля розничная …»: подпись вида деятельности, как в ресурсе.
+    okved: str = Field(default="", max_length=300)
+    #: Статус как в ресурсе (``ACTIVE``, ``INACTIVE`` …) и с какой даты.
+    status_code: str = Field(default="", max_length=40)
+    status_date: Optional[datetime.date] = None
+    #: Какие годы загружены и что при загрузке было названо (отнесение строк, пересчёт).
+    periods: list[str] = Field(default_factory=list, max_length=48)
+    notes: list[str] = Field(default_factory=list, max_length=50)
+
+
 class AuditSubjectModel(MoneyModel):
     """Субъект анализа с фактической отчётностью по периодам.
 
@@ -353,6 +381,9 @@ class AuditSubjectModel(MoneyModel):
     # Реквизиты документа и подписи (пакет №6 улучшений). Пустой блок инертен: бланк
     # печатается как прежде, но прямо говорит, что он не подписан.
     report: ReportRequisites = Field(default_factory=ReportRequisites)
+    # Сведения реестра (L3): снимок ГИР БО на дату загрузки отчётности по ИНН. ``None`` —
+    # отчётность введена руками, и реквизиты с реестром не сверяются (это напечатано).
+    registry: Optional[RegistrySnapshot] = None
 
     @property
     def n(self) -> int:

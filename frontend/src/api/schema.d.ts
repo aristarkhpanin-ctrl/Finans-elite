@@ -651,6 +651,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/audit/girbo/{inn}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Girbo Preview
+         * @description Отчётность организации из ГИР БО по ИНН — предпросмотр (L3), ничего не сохраняет.
+         *
+         *     Запрос уходит **с сервера** платформы на ресурс ФНС (адрес — ``GIRBO_BASE_URL``).
+         *     Отказы словами: ИНН с опечаткой, организации нет в ресурсе, ресурс не отвечает,
+         *     загрузка выключена на установке. Журнал не пишет — это чтение; событие пользования —
+         *     пишет (без ИНН: чьё дело смотрят, платформе знать незачем).
+         */
+        get: operations["girbo_preview_api_v1_audit_girbo__inn__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit/groups": {
         parameters: {
             query?: never;
@@ -4824,6 +4849,71 @@ export interface components {
             title: string;
         };
         /**
+         * AuditRegistryOut
+         * @description Снимок сведений ГИР БО об организации — та же форма, что ``RegistrySnapshot``.
+         */
+        AuditRegistryOut: {
+            /**
+             * Address
+             * @default
+             */
+            address: string;
+            /** Fetched On */
+            fetched_on?: string | null;
+            /**
+             * Full Name
+             * @default
+             */
+            full_name: string;
+            /**
+             * Inn
+             * @default
+             */
+            inn: string;
+            /**
+             * Kpp
+             * @default
+             */
+            kpp: string;
+            /**
+             * Notes
+             * @default []
+             */
+            notes: string[];
+            /**
+             * Ogrn
+             * @default
+             */
+            ogrn: string;
+            /**
+             * Okved
+             * @default
+             */
+            okved: string;
+            /**
+             * Periods
+             * @default []
+             */
+            periods: string[];
+            /**
+             * Short Name
+             * @default
+             */
+            short_name: string;
+            /**
+             * Source
+             * @default girbo
+             */
+            source: string;
+            /**
+             * Status Code
+             * @default
+             */
+            status_code: string;
+            /** Status Date */
+            status_date?: string | null;
+        };
+        /**
          * AuditRiskOut
          * @description Анализ рисков оценки (SPEC, Прил. Р): торнадо, Монте-Карло и оговорки.
          */
@@ -4951,6 +5041,7 @@ export interface components {
             procedure_marks?: components["schemas"]["ProcedureMark"][];
             /** Realized Flags */
             realized_flags?: components["schemas"]["RealizedFlag-Input"][];
+            registry?: components["schemas"]["RegistrySnapshot"] | null;
             report?: components["schemas"]["ReportRequisites"];
             /**
              * Reporting Standard
@@ -5014,6 +5105,7 @@ export interface components {
             procedure_marks?: components["schemas"]["ProcedureMark"][];
             /** Realized Flags */
             realized_flags?: components["schemas"]["RealizedFlag-Output"][];
+            registry?: components["schemas"]["RegistrySnapshot"] | null;
             report?: components["schemas"]["ReportRequisites"];
             /**
              * Reporting Standard
@@ -5951,6 +6043,11 @@ export interface components {
              * @default false
              */
             error_tracking: boolean;
+            /**
+             * Girbo
+             * @default false
+             */
+            girbo: boolean;
             /**
              * Mail
              * @default false
@@ -7163,6 +7260,35 @@ export interface components {
             organizations: number;
             /** Share */
             share?: number | null;
+        };
+        /**
+         * GirboPreviewOut
+         * @description Отчётность фирмы-цели из ГИР БО (L3) — **предпросмотр**, ничего не сохранено.
+         *
+         *     Применяет её экран дела: периоды и строки отчётности заменяются, дальше — обычное
+         *     сохранение, со всеми проверками дела. ``registry`` — снимок сведений ресурса на дату
+         *     запроса; он уходит в дело и по нему сверяются реквизиты и статус организации.
+         */
+        GirboPreviewOut: {
+            /** Balance */
+            balance: {
+                [key: string]: string[];
+            };
+            /** Forms */
+            forms: string[];
+            /** Income */
+            income: {
+                [key: string]: string[];
+            };
+            /** Notes */
+            notes: string[];
+            /** Periods */
+            periods: string[];
+            registry: components["schemas"]["AuditRegistryOut"];
+            /** Sources */
+            sources: string[];
+            /** Status Label */
+            status_label: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -9904,6 +10030,71 @@ export interface components {
             organization_name: string;
             /** Password */
             password: string;
+        };
+        /**
+         * RegistrySnapshot
+         * @description Сведения об организации из открытого реестра на дату запроса (пакет L, L3).
+         *
+         *     Хранится **снимок**, а не ссылка: дело предъявляют комитету, и «что говорил реестр,
+         *     когда мы смотрели» обязано пережить и смену статуса организации, и смену адреса
+         *     ресурса. Источник — ГИР БО (ресурс бухгалтерской отчётности ФНС), а **не выписка
+         *     ЕГРЮЛ**, и так он называется везде, где показан. Пустой (``None`` у дела) — инертен.
+         */
+        RegistrySnapshot: {
+            /**
+             * Address
+             * @default
+             */
+            address: string;
+            /** Fetched On */
+            fetched_on?: string | null;
+            /**
+             * Full Name
+             * @default
+             */
+            full_name: string;
+            /**
+             * Inn
+             * @default
+             */
+            inn: string;
+            /**
+             * Kpp
+             * @default
+             */
+            kpp: string;
+            /** Notes */
+            notes?: string[];
+            /**
+             * Ogrn
+             * @default
+             */
+            ogrn: string;
+            /**
+             * Okved
+             * @default
+             */
+            okved: string;
+            /** Periods */
+            periods?: string[];
+            /**
+             * Short Name
+             * @default
+             */
+            short_name: string;
+            /**
+             * Source
+             * @default girbo
+             * @constant
+             */
+            source: "girbo";
+            /**
+             * Status Code
+             * @default
+             */
+            status_code: string;
+            /** Status Date */
+            status_date?: string | null;
         };
         /** ReleaseItemOut */
         ReleaseItemOut: {
@@ -13445,6 +13636,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuditConsolidateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    girbo_preview_api_v1_audit_girbo__inn__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                inn: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GirboPreviewOut"];
                 };
             };
             /** @description Validation Error */

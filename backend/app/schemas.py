@@ -2877,6 +2877,9 @@ class CapabilitiesOut(BaseModel):
     error_tracking: bool = False
     #: Заведено ли демо без регистрации (L2). `False` — кнопки «Посмотреть демо» нет.
     demo: bool = False
+    #: Включена ли загрузка отчётности по ИНН из ГИР БО (L3). `False` — кнопка в деле
+    #: выключена с причиной: внешние запросы на установке запрещены владельцем.
+    girbo: bool = False
 
 
 class ForgotPasswordIn(BaseModel):
@@ -3018,6 +3021,45 @@ class ThreadUnsubscribeRequest(BaseModel):
 
 
 # --- Отраслевые шаблоны и чек-листы (D4) ---
+
+class AuditRegistryOut(BaseModel):
+    """Снимок сведений ГИР БО об организации — та же форма, что ``RegistrySnapshot``."""
+
+    source: str = "girbo"
+    fetched_on: Optional[date] = None
+    inn: str = ""
+    ogrn: str = ""
+    kpp: str = ""
+    full_name: str = ""
+    short_name: str = ""
+    address: str = ""
+    okved: str = ""
+    status_code: str = ""
+    status_date: Optional[date] = None
+    periods: list[str] = []
+    notes: list[str] = []
+
+
+class GirboPreviewOut(BaseModel):
+    """Отчётность фирмы-цели из ГИР БО (L3) — **предпросмотр**, ничего не сохранено.
+
+    Применяет её экран дела: периоды и строки отчётности заменяются, дальше — обычное
+    сохранение, со всеми проверками дела. ``registry`` — снимок сведений ресурса на дату
+    запроса; он уходит в дело и по нему сверяются реквизиты и статус организации.
+    """
+
+    periods: list[str]
+    #: Вид формы по каждому году: «полная» / «упрощённая».
+    forms: list[str]
+    #: Откуда год: своя отчётность или сравнительные данные следующей.
+    sources: list[str]
+    #: Строки аналитической формы по годам, **в рублях**.
+    balance: dict[str, list[Decimal]]
+    income: dict[str, list[Decimal]]
+    registry: AuditRegistryOut
+    status_label: str
+    notes: list[str]
+
 
 class BusinessPlanDraftOut(BaseModel):
     """Черновик модели «Элиты» из дела «Аудита» (G14). Не сохранён: проект из него

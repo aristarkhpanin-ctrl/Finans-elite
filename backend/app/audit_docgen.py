@@ -24,6 +24,7 @@ from docx import Document
 from audit_core.diagnostics import Diagnostics
 from audit_core.earnings import EarningsQuality
 from audit_core.flags import FlagRegistry
+from audit_core.girbo import status_label
 from audit_core.obligations import ObligationRegister
 from audit_core.pipeline import CaseReview
 from audit_core.planfact import PlanFact
@@ -488,6 +489,20 @@ def _add_procedures(doc: Document, procedures) -> None:
         row[2].text = f"{status} — {item.detail}" if item.detail else status
 
 
+def _add_registry_source(doc: Document, reg) -> None:
+    """Источник отчётности (L3): откуда числа, на какую дату и что при загрузке отнесено
+    куда. Перед таблицами — читатель должен знать происхождение чисел до самих чисел."""
+    doc.add_heading("Источник отчётности", level=1)
+    on = reg.fetched_on.strftime("%d.%m.%Y") if reg.fetched_on else "дату загрузки"
+    years = ", ".join(reg.periods) if reg.periods else "—"
+    doc.add_paragraph(f"Отчётность загружена из ГИР БО (ресурс бухгалтерской отчётности "
+                      f"ФНС) на {on}: {reg.full_name or reg.short_name}, ИНН {reg.inn}; "
+                      f"годы: {years}. Статус организации по сведениям ресурса: "
+                      f"{status_label(reg.status_code)}.")
+    for note in reg.notes:
+        doc.add_paragraph(note, style="List Bullet")
+
+
 def build_audit_docx(review: CaseReview, *, subject_name: str,
                      today: date | None = None) -> bytes:
     """Собрать документ заключения по разбору дела и вернуть содержимое ``.docx``.
@@ -550,6 +565,8 @@ def build_audit_docx(review: CaseReview, *, subject_name: str,
         if review.plan_fact.available:
             _add_plan_fact(doc, review.plan_fact)
 
+    if result.n and model.registry is not None:
+        _add_registry_source(doc, model.registry)
     if result.n:
         _add_table(doc, "Баланс (аналитическая форма)", result.periods,
                    _statement_rows(result.balance))

@@ -4166,6 +4166,15 @@ button.leg-toggle:focus-visible { outline: 2px solid var(--accent); outline-offs
   font: 400 13px var(--font-ui); color: var(--muted); margin: -4px 0 4px;
 }
 
+/* Отчётность по ИНН из ГИР БО (L3): поиск и предпросмотр до замены отчётности дела. */
+.girbo-find { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 12px; }
+.girbo-find > :first-child { flex: 1 1 220px; min-width: 0; }
+.girbo-preview { display: grid; gap: 12px; }
+.girbo-preview__head { display: grid; gap: 3px; font: 400 12.5px/1.5 var(--font-ui); color: var(--muted); }
+.girbo-preview__head b { font: 600 14px var(--font-ui); color: var(--text); }
+.girbo-preview__status--bad { color: var(--danger-text); font-weight: 600; }
+.girbo-preview__notes { margin: 0; padding-left: 18px; font: 400 12px/1.55 var(--font-ui); color: var(--muted); }
+
 /* «Посмотреть демо» (L2): под формой входа, отделено чертой — это не второй способ
    войти в свою учётную запись, а витрина продукта. */
 .auth-demo { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }

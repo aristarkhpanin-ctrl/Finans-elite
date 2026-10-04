@@ -24,14 +24,16 @@ from audit_core import (
     consolidate_subjects,
     review_case,
 )
+from audit_core import girbo as girbo_core
 from audit_core.opinion import build_opinion
 from audit_core.samples import build_trading_subject
 
-from .. import audit_bridge, billing, crud, edit_conflict, usage
+from .. import audit_bridge, billing, crud, edit_conflict, girbo, usage
 from ..audit_docgen import DOCX_MIME, build_audit_docx
 from ..database import get_db
 from ..db_models import AuditGroup, AuditSubject, AuditSubjectVersion, User
 from ..deps import acting_user, current_user, require_permission
+from ..ratelimit import allow
 from ..rbac import Perm
 from ..schemas import (
     AuditAnalysisOut,
@@ -48,6 +50,7 @@ from ..schemas import (
     AuditGroupSummary,
     AuditGroupUpdate,
     AuditMetricChangeOut,
+    AuditRegistryOut,
     AuditRiskOut,
     AuditSubjectCreate,
     AuditSubjectOut,
@@ -57,6 +60,7 @@ from ..schemas import (
     AuditVersionOut,
     AuditVersionSummary,
     BusinessPlanDraftOut,
+    GirboPreviewOut,
     ModelChangeOut,
     VersionCreate,
     audit_analysis_response,
@@ -131,6 +135,46 @@ def get_subject(subject_id: str,
                 db: Session = Depends(get_db)) -> AuditSubjectOut:
     """Получить субъект с моделью и сходимостью баланса по периодам."""
     return _out(_require(db, org_id, subject_id))
+
+
+#: Сколько загрузок из ГИР БО в час на организацию: ресурс ФНС общий, и цикл в чужом
+#: скрипте или в нетерпеливом браузере не должен превращать платформу в его нагрузку.
+GIRBO_PER_HOUR = 30
+
+
+@router.get("/girbo/{inn}", response_model=GirboPreviewOut)
+def girbo_preview(inn: str,
+                  org_id: str = Depends(require_permission(Perm.PROJECT_READ, product="audit")),
+                  db: Session = Depends(get_db)) -> GirboPreviewOut:
+    """Отчётность организации из ГИР БО по ИНН — предпросмотр (L3), ничего не сохраняет.
+
+    Запрос уходит **с сервера** платформы на ресурс ФНС (адрес — ``GIRBO_BASE_URL``).
+    Отказы словами: ИНН с опечаткой, организации нет в ресурсе, ресурс не отвечает,
+    загрузка выключена на установке. Журнал не пишет — это чтение; событие пользования —
+    пишет (без ИНН: чьё дело смотрят, платформе знать незачем).
+    """
+    if not allow("girbo", org_id, GIRBO_PER_HOUR, 3600):
+        raise HTTPException(status_code=429, headers={"Retry-After": "600"},
+                            detail=(f"Не больше {GIRBO_PER_HOUR} загрузок из ГИР БО в час на "
+                                    "организацию — ресурс ФНС общий. Попробуйте позже."))
+    try:
+        org, reports, search_notes = girbo.fetch(inn)
+    except girbo.GirboError as exc:
+        raise HTTPException(status_code=exc.status, detail=exc.detail) from exc
+    imported = girbo_core.build_import(org, reports, today=date.today())
+    if not imported.periods:
+        raise HTTPException(status_code=404, detail=(
+            f"У организации с ИНН {inn.strip()} в ГИР БО нет годовой отчётности с балансом и "
+            "отчётом о финансовых результатах."))
+    registry = dict(imported.registry)
+    registry["notes"] = list(registry["notes"]) + search_notes
+    usage.record(db, event="case.girbo", org_id=org_id)
+    return GirboPreviewOut(
+        periods=imported.periods, forms=imported.forms, sources=imported.sources,
+        balance=imported.balance, income=imported.income,
+        registry=AuditRegistryOut(**registry),
+        status_label=girbo_core.status_label(registry["status_code"]),
+        notes=imported.notes + search_notes)
 
 
 @router.get("/subjects/{subject_id}/business-plan-draft", response_model=BusinessPlanDraftOut)

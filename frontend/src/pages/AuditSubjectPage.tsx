@@ -57,6 +57,9 @@ import { AuditVersions } from "../components/AuditVersions";
 import { allBalanced, balanceGaps, serverGaps } from "../auditBalance";
 import { downloadAuditXlsx } from "../auditExport";
 import { downloadAuditTemplate, parseAuditXlsx } from "../auditXlsx";
+import { getCapabilities } from "../api/auth";
+import { GirboImport } from "../components/GirboImport";
+import type { GirboApplyResult } from "../girboImport";
 import { fmtMoney } from "../format";
 import { usePageTitle } from "../pageTitle";
 
@@ -172,6 +175,11 @@ export function AuditSubjectPage() {
   const [printMode, setPrintMode] = useState(false);
   const [dirty, setDirty] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [girboOpen, setGirboOpen] = useState(false);
+  // Загрузка по ИНН (L3) включена ли на установке — спрашиваем сервер: кнопка, которая
+  // приводит к отказу «выключено», хуже выключенной кнопки с причиной рядом.
+  const { data: caps } = useQuery({ queryKey: ["capabilities"], queryFn: getCapabilities,
+                                    staleTime: Infinity });
 
   useEffect(() => {
     if (data) { setName(data.name); setModel(data.model); setDirty(false); }
@@ -296,6 +304,19 @@ export function AuditSubjectPage() {
   const ratioNames: string[] = analysis.data
     ? RATIO_GROUPS.flatMap(([key]) => Object.keys(analysis.data!.ratios[key] ?? {}))
     : [];
+
+  // Отчётность по ИНН из ГИР БО (L3): модель меняется на экране, сохраняет человек.
+  const onGirbo = (res: GirboApplyResult) => {
+    setModel(res.model);
+    setDirty(true);
+    const sub = [
+      res.filled.length ? `реквизиты заполнены: ${res.filled.join(", ")}` : "",
+      res.carried.length ? `перенесено на совпадающие годы: ${res.carried.join(", ")}` : "",
+      res.dropped.length ? `без пары годов сброшено: ${res.dropped.join(", ")}` : "",
+    ].filter(Boolean).join(" · ");
+    toast(`Отчётность из ГИР БО: ${res.model.periods.length} лет. Проверьте и сохраните.`,
+          { kind: res.dropped.length ? "warn" : "success", sub: sub || undefined });
+  };
 
   // Импорт отчётности из XLSX (фаза F): round-trip через шаблон приложения.
   const onImportFile = async (file: File) => {
@@ -595,8 +616,17 @@ export function AuditSubjectPage() {
               <IconUpload size={15} />
               <span style={{ marginLeft: 6 }}>Импорт XLSX</span>
             </Button>
+            <Button variant="ghost" onClick={() => setGirboOpen(true)}
+                    disabled={caps?.girbo === false}
+                    title={caps?.girbo === false
+                      ? "Загрузка из ГИР БО выключена на этой установке" : undefined}>
+              <IconDownload size={15} />
+              <span style={{ marginLeft: 6 }}>Загрузить по ИНН (ГИР БО)</span>
+            </Button>
             <span className="page-sub" style={{ fontSize: 12 }}>
-              Скачайте шаблон, заполните в Excel и загрузите обратно — периоды задаются здесь.
+              {caps?.girbo === false
+                ? "Загрузка по ИНН выключена на этой установке — шаблон Excel: заполните и загрузите обратно."
+                : "Отчётность по ИНН — из ресурса ФНС; или шаблон Excel: заполните и загрузите обратно."}
             </span>
             <input
               ref={fileRef}
@@ -610,6 +640,10 @@ export function AuditSubjectPage() {
               }}
             />
           </div>
+          {girboOpen && (
+            <GirboImport open={girboOpen} onClose={() => setGirboOpen(false)} model={m}
+                         onApply={onGirbo} />
+          )}
           {grid("balance", ASSET_LINES, "Баланс — актив")}
           {grid("balance", EQLIAB_LINES, "Баланс — пассив (капитал и обязательства)")}
           {grid("balance", MEMO_LINES, "Расшифровка (в итоги баланса не входит)",
