@@ -50,12 +50,13 @@ def test_staff_position_expands_to_salary_cost():
 
 
 def test_staff_contributions_load_payroll():
-    """Взносы 30%: загруженная стоимость 100×1.3 = 130 (та же машинерия, что суммовые)."""
-    n = 1
+    """Взносы 30%: загруженная стоимость 100×1.3 = 130 (та же машинерия, что суммовые);
+    в кассе взносы — в следующем месяце (0.9.54)."""
+    n = 2
     pos = StaffPosition(name="Менеджер", monthly_salary=D(100))
     r = run(_model(n, [pos], contrib="0.30"))
     assert q(r.income["I13"][0]) == D("130.00")
-    assert q(r.cashflow["C6"][0]) == D("130.00")
+    assert [q(v) for v in r.cashflow["C6"]] == [D("100.00"), D("130.00")]
     assert _balanced(r)
 
 

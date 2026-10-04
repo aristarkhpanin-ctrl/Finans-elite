@@ -320,10 +320,14 @@ def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal,
                          idx_direct: list[Decimal], idx_wages: list[Decimal],
                          details: DetailCollector | None = None):
     """Прямые издержки → (потребление MC, сдельная ЗП WC; деньги C2, C3 с НДС; сырьё B3;
-    кредиторка с НДС; входной НДС по материалам; курсовая разница I25 по валютному сырью).
+    кредиторка с НДС; входной НДС по материалам; курсовая разница I25 по валютному сырью;
+    начисленные взносы со сдельной оплаты).
 
     Себестоимость (нетто) попадёт в ОПУ при продаже через пул готовой продукции.
     НДС на материалы — входной (к вычету); сдельная зарплата НДС не облагается.
+    В C3 здесь — только выплата самой зарплаты: взносы со сдельной оплаты начисляются
+    вместе с ней (WC — со взносами), а уплачиваются по своему сроку в налоговом блоке
+    конвейера (пакет K, K1).
     Валютные материалы (``foreign``): запас/себестоимость — по курсу закупки (историческая
     стоимость, немонетарный актив), кредиторка — монетарная, переоценивается по ``fx[t]`` →
     ``i25_materials`` (рост курса → убыток). Импортный НДС начисляется на таможенную стоимость
@@ -338,7 +342,9 @@ def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal,
     vat_in = zeros(n)        # входной НДС начислено (при закупке)
     vat_in_paid = zeros(n)   # входной НДС в оплаченных закупках (по оплате)
     payable_f = zeros(n)     # валютная кредиторка по материалам (в валюте) — для переоценки
+    piece_contrib = zeros(n)  # взносы со сдельной оплаты, начислено (уплата — в налоговом блоке)
     one_plus = Decimal(1) + vat_rate
+    load = payroll_load(model)
     # Суммовые статьи + синтетические строки из рецептур продуктов (BOM) — один путь.
     for line in [*model.operating_plan.direct_costs, *_bom_direct_lines(model, n)]:
         base = _pad(line.amount, n)
@@ -379,12 +385,14 @@ def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal,
             if details is not None:
                 details.put("C2", line.name, cash)
         else:  # сдельная зарплата — без НДС, со страховыми взносами (как у штата)
-            load = payroll_load(model)
-            amt = [amt[t] * load for t in range(n)]
+            loaded = [amt[t] * load for t in range(n)]
+            # Выплачивается сама зарплата — с задержкой строки; взносы с неё (разность
+            # загруженной и голой) уплачиваются по своему сроку, а не вместе с выплатой.
             cash, pay = cost_timing(amt, line.payment_delay_months, n)
-            wc = add(wc, amt)
+            wc = add(wc, loaded)
             c3 = add(c3, cash)
             payables = add(payables, pay)
+            piece_contrib = add(piece_contrib, [loaded[t] - amt[t] for t in range(n)])
             if details is not None:
                 details.put("C3", line.name, cash)
     # Курсовая разница по валютной кредиторке материалов (на остаток начала периода).
@@ -392,7 +400,7 @@ def _materials_and_wages(model: ProjectModel, n: int, vat_rate: Decimal,
     for t in range(n):
         pay_start = payable_f[t - 1] if t > 0 else ZERO
         i25_materials[t] = -pay_start * (fx[t] - fx_prev[t])
-    return mc, wc, c2, c3, b3, payables, vat_in, vat_in_paid, i25_materials
+    return mc, wc, c2, c3, b3, payables, vat_in, vat_in_paid, i25_materials, piece_contrib
 
 
 def _staff_fixed_lines(model: ProjectModel, n: int) -> list[FixedCostLine]:
@@ -424,8 +432,11 @@ def _fixed(model: ProjectModel, n: int, vat_rate: Decimal,
            idx_wages: list[Decimal], idx_general: list[Decimal],
            details: DetailCollector | None = None):
     """Постоянные издержки → (группы начисления I10–I15; C5, C6 деньги; кредиторка;
-    входной НДС по общим издержкам; издержки за счёт прибыли I24; курсовая разница I25).
+    входной НДС по общим издержкам; издержки за счёт прибыли I24; курсовая разница I25;
+    начисленные взносы с окладов).
 
+    Затраты на персонал начисляются со взносами, а в C6 здесь — только выплата зарплаты:
+    взносы уплачиваются по своему сроку в налоговом блоке конвейера (пакет K, K1).
     Общие издержки (услуги) облагаются НДС; затраты на персонал — нет. Издержки с флагом
     «из прибыли» (невычитаемые, SPEC §12/§22.1) не попадают в I10–I15 (не уменьшают I23),
     а накапливаются в I24; их выплата проходит как общие издержки (в v0 — без НДС).
@@ -440,8 +451,9 @@ def _fixed(model: ProjectModel, n: int, vat_rate: Decimal,
     vat_in_paid = zeros(n)   # входной НДС в оплаченных издержках (по оплате)
     i24 = zeros(n)  # издержки, отнесённые на прибыль (невычитаемые)
     payable_f = zeros(n)  # валютная кредиторка (в валюте) — для переоценки
+    staff_contrib = zeros(n)  # взносы с окладов, начислено (уплата — в налоговом блоке)
     one_plus = Decimal(1) + vat_rate
-    contrib = payroll_load(model)  # загрузка ФОТ страховыми взносами
+    load = payroll_load(model)  # загрузка ФОТ страховыми взносами
     # Суммовые статьи + синтетические строки плана персонала — один путь.
     for line in [*model.operating_plan.fixed_costs, *_staff_fixed_lines(model, n)]:
         amt = _pad(line.amount, n)
@@ -472,13 +484,15 @@ def _fixed(model: ProjectModel, n: int, vat_rate: Decimal,
             continue
         if line.function in _STAFF_FUNCTIONS:
             # Загруженная стоимость персонала = ЗП + страховые взносы (база — ФОТ).
-            loaded = [amt[t] * contrib for t in range(n)]
+            loaded = [amt[t] * load for t in range(n)]
             groups[line.function] = add(groups[line.function], loaded)
             if details is not None:
                 details.put("I16", line.name, loaded)
-            cash, pay = cost_timing(loaded, line.payment_delay_months, n)
+            # Выплачивается сама зарплата — с задержкой строки; взносы — по своему сроку.
+            cash, pay = cost_timing(amt, line.payment_delay_months, n)
             c6 = add(c6, cash)
             payables = add(payables, pay)
+            staff_contrib = add(staff_contrib, [loaded[t] - amt[t] for t in range(n)])
         else:
             groups[line.function] = add(groups[line.function], amt)
             if details is not None:
@@ -496,7 +510,7 @@ def _fixed(model: ProjectModel, n: int, vat_rate: Decimal,
     for t in range(n):
         pay_start = payable_f[t - 1] if t > 0 else ZERO
         i25_fixed[t] = -pay_start * (fx[t] - fx_prev[t])
-    return groups, c5, c6, payables, vat_in, i24, vat_in_paid, i25_fixed
+    return groups, c5, c6, payables, vat_in, i24, vat_in_paid, i25_fixed, staff_contrib
 
 
 def _preexisting_net_open(model: ProjectModel) -> Decimal:
@@ -986,16 +1000,17 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
     i1, c1, b2, b24, vat_out, vat_out_paid, vat_advances, i25_sales = _sales(
         model, n, vat_rate, fx, fx_prev, idx_sales, details)
     tp, tq = _volumes(model, n)
-    mc, wc, c2, c3, b3, pay_direct, vat_in_mat, vat_in_paid_mat, i25_materials = \
-        _materials_and_wages(model, n, vat_rate, fx, fx_prev, idx_direct, idx_wages, details)
+    (mc, wc, c2, c3, b3, pay_direct, vat_in_mat, vat_in_paid_mat, i25_materials,
+     piece_contrib) = _materials_and_wages(
+        model, n, vat_rate, fx, fx_prev, idx_direct, idx_wages, details)
     # НЗП (B4): производственный цикл сдвигает выпуск и его стоимость на cycle мес. (SPEC §6)
     mc_out, wc_out, tp_out, b4 = work_in_progress(
         mc, wc, tp, settings.production_cycle_months, n)
     # Готовая продукция: себестоимость (I5, I6) признаётся при продаже (SPEC §6, §22.8)
     i5, i6, b5, inv_warnings = finished_goods(
         tp_out, tq, mc_out, wc_out, n, settings.inventory_method)
-    fixed, c5, c6, pay_fixed, vat_in_fixed, i24_fixed, vat_in_paid_fixed, i25_fixed = _fixed(
-        model, n, vat_rate, fx, fx_prev, idx_wages, idx_general, details)
+    (fixed, c5, c6, pay_fixed, vat_in_fixed, i24_fixed, vat_in_paid_fixed, i25_fixed,
+     staff_contrib) = _fixed(model, n, vat_rate, fx, fx_prev, idx_wages, idx_general, details)
     # Календарный план: обычные этапы → C15 (оплата), I21 (издержки), B15 (РБП), B23 (кредиторка).
     stage_c15, stage_i21, stage_b15, stage_b23 = stage_expenses(model, n)
     b23 = add(pay_direct, pay_fixed, stage_b23)
@@ -1160,6 +1175,18 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
     # Налог на имущество (ст. 383, пакет J, J5): поквартальные авансы — в месяце после
     # квартала, налог за год — в феврале. Начисление I9 помесячное, как было.
     property_paid = _payment_schedule(i9, "quarter", n, offset=tax_offset, due="property")
+    # Страховые взносы (пакет K, K1): исчисляются с начисленной оплаты труда (ст. 424 — дата
+    # выплаты для взносов есть день начисления) и уплачиваются в следующем месяце, до 28-го
+    # числа (п. 3 ст. 431), — когда бы ни выплачивалась сама зарплата. До 0.9.54 взносы
+    # уходили вместе с зарплатой. В C3/C6 — как и прежде: это затраты на оплату труда.
+    piece_contrib_paid = _payment_schedule(piece_contrib, "month", n, offset=tax_offset,
+                                           due="next_month")
+    staff_contrib_paid = _payment_schedule(staff_contrib, "month", n, offset=tax_offset,
+                                           due="next_month")
+    contrib_defer = cumulative([piece_contrib[t] + staff_contrib[t] - piece_contrib_paid[t]
+                                - staff_contrib_paid[t] for t in range(n)])
+    if details is not None:
+        details.put("C3", "Страховые взносы", piece_contrib_paid)
     profit_defer = cumulative([income["I27"][t] - profit_paid[t] for t in range(n)])
     vat_pay_defer = cumulative([vat_to_budget[t] - vat_paid[t] for t in range(n)])
     property_defer = cumulative([i9[t] - property_paid[t] for t in range(n)])
@@ -1176,9 +1203,9 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
     cashflow_leaves = {
         "C1": c1,
         "C2": c2,
-        "C3": c3,
+        "C3": add(c3, piece_contrib_paid),   # сдельная оплата + взносы с неё по сроку
         "C5": c5,
-        "C6": c6,
+        "C6": add(c6, staff_contrib_paid),   # оклады + взносы с них по сроку
         "C8": add(c8, auto.cash_deposit_placement),   # + авторазмещение / − изъятие
         "C9": add(c9, auto.cash_deposit_income),       # + доход авто-депозита (касса)
         "C10": other_inc,          # прочие поступления
@@ -1214,12 +1241,11 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
         "B5": [b5[t] + sb.finished_goods for t in range(n)],    # запасы готовой продукции
         "B6": add(b6_foreign, deposit_bal, auto.deposit_balance),  # валюта + депозиты + авто-депозит
         "B7": [sb.prepaid_expenses + b7[t] for t in range(n)],  # предоплата: старт + НДС-кредит
-        # Отсроченные налоговые платежи: отложенный исходящий НДС + задолженность
-        # по настраиваемым налогам (начислено − уплачено, SPEC §22.9).
         # Отсроченные налоговые платежи: отложенный НДС (признание) + настраиваемые налоги
-        # + отсрочка уплаты профильных прибыли/НДС по их периодичности (SPEC §11).
+        # (SPEC §22.9) + отсрочка уплаты прибыли, НДС и имущества по срокам (SPEC §11) +
+        # страховые взносы до уплаты в следующем месяце (K1).
         "B21": [b21[t] + taxes.deferred[t] + profit_defer[t] + vat_pay_defer[t]
-                + property_defer[t] for t in range(n)],
+                + property_defer[t] + contrib_defer[t] for t in range(n)],
         "B9": b9,
         "B10": b10,
         "B12": b12,                # земля (не амортизируется)

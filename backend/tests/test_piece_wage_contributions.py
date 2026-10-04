@@ -51,7 +51,8 @@ def _model(rate: str, *, piece_line: bool = True, bom: bool = False) -> ProjectM
 
 def test_piece_wages_carry_the_same_contributions_as_salaries():
     r = run(_model("0.30"))
-    assert r.cashflow["C3"] == [d(1300)] * N              # 1000 + 30% взносов
+    # 1000 + 30% взносов; взносы — в следующем месяце (0.9.54), поэтому первый месяц без них
+    assert r.cashflow["C3"] == [d(1000)] + [d(1300)] * (N - 1)
     assert r.income["I14"] == [d(2600)] * N               # оклад — с теми же 30%
     assert sum(r.income["I6"], d(0)) == d(1300) * N       # в себестоимости — со взносами
 
