@@ -82,14 +82,15 @@ _forgot_limit = rate_limit("forgot", limit=5, window_seconds=600)
 
 
 def _issue_token(db: Session, user: User, request: Request,
-                 remember: bool = False, notice: str = "") -> TokenResponse:
+                 remember: bool = False, notice: str = "",
+                 ttl_seconds: int | None = None) -> TokenResponse:
     """Завести сеанс и выдать привязанный к нему токен (C1).
 
     Одна функция на все три двери входа — регистрацию, вход и активацию ссылки: три
     копии этой пары («создать сеанс» + «подписать токен») однажды разошлись бы, и одна
     из дверей начала бы выдавать токен без сеанса, то есть неотзываемый.
     """
-    ttl = access_ttl(remember)
+    ttl = ttl_seconds or access_ttl(remember)
     session = crud.create_session(
         db, user.id, ttl_seconds=ttl,
         user_agent=request.headers.get("user-agent", ""),
@@ -119,6 +120,31 @@ def register(body: RegisterRequest, request: Request,
                     entity_id=org.id, entity_name=org.name)
     usage.record(db, event="signup", org_id=org.id, email=user.email)
     return _issue_token(db, user, request)
+
+
+#: Срок демо-сеанса (L2): посетитель смотрит, а не работает, и токен общего входа,
+#: живущий сутки, лежал бы в чужих браузерах дольше, чем нужен.
+DEMO_TTL_SECONDS = 2 * 3600
+_demo_limit = rate_limit("demo", limit=10, window_seconds=60)
+DEMO_UNAVAILABLE = "Демо на этой установке не заведено — зарегистрируйтесь, это бесплатно."
+
+
+@router.post("/demo", response_model=TokenResponse, dependencies=[Depends(_demo_limit)])
+def demo_login(request: Request, db: Session = Depends(get_db)) -> TokenResponse:
+    """«Посмотреть демо» — вход без регистрации (L2).
+
+    Пароля нет: его знали бы все, а значит, он ничего бы не защищал. Защищает другое —
+    общий демо-вход не меняет ничего, кроме расчётов (``deps.DEMO_ALLOWED``), а его
+    организация под ограничением ``demo``. Журнал вход не пишет: это посетитель сайта, а
+    не человек организации, и тысяча визитов утопила бы журнал. События пользования
+    тоже не пишутся (``usage.record`` пропускает демо). Истёкшие демо-сеансы убираются
+    здесь же — иначе их строки копились бы без предела.
+    """
+    user = crud.demo_account(db)
+    if user is None:
+        raise HTTPException(status_code=404, detail=DEMO_UNAVAILABLE)
+    crud.purge_expired_sessions(db, user.id)
+    return _issue_token(db, user, request, ttl_seconds=DEMO_TTL_SECONDS)
 
 
 @router.post("/login", response_model=TokenResponse, dependencies=[Depends(_login_limit)])
@@ -225,7 +251,8 @@ def _user_out(user: User) -> UserOut:
     незаметной — экран читает профиль после сохранения и увидел бы прежнее значение.
     """
     return UserOut(id=user.id, email=user.email, full_name=user.full_name,
-                   is_staff=user.is_staff, comment_emails=user.comment_emails)
+                   is_staff=user.is_staff, comment_emails=user.comment_emails,
+                   is_demo=user.is_demo)
 
 
 @router.get("/me", response_model=UserOut)
@@ -317,7 +344,7 @@ def activate(body: ActivateRequest, request: Request,
 
 
 @router.get("/capabilities", response_model=CapabilitiesOut)
-def capabilities() -> CapabilitiesOut:
+def capabilities(db: Session = Depends(get_db)) -> CapabilitiesOut:
     """Что умеет **эта установка** платформы (D1).
 
     Экран входа обязан узнать про почту с сервера: «Забыли пароль?», нарисованная там,
@@ -325,7 +352,8 @@ def capabilities() -> CapabilitiesOut:
     хуже, чем честно названное его отсутствие.
     """
     return CapabilitiesOut(mail=mail_enabled(),
-                           error_tracking=error_tracking.state().enabled)
+                           error_tracking=error_tracking.state().enabled,
+                           demo=crud.demo_account(db) is not None)
 
 
 #: Один ответ на любой адрес — существующий, чужой, выдуманный. Разный текст превратил
@@ -500,13 +528,19 @@ def list_sessions(user: User = Depends(current_user),
     они **подсказка владельцу**, а не удостоверение: ни один отказ платформы на них не
     опирается, и на экране это сказано.
     """
+    sessions = crud.list_sessions(db, user.id)
+    if user.is_demo:
+        # Общий демо-вход (L2): остальные сеансы — это другие посетители, их браузеры и
+        # адреса. Показать их значило бы раздавать чужие сведения каждому, кто нажал
+        # «Посмотреть демо».
+        sessions = [s for s in sessions if s.id == session.id]
     return [
         SessionOut(
             id=s.id, device=device_label(s.user_agent), user_agent=s.user_agent,
             ip=s.ip, created_at=s.created_at, last_seen_at=s.last_seen_at,
             expires_at=s.expires_at, current=s.id == session.id,
         )
-        for s in crud.list_sessions(db, user.id)
+        for s in sessions
     ]
 
 
@@ -655,6 +689,9 @@ def _confirm_password(user: User, password: str) -> None:
 
 # --- Свои данные: выгрузка и удаление (152-ФЗ, C3) ---
 
+DEMO_EXPORT_REFUSED = ("Это общий демо-вход: его сведения — это входы всех посетителей, и "
+                       "выгрузка раскрыла бы чужие. Зарегистрируйтесь — это бесплатно.")
+
 @router.get("/export")
 def export_my_data(user: User = Depends(current_user),
                    db: Session = Depends(get_db)) -> Response:
@@ -666,6 +703,10 @@ def export_my_data(user: User = Depends(current_user),
 
     Сама выгрузка пишется в журнал: вынос данных наружу — событие (правило 5 пакета).
     """
+    if user.is_demo:
+        # Сведения об общем демо-входе — это входы всех посетителей: выгрузка раскрыла
+        # бы чужие браузеры и адреса (L2).
+        raise HTTPException(status_code=403, detail=DEMO_EXPORT_REFUSED)
     payload = build_export(db, user)
     crud.log_user_action(db, user, "user.data_export",
                          details=f"записей журнала: {len(payload['мои_действия'])}")

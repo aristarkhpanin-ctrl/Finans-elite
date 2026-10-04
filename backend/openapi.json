@@ -4933,6 +4933,11 @@
       "CapabilitiesOut": {
         "description": "Что платформа умеет **в этой установке** — для экранов, которые иначе обещали бы\nнесуществующее (D1).\n\nОтправка писем включается на месте, и экран входа обязан знать о ней с сервера:\n«Забыли пароль?», нарисованная там, где письма не уходят, ведёт человека в тупик.",
         "properties": {
+          "demo": {
+            "default": false,
+            "title": "Demo",
+            "type": "boolean"
+          },
           "error_tracking": {
             "default": false,
             "title": "Error Tracking",
@@ -15766,6 +15771,11 @@
             "title": "Id",
             "type": "string"
           },
+          "is_demo": {
+            "default": false,
+            "title": "Is Demo",
+            "type": "boolean"
+          },
           "is_staff": {
             "default": false,
             "title": "Is Staff",
@@ -19816,6 +19826,28 @@
           }
         ],
         "summary": "Preview Deletion",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/demo": {
+      "post": {
+        "description": "«Посмотреть демо» — вход без регистрации (L2).\n\nПароля нет: его знали бы все, а значит, он ничего бы не защищал. Защищает другое —\nобщий демо-вход не меняет ничего, кроме расчётов (``deps.DEMO_ALLOWED``), а его\nорганизация под ограничением ``demo``. Журнал вход не пишет: это посетитель сайта, а\nне человек организации, и тысяча визитов утопила бы журнал. События пользования\nтоже не пишутся (``usage.record`` пропускает демо). Истёкшие демо-сеансы убираются\nздесь же — иначе их строки копились бы без предела.",
+        "operationId": "demo_login_api_v1_auth_demo_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Demo Login",
         "tags": [
           "auth"
         ]

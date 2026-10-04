@@ -115,6 +115,12 @@ class Organization(Base):
     #: КПП есть у юридического лица и нет у ИП — пустой у ИП правилен, а не пропущен.
     kpp: Mapped[str] = mapped_column(String(9), default="", server_default="")
     legal_address: Mapped[str] = mapped_column(String(500), default="", server_default="")
+    #: Демонстрационная организация (L2): её смотрят посетители сайта без регистрации.
+    #: Она под ограничением вида ``demo`` (смотреть, считать и выгружать — да, менять —
+    #: нет), её события пользования не пишутся, сводка платформы её не считает. Ставится
+    #: ``scripts/seed_demo.py --public`` записью в базу — маршрута для этого нет.
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False,
+                                          server_default=text("false"), nullable=False)
 
 
 class User(Base):
@@ -137,6 +143,12 @@ class User(Base):
     #: у кого есть доступ к базе.
     is_staff: Mapped[bool] = mapped_column(Boolean, default=False,
                                            server_default=text("false"), nullable=False)
+    #: Общий демо-вход (L2): им входят все посетители «Посмотреть демо». Любой
+    #: изменяющий запрос от него отклоняется, кроме расчётов (``deps.DEMO_ALLOWED``) —
+    #: учётную запись делят все, и правка одного досталась бы следующему. Ставится
+    #: ``scripts/seed_demo.py --public``, как и признак организации.
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False,
+                                          server_default=text("false"), nullable=False)
     #: Уровень внутри служебного контура (F5): ``support`` — наблюдение, ``operator`` —
     #: ещё и власть над клиентом (приостановка организации, блокировка учётной записи,
     #: сброс второго фактора, назначение тарифа).

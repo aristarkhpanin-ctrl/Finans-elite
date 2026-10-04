@@ -116,6 +116,11 @@ def record(db: Session, *, event: str, org_id: str, email: str = "",
     """
     if not collecting() or event not in EVENTS:
         return None
+    org = db.get(Organization, org_id)
+    if org is not None and org.is_demo:
+        # Демо смотрят посетители сайта, а не клиенты (L2): их события выдали бы демо за
+        # самую активную организацию платформы и сломали бы удержание.
+        return None
     row = UsageEvent(
         organization_id=org_id, event=event, actor=fingerprint(email),
         context=clean_context(context),
@@ -204,7 +209,11 @@ def summarize(db: Session, *, now: datetime | None = None,
     """
     now = now or datetime.now(timezone.utc)
     window = set(_months_back(now, months))
-    names = {o.id: o.name for o in db.execute(select(Organization)).scalars()}
+    orgs = list(db.execute(select(Organization)).scalars())
+    names = {o.id: o.name for o in orgs}
+    # Демо-организации (L2) в сводке нет: их события — визиты посетителей сайта, а не
+    # работа клиента. Новые не пишутся вовсе; эти — оставшиеся от заведения демо.
+    demo = {o.id for o in orgs if o.is_demo}
 
     counts: dict[tuple[str, str, str], int] = {}
     actors: dict[tuple[str, str, str], set[str]] = {}
@@ -213,6 +222,8 @@ def summarize(db: Session, *, now: datetime | None = None,
     for org_id, event, actor, created in db.execute(
             select(UsageEvent.organization_id, UsageEvent.event, UsageEvent.actor,
                    UsageEvent.created_at)).all():
+        if org_id in demo:
+            continue
         stamp = created if created.tzinfo else created.replace(tzinfo=timezone.utc)
         if first is None or stamp < first:
             first = stamp

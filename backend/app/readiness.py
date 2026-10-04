@@ -26,7 +26,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from . import billing, closing_docs, error_tracking, mail, scheduler, usage
+from . import billing, closing_docs, crud, error_tracking, mail, scheduler, usage
 from .billing import PaymentProvider
 
 OK, OFF, PROBLEM = "ok", "off", "problem"
@@ -239,6 +239,20 @@ def _safe(key: str, title: str, fn: Callable[[], ReadinessItem]) -> ReadinessIte
                              "состояние неизвестно", "см. логи процесса")
 
 
+def _demo(db: Session) -> ReadinessItem:
+    """Демо без регистрации (L2) — выбор владельца, а не настройка: не заведено —
+    «выключено», а не проблема."""
+    title = "Демо без регистрации"
+    user = crud.demo_account(db)
+    if user is None:
+        return ReadinessItem("demo", title, OFF, "не заведено",
+                             "кнопки «Посмотреть демо» на входе нет — посетитель видит "
+                             "продукт только после регистрации",
+                             "python scripts/seed_demo.py --public")
+    names = sorted(o.name for o, _ in crud.list_user_organizations(db, user.id) if o.is_demo)
+    return ReadinessItem("demo", title, OK, "заведено: " + ", ".join(f"«{n}»" for n in names))
+
+
 def check(db: Session, *, provider: PaymentProvider,
           now: datetime | None = None) -> list[ReadinessItem]:
     """Все пункты готовности. Только читает — ничего не меняет."""
@@ -255,4 +269,5 @@ def check(db: Session, *, provider: PaymentProvider,
         _safe("tracker", "Трекер ошибок", _tracker),
         _safe("stuck", "Зависшие задачи", _stuck),
         _safe("events", "События пользования", _events),
+        _safe("demo", "Демо без регистрации", lambda: _demo(db)),
     ]

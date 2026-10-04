@@ -746,6 +746,9 @@ class UserOut(BaseModel):
     #: Приходят ли письма об обсуждениях (OPEN-DECISIONS §5) — **одна** настройка вместо
     #: матрицы «что и когда»: матрицу заполняют один раз и больше не открывают.
     comment_emails: bool = True
+    #: Общий демо-вход (L2): интерфейс говорит посетителю, где он, и не обещает того,
+    #: что демо-входу закрыто. Права проверяет сервер (``deps.DEMO_ALLOWED``).
+    is_demo: bool = False
 
 
 class ActivateRequest(BaseModel):
@@ -2872,6 +2875,8 @@ class CapabilitiesOut(BaseModel):
     mail: bool = False
     #: Собирает ли установка ошибки (G7). `False` — интерфейс их не отправляет вовсе.
     error_tracking: bool = False
+    #: Заведено ли демо без регистрации (L2). `False` — кнопки «Посмотреть демо» нет.
+    demo: bool = False
 
 
 class ForgotPasswordIn(BaseModel):

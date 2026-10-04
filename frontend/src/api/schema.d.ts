@@ -1145,6 +1145,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/demo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Demo Login
+         * @description «Посмотреть демо» — вход без регистрации (L2).
+         *
+         *     Пароля нет: его знали бы все, а значит, он ничего бы не защищал. Защищает другое —
+         *     общий демо-вход не меняет ничего, кроме расчётов (``deps.DEMO_ALLOWED``), а его
+         *     организация под ограничением ``demo``. Журнал вход не пишет: это посетитель сайта, а
+         *     не человек организации, и тысяча визитов утопила бы журнал. События пользования
+         *     тоже не пишутся (``usage.record`` пропускает демо). Истёкшие демо-сеансы убираются
+         *     здесь же — иначе их строки копились бы без предела.
+         */
+        post: operations["demo_login_api_v1_auth_demo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/email-verification": {
         parameters: {
             query?: never;
@@ -5914,6 +5941,11 @@ export interface components {
          *     «Забыли пароль?», нарисованная там, где письма не уходят, ведёт человека в тупик.
          */
         CapabilitiesOut: {
+            /**
+             * Demo
+             * @default false
+             */
+            demo: boolean;
             /**
              * Error Tracking
              * @default false
@@ -12228,6 +12260,11 @@ export interface components {
             /** Id */
             id: string;
             /**
+             * Is Demo
+             * @default false
+             */
+            is_demo: boolean;
+            /**
              * Is Staff
              * @default false
              */
@@ -14368,6 +14405,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DeletionPlanOut"];
+                };
+            };
+        };
+    };
+    demo_login_api_v1_auth_demo_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenResponse"];
                 };
             };
         };

@@ -55,6 +55,18 @@ WRITE_PERMS = frozenset({Perm.PROJECT_CREATE, Perm.PROJECT_UPDATE, Perm.PROJECT_
 #: Статусы подписки, переводящие продукт в режим чтения и выгрузки.
 UNPAID_STATUSES = frozenset({"past_due", "canceled"})
 
+#: Демонстрационная организация (L2) — её смотрят посетители сайта без регистрации.
+#: Слова одни на все двери: баннер, отказ на записи и отказ демо-входу.
+DEMO_REASON = ("Это демонстрационная организация: смотреть, считать и выгружать можно, "
+               "менять — нет.")
+DEMO_REMEDY = "Чтобы работать со своими данными, зарегистрируйтесь — это бесплатно."
+#: Отказ общему демо-входу на изменяющем запросе (``deps.DEMO_ALLOWED``). Учётную запись
+#: делят все посетители — правка одного досталась бы следующему, поэтому причина
+#: названа, а не спрятана за «недостаточно прав».
+DEMO_REFUSAL = ("Это общий демо-вход: здесь можно смотреть, считать и выгружать, но не "
+                "менять — ни данные, ни учётную запись: их видят все посетители. "
+                + DEMO_REMEDY)
+
 
 @dataclass(frozen=True)
 class Restriction:
@@ -66,7 +78,7 @@ class Restriction:
     бы отправить обоих не туда.
     """
 
-    kind: str          # "suspended" | "unpaid" | "grace"
+    kind: str          # "suspended" | "unpaid" | "grace" | "demo"
     reason: str        # что произошло
     remedy: str        # что делать
     #: Закрывает ли запись. ``False`` — предупреждение: льготный срок после окончания
@@ -87,6 +99,10 @@ def restriction_for(db: Session, org_id: str, product: str = "business") -> Rest
     обещать обратное («оплатите — и заработает») нельзя.
     """
     org = crud.get_organization(db, org_id)
+    if org is not None and org.is_demo:
+        # Демо проверяется первым: у него нет ни оплаты, ни приостановки, которые могли
+        # бы что-то изменить, и выход у посетителя один — завести свою организацию.
+        return Restriction(kind="demo", reason=DEMO_REASON, remedy=DEMO_REMEDY)
     if org is not None and org.suspended_at is not None:
         reason = org.suspended_by and f"Приостановлена оператором платформы ({org.suspended_by})." \
             or "Организация приостановлена оператором платформы."

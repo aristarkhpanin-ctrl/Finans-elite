@@ -18,6 +18,15 @@ export async function login(payload: LoginPayload): Promise<TokenResponse> {
   return data;
 }
 
+/**
+ * «Посмотреть демо» — вход без регистрации (L2). Пароля нет: общий демо-вход защищает
+ * не пароль, а сервер, который не даёт ему менять ничего, кроме расчётов.
+ */
+export async function demoLogin(): Promise<TokenResponse> {
+  const { data } = await api.post<TokenResponse>("/api/v1/auth/demo");
+  return data;
+}
+
 export async function getMe(): Promise<User> {
   const { data } = await api.get<User>("/api/v1/auth/me");
   return data;

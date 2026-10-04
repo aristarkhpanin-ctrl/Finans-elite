@@ -7,6 +7,7 @@ import { initials } from "../format";
 import { CubeHero } from "./CubeHero";
 import { applyProduct, PRODUCTS, productFromPath } from "./product";
 import { LOGIN_NOTICE_KEY } from "../pages/LoginPage";
+import { httpDetail } from "../api/client";
 import { RestrictionBanner } from "./RestrictionBanner";
 import { useToast } from "./Toast";
 import { getTheme, toggleTheme, type Theme } from "./theme";
@@ -112,9 +113,10 @@ export function Layout() {
       const org = await createOrganization(name);
       selectOrg(org.id);
       window.location.reload();
-    } catch {
+    } catch (err: unknown) {
       setCreating(false);
-      toast("Не удалось создать организацию", { kind: "error" });
+      // Отказ сервера содержательный (демо-вход, предел организаций) — его словами.
+      toast(httpDetail(err) ?? "Не удалось создать организацию", { kind: "error" });
     }
   }
 
@@ -580,7 +582,8 @@ export function Layout() {
           {/* Режим чтения и выгрузки — над содержимым и на каждом экране: отказ,
               объяснённый один раз на странице тарифа, до того, кто нажимает
               «Сохранить» на третьей вкладке редактора, не доходит. */}
-          <RestrictionBanner org={currentOrg} product={product.id} />
+          <RestrictionBanner org={currentOrg} product={product.id}
+                             onRegister={() => { logout(); navigate("/register"); }} />
           <Outlet />
         </main>
       </div>

@@ -36,7 +36,7 @@ const NO_RESET = "Забыли пароль — ссылку на сброс в�
 export const LOGIN_NOTICE_KEY = "finans:login-notice";
 
 export function LoginPage() {
-  const { login } = useAuth();
+  const { login, loginDemo } = useAuth();
   const navigate = useNavigate();
   const product = useAuthProduct();
   usePageTitle("Вход");
@@ -72,6 +72,23 @@ export function LoginPage() {
   const { data: caps } = useQuery({ queryKey: ["capabilities"],
                                     queryFn: getCapabilities, staleTime: Infinity });
   const canMail = caps?.mail === true;
+  const [demoBusy, setDemoBusy] = useState(false);
+
+  /**
+   * «Посмотреть демо» (L2): кнопка есть, только если демо заведено на этой установке —
+   * обещание, которое сервер не выполнит, хуже отсутствия кнопки.
+   */
+  async function onDemo() {
+    setServerError("");
+    setDemoBusy(true);
+    try {
+      await loginDemo();
+      navigate(PRODUCTS[product].home);
+    } catch (err: unknown) {
+      setServerError(httpDetail(err) ?? "Демо сейчас недоступно. Попробуйте позже.");
+      setDemoBusy(false);
+    }
+  }
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
@@ -205,6 +222,17 @@ export function LoginPage() {
         </label>
         <AuthSubmit busy={busy} idleText="Войти" busyText="Входим…" />
       </form>
+      {caps?.demo && (
+        <div className="auth-demo">
+          <Button variant="ghost" block onClick={onDemo} loading={demoBusy} disabled={busy}>
+            Посмотреть демо без регистрации
+          </Button>
+          <p className="auth-demo__note">
+            Готовая организация с проектами и делами: смотреть, считать и выгружать
+            можно, менять — нет.
+          </p>
+        </div>
+      )}
       <ForgotPassword open={forgotOpen} initialEmail={email}
                       onClose={() => setForgotOpen(false)} />
     </AuthLayout>

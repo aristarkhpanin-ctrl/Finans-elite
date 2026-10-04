@@ -136,3 +136,32 @@ def test_script_refuses_production_without_explicit_password(monkeypatch):
     assert main(["--allow-production"]) == 2
     monkeypatch.setenv("APP_ENV", "development")
     assert main(["--password", "1234"]) == 2   # политика пароля — до любой записи
+
+
+def test_the_public_demo_is_seeded_flagged_and_opens_by_the_button(client, db_session):
+    """Публичное демо (L2): те же данные, отдельная организация, пароли никому не
+    известны — входят кнопкой. Признаки ставятся последним шагом, и после них демо
+    только смотрит и считает."""
+    from app import crud as crud_
+    from app.access import DEMO_REFUSAL
+    from app.demo_seed import PUBLIC_ORG_NAME, PUBLIC_VISITOR, seed_public
+
+    def mark(org_id: str, email: str) -> None:
+        user = crud_.get_user_by_email(db_session, email)
+        crud_.mark_demo(db_session, org_id, user.id)
+
+    report = seed_public(client, mark_demo=mark)
+    assert report.org_name == PUBLIC_ORG_NAME and len(report.projects) == 5
+    assert all(p.max_balance_gap < Decimal("1e-6") for p in report.projects)
+    assert any("кнопкой «Посмотреть демо»" in n for n in report.notes)
+    assert client.get("/api/v1/auth/capabilities").json()["demo"] is True
+
+    token = client.post("/api/v1/auth/demo").json()["access_token"]
+    visitor = {"Authorization": f"Bearer {token}"}
+    assert client.get("/api/v1/auth/me", headers=visitor).json()["email"] == PUBLIC_VISITOR.email
+    projects = client.get("/api/v1/projects", headers=visitor).json()
+    assert len(projects) == 5
+    pid = projects[0]["id"]
+    assert client.post(f"/api/v1/projects/{pid}/calculate", headers=visitor).status_code == 200
+    refused = client.delete(f"/api/v1/projects/{pid}", headers=visitor)
+    assert (refused.status_code, refused.json()["detail"]) == (403, DEMO_REFUSAL)

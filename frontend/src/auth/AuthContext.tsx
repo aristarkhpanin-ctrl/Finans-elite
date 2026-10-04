@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { getMe, getMyOrganizations, login as apiLogin, register as apiRegister } from "../api/auth";
+import { demoLogin, getMe, getMyOrganizations, login as apiLogin, register as apiRegister } from "../api/auth";
 import { getOrgId, getToken, setOrgId, setToken } from "../api/client";
 import { clearAllDrafts } from "../commentDraft";
 import type { LoginPayload, OrganizationMembership, RegisterPayload, User } from "../api/types";
@@ -12,6 +12,8 @@ interface AuthState {
   /** Возвращает примечание входа (например «вошли по резервному коду»), если оно есть. */
   login: (p: LoginPayload) => Promise<string>;
   register: (p: RegisterPayload) => Promise<void>;
+  /** «Посмотреть демо» (L2): общий демо-вход без пароля. */
+  loginDemo: () => Promise<void>;
   logout: () => void;
   selectOrg: (orgId: string) => void;
   /**
@@ -62,6 +64,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return notice ?? "";
   }
 
+  async function loginDemo() {
+    const { access_token } = await demoLogin();
+    setToken(access_token);
+    await loadProfile();
+  }
+
   async function register(p: RegisterPayload) {
     const { access_token } = await apiRegister(p);
     setToken(access_token);
@@ -85,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const value = useMemo<AuthState>(
-    () => ({ user, organizations, currentOrgId, loading, login, register, logout,
+    () => ({ user, organizations, currentOrgId, loading, login, register, loginDemo, logout,
              selectOrg, refresh: loadProfile }),
     // login/register/logout/selectOrg стабильны по поведению; их включение в deps
     // пересоздавало бы value каждый рендер — осознанно исключаем.

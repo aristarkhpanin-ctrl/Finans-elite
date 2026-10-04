@@ -84,3 +84,18 @@ it("отличие берётся с сервера, а не угадывает�
   }])} />);
   expect(container.querySelector(".restr--warn")).toBeNull();
 });
+
+it("демо называет себя и ведёт к регистрации, а не к оплате (L2)", async () => {
+  const { fireEvent } = await import("@testing-library/react");
+  const { vi } = await import("vitest");
+  const onRegister = vi.fn();
+  render(<RestrictionBanner product="business" onRegister={onRegister} org={org([{
+    product: "business", kind: "demo", blocking: true,
+    reason: "Это демонстрационная организация: смотреть, считать и выгружать можно, менять — нет.",
+    remedy: "Чтобы работать со своими данными, зарегистрируйтесь — это бесплатно.",
+  }])} />);
+  expect(screen.getByText("Это демонстрация")).toBeTruthy();
+  expect(screen.queryByText(/Режим чтения и выгрузки/)).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Зарегистрироваться" }));
+  expect(onRegister).toHaveBeenCalledTimes(1);
+});

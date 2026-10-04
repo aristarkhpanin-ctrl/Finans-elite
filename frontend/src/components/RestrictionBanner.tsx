@@ -1,5 +1,6 @@
 import type { OrganizationMembership } from "../api/types";
 import type { Product } from "./product";
+import { Button } from "./ui";
 
 /**
  * Баннер режима чтения и выгрузки (ADMIN-DECOMPOSITION.md, B2).
@@ -26,15 +27,19 @@ import type { Product } from "./product";
  * а не показать вовсе — отнять запись без предупреждения. Отличие берётся с сервера
  * полем, а не угадывается по `kind`: список видов растёт, и угадывание однажды отстанет.
  */
-export function RestrictionBanner({ org, product }: {
+export function RestrictionBanner({ org, product, onRegister }: {
   org: OrganizationMembership | undefined;
   product: Product;
+  /** Выход из демо (L2): регистрация своей организации. */
+  onRegister?: () => void;
 }) {
   const restriction = (org?.restrictions ?? []).find((r) => r.product === product);
   if (!restriction) return null;
 
   const blocking = restriction.blocking !== false;
-  const title = restriction.kind === "suspended" ? "Организация приостановлена"
+  const demo = restriction.kind === "demo";
+  const title = demo ? "Это демонстрация"
+    : restriction.kind === "suspended" ? "Организация приостановлена"
     : blocking ? "Режим чтения и выгрузки"
     : "Оплаченный период закончился";
 
@@ -42,7 +47,7 @@ export function RestrictionBanner({ org, product }: {
     <div className={"restr restr--" + restriction.kind + (blocking ? "" : " restr--warn")}
          role="status">
       <span className="restr__ico" aria-hidden="true">
-        {restriction.kind === "suspended" ? "⏸" : blocking ? "₽" : "⏳"}
+        {demo ? "◎" : restriction.kind === "suspended" ? "⏸" : blocking ? "₽" : "⏳"}
       </span>
       <div>
         <div className="restr__title">{title}</div>
@@ -50,6 +55,9 @@ export function RestrictionBanner({ org, product }: {
           {restriction.reason} {restriction.remedy}
         </div>
       </div>
+      {demo && onRegister && (
+        <Button className="restr__action" onClick={onRegister}>Зарегистрироваться</Button>
+      )}
     </div>
   );
 }

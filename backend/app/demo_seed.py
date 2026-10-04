@@ -23,6 +23,7 @@
 """
 from __future__ import annotations
 
+import secrets
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
@@ -625,7 +626,9 @@ def _check_project(api: _Api, project_id: str, name: str) -> ProjectCheck:
 
 
 def seed(client: _Client, *, passwords: dict[str, str] | None = None,
-         operator: Callable[[], str] | None = None) -> SeedReport:
+         operator: Callable[[], str] | None = None, org_name: str = DEMO_ORG_NAME,
+         owner_account: DemoAccount = OWNER,
+         analyst_account: DemoAccount = ANALYST) -> SeedReport:
     """Завести демо-организацию через маршруты приложения.
 
     ``passwords`` — пароли по адресам (по умолчанию — известные пароли вне продакшена).
@@ -633,30 +636,31 @@ def seed(client: _Client, *, passwords: dict[str, str] | None = None,
     его пароль; ``None`` — оператора нет, тариф остаётся бесплатным (в его квоты данные
     укладываются: пять проектов, три дела, два участника).
     """
-    pw = {a.email: a.password for a in (OWNER, ANALYST, OPERATOR)}
+    pw = {a.email: a.password for a in (owner_account, analyst_account, OPERATOR)}
     pw.update(passwords or {})
     anon = _Api(client)
     notes: list[str] = []
 
     # 1. Владелец регистрируется — организация создаётся вместе с ним (как на экране).
     token = anon.call("POST", "/auth/register", {
-        "email": OWNER.email, "password": pw[OWNER.email], "full_name": OWNER.full_name,
-        "organization_name": DEMO_ORG_NAME})["access_token"]
+        "email": owner_account.email, "password": pw[owner_account.email],
+        "full_name": owner_account.full_name, "organization_name": org_name})["access_token"]
     owner = _Api(client, token)
     org_id = next(o["id"] for o in owner.call("GET", "/organizations")
-                  if o["name"] == DEMO_ORG_NAME)
+                  if o["name"] == org_name)
     owner.org_id = org_id
 
     # 2. Аналитик — приглашением и активацией, тем же путём, что человек по ссылке.
     invite = owner.call("POST", f"/organizations/{org_id}/members", {
-        "email": ANALYST.email, "full_name": ANALYST.full_name, "role": ANALYST.role})
+        "email": analyst_account.email, "full_name": analyst_account.full_name,
+        "role": analyst_account.role})
     analyst_token = anon.call("POST", "/auth/activate", {
-        "token": invite["invite_token"], "password": pw[ANALYST.email],
-        "full_name": ANALYST.full_name})["access_token"]
+        "token": invite["invite_token"], "password": pw[analyst_account.email],
+        "full_name": analyst_account.full_name})["access_token"]
     analyst = _Api(client, analyst_token, org_id)
 
     # 3. Оператор платформы (если заведён) назначает тарифы — как по оплаченному счёту.
-    accounts = [OWNER, ANALYST]
+    accounts = [owner_account, analyst_account]
     if operator is not None:
         op_password = operator()
         op_token = anon.call("POST", "/auth/login", {
@@ -703,7 +707,7 @@ def seed(client: _Client, *, passwords: dict[str, str] | None = None,
 
     # 6. Обсуждение у отчёта: вопрос владельца с упоминанием и ответ аналитика.
     owner.call("POST", f"/projects/{fid}/comments", {
-        "body": f"@{ANALYST.email} посмотри долю ЛЛДПЭ в себестоимости: поставщик "
+        "body": f"@{analyst_account.email} посмотри долю ЛЛДПЭ в себестоимости: поставщик "
                 "предупредил о росте цены полимера с IV квартала.",
         "anchor": "report:income", "anchor_label": "Прибыли и убытки"})
     analyst.call("POST", f"/projects/{fid}/comments", {
@@ -741,5 +745,56 @@ def seed(client: _Client, *, passwords: dict[str, str] | None = None,
             risk_flags=summary["risk_flags"], warning_flags=summary["warning_flags"],
             equity_value=_money(summary.get("equity_value")),
             asking_price=_money(summary.get("asking_price"))))
-    return SeedReport(org_id=org_id, org_name=DEMO_ORG_NAME, accounts=accounts,
+    return SeedReport(org_id=org_id, org_name=org_name, accounts=accounts,
                       projects=projects, cases=cases, notes=notes)
+
+
+# --- Публичное демо: «Посмотреть демо» без регистрации (пакет L, L2) ---
+#
+# Отдельная организация, а не та, что выше: в той владелец должен править (её заводят
+# для проверки продукта руками), а публичную смотрят посетители сайта, и в ней не
+# меняется ничего. Данные те же — тот же ``seed`` с другим названием и адресами.
+
+#: Название говорит само, что это демонстрация: его видят в шапке все посетители.
+PUBLIC_ORG_NAME = "Демо: ООО «Демо Групп» (вымышленные данные)"
+PUBLIC_OWNER = DemoAccount("public-owner@finans-demo.test", OWNER.full_name, "", "owner")
+PUBLIC_ANALYST = DemoAccount("public-analyst@finans-demo.test", ANALYST.full_name, "",
+                             "analyst")
+#: Общий демо-вход: им входит каждый посетитель. Роль — наблюдатель, а изменяющие
+#: запросы ему закрыты ещё и демо-шлюзом (``deps.DEMO_ALLOWED``).
+PUBLIC_VISITOR = DemoAccount("visitor@finans-demo.test", "Посетитель демо", "", "viewer")
+PUBLIC_ACCOUNTS = (PUBLIC_OWNER, PUBLIC_ANALYST, PUBLIC_VISITOR)
+
+
+def random_password() -> str:
+    """Пароль, которого не знает никто: в публичное демо входят кнопкой, а не паролем, и
+    поэтому скрипт годится и для боевой установки — известного всем пароля там нет."""
+    return "Demo-" + secrets.token_urlsafe(24)
+
+
+def seed_public(client: _Client, *, mark_demo: Callable[[str, str], None]) -> SeedReport:
+    """Завести публичное демо через маршруты приложения.
+
+    ``mark_demo(org_id, email)`` ставит признаки демо организации и общему входу —
+    записью в базу (маршрута для этого нет, как и для признака сотрудника). Ставится
+    **последним шагом**: под ограничением ``demo`` заведение данных отказало бы само.
+    """
+    passwords = {a.email: random_password() for a in PUBLIC_ACCOUNTS}
+    report = seed(client, passwords=passwords, operator=None, org_name=PUBLIC_ORG_NAME,
+                  owner_account=PUBLIC_OWNER, analyst_account=PUBLIC_ANALYST)
+    anon = _Api(client)
+    token = anon.call("POST", "/auth/login", {
+        "email": PUBLIC_OWNER.email,
+        "password": passwords[PUBLIC_OWNER.email]})["access_token"]
+    owner = _Api(client, token, report.org_id)
+    invite = owner.call("POST", f"/organizations/{report.org_id}/members", {
+        "email": PUBLIC_VISITOR.email, "full_name": PUBLIC_VISITOR.full_name,
+        "role": PUBLIC_VISITOR.role})
+    anon.call("POST", "/auth/activate", {
+        "token": invite["invite_token"], "password": passwords[PUBLIC_VISITOR.email],
+        "full_name": PUBLIC_VISITOR.full_name})
+    mark_demo(report.org_id, PUBLIC_VISITOR.email)
+    report.accounts = list(PUBLIC_ACCOUNTS)
+    report.notes.append("Пароли учётных записей публичного демо случайные и нигде не "
+                        "сохранены: входят в него кнопкой «Посмотреть демо» на экране входа.")
+    return report

@@ -65,6 +65,14 @@ export function ProfileTab() {
 
   return (
     <div style={{ display: "grid", gap: 18, maxWidth: 520 }}>
+      {user?.is_demo && (
+        // Общий демо-вход (L2): форма видна, но правки отклонит сервер — и сказать об
+        // этом заранее честнее, чем дать нажать «Сохранить» и отказать.
+        <div className="field-note field-note--warn" role="note">
+          Это общий демо-вход: им пользуются все посетители, поэтому имя, пароль, второй
+          фактор и входы здесь не меняются. Своя учётная запись — после регистрации.
+        </div>
+      )}
       <div className="audit-block">
         <h2 className="audit-block__title">Профиль</h2>
         <Field label="Почта" value={user?.email ?? ""} disabled

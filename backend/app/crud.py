@@ -1062,6 +1062,63 @@ def _aware(value: datetime | None) -> datetime | None:
     return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
 
 
+def purge_expired_sessions(db: Session, user_id: str) -> int:
+    """Стереть истёкшие и закрытые сеансы человека. Возвращает, сколько стёрто.
+
+    Нужно общему демо-входу (L2): им входит каждый посетитель сайта, и без уборки строки
+    сеансов копились бы без предела. У обычного человека закрытые сеансы остаются — они
+    часть его сведений о себе (выгрузка C3).
+    """
+    now = datetime.now(timezone.utc)
+    rows = [s for s in db.execute(select(UserSession).where(
+        UserSession.user_id == user_id)).scalars()
+        if s.revoked_at is not None or (_aware(s.expires_at) or now) <= now]
+    for s in rows:
+        db.delete(s)
+    if rows:
+        db.commit()
+    return len(rows)
+
+
+def demo_account(db: Session) -> User | None:
+    """Общий демо-вход установки (L2): пользователь-демо с действующим членством в
+    демо-организации. ``None`` — демо не заведено, и кнопки «Посмотреть демо» нет.
+
+    Заблокированный демо-вход демо не даёт: блокировка — решение оператора, и обходить
+    её «потому что это демо» значило бы держать на установке дверь, которую не закрыть.
+    """
+    return db.execute(
+        select(User)
+        .join(Membership, Membership.user_id == User.id)
+        .join(Organization, Organization.id == Membership.organization_id)
+        .where(User.is_demo.is_(True), Organization.is_demo.is_(True),
+               User.blocked_at.is_(None), Membership.blocked_at.is_(None))
+        .order_by(User.created_at)
+    ).scalars().first()
+
+
+def mark_demo(db: Session, org_id: str, user_id: str) -> None:
+    """Сделать организацию демонстрационной, а человека — общим демо-входом (L2).
+
+    Только для ``scripts/seed_demo.py --public``: маршрута, который превращает
+    организацию или учётную запись в демо, у платформы нет — как и маршрута, выдающего
+    признак сотрудника.
+    """
+    org = db.get(Organization, org_id)
+    user = db.get(User, user_id)
+    if org is None or user is None:
+        raise ValueError("демо: нет такой организации или учётной записи")
+    org.is_demo = True
+    user.is_demo = True
+    db.commit()
+
+
+def demo_organization_ids(db: Session) -> set[str]:
+    """Демо-организации (L2) — для сводки платформы, которая их не считает."""
+    return set(db.execute(select(Organization.id).where(
+        Organization.is_demo.is_(True))).scalars())
+
+
 def list_all_sessions(db: Session, user_id: str) -> list[UserSession]:
     """**Все** сеансы человека, включая закрытые и истёкшие — для выгрузки своих данных
     и для полного стирания при удалении учётной записи (C3). На экране показываются

@@ -479,8 +479,11 @@ def _tenant_totals(db: Session, since: datetime, churn_since: datetime) -> Tenan
     за ``churn_since`` (глубина ряда по месяцам). Одно окно на оба заставило бы выбирать
     между «что происходит сейчас» и «как менялось за год».
     """
-    total = int(crud.count_organizations(db))
-    orgs = crud.list_organizations(db, limit=MAX_METRIC_ORGS)
+    # Демо-организации (L2) в свод не входят — как и во всю сводку платформы.
+    demo = crud.demo_organization_ids(db)
+    total = int(crud.count_organizations(db)) - len(demo)
+    orgs = [o for o in crud.list_organizations(db, limit=MAX_METRIC_ORGS + len(demo))
+            if o.id not in demo][:MAX_METRIC_ORGS]
     totals = TenantTotals(organizations_scanned=len(orgs), organizations_total=total)
     for org in orgs:
         with as_tenant(db, org.id):

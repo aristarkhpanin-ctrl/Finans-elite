@@ -8,12 +8,12 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from fastapi import Depends, Header, HTTPException
+from fastapi import Depends, Header, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from . import apikeys, crud
-from .access import WRITE_PERMS, restriction_for
+from .access import DEMO_REFUSAL, WRITE_PERMS, restriction_for
 from .database import get_db, set_tenant
 from .db_models import STAFF_OPERATOR, ApiKey, Membership, User, UserSession
 from .ratelimit import allow
@@ -213,7 +213,60 @@ def current_session(
     return session
 
 
+#: Изменяющие маршруты, открытые общему демо-входу (L2), — с причиной. Всё остальное для
+#: него закрыто **по умолчанию**: учётную запись делят все посетители, и маршрут, о демо не
+#: подумавший, не должен оставлять дыру. Открыты только расчёты — ровно то, что открыто и в
+#: режиме чтения (B2): посмотреть свои числа. Перечень сверяется тестом с маршрутами
+#: приложения в обе стороны.
+DEMO_ALLOWED: dict[str, str] = {
+    "POST /api/v1/calculate": "расчёт модели из запроса — ничего не сохраняет",
+    "POST /api/v1/projects/{project_id}/calculate": "расчёт проекта, как в режиме чтения",
+    "POST /api/v1/projects/{project_id}/sensitivity": "чувствительность — расчёт",
+    "POST /api/v1/projects/{project_id}/what-if": "«что если» — расчёт без сохранения",
+    "POST /api/v1/projects/{project_id}/monte-carlo": "Монте-Карло — расчёт",
+    "POST /api/v1/projects/{project_id}/monte-carlo/async": "Монте-Карло в очереди — расчёт",
+    "POST /api/v1/holdings/{holding_id}/consolidate": "свод холдинга — расчёт",
+    "POST /api/v1/integrator/consolidate": "свод проектов из запроса — расчёт",
+    "POST /api/v1/audit/subjects/{subject_id}/analyze": "разбор дела — расчёт",
+    "POST /api/v1/audit/subjects/{subject_id}/risk": "риски оценки — расчёт",
+    "POST /api/v1/audit/consolidate": "свод группы из запроса — расчёт",
+    "POST /api/v1/audit/groups/{group_id}/analyze": "свод сохранённой группы — расчёт",
+    "POST /api/v1/audit/compare": "сравнение дел — расчёт",
+}
+
+#: Сколько расчётов подряд разрешено одному демо-сеансу. Расчёты открыты, а Монте-Карло
+#: дорог: общий вход без предела стал бы бесплатной вычислительной фермой.
+DEMO_CALC_LIMIT = 30
+DEMO_CALC_WINDOW_SECONDS = 600
+
+
+def _demo_gate(request: Request | None, user: User, session: UserSession) -> None:
+    """Общий демо-вход не меняет ничего, кроме расчётов (L2).
+
+    Проверка здесь, а не в маршрутах: через :func:`current_user` проходит каждый запрос
+    человека, и новый маршрут закрыт для демо сам, без строчки в нём. Запрос без
+    сведений о маршруте (прямой вызов из кода) отклоняется так же — открытое по умолчанию
+    здесь было бы дырой.
+    """
+    if not user.is_demo:
+        return
+    method = request.method if request is not None else "POST"
+    if method in ("GET", "HEAD", "OPTIONS"):
+        return
+    route = request.scope.get("route") if request is not None else None
+    key = f"{method} {getattr(route, 'path', '')}"
+    if key not in DEMO_ALLOWED:
+        raise HTTPException(status_code=403, detail=DEMO_REFUSAL)
+    if not allow("demo-calc", session.id, DEMO_CALC_LIMIT, DEMO_CALC_WINDOW_SECONDS):
+        raise HTTPException(
+            status_code=429,
+            detail=("Демо-вход: слишком много расчётов подряд. Подождите несколько минут "
+                    "или зарегистрируйтесь — у своей организации такого предела нет."),
+            headers={"Retry-After": "120"})
+
+
 def current_user(
+    request: Request,
     session: UserSession = Depends(current_session),
     db: Session = Depends(get_db),
 ) -> User:
@@ -235,10 +288,12 @@ def current_user(
         # запрос платформы, включая служебный контур. Отзыв мгновенный по той же причине,
         # что и в A1 — учётная запись читается из базы на каждом запросе.
         raise HTTPException(status_code=403, detail=account_blocked_detail(user))
+    _demo_gate(request, user, session)
     return user
 
 
 def acting_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(_bearer),
     db: Session = Depends(get_db),
 ) -> User:
@@ -255,7 +310,7 @@ def acting_user(
     key = api_key_from(credentials, db)
     if key is not None:
         return key_author(db, key)
-    return current_user(current_session(credentials, db), db)
+    return current_user(request, current_session(credentials, db), db)
 
 
 def require_staff(user: User = Depends(current_user)) -> User:
@@ -386,6 +441,7 @@ def require_permission(perm: Perm, product: str = "business"):
     """
 
     def dependency(
+        request: Request,
         credentials: HTTPAuthorizationCredentials = Depends(_bearer),
         x_organization_id: str | None = Header(default=None, alias="X-Organization-Id"),
         db: Session = Depends(get_db),
@@ -406,7 +462,7 @@ def require_permission(perm: Perm, product: str = "business"):
             return enter_tenant(db, key.organization_id)
         # Обычный вход человека: сеанс → пользователь → организация → членство.
         session = current_session(credentials, db)
-        user = current_user(session, db)
+        user = current_user(request, session, db)
         org_id = current_org_id(user, x_organization_id, db)
         membership = _ensure_active(crud.get_membership(db, org_id, user.id), db)
         if not has_permission(membership.role if membership else None, perm):

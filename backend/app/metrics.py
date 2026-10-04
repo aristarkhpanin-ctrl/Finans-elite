@@ -245,16 +245,45 @@ def _as_utc(value: datetime | None) -> datetime | None:
     return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
 
 
+@dataclass(frozen=True)
+class DemoScope:
+    """Что сводка не считает (L2): демо-организации и людей, кроме них нигде не
+    состоящих. Демо смотрят посетители сайта, а не клиенты: посчитанное, оно выглядело бы
+    самой активной организацией платформы — отметка присутствия демо-входа обновляется
+    каждым посетителем."""
+
+    organizations: frozenset[str] = frozenset()
+    users: frozenset[str] = frozenset()
+
+
+def demo_scope(db: Session) -> DemoScope:
+    orgs = frozenset(db.execute(select(Organization.id).where(
+        Organization.is_demo.is_(True))).scalars())
+    if not orgs:
+        return DemoScope()
+    member_of: dict[str, set[str]] = {}
+    for user_id, org_id in db.execute(select(Membership.user_id, Membership.organization_id)):
+        member_of.setdefault(user_id, set()).add(org_id)
+    flagged = set(db.execute(select(User.id).where(User.is_demo.is_(True))).scalars())
+    only_demo = {u for u, o in member_of.items() if o <= orgs}
+    return DemoScope(organizations=orgs, users=frozenset(only_demo | flagged))
+
+
 def monthly_growth(db: Session, now: datetime, months: int = 12) -> list[MonthPoint]:
-    """Сколько организаций и пользователей появлялось по месяцам."""
+    """Сколько организаций и пользователей появлялось по месяцам (без демо, L2)."""
     periods = _months_back(now, months)
     orgs: dict[str, int] = {p: 0 for p in periods}
     users: dict[str, int] = {p: 0 for p in periods}
-    for (created,) in db.execute(select(Organization.created_at)):
+    demo = demo_scope(db)
+    for org_id, created in db.execute(select(Organization.id, Organization.created_at)):
+        if org_id in demo.organizations:
+            continue
         key = _month(_as_utc(created) or now)
         if key in orgs:
             orgs[key] += 1
-    for (created,) in db.execute(select(User.created_at)):
+    for user_id, created in db.execute(select(User.id, User.created_at)):
+        if user_id in demo.users:
+            continue
         key = _month(_as_utc(created) or now)
         if key in users:
             users[key] += 1
@@ -268,8 +297,10 @@ def plan_slices(db: Session) -> list[PlanSlice]:
     умолчанию, но приписать её к нему здесь значило бы смешать «выбрал бесплатный» с
     «не выбирал ничего» — разные разговоры с клиентом (то же различие, что и в карточке).
     """
+    demo = demo_scope(db)
     rows = db.execute(
         select(Subscription.product, Subscription.plan_code, func.count())
+        .where(Subscription.organization_id.notin_(demo.organizations))
         .group_by(Subscription.product, Subscription.plan_code)
     ).all()
     out = [
@@ -280,6 +311,11 @@ def plan_slices(db: Session) -> list[PlanSlice]:
     return sorted(out, key=lambda s: (s.product, s.plan_code))
 
 
+def _organizations(db: Session, demo: DemoScope) -> int:
+    total = int(db.scalar(select(func.count()).select_from(Organization)) or 0)
+    return total - len(demo.organizations)
+
+
 def _activity(db: Session, now: datetime) -> tuple[dict[int, int], dict[int, int], int]:
     """Активные пользователи и организации по окнам + участники без отметки.
 
@@ -287,9 +323,11 @@ def _activity(db: Session, now: datetime) -> tuple[dict[int, int], dict[int, int
     администратор организации (A3). Второй источник дал бы два разных ответа на вопрос
     «работает ли человек», и оба выглядели бы одинаково правдоподобно.
     """
+    demo = demo_scope(db)
     rows = [(user_id, org_id, _as_utc(seen)) for user_id, org_id, seen in
             db.execute(select(Membership.user_id, Membership.organization_id,
-                              Membership.last_seen_at)).all()]
+                              Membership.last_seen_at)).all()
+            if org_id not in demo.organizations]
     without_mark = sum(1 for _, _, seen in rows if seen is None)
     users: dict[int, int] = {}
     orgs: dict[int, int] = {}
@@ -314,10 +352,12 @@ def activation_funnel(db: Session, totals: TenantTotals) -> list[FunnelStep]:
     Шага «открыл результаты» в ней нет намеренно: отдельного маршрута у этого экрана не
     существует, он зовёт расчёт, и шаг был бы вторым именем предыдущего.
     """
-    organizations = int(db.scalar(select(func.count()).select_from(Organization)) or 0)
+    demo = demo_scope(db)
+    organizations = _organizations(db, demo)
     paid = int(db.scalar(
         select(func.count(func.distinct(Subscription.organization_id)))
-        .where(Subscription.plan_code != DEFAULT_PLAN)) or 0)
+        .where(Subscription.plan_code != DEFAULT_PLAN,
+               Subscription.organization_id.notin_(demo.organizations))) or 0)
     steps = [
         FunnelStep("signup", "Завели организацию", organizations),
         FunnelStep("created", "Завели проект или дело", totals.with_entities),
@@ -339,8 +379,10 @@ def retention(db: Session, now: datetime, months: int) -> list[RetentionPoint]:
     где событий нет, стоит ``None`` — «не измеряется», а не ноль: ноль читался бы как
     «все ушли».
     """
-    rows = db.execute(select(UsageEvent.organization_id, UsageEvent.event,
-                             UsageEvent.created_at)).all()
+    demo = demo_scope(db)
+    rows = [row for row in db.execute(select(UsageEvent.organization_id, UsageEvent.event,
+                                             UsageEvent.created_at)).all()
+            if row[0] not in demo.organizations]
     if not rows:
         return []
     arrived: dict[str, str] = {}          # организация → месяц первого события
@@ -511,11 +553,12 @@ def build_platform_metrics(db: Session, *, totals: TenantTotals, now: datetime |
     """Собрать сводку платформы. ``totals`` приходит снаружи — см. :class:`TenantTotals`."""
     now = now or datetime.now(timezone.utc)
     active_users, active_orgs, without_mark = _activity(db, now)
+    demo = demo_scope(db)
     metrics = PlatformMetrics(
         generated_at=now,
         since_days=since_days,
-        organizations=int(db.scalar(select(func.count()).select_from(Organization)) or 0),
-        users=int(db.scalar(select(func.count()).select_from(User)) or 0),
+        organizations=_organizations(db, demo),
+        users=int(db.scalar(select(func.count()).select_from(User)) or 0) - len(demo.users),
         active_users=active_users,
         active_organizations=active_orgs,
         members_without_mark=without_mark,
@@ -532,6 +575,11 @@ def build_platform_metrics(db: Session, *, totals: TenantTotals, now: datetime |
         usage_collected=usage_collecting(),
     )
     metrics.notes = _notes(metrics, totals)
+    if demo.organizations:
+        metrics.notes.append(
+            f"Демо-организации ({len(demo.organizations)}) и их учётные записи в сводке не "
+            "считаются: их смотрят посетители сайта, а не клиенты, и отметка присутствия "
+            "демо-входа обновляется каждым посетителем.")
     return metrics
 
 

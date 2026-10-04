@@ -4118,6 +4118,14 @@ button.leg-toggle:focus-visible { outline: 2px solid var(--accent); outline-offs
 .restr__ico { font-size: 16px; line-height: 1.3; flex: none; }
 .restr__title { font: 600 13px var(--font-ui); color: var(--text); margin-bottom: 2px; }
 .restr__text { font: 400 12px/1.55 var(--font-ui); color: var(--muted); }
+/* Демо (L2): посетитель сайта смотрит готовую организацию. Тон — спокойный, как у
+   предупреждения: это не наказание, а витрина; выход — кнопкой рядом с текстом. */
+.restr--demo { background: var(--primary-soft); border-color: var(--line); --subtle: var(--muted); }
+.restr__action { margin-left: auto; flex: none; align-self: center; }
+@media (max-width: 640px) {
+  .restr { flex-wrap: wrap; }
+  .restr__action { margin-left: 0; }
+}
 
 /* Сводка платформы (B3): таблицы роста и тарифов + оговорки под ними. */
 .mgrid { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
@@ -4157,6 +4165,11 @@ button.leg-toggle:focus-visible { outline: 2px solid var(--accent); outline-offs
   display: flex; align-items: center; gap: 8px; cursor: pointer;
   font: 400 13px var(--font-ui); color: var(--muted); margin: -4px 0 4px;
 }
+
+/* «Посмотреть демо» (L2): под формой входа, отделено чертой — это не второй способ
+   войти в свою учётную запись, а витрина продукта. */
+.auth-demo { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+.auth-demo__note { font: 400 12px/1.5 var(--font-ui); color: var(--muted); margin: 8px 0 0; text-align: center; }
 
 /* Второй фактор (C2): ключ для ручного ввода и резервные коды. */
 .totp-key {
