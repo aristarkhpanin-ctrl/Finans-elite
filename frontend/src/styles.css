@@ -2675,6 +2675,20 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 @media (max-width: 1023px) { .metric-grid, .metric-grid--val { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 640px) { .metric-grid, .metric-grid--val { grid-template-columns: 1fr; } }
 
+/* Закрытие расчётов на конец горизонта (пакет K): оговорка и состав под показателями */
+.release-note { margin-top: 8px; max-width: 760px; }
+.release-note__items {
+  list-style: none; margin: 6px 0 0; padding: 0;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 2px 18px;
+}
+.release-note__item {
+  display: flex; justify-content: space-between; gap: 10px; min-width: 0;
+  font: 400 12px var(--font-ui); color: var(--muted); padding: 2px 0;
+  border-bottom: 1px dashed var(--border);
+}
+.release-note__label { min-width: 0; overflow-wrap: anywhere; }
+.release-note__amount { font-family: var(--font-mono); color: var(--text); white-space: nowrap; }
+
 /* Вердикт-карточки сводки */
 .verdict-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
 .verdict-card {

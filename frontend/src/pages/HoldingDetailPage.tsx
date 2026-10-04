@@ -12,6 +12,7 @@ import {
   type ConsolidateResponse,
 } from "../api/holdings";
 import { listProjects } from "../api/projects";
+import { ReleaseNote } from "../components/ReleaseNote";
 import { EPercentField, ESelect } from "../components/EditorField";
 import { IconTrash } from "../components/icons";
 import { useToast } from "../components/Toast";
@@ -322,6 +323,9 @@ function ConsolidatedBudget({ result, rate }: { result: ConsolidateResponse; rat
           </div>
         </div>
       </div>
+      {/* Сводный NPV включает закрытие расчётов проектов (пакет K): сумма, состав и
+          проекты, у которых оно выключено, — та же оговорка, что у каждого проекта. */}
+      <ReleaseNote release={result.working_capital_release} />
 
       {/* Таблица вклада: показатель | проекты | группа */}
       <div className="terms-head" style={{ marginTop: 18 }}>

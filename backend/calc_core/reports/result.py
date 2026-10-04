@@ -6,6 +6,7 @@ from decimal import Decimal
 from typing import Optional
 
 from .breakeven import BreakEven
+from .horizon import WorkingCapitalRelease
 from .ratios import FinancialRatios
 from .statements import Statement
 from .valuation import BusinessValuation
@@ -267,9 +268,13 @@ class CalcResult:
     # Показатели во второй валюте (SPEC §17); None, если ставка дисконтирования по валюте
     # не задана (поток пересчитан по курсу fx_rate, дисконт — своей ставкой валюты).
     metrics_foreign: Optional[InvestmentMetrics] = None
-    #: Поток проекта, по которому считаются показатели и оценка (SPEC §17): ``C13 + C20``
-    #: с лизингом как у покупки. Пустой список — результат собран не движком (тесты).
+    #: Поток проекта, по которому считаются показатели (SPEC §17): до финансирования, с
+    #: лизингом как у покупки, без казначейства и с закрытием расчётов в последнем месяце
+    #: (если оно включено). Пустой список — результат собран не движком (тесты).
     project_flow: list[Decimal] = field(default_factory=list)
+    #: Закрытие расчётов на конец горизонта (пакет K, K4): сумма, состав и строка-оговорка;
+    #: собирается и при выключенном закрытии — чтобы назвать, что в показатели не вошло.
+    working_capital_release: Optional[WorkingCapitalRelease] = None
     ratios: FinancialRatios = field(default_factory=FinancialRatios)
     break_even: BreakEven = field(default_factory=BreakEven)
     valuation: BusinessValuation = field(default_factory=BusinessValuation)

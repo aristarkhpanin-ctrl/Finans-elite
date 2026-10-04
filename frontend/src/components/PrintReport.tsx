@@ -327,6 +327,11 @@ export function PrintReport({
           // На бумаге объяснить прочерк особенно важно: спросить автора нельзя.
           <div className="pr-note">{m.no_return_metrics_note}</div>
         )}
+        {data.working_capital_release && (
+          // Закрытие расчётов последнего месяца (пакет K) — та же строка, что на экране и
+          // в документе: читатель бумаги должен знать, из чего сложен скачок потока.
+          <div className="pr-note">{data.working_capital_release.note}</div>
+        )}
 
         <div className="pr-seclabel">Оценка стоимости бизнеса</div>
         <div className="pr-vgrid">

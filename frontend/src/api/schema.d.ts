@@ -5882,6 +5882,7 @@ export interface components {
             valuation: components["schemas"]["ValuationOut"];
             /** Warnings */
             warnings: string[];
+            working_capital_release?: components["schemas"]["WorkingCapitalReleaseOut"] | null;
         };
         /**
          * CalendarPlan
@@ -6454,6 +6455,7 @@ export interface components {
             valuation: components["schemas"]["ValuationOut"];
             /** Warnings */
             warnings: string[];
+            working_capital_release?: components["schemas"]["WorkingCapitalReleaseOut"] | null;
         };
         /**
          * CostFunction
@@ -9086,6 +9088,7 @@ export interface components {
              *       "profit_tax_periodicity": "month",
              *       "profit_tax_rate": "0.25",
              *       "property_tax_rate": "0",
+             *       "release_working_capital": true,
              *       "sales_tax_rate": "0",
              *       "terminal_growth_rate": "0",
              *       "valuation_earnings_multiple": "0",
@@ -9228,6 +9231,7 @@ export interface components {
              *       "profit_tax_periodicity": "month",
              *       "profit_tax_rate": "0.25",
              *       "property_tax_rate": "0",
+             *       "release_working_capital": true,
              *       "sales_tax_rate": "0",
              *       "terminal_growth_rate": "0",
              *       "valuation_earnings_multiple": "0",
@@ -9391,6 +9395,11 @@ export interface components {
              */
             property_tax_rate: number | string;
             /**
+             * Release Working Capital
+             * @default true
+             */
+            release_working_capital: boolean;
+            /**
              * Sales Tax Rate
              * @default 0
              */
@@ -9535,6 +9544,11 @@ export interface components {
              * @default 0
              */
             property_tax_rate: string;
+            /**
+             * Release Working Capital
+             * @default true
+             */
+            release_working_capital: boolean;
             /**
              * Sales Tax Rate
              * @default 0
@@ -9798,6 +9812,15 @@ export interface components {
             organization_name: string;
             /** Password */
             password: string;
+        };
+        /** ReleaseItemOut */
+        ReleaseItemOut: {
+            /** Amount */
+            amount: string;
+            /** Code */
+            code: string;
+            /** Label */
+            label: string;
         };
         /**
          * RepaymentType
@@ -12452,6 +12475,29 @@ export interface components {
         WhatIfResponse: {
             /** Scenarios */
             scenarios: components["schemas"]["ScenarioResultOut"][];
+        };
+        /**
+         * WorkingCapitalReleaseOut
+         * @description Закрытие расчётов на конец горизонта (SPEC §17, пакет K): что вошло в поток
+         *     показателей последним месяцем — или, при выключенном закрытии, что в него не вошло.
+         */
+        WorkingCapitalReleaseOut: {
+            /** Enabled */
+            enabled: boolean;
+            /**
+             * Items
+             * @default []
+             */
+            items: components["schemas"]["ReleaseItemOut"][];
+            /** Month */
+            month: number;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /** Total */
+            total: string;
         };
     };
     responses: never;

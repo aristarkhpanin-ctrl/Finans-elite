@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
 import { line, type CalcResponse, type StatementOut } from "../api/calc";
-import { fmtAxis, fmtMoney } from "../format";
+import { fmtAxis, fmtMoney, signedMoney } from "../format";
 import {
   axisLayer, CAT, EmptyChart, fitWidth, frame, monthLabels, PAL, Svg, useChartWidth,
   type Frame, type P, type TipRow,
@@ -88,6 +88,7 @@ export function ResultCharts({ result }: { result: CalcResponse }) {
     : op.map((v, i) => v + inv[i]);
   let running = 0;
   const cum = flow.map((v) => (running += v));
+  const release = result.working_capital_release;
 
   const b = (code: string) => line(result.balance, code);
   const assetComps: Array<[string, number[]]> = [
@@ -215,8 +216,14 @@ export function ResultCharts({ result }: { result: CalcResponse }) {
         </text>,
       );
     }
-    for (let i = 0; i < n; i++)
-      kids.push(hoverBand(i, f, "payback", `М${i + 1}`, [{ label: "Накопл. поток", val: fmtMoney(cum[i]), dot: PAL.pos }]));
+    for (let i = 0; i < n; i++) {
+      const rows = [{ label: "Накопл. поток", val: fmtMoney(cum[i]), dot: PAL.pos }];
+      // Последний месяц несёт закрытие расчётов (пакет K): скачок линии назван, а не
+      // оставлен догадке — иначе дебиторка и налоги читались бы как выручка месяца.
+      if (release?.enabled && i === release.month && Number(release.total) !== 0)
+        rows.push({ label: "в т. ч. закрытие расчётов", val: signedMoney(release.total), dot: PAL.pos });
+      kids.push(hoverBand(i, f, "payback", `М${i + 1}`, rows));
+    }
     return <Svg p={p}>{kids}</Svg>;
   };
 
@@ -425,7 +432,9 @@ export function ResultCharts({ result }: { result: CalcResponse }) {
       height: 250,
       p: Phalf,
       title: "Накопленный поток · окупаемость",
-      sub: "Кумулятивный поток проекта · отметка PB",
+      sub: release?.enabled && Number(release.total) !== 0
+        ? "Кумулятивный поток проекта · отметка PB · последний месяц — с закрытием расчётов"
+        : "Кумулятивный поток проекта · отметка PB",
       legend: [
         { label: "Накопленный поток", color: PAL.pos },
         { label: "Нулевая линия", color: "var(--danger)", line: true },

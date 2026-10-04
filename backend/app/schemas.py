@@ -213,6 +213,24 @@ class LineDetailOut(BaseModel):
     items: list[LineDetailItemOut] = []
 
 
+class ReleaseItemOut(BaseModel):
+    code: str
+    label: str
+    #: Со знаком: «+» приходит деньгами, «−» уходит.
+    amount: Decimal
+
+
+class WorkingCapitalReleaseOut(BaseModel):
+    """Закрытие расчётов на конец горизонта (SPEC §17, пакет K): что вошло в поток
+    показателей последним месяцем — или, при выключенном закрытии, что в него не вошло."""
+
+    enabled: bool
+    month: int
+    total: Decimal
+    items: list[ReleaseItemOut] = []
+    note: str = ""
+
+
 class CalcResponse(BaseModel):
     engine_version: str
     n: int
@@ -223,10 +241,13 @@ class CalcResponse(BaseModel):
     metrics: MetricsOut
     # Показатели во второй валюте (SPEC §17); None, если ставка по валюте не задана.
     metrics_foreign: Optional[MetricsOut] = None
-    #: Поток проекта, по которому посчитаны показатели и оценка (SPEC §17): ``C13 + C20``
-    #: с лизингом как у покупки. По нему же экран строит график окупаемости — иначе
-    #: линия и точка окупаемости разошлись бы у проекта с лизингом.
+    #: Поток проекта, по которому посчитаны показатели (SPEC §17): до финансирования, с
+    #: лизингом как у покупки, без казначейства и с закрытием расчётов в последнем месяце.
+    #: По нему же экран строит график окупаемости — иначе линия и точка окупаемости
+    #: разошлись бы.
     project_flow: list[Decimal] = []
+    #: Закрытие расчётов на конец горизонта: сумма, состав и строка-оговорка (пакет K).
+    working_capital_release: Optional[WorkingCapitalReleaseOut] = None
     ratios: RatiosOut
     break_even: BreakEvenOut
     valuation: ValuationOut
@@ -1142,6 +1163,15 @@ def _metrics_out(m) -> Optional[MetricsOut]:
     )
 
 
+def _release_out(r) -> Optional[WorkingCapitalReleaseOut]:
+    if r is None:
+        return None
+    return WorkingCapitalReleaseOut(
+        enabled=r.enabled, month=r.month, total=r.total, note=r.note,
+        items=[ReleaseItemOut(code=i.code, label=i.label, amount=i.amount) for i in r.items],
+    )
+
+
 def to_response(r: CalcResult) -> CalcResponse:
     """Преобразовать результат ядра в схему ответа API."""
     return CalcResponse(
@@ -1154,6 +1184,7 @@ def to_response(r: CalcResult) -> CalcResponse:
         metrics=_metrics_out(r.metrics),
         metrics_foreign=_metrics_out(r.metrics_foreign),
         project_flow=list(r.project_flow),
+        working_capital_release=_release_out(r.working_capital_release),
         ratios=RatiosOut(
             liquidity=r.ratios.liquidity,
             activity=r.ratios.activity,

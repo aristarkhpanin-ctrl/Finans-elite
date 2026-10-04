@@ -10,6 +10,7 @@ import { HintBadge } from "../components/EditorField";
 import { IconPrint } from "../components/icons";
 import { PlanFactView } from "../components/PlanFactView";
 import { printPageCount, PrintReport } from "../components/PrintReport";
+import { ReleaseNote } from "../components/ReleaseNote";
 import { ReviewBanner } from "../components/ReviewBanner";
 import { RatiosView } from "../components/RatiosView";
 import { ResultCharts } from "../components/ResultCharts";
@@ -334,6 +335,7 @@ export function ProjectResultsPage() {
           // приходит с сервера — второй её копией экран разошёлся бы с документом.
           <div className="field-note" style={{ marginTop: 8 }}>{m.no_return_metrics_note}</div>
         )}
+        <ReleaseNote release={data.working_capital_release} />
 
         {fxCards.length > 0 && (
           <>

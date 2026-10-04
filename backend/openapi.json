@@ -4850,6 +4850,16 @@
             },
             "title": "Warnings",
             "type": "array"
+          },
+          "working_capital_release": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkingCapitalReleaseOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -5755,6 +5765,16 @@
             },
             "title": "Warnings",
             "type": "array"
+          },
+          "working_capital_release": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkingCapitalReleaseOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -10334,6 +10354,7 @@
               "profit_tax_periodicity": "month",
               "profit_tax_rate": "0.25",
               "property_tax_rate": "0",
+              "release_working_capital": true,
               "sales_tax_rate": "0",
               "terminal_growth_rate": "0",
               "valuation_earnings_multiple": "0",
@@ -10488,6 +10509,7 @@
               "profit_tax_periodicity": "month",
               "profit_tax_rate": "0.25",
               "property_tax_rate": "0",
+              "release_working_capital": true,
               "sales_tax_rate": "0",
               "terminal_growth_rate": "0",
               "valuation_earnings_multiple": "0",
@@ -10895,6 +10917,11 @@
             "default": "0",
             "title": "Property Tax Rate"
           },
+          "release_working_capital": {
+            "default": true,
+            "title": "Release Working Capital",
+            "type": "boolean"
+          },
           "sales_tax_rate": {
             "anyOf": [
               {
@@ -11127,6 +11154,11 @@
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Property Tax Rate",
             "type": "string"
+          },
+          "release_working_capital": {
+            "default": true,
+            "title": "Release Working Capital",
+            "type": "boolean"
           },
           "sales_tax_rate": {
             "default": "0",
@@ -11607,6 +11639,30 @@
           "organization_name"
         ],
         "title": "RegisterRequest",
+        "type": "object"
+      },
+      "ReleaseItemOut": {
+        "properties": {
+          "amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "label",
+          "amount"
+        ],
+        "title": "ReleaseItemOut",
         "type": "object"
       },
       "RepaymentType": {
@@ -16214,6 +16270,44 @@
         ],
         "title": "WhatIfResponse",
         "type": "object"
+      },
+      "WorkingCapitalReleaseOut": {
+        "description": "Закрытие расчётов на конец горизонта (SPEC §17, пакет K): что вошло в поток\nпоказателей последним месяцем — или, при выключенном закрытии, что в него не вошло.",
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "items": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ReleaseItemOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "month": {
+            "title": "Month",
+            "type": "integer"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          },
+          "total": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total",
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
+          "month",
+          "total"
+        ],
+        "title": "WorkingCapitalReleaseOut",
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -16226,7 +16320,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.56"
+    "version": "0.9.57"
   },
   "openapi": "3.1.0",
   "paths": {

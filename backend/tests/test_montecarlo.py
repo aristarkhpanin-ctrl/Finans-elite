@@ -45,8 +45,10 @@ def test_monte_carlo_risk_metrics():
 def test_monte_carlo_no_uncertainty_zero_risk_spread():
     cfg = MonteCarloConfig(iterations=50, seed=42, uncertain=[])
     res = run_monte_carlo(build_sample_project(), cfg)
-    # Без неопределённости все исходы равны: VaR = CVaR = медиана, ошибка ≈ 0.
-    assert res.npv_cvar_5 == res.npv_p5 == res.npv_p50
+    # Без неопределённости все исходы равны: VaR = CVaR = медиана, ошибка ≈ 0. CVaR —
+    # среднее хвоста: деление суммы равных чисел оставляет шум в последнем знаке.
+    assert res.npv_p5 == res.npv_p50
+    assert abs(res.npv_cvar_5 - res.npv_p5) < Decimal("1e-20")
     assert res.npv_sem < Decimal("0.01")
 
 

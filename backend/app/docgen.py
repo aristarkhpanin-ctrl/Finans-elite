@@ -146,6 +146,31 @@ def _add_metrics(doc: Document, result: CalcResult) -> None:
         # Четыре прочерка подряд без объяснения читатель бизнес-плана принимает за
         # «не посчитали» — а это третье состояние, и у него есть причина.
         doc.add_paragraph(result.metrics.no_return_metrics_note)
+    _add_release(doc, result)
+
+
+def _add_release(doc: Document, result: CalcResult) -> None:
+    """Закрытие расчётов на конец горизонта (пакет K, K4): оговорка и состав.
+
+    Число последнего месяца, в которое вошли дебиторка и налоги, без расшифровки
+    читается как выручка; поэтому документ называет и сумму, и строки, из которых она
+    сложена, — той же строкой-оговоркой, что экран и печать (второй её копии нет).
+    """
+    release = result.working_capital_release
+    if release is None:
+        return
+    doc.add_paragraph(release.note)
+    if not release.items:
+        return
+    table = doc.add_table(rows=1 + len(release.items), cols=2)
+    table.style = "Table Grid"
+    table.rows[0].cells[0].text = "Строка баланса на конец горизонта"
+    table.rows[0].cells[1].text = "В поток, ₽"
+    for i, item in enumerate(release.items, start=1):
+        table.rows[i].cells[0].text = f"{item.code} {item.label}"
+        sign = "+" if item.amount > 0 else ""
+        table.rows[i].cells[1].text = sign + fmt_rub(item.amount)
+    _shrink_table(table, 9)
 
 
 def _add_metrics_foreign(doc: Document, model: ProjectModel, result: CalcResult) -> None:

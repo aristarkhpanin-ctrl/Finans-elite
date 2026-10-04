@@ -84,10 +84,13 @@ def test_a_manual_deposit_does_not_lower_npv():
 
 def test_the_tax_on_deposit_income_stays_in_the_flow():
     """Доход депозита в потоке нет, а налог с него — есть: налоги фактические. Разница
-    потоков — ровно разница уплаченного налога."""
+    потоков — ровно разница уплаченного налога, а в последнем месяце ещё и налога к
+    уплате: закрытие расчётов конца горизонта (K4) уводит из потока и его."""
     off, on = run(_model(tax="0.25")), run(_model(tax="0.25", invest=True))
     for t in range(N):
         extra_tax = on.cashflow["C12"][t] - off.cashflow["C12"][t]
+        if t == N - 1:
+            extra_tax += on.balance["B21"][t] - off.balance["B21"][t]
         assert abs(on.project_flow[t] - off.project_flow[t] + extra_tax) < EPS
 
 

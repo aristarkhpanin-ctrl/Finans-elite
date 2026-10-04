@@ -176,3 +176,15 @@ def test_business_plan_missing_and_auth(client, auth_headers):
                       headers=auth_headers).status_code == 404
     pid = _project(client, auth_headers)
     assert client.get(f"/api/v1/projects/{pid}/business-plan.docx").status_code in (401, 403)
+
+
+def test_the_document_names_the_closing_of_accounts():
+    """Число последнего месяца, в которое вошли дебиторка и налоги, без расшифровки
+    читается как выручка: документ печатает оговорку и состав закрытия (пакет K, K4)."""
+    doc = _build()
+    text = _texts(doc)
+    assert "с закрытием расчётов на конец горизонта" in text
+    table = next(t for t in doc.tables
+                 if t.rows[0].cells[0].text == "Строка баланса на конец горизонта")
+    codes = [row.cells[0].text.split()[0] for row in table.rows[1:]]
+    assert "B2" in codes and all(c.startswith("B") for c in codes)

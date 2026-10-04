@@ -138,6 +138,23 @@ def test_the_vat_choice_says_what_happens_to_the_excess():
     assert carry.evidence["vat_refunded_total"] == "0"
 
 
+def test_the_flow_choice_names_the_closing_of_accounts():
+    """С 0.9.57 расчёты конца горизонта входят в показатели (пакет K, K4): пункт 4
+    называет это и переключатель, а пункт 7 больше не утверждает, что налог за горизонтом
+    в поток не входит, — эта оговорка стала бы неправдой."""
+    model = build_showcase_project()
+    flow = _by_id(_map(model), "metrics.investment_graph")
+    assert "закрытие расчётов" in flow.chosen and "последнем месяце" in flow.chosen
+    assert "settings.release_working_capital" in flow.controls
+    assert flow.evidence["working_capital_release_enabled"] is True
+    assert "в поток проекта не входит" not in _by_id(_map(model),
+                                                      "tax.loss_carryforward").open_question
+
+    model.settings.release_working_capital = False
+    off = _by_id(_map(model), "metrics.investment_graph")
+    assert "выключено" in off.chosen and off.evidence["working_capital_release_enabled"] is False
+
+
 def test_auto_financing_is_silent_when_switched_off():
     model = build_sample_project()
     off = _by_id(methodology_map(model, run(model)), "financing.auto")

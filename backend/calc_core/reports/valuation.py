@@ -44,8 +44,10 @@ def compute_valuation(income: Statement, cashflow: Statement, balance: Statement
                       discount_rate_annual, growth_rate, earnings_multiple,
                       liquidation_recovery, n: int) -> BusinessValuation:
     """Оценка бизнеса. Свободный поток — **поток проекта** (``project_flow``, SPEC §17):
-    тот же, что у NPV, с лизингом как у покупки; до пакета J здесь стояло ``C13 + C20``,
-    и аренда парка в свободный поток не попадала."""
+    тот же, что у NPV, с лизингом как у покупки (до пакета J здесь стояло ``C13 + C20``, и
+    аренда парка в свободный поток не попадала), но **без закрытия расчётов** на конец
+    горизонта: у модели Гордона бизнес продолжается, и оборотный капитал не высвобождается
+    — иначе разовое закрытие последнего месяца вошло бы в бессрочную ренту."""
     if n <= 0:
         return BusinessValuation()
     net_assets = balance["B33"][n - 1]

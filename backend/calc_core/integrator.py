@@ -12,6 +12,7 @@ from .metrics import annual_to_monthly
 from .models import ProjectModel
 from .money import D
 from .reports import compute_break_even, compute_ratios
+from .reports.horizon import combine_releases
 from .reports.lines import (
     BALANCE_LINES,
     CASHFLOW_LINES,
@@ -62,8 +63,11 @@ def consolidate_detailed(
     profit_use = _sum_statements([r.profit_use for r in results], PROFIT_USE_LINES, n)
 
     # Поток группы — сумма потоков проектов (SPEC §17): лизинг каждого учтён как у
-    # покупки. Из суммарного C13 + C20 его не восстановить — лизинг живёт в C25.
+    # покупки, казначейство вне потока, закрытие расчётов — у тех, где оно включено. Из
+    # суммарного C13 + C20 ничего из этого не восстановить.
     net_flow = [sum((r.project_flow[t] for r in results), D(0)) for t in range(n)]
+    release = combine_releases([(m.header.name, r.working_capital_release)
+                                for m, r in zip(models, results, strict=True)])
     r_m = annual_to_monthly(group_discount_rate)
     metrics = build_investment_metrics(net_flow, r_m)
     # Стартовый баланс группы = сумма стартовых балансов проектов (для средних в коэф-тах).
@@ -89,6 +93,8 @@ def consolidate_detailed(
         balance=balance,
         profit_use=profit_use,
         metrics=metrics,
+        project_flow=net_flow,
+        working_capital_release=release,
         ratios=ratios,
         break_even=break_even,
     )

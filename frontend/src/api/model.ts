@@ -275,6 +275,12 @@ export interface ProjectSettings {
   discount_rate_annual: string;
   /** Ставка дисконтирования во второй валюте (0 = выключено; показатели дублируются). */
   discount_rate_annual_foreign?: string;
+  /**
+   * Закрытие расчётов на конец горизонта (по умолчанию да): в последнем месяце поток для
+   * показателей получает дебиторку, запасы, НДС к получению и отдаёт налоги, кредиторку,
+   * полученные авансы. false — расчёты конца горизонта в показатели не входят.
+   */
+  release_working_capital?: boolean;
   terminal_growth_rate?: string;
   valuation_earnings_multiple?: string;
   liquidation_recovery_rate?: string;

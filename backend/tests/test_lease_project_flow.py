@@ -62,9 +62,14 @@ def _close(a: list[Decimal], b: list[Decimal]) -> bool:
 
 
 def test_without_leases_the_project_flow_is_the_pre_financing_flow():
+    """Без лизинга поток проекта — C13 + C20; последний месяц несёт ещё закрытие расчётов
+    конца горизонта (0.9.57, пакет K)."""
     r = run(_base(profit_tax_rate=d("0.25")))
     cf = r.cashflow
-    assert r.project_flow == [cf["C13"][t] + cf["C20"][t] for t in range(N)]
+    pre = [cf["C13"][t] + cf["C20"][t] for t in range(N)]
+    assert r.project_flow[:-1] == pre[:-1]
+    release = r.working_capital_release.total
+    assert abs(r.project_flow[-1] - pre[-1] - release) < d("0.00001")
 
 
 def test_operating_lease_counts_like_rent():

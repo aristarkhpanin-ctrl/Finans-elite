@@ -13,6 +13,7 @@ from ..models import ProjectModel
 from ..money import CALC_CONTEXT, ONE, ZERO, almost_equal
 from ..reports.actualization import actualize_cashflow
 from ..reports.breakeven import compute_break_even
+from ..reports.horizon import with_release, working_capital_release
 from ..reports.ratios import compute_ratios
 from ..reports.result import CalcResult, InvestmentMetrics, build_investment_metrics
 from ..reports.statements import opening_balance
@@ -68,8 +69,13 @@ def _run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
         _check_invariants(income, cashflow, balance, profit_use, n)
 
     flow = project_flow(model, cashflow)
-    metrics = _metrics(model, flow)
-    metrics_foreign = _metrics_foreign(model, flow)
+    # Закрытие расчётов на конец горизонта (SPEC §17, K4) — в поток показателей; модель
+    # Гордона берёт поток без него: у неё бизнес продолжается, капитал не высвобождается.
+    release = working_capital_release(balance, n,
+                                      enabled=model.settings.release_working_capital)
+    metrics_flow = with_release(flow, release)
+    metrics = _metrics(model, metrics_flow)
+    metrics_foreign = _metrics_foreign(model, metrics_flow)
     product_margins = compute_product_margins(model, n)   # свёртка по подразделениям — из него
     sb = model.company.starting_balance
     # Остаточная стоимость пред-существующих ОС (purchase_month<0) входит в стартовые ОС (t=−1).
@@ -111,7 +117,8 @@ def _run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
         profit_use=profit_use,
         metrics=metrics,
         metrics_foreign=metrics_foreign,
-        project_flow=flow,
+        project_flow=metrics_flow,
+        working_capital_release=release,
         ratios=ratios,
         break_even=break_even,
         valuation=valuation,

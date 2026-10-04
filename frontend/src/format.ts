@@ -79,6 +79,16 @@ export function fmtMoney(v: number | string | null | undefined): string {
 }
 
 /**
+ * Деньги со знаком для сумм, которые приходят или уходят: «+12 480 000 ₽», «−3 000 ₽».
+ * Ноль — без знака; null → «—». Без «+» приход читался бы как остаток.
+ */
+export function signedMoney(v: number | string | null | undefined): string {
+  const x = toNum(v);
+  if (x === null) return "—";
+  return (Math.round(x) > 0 ? "+" : "") + fmtMoney(x);
+}
+
+/**
  * Короткая подпись оси («Этап 15»): ≥1 млн → «8,4м»/«12м», ≥1 тыс → «320к», иначе число.
  *
  * Ниже тысячи знаков после запятой столько, сколько нужно шагу делений `step`: ошибка

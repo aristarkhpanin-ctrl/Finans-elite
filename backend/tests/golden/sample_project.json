@@ -915,7 +915,7 @@
       "0.00"
     ]
   },
-  "engine_version": "0.9.56",
+  "engine_version": "0.9.57",
   "income": {
     "I1": [
       "100000.00",
@@ -1311,14 +1311,14 @@
     ]
   },
   "metrics": {
-    "arr_annual": "0.501850",
+    "arr_annual": "0.732734",
     "dpb_months": null,
-    "irr_annual": "-0.700239",
-    "mirr_annual": "-0.515860",
-    "npv": "-150874.87",
+    "irr_annual": "-0.355010",
+    "mirr_annual": "-0.263607",
+    "npv": "-90701.20",
     "pb_months": null,
     "peak_financing_need": "270915.67",
-    "pi": "0.442046",
+    "pi": "0.664575",
     "pv_investments": "270407.16"
   },
   "n": 12,
@@ -1789,5 +1789,14 @@
     "liquidation_value": null,
     "net_assets": "234225.91"
   },
-  "warnings": []
+  "warnings": [],
+  "working_capital_release": {
+    "enabled": true,
+    "items": {
+      "B2": "70000.00",
+      "B21": "-1601.56"
+    },
+    "month": 11,
+    "total": "68398.44"
+  }
 }
