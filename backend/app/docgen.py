@@ -464,7 +464,9 @@ def _add_statements(doc: Document, model: ProjectModel, result: CalcResult) -> N
 
 
 def build_business_plan_docx(model: ProjectModel, result: CalcResult, opinion: str,
-                             *, project_name: str, today: date | None = None) -> bytes:
+                             *, project_name: str, today: date | None = None,
+                             shared_for: str | None = None,
+                             shared_until: date | None = None) -> bytes:
     """Собрать документ бизнес-плана (структура Q3) и вернуть содержимое ``.docx``."""
     doc = Document()
 
@@ -476,6 +478,12 @@ def build_business_plan_docx(model: ProjectModel, result: CalcResult, opinion: s
     )
     doc.add_paragraph(f"Дата формирования: {(today or date.today()).strftime('%d.%m.%Y')}.")
     doc.add_paragraph(f"Finans-Elite · движок расчёта v{ENGINE_VERSION}.")
+    if shared_for:
+        # Копия по ссылке (L4) называет, для кого она и до какого числа открыта: документ
+        # уходит дальше, и без пометки уже не скажешь, кому его выдавали.
+        until = f" Открыта по ссылке до {shared_until:%d.%m.%Y}." if shared_until else ""
+        doc.add_paragraph(f"Копия для: {shared_for}.{until} Это план на момент отправки: "
+                          "правка проекта после отправки его не меняет.")
 
     _add_opinion(doc, opinion)
     _add_metrics(doc, result)

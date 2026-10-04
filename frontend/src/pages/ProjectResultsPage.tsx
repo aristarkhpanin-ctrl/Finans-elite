@@ -2,11 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { httpDetail } from "../api/client";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { aggregateFlowSeries, aggregateStatement, defaultPeriod, periodLabels, type Period } from "../aggregate";
+import { defaultPeriod, type Period } from "../aggregate";
 import { efficiencyCards, foreignCards, valuationCards } from "../metricCards";
 import { calculateProject } from "../api/calc";
 import { getProject } from "../api/projects";
-import { HintBadge } from "../components/EditorField";
 import { IconPrint } from "../components/icons";
 import { PlanFactView } from "../components/PlanFactView";
 import { printPageCount, PrintReport } from "../components/PrintReport";
@@ -14,36 +13,18 @@ import { ReleaseNote } from "../components/ReleaseNote";
 import { ReviewBanner } from "../components/ReviewBanner";
 import { RatiosView } from "../components/RatiosView";
 import { ResultCharts } from "../components/ResultCharts";
-import { GRANDS, StatementTable, SUBTOTALS } from "../components/StatementTable";
+import {
+  CalcWarnings, isStatementTab, MetricCards, RESULT_TAB_LABELS, ResultTabs, StatementPanel, SummaryExtras,
+} from "../components/ResultBlocks";
+import { ShareLinks } from "../components/ShareLinks";
+import { StatementTable } from "../components/StatementTable";
 import { SummaryView } from "../components/SummaryView";
 import { useToast } from "../components/Toast";
-import { Button, ErrorState, ScrollRegion, Skeleton } from "../components/ui";
+import { Button, ErrorState, Skeleton } from "../components/ui";
 import { downloadBusinessPlanDocx, downloadCsv, downloadPdf, downloadXlsx, statementsToCsv } from "../export";
 import { Comments } from "../components/Comments";
-import { DebtServiceView } from "../components/DebtServiceView";
-import { fmtMillions, percent, plural } from "../format";
-import { fmtInt } from "../components/monthlyGrid.logic";
+import { plural } from "../format";
 import { usePageTitle } from "../pageTitle";
-
-const STATEMENTS = [
-  ["income", "Прибыли и убытки"],
-  ["cashflow", "Кэш-фло"],
-  ["balance", "Баланс"],
-  ["profit_use", "Использование прибыли"],
-] as const;
-
-type StatementKey = (typeof STATEMENTS)[number][0];
-
-const TAB_LABELS: Record<string, string> = {
-  summary: "Сводка",
-  income: "Прибыли и убытки",
-  cashflow: "Кэш-фло",
-  balance: "Баланс",
-  ratios: "Коэффициенты",
-  charts: "Графики",
-  tables: "Таблицы",
-  plan_fact: "План-факт",
-};
 
 export function ProjectResultsPage() {
   const { id = "" } = useParams();
@@ -68,6 +49,7 @@ export function ProjectResultsPage() {
   }, [printMode]);
   // Период отображения отчётов (пакет №6): null → авто по горизонту (defaultPeriod).
   const [period, setPeriod] = useState<Period | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["calc", id],
@@ -78,7 +60,6 @@ export function ProjectResultsPage() {
 
   const title = projectQuery.data?.name ?? "";
   usePageTitle("Результаты", title);
-  const isStatement = STATEMENTS.some(([k]) => k === tab);
 
   const header = (
     <div className="rhead">
@@ -146,6 +127,12 @@ export function ProjectResultsPage() {
             <button type="button" ref={printOpenRef} onClick={() => setPrintMode(true)}>
               <IconPrint size={15} />
               <span style={{ marginLeft: 6 }}>Печать</span>
+            </button>
+            {/* Ссылка для инвестора или банка (L4): снимок плана без входа — вместо DOCX
+                по почте, о судьбе которого потом не знает никто. */}
+            <button type="button" title="Открыть план по ссылке инвестору или банку"
+                    onClick={() => setShareOpen(true)}>
+              Поделиться
             </button>
           </div>
         )}
@@ -221,57 +208,6 @@ export function ProjectResultsPage() {
   const foreignRate = projectQuery.data?.model.settings.discount_rate_annual_foreign;
   const fxCards = foreignCards(mf, foreignCode, foreignRate);
 
-  const statementView = (key: StatementKey) => {
-    const eff = period ?? defaultPeriod(data.n);
-    const labels = periodLabels(data.n, eff);
-    const agg = aggregateStatement(data[key], key === "balance" ? "balance" : "flow", data.n, eff);
-    // Детализация строк (drill-down): слагаемые — потоки, сворачиваются суммами.
-    const prefix = key === "income" ? "I" : key === "cashflow" ? "C" : null;
-    const details = new Map(
-      (data.details ?? [])
-        .filter((d) => prefix !== null && d.code.startsWith(prefix))
-        .map((d) => [
-          d.code,
-          d.items.map((i) => ({ name: i.name, values: aggregateFlowSeries(i.values, data.n, eff) })),
-        ]),
-    );
-    const sub =
-      eff === "month"
-        ? `Помесячно · ${data.n} мес · суммы в ₽`
-        : eff === "quarter"
-          ? `По кварталам · ${labels.length} кв (${data.n} мес) · суммы в ₽`
-          : `По годам проекта · ${labels.length} г. (${data.n} мес) · суммы в ₽`;
-    return (
-      <>
-        <div className="report-head">
-          <div style={{ minWidth: 0 }}>
-            <div className="report-head__title">{TAB_LABELS[key] ?? STATEMENTS.find(([k]) => k === key)?.[1]}</div>
-            <div className="report-head__sub">{sub}</div>
-          </div>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <div className="report-switch" aria-label="Период отображения">
-              {(["month", "quarter", "year"] as const).map((p) => (
-                <button aria-pressed={eff === p} key={p} type="button" className={eff === p ? "on" : ""} onClick={() => setPeriod(p)}>
-                  {p === "month" ? "Месяц" : p === "quarter" ? "Квартал" : "Год"}
-                </button>
-              ))}
-            </div>
-            <div className="report-switch">
-              {STATEMENTS.map(([k, label]) => (
-                <button aria-pressed={tab === k} key={k} type="button" className={tab === k ? "on" : ""} onClick={() => setTab(k)}>
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        <StatementTable title={TAB_LABELS[key] ?? STATEMENTS.find(([k]) => k === key)?.[1] ?? "Отчёт"}
-                        statement={agg} n={labels.length} subtotals={SUBTOTALS[key]}
-                        grands={GRANDS[key]} labels={labels} details={details} />
-      </>
-    );
-  };
-
   // Печать — в том же периоде, что отчёты на экране; число страниц считает та же функция,
   // что раскладывает листы, — «5 страниц» у 24-месячного проекта были бы неправдой.
   const printPeriod = period ?? defaultPeriod(data.n);
@@ -319,20 +255,7 @@ export function ProjectResultsPage() {
         )}
 
         <h2 className="rsection-label">Показатели эффективности</h2>
-        <div className="metric-grid">
-          {effCards.map((c) => (
-            <div key={c.label} className="metric-card2">
-              <div className="metric-card2__top">
-                <span className="metric-card2__label">{c.label}</span>
-                <HintBadge text={c.hint} />
-              </div>
-              <div className={"metric-card2__value" + (c.tone ? ` metric-card2__value--${c.tone}` : "")}>
-                {c.value}
-              </div>
-              <div className="metric-card2__sub">{c.sub}</div>
-            </div>
-          ))}
-        </div>
+        <MetricCards cards={effCards} />
         {m.no_return_metrics_note && (
           // Четыре прочерка подряд без причины читаются как «не посчитали». Причина
           // приходит с сервера — второй её копией экран разошёлся бы с документом.
@@ -343,237 +266,28 @@ export function ProjectResultsPage() {
         {fxCards.length > 0 && (
           <>
             <h2 className="rsection-label">Показатели во второй валюте ({foreignCode})</h2>
-            <div className="metric-grid metric-grid--val">
-              {fxCards.map((c) => (
-                <div key={c.label} className="metric-card2">
-                  <div className="metric-card2__top">
-                    <span className="metric-card2__label" style={{ fontSize: 11.5 }}>
-                      {c.label}
-                    </span>
-                    <HintBadge text={c.hint} />
-                  </div>
-                  <div className="metric-card2__value" style={{ fontSize: 17 }}>
-                    {c.value}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <MetricCards cards={fxCards} compact />
           </>
         )}
 
         <h2 className="rsection-label">Оценка бизнеса</h2>
-        <div className="metric-grid metric-grid--val">
-          {valCards.map((c) => (
-            <div key={c.label} className="metric-card2">
-              <div className="metric-card2__top">
-                <span className="metric-card2__label" style={{ fontSize: 11.5 }}>
-                  {c.label}
-                </span>
-                <HintBadge text={c.hint} />
-              </div>
-              <div className="metric-card2__value" style={{ fontSize: 17 }}>
-                {c.value}
-              </div>
-            </div>
-          ))}
-        </div>
+        <MetricCards cards={valCards} compact />
 
         {tab === "summary" && <ReviewBanner projectId={id} />}
 
-        {tab === "summary" && data.product_margins.products.length > 0 && (
-          <>
-            <h2 className="rsection-label">Маржа по продуктам (рецептура)</h2>
-            <ScrollRegion className="contrib-wrap" label="Маржа по продуктам">
-              <div className="contrib-row contrib-row--head">
-                <div className="contrib-label">Продукт</div>
-                <div className="contrib-cell">Выручка</div>
-                <div className="contrib-cell">Материалы</div>
-                <div className="contrib-cell">Сдельная ЗП</div>
-                <div className="contrib-cell">Маржа</div>
-                <div className="contrib-cell">Маржа, %</div>
-              </div>
-              {data.product_margins.products.map((p) => {
-                const neg = Number(p.margin) < 0;
-                return (
-                  <div className="contrib-row" key={p.product_id}>
-                    <div className="contrib-label">{p.name || p.product_id}</div>
-                    <div className="contrib-cell">{fmtMillions(p.revenue, { digits: 2 })}</div>
-                    <div className="contrib-cell">{fmtMillions(p.bom_cost, { digits: 2 })}</div>
-                    <div className="contrib-cell">{fmtMillions(p.piece_wages, { digits: 2 })}</div>
-                    <div className={"contrib-cell" + (neg ? " contrib-cell--neg" : "")}>
-                      {fmtMillions(p.margin, { sign: true, digits: 2 })}
-                    </div>
-                    <div className={"contrib-cell" + (neg ? " contrib-cell--neg" : "")}>
-                      {p.margin_share != null ? percent(p.margin_share, 1) : "—"}
-                    </div>
-                  </div>
-                );
-              })}
-            </ScrollRegion>
-            {Number(data.product_margins.unallocated_direct) > 0 && (
-              <div className="field-note" style={{ marginTop: 8 }}>
-                Суммовые прямые издержки {fmtMillions(data.product_margins.unallocated_direct, { digits: 2 })} не
-                распределяются по продуктам (заданы без рецептуры).
-              </div>
-            )}
-          </>
-        )}
+        {tab === "summary" && <SummaryExtras data={data} />}
 
-        {tab === "summary" && (data.division_margins ?? []).length > 0 && (
-          <>
-            <h2 className="rsection-label">Доходы подразделений</h2>
-            <ScrollRegion className="contrib-wrap" label="Доходы подразделений">
-              <div className="contrib-row contrib-row--head">
-                <div className="contrib-label">Подразделение</div>
-                <div className="contrib-cell">Выручка</div>
-                <div className="contrib-cell">Материалы</div>
-                <div className="contrib-cell">Сдельная ЗП</div>
-                <div className="contrib-cell">Маржа</div>
-                <div className="contrib-cell">Маржа, %</div>
-              </div>
-              {data.division_margins.map((d) => {
-                const neg = Number(d.margin) < 0;
-                return (
-                  <div className="contrib-row" key={d.division_id}>
-                    <div className="contrib-label">
-                      {d.name || d.division_id}
-                      <span className="muted" style={{ fontSize: 11, marginLeft: 6 }}>· {d.product_count} прод.</span>
-                    </div>
-                    <div className="contrib-cell">{fmtMillions(d.revenue, { digits: 2 })}</div>
-                    <div className="contrib-cell">{fmtMillions(d.bom_cost, { digits: 2 })}</div>
-                    <div className="contrib-cell">{fmtMillions(d.piece_wages, { digits: 2 })}</div>
-                    <div className={"contrib-cell" + (neg ? " contrib-cell--neg" : "")}>
-                      {fmtMillions(d.margin, { sign: true, digits: 2 })}
-                    </div>
-                    <div className={"contrib-cell" + (neg ? " contrib-cell--neg" : "")}>
-                      {d.margin_share != null ? percent(d.margin_share, 1) : "—"}
-                    </div>
-                  </div>
-                );
-              })}
-            </ScrollRegion>
-            <div className="field-note" style={{ marginTop: 8 }}>
-              Свёртка маржи продуктов по бизнес-единицам; продукты без рецептуры/подразделения в свёртку не входят.
-            </div>
-          </>
-        )}
-
-        {tab === "summary" && (data.subscription_base ?? []).length > 0 && (
-          <>
-            <h2 className="rsection-label">Абонентская база</h2>
-            <ScrollRegion className="contrib-wrap" label="Абонентская база">
-              <div className="contrib-row contrib-row--head">
-                <div className="contrib-label">Продукт</div>
-                <div className="contrib-cell">На старте</div>
-                <div className="contrib-cell">Пришло всего</div>
-                <div className="contrib-cell">Ушло всего</div>
-                <div className="contrib-cell">База на конец</div>
-              </div>
-              {data.subscription_base.map((s) => {
-                const sum = (xs: (string | number)[]) =>
-                  xs.reduce((a: number, c) => a + Number(c), 0);
-                const last = Number(s.base[s.base.length - 1] ?? 0);
-                const opening = Number(s.base[0] ?? 0) + Number(s.churned[0] ?? 0)
-                  - Number(s.new[0] ?? 0);
-                return (
-                  <div className="contrib-row" key={s.product_id}>
-                    <div className="contrib-label">{s.name || s.product_id}</div>
-                    <div className="contrib-cell">{fmtInt(opening)}</div>
-                    <div className="contrib-cell">{fmtInt(sum(s.new))}</div>
-                    <div className="contrib-cell contrib-cell--neg">−{fmtInt(sum(s.churned))}</div>
-                    <div className="contrib-cell">{fmtInt(last)}</div>
-                  </div>
-                );
-              })}
-            </ScrollRegion>
-            <div className="field-note" style={{ marginTop: 8 }}>
-              База на конец месяца и есть объём продаж подписки. «Ушло» — выбытие по
-              заданному оттоку; при нулевом оттоке эта колонка пуста не потому, что никто
-              не уходит, а потому, что отток не задан.
-            </div>
-          </>
-        )}
-
-        {tab === "summary" && (data.participants ?? []).length > 0 && (
-          <>
-            <h2 className="rsection-label">Доходы участников финансирования</h2>
-            <ScrollRegion className="contrib-wrap" label="Доходы участников финансирования">
-              <div className="contrib-row contrib-row--head">
-                <div className="contrib-label">Участник</div>
-                <div className="contrib-cell">Вложено</div>
-                <div className="contrib-cell">Получено</div>
-                <div className="contrib-cell">NPV</div>
-                <div className="contrib-cell">IRR</div>
-                <div className="contrib-cell">IRR с уч. остатка</div>
-              </div>
-              {data.participants.map((p) => {
-                const neg = Number(p.npv_with_terminal ?? p.npv) < 0;
-                return (
-                  <div className="contrib-row" key={p.id}>
-                    <div className="contrib-label">
-                      {p.name}
-                      {p.kind === "lender" && <span className="fin2-code" style={{ marginLeft: 6 }}>заём</span>}
-                    </div>
-                    <div className="contrib-cell">{fmtMillions(p.invested, { digits: 2 })}</div>
-                    <div className="contrib-cell">{fmtMillions(p.withdrawn, { digits: 2 })}</div>
-                    <div className={"contrib-cell" + (neg ? " contrib-cell--neg" : "")}>
-                      {fmtMillions(p.npv_with_terminal ?? p.npv, { sign: true, digits: 2 })}
-                    </div>
-                    <div className="contrib-cell">
-                      {p.irr_annual != null ? percent(p.irr_annual, 1) : "—"}
-                    </div>
-                    <div className="contrib-cell">
-                      {p.irr_with_terminal_annual != null ? percent(p.irr_with_terminal_annual, 1) : "—"}
-                    </div>
-                  </div>
-                );
-              })}
-            </ScrollRegion>
-            <div className="field-note" style={{ marginTop: 8 }}>
-              NPV и «IRR с уч. остатка» — с условным возвратом на конец горизонта: акционерам —
-              собственного капитала (B33), кредиторам — непогашенного тела займа.
-            </div>
-          </>
-        )}
-
-        {tab === "summary" && <DebtServiceView debt={data.debt_service} />}
-
-        <div className="etabs-wrap" style={{ margin: "20px 0", borderTop: "1px solid var(--border)", background: "none", padding: 0 }}>
-          <div className="etabs fe-scroll">
-            {tabs.map((key) => (
-              <button
-                aria-pressed={tab === key || (isStatement && key === tab)}
-                key={key}
-                type="button"
-                className={"etab" + (tab === key || (isStatement && key === tab) ? " etab--active" : "")}
-                onClick={() => setTab(key)}
-              >
-                {TAB_LABELS[key]}
-              </button>
-            ))}
-          </div>
-        </div>
+        <ResultTabs tabs={tabs} active={tab} onSelect={setTab} />
 
         {tab === "summary" && (
           <>
             <SummaryView result={data} discountRate={discountRate} />
-            {data.warnings.length > 0 && (
-              <div className="warn-block">
-                <div className="warn-block__head">
-                  <span style={{ color: "var(--warn)" }}>⚠</span>Замечания по расчёту
-                </div>
-                {data.warnings.map((w, i) => (
-                  <div key={i} className="warn-block__row">
-                    <span className="warn-banner__dot" />
-                    <span className="warn-block__text">{w}</span>
-                    <span className="level-chip level-chip--warn">предупр.</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            <CalcWarnings warnings={data.warnings} />
           </>
         )}
-        {isStatement && statementView(tab as StatementKey)}
+        {isStatementTab(tab) && (
+          <StatementPanel data={data} which={tab} period={period} onPeriod={setPeriod} onWhich={setTab} />
+        )}
         {tab === "ratios" && <RatiosView ratios={data.ratios} breakEven={data.break_even} n={data.n} />}
         {tab === "charts" && <ResultCharts result={data} />}
         {tab === "tables" && data.user_tables.map((t) => (
@@ -618,9 +332,10 @@ export function ProjectResultsPage() {
             прочитать. Подпись раздела уходит вместе с репликой (D3). */}
         <div style={{ marginTop: 20 }}>
           <Comments subject={{ kind: "project", id }} anchor={`report:${tab}`}
-                    anchorLabel={TAB_LABELS[tab] ?? tab}
-                    title={`Обсуждение: ${TAB_LABELS[tab] ?? tab}`} />
+                    anchorLabel={RESULT_TAB_LABELS[tab] ?? tab}
+                    title={`Обсуждение: ${RESULT_TAB_LABELS[tab] ?? tab}`} />
         </div>
+        <ShareLinks open={shareOpen} onClose={() => setShareOpen(false)} projectId={id} />
       </div>
 
       <PrintReport data={data} title={title || "Результаты"} model={projectQuery.data?.model}

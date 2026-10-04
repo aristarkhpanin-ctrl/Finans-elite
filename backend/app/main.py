@@ -37,6 +37,7 @@ from .routers import (
     jobs,
     organizations,
     projects,
+    share,
 )
 from .schemas import CalcResponse, TemplateOut, to_response
 
@@ -85,6 +86,7 @@ app.include_router(integrator.router)
 app.include_router(jobs.router)
 app.include_router(organizations.router)
 app.include_router(projects.router)
+app.include_router(share.router)
 
 
 @app.get("/health", tags=["service"])

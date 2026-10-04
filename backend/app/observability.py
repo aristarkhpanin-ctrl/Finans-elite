@@ -22,6 +22,7 @@ from fastapi.responses import JSONResponse
 from calc_core.engine.errors import InvariantError
 
 from .env import env
+from .error_tracking import redact
 
 #: Идентификатор текущего запроса (для логов). Обновляется middleware на каждый запрос.
 request_id_var: ContextVar[str] = ContextVar("request_id", default="-")
@@ -78,7 +79,9 @@ def setup_observability(app: FastAPI) -> None:
         try:
             response = await call_next(request)
             duration_ms = (time.perf_counter() - start) * 1000
-            log.info("%s %s → %s (%.0f ms)", request.method, request.url.path,
+            # Путь — через ту же вычистку, что и отчёт об ошибке: секрет ссылки для
+            # банка (L4) стоит прямо в адресе, и лог доступа раздавал бы живые ссылки.
+            log.info("%s %s → %s (%.0f ms)", request.method, redact(request.url.path),
                      response.status_code, duration_ms)
             response.headers["X-Request-ID"] = rid
             return response
@@ -88,7 +91,8 @@ def setup_observability(app: FastAPI) -> None:
     @app.exception_handler(InvariantError)
     async def on_invariant_error(request: Request, exc: InvariantError):
         # Баг методики: баланс не сошёлся. Громкий лог с контекстом ядра и трассировкой.
-        log.error("Нарушение инварианта расчёта на %s: %s", request.url.path, exc, exc_info=exc)
+        log.error("Нарушение инварианта расчёта на %s: %s", redact(request.url.path), exc,
+                  exc_info=exc)
         # В трекер (G7) ошибка уходит **этой записью**: интеграция логирования отправляет
         # записи уровня ERROR с трассировкой как события. Понизить её до warning или
         # убрать ``exc_info`` значило бы заглушить самую важную ошибку методики — тест

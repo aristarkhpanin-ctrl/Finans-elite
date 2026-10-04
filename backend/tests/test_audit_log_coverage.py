@@ -27,13 +27,14 @@ from app.routers import (
     jobs,
     organizations,
     projects,
+    share,
 )
 
 #: Роутеры продукта. Перечислены явно: авто-обход внутренностей приложения зависел бы от
 #: устройства фреймворка, а список роутеров — часть самого продукта.
 ROUTERS = [admin.router, apikeys.router, audit.router, auth.router, billing.router,
            client_errors.router, comments.router, holdings.router, integrator.router, jobs.router,
-           organizations.router, projects.router]
+           organizations.router, projects.router, share.router]
 
 #: Изменяющие маршруты, которые журнал **не** пишут — каждый с причиной.
 NOT_LOGGED: dict[str, str] = {

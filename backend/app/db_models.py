@@ -74,6 +74,8 @@ NO_RLS_POLICY: dict[str, str] = {
     "usage_events": "обезличенные события пользования — данные платформы о себе",
     "billing_documents": "первичные документы платформы-продавца: переживают клиента "
                          "(402-ФЗ) и читаются платформой, когда арендатора уже нет",
+    "share_links": "ссылку предъявляет посторонний без входа: организация выводится из "
+                   "найденной по отпечатку строки, как у ключа API (L4)",
 }
 
 
@@ -516,6 +518,49 @@ class IndustryBenchmark(Base):
     source: Mapped[str] = mapped_column(String(255), default="")
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now,
                                                  onupdate=_now)
+
+
+class ShareLink(Base):
+    """Ссылка для инвестора или банка (пакет L, L4): просмотр снимка проекта без входа.
+
+    План делают, чтобы показать тем, кто даёт деньги; до ссылки его отправляли DOCX по
+    почте, и что с ним стало дальше, не знал никто. Ссылка указывает на **версию**
+    проекта, а не на живую модель: показывают то, что отправили, и правка проекта после
+    отправки чужую копию не меняет.
+
+    * Секрет показывается один раз, хранится **отпечаток** (как у ключа API): украденная
+      база не даёт ссылок.
+    * Срок обязателен и ограничен сверху; закрытие мгновенное и строку не удаляет —
+      «кому и когда открывали» должно оставаться проверяемым.
+    * Каждое открытие пишется в журнал организации (названное исключение из «журнал не
+      пишет чтение», как визит поддержки): по какой ссылке и когда. **Кто** открыл —
+      неизвестно, ссылку могли переслать, и это сказано на экране.
+    """
+
+    __tablename__ = "share_links"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    version_id: Mapped[str] = mapped_column(
+        ForeignKey("project_versions.id", ondelete="CASCADE"), nullable=False
+    )
+    #: Для кого ссылка: «Сбербанк, кредитный комитет». Печатается на копии.
+    label: Mapped[str] = mapped_column(String(200), nullable=False, default="")
+    #: SHA-256 секрета ссылки. Самой ссылки платформа не хранит.
+    fingerprint: Mapped[str] = mapped_column(String(64), unique=True, index=True,
+                                             nullable=False)
+    created_by: Mapped[str] = mapped_column(String(320), nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revoked_by: Mapped[str] = mapped_column(String(320), default="", server_default="")
+    #: Каким движком считался план в момент отправки: изменится методика — копия скажет.
+    engine_version: Mapped[str] = mapped_column(String(32), default="", server_default="")
 
 
 class SupportGrant(Base):

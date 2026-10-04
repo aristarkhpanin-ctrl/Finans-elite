@@ -51,6 +51,32 @@ test("«Финанс-Элит»: регистрация → проект → р�
   await expect(page.getByText(/NPV/).first()).toBeVisible({ timeout: 30_000 });
 });
 
+test("ссылка для банка: план открывается посетителю без входа", async ({ page, browser }) => {
+  await register(page, "business");
+  await page.getByRole("button", { name: /Производство \(демо\)/ }).first().click();
+  await page.getByRole("button", { name: "Создать проект" }).click();
+  await page.getByRole("button", { name: /Открыть редактор/ }).click();
+  await page.getByRole("button", { name: /Рассчитать/ }).click();
+  await expect(page.getByText(/NPV/).first()).toBeVisible({ timeout: 30_000 });
+
+  // Отправитель открывает ссылку — снимок версии делается на сервере, секрет приходит
+  // один раз (L4).
+  await page.getByRole("button", { name: "Поделиться" }).click();
+  await page.getByLabel("Для кого").fill("Банк для дыма");
+  await page.getByRole("button", { name: "Открыть ссылку" }).click();
+  const url = await page.getByLabel("Ссылка", { exact: true }).inputValue();
+  expect(url).toMatch(/\/s\/fs_/);
+
+  // Посетитель — чистый браузер без учётной записи: публичный маршрут, его ленивый чанк
+  // и публичный API проверяются вместе.
+  const visitor = await browser.newContext();
+  const guest = await visitor.newPage();
+  await guest.goto(url);
+  await expect(guest.getByText("Копия для: Банк для дыма")).toBeVisible({ timeout: 30_000 });
+  await expect(guest.getByText(/NPV/).first()).toBeVisible();
+  await visitor.close();
+});
+
 test("«Финанс-Аудит»: регистрация → дело → отчётность → вердикт и версия", async ({ page }) => {
   await register(page, "audit");
   await expect(page.getByRole("heading", { name: "Дела" })).toBeVisible();

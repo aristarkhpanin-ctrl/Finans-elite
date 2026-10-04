@@ -342,7 +342,9 @@ def test_tenant_is_entered_only_in_named_places():
     ``scheduler.py`` — задачи планировщика (пакет G) оставляют след в журналах
     организаций (переход в неоплату, письма о деньгах, автопродление), входя в каждую
     той же дверью по очереди; итог автосписания, пришедший вебхуком, дописывает та же
-    функция.
+    функция; ``share_links.py`` — ссылка для инвестора (L4): её предъявляет посторонний
+    без входа, организация выводится из найденной по отпечатку строки, и чтение снимка
+    вместе с записью об открытии в журнал идут в дверях этой организации.
     """
     app_dir = Path(__file__).resolve().parents[1] / "app"
     callers = sorted(
@@ -351,7 +353,7 @@ def test_tenant_is_entered_only_in_named_places():
         if path.name not in {"database.py"} and "_tenant(" in path.read_text()
     )
     assert callers == ["crud.py", "deps.py", "org_data.py", "personal_data.py",
-                       "routers/admin.py", "scheduler.py"], (
+                       "routers/admin.py", "scheduler.py", "share_links.py"], (
         "арендатор выставляется где-то ещё; это либо новая дверь в чужие данные, "
         f"либо забытый выход из неё: {callers}")
 

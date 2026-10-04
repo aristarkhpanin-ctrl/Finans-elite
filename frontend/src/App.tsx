@@ -37,6 +37,11 @@ const ProjectAnalysisPage = lazy(() =>
 // Служебный раздел платформы (B1) — отдельный чанк: у подавляющего большинства
 // пользователей признака сотрудника нет, и грузить им этот код незачем.
 const AdminPage = lazy(() => import("./pages/AdminPage").then((m) => ({ default: m.AdminPage })));
+// План по ссылке (L4) — тоже отдельный чанк: его открывает посетитель без входа, и
+// грузить ему рабочую область незачем.
+const SharedPlanPage = lazy(() =>
+  import("./pages/SharedPlanPage").then((m) => ({ default: m.SharedPlanPage })),
+);
 
 export function App() {
   return (
@@ -62,6 +67,16 @@ function AppRoutes() {
       {/* Отписка от обсуждения — тоже до входа: пароль ради «не пишите мне» человек
           искать не станет, он отправит письмо в спам. */}
       <Route path="/comments/unsubscribe" element={<UnsubscribePage />} />
+      {/* План по ссылке для инвестора или банка (L4) — без входа: секрет в адресе и есть
+          пропуск, а регистрация ради чужого бизнес-плана отпугнула бы того, кому его шлют. */}
+      <Route
+        path="/s/:token"
+        element={
+          <Suspense fallback={<Splash />}>
+            <SharedPlanPage />
+          </Suspense>
+        }
+      />
       <Route
         element={
           <ProtectedRoute>

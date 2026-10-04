@@ -44,6 +44,13 @@ export async function downloadBusinessPlanDocx(projectId: string, filename: stri
   triggerDownload(filename, data);
 }
 
+/** Бизнес-план по ссылке (L4) — без входа; копия помечена, для кого она и до какого числа. */
+export async function downloadSharedBusinessPlan(token: string, filename: string): Promise<void> {
+  const { data } = await api.get<Blob>(
+    `/api/v1/shared/${encodeURIComponent(token)}/business-plan.docx`, { responseType: "blob" });
+  triggerDownload(filename, data);
+}
+
 // XLSX: лист на каждый отчёт + лист показателей. write-excel-file грузится лениво (по клику).
 type XCell = {
   value: string | number;

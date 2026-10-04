@@ -49,6 +49,8 @@ EVENTS: dict[str, str] = {
     "project.open": "открыл проект в редакторе",
     "project.calculate": "посчитал проект",
     "project.export": "выгрузил документ или таблицу",
+    "project.share": "отправил план по ссылке инвестору или банку",
+    "share.open": "план открыли по ссылке",
     "case.create": "завёл дело",
     "case.analyze": "разобрал дело",
     "case.report": "выгрузил заключение",

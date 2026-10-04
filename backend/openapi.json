@@ -13227,6 +13227,323 @@
         "title": "SessionOut",
         "type": "object"
       },
+      "ShareLinkCreate": {
+        "properties": {
+          "days": {
+            "default": 30,
+            "title": "Days",
+            "type": "integer"
+          },
+          "label": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Label",
+            "type": "string"
+          },
+          "version_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Id"
+          }
+        },
+        "title": "ShareLinkCreate",
+        "type": "object"
+      },
+      "ShareLinkCreated": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "title": "Created By",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "last_opened_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Opened At"
+          },
+          "notes": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "opens": {
+            "default": 0,
+            "title": "Opens",
+            "type": "integer"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "revoked_by": {
+            "default": "",
+            "title": "Revoked By",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          },
+          "version_id": {
+            "title": "Version Id",
+            "type": "string"
+          },
+          "version_label": {
+            "title": "Version Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "version_id",
+          "version_label",
+          "created_at",
+          "created_by",
+          "expires_at",
+          "state",
+          "token",
+          "path"
+        ],
+        "title": "ShareLinkCreated",
+        "type": "object"
+      },
+      "ShareLinkOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "title": "Created By",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "last_opened_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Opened At"
+          },
+          "opens": {
+            "default": 0,
+            "title": "Opens",
+            "type": "integer"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "revoked_by": {
+            "default": "",
+            "title": "Revoked By",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "version_id": {
+            "title": "Version Id",
+            "type": "string"
+          },
+          "version_label": {
+            "title": "Version Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "version_id",
+          "version_label",
+          "created_at",
+          "created_by",
+          "expires_at",
+          "state"
+        ],
+        "title": "ShareLinkOut",
+        "type": "object"
+      },
+      "ShareLinksOut": {
+        "description": "Ссылки проекта и оговорки к ним — с сервера: вторая копия текста на клиенте\nоднажды разошлась бы с первой.",
+        "properties": {
+          "links": {
+            "items": {
+              "$ref": "#/components/schemas/ShareLinkOut"
+            },
+            "title": "Links",
+            "type": "array"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "links",
+          "notes"
+        ],
+        "title": "ShareLinksOut",
+        "type": "object"
+      },
+      "SharedPlanOut": {
+        "description": "Снимок плана по ссылке (без входа): что открыто, для кого, до какого числа.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "discount_rate_annual": {
+            "title": "Discount Rate Annual",
+            "type": "string"
+          },
+          "discount_rate_annual_foreign": {
+            "default": "0",
+            "title": "Discount Rate Annual Foreign",
+            "type": "string"
+          },
+          "engine_now": {
+            "title": "Engine Now",
+            "type": "string"
+          },
+          "engine_then": {
+            "title": "Engine Then",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "foreign_code": {
+            "default": "",
+            "title": "Foreign Code",
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "organization": {
+            "title": "Organization",
+            "type": "string"
+          },
+          "project_name": {
+            "title": "Project Name",
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/CalcResponse"
+          },
+          "shared_for": {
+            "title": "Shared For",
+            "type": "string"
+          },
+          "version_label": {
+            "title": "Version Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_name",
+          "version_label",
+          "shared_for",
+          "organization",
+          "created_at",
+          "expires_at",
+          "engine_then",
+          "engine_now",
+          "discount_rate_annual",
+          "notes",
+          "result"
+        ],
+        "title": "SharedPlanOut",
+        "type": "object"
+      },
       "SignatureOut": {
         "description": "Подписант документа. Существует только вместе с именем (Прил. Х).",
         "properties": {
@@ -25526,6 +25843,208 @@
         ]
       }
     },
+    "/api/v1/projects/{project_id}/share-links": {
+      "get": {
+        "description": "Ссылки проекта — и живые, и закрытые: «кому открывали» должно быть проверяемым.",
+        "operationId": "list_share_links_api_v1_projects__project_id__share_links_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareLinksOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Share Links",
+        "tags": [
+          "share"
+        ]
+      },
+      "post": {
+        "description": "Открыть снимок проекта по ссылке. Без ``version_id`` — снимок делается сейчас.",
+        "operationId": "create_share_link_api_v1_projects__project_id__share_links_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShareLinkCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareLinkCreated"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Share Link",
+        "tags": [
+          "share"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/share-links/{link_id}": {
+      "delete": {
+        "description": "Закрыть ссылку — сразу и навсегда. Строка остаётся: «кому открывали» проверяемо.\n\nПраво своё (``share.close``), а не правка проекта: при неоплате организация в режиме\nчтения, но закрыть дверь наружу обязана мочь и тогда.",
+        "operationId": "revoke_share_link_api_v1_projects__project_id__share_links__link_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "link_id",
+            "required": true,
+            "schema": {
+              "title": "Link Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Revoke Share Link",
+        "tags": [
+          "share"
+        ]
+      }
+    },
     "/api/v1/projects/{project_id}/versions": {
       "get": {
         "description": "Список версий проекта (метаданные, новейшие сверху).",
@@ -26052,6 +26571,90 @@
         "summary": "Sample",
         "tags": [
           "calc"
+        ]
+      }
+    },
+    "/api/v1/shared/{token}": {
+      "get": {
+        "description": "Снимок плана по ссылке — показатели и отчёты (без входа).",
+        "operationId": "shared_plan_api_v1_shared__token__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedPlanOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Shared Plan",
+        "tags": [
+          "share"
+        ]
+      }
+    },
+    "/api/v1/shared/{token}/business-plan.docx": {
+      "get": {
+        "description": "Бизнес-план снимка в DOCX — с пометкой, для кого копия и до какого числа.",
+        "operationId": "shared_docx_api_v1_shared__token__business_plan_docx_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Shared Docx",
+        "tags": [
+          "share"
         ]
       }
     },

@@ -4239,3 +4239,46 @@ button.leg-toggle:focus-visible { outline: 2px solid var(--accent); outline-offs
 .tpl-assume__head {
   font: 700 12px var(--font-ui); color: var(--text); margin: 12px 0 6px;
 }
+
+/* ============================================================
+   24. ПЛАН ПО ССЫЛКЕ (L4): «Поделиться» на результатах и страница
+   для инвестора или банка — без входа, снимок версии
+   ============================================================ */
+.share-form { display: grid; gap: 12px; margin-bottom: 6px; }
+.share-form__row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 12px; }
+.share-form > .btn { justify-self: start; }
+.share-created {
+  display: grid; gap: 10px; padding: 14px 16px; margin-bottom: 6px;
+  border: 1px solid var(--border); border-left: 3px solid var(--primary); border-radius: 11px;
+}
+.share-created__title { font: 700 14px var(--font-ui); color: var(--text); }
+.share-created__row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.share-created__row > .field { flex: 1 1 260px; min-width: 0; }
+.share-created .btn--link { justify-self: start; }
+.share-notes { margin: 0; padding-left: 18px; font: 400 12px/1.55 var(--font-ui); color: var(--muted); }
+.share-list__title { font: 700 13px var(--font-ui); color: var(--text); margin: 18px 0 6px; }
+.share-list { display: flex; flex-direction: column; margin-bottom: 10px; }
+.share-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 0; border-top: 1px solid var(--border);
+}
+.share-row:first-child { border-top: none; }
+.share-row--off .share-row__who { color: var(--muted); }
+.share-row__who { font: 600 13px var(--font-ui); color: var(--text); overflow-wrap: anywhere; }
+.share-row__meta { font: 400 12px/1.5 var(--font-ui); color: var(--muted); margin-top: 2px; }
+
+.shared-kicker { font: 600 11.5px var(--font-ui); color: var(--muted); margin-bottom: 2px; }
+.shared-terms {
+  margin: 14px 0 4px; padding: 12px 14px; border: 1px solid var(--border);
+  border-left: 3px solid var(--primary); border-radius: 11px; background: var(--surface);
+}
+.shared-terms__head { font: 600 13px var(--font-ui); color: var(--text); margin-bottom: 6px; }
+.shared-foot {
+  margin: 32px 0 8px; padding-top: 16px; border-top: 1px solid var(--border);
+  font: 400 12.5px/1.6 var(--font-ui); color: var(--muted);
+}
+
+@media (max-width: 640px) {
+  .share-form__row { grid-template-columns: minmax(0, 1fr); }
+  .share-row { align-items: flex-start; flex-direction: column; }
+}

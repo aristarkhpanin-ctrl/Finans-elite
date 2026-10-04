@@ -3034,6 +3034,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/share-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Share Links
+         * @description Ссылки проекта — и живые, и закрытые: «кому открывали» должно быть проверяемым.
+         */
+        get: operations["list_share_links_api_v1_projects__project_id__share_links_get"];
+        put?: never;
+        /**
+         * Create Share Link
+         * @description Открыть снимок проекта по ссылке. Без ``version_id`` — снимок делается сейчас.
+         */
+        post: operations["create_share_link_api_v1_projects__project_id__share_links_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/share-links/{link_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke Share Link
+         * @description Закрыть ссылку — сразу и навсегда. Строка остаётся: «кому открывали» проверяемо.
+         *
+         *     Право своё (``share.close``), а не правка проекта: при неоплате организация в режиме
+         *     чтения, но закрыть дверь наружу обязана мочь и тогда.
+         */
+        delete: operations["revoke_share_link_api_v1_projects__project_id__share_links__link_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/versions": {
         parameters: {
             query?: never;
@@ -3158,6 +3205,46 @@ export interface paths {
          *     общим ставкам налогов — как и шаблоны (пакет J).
          */
         get: operations["sample_api_v1_sample_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shared/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Shared Plan
+         * @description Снимок плана по ссылке — показатели и отчёты (без входа).
+         */
+        get: operations["shared_plan_api_v1_shared__token__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shared/{token}/business-plan.docx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Shared Docx
+         * @description Бизнес-план снимка в DOCX — с пометкой, для кого копия и до какого числа.
+         */
+        get: operations["shared_docx_api_v1_shared__token__business_plan_docx_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -10706,6 +10793,162 @@ export interface components {
              */
             user_agent: string;
         };
+        /** ShareLinkCreate */
+        ShareLinkCreate: {
+            /**
+             * Days
+             * @default 30
+             */
+            days: number;
+            /**
+             * Label
+             * @default
+             */
+            label: string;
+            /** Version Id */
+            version_id?: string | null;
+        };
+        /** ShareLinkCreated */
+        ShareLinkCreated: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Last Opened At */
+            last_opened_at?: string | null;
+            /**
+             * Notes
+             * @default []
+             */
+            notes: string[];
+            /**
+             * Opens
+             * @default 0
+             */
+            opens: number;
+            /** Path */
+            path: string;
+            /** Revoked At */
+            revoked_at?: string | null;
+            /**
+             * Revoked By
+             * @default
+             */
+            revoked_by: string;
+            /** State */
+            state: string;
+            /** Token */
+            token: string;
+            /** Version Id */
+            version_id: string;
+            /** Version Label */
+            version_label: string;
+        };
+        /** ShareLinkOut */
+        ShareLinkOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Last Opened At */
+            last_opened_at?: string | null;
+            /**
+             * Opens
+             * @default 0
+             */
+            opens: number;
+            /** Revoked At */
+            revoked_at?: string | null;
+            /**
+             * Revoked By
+             * @default
+             */
+            revoked_by: string;
+            /** State */
+            state: string;
+            /** Version Id */
+            version_id: string;
+            /** Version Label */
+            version_label: string;
+        };
+        /**
+         * ShareLinksOut
+         * @description Ссылки проекта и оговорки к ним — с сервера: вторая копия текста на клиенте
+         *     однажды разошлась бы с первой.
+         */
+        ShareLinksOut: {
+            /** Links */
+            links: components["schemas"]["ShareLinkOut"][];
+            /** Notes */
+            notes: string[];
+        };
+        /**
+         * SharedPlanOut
+         * @description Снимок плана по ссылке (без входа): что открыто, для кого, до какого числа.
+         */
+        SharedPlanOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Discount Rate Annual */
+            discount_rate_annual: string;
+            /**
+             * Discount Rate Annual Foreign
+             * @default 0
+             */
+            discount_rate_annual_foreign: string;
+            /** Engine Now */
+            engine_now: string;
+            /** Engine Then */
+            engine_then: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Foreign Code
+             * @default
+             */
+            foreign_code: string;
+            /** Notes */
+            notes: string[];
+            /** Organization */
+            organization: string;
+            /** Project Name */
+            project_name: string;
+            result: components["schemas"]["CalcResponse"];
+            /** Shared For */
+            shared_for: string;
+            /** Version Label */
+            version_label: string;
+        };
         /**
          * SignatureOut
          * @description Подписант документа. Существует только вместе с именем (Прил. Х).
@@ -17726,6 +17969,108 @@ export interface operations {
             };
         };
     };
+    list_share_links_api_v1_projects__project_id__share_links_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareLinksOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_share_link_api_v1_projects__project_id__share_links_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShareLinkCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareLinkCreated"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_share_link_api_v1_projects__project_id__share_links__link_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Organization-Id"?: string | null;
+            };
+            path: {
+                project_id: string;
+                link_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_versions_api_v1_projects__project_id__versions_get: {
         parameters: {
             query?: never;
@@ -17985,6 +18330,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectModel-Output"];
+                };
+            };
+        };
+    };
+    shared_plan_api_v1_shared__token__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SharedPlanOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    shared_docx_api_v1_shared__token__business_plan_docx_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

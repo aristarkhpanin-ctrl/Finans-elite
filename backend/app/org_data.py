@@ -43,6 +43,7 @@ from .db_models import (
     IndustryBenchmark,
     Organization,
     Project,
+    ShareLink,
     SupportGrant,
 )
 from .personal_data import KEPT_AFTER_ORGANIZATION, _iso, _purge_organization
@@ -81,6 +82,9 @@ def build_export(db: Session, org: Organization) -> dict:
         keys = list(db.scalars(select(ApiKey).where(ApiKey.organization_id == org_id)))
         grants = list(db.scalars(select(SupportGrant).where(
             SupportGrant.organization_id == org_id).order_by(SupportGrant.created_at)))
+        shares = list(db.scalars(select(ShareLink).where(
+            ShareLink.organization_id == org_id).order_by(ShareLink.created_at)))
+        names = {p.id: p.name for p in projects}
         comments = list(db.scalars(select(Comment).where(
             Comment.organization_id == org_id).order_by(Comment.created_at)))
         log_total = crud.count_audit_log(db, org_id)
@@ -96,8 +100,8 @@ def build_export(db: Session, org: Organization) -> dict:
         "документов выгружаются с экранов проектов и дел.",
         "Файлов внутри нет, потому что платформа их не хранит вовсе: в обсуждениях "
         "сохранены только ссылки на вашу комнату данных, а не сами материалы.",
-        "Секретов ключей доступа к API внутри нет: платформа хранит лишь их отпечатки "
-        "и показать сам ключ не может — ни вам, ни себе.",
+        "Секретов ключей доступа к API и ссылок для просмотра внутри нет: платформа "
+        "хранит лишь их отпечатки и показать сам секрет не может — ни вам, ни себе.",
         "Учётные записи участников здесь не выгружаются — они принадлежат людям, а не "
         "организации. Свои данные каждый забирает сам в профиле.",
         "Счета и акты перечислены списком; сами бланки скачиваются в разделе «Тариф и "
@@ -201,6 +205,13 @@ def build_export(db: Session, org: Organization) -> dict:
              "завёл": k.created_by, "создан": _iso(k.created_at),
              "последнее_обращение": _iso(k.last_used_at), "отозван": _iso(k.revoked_at)}
             for k in keys
+        ],
+        "ссылки_для_просмотра": [
+            {"проект": names.get(link.project_id, "удалён"), "для_кого": link.label,
+             "открыл": link.created_by, "создана": _iso(link.created_at),
+             "до": _iso(link.expires_at), "закрыта": _iso(link.revoked_at),
+             "закрыл": link.revoked_by or None}
+            for link in shares
         ],
         "доступ_поддержки": [
             {"открыл": g.granted_by_email, "причина": g.reason,

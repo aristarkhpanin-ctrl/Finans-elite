@@ -49,6 +49,7 @@ from .db_models import (
     Payment,
     Project,
     ProjectVersion,
+    ShareLink,
     Subscription,
     SupportGrant,
     User,
@@ -250,8 +251,8 @@ def delete_account(db: Session, user: User) -> DeletionPlan:
 #: или грант поддержки при этом продолжат существовать. Именно так пропали шесть таблиц,
 #: заведённых после C3, и нашлось это при F6.
 PURGED_WITH_ORGANIZATION = (
-    ProjectVersion, AuditSubjectVersion, AnalysisJob, Project, AuditSubject, AuditGroup,
-    Holding, IndustryBenchmark, AuditChecklist, Comment, ApiKey, SupportGrant,
+    ShareLink, ProjectVersion, AuditSubjectVersion, AnalysisJob, Project, AuditSubject,
+    AuditGroup, Holding, IndustryBenchmark, AuditChecklist, Comment, ApiKey, SupportGrant,
     Subscription, Payment, AuditLogEntry, Membership,
 )
 

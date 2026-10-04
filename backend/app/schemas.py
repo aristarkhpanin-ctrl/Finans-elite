@@ -298,6 +298,71 @@ class CalcResponse(BaseModel):
     warnings: list[str]
 
 
+# --- Ссылка для инвестора или банка (L4) ---
+
+class ShareLinkCreate(BaseModel):
+    #: Для кого: «Сбербанк, кредитный комитет». Печатается на копии.
+    label: str = Field(default="", max_length=200)
+    #: Срок в днях: по умолчанию 30, не больше 90 (обрезка названа в ответе).
+    days: int = 30
+    #: Какую версию открыть. Не задана — снимок делается сейчас.
+    version_id: Optional[str] = None
+
+
+class ShareLinkOut(BaseModel):
+    id: str
+    label: str
+    version_id: str
+    version_label: str
+    created_at: datetime
+    created_by: str
+    expires_at: datetime
+    revoked_at: Optional[datetime] = None
+    revoked_by: str = ""
+    #: ``active`` | ``revoked`` | ``expired``.
+    state: str
+    #: Сколько раз открывали и когда последний раз — из журнала, а не из счётчика.
+    opens: int = 0
+    last_opened_at: Optional[datetime] = None
+
+
+class ShareLinksOut(BaseModel):
+    """Ссылки проекта и оговорки к ним — с сервера: вторая копия текста на клиенте
+    однажды разошлась бы с первой."""
+
+    links: list[ShareLinkOut]
+    notes: list[str]
+
+
+class ShareLinkCreated(ShareLinkOut):
+    #: Секрет ссылки — показывается **один раз**: платформа хранит только отпечаток.
+    token: str
+    #: Путь страницы просмотра: ``/s/<token>``.
+    path: str
+    notes: list[str] = []
+
+
+class SharedPlanOut(BaseModel):
+    """Снимок плана по ссылке (без входа): что открыто, для кого, до какого числа."""
+
+    project_name: str
+    version_label: str
+    shared_for: str
+    organization: str
+    created_at: datetime
+    expires_at: datetime
+    engine_then: str
+    engine_now: str
+    #: Ставка дисконтирования снимка — с ней экран сравнивает IRR (как у владельца).
+    discount_rate_annual: str
+    #: Вторая валюта и её ставка — подписи блока показателей во второй валюте (gap 1.4);
+    #: пусто, если второй валюты в модели нет.
+    foreign_code: str = ""
+    discount_rate_annual_foreign: str = "0"
+    notes: list[str]
+    result: CalcResponse
+
+
 # --- Ревью бизнес-плана (Ф10) ---
 
 class FindingOut(BaseModel):

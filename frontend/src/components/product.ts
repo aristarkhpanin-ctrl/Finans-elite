@@ -76,6 +76,8 @@ function stored(): Product {
 export function productFromPath(pathname: string): Product {
   if (pathname === "/audit" || pathname.startsWith("/audit/")) return "audit";
   if (pathname.startsWith("/projects") || pathname.startsWith("/holdings")) return "business";
+  // План по ссылке (L4) — всегда бизнес-план: посетителю чужая память о продукте ни к чему.
+  if (pathname.startsWith("/s/")) return "business";
   return stored();
 }
 
@@ -90,10 +92,15 @@ export function currentProduct(): Product {
   return productFromPath(window.location.pathname);
 }
 
-/** Проставить (или снять) data-product на <html> и запомнить выбор. Бизнес-план — дефолт. */
-export function applyProduct(product: Product) {
+/**
+ * Проставить (или снять) data-product на <html> и запомнить выбор. Бизнес-план — дефолт.
+ *
+ * ``remember=false`` — тема без памяти: план по ссылке (L4) всегда зелёный, но владелец,
+ * открывший свою ссылку из «Аудита», не должен вернуться в «Элит» только из-за этого.
+ */
+export function applyProduct(product: Product, remember = true) {
   const root = document.documentElement;
   if (product === "audit") root.setAttribute("data-product", "audit");
   else root.removeAttribute("data-product");
-  localStorage.setItem(KEY, product);
+  if (remember) localStorage.setItem(KEY, product);
 }

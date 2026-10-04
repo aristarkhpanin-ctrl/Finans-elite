@@ -54,7 +54,8 @@ def test_write_permissions_are_exactly_the_content_ones():
     assert WRITE_PERMS == {Perm.PROJECT_CREATE, Perm.PROJECT_UPDATE, Perm.PROJECT_DELETE,
                            Perm.COMMENT_WRITE}
     for open_perm in (Perm.PROJECT_READ, Perm.PROJECT_CALCULATE, Perm.MEMBER_READ,
-                      Perm.MEMBER_MANAGE, Perm.ORG_MANAGE, Perm.BILLING_MANAGE):
+                      Perm.MEMBER_MANAGE, Perm.ORG_MANAGE, Perm.BILLING_MANAGE,
+                      Perm.SHARE_CLOSE):
         assert open_perm not in WRITE_PERMS
 
 
