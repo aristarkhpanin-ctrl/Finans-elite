@@ -28,7 +28,7 @@ import { httpDetail, httpFieldError } from "../api/client";
 import { EditConflictModal, useEditConflict } from "../components/EditConflict";
 import { IconDownload, IconPrint, IconTrash, IconUpload } from "../components/icons";
 import { useToast } from "../components/Toast";
-import { Button, ErrorState, ScrollRegion } from "../components/ui";
+import { Button, ErrorState, Loading, ScrollRegion } from "../components/ui";
 import { AuditInputIssues } from "../components/AuditInputIssues";
 import { AuditEarnings } from "../components/AuditEarnings";
 import { AuditFlags } from "../components/AuditFlags";
@@ -159,7 +159,7 @@ export function AuditSubjectPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const toast = useToast();
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["audit-subject", id],
     queryFn: () => getAuditSubject(id),
   });
@@ -221,9 +221,22 @@ export function AuditSubjectPage() {
     enabled: tab === "risk",
   });
 
-  if (isLoading || !model || !data) {
-    return <div className="page-sub" style={{ padding: 24 }}>Загрузка…</div>;
+  // Упавшая загрузка — своё состояние: прежде isLoading гас, данных не было, и экран
+  // вечно показывал «Загрузка…» (найдено матрицей состояний, пакет J). Причина сервера —
+  // под заголовком: «дело не найдено» и «сервис недоступен» лечатся по-разному.
+  if (isError) {
+    return (
+      <ErrorState text="Не удалось загрузить дело" sub={httpDetail(error) ?? undefined}
+                  style={{ padding: "48px 24px" }}
+                  actions={
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <Button variant="ghost" onClick={() => navigate("/audit")}>← К делам</Button>
+                      <Button variant="ghost" onClick={() => void refetch()}>Повторить</Button>
+                    </div>
+                  } />
+    );
   }
+  if (isLoading || !model || !data) return <Loading text="Загрузка дела…" />;
   const m = model;
   const n = m.periods.length;
 
@@ -379,11 +392,15 @@ export function AuditSubjectPage() {
   return (
     <div>
       <div className="page-head">
-        <div style={{ minWidth: 0 }}>
+        {/* flex: 1 — колонка занимает свободное место: без него она сжималась до ширины
+            поля по умолчанию (≈20 знаков), и длинное имя дела обрезалось даже на широком
+            экране (найдено на кадрах состояний, пакет J). */}
+        <div style={{ minWidth: 0, flex: 1 }}>
           <button type="button" className="link-back"
                   onClick={() => tryNav("Дела", () => navigate("/audit"))}>← К субъектам</button>
           <input
             className="subject-name"
+            aria-label="Название дела"
             value={name}
             placeholder="Название субъекта"
             onChange={(e) => { setName(e.target.value); setDirty(true); }}
@@ -675,7 +692,7 @@ export function AuditSubjectPage() {
         // сводка в нём — сохранённая, а не сегодняшняя.
         <AuditVersions subjectId={id} dirty={dirty} />
       ) : analysis.isLoading ? (
-        <div className="page-sub" style={{ padding: 24 }}>Считаем анализ…</div>
+        <Loading text="Считаем анализ…" />
       ) : analysis.isError || !analysis.data ? (
         <ErrorState text="Не удалось выполнить анализ" style={{ padding: "40px 24px" }}
                     onRetry={() => void analysis.refetch()} />
@@ -901,7 +918,7 @@ export function AuditSubjectPage() {
         risk.isLoading ? (
           // Прогон Монте-Карло — единственное место продукта, где ожидание заметно;
           // «считаем» честнее пустого экрана.
-          <div className="page-sub" style={{ padding: 24 }}>Считаем прогоны Монте-Карло…</div>
+          <Loading text="Считаем прогоны Монте-Карло…" />
         ) : risk.isError ? (
           <ErrorState text="Не удалось посчитать риски" style={{ padding: "40px 24px" }}
                       onRetry={() => void risk.refetch()} />

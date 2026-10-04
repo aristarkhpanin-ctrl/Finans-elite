@@ -702,6 +702,38 @@ test("матрица скриншотов «Финанс-Аудита»", async 
       await p.getByRole("button", { name: "Построить свод" }).click();
       await p.waitForTimeout(1_500);
     });
+
+    // --- Состояния «Аудита»: загрузка и ошибка списка, дела и анализа (пакет J, J4) ---
+    // Тот же приём, что у «Элиты»: загрузка — удержанием ответа, ошибка — ответом сервера.
+    // Ошибка дела нашлась именно здесь: экран вечно показывал «Загрузка…».
+    const CASES = /\/api\/v1\/audit\/subjects(\?.*)?$/;
+    const CASE = new RegExp(`/api/v1/audit/subjects/${demo.id}$`);
+    const ANALYZE = new RegExp(`/api/v1/audit/subjects/${demo.id}/analyze`);
+    const down = "Сервис временно недоступен";
+    await holdResponses(page, CASES, () => capture(page, "audit-states", "list-loading", async (p) => {
+      await p.goto("/audit");
+      await expect(p.getByRole("status")).toBeVisible();
+    }));
+    await failResponses(page, CASES, 500, down, () => capture(page, "audit-states", "list-error", async (p) => {
+      await p.goto("/audit");
+      await expect(p.getByText("Не удалось загрузить дела")).toBeVisible({ timeout: 15_000 });
+    }));
+    await holdResponses(page, CASE, () => capture(page, "audit-states", "case-loading", async (p) => {
+      await p.goto(`/audit/${demo.id}`);
+      await expect(p.getByText("Загрузка дела…")).toBeVisible();
+    }));
+    await failResponses(page, CASE, 500, down, () => capture(page, "audit-states", "case-error", async (p) => {
+      await p.goto(`/audit/${demo.id}`);
+      await expect(p.getByText("Не удалось загрузить дело")).toBeVisible({ timeout: 15_000 });
+    }));
+    await holdResponses(page, ANALYZE, () => capture(page, "audit-states", "analysis-loading", async (p) => {
+      await p.goto(`/audit/${demo.id}`);
+      await expect(p.getByText("Считаем анализ…")).toBeVisible();
+    }));
+    await failResponses(page, ANALYZE, 500, down, () => capture(page, "audit-states", "analysis-error", async (p) => {
+      await p.goto(`/audit/${demo.id}`);
+      await expect(p.getByText("Не удалось выполнить анализ")).toBeVisible({ timeout: 15_000 });
+    }));
   } finally {
     writeGallery();
   }

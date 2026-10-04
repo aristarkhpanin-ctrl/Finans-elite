@@ -3659,7 +3659,7 @@ button.coeff-box { width: 100%; font: inherit; color: inherit; text-align: left;
 }
 .link-back:hover { text-decoration: underline; }
 .subject-name {
-  display: block; width: 100%; max-width: 520px; border: 0; background: none;
+  display: block; width: 100%; max-width: 760px; border: 0; background: none;
   font: 800 22px var(--font-display); color: var(--text); padding: 2px 0;
 }
 .subject-name:focus { outline: none; border-bottom: 2px solid var(--primary); }

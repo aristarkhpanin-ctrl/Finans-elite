@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { httpDetail } from "../api/client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { aggregateFlowSeries, aggregateStatement, defaultPeriod, periodLabels, type Period } from "../aggregate";
 import { efficiencyCards, foreignCards, valuationCards } from "../metricCards";
@@ -48,6 +48,21 @@ export function ProjectResultsPage() {
   const toast = useToast();
   const [tab, setTab] = useState<string>("summary");
   const [printMode, setPrintMode] = useState(false);
+  // Режим печати прячет кнопку, которая его открыла: фокус уходит на панель печати, а по
+  // выходе возвращается на «Печать» — иначе он падал в никуда, и следующий Tab начинался
+  // с начала страницы (найдено клавиатурным обходом, пакет J). Esc — выход, как у модалок.
+  const printBarRef = useRef<HTMLDivElement>(null);
+  const printOpenRef = useRef<HTMLButtonElement>(null);
+  const wasPrinting = useRef(false);
+  useEffect(() => {
+    if (printMode) printBarRef.current?.querySelector("button")?.focus();
+    else if (wasPrinting.current) printOpenRef.current?.focus();
+    wasPrinting.current = printMode;
+    if (!printMode) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setPrintMode(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [printMode]);
   // Период отображения отчётов (пакет №6): null → авто по горизонту (defaultPeriod).
   const [period, setPeriod] = useState<Period | null>(null);
 
@@ -124,7 +139,7 @@ export function ProjectResultsPage() {
             >
               Бизнес-план
             </button>
-            <button type="button" onClick={() => setPrintMode(true)}>
+            <button type="button" ref={printOpenRef} onClick={() => setPrintMode(true)}>
               <IconPrint size={15} />
               <span style={{ marginLeft: 6 }}>Печать</span>
             </button>
@@ -269,7 +284,7 @@ export function ProjectResultsPage() {
             аккуратные переносы.
           </div>
         </div>
-        <div className="print-toolbar__actions">
+        <div className="print-toolbar__actions" ref={printBarRef}>
           <Button variant="ghost" onClick={() => setPrintMode(false)}>
             ← К результатам
           </Button>

@@ -15,16 +15,17 @@ import { expect, test, type APIRequestContext, type Page } from "@playwright/tes
 const stamp = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const PASSWORD = "keyboard-pass-123";
 
-async function register(page: Page): Promise<string> {
+async function register(page: Page, product: "business" | "audit" = "business"): Promise<string> {
   const email = `e2e-keys-${stamp()}@example.test`;
-  await page.addInitScript(() => localStorage.setItem("fe_product", "business"));
+  await page.addInitScript((p) => localStorage.setItem("fe_product", p), product);
   await page.goto("/register");
   await page.getByLabel("ФИО").fill("Клавиатурный Тест");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Пароль").fill(PASSWORD);
   await page.getByLabel("Название организации").fill("ООО «Клавиши»");
   await page.getByRole("button", { name: /Создать аккаунт/ }).click();
-  await expect(page.getByRole("heading", { name: "Проекты" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: product === "audit" ? "Дела" : "Проекты" }))
+    .toBeVisible();
   return email;
 }
 
@@ -247,4 +248,99 @@ test("телефон: выдвижная панель — фокус внутр�
   await page.keyboard.press("Escape");
   await expect(drawer).toBeHidden();
   await expect(burger).toBeFocused();
+});
+
+test("список проектов: вид и открытие проекта — с клавиатуры", async ({ page }) => {
+  await register(page);
+  await project(page.request, await authHeaders(page));
+  await page.goto("/projects");
+  const rows = page.getByRole("button", { name: "Список" });
+  await tabTo(page, rows);
+  await page.keyboard.press("Enter");
+  await expect(rows).toHaveAttribute("aria-pressed", "true");
+  const open = page.getByRole("button", { name: "Клавиатурный проект" }).first();
+  await tabTo(page, open);
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/projects\/[^/]+$/);
+});
+
+test("план-факт и печать: вкладка, режим печати и возврат — фокус не теряется", async ({ page }) => {
+  await register(page);
+  const headers = await authHeaders(page);
+  const model = await (await page.request.get("/api/v1/templates/production", { headers })).json();
+  model.actualization = { actual_until: 1, actuals: { C1: ["1000", "2000"] } };
+  const { id } = await (await page.request.post("/api/v1/projects",
+    { headers, data: { name: "План-факт с клавиатуры", model } })).json();
+  await page.goto(`/projects/${id}/results`);
+  const pf = page.getByRole("button", { name: "План-факт", exact: true });
+  await expect(pf).toBeVisible({ timeout: 30_000 });
+  await tabTo(page, pf);
+  await page.keyboard.press("Enter");
+  await expect(pf).toHaveAttribute("aria-pressed", "true");
+
+  // Режим печати прячет кнопку, которая его открыла: фокус обязан уйти на панель печати,
+  // иначе он падает в никуда и следующий Tab начинается с начала страницы.
+  const printBtn = page.locator(".screen-only").getByRole("button", { name: "Печать" });
+  await tabTo(page, printBtn, 120);
+  await page.keyboard.press("Enter");
+  const back = page.getByRole("button", { name: /К результатам/ });
+  await expect(back).toBeVisible();
+  await expect(back).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(printBtn).toBeFocused();
+  // Esc выходит из режима печати, как из модалки, — и тоже возвращает на кнопку.
+  await page.keyboard.press("Enter");
+  await expect(back).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(back).toBeHidden();
+  await expect(printBtn).toBeFocused();
+});
+
+test("холдинг: создание, участник и свод — без мыши", async ({ page }) => {
+  await register(page);
+  await project(page.request, await authHeaders(page));
+  await page.goto("/holdings");
+  const name = page.getByLabel("Название холдинга");
+  await tabTo(page, name);
+  await page.keyboard.type("Клавиатурная группа");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/holdings\/[^/]+$/);
+
+  const add = page.getByRole("button", { name: /Добавить проект/ }).first();
+  await tabTo(page, add);
+  await page.keyboard.press("Enter");
+  const dialog = page.getByRole("dialog", { name: "Добавить проект в холдинг" });
+  await expect(dialog).toBeVisible();
+  const pick = dialog.getByLabel("Проект");
+  await pick.focus();
+  await page.keyboard.press("ArrowDown");
+  const confirm = dialog.getByRole("button", { name: "Добавить" });
+  await tabTo(page, confirm, 10);
+  await page.keyboard.press("Enter");
+  await expect(dialog).toBeHidden();
+
+  const run = page.getByRole("button", { name: /Консолидировать/ });
+  await tabTo(page, run);
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("Сводный NPV")).toBeVisible({ timeout: 30_000 });
+});
+
+test("дело «Аудита»: открыть из списка, раздел и вкладка — с клавиатуры", async ({ page }) => {
+  await register(page, "audit");
+  const headers = await authHeaders(page);
+  expect((await page.request.post("/api/v1/audit/subjects/demo", { headers })).ok()).toBeTruthy();
+  await page.goto("/audit");
+  const open = page.getByRole("button", { name: /Торговый дом/ }).first();
+  await tabTo(page, open);
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/audit\/[^/]+$/);
+
+  const health = page.getByRole("button", { name: "Финансовое состояние" });
+  await tabTo(page, health, 80);
+  await page.keyboard.press("Enter");
+  await expect(health).toHaveAttribute("aria-pressed", "true");
+  const diag = page.getByRole("tab", { name: /Диагностика/ });
+  await tabTo(page, diag);
+  await page.keyboard.press("Enter");
+  await expect(diag).toHaveAttribute("aria-selected", "true");
 });

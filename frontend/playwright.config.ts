@@ -82,7 +82,12 @@ export default defineConfig({
       // не виновато ничего из проверяемого. Лишние секунды на старт дешевле такого следа.
       reuseExistingServer: false,
       timeout: 60_000,
-      env: { DATABASE_URL: `sqlite:///${DB}`, APP_ENV: "development", ...SCREENS_QUEUE },
+      // Ограничитель входа и регистрации (10 регистраций в минуту с адреса) выключен:
+      // сквозные тесты регистрируют по человеку на сценарий, все — с 127.0.0.1, и на
+      // дюжине сценариев набор превращался в проверку самого ограничителя. Его стережёт
+      // `backend/tests/test_rate_limit.py`, как и в `conftest.py` бэкенда (пакет J).
+      env: { DATABASE_URL: `sqlite:///${DB}`, APP_ENV: "development", RATE_LIMIT_ENABLED: "false",
+             ...SCREENS_QUEUE },
       // Вывод сервера виден: молчащий сервер отлаживать нечем (по умолчанию
       // Playwright прячет stdout, и разбирать падение приходится вслепую).
       stdout: "pipe",
