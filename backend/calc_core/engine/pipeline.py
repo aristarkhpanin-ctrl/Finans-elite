@@ -810,6 +810,36 @@ def lease_project_cost(model: ProjectModel, n: int) -> list[Decimal]:
     return cost
 
 
+def finance_lease_payments(model: ProjectModel, n: int) -> list[Decimal]:
+    """Платежи финансового лизинга (без страхования) — та часть ``C25``, что гасит долг.
+
+    Для покрытия долга (L1): финансовый лизинг — покупка в долг, и его платёж — платёж по
+    долгу; аренда и страхование — издержки. Правило «платёж с месяца начала по срок» —
+    то же, что в :func:`_leases`; что вместе с операционной частью они дают ровно
+    ``C25``, проверяет тест.
+    """
+    out = zeros(n)
+    for lease in model.financing.leases:
+        if not lease.finance or lease.term_months <= 0:
+            continue
+        pay = D(lease.monthly_payment)
+        for t in range(max(lease.start_month, 0), min(lease.start_month + lease.term_months, n)):
+            out[t] += pay
+    return out
+
+
+def scheduled_loan_principal(model: ProjectModel, n: int) -> list[Decimal]:
+    """Плановое погашение тела займов раздела «Финансирование» в основной валюте.
+
+    Ровно то, что конвейер кладёт в ``C23`` без автокредита: тот же :func:`_loans` с тем
+    же курсом, а не вторая копия графика.
+    """
+    env = model.environment
+    fx = _fx_series(env, n)
+    fx_prev = [D(env.fx_open)] + fx[:-1]
+    return _loans(model, n, fx, fx_prev)[1]
+
+
 def _leases(model: ProjectModel, n: int):
     """Лизинг → (операц. издержка I21, отток C25, предмет фин. лизинга B19, обязательство
     B26, проценты I18, амортизация I17).

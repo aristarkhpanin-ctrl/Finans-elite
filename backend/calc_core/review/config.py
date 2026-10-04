@@ -4,6 +4,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 
+from ..reports.debt import BANK_DSCR_MIN, BANK_LEVERAGE_MAX
+
 
 @dataclass(frozen=True)
 class ReviewConfig:
@@ -12,6 +14,9 @@ class ReviewConfig:
     debt_equity_max: Decimal = Decimal("2.0")
     interest_coverage_min: Decimal = Decimal("1.5")   # < 1.0 → risk
     financing_to_equity_max: Decimal = Decimal("3.0")
+    # Взгляд банка (L1): пороги — из того же места, что и оговорка под таблицей.
+    dscr_min: Decimal = BANK_DSCR_MIN
+    leverage_max: Decimal = BANK_LEVERAGE_MAX
     # Структура доходов/издержек
     revenue_concentration_max: Decimal = Decimal("0.70")
     thin_gross_margin: Decimal = Decimal("0.10")

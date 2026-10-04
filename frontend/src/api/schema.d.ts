@@ -5833,6 +5833,7 @@ export interface components {
             budget: components["schemas"]["BudgetOut"];
             cashflow: components["schemas"]["StatementOut"];
             cashflow_variance?: components["schemas"]["StatementOut"] | null;
+            debt_service?: components["schemas"]["DebtServiceOut"] | null;
             /**
              * Details
              * @default []
@@ -6401,6 +6402,7 @@ export interface components {
             budget: components["schemas"]["BudgetOut"];
             cashflow: components["schemas"]["StatementOut"];
             cashflow_variance?: components["schemas"]["StatementOut"] | null;
+            debt_service?: components["schemas"]["DebtServiceOut"] | null;
             /**
              * Details
              * @default []
@@ -6504,6 +6506,64 @@ export interface components {
              * @default
              */
             title: string;
+        };
+        /**
+         * DebtServiceOut
+         * @description Взгляд банка (пакет L, L1): покрытие долга (DSCR) и долговая нагрузка по годам
+         *     проекта. ``note`` — как считается и чего не видно, одна строка на экран и в документ.
+         */
+        DebtServiceOut: {
+            /** Min Dscr */
+            min_dscr?: string | null;
+            /** Min Dscr Year */
+            min_dscr_year?: string | null;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Years
+             * @default []
+             */
+            years: components["schemas"]["DebtYearOut"][];
+        };
+        /**
+         * DebtYearOut
+         * @description Год проекта глазами кредитора (L1). Пустое покрытие и нагрузка — ``None`` с причиной.
+         */
+        DebtYearOut: {
+            /** Cfads */
+            cfads: string;
+            /** Dscr */
+            dscr?: string | null;
+            /** Ebitda */
+            ebitda: string;
+            /** Interest */
+            interest: string;
+            /** Label */
+            label: string;
+            /** Lease */
+            lease: string;
+            /** Leverage */
+            leverage?: string | null;
+            /**
+             * Leverage Note
+             * @default
+             */
+            leverage_note: string;
+            /** Months */
+            months: number;
+            /** Net Debt */
+            net_debt: string;
+            /** Principal */
+            principal: string;
+            /** Service */
+            service: string;
+            /** Shortfall */
+            shortfall: string;
+            /** Start */
+            start: number;
         };
         /**
          * DeletionPlanOut

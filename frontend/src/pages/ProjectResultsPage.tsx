@@ -20,6 +20,7 @@ import { useToast } from "../components/Toast";
 import { Button, ErrorState, ScrollRegion, Skeleton } from "../components/ui";
 import { downloadBusinessPlanDocx, downloadCsv, downloadPdf, downloadXlsx, statementsToCsv } from "../export";
 import { Comments } from "../components/Comments";
+import { DebtServiceView } from "../components/DebtServiceView";
 import { fmtMillions, percent, plural } from "../format";
 import { fmtInt } from "../components/monthlyGrid.logic";
 import { usePageTitle } from "../pageTitle";
@@ -534,6 +535,8 @@ export function ProjectResultsPage() {
             </div>
           </>
         )}
+
+        {tab === "summary" && <DebtServiceView debt={data.debt_service} />}
 
         <div className="etabs-wrap" style={{ margin: "20px 0", borderTop: "1px solid var(--border)", background: "none", padding: 0 }}>
           <div className="etabs fe-scroll">

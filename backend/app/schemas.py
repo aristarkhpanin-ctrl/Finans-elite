@@ -231,6 +231,35 @@ class WorkingCapitalReleaseOut(BaseModel):
     note: str = ""
 
 
+class DebtYearOut(BaseModel):
+    """Год проекта глазами кредитора (L1). Пустое покрытие и нагрузка — ``None`` с причиной."""
+
+    label: str
+    start: int
+    months: int
+    cfads: Decimal
+    interest: Decimal
+    principal: Decimal
+    lease: Decimal
+    service: Decimal
+    dscr: Optional[Decimal] = None
+    shortfall: Decimal
+    net_debt: Decimal
+    ebitda: Decimal
+    leverage: Optional[Decimal] = None
+    leverage_note: str = ""
+
+
+class DebtServiceOut(BaseModel):
+    """Взгляд банка (пакет L, L1): покрытие долга (DSCR) и долговая нагрузка по годам
+    проекта. ``note`` — как считается и чего не видно, одна строка на экран и в документ."""
+
+    years: list[DebtYearOut] = []
+    min_dscr: Optional[Decimal] = None
+    min_dscr_year: Optional[str] = None
+    note: str = ""
+
+
 class CalcResponse(BaseModel):
     engine_version: str
     n: int
@@ -262,6 +291,8 @@ class CalcResponse(BaseModel):
     details: list[LineDetailOut] = []
     # Доходы участников финансирования (пакет №7); пусто без финансирования.
     participants: list[ParticipantOut] = []
+    #: Взгляд банка (L1): покрытие долга и долговая нагрузка; ``None`` — долга нет.
+    debt_service: Optional[DebtServiceOut] = None
     actualized_cashflow: Optional[StatementOut] = None
     cashflow_variance: Optional[StatementOut] = None
     warnings: list[str]
@@ -1165,6 +1196,20 @@ def _metrics_out(m) -> Optional[MetricsOut]:
     )
 
 
+def _debt_out(d) -> Optional[DebtServiceOut]:
+    if d is None:
+        return None
+    return DebtServiceOut(
+        min_dscr=d.min_dscr, min_dscr_year=d.min_dscr_year, note=d.note,
+        years=[DebtYearOut(
+            label=y.label, start=y.start, months=y.months, cfads=y.cfads,
+            interest=y.interest, principal=y.principal, lease=y.lease, service=y.service,
+            dscr=y.dscr, shortfall=y.shortfall, net_debt=y.net_debt, ebitda=y.ebitda,
+            leverage=y.leverage, leverage_note=y.leverage_note,
+        ) for y in d.years],
+    )
+
+
 def _release_out(r) -> Optional[WorkingCapitalReleaseOut]:
     if r is None:
         return None
@@ -1238,6 +1283,7 @@ def to_response(r: CalcResult) -> CalcResponse:
             npv_with_terminal=p.npv_with_terminal,
             irr_with_terminal_annual=p.irr_with_terminal_annual,
         ) for p in r.participants],
+        debt_service=_debt_out(r.debt_service),
         actualized_cashflow=_statement_out(r.actualized_cashflow) if r.actualized_cashflow else None,
         cashflow_variance=_statement_out(r.cashflow_variance) if r.cashflow_variance else None,
         warnings=r.warnings,

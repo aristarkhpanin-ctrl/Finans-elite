@@ -1,6 +1,8 @@
 """Правила «ликвидность / структура капитала» (см. декомпозицию §2.B)."""
 from __future__ import annotations
 
+from decimal import Decimal
+
 from ...money import ZERO
 from ..aggregates import ebit_total, interest_total, series, total
 from ..config import ReviewConfig
@@ -120,4 +122,103 @@ def interest_coverage_low(ctx: ReviewContext, config: ReviewConfig) -> list[Find
     )]
 
 
-RULES = [cash_gap, financing_dependency, current_ratio_low, overleverage, interest_coverage_low]
+def _covered_years(ctx: ReviewContext):
+    debt = ctx.result.debt_service
+    if debt is None:
+        return []
+    return [y for y in debt.years if y.dscr is not None]
+
+
+def dscr_below_one(ctx: ReviewContext, config: ReviewConfig) -> list[Finding]:
+    """Поток не покрывает платежи по долгу (DSCR < 1) хотя бы в одном году — risk."""
+    below = [y for y in _covered_years(ctx) if y.dscr is not None and y.dscr < 1]
+    if not below:
+        return []
+    worst = min(below, key=lambda y: y.dscr if y.dscr is not None else ZERO)
+    gap = sum((y.shortfall for y in below), ZERO)
+    years = ", ".join(y.label for y in below)
+    return [Finding(
+        id="liquidity.dscr_below_one", category="liquidity", severity="risk",
+        title="Поток не покрывает платежи по долгу",
+        detail=f"Покрытие долга (DSCR) ниже 1 — {years}: платежи по займам и лизингу больше "
+               f"потока, доступного для их обслуживания. Худший год — {worst.label}: DSCR "
+               f"{fmt_num(worst.dscr or ZERO)}, не хватает {fmt_rub(worst.shortfall)} ₽; "
+               f"всего за такие годы — {fmt_rub(gap)} ₽ платежей из других денег. С таким "
+               "планом банк кредит обычно не выдаёт.",
+        recommendation="Удлините срок займа или отсрочку погашения, уменьшите сумму долга "
+                       "за счёт капитала либо сдвиньте погашение на годы с большим потоком.",
+        evidence={"worst_year": worst.label, "worst_dscr": str(worst.dscr),
+                  "worst_shortfall": str(worst.shortfall), "shortfall_total": str(gap),
+                  "years_below": len(below)},
+    )]
+
+
+def dscr_below_bank_norm(ctx: ReviewContext, config: ReviewConfig) -> list[Finding]:
+    """Покрытие долга не ниже 1, но ниже обычного требования банков — warning.
+
+    Год с DSCR < 1 — это уже risk (:func:`dscr_below_one`); второе предупреждение о том же
+    годе было бы шумом, поэтому здесь — только когда ниже единицы не опускается ничего.
+    """
+    covered = _covered_years(ctx)
+    if not covered or any(y.dscr is not None and y.dscr < 1 for y in covered):
+        return []
+    worst = min(covered, key=lambda y: y.dscr if y.dscr is not None else ZERO)
+    if worst.dscr is None or worst.dscr >= config.dscr_min:
+        return []
+    return [Finding(
+        id="liquidity.dscr_below_bank_norm", category="liquidity", severity="warning",
+        title="Покрытие долга ниже обычного требования банков",
+        detail=f"Наименьшее покрытие долга (DSCR) — {fmt_num(worst.dscr)} в {worst.label}: "
+               f"поток платежи покрывает, но банки обычно требуют не ниже "
+               f"{fmt_num(config.dscr_min)} — запас на случай, если выручка отстанет от "
+               "плана. Это практика банков, а не норма закона.",
+        recommendation="Проверьте требования своего банка; запас покрытия даёт более "
+                       "длинный срок займа, отсрочка погашения или больше капитала.",
+        evidence={"min_dscr": str(worst.dscr), "year": worst.label,
+                  "bank_norm": str(config.dscr_min)},
+    )]
+
+
+def leverage_high(ctx: ReviewContext, config: ReviewConfig) -> list[Finding]:
+    """Долговая нагрузка выше обычного предела банков в годы погашения — warning.
+
+    Смотрим только **полные годы с плановым погашением тела**: на стройке долг уже есть,
+    а EBITDA ещё нет, и предупреждение о каждом проекте с периодом строительства было бы
+    шумом. Банки и сами проверяют этот предел после выхода на погашение.
+    """
+    debt = ctx.result.debt_service
+    if debt is None:
+        return []
+    flagged = []
+    for y in debt.years:
+        if y.months < 12 or y.principal <= 0 or y.net_debt <= 0:
+            continue
+        if y.ebitda <= 0 or (y.leverage is not None and y.leverage > config.leverage_max):
+            flagged.append(y)
+    if not flagged:
+        return []
+    worst = max(flagged, key=lambda y: y.leverage if y.leverage is not None
+                else Decimal("Infinity"))
+    if worst.leverage is None:
+        what = (f"в {worst.label} чистый долг {fmt_rub(worst.net_debt)} ₽, а EBITDA не "
+                f"положительна ({fmt_rub(worst.ebitda)} ₽)")
+    else:
+        what = (f"в {worst.label} чистый долг — {fmt_num(worst.leverage)} годовых EBITDA "
+                f"({fmt_rub(worst.net_debt)} ₽ против {fmt_rub(worst.ebitda)} ₽)")
+    return [Finding(
+        id="liquidity.leverage_high", category="liquidity", severity="warning",
+        title="Долговая нагрузка выше обычного предела банков",
+        detail=f"В годы погашения {what}; банки обычно ограничивают нагрузку "
+               f"{fmt_num(config.leverage_max)} годовыми EBITDA. Это практика, а не норма "
+               "закона.",
+        recommendation="Уменьшите долг за счёт капитала или проверьте, реалистичен ли рост "
+                       "EBITDA в годы погашения.",
+        evidence={"year": worst.label, "net_debt": str(worst.net_debt),
+                  "ebitda": str(worst.ebitda),
+                  "leverage": str(worst.leverage) if worst.leverage is not None else "",
+                  "bank_limit": str(config.leverage_max)},
+    )]
+
+
+RULES = [cash_gap, financing_dependency, current_ratio_low, overleverage, interest_coverage_low,
+         dscr_below_one, dscr_below_bank_norm, leverage_high]

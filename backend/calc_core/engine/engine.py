@@ -13,6 +13,7 @@ from ..models import ProjectModel
 from ..money import CALC_CONTEXT, ONE, ZERO, almost_equal
 from ..reports.actualization import actualize_cashflow
 from ..reports.breakeven import compute_break_even
+from ..reports.debt import compute_debt_service
 from ..reports.horizon import with_release, working_capital_release
 from ..reports.ratios import compute_ratios
 from ..reports.result import CalcResult, InvestmentMetrics, build_investment_metrics
@@ -30,8 +31,10 @@ from .pipeline import (
     _expand_subscriptions,
     _fx_series,
     _preexisting_net_open,
+    finance_lease_payments,
     lease_project_cost,
     run_pipeline,
+    scheduled_loan_principal,
 )
 from .tables import compute_user_tables
 from .taxes import TaxInjection, compute_custom_taxes
@@ -131,6 +134,10 @@ def _run(model: ProjectModel, options: CalcOptions | None = None) -> CalcResult:
         user_tables=compute_user_tables(model, income, cashflow, balance, profit_use, n),
         details=details,
         participants=compute_participants(model, cashflow, balance, n),
+        debt_service=compute_debt_service(
+            income, cashflow, balance, n,
+            scheduled_principal=scheduled_loan_principal(model, n),
+            finance_lease=finance_lease_payments(model, n)),
         actualized_cashflow=actualized_cashflow,
         cashflow_variance=cashflow_variance,
         warnings=warnings,

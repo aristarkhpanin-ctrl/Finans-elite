@@ -517,3 +517,80 @@ def test_deep_review_is_deterministic():
     assert r1.light in {"ok", "info", "warning", "risk"}
     assert sum(r1.counts.values()) == len(r1.findings)
     assert [f.id for f in r1.findings] == [f.id for f in r2.findings]
+
+
+# --- Взгляд банка (L1): покрытие долга и долговая нагрузка ---
+
+def _debt_year(label="Год 1", *, cfads="100", service="80", principal="50", months=12,
+               net_debt="0", ebitda="100"):
+    from calc_core.reports.debt import DebtYear
+    cf, svc, nd, eb = (Decimal(cfads), Decimal(service), Decimal(net_debt), Decimal(ebitda))
+    dscr = cf / svc if svc > 0 else None
+    lev = nd / eb if months == 12 and nd > 0 and eb > 0 else None
+    return DebtYear(label=label, start=0, months=months, cfads=cf, interest=svc - Decimal(principal),
+                    principal=Decimal(principal), lease=Decimal(0), service=svc, dscr=dscr,
+                    shortfall=svc - cf if dscr is not None and dscr < 1 else Decimal(0),
+                    net_debt=nd, ebitda=eb, leverage=lev)
+
+
+def _debt_ctx(*years):
+    from calc_core.reports.debt import DebtService
+    ctx = _liq_ctx()
+    ctx.result.debt_service = DebtService(years=list(years)) if years else None
+    return ctx
+
+
+def test_dscr_below_one_names_the_worst_year_and_the_gap():
+    ctx = _debt_ctx(_debt_year("Год 1", cfads="90", service="100"),
+                    _debt_year("Год 2", cfads="60", service="100"),
+                    _debt_year("Год 3", cfads="150", service="100"))
+    [f] = liquidity.dscr_below_one(ctx, DEFAULT_CONFIG)
+    assert f.severity == "risk" and f.evidence["worst_year"] == "Год 2"
+    assert f.evidence["years_below"] == 2 and Decimal(f.evidence["shortfall_total"]) == 50
+    assert "Год 1, Год 2" in f.detail
+    # Тишина: покрытие не ниже единицы; долга нет вовсе; год без платежей.
+    assert liquidity.dscr_below_one(_debt_ctx(_debt_year(cfads="100", service="100")),
+                                    DEFAULT_CONFIG) == []
+    assert liquidity.dscr_below_one(_debt_ctx(), DEFAULT_CONFIG) == []
+    assert liquidity.dscr_below_one(_debt_ctx(_debt_year(service="0", principal="0")),
+                                    DEFAULT_CONFIG) == []
+
+
+def test_dscr_below_bank_norm_warns_only_above_one():
+    [f] = liquidity.dscr_below_bank_norm(_debt_ctx(_debt_year(cfads="110", service="100")),
+                                         DEFAULT_CONFIG)
+    assert f.severity == "warning" and Decimal(f.evidence["min_dscr"]) == Decimal("1.1")
+    assert "практика банков, а не норма закона" in f.detail
+    # Ниже единицы — это уже risk другого правила; второго предупреждения нет.
+    below = _debt_ctx(_debt_year("Год 1", cfads="90", service="100"),
+                      _debt_year("Год 2", cfads="110", service="100"))
+    assert liquidity.dscr_below_bank_norm(below, DEFAULT_CONFIG) == []
+    # Тишина: с запасом; без долга.
+    assert liquidity.dscr_below_bank_norm(_debt_ctx(_debt_year(cfads="130", service="100")),
+                                          DEFAULT_CONFIG) == []
+    assert liquidity.dscr_below_bank_norm(_debt_ctx(), DEFAULT_CONFIG) == []
+
+
+def test_leverage_is_judged_only_in_full_repayment_years():
+    high = _debt_year(net_debt="500", ebitda="100")                  # 5 > 4
+    [f] = liquidity.leverage_high(_debt_ctx(high), DEFAULT_CONFIG)
+    assert f.severity == "warning" and Decimal(f.evidence["leverage"]) == 5
+    # Долг есть, а EBITDA не положительна — тоже нагрузка выше предела, причина названа.
+    [g] = liquidity.leverage_high(_debt_ctx(_debt_year(net_debt="500", ebitda="-10")),
+                                  DEFAULT_CONFIG)
+    assert "не положительна" in g.detail
+    # Тишина: стройка (тело ещё не гасится), неполный год, нагрузка в пределе.
+    assert liquidity.leverage_high(_debt_ctx(_debt_year(net_debt="500", ebitda="100",
+                                                        principal="0")), DEFAULT_CONFIG) == []
+    assert liquidity.leverage_high(_debt_ctx(_debt_year(net_debt="500", ebitda="100",
+                                                        months=6)), DEFAULT_CONFIG) == []
+    assert liquidity.leverage_high(_debt_ctx(_debt_year(net_debt="300", ebitda="100")),
+                                   DEFAULT_CONFIG) == []
+    assert liquidity.leverage_high(_debt_ctx(), DEFAULT_CONFIG) == []
+
+
+def test_the_sample_project_gets_the_bank_view():
+    """Эталон с займом, который гасится быстрее, чем зарабатывает: ревью называет это."""
+    review = run_review(ReviewContext(model=build_sample_project(),
+                                      result=run(build_sample_project())))
+    assert "liquidity.dscr_below_one" in {f.id for f in review.findings}

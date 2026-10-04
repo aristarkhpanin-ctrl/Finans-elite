@@ -4755,6 +4755,16 @@
               }
             ]
           },
+          "debt_service": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DebtServiceOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "details": {
             "default": [],
             "items": {
@@ -5662,6 +5672,16 @@
               }
             ]
           },
+          "debt_service": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DebtServiceOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "details": {
             "default": [],
             "items": {
@@ -5850,6 +5870,150 @@
           }
         },
         "title": "CustomProcedure",
+        "type": "object"
+      },
+      "DebtServiceOut": {
+        "description": "Взгляд банка (пакет L, L1): покрытие долга (DSCR) и долговая нагрузка по годам\nпроекта. ``note`` — как считается и чего не видно, одна строка на экран и в документ.",
+        "properties": {
+          "min_dscr": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Dscr"
+          },
+          "min_dscr_year": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Dscr Year"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          },
+          "years": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DebtYearOut"
+            },
+            "title": "Years",
+            "type": "array"
+          }
+        },
+        "title": "DebtServiceOut",
+        "type": "object"
+      },
+      "DebtYearOut": {
+        "description": "Год проекта глазами кредитора (L1). Пустое покрытие и нагрузка — ``None`` с причиной.",
+        "properties": {
+          "cfads": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Cfads",
+            "type": "string"
+          },
+          "dscr": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dscr"
+          },
+          "ebitda": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Ebitda",
+            "type": "string"
+          },
+          "interest": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Interest",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "lease": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Lease",
+            "type": "string"
+          },
+          "leverage": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Leverage"
+          },
+          "leverage_note": {
+            "default": "",
+            "title": "Leverage Note",
+            "type": "string"
+          },
+          "months": {
+            "title": "Months",
+            "type": "integer"
+          },
+          "net_debt": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Net Debt",
+            "type": "string"
+          },
+          "principal": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Principal",
+            "type": "string"
+          },
+          "service": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Service",
+            "type": "string"
+          },
+          "shortfall": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Shortfall",
+            "type": "string"
+          },
+          "start": {
+            "title": "Start",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "start",
+          "months",
+          "cfads",
+          "interest",
+          "principal",
+          "lease",
+          "service",
+          "shortfall",
+          "net_debt",
+          "ebitda"
+        ],
+        "title": "DebtYearOut",
         "type": "object"
       },
       "DeletionPlanOut": {
@@ -16320,7 +16484,7 @@
   "info": {
     "description": "Расчёт финансовой модели предприятия (отчёты, показатели, коэффициенты).",
     "title": "Финансовая модель — API",
-    "version": "0.9.57"
+    "version": "0.9.58"
   },
   "openapi": "3.1.0",
   "paths": {

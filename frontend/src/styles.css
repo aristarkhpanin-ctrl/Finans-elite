@@ -3260,6 +3260,10 @@ button.leg-toggle:focus-visible { outline: 2px solid var(--accent); outline-offs
   border-right: 1px solid var(--grid-line);
 }
 .contrib-cell--neg { color: var(--danger); }
+/* Взгляд банка (L1): оценка покрытия словами — колонка шире числовой, тон — токеном
+   текста предупреждения (проверен на контраст), а не неоном. */
+.contrib-cell--warn { color: var(--warn-text); }
+.contrib-cell--wide { width: 190px; text-align: left; font-family: var(--font-ui); }
 .contrib-row--head .contrib-cell {
   font: 600 10.5px var(--font-ui); letter-spacing: 0.04em; text-transform: uppercase; color: var(--subtle);
   display: flex; align-items: center; justify-content: flex-end; gap: 6px;

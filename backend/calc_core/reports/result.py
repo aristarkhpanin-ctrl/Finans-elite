@@ -6,6 +6,7 @@ from decimal import Decimal
 from typing import Optional
 
 from .breakeven import BreakEven
+from .debt import DebtService
 from .horizon import WorkingCapitalRelease
 from .ratios import FinancialRatios
 from .statements import Statement
@@ -292,6 +293,9 @@ class CalcResult:
     details: list[LineDetail] = field(default_factory=list)
     # Доходы участников финансирования (акционеры, кредиторы); пусто без финансирования.
     participants: list[ParticipantFlow] = field(default_factory=list)
+    #: Взгляд банка (пакет L, L1): покрытие долга (DSCR) и долговая нагрузка по годам
+    #: проекта; ``None`` — долга за горизонт нет.
+    debt_service: Optional[DebtService] = None
     # Актуализация (план-факт): заполняются при наличии фактических данных.
     actualized_cashflow: Optional[Statement] = None
     cashflow_variance: Optional[Statement] = None

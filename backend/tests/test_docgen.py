@@ -188,3 +188,19 @@ def test_the_document_names_the_closing_of_accounts():
                  if t.rows[0].cells[0].text == "Строка баланса на конец горизонта")
     codes = [row.cells[0].text.split()[0] for row in table.rows[1:]]
     assert "B2" in codes and all(c.startswith("B") for c in codes)
+
+
+def test_the_document_shows_the_bank_view():
+    """Взгляд банка (L1): таблица по годам, недостаток покрытия словами и оговорка о том,
+    что пороги — практика банков. Без долга раздела нет."""
+    text = _texts(_build())
+    assert "Обслуживание долга (взгляд банка)" in text
+    assert "Наименьшее покрытие долга (DSCR): 0,66 — Год 1." in text
+    assert "Платежи больше потока — Год 1: не хватает" in text
+    assert "практика, а не норма закона" in text
+    table = next(t for t in _build().tables
+                 if t.rows[0].cells[0].text == "Год" and len(t.columns) == 7)
+    assert table.rows[1].cells[3].text == "0,66"
+
+    from calc_core.samples import build_services_project
+    assert "Обслуживание долга" not in _texts(_build(build_services_project()))

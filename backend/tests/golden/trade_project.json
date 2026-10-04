@@ -915,7 +915,27 @@
       "0.00"
     ]
   },
-  "engine_version": "0.9.57",
+  "debt_service": {
+    "min_dscr": "0.573551",
+    "min_dscr_year": "Год 1",
+    "years": [
+      {
+        "cfads": "57155.64",
+        "dscr": "0.573551",
+        "ebitda": "120000.00",
+        "interest": "7985.63",
+        "label": "Год 1",
+        "lease": "0.00",
+        "leverage": null,
+        "months": 12,
+        "net_debt": "-51170.01",
+        "principal": "91666.67",
+        "service": "99652.30",
+        "shortfall": "42496.65"
+      }
+    ]
+  },
+  "engine_version": "0.9.58",
   "income": {
     "I1": [
       "100000.00",

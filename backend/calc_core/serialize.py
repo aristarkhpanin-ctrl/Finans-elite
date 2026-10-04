@@ -204,6 +204,21 @@ def result_to_dict(result: CalcResult) -> dict[str, object]:
             "total": _money(release.total),
             "items": {item.code: _money(item.amount) for item in release.items},
         }
+    # Взгляд банка (L1) — отдельным блоком и только при долге: у проекта без займов и
+    # лизинга его нет, и снимок такого проекта не сдвигается.
+    debt = result.debt_service
+    if debt is not None:
+        snapshot["debt_service"] = {
+            "min_dscr": _ratio(debt.min_dscr), "min_dscr_year": debt.min_dscr_year,
+            "years": [{
+                "label": y.label, "months": y.months, "cfads": _money(y.cfads),
+                "interest": _money(y.interest), "principal": _money(y.principal),
+                "lease": _money(y.lease), "service": _money(y.service),
+                "dscr": _ratio(y.dscr), "shortfall": _money(y.shortfall),
+                "net_debt": _money(y.net_debt), "ebitda": _money(y.ebitda),
+                "leverage": _ratio(y.leverage),
+            } for y in debt.years],
+        }
     flow = list(result.project_flow)
     if release is not None and release.enabled and flow:
         flow[release.month] -= release.total

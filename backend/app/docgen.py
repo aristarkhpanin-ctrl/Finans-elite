@@ -20,7 +20,7 @@ from calc_core.methodology import methodology_map
 from calc_core.models import ProjectModel
 from calc_core.reports.result import CalcResult
 from calc_core.reports.statements import Statement
-from calc_core.review.text import fmt_pct, fmt_rub
+from calc_core.review.text import fmt_num, fmt_pct, fmt_rub
 from calc_core.version import ENGINE_VERSION
 
 #: MIME-тип документа Word (для Response и проверок в тестах).
@@ -224,6 +224,43 @@ def _add_participants(doc: Document, result: CalcResult) -> None:
         "IRR с учётом стоимости на конец горизонта: акционерам условно возвращается "
         "собственный капитал (B33), кредиторам — непогашенный остаток тела займа."
     )
+
+
+def _add_debt_service(doc: Document, result: CalcResult) -> None:
+    """Взгляд банка (L1): покрытие долга и нагрузка по годам. Нет долга — раздела нет."""
+    debt = result.debt_service
+    if debt is None:
+        return
+    doc.add_heading("Обслуживание долга (взгляд банка)", level=1)
+    if debt.min_dscr is not None:
+        doc.add_paragraph(f"Наименьшее покрытие долга (DSCR): {fmt_num(debt.min_dscr)} — "
+                          f"{debt.min_dscr_year}.")
+    table = doc.add_table(rows=1 + len(debt.years), cols=7)
+    table.style = "Table Grid"
+    for j, h in enumerate(["Год", "Поток для обслуживания долга", "Платежи по долгу",
+                           "DSCR", "Чистый долг на конец года", "EBITDA",
+                           "Чистый долг / EBITDA"]):
+        table.rows[0].cells[j].text = h
+    skipped: list[str] = []
+    for i, y in enumerate(debt.years):
+        row = table.rows[i + 1].cells
+        row[0].text = y.label if y.months == 12 else f"{y.label} ({y.months} мес.)"
+        row[1].text = _fmt_money(y.cfads)
+        row[2].text = _fmt_money(y.service)
+        row[3].text = fmt_num(y.dscr) if y.dscr is not None else "платежей нет"
+        row[4].text = _fmt_money(y.net_debt)
+        row[5].text = _fmt_money(y.ebitda)
+        row[6].text = fmt_num(y.leverage) if y.leverage is not None else "—"
+        if y.leverage is None and y.leverage_note:
+            skipped.append(f"{y.label} — {y.leverage_note}")
+    _shrink_table(table, 8)
+    short = [y for y in debt.years if y.shortfall > 0]
+    if short:
+        doc.add_paragraph("Платежи больше потока — " + "; ".join(
+            f"{y.label}: не хватает {_fmt_money(y.shortfall)} ₽" for y in short) + ".")
+    if skipped:
+        doc.add_paragraph("Чистый долг / EBITDA не считается: " + "; ".join(skipped) + ".")
+    doc.add_paragraph(debt.note)
 
 
 def _add_user_sections(doc: Document, model: ProjectModel) -> None:
@@ -444,6 +481,7 @@ def build_business_plan_docx(model: ProjectModel, result: CalcResult, opinion: s
     _add_metrics(doc, result)
     _add_metrics_foreign(doc, model, result)
     _add_participants(doc, result)
+    _add_debt_service(doc, result)
     _add_user_sections(doc, model)
     _add_product_margins(doc, result)
     _add_division_margins(doc, result)
