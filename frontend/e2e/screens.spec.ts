@@ -322,7 +322,8 @@ test("матрица скриншотов P13", async ({ page, browser }) => {
     const editor = async (p: Page, tab: string, label: string) => {
       await p.goto(`/projects/${main}?tab=${tab}`);
       await expect(p.getByRole("button", { name: /Рассчитать/ })).toBeVisible();
-      await expect(p.getByText(label).first()).toBeVisible();
+      // Видимый текст: скрытая подсказка («…налоги, кредиторка…») — тоже совпадение (K4).
+      await expect(p.getByText(label).filter({ visible: true }).first()).toBeVisible();
     };
     for (const [tab, label] of [["general", "Налоги"], ["sales", "Сбыт"], ["costs", "Издержки"],
                                 ["assets", "Инвестиции"]] as const) {
@@ -486,7 +487,8 @@ test("матрица скриншотов P13", async ({ page, browser }) => {
     }));
     await holdResponses(page, HOLDING, () => capture(page, "states", "holding-loading", async (p) => {
       await p.goto(`/holdings/${holding.id}`);
-      await expect(p.getByRole("status").first()).toBeVisible();
+      // Статусов на странице два: карточка загрузки и объявитель переходов (K5).
+      await expect(p.getByRole("status").filter({ hasText: /Загрузка/ }).first()).toBeVisible();
     }));
     await failResponses(page, HOLDING, 500, down, () => capture(page, "states", "holding-error", async (p) => {
       await p.goto(`/holdings/${holding.id}`);
@@ -712,7 +714,7 @@ test("матрица скриншотов «Финанс-Аудита»", async 
     const down = "Сервис временно недоступен";
     await holdResponses(page, CASES, () => capture(page, "audit-states", "list-loading", async (p) => {
       await p.goto("/audit");
-      await expect(p.getByRole("status")).toBeVisible();
+      await expect(p.getByRole("status").filter({ hasText: /Загрузка/ })).toBeVisible();
     }));
     await failResponses(page, CASES, 500, down, () => capture(page, "audit-states", "list-error", async (p) => {
       await p.goto("/audit");
