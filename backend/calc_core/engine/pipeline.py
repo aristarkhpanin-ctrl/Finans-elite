@@ -1157,14 +1157,18 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
                                     offset=tax_offset, due="profit")
     vat_paid = _payment_schedule(vat_to_budget, settings.vat_periodicity, n, offset=tax_offset,
                                  due="vat")
+    # Налог на имущество (ст. 383, пакет J, J5): поквартальные авансы — в месяце после
+    # квартала, налог за год — в феврале. Начисление I9 помесячное, как было.
+    property_paid = _payment_schedule(i9, "quarter", n, offset=tax_offset, due="property")
     profit_defer = cumulative([income["I27"][t] - profit_paid[t] for t in range(n)])
     vat_pay_defer = cumulative([vat_to_budget[t] - vat_paid[t] for t in range(n)])
+    property_defer = cumulative([i9[t] - property_paid[t] for t in range(n)])
     # Налоги в кассе: прибыль + имущество + налог с продаж + НДС + настраиваемые (SPEC §22.9).
-    taxes_cash = add(profit_paid, i9, i3, vat_paid, taxes.cash)
+    taxes_cash = add(profit_paid, property_paid, i3, vat_paid, taxes.cash)
     if details is not None:
         # Детализация C12 (Q7 пакета налогов): профильные налоги + каждый настраиваемый.
         details.put("C12", "Налог на прибыль", profit_paid)
-        details.put("C12", "Налог на имущество", i9)
+        details.put("C12", "Налог на имущество", property_paid)
         details.put("C12", "Налог с продаж", i3)
         details.put("C12", "НДС к уплате", vat_paid)
         for tax_name, tax_paid in taxes.cash_items:
@@ -1215,7 +1219,7 @@ def run_pipeline(model: ProjectModel, auto: AutoInjection | None = None,
         # Отсроченные налоговые платежи: отложенный НДС (признание) + настраиваемые налоги
         # + отсрочка уплаты профильных прибыли/НДС по их периодичности (SPEC §11).
         "B21": [b21[t] + taxes.deferred[t] + profit_defer[t] + vat_pay_defer[t]
-                for t in range(n)],
+                + property_defer[t] for t in range(n)],
         "B9": b9,
         "B10": b10,
         "B12": b12,                # земля (не амортизируется)

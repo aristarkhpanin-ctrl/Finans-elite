@@ -18,10 +18,13 @@ import pytest
 from calc_core import ProjectModel, run
 from calc_core.engine.taxes import _payment_schedule
 from calc_core.models import (
+    Asset,
+    AssetCategory,
     Company,
     CostFunction,
     Financing,
     FixedCostLine,
+    InvestmentPlan,
     OperatingPlan,
     Product,
     ProjectHeader,
@@ -115,6 +118,39 @@ def test_vat_for_a_quarter_is_due_in_three_equal_parts():
     tail = _payment_schedule([D(0)] * 9 + [D(9)] + [D(0)] * 3, "quarter", 13, offset=0,
                              due="vat")
     assert tail[12] == D(3) and sum(tail) == D(3)
+
+
+def test_property_tax_advances_follow_the_quarter_and_the_year_is_due_in_february():
+    """Налог на имущество (ст. 383 НК РФ, 0.9.53): авансы за I–III кварталы — в апреле,
+    июле, октябре; налог за год — до 28 февраля следующего года."""
+    accrual = [D(1)] * 24
+    paid = _payment_schedule(accrual, "quarter", 24, offset=0, due="property")
+    assert [t for t, v in enumerate(paid) if v] == [3, 6, 9, 13, 15, 18, 21]
+    assert paid[13] == D(3)                                   # IV квартал 2026 — февраль
+
+
+def test_the_engine_pays_property_tax_after_the_quarter():
+    n = 16
+    model = ProjectModel(
+        header=ProjectHeader(name="Имущество", start_date=date(2026, 1, 1), duration_months=n),
+        settings=ProjectSettings(discount_rate_annual=D(0), profit_tax_rate=D(0),
+                                 property_tax_rate=D("0.022"), vat_rate=D(0)),
+        company=Company(starting_balance=StartingBalance(cash=D(2_000_000),
+                                                          paid_in_capital=D(2_000_000))),
+        investment_plan=InvestmentPlan(assets=[Asset(
+            name="Цех", cost=D(1_200_000), purchase_month=0, life_months=120,
+            category=AssetCategory.BUILDINGS)]),
+        financing=Financing(common_shares=D(10000)),
+    )
+    r = run(model)
+    paid = _c12(r, "Налог на имущество")
+    i9 = r.income["I9"]
+    assert [t for t, v in enumerate(paid) if v] == [3, 6, 9, 13, 15]
+    assert paid[3] == sum(i9[0:3], D(0))
+    assert paid[13] == sum(i9[9:12], D(0))                    # за год — в феврале
+    # Начислено и не уплачено к концу горизонта — задолженность, а не пропажа.
+    assert almost_equal(r.balance["B21"][n - 1], sum(i9, D(0)) - sum(paid, D(0)))
+    assert all(almost_equal(r.balance["B20"][t], r.balance["B34"][t]) for t in range(n))
 
 
 def test_the_due_rule_is_named_explicitly():
