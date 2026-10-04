@@ -97,7 +97,7 @@ export function SupportAccessTab({ orgId, canManage }:
   return (
     <div style={{ display: "grid", gap: 18, maxWidth: 720 }}>
       <div className="audit-block">
-        <div className="audit-block__title">Доступ поддержки к вашим моделям</div>
+        <h2 className="audit-block__title">Доступ поддержки к вашим моделям</h2>
         <p className="page-sub" style={{ marginTop: 0 }}>
           Платформа <b>не видит содержимого</b> ваших проектов и дел: ей доступны только
           состав организации, тариф и объёмы. Если нужно, чтобы поддержка посмотрела
@@ -156,7 +156,7 @@ export function SupportAccessTab({ orgId, canManage }:
 
       {past.length > 0 && (
         <div className="audit-block">
-          <div className="audit-block__title">Раньше открывали</div>
+          <h2 className="audit-block__title">Раньше открывали</h2>
           <p className="page-sub" style={{ marginTop: 0 }}>
             Закрытые и истёкшие доступы остаются здесь: «нам никто не открывал» — это
             проверяемое утверждение, а не отсутствие записи. Что именно смотрели, видно

@@ -327,7 +327,7 @@ export function AuditSubjectPage() {
   const grid = (which: "balance" | "income", lines: [string, string][], title: string,
                 note?: string) => (
     <div className="audit-block">
-      <div className="audit-block__title">{title}</div>
+      <h2 className="audit-block__title">{title}</h2>
       {note && <div className="field-note" style={{ marginBottom: 10 }}>{note}</div>}
       <ScrollRegion className="x-scroll" label={title}>
         <table className="audit-grid">
@@ -508,7 +508,7 @@ export function AuditSubjectPage() {
       {tab === "subject" ? (
         <>
         <div className="audit-block">
-          <div className="audit-block__title">Реквизиты и периоды</div>
+          <h2 className="audit-block__title">Реквизиты и периоды</h2>
           <div className="afields-grid" style={{ marginBottom: 16 }}>
             <label className="efield">
               <span className="efield__label">Валюта</span>
@@ -539,7 +539,7 @@ export function AuditSubjectPage() {
             основами не смешиваются молча, а получают оговорку о несопоставимости.
           </div>
 
-          <div className="audit-block__title" style={{ fontSize: 13 }}>Отчётные периоды</div>
+          <h2 className="audit-block__title" style={{ fontSize: 13 }}>Отчётные периоды</h2>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {m.periods.map((p, i) => (
               <div className="ft-row" key={i}>
@@ -626,9 +626,9 @@ export function AuditSubjectPage() {
 
           <div className="audit-block">
             <div className="tab-head" style={{ marginBottom: 10 }}>
-              <div className="audit-block__title" style={{ marginBottom: 0 }}>
+              <h2 className="audit-block__title" style={{ marginBottom: 0 }}>
                 Переоценка статей
-              </div>
+              </h2>
               <Button variant="ghost" onClick={addReval}>＋&nbsp;&nbsp;Поправка</Button>
             </div>
             <div className="field-note" style={{ marginBottom: 12 }}>
@@ -722,7 +722,7 @@ export function AuditSubjectPage() {
             if (names.length === 0) return null;
             return (
               <div className="audit-block" key={key}>
-                <div className="audit-block__title">{title}</div>
+                <h2 className="audit-block__title">{title}</h2>
                 <ScrollRegion className="x-scroll" label={title}>
                   <table className="audit-grid">
                     <thead>
@@ -755,7 +755,7 @@ export function AuditSubjectPage() {
         <>
           <div className="audit-block">
             <div className="tab-head" style={{ marginBottom: 10 }}>
-              <div className="audit-block__title" style={{ marginBottom: 0 }}>Свои показатели</div>
+              <h2 className="audit-block__title" style={{ marginBottom: 0 }}>Свои показатели</h2>
               <Button variant="ghost" onClick={addMetric}>＋&nbsp;&nbsp;Показатель</Button>
             </div>
             <div className="field-note" style={{ marginBottom: 12 }}>
@@ -790,7 +790,7 @@ export function AuditSubjectPage() {
 
           <div className="audit-block">
             <div className="tab-head" style={{ marginBottom: 10 }}>
-              <div className="audit-block__title" style={{ marginBottom: 0 }}>Свои нормативы</div>
+              <h2 className="audit-block__title" style={{ marginBottom: 0 }}>Свои нормативы</h2>
               <Button variant="ghost" onClick={addThreshold}>＋&nbsp;&nbsp;Норматив</Button>
             </div>
             <div className="field-note" style={{ marginBottom: 12 }}>
@@ -855,7 +855,7 @@ export function AuditSubjectPage() {
 
           {analysis.data.user_metrics.length > 0 && (
             <div className="audit-block">
-              <div className="audit-block__title">Результат (по сохранённым данным)</div>
+              <h2 className="audit-block__title">Результат (по сохранённым данным)</h2>
               <ScrollRegion className="x-scroll" label="Результат пользовательских показателей">
                 <table className="audit-grid">
                   <thead>
@@ -953,7 +953,7 @@ export function AuditSubjectPage() {
       ) : tab === "opinion" ? (
         <div className="audit-block">
           <div className="tab-head" style={{ marginBottom: 12 }}>
-            <div className="audit-block__title" style={{ marginBottom: 0 }}>Экспертное заключение</div>
+            <h2 className="audit-block__title" style={{ marginBottom: 0 }}>Экспертное заключение</h2>
             <Button variant="ghost" onClick={() => setPrintMode(true)}>
               <IconPrint size={15} />
               <span style={{ marginLeft: 6 }}>Печатный бланк</span>
@@ -1001,7 +1001,7 @@ export function AuditSubjectPage() {
             </div>
 
             <div className="audit-block">
-              <div className="audit-block__title">Модели диагностики банкротства</div>
+              <h2 className="audit-block__title">Модели диагностики банкротства</h2>
               <ScrollRegion className="x-scroll" label="Модели диагностики банкротства">
                 <table className="audit-grid">
                   <thead>
@@ -1035,7 +1035,7 @@ export function AuditSubjectPage() {
             </div>
 
             <div className="audit-block">
-              <div className="audit-block__title">Оценка показателей по нормативам</div>
+              <h2 className="audit-block__title">Оценка показателей по нормативам</h2>
               <ScrollRegion className="x-scroll" label="Оценка показателей по нормативам">
                 <table className="audit-grid">
                   <thead>
@@ -1066,7 +1066,7 @@ export function AuditSubjectPage() {
       ) : (
         <>
           <div className="audit-block">
-            <div className="audit-block__title">Горизонтальный анализ (изменение к предыдущему периоду)</div>
+            <h2 className="audit-block__title">Горизонтальный анализ (изменение к предыдущему периоду)</h2>
             <ScrollRegion className="x-scroll" label="Горизонтальный анализ">
               <table className="audit-grid">
                 <thead>
@@ -1102,7 +1102,7 @@ export function AuditSubjectPage() {
           </div>
 
           <div className="audit-block">
-            <div className="audit-block__title">Вертикальный анализ (структура: доля в активе / выручке)</div>
+            <h2 className="audit-block__title">Вертикальный анализ (структура: доля в активе / выручке)</h2>
             <ScrollRegion className="x-scroll" label="Вертикальный анализ">
               <table className="audit-grid">
                 <thead>
@@ -1199,7 +1199,7 @@ function StatementTable({ title, periods, lines }: {
 }) {
   return (
     <div className="audit-block">
-      <div className="audit-block__title">{title}</div>
+      <h2 className="audit-block__title">{title}</h2>
       <ScrollRegion className="x-scroll" label={title}>
         <table className="audit-grid">
           <thead>

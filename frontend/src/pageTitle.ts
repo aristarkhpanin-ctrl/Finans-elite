@@ -17,9 +17,13 @@ export function pageTitle(...parts: Array<string | null | undefined | false>): s
   return [...parts.filter((p): p is string => !!p && !!p.trim()), product].join(" — ");
 }
 
+/** Событие «страница поставила заголовок» — по нему `RouteAnnouncer` объявляет переход. */
+export const PAGE_TITLE_EVENT = "fe:page-title";
+
 export function usePageTitle(...parts: Array<string | null | undefined | false>): void {
   const title = pageTitle(...parts);
   useEffect(() => {
     document.title = title;
+    window.dispatchEvent(new CustomEvent<string>(PAGE_TITLE_EVENT, { detail: title }));
   }, [title]);
 }

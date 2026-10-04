@@ -66,7 +66,7 @@ export function SensitivityTab({ projectId }: { projectId: string }) {
     <div>
       <div className="an-head">
         <div style={{ minWidth: 0 }}>
-          <div className="an-head__title">Анализ чувствительности</div>
+          <h2 className="an-head__title">Анализ чувствительности</h2>
           <div className="an-head__sub">
             Как меняется NPV при отклонении одного параметра · остальные зафиксированы на базе.
           </div>

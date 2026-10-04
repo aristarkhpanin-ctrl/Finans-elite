@@ -206,7 +206,7 @@ export function AuditValuation({
 
           <div className="sum-row" style={{ marginTop: 14 }}>
             <div className="audit-block sum-row__card">
-              <div className="audit-block__title">Мост EV → цена</div>
+              <h2 className="audit-block__title">Мост EV → цена</h2>
               <div className="val-bridge">
                 {result.bridge.map((b, i) => (
                   <div className={"val-bridge__row"
@@ -224,7 +224,7 @@ export function AuditValuation({
             </div>
 
             <div className="audit-block sum-row__card">
-              <div className="audit-block__title">Что не посчитано</div>
+              <h2 className="audit-block__title">Что не посчитано</h2>
               <ul className="sum-gaps">
                 {result.not_computed.map((line, i) => <li key={i}>{line}</li>)}
               </ul>
@@ -232,7 +232,7 @@ export function AuditValuation({
           </div>
 
           <div className="audit-block">
-            <div className="audit-block__title">Дисконтированный поток</div>
+            <h2 className="audit-block__title">Дисконтированный поток</h2>
             <div className="page-sub" style={{ marginBottom: 10 }}>
               FCFF = EBIT × (1 − ставка налога) + Амортизация − Капвложения −
               ΔОборотный капитал. Амортизация растёт вместе с показателем.
@@ -276,7 +276,7 @@ export function AuditValuation({
           </div>
 
           <div className="audit-block">
-            <div className="audit-block__title">Чувствительность · цена за 100%</div>
+            <h2 className="audit-block__title">Чувствительность · цена за 100%</h2>
             <div className="page-sub" style={{ marginBottom: 10 }}>
               По вертикали ставка дисконтирования, по горизонтали рост в постпрогнозе.
               Диапазон выше — минимум и максимум этой сетки: отдельных сценариев нет,
@@ -320,7 +320,7 @@ export function AuditValuation({
       )}
 
       <div className="audit-block">
-        <div className="audit-block__title">Допущения прогноза</div>
+        <h2 className="audit-block__title">Допущения прогноза</h2>
         <div className="page-sub" style={{ marginBottom: 12 }}>
           В деле есть только прошлое. Экстраполировать выручку «как росла, так и будет»
           значило бы выдать регрессию за прогноз, поэтому рост, капвложения и изменение

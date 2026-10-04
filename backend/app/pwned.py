@@ -26,11 +26,13 @@ from collections.abc import Callable
 
 import httpx
 
+from .env import env_float
+
 log = logging.getLogger("finans")
 
 PWNED_URL = "https://api.pwnedpasswords.com/range/"
 #: Секунды. Короткий: проверка стоит в пути человека, который заводит пароль.
-PWNED_TIMEOUT = float(os.getenv("PWNED_TIMEOUT", "2"))
+PWNED_TIMEOUT = env_float("PWNED_TIMEOUT", 2)
 
 
 def leak_check_enabled() -> bool:

@@ -30,7 +30,7 @@ function DiffView({ diff }: { diff: VersionDiff }) {
   const metricChanged = diff.metric_changes.filter((m) => (m.old ?? null) !== (m.new ?? null));
   return (
     <div className="vdiff">
-      <div className="rsection-label">Показатели эффективности</div>
+      <h2 className="rsection-label">Показатели эффективности</h2>
       {metricChanged.length === 0 ? (
         <div className="field-note">Показатели не изменились.</div>
       ) : (
@@ -50,9 +50,9 @@ function DiffView({ diff }: { diff: VersionDiff }) {
         </ScrollRegion>
       )}
 
-      <div className="rsection-label" style={{ marginTop: 16 }}>
+      <h2 className="rsection-label" style={{ marginTop: 16 }}>
         Изменения модели ({diff.model_changes.length}{diff.model_changes_truncated ? "+" : ""})
-      </div>
+      </h2>
       {diff.model_changes.length === 0 ? (
         <div className="field-note">Данные модели совпадают.</div>
       ) : (
@@ -125,7 +125,7 @@ export function VersionsTab({ projectId }: { projectId: string }) {
     <div>
       <div className="an-head">
         <div style={{ minWidth: 0 }}>
-          <div className="an-head__title">Версии проекта</div>
+          <h2 className="an-head__title">Версии проекта</h2>
           <div className="an-head__sub">
             Снимки модели и анализ изменений: сравнение сохранённой версии с текущей рабочей моделью.
           </div>

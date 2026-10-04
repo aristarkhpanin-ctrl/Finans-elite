@@ -116,7 +116,7 @@ export function MonteCarloTab({ projectId }: { projectId: string }) {
     <div>
       <div className="an-head">
         <div style={{ minWidth: 0 }}>
-          <div className="an-head__title">Монте-Карло</div>
+          <h2 className="an-head__title">Монте-Карло</h2>
           <div className="an-head__sub">
             Случайные прогоны при заданных распределениях параметров → распределение NPV.
           </div>

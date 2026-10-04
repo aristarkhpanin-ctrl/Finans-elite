@@ -167,7 +167,7 @@ export function AuditObligations({
       {/* ── Долг по годам погашения ── */}
       {register.buckets.length > 0 && (
         <div className="audit-block">
-          <div className="audit-block__title">Долг по годам погашения</div>
+          <h2 className="audit-block__title">Долг по годам погашения</h2>
           <div className="page-sub" style={{ marginBottom: 12 }}>
             Это <b>не</b> график платежей: амортизация долга в реестр не вводится, и
             раскладывать остаток «равными долями» значило бы выдумать условия
@@ -200,7 +200,7 @@ export function AuditObligations({
 
       {/* ── Залоги ── */}
       <div className="audit-block">
-        <div className="audit-block__title">Залоги</div>
+        <h2 className="audit-block__title">Залоги</h2>
         {register.pledged_share === null ? (
           <div className="field-note">
             Долю заложенного считать не от чего: активов в отчётности нет.
@@ -229,7 +229,7 @@ export function AuditObligations({
       {/* ── Ковенанты ── */}
       {(register.covenants_breached > 0 || register.covenants_unknown > 0) && (
         <div className="audit-block">
-          <div className="audit-block__title">Ковенанты</div>
+          <h2 className="audit-block__title">Ковенанты</h2>
           <div className="page-sub">
             {register.covenants_breached > 0 && (
               <>
@@ -252,9 +252,9 @@ export function AuditObligations({
       {/* ── Ввод реестра ── */}
       <div className="audit-block">
         <div className="tab-head" style={{ marginBottom: 10 }}>
-          <div className="audit-block__title" style={{ marginBottom: 0 }}>
+          <h2 className="audit-block__title" style={{ marginBottom: 0 }}>
             Реестр обязательств
-          </div>
+          </h2>
           <Button variant="ghost"
                   onClick={() => onChange([...obligations, emptyObligation()])}>
             ＋&nbsp;&nbsp;Обязательство

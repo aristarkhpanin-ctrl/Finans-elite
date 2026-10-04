@@ -32,7 +32,7 @@ export function TablesTab({ tables, onChange }: Props) {
     <div>
       <div className="tab-head">
         <div style={{ minWidth: 0 }}>
-          <div className="tab-head__title">Таблицы пользователя</div>
+          <h2 className="tab-head__title">Таблицы пользователя</h2>
           <div className="tab-head__sub">
             Собственные показатели формулами над строками отчётов — считаются при каждом расчёте.
           </div>

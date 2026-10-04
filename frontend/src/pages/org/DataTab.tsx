@@ -64,7 +64,7 @@ export function DataTab({ orgId, orgName, isOwner }:
   return (
     <div style={{ display: "grid", gap: 18, maxWidth: 720 }}>
       <div className="audit-block">
-        <div className="audit-block__title">Забрать свои данные</div>
+        <h2 className="audit-block__title">Забрать свои данные</h2>
         <p className="page-sub" style={{ marginTop: 0 }}>
           Один файл со всем, что платформа хранит для этой организации: состав, подписки
           и платежи, <b>проекты и дела с моделями целиком</b>, группы, ориентиры,
@@ -86,7 +86,7 @@ export function DataTab({ orgId, orgName, isOwner }:
 
       {isOwner && (
         <div className="audit-block">
-          <div className="audit-block__title">Закрыть организацию</div>
+          <h2 className="audit-block__title">Закрыть организацию</h2>
           <p className="page-sub" style={{ marginTop: 0 }}>
             Удаление <b>необратимо</b>: модели проектов и дел, обсуждения и журнал
             исчезнут вместе с организацией. Выгрузите данные до того, как нажмёте.

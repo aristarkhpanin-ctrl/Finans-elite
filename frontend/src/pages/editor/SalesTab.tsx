@@ -145,7 +145,7 @@ export function SalesTab({ n, operating, company, onChange, onCompany }: Props) 
     <div>
       <div className="tab-head">
         <div style={{ minWidth: 0 }}>
-          <div className="tab-head__title">Сбыт — продукты и план продаж</div>
+          <h2 className="tab-head__title">Сбыт — продукты и план продаж</h2>
           <div className="tab-head__sub">
             Объём и цена по месяцам формируют выручку проекта. Горизонт: {n} мес.
           </div>

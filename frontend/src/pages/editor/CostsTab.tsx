@@ -103,7 +103,7 @@ export function CostsTab({ n, operating, onChange }: Props) {
     <div>
       <div className="tab-head">
         <div style={{ minWidth: 0 }}>
-          <div className="tab-head__title">Издержки — прямые и постоянные</div>
+          <h2 className="tab-head__title">Издержки — прямые и постоянные</h2>
           <div className="tab-head__sub">
             Себестоимость и операционные расходы по месяцам. Горизонт: {n} мес.
           </div>

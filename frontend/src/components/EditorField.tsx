@@ -8,13 +8,21 @@ import { fracToPct, pctToFrac } from "../format";
  * подсказка «?» с CSS-тултипом, ошибка под полем.
  */
 
+/**
+ * Подсказка «?» (пакет K, K5): кнопка «Подсказка» с описанием — текстом подсказки. Прежде
+ * это был `span` с `tabIndex` и `aria-label`, а у безролевого элемента имя не
+ * поддерживается: диктор читал «?», и сама подсказка ему не доставалась. Подсказка видна
+ * в фокусе и при наведении; полю она же — описание (`aria-describedby`).
+ */
 export function HintBadge({ text, id }: { text: string; id?: string }) {
+  const own = useId();
+  const tipId = id ?? own;
   return (
     <span className="hint-wrap">
-      <span className="hint-badge" tabIndex={0} aria-label={text}>
+      <button type="button" className="hint-badge" aria-label="Подсказка" aria-describedby={tipId}>
         ?
-      </span>
-      <span className="hint-tip" role="tooltip" id={id}>
+      </button>
+      <span className="hint-tip" role="tooltip" id={tipId}>
         {text}
       </span>
     </span>
@@ -66,9 +74,14 @@ function FieldShell({
   );
 }
 
-/** Связи поля с подписью, подсказкой и ошибкой — одни на ввод и выбор. */
-function controlProps(id: string, hint?: string, error?: string) {
-  const describedBy = [hint ? `${id}-hint` : "", error ? `${id}-err` : ""].filter(Boolean).join(" ");
+/**
+ * Связи поля с подписью, подсказкой, ошибкой и единицами — одни на ввод и выбор. Единица
+ * («% / год», «₽») — часть описания: без неё диктор слышал «15» и только потом, отдельным
+ * текстом, «% / год» (пакет K, K5).
+ */
+function controlProps(id: string, hint?: string, error?: string, unit?: boolean) {
+  const describedBy = [unit ? `${id}-unit` : "", hint ? `${id}-hint` : "", error ? `${id}-err` : ""]
+    .filter(Boolean).join(" ");
   return { id, "aria-describedby": describedBy || undefined, "aria-invalid": error ? true : undefined };
 }
 
@@ -119,9 +132,9 @@ export function EField({
     <FieldShell id={id} label={label} hideLabel={hideLabel} hint={hint} error={error} note={note}
                 full={full} labelRight={labelRight}>
       <div className={"efield__box" + (error ? " efield__box--error" : "")}>
-        {prefix && <span className="efield__prefix">{prefix}</span>}
+        {prefix && <span className="efield__prefix" id={suffix ? undefined : `${id}-unit`}>{prefix}</span>}
         <input
-          {...controlProps(id, hint, error)}
+          {...controlProps(id, hint, error, !!(prefix || suffix))}
           className={"efield__input" + (text || date ? " efield__input--text" : "")}
           type={date ? "date" : "text"}
           inputMode={text || date ? undefined : "decimal"}
@@ -130,7 +143,7 @@ export function EField({
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
         />
-        {suffix && <span className="efield__suffix">{suffix}</span>}
+        {suffix && <span className="efield__suffix" id={`${id}-unit`}>{suffix}</span>}
       </div>
     </FieldShell>
   );

@@ -131,7 +131,7 @@ export function FinancingTab({ n, financing, onChange }: Props) {
     <div>
       <div className="tab-head">
         <div style={{ minWidth: 0 }}>
-          <div className="tab-head__title">Финансирование — источники средств</div>
+          <h2 className="tab-head__title">Финансирование — источники средств</h2>
           <div className="tab-head__sub">Капитал, займы, лизинг, депозиты, дивиденды и автоподбор.</div>
         </div>
       </div>

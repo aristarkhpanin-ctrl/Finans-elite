@@ -53,7 +53,7 @@ export function AuditRequisites({ value, view, stale = false, onChange }: {
 
   return (
     <div className="audit-block">
-      <div className="audit-block__title">Реквизиты документа и подписи</div>
+      <h2 className="audit-block__title">Реквизиты документа и подписи</h2>
       <div className="page-sub" style={{ marginBottom: 12 }}>
         Заполненное отсюда печатается в заключении и на бланке. Пустой блок ничего не
         ломает: документ выйдет как прежде — и прямо скажет, что он не подписан.
@@ -89,9 +89,9 @@ export function AuditRequisites({ value, view, stale = false, onChange }: {
         </label>
       </div>
 
-      <div className="audit-block__title" style={{ fontSize: 13, marginTop: 16 }}>
+      <h2 className="audit-block__title" style={{ fontSize: 13, marginTop: 16 }}>
         Реквизиты фирмы-цели
-      </div>
+      </h2>
       <div className="afields-grid">
         {SUBJECT_FIELDS.map(([key, label, hint]) => (
           <label className="efield" key={key}>
@@ -103,9 +103,9 @@ export function AuditRequisites({ value, view, stale = false, onChange }: {
         ))}
       </div>
 
-      <div className="audit-block__title" style={{ fontSize: 13, marginTop: 16 }}>
+      <h2 className="audit-block__title" style={{ fontSize: 13, marginTop: 16 }}>
         Подписи
-      </div>
+      </h2>
       <div className="afields-grid">
         {SIGN_FIELDS.map(([nameKey, roleKey, label]) => (
           <div className="req-sign" key={nameKey}>

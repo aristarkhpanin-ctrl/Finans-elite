@@ -183,7 +183,7 @@ export function ReviewTab({ projectId }: { projectId: string }) {
     <div>
       <div className="an-head">
         <div style={{ minWidth: 0 }}>
-          <div className="an-head__title">Ревью плана</div>
+          <h2 className="an-head__title">Ревью плана</h2>
           <div className="an-head__sub">
             Детерминированная проверка модели · находки, рекомендации и гейт финализации.
           </div>

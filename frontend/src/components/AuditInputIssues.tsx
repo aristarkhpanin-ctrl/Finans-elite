@@ -41,7 +41,7 @@ export function AuditInputIssues({
 
   return (
     <div className="audit-block" data-testid="input-issues">
-      <div className="audit-block__title">Качество данных</div>
+      <h2 className="audit-block__title">Качество данных</h2>
       <div className="page-sub" style={{ marginBottom: 12 }}>{headline(issues)}</div>
 
       <div className="issue-list">

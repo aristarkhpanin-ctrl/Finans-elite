@@ -2129,7 +2129,7 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   display: flex; align-items: center; justify-content: center;
   --subtle: var(--muted);
 }
-.esec__title { font: 700 16px var(--font-ui); letter-spacing: -0.01em; color: var(--text); }
+.esec__title { font: 700 16px var(--font-ui); letter-spacing: -0.01em; color: var(--text); margin: 0; }
 .esec__desc { font: 400 12.5px var(--font-ui); color: var(--subtle); margin-top: 2px; }
 .esec__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 16px; }
 
@@ -2183,6 +2183,9 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   z-index: 40; text-align: left;
 }
 .hint-wrap:hover .hint-tip, .hint-wrap:focus-within .hint-tip { display: block; }
+/* Подсказка — кнопка (K5): снять оформление кнопки, оставить кружок */
+button.hint-badge { background: none; padding: 0; margin: 0; }
+button.hint-badge:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* Заглушка вкладки (до реализации содержимого) */
 .etab-ph { max-width: 520px; margin: 60px auto; text-align: center; display: flex; flex-direction: column; align-items: center; }
@@ -2256,7 +2259,7 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 
 /* Заголовок вкладки редактора */
 .tab-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 18px; }
-.tab-head__title { font: 500 21px var(--font-display); letter-spacing: -0.02em; color: var(--text); }
+.tab-head__title { font: 500 21px var(--font-display); letter-spacing: -0.02em; color: var(--text); margin: 0; }
 .tab-head__sub { font: 400 13.5px var(--font-ui); color: var(--muted); margin-top: 5px; }
 
 /* Помесячная сетка */
@@ -3031,7 +3034,7 @@ button.fin2-label:focus-visible { outline: 2px solid var(--accent); outline-offs
 
 /* Заголовок вкладки анализа */
 .an-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
-.an-head__title { font: 500 20px var(--font-display); letter-spacing: -0.02em; color: var(--text); }
+.an-head__title { font: 500 20px var(--font-display); letter-spacing: -0.02em; color: var(--text); margin: 0; }
 .an-head__sub { font: 400 12.5px var(--font-ui); color: var(--muted); margin-top: 4px; max-width: 560px; }
 
 /* Карточка конфигурации */
@@ -3447,7 +3450,7 @@ button.leg-toggle:focus-visible { outline: 2px solid var(--accent); outline-offs
   background: var(--surface); border: 1px solid var(--border); border-radius: 13px;
   padding: 16px 18px;
 }
-.mth-head__title { font: 700 15px var(--font-ui); color: var(--text); }
+.mth-head__title { font: 700 15px var(--font-ui); letter-spacing: normal; color: var(--text); margin: 0; }
 .mth-head__sub { font: 500 12.5px var(--font-ui); color: var(--muted); margin-top: 4px; }
 .mth-note { font: 400 12.5px/1.55 var(--font-ui); color: var(--muted); margin: 12px 2px 14px; }
 .mth-sep {
@@ -3697,7 +3700,7 @@ button.leg-toggle:focus-visible { outline: 2px solid var(--accent); outline-offs
   background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
   padding: 16px; margin-bottom: 14px;
 }
-.audit-block__title { font: 700 14px var(--font-ui); color: var(--text); margin-bottom: 12px; }
+.audit-block__title { font: 700 14px var(--font-ui); letter-spacing: normal; color: var(--text); margin: 0 0 12px; }
 .audit-grid { border-collapse: collapse; width: 100%; min-width: 380px; }
 .audit-grid th, .audit-grid td {
   border: 1px solid var(--border); padding: 0; text-align: right;

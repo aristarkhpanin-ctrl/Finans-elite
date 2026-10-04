@@ -35,9 +35,10 @@ from .billing import (
     settle_payment,
 )
 from .db_models import Payment
+from .env import env
 from .plans import Plan
 
-API_BASE = os.getenv("YOOKASSA_API_BASE", "https://api.yookassa.ru/v3")
+API_BASE = env("YOOKASSA_API_BASE", "https://api.yookassa.ru/v3")
 VAT_CODE = int(os.getenv("YOOKASSA_VAT_CODE", "1"))  # 1 — без НДС
 
 

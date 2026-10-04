@@ -60,7 +60,7 @@ export function ApiKeysTab({ orgId, canManage }: { orgId: string; canManage: boo
   return (
     <div style={{ display: "grid", gap: 18, maxWidth: 720 }}>
       <div className="audit-block">
-        <div className="audit-block__title">Ключи доступа к API</div>
+        <h2 className="audit-block__title">Ключи доступа к API</h2>
         <p className="page-sub" style={{ marginTop: 0 }}>
           Ключ читает данные организации и запускает расчёт — выгрузка в BI, отчёт в 1С,
           свод портфеля. Ключу можно <b>выдать право править модели</b>: такие правки

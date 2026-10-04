@@ -55,7 +55,7 @@ export function MethodologyTab({ projectId }: { projectId: string }) {
     <div className="mth">
       <div className="mth-head">
         <div>
-          <div className="mth-head__title">Методические допущения расчёта</div>
+          <h2 className="mth-head__title">Методические допущения расчёта</h2>
           <div className="mth-head__sub">
             Задействовано развилок: <b>{engaged.length}</b> из {data.choices.length};
             профессионального суждения ждут <b>{data.needs_human_count}</b> — остальные

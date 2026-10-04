@@ -51,7 +51,7 @@ export function ChecklistsTab({ orgId, canManage }: { orgId: string; canManage: 
   return (
     <div style={{ display: "grid", gap: 18, maxWidth: 760 }}>
       <div className="audit-block">
-        <div className="audit-block__title">Свои чек-листы проверки</div>
+        <h2 className="audit-block__title">Свои чек-листы проверки</h2>
         <p className="page-sub" style={{ marginTop: 0 }}>
           Наборы процедур, которые ваша организация применяет к делам. Отраслевого
           каталога у платформы <b>нет</b>: он утверждал бы, что именно проверяют в

@@ -160,12 +160,12 @@ export function AuditRisk({
           ))}
 
           <div className="audit-block">
-            <div className="audit-block__title">Что двигает цену сильнее всего</div>
+            <h2 className="audit-block__title">Что двигает цену сильнее всего</h2>
             <Tornado bars={result.tornado} base={result.base_price} />
           </div>
 
           <div className="audit-block">
-            <div className="audit-block__title">Распределение справедливой цены</div>
+            <h2 className="audit-block__title">Распределение справедливой цены</h2>
             {mc === null ? (
               <div className="field-note">
                 Неопределённых допущений не объявлено. Прогон по нулю распределений дал
@@ -248,7 +248,7 @@ export function AuditRisk({
           </div>
 
           <div className="audit-block">
-            <div className="audit-block__title">Что не посчитано</div>
+            <h2 className="audit-block__title">Что не посчитано</h2>
             <ul className="sum-gaps">
               {result.not_computed.map((line, i) => <li key={i}>{line}</li>)}
             </ul>
@@ -257,7 +257,7 @@ export function AuditRisk({
       )}
 
       <div className="audit-block">
-        <div className="audit-block__title">Настройки анализа</div>
+        <h2 className="audit-block__title">Настройки анализа</h2>
         <div className="val-params">
           <label className="obl-cell">
             <span className="mini-label">Шаг торнадо, %</span>
@@ -284,9 +284,9 @@ export function AuditRisk({
         </div>
 
         <div className="tab-head" style={{ margin: "14px 0 8px" }}>
-          <div className="audit-block__title" style={{ marginBottom: 0 }}>
+          <h2 className="audit-block__title" style={{ marginBottom: 0 }}>
             Неопределённые допущения
-          </div>
+          </h2>
           <Button variant="ghost"
                   onClick={() => upd({ uncertain: [...s.uncertain, emptyUncertain()] })}>
             ＋&nbsp;&nbsp;Допущение

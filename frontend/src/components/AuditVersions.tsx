@@ -62,7 +62,7 @@ function DiffView({ diff }: { diff: AuditVersionDiff }) {
   const changed = diff.metric_changes.filter((m) => (m.old ?? null) !== (m.new ?? null));
   return (
     <div className="vdiff">
-      <div className="rsection-label">Что изменилось в деле</div>
+      <h2 className="rsection-label">Что изменилось в деле</h2>
       {changed.length === 0 ? (
         <div className="field-note">Вердикт, находки, охват и оценка не изменились.</div>
       ) : (
@@ -82,10 +82,10 @@ function DiffView({ diff }: { diff: AuditVersionDiff }) {
         </ScrollRegion>
       )}
 
-      <div className="rsection-label" style={{ marginTop: 16 }}>
+      <h2 className="rsection-label" style={{ marginTop: 16 }}>
         Изменения отчётности и допущений ({diff.model_changes.length}
         {diff.model_changes_truncated ? "+" : ""})
-      </div>
+      </h2>
       {diff.model_changes.length === 0 ? (
         <div className="field-note">Данные дела совпадают.</div>
       ) : (
@@ -169,7 +169,7 @@ export function AuditVersions({ subjectId, dirty = false }: {
     <div>
       <div className="tab-head" style={{ marginBottom: 12 }}>
         <div style={{ minWidth: 0 }}>
-          <div className="audit-block__title" style={{ marginBottom: 2 }}>Версии дела</div>
+          <h2 className="audit-block__title" style={{ marginBottom: 2 }}>Версии дела</h2>
           <div className="page-sub">
             Снимок модели проверки на дату: что было в деле, когда заключение уходило в
             комитет, и что изменилось с тех пор.

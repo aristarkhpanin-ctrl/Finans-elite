@@ -317,7 +317,7 @@ export function ProjectResultsPage() {
           </div>
         )}
 
-        <div className="rsection-label">Показатели эффективности</div>
+        <h2 className="rsection-label">Показатели эффективности</h2>
         <div className="metric-grid">
           {effCards.map((c) => (
             <div key={c.label} className="metric-card2">
@@ -341,7 +341,7 @@ export function ProjectResultsPage() {
 
         {fxCards.length > 0 && (
           <>
-            <div className="rsection-label">Показатели во второй валюте ({foreignCode})</div>
+            <h2 className="rsection-label">Показатели во второй валюте ({foreignCode})</h2>
             <div className="metric-grid metric-grid--val">
               {fxCards.map((c) => (
                 <div key={c.label} className="metric-card2">
@@ -360,7 +360,7 @@ export function ProjectResultsPage() {
           </>
         )}
 
-        <div className="rsection-label">Оценка бизнеса</div>
+        <h2 className="rsection-label">Оценка бизнеса</h2>
         <div className="metric-grid metric-grid--val">
           {valCards.map((c) => (
             <div key={c.label} className="metric-card2">
@@ -381,7 +381,7 @@ export function ProjectResultsPage() {
 
         {tab === "summary" && data.product_margins.products.length > 0 && (
           <>
-            <div className="rsection-label">Маржа по продуктам (рецептура)</div>
+            <h2 className="rsection-label">Маржа по продуктам (рецептура)</h2>
             <ScrollRegion className="contrib-wrap" label="Маржа по продуктам">
               <div className="contrib-row contrib-row--head">
                 <div className="contrib-label">Продукт</div>
@@ -420,7 +420,7 @@ export function ProjectResultsPage() {
 
         {tab === "summary" && (data.division_margins ?? []).length > 0 && (
           <>
-            <div className="rsection-label">Доходы подразделений</div>
+            <h2 className="rsection-label">Доходы подразделений</h2>
             <ScrollRegion className="contrib-wrap" label="Доходы подразделений">
               <div className="contrib-row contrib-row--head">
                 <div className="contrib-label">Подразделение</div>
@@ -459,7 +459,7 @@ export function ProjectResultsPage() {
 
         {tab === "summary" && (data.subscription_base ?? []).length > 0 && (
           <>
-            <div className="rsection-label">Абонентская база</div>
+            <h2 className="rsection-label">Абонентская база</h2>
             <ScrollRegion className="contrib-wrap" label="Абонентская база">
               <div className="contrib-row contrib-row--head">
                 <div className="contrib-label">Продукт</div>
@@ -495,7 +495,7 @@ export function ProjectResultsPage() {
 
         {tab === "summary" && (data.participants ?? []).length > 0 && (
           <>
-            <div className="rsection-label">Доходы участников финансирования</div>
+            <h2 className="rsection-label">Доходы участников финансирования</h2>
             <ScrollRegion className="contrib-wrap" label="Доходы участников финансирования">
               <div className="contrib-row contrib-row--head">
                 <div className="contrib-label">Участник</div>

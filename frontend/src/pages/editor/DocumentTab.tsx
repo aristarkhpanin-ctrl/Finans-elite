@@ -25,7 +25,7 @@ export function DocumentTab({ sections, onChange }: Props) {
     <div>
       <div className="tab-head">
         <div style={{ minWidth: 0 }}>
-          <div className="tab-head__title">Документ бизнес-плана</div>
+          <h2 className="tab-head__title">Документ бизнес-плана</h2>
           <div className="tab-head__sub">
             Текстовые разделы (резюме, рынок, команда…) войдут в DOCX-документ вместе с
             заключением, показателями и отчётами. На расчёт не влияют.

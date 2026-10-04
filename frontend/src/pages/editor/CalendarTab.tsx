@@ -72,7 +72,7 @@ export function CalendarTab({ n, startDate, investment, products, onChange }: Pr
     <div>
       <div className="tab-head">
         <div style={{ minWidth: 0 }}>
-          <div className="tab-head__title">Календарный план</div>
+          <h2 className="tab-head__title">Календарный план</h2>
           <div className="tab-head__sub">
             Этапы подготовки со сроками, связями и стоимостью → смета и график инвестиций.
           </div>

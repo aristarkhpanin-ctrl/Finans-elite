@@ -33,6 +33,8 @@ from dataclasses import dataclass
 from email.headerregistry import Address
 from email.message import EmailMessage
 
+from .env import env, env_float
+
 log = logging.getLogger("finans")
 
 #: Как отправляем: ``off`` (по умолчанию — не отправляем вовсе), ``smtp`` (настоящий
@@ -69,7 +71,7 @@ def mail_enabled() -> bool:
 
 def _timeout() -> float:
     """Секунды на разговор с сервером. Короткий: отправка стоит посреди чужого действия."""
-    return float(os.getenv("SMTP_TIMEOUT", "10"))
+    return env_float("SMTP_TIMEOUT", 10)
 
 
 def _smtp_settings() -> tuple[str, int, str, str, str]:
@@ -79,9 +81,9 @@ def _smtp_settings() -> tuple[str, int, str, str, str]:
         # не сказал куда» это не рабочее состояние, а тихо не уходящие письма.
         raise RuntimeError("MAIL_BACKEND=smtp, но SMTP_HOST не задан: "
                            "укажите адрес почтового сервера или выключите отправку")
-    mode = os.getenv("SMTP_TLS", "starttls").strip().lower()
+    mode = env("SMTP_TLS", "starttls").lower()
     default_port = "465" if mode == "ssl" else "587"
-    return (host, int(os.getenv("SMTP_PORT", default_port)),
+    return (host, int(env("SMTP_PORT", default_port)),
             os.getenv("SMTP_USER", ""), os.getenv("SMTP_PASSWORD", ""), mode)
 
 
@@ -164,8 +166,8 @@ def _send_smtp(to: str, letter: Letter) -> None:
     host, port, user, password, mode = _smtp_settings()
     message = EmailMessage()
     message["Subject"] = letter.subject
-    local, _, domain = os.getenv("MAIL_FROM", "no-reply@finans-elite.ru").partition("@")
-    message["From"] = Address(os.getenv("MAIL_FROM_NAME", "Финанс-Элит"), local, domain)
+    local, _, domain = env("MAIL_FROM", "no-reply@finans-elite.ru").partition("@")
+    message["From"] = Address(env("MAIL_FROM_NAME", "Финанс-Элит"), local, domain)
     message["To"] = to
     message.set_content(letter.text)
     if mode == "ssl":

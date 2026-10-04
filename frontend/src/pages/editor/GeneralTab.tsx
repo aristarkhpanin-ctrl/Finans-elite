@@ -127,9 +127,11 @@ function Section({
   return (
     <div className="esec">
       <div className="esec__head">
-        <div className="esec__num">{num}</div>
+        <div className="esec__num" aria-hidden="true">{num}</div>
         <div style={{ minWidth: 0 }}>
-          <div className="esec__title">{title}</div>
+          {/* Заголовок секции — h2 (пакет K, K5): диктор ходит по заголовкам, а их на
+              вкладке не было ни одного. Номер — оформление. */}
+          <h2 className="esec__title">{title}</h2>
           <div className="esec__desc">{desc}</div>
         </div>
       </div>

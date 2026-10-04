@@ -101,7 +101,7 @@ export function AuditSummary({
 
       <div className="sum-row">
         <div className="audit-block sum-row__card">
-          <div className="audit-block__title">Красные флаги</div>
+          <h2 className="audit-block__title">Красные флаги</h2>
           <div className="sum-flags">
             <span className="sum-flags__n sum-flags__n--risk">{summary.risk_flags}</span>
             <span>тяжёлых</span>
@@ -144,7 +144,7 @@ export function AuditSummary({
         </div>
 
         <div className="audit-block sum-row__card">
-          <div className="audit-block__title">Что не посчитано</div>
+          <h2 className="audit-block__title">Что не посчитано</h2>
           <div className="page-sub" style={{ marginBottom: 8 }}>
             Раздела, которого нет, читатель не замечает — и принимает его отсутствие
             за благополучие. Поэтому пробелы названы:

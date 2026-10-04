@@ -11,7 +11,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import re
 import time
 import uuid
@@ -21,6 +20,8 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from calc_core.engine.errors import InvariantError
+
+from .env import env
 
 #: Идентификатор текущего запроса (для логов). Обновляется middleware на каждый запрос.
 request_id_var: ContextVar[str] = ContextVar("request_id", default="-")
@@ -54,7 +55,7 @@ def configure_logging() -> None:
     Конфигурируется именно наш логгер, а не root — чтобы не мешать окружению (uvicorn,
     тестовому захвату логов).
     """
-    level = os.getenv("LOG_LEVEL", "INFO").upper()
+    level = env("LOG_LEVEL", "INFO").upper()
     handler = logging.StreamHandler()
     handler.addFilter(_RequestIdFilter())
     handler.setFormatter(

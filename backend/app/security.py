@@ -13,17 +13,19 @@ import jwt
 from argon2 import PasswordHasher
 from argon2.exceptions import Argon2Error
 
+from .env import env_int
+
 _ph = PasswordHasher()
 
 JWT_SECRET = os.getenv("JWT_SECRET", "dev-secret-change-me")
 JWT_ALG = "HS256"
-JWT_TTL_SECONDS = int(os.getenv("JWT_TTL_SECONDS", str(24 * 3600)))
+JWT_TTL_SECONDS = env_int("JWT_TTL_SECONDS", 24 * 3600)
 #: Срок токена при «запомнить меня». Тридцать дней — осознанно долго: с C1 у входа есть
 #: **реестр сеансов**, и длинный срок перестал быть неотзываемым — человек видит свои
 #: входы и закрывает лишние. Обновляемые токены (refresh) сюда не заводятся: без ротации
 #: они не добавляют безопасности, а с ротацией добавляют машинерию, которую тот же отзыв
 #: сеанса уже покрывает.
-REMEMBER_TTL_SECONDS = int(os.getenv("JWT_REMEMBER_TTL_SECONDS", str(30 * 24 * 3600)))
+REMEMBER_TTL_SECONDS = env_int("JWT_REMEMBER_TTL_SECONDS", 30 * 24 * 3600)
 
 # Заглушки, недопустимые в продакшене (код и .env.example).
 _INSECURE_SECRETS = {"", "dev-secret-change-me", "change-me-in-production"}
@@ -63,7 +65,7 @@ def verify_password(hashed: str | None, password: str) -> bool:
 
 #: Срок жизни приглашения. Неделя: приглашённый должен успеть зайти, но вечная
 #: ссылка на заведение пароля — это вечная дыра, если письмо утекло.
-INVITE_TTL_SECONDS = int(os.getenv("INVITE_TTL_SECONDS", str(7 * 24 * 3600)))
+INVITE_TTL_SECONDS = env_int("INVITE_TTL_SECONDS", 7 * 24 * 3600)
 
 
 def _token(user_id: str, typ: str, ttl: int, **claims) -> str:
@@ -116,7 +118,7 @@ def create_verify_token(user_id: str) -> str:
 #: находят в ящике через месяц, и «ссылка устарела» в ответ на «перестаньте мне писать»
 #: — это отказ, который человек запомнит хуже любой рассылки. Вечной она всё же не
 #: делается: своего пароля ею не сменить, но чужие уведомления ею глушат.
-MUTE_TTL_SECONDS = int(os.getenv("MUTE_TTL_SECONDS", str(180 * 24 * 3600)))
+MUTE_TTL_SECONDS = env_int("MUTE_TTL_SECONDS", 180 * 24 * 3600)
 
 
 def create_thread_mute_token(user_id: str, subject_type: str, subject_id: str,

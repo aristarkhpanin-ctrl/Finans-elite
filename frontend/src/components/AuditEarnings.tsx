@@ -121,7 +121,7 @@ export function AuditEarnings({
 
       <div className="audit-block">
         <div className="tab-head" style={{ marginBottom: 10 }}>
-          <div className="audit-block__title" style={{ marginBottom: 0 }}>Корректировки</div>
+          <h2 className="audit-block__title" style={{ marginBottom: 0 }}>Корректировки</h2>
           <Button variant="ghost"
                   onClick={() => onChange([...adjustments,
                                            { label: "", kind: "one_off", amounts: [] }])}>

@@ -32,7 +32,7 @@ export function ActivityTab({ orgId }: { orgId: string }) {
   return (
     <div style={{ display: "grid", gap: 18, maxWidth: 820 }}>
       <div className="audit-block">
-        <div className="audit-block__title">Кто работает</div>
+        <h2 className="audit-block__title">Кто работает</h2>
         <div className="page-sub" style={{ marginTop: 0 }}>
           Действия — за последние {data.window_days} дн.
         </div>
@@ -77,7 +77,7 @@ export function ActivityTab({ orgId }: { orgId: string }) {
       </div>
 
       <div className="audit-block">
-        <div className="audit-block__title">Что живо</div>
+        <h2 className="audit-block__title">Что живо</h2>
         <div className="page-sub" style={{ marginTop: 0 }}>
           {data.entities.length === 0
             ? "Проектов и дел пока нет."

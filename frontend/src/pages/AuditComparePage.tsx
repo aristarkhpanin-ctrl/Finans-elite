@@ -111,7 +111,7 @@ function Comparison({ data }: { data: AuditComparison }) {
       )}
 
       <div className="audit-block">
-        <div className="audit-block__title">Чего это сравнение не говорит</div>
+        <h2 className="audit-block__title">Чего это сравнение не говорит</h2>
         <ul className="sum-gaps">
           {data.not_computed.map((line, i) => <li key={i}>{line}</li>)}
         </ul>
@@ -150,7 +150,7 @@ export function AuditComparePage() {
       </div>
 
       <div className="audit-block">
-        <div className="audit-block__title">Дела организации</div>
+        <h2 className="audit-block__title">Дела организации</h2>
         {list.length === 0 ? (
           <div className="field-note">Дел пока нет — сравнивать нечего.</div>
         ) : (

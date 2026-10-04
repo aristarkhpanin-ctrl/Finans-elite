@@ -58,7 +58,7 @@ export function AssetsTab({ investment, onChange }: Props) {
     <div>
       <div className="tab-head">
         <div style={{ minWidth: 0 }}>
-          <div className="tab-head__title">Инвестиции — основные средства</div>
+          <h2 className="tab-head__title">Инвестиции — основные средства</h2>
           <div className="tab-head__sub">
             Капвложения, амортизация, продажа и переоценка активов.
           </div>

@@ -66,7 +66,7 @@ export function ProfileTab() {
   return (
     <div style={{ display: "grid", gap: 18, maxWidth: 520 }}>
       <div className="audit-block">
-        <div className="audit-block__title">Профиль</div>
+        <h2 className="audit-block__title">Профиль</h2>
         <Field label="Почта" value={user?.email ?? ""} disabled
                note="Почта — это логин и адрес приглашения; сменить её здесь нельзя." />
         <Field label="Имя" placeholder="Имя и фамилия" value={fullName}
@@ -83,7 +83,7 @@ export function ProfileTab() {
       <SessionsBlock />
 
       <div className="audit-block">
-        <div className="audit-block__title">Смена пароля</div>
+        <h2 className="audit-block__title">Смена пароля</h2>
         <Field label="Текущий пароль" type="password" value={current}
                disabled={savePassword.isPending}
                note="Текущий пароль обязателен: без него любую открытую сессию можно было бы использовать, чтобы запереть владельца снаружи."
@@ -153,7 +153,7 @@ function EmailVerificationBlock() {
 
   return (
     <div className="audit-block" style={{ marginTop: 18 }}>
-      <div className="audit-block__title">Адрес почты</div>
+      <h2 className="audit-block__title">Адрес почты</h2>
       <div className="mnote" style={{ marginBottom: 10 }}>{data.note}</div>
       {data.verified ? (
         <Chip kind="active">подтверждён</Chip>
@@ -204,7 +204,7 @@ function CommentEmailsBlock() {
 
   return (
     <div className="audit-block">
-      <div className="audit-block__title">Письма об обсуждениях</div>
+      <h2 className="audit-block__title">Письма об обсуждениях</h2>
       <p className="page-sub" style={{ marginTop: 0 }}>
         {on
           ? "Приходит письмо, когда вас упомянули по имени или ответили в обсуждении, "
@@ -239,7 +239,7 @@ function UsageBlock() {
   if (!data) return null;
   return (
     <div className="audit-block">
-      <div className="audit-block__title">Что платформа знает о пользовании</div>
+      <h2 className="audit-block__title">Что платформа знает о пользовании</h2>
       <p className="page-sub" style={{ marginTop: 0 }}>{data.note}</p>
       {data.collecting && (
         <>
@@ -299,7 +299,7 @@ function MyDataBlock() {
 
   return (
     <div className="audit-block">
-      <div className="audit-block__title">Мои данные</div>
+      <h2 className="audit-block__title">Мои данные</h2>
       <p className="page-sub" style={{ marginTop: 0 }}>
         Выгрузка — то, что платформа хранит <b>о вас</b>: учётная запись, участие в
         организациях, входы и ваши действия из журнала. Проектов и дел в ней нет: они
@@ -418,7 +418,7 @@ function SessionsBlock() {
   const rows = data ?? [];
   return (
     <div className="audit-block">
-      <div className="audit-block__title">Входы в учётную запись</div>
+      <h2 className="audit-block__title">Входы в учётную запись</h2>
       <p className="page-sub" style={{ marginTop: 0 }}>
         Действующие входы. Устройство и адрес присылает сам браузер — их можно подделать,
         поэтому это подсказка, а не доказательство. История входов — в журнале организации.
@@ -515,7 +515,7 @@ function TotpBlock() {
 
   return (
     <div className="audit-block">
-      <div className="audit-block__title">Второй фактор</div>
+      <h2 className="audit-block__title">Второй фактор</h2>
 
       {status?.enabled ? (
         <>

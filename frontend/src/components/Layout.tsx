@@ -161,9 +161,10 @@ export function Layout() {
               onClick={() => setOpen(open === "product" ? null : "product")}
               aria-expanded={open === "product"}
               title="Переключить продукт"
+              aria-label={`Продукт: ${product.id === "audit" ? "Аудит" : "Бизнес-план"}`}
             >
               <span>{product.id === "audit" ? "Аудит" : "Бизнес-план"}</span>
-              <span className="shell-chev">▾</span>
+              <span className="shell-chev" aria-hidden="true">▾</span>
             </button>
             {open === "product" && (
               <div className="menu menu--product">
@@ -178,7 +179,7 @@ export function Layout() {
                     <div className="menu__name">Финанс-Элит</div>
                     <div className="menu__role">Бизнес-план и прогноз</div>
                   </div>
-                  {product.id === "business" && <span className="menu__check">✓</span>}
+                  {product.id === "business" && <span className="menu__check" aria-hidden="true">✓</span>}
                 </button>
                 <button
                   aria-pressed={product.id === "audit"}
@@ -190,7 +191,7 @@ export function Layout() {
                     <div className="menu__name">Финанс-Аудит</div>
                     <div className="menu__role">Анализ фактической отчётности</div>
                   </div>
-                  {product.id === "audit" && <span className="menu__check">✓</span>}
+                  {product.id === "audit" && <span className="menu__check" aria-hidden="true">✓</span>}
                 </button>
               </div>
             )}
@@ -230,9 +231,9 @@ export function Layout() {
                     onClick={() => setOpen(open === "org" ? null : "org")}
                     aria-expanded={open === "org"}
                   >
-                    <div className="org-avatar">{initials(currentOrg.name)}</div>
+                    <div className="org-avatar" aria-hidden="true">{initials(currentOrg.name)}</div>
                     <span className="shell-orgname">{currentOrg.name}</span>
-                    <span className="shell-chev">▾</span>
+                    <span className="shell-chev" aria-hidden="true">▾</span>
                   </button>
                   {open === "org" && (
                     <div className="menu menu--org">
@@ -247,6 +248,7 @@ export function Layout() {
                         >
                           <div
                             className="org-avatar org-avatar--30"
+                            aria-hidden="true"
                             style={o.avatarBg ? { background: o.avatarBg, color: "#fff" } : undefined}
                           >
                             {initials(o.name)}
@@ -255,7 +257,7 @@ export function Layout() {
                             <div className="menu__name">{o.name}</div>
                             <div className="menu__role">{roleLabel(o.role)}</div>
                           </div>
-                          {o.active && <span className="menu__check">✓</span>}
+                          {o.active && <span className="menu__check" aria-hidden="true">✓</span>}
                         </button>
                       ))}
                       <div className="menu__div" />
@@ -268,7 +270,7 @@ export function Layout() {
                           setCreateOpen(true);
                         }}
                       >
-                        <span className="menu__ico">＋</span>Создать организацию
+                        <span className="menu__ico" aria-hidden="true">＋</span>Создать организацию
                       </button>
                       <button
                         type="button"
@@ -278,14 +280,14 @@ export function Layout() {
                           navigate("/organization");
                         }}
                       >
-                        <span className="menu__ico">⚙</span>Управление организацией
+                        <span className="menu__ico" aria-hidden="true">⚙</span>Управление организацией
                       </button>
                     </div>
                   )}
                 </>
               ) : (
                 <div className="shell-orgbtn shell-orgbtn--static">
-                  <div className="org-avatar">{initials(currentOrg.name)}</div>
+                  <div className="org-avatar" aria-hidden="true">{initials(currentOrg.name)}</div>
                   <span className="shell-orgname">{currentOrg.name}</span>
                 </div>
               )}
@@ -296,9 +298,10 @@ export function Layout() {
             type="button"
             className="icon-btn38"
             title="Переключить тему"
+            aria-label={theme === "dark" ? "Включить светлую тему" : "Включить тёмную тему"}
             onClick={() => setTheme(toggleTheme())}
           >
-            <span style={{ fontSize: theme === "dark" ? 15 : 14 }}>{theme === "dark" ? "☀" : "☾"}</span>
+            <span aria-hidden="true" style={{ fontSize: theme === "dark" ? 15 : 14 }}>{theme === "dark" ? "☀" : "☾"}</span>
           </button>
 
           {user && (
@@ -308,15 +311,16 @@ export function Layout() {
                 className="shell-userbtn"
                 onClick={() => setOpen(open === "user" ? null : "user")}
                 aria-expanded={open === "user"}
+                aria-label={`Меню учётной записи: ${user.email}`}
               >
-                <div className="user-avatar">{initials(user.full_name || user.email)}</div>
+                <div className="user-avatar" aria-hidden="true">{initials(user.full_name || user.email)}</div>
                 <span className="shell-useremail">{user.email}</span>
-                <span className="shell-chev">▾</span>
+                <span className="shell-chev" aria-hidden="true">▾</span>
               </button>
               {open === "user" && (
                 <div className="menu menu--user">
                   <div style={{ display: "flex", alignItems: "center", gap: 11, padding: 9 }}>
-                    <div className="user-avatar user-avatar--lg">{initials(user.full_name || user.email)}</div>
+                    <div className="user-avatar user-avatar--lg" aria-hidden="true">{initials(user.full_name || user.email)}</div>
                     <div style={{ minWidth: 0 }}>
                       {user.full_name && <div className="menu__uname">{user.full_name}</div>}
                       <div className="menu__umail">{user.email}</div>
@@ -328,7 +332,7 @@ export function Layout() {
                     className="menu__link"
                     onClick={() => setTheme(toggleTheme())}
                   >
-                    <span className="menu__ico">◐</span>Сменить тему
+                    <span className="menu__ico" aria-hidden="true">◐</span>Сменить тему
                     <span style={{ marginLeft: "auto", font: "600 11px var(--font-ui)", color: "var(--subtle)" }}>
                       {themeLabel}
                     </span>
@@ -347,13 +351,13 @@ export function Layout() {
                           navigate("/admin");
                         }}
                       >
-                        <span className="menu__ico">◈</span>Платформа
+                        <span className="menu__ico" aria-hidden="true">◈</span>Платформа
                       </button>
                     </>
                   )}
                   <div className="menu__div" />
                   <button type="button" className="menu__link menu__link--danger" onClick={doLogout}>
-                    <span className="menu__ico">⇥</span>Выйти
+                    <span className="menu__ico" aria-hidden="true">⇥</span>Выйти
                   </button>
                 </div>
               )}
@@ -396,7 +400,7 @@ export function Layout() {
                   onClick={() => multi && setDrawerOrgList((v) => !v)}
                   style={multi ? undefined : { cursor: "default" }}
                 >
-                  <div className="org-avatar">{initials(currentOrg.name)}</div>
+                  <div className="org-avatar" aria-hidden="true">{initials(currentOrg.name)}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="menu__name">{currentOrg.name}</div>
                     <div className="menu__role">
@@ -404,7 +408,7 @@ export function Layout() {
                       {multi && " · сменить"}
                     </div>
                   </div>
-                  {multi && <span className="shell-chev">▾</span>}
+                  {multi && <span className="shell-chev" aria-hidden="true">▾</span>}
                 </button>
                 {drawerOrgList &&
                   orgMenu
@@ -493,13 +497,13 @@ export function Layout() {
 
             <div className="menu__div" />
             <button type="button" className="drawer__item" onClick={() => setTheme(toggleTheme())}>
-              <span style={{ marginRight: 10 }}>{theme === "dark" ? "☀" : "☾"}</span>
+              <span aria-hidden="true" style={{ marginRight: 10 }}>{theme === "dark" ? "☀" : "☾"}</span>
               Тема: {themeLabel}
             </button>
 
             {user && (
               <div className="drawer__user">
-                <div className="user-avatar user-avatar--lg">{initials(user.full_name || user.email)}</div>
+                <div className="user-avatar user-avatar--lg" aria-hidden="true">{initials(user.full_name || user.email)}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   {user.full_name && <div className="menu__uname">{user.full_name}</div>}
                   <div className="menu__umail">{user.email}</div>
@@ -548,7 +552,7 @@ export function Layout() {
 
       <div className="shell-body">
         {product.rail && (
-          <aside className="rail" aria-label="Разделы продукта">
+          <nav className="rail" aria-label="Разделы продукта">
             {product.rail.map((section) => (
               <div className="rail__section" key={section.title}>
                 <div className="rail__title">{section.title}</div>
@@ -570,7 +574,7 @@ export function Layout() {
                 ))}
               </div>
             ))}
-          </aside>
+          </nav>
         )}
         <main className="content" id="content" tabIndex={-1}>
           {/* Режим чтения и выгрузки — над содержимым и на каждом экране: отказ,

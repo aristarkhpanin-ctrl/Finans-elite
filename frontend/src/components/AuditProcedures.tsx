@@ -114,7 +114,7 @@ export function AuditProcedures({
 
       {groups.map(([group, items]) => (
         <div className="audit-block" key={group}>
-          <div className="audit-block__title">{group}</div>
+          <h2 className="audit-block__title">{group}</h2>
           <div className="proc-list">
             {items.map((item) => {
               const analyst = item.source === "analyst";
@@ -176,9 +176,9 @@ export function AuditProcedures({
 
       <div className="audit-block">
         <div className="tab-head" style={{ marginBottom: 10 }}>
-          <div className="audit-block__title" style={{ marginBottom: 0 }}>
+          <h2 className="audit-block__title" style={{ marginBottom: 0 }}>
             Свои процедуры
-          </div>
+          </h2>
           <Button variant="ghost"
                   onClick={() => onCustom([...custom, emptyCustomProcedure()])}>
             ＋&nbsp;&nbsp;Процедура

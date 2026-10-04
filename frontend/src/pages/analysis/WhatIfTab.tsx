@@ -45,7 +45,7 @@ export function WhatIfTab({ projectId }: { projectId: string }) {
     <div>
       <div className="an-head">
         <div style={{ minWidth: 0 }}>
-          <div className="an-head__title">What-If · сценарии</div>
+          <h2 className="an-head__title">What-If · сценарии</h2>
           <div className="an-head__sub">
             Корректировки параметров → сравнение ключевых показателей по сценариям.
           </div>

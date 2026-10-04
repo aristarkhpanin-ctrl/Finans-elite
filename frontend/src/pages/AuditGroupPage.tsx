@@ -212,7 +212,7 @@ export function AuditGroupPage() {
 
       {(groups ?? []).length > 0 && (
         <div className="audit-block">
-          <div className="audit-block__title">Сохранённые группы</div>
+          <h2 className="audit-block__title">Сохранённые группы</h2>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {(groups ?? []).map((g) => (
               <div className={"opt-row" + (groupId === g.id ? " opt-row--on" : "")} key={g.id}
@@ -246,7 +246,7 @@ export function AuditGroupPage() {
       )}
 
       <div className="audit-block">
-        <div className="audit-block__title">Состав группы</div>
+        <h2 className="audit-block__title">Состав группы</h2>
         {isLoading ? (
           <div className="page-sub">Загрузка…</div>
         ) : (subjects ?? []).length === 0 ? (
@@ -353,9 +353,9 @@ export function AuditGroupPage() {
 
           <div className="audit-block">
             <div className="tab-head" style={{ marginBottom: 12 }}>
-              <div className="audit-block__title" style={{ marginBottom: 0 }}>
+              <h2 className="audit-block__title" style={{ marginBottom: 0 }}>
                 Свод: {result.members.join(" + ") || "—"}
-              </div>
+              </h2>
               {a.n > 0 && (
                 <Button
                   variant="ghost"
@@ -410,7 +410,7 @@ export function AuditGroupPage() {
                 if (names.length === 0) return null;
                 return (
                   <div className="audit-block" key={key}>
-                    <div className="audit-block__title">Коэффициенты группы — {title.toLowerCase()}</div>
+                    <h2 className="audit-block__title">Коэффициенты группы — {title.toLowerCase()}</h2>
                     <ScrollRegion className="x-scroll" label={`Коэффициенты группы — ${title.toLowerCase()}`}>
                       <table className="audit-grid">
                         <thead>
@@ -443,7 +443,7 @@ export function AuditGroupPage() {
               )}
 
               <div className="audit-block">
-                <div className="audit-block__title">Заключение по группе</div>
+                <h2 className="audit-block__title">Заключение по группе</h2>
                 {a.opinion.split("\n\n").map((block, i) => (
                   <p key={i} className="opinion-block">{block}</p>
                 ))}

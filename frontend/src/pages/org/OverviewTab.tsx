@@ -44,7 +44,7 @@ function left(limit: number | null | undefined, leftN: number | null | undefined
 function ProductCard({ p }: { p: ProductState }) {
   return (
     <div className="audit-block">
-      <div className="audit-block__title">{p.product_name}</div>
+      <h2 className="audit-block__title">{p.product_name}</h2>
       <div className="page-sub" style={{ marginTop: 0 }}>
         Тариф «{p.plan_name}» · {STATUS[p.status] ?? p.status}
       </div>
@@ -118,7 +118,7 @@ export function OverviewTab({ orgId }: { orgId: string }) {
   return (
     <div style={{ display: "grid", gap: 18, maxWidth: 860 }}>
       <div className="audit-block">
-        <div className="audit-block__title">Что заведено</div>
+        <h2 className="audit-block__title">Что заведено</h2>
         <div className="log-list" role="table" aria-label="Объёмы организации">
           <div className="log-row adm-row adm-row--head" role="row">
             <div role="columnheader">Проекты</div>

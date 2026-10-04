@@ -23,7 +23,7 @@ export function AuditBenchmark({ view }: { view: AuditBenchmarkView }) {
   const dev = view.deviation === null ? null : Number(view.deviation);
   return (
     <div className="audit-block">
-      <div className="audit-block__title">Сравнение с ориентиром организации</div>
+      <h2 className="audit-block__title">Сравнение с ориентиром организации</h2>
 
       {view.available ? (
         <>

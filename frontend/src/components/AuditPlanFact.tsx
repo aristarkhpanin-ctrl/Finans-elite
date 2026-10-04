@@ -92,9 +92,9 @@ export function AuditPlanFact({
         <>
           <div className="audit-block">
             <div className="tab-head" style={{ marginBottom: 8 }}>
-              <div className="audit-block__title" style={{ marginBottom: 0 }}>
+              <h2 className="audit-block__title" style={{ marginBottom: 0 }}>
                 Развёрнутый план-факт
-              </div>
+              </h2>
               {/* Охват виден, а не угадывается: период без плана в сравнение не идёт. */}
               <span className="page-sub">
                 сравниваются периоды: {result.periods.join(", ")}
@@ -130,7 +130,7 @@ export function AuditPlanFact({
           </div>
 
           <div className="audit-block">
-            <div className="audit-block__title">Что из наших флагов сработало</div>
+            <h2 className="audit-block__title">Что из наших флагов сработало</h2>
             <div className="pf-totals">
               <div className="sum-metric">
                 <div className="mini-label">Предсказано платформой</div>
@@ -153,7 +153,7 @@ export function AuditPlanFact({
       ) : null}
 
       <div className="audit-block">
-        <div className="audit-block__title">Прогноз продавца</div>
+        <h2 className="audit-block__title">Прогноз продавца</h2>
         <div className="page-sub" style={{ marginBottom: 10 }}>
           Внесите план из инвестиционного меморандума по тем же периодам, что и
           отчётность. Факт вводить не нужно — это сама отчётность дела: второго
@@ -196,7 +196,7 @@ export function AuditPlanFact({
       </div>
 
       <div className="audit-block">
-        <div className="audit-block__title">Реализовавшиеся риски</div>
+        <h2 className="audit-block__title">Реализовавшиеся риски</h2>
         <div className="page-sub" style={{ marginBottom: 10 }}>
           Сработал ли флаг, платформа не знает: она видит отчётность, а не причины.
           Отметьте сами и укажите, во что риск обошёлся. Предсказанная величина слева
@@ -249,7 +249,7 @@ export function AuditPlanFact({
       </div>
 
       <div className="audit-block">
-        <div className="audit-block__title">Чего план-факт не считает</div>
+        <h2 className="audit-block__title">Чего план-факт не считает</h2>
         <ul className="sum-gaps">
           {result.not_computed.map((line, i) => <li key={i}>{line}</li>)}
         </ul>

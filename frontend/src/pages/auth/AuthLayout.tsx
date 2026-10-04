@@ -159,9 +159,10 @@ export function AuthLayout({
             type="button"
             className="auth-theme-toggle"
             title="Переключить тему"
+            aria-label={theme === "dark" ? "Включить светлую тему" : "Включить тёмную тему"}
             onClick={() => setTheme(toggleTheme())}
           >
-            <span style={{ fontSize: theme === "dark" ? 14 : 13, lineHeight: 1 }}>
+            <span aria-hidden="true" style={{ fontSize: theme === "dark" ? 14 : 13, lineHeight: 1 }}>
               {theme === "dark" ? "☀" : "☾"}
             </span>
           </button>
