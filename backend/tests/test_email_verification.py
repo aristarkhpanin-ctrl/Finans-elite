@@ -90,7 +90,7 @@ def test_a_verify_token_cannot_set_a_password(client, register, db_session):
     register()
     token = create_verify_token(_user(db_session).id)
     refused = client.post("/api/v1/auth/activate",
-                          json={"token": token, "password": "chuzhoi-parol7"})
+                          json={"token": token, "password": "chuzhoi-parol7", "pd_consent": True})
     assert refused.status_code == 400
 
 
@@ -149,7 +149,7 @@ def test_activating_by_the_emailed_link_verifies_the_address(client, register,
     token = letter.text.split("/activate?token=")[1].split("\n")[0]
 
     client.post("/api/v1/auth/activate",
-                json={"token": token, "password": "kollega-parol7"})
+                json={"token": token, "password": "kollega-parol7", "pd_consent": True})
     assert _user(db_session, "k@e.ru").email_verified_at is not None
 
 
@@ -163,7 +163,7 @@ def test_activating_by_the_hand_delivered_link_verifies_nothing(client, register
                        json={"email": "k@e.ru", "full_name": "К", "role": "editor"},
                        headers=headers).json()
     client.post("/api/v1/auth/activate",
-                json={"token": body["invite_token"], "password": "kollega-parol7"})
+                json={"token": body["invite_token"], "password": "kollega-parol7", "pd_consent": True})
     assert _user(db_session, "k@e.ru").email_verified_at is None
 
 

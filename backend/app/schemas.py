@@ -298,6 +298,40 @@ class CalcResponse(BaseModel):
     warnings: list[str]
 
 
+# --- Публичные документы (L5) ---
+
+class LegalSectionOut(BaseModel):
+    heading: str
+    paragraphs: list[str]
+
+
+class LegalDocBrief(BaseModel):
+    slug: str
+    title: str
+    summary: str
+
+
+class LegalIndexOut(BaseModel):
+    """Список документов и их редакция. ``draft`` — тексты не утверждены владельцем."""
+
+    edition: str
+    draft: bool
+    draft_note: str = ""
+    documents: list[LegalDocBrief]
+
+
+class LegalDocOut(BaseModel):
+    slug: str
+    title: str
+    summary: str
+    edition: str
+    draft: bool
+    draft_note: str = ""
+    sections: list[LegalSectionOut]
+    #: Что в тексте не указано (реквизиты продавца) — подписями для человека.
+    missing: list[str] = []
+
+
 # --- Ссылка для инвестора или банка (L4) ---
 
 class ShareLinkCreate(BaseModel):
@@ -774,6 +808,10 @@ class RegisterRequest(BaseModel):
     password: str
     full_name: str = ""
     organization_name: str
+    #: Согласие на обработку ПД (L5) — **отдельная отметка**, не входящая в принятие
+    #: оферты (ч. 1 ст. 9 152-ФЗ в ред. с 1.09.2025). Без неё регистрация отклоняется с
+    #: причиной; время и редакция текста пишутся в учётную запись.
+    pd_consent: bool = False
 
 
 class LoginRequest(BaseModel):
@@ -814,6 +852,10 @@ class UserOut(BaseModel):
     #: Общий демо-вход (L2): интерфейс говорит посетителю, где он, и не обещает того,
     #: что демо-входу закрыто. Права проверяет сервер (``deps.DEMO_ALLOWED``).
     is_demo: bool = False
+    #: Согласие на обработку ПД (L5): когда и какой редакции. ``None`` — неизвестно
+    #: (учётная запись заведена раньше), и профиль предлагает его дать.
+    pd_consent_at: Optional[datetime] = None
+    pd_consent_edition: str = ""
 
 
 class ActivateRequest(BaseModel):
@@ -828,6 +870,9 @@ class ActivateRequest(BaseModel):
     password: str
     full_name: str = ""
     totp_code: str = ""
+    #: Согласие на обработку ПД (L5) — обязательно при активации **приглашения**: это
+    #: новый человек, и его согласие нигде ещё не записано. Сбросу пароля не нужно.
+    pd_consent: bool = False
 
 
 class ProfileUpdate(BaseModel):

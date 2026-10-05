@@ -35,6 +35,7 @@ from .routers import (
     holdings,
     integrator,
     jobs,
+    legal,
     organizations,
     projects,
     share,
@@ -84,6 +85,7 @@ app.include_router(comments.router)
 app.include_router(holdings.router)
 app.include_router(integrator.router)
 app.include_router(jobs.router)
+app.include_router(legal.router)
 app.include_router(organizations.router)
 app.include_router(projects.router)
 app.include_router(share.router)

@@ -26,7 +26,17 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from . import billing, closing_docs, crud, error_tracking, girbo, mail, scheduler, usage
+from . import (
+    billing,
+    closing_docs,
+    crud,
+    error_tracking,
+    girbo,
+    legal,
+    mail,
+    scheduler,
+    usage,
+)
 from .billing import PaymentProvider
 
 OK, OFF, PROBLEM = "ok", "off", "problem"
@@ -264,6 +274,30 @@ def _girbo() -> ReadinessItem:
     return ReadinessItem("girbo", title, OK, f"включена: запрос с сервера на {girbo.base_url()}")
 
 
+def _legal() -> ReadinessItem:
+    """Оферта, политика ПД и согласие (L5). Черновик — **проблема**, а не «выключено»:
+    это не решение владельца отключить документы, а работа, которую ещё не сделали, и
+    сайт с непроверенной офертой принимает деньги."""
+    title = "Юридические документы"
+    gaps = legal.seller_problems()
+    if legal.is_draft():
+        return ReadinessItem(
+            "legal", title, PROBLEM,
+            "черновик: оферта, политика обработки ПД и согласие подготовлены платформой "
+            "и юристом не проверены — над текстами стоит пометка «Черновик»"
+            + (f"; кроме того: {'; '.join(gaps)}" if gaps else ""),
+            "договор с клиентами и согласие на обработку ПД держатся на непроверенном "
+            "тексте", "отдать тексты юристу (страницы /legal/…), внести правки в "
+            "app/legal.py и задать LEGAL_DOCS_EDITION — дату утверждённой редакции")
+    if gaps:
+        return ReadinessItem("legal", title, PROBLEM,
+                             f"редакция {legal.edition()}, но в текстах пробелы: "
+                             + "; ".join(gaps),
+                             "документы не называют оператора или связь с ним",
+                             "SELLER_* и PUBLIC_URL (см. .env.example)")
+    return ReadinessItem("legal", title, OK, f"редакция {legal.edition()}")
+
+
 def check(db: Session, *, provider: PaymentProvider,
           now: datetime | None = None) -> list[ReadinessItem]:
     """Все пункты готовности. Только читает — ничего не меняет."""
@@ -282,4 +316,5 @@ def check(db: Session, *, provider: PaymentProvider,
         _safe("events", "События пользования", _events),
         _safe("demo", "Демо без регистрации", lambda: _demo(db)),
         _safe("girbo", "Отчётность по ИНН (ГИР БО)", _girbo),
+        _safe("legal", "Юридические документы", _legal),
     ]

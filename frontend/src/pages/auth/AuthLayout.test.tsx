@@ -58,6 +58,10 @@ function httpError(status: number): AxiosError {
 
 function show(page: "login" | "register", product?: "audit" | "business") {
   if (product) localStorage.setItem("fe_product", product);
+  // Продукт экрана входа читается из адреса окна (`currentProduct`), а не из роутера; у
+  // корня «/» с пакета L свой продукт — витрина «Финанс-Элит», — поэтому адрес окна
+  // ставится настоящий.
+  window.history.replaceState(null, "", "/" + page);
   const Page = page === "login" ? LoginPage : RegisterPage;
   render(
     <QueryClientProvider client={new QueryClient({
@@ -202,6 +206,8 @@ describe("Регистрация", () => {
     fill("Email", "a@e.ru");
     fill("Пароль", "secret12");
     fill("Название организации", "ООО «Пример»");
+    // Согласие на обработку ПД — отдельной отметкой (L5): без неё регистрации нет.
+    fireEvent.click(screen.getByRole("checkbox", { name: /согласие на обработку/ }));
     fireEvent.click(screen.getByRole("button", { name: /Создать аккаунт/ }));
     await settle();
     expect(screen.getByText("Список дел")).toBeTruthy();

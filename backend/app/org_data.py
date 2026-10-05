@@ -208,7 +208,7 @@ def build_export(db: Session, org: Organization) -> dict:
         ],
         "ссылки_для_просмотра": [
             {"проект": names.get(link.project_id, "удалён"), "для_кого": link.label,
-             "открыл": link.created_by, "создана": _iso(link.created_at),
+             "отправитель": link.created_by, "создана": _iso(link.created_at),
              "до": _iso(link.expires_at), "закрыта": _iso(link.revoked_at),
              "закрыл": link.revoked_by or None}
             for link in shares

@@ -45,7 +45,7 @@ export async function getMyOrganizations(): Promise<OrganizationMembership[]> {
  * поэтому запрос идёт без заголовка сессии.
  */
 export async function activateInvite(payload: {
-  token: string; password: string; full_name?: string;
+  token: string; password: string; full_name?: string; pd_consent?: boolean;
 }): Promise<TokenResponse> {
   const { data } = await api.post<TokenResponse>("/api/v1/auth/activate", payload);
   return data;

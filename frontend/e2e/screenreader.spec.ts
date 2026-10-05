@@ -38,6 +38,8 @@ async function register(page: Page, product: "business" | "audit"): Promise<void
   await page.getByLabel("Email").fill(`e2e-sr-${stamp()}@example.test`);
   await page.getByLabel("Пароль").fill("reader-pass-123");
   await page.getByLabel("Название организации").fill("ООО «Слух»");
+  // Согласие на обработку ПД — отдельной отметкой (L5): без неё регистрации нет.
+  await page.getByRole("checkbox", { name: /согласие на обработку/ }).check();
   await page.getByRole("button", { name: /Создать аккаунт/ }).click();
   await expect(page.getByRole("heading", { name: product === "audit" ? "Дела" : "Проекты" }))
     .toBeVisible();

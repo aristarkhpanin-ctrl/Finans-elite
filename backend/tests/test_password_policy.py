@@ -126,7 +126,7 @@ def test_all_three_doors_use_the_same_rules(client, register):
     weak = "qwerty123"
     assert client.post("/api/v1/auth/register", json={
         "email": "n@e.ru", "password": weak, "full_name": "",
-        "organization_name": "Орг"}).status_code == 422
+        "organization_name": "Орг", "pd_consent": True}).status_code == 422
 
     owner = register(email="o@e.ru", org="Орг")
     org = client.get("/api/v1/organizations", headers=owner).json()[0]["id"]
@@ -135,7 +135,7 @@ def test_all_three_doors_use_the_same_rules(client, register):
                          headers=owner).json()
     assert client.post("/api/v1/auth/activate",
                        json={"token": member["invite_token"],
-                             "password": weak}).status_code == 422
+                             "password": weak, "pd_consent": True}).status_code == 422
     assert client.post("/api/v1/auth/password",
                        json={"current_password": "secret123", "new_password": weak},
                        headers=owner).status_code == 422
@@ -146,13 +146,13 @@ def test_refusal_says_what_is_wrong_and_what_to_do(client):
     придёт к чему-нибудь вроде «Parol1234!»."""
     detail = client.post("/api/v1/auth/register", json={
         "email": "n@e.ru", "password": "qwerty123", "full_name": "",
-        "organization_name": "Орг"}).json()["detail"]
+        "organization_name": "Орг", "pd_consent": True}).json()["detail"]
     assert "Придумайте другой" in detail or "подбирают" in detail
 
 
 def test_activation_names_the_broken_link_before_the_weak_password(client, register):
     """Недействительная ссылка — беда крупнее слабого пароля, и называется первой."""
-    r = client.post("/api/v1/auth/activate", json={"token": "мусор", "password": "qwerty123"})
+    r = client.post("/api/v1/auth/activate", json={"token": "мусор", "password": "qwerty123", "pd_consent": True})
     assert r.status_code == 400 and "Ссылка" in r.json()["detail"]
 
 

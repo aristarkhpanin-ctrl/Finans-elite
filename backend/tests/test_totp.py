@@ -296,6 +296,6 @@ def test_ordinary_member_is_not_nagged(client, register):
                          headers=owner).json()
     token = client.post("/api/v1/auth/activate",
                         json={"token": member["invite_token"],
-                              "password": "kollega-parol7"}).json()["access_token"]
+                              "password": "kollega-parol7", "pd_consent": True}).json()["access_token"]
     status = client.get("/api/v1/auth/totp", headers=_headers(token)).json()
     assert status["recommended"] is False

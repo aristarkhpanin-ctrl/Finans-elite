@@ -1382,6 +1382,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/pd-consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Give Pd Consent
+         * @description Дать согласие на обработку ПД из профиля (L5).
+         *
+         *     У учётных записей, заведённых до L5, согласие **не записано** — это неизвестность, а
+         *     не отказ, и профиль предлагает его дать. Повтор обновляет время и редакцию: человек
+         *     согласился с текущим текстом, и записано должно быть именно это. Оферта здесь не
+         *     принимается — её принимали регистрацией.
+         */
+        post: operations["give_pd_consent_api_v1_auth_pd_consent_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/register": {
         parameters: {
             query?: never;
@@ -1394,6 +1419,9 @@ export interface paths {
         /**
          * Register
          * @description Регистрация: создаёт пользователя, его организацию и членство (owner).
+         *
+         *     Согласие на обработку ПД — отдельной отметкой (L5): без него отказ с причиной.
+         *     Проверяется **первым** — без согласия незачем разбирать и пароль.
          */
         post: operations["register_api_v1_auth_register_post"];
         delete?: never;
@@ -1924,6 +1952,46 @@ export interface paths {
          * @description Сводный результат по набору проектов организации (построчная сумма отчётов).
          */
         post: operations["consolidate_projects_api_v1_integrator_consolidate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/legal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Legal Index
+         * @description Список документов и редакция. Пока редакция не утверждена — «черновик».
+         */
+        get: operations["legal_index_api_v1_legal_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/legal/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Legal Doc
+         * @description Документ с реквизитами продавца; незаданное помечено и перечислено в ``missing``.
+         */
+        get: operations["legal_doc_api_v1_legal__slug__get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3391,6 +3459,11 @@ export interface components {
             full_name: string;
             /** Password */
             password: string;
+            /**
+             * Pd Consent
+             * @default false
+             */
+            pd_consent: boolean;
             /** Token */
             token: string;
             /**
@@ -7648,6 +7721,64 @@ export interface components {
              */
             term_months: number;
         };
+        /** LegalDocBrief */
+        LegalDocBrief: {
+            /** Slug */
+            slug: string;
+            /** Summary */
+            summary: string;
+            /** Title */
+            title: string;
+        };
+        /** LegalDocOut */
+        LegalDocOut: {
+            /** Draft */
+            draft: boolean;
+            /**
+             * Draft Note
+             * @default
+             */
+            draft_note: string;
+            /** Edition */
+            edition: string;
+            /**
+             * Missing
+             * @default []
+             */
+            missing: string[];
+            /** Sections */
+            sections: components["schemas"]["LegalSectionOut"][];
+            /** Slug */
+            slug: string;
+            /** Summary */
+            summary: string;
+            /** Title */
+            title: string;
+        };
+        /**
+         * LegalIndexOut
+         * @description Список документов и их редакция. ``draft`` — тексты не утверждены владельцем.
+         */
+        LegalIndexOut: {
+            /** Documents */
+            documents: components["schemas"]["LegalDocBrief"][];
+            /** Draft */
+            draft: boolean;
+            /**
+             * Draft Note
+             * @default
+             */
+            draft_note: string;
+            /** Edition */
+            edition: string;
+        };
+        /** LegalSectionOut */
+        LegalSectionOut: {
+            /** Heading */
+            heading: string;
+            /** Paragraphs */
+            paragraphs: string[];
+        };
         /**
          * LineDetailItemOut
          * @description Слагаемое строки отчёта (drill-down): источник и его помесячный ряд.
@@ -10117,6 +10248,11 @@ export interface components {
             organization_name: string;
             /** Password */
             password: string;
+            /**
+             * Pd Consent
+             * @default false
+             */
+            pd_consent: boolean;
         };
         /**
          * RegistrySnapshot
@@ -12703,6 +12839,13 @@ export interface components {
              * @default false
              */
             is_staff: boolean;
+            /** Pd Consent At */
+            pd_consent_at?: string | null;
+            /**
+             * Pd Consent Edition
+             * @default
+             */
+            pd_consent_edition: string;
         };
         /**
          * UserRow
@@ -15126,6 +15269,26 @@ export interface operations {
             };
         };
     };
+    give_pd_consent_api_v1_auth_pd_consent_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"];
+                };
+            };
+        };
+    };
     register_api_v1_auth_register_post: {
         parameters: {
             query?: never;
@@ -15996,6 +16159,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CalcResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    legal_index_api_v1_legal_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalIndexOut"];
+                };
+            };
+        };
+    };
+    legal_doc_api_v1_legal__slug__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalDocOut"];
                 };
             };
             /** @description Validation Error */

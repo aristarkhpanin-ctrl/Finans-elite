@@ -84,7 +84,7 @@ def test_presence_belongs_to_the_organization_not_to_the_person(client, auth_hea
     member = client.post(url_b, json={"email": "общий@e.ru", "full_name": "Общий",
                                       "role": "editor"}, headers=other).json()
     client.post("/api/v1/auth/activate",
-                json={"token": member["invite_token"], "password": "secret123"})
+                json={"token": member["invite_token"], "password": "secret123", "pd_consent": True})
     worker = {"Authorization": "Bearer " + client.post(
         "/api/v1/auth/login",
         json={"email": "общий@e.ru", "password": "secret123"}).json()["access_token"]}
@@ -107,7 +107,7 @@ def test_blocked_member_does_not_get_a_fresh_mark(client, auth_headers):
     member = client.post(url, json={"email": "к@e.ru", "full_name": "К", "role": "editor"},
                          headers=auth_headers).json()
     client.post("/api/v1/auth/activate",
-                json={"token": member["invite_token"], "password": "secret123"})
+                json={"token": member["invite_token"], "password": "secret123", "pd_consent": True})
     worker = {"Authorization": "Bearer " + client.post(
         "/api/v1/auth/login",
         json={"email": "к@e.ru", "password": "secret123"}).json()["access_token"]}

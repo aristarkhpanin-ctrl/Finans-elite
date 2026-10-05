@@ -157,7 +157,7 @@ def test_the_summary_is_for_those_who_answer_for_the_organization(client, regist
                          headers=owner).json()
     token = client.post("/api/v1/auth/activate",
                         json={"token": invite["invite_token"],
-                              "password": "kollega-parol7"}).json()["access_token"]
+                              "password": "kollega-parol7", "pd_consent": True}).json()["access_token"]
     editor = {"Authorization": f"Bearer {token}"}
     assert client.get(f"/api/v1/organizations/{org}/activity",
                       headers=editor).status_code == 403

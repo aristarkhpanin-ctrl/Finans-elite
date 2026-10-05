@@ -20,6 +20,9 @@ import { ProjectOnboardingPage } from "./pages/ProjectOnboardingPage";
 import { ProjectsPage } from "./pages/ProjectsPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { ActivatePage } from "./pages/ActivatePage";
+import { HomePage } from "./pages/HomePage";
+import { LegalPage } from "./pages/LegalPage";
+import { PricingPage } from "./pages/PricingPage";
 import { UnsubscribePage } from "./pages/UnsubscribePage";
 import { VerifyEmailPage } from "./pages/VerifyEmailPage";
 
@@ -59,6 +62,12 @@ export function App() {
 function AppRoutes() {
   return (
     <Routes>
+      {/* Публичные страницы (L5): главная для гостя, тарифы и документы — их читают до
+          регистрации и проверяет платёжный агрегатор. Вошедшего главная ведёт в работу. */}
+      <Route path="/" element={<HomePage />} />
+      <Route path="/pricing" element={<PricingPage />} />
+      <Route path="/legal" element={<LegalPage />} />
+      <Route path="/legal/:doc" element={<LegalPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       {/* Активация приглашения — до входа: пароля у приглашённого ещё нет. */}
@@ -121,7 +130,6 @@ function AppRoutes() {
             </Suspense>
           }
         />
-        <Route path="/" element={<Navigate to="/projects" replace />} />
       </Route>
       {DevUiPage && (
         <Route

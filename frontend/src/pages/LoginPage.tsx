@@ -4,6 +4,7 @@ import { getCapabilities, requestPasswordReset } from "../api/auth";
 import { httpDetail, httpStatus } from "../api/client";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { DemoEntry } from "../components/DemoEntry";
 import { IconLock, IconMail } from "../components/icons";
 import { PRODUCTS } from "../components/product";
 import { Button, Field, Modal } from "../components/ui";
@@ -36,7 +37,7 @@ const NO_RESET = "Забыли пароль — ссылку на сброс в�
 export const LOGIN_NOTICE_KEY = "finans:login-notice";
 
 export function LoginPage() {
-  const { login, loginDemo } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const product = useAuthProduct();
   usePageTitle("Вход");
@@ -72,23 +73,6 @@ export function LoginPage() {
   const { data: caps } = useQuery({ queryKey: ["capabilities"],
                                     queryFn: getCapabilities, staleTime: Infinity });
   const canMail = caps?.mail === true;
-  const [demoBusy, setDemoBusy] = useState(false);
-
-  /**
-   * «Посмотреть демо» (L2): кнопка есть, только если демо заведено на этой установке —
-   * обещание, которое сервер не выполнит, хуже отсутствия кнопки.
-   */
-  async function onDemo() {
-    setServerError("");
-    setDemoBusy(true);
-    try {
-      await loginDemo();
-      navigate(PRODUCTS[product].home);
-    } catch (err: unknown) {
-      setServerError(httpDetail(err) ?? "Демо сейчас недоступно. Попробуйте позже.");
-      setDemoBusy(false);
-    }
-  }
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
@@ -224,9 +208,7 @@ export function LoginPage() {
       </form>
       {caps?.demo && (
         <div className="auth-demo">
-          <Button variant="ghost" block onClick={onDemo} loading={demoBusy} disabled={busy}>
-            Посмотреть демо без регистрации
-          </Button>
+          <DemoEntry product={product} onError={setServerError} disabled={busy} />
           <p className="auth-demo__note">
             Готовая организация с проектами и делами: смотреть, считать и выгружать
             можно, менять — нет.

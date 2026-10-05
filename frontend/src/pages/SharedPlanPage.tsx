@@ -114,13 +114,15 @@ export function SharedPlanPage() {
                                   shared.discount_rate_annual_foreign);
           return (
             <>
-              <div className="rhead">
-                <div style={{ minWidth: 0, flex: 1 }}>
+              {/* Своя шапка, а не шапка результатов: там подпись обрезается многоточием, а
+                  «копия для кого» — главное, что посетитель должен прочесть целиком. */}
+              <div className="shared-head">
+                <div className="shared-head__title">
                   <div className="shared-kicker">Бизнес-план · {shared.organization}</div>
-                  <h1 className="rhead__title">{shared.project_name}</h1>
-                  <div className="rhead__sub">Копия для: {shared.shared_for}</div>
+                  <h1>{shared.project_name}</h1>
+                  <div className="shared-head__for">Копия для: {shared.shared_for}</div>
                 </div>
-                <div className="rhead__actions">
+                <div className="shared-head__actions">
                   <span className="version-chip">движок {r.engine_version}</span>
                   <Button variant="ghost" loading={busy} onClick={download}>
                     Бизнес-план (DOCX)

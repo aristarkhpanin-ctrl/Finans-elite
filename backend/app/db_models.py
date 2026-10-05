@@ -220,6 +220,22 @@ class User(Base):
     comment_emails: Mapped[bool] = mapped_column(Boolean, default=True,
                                                  server_default=text("true"),
                                                  nullable=False)
+    #: Согласие на обработку персональных данных (L5): **когда** и **какой редакции**
+    #: текста. С 1.09.2025 согласие оформляется отдельно от других документов — это своя
+    #: отметка при регистрации или активации приглашения. ``None`` — неизвестно (учётная
+    #: запись заведена раньше), а не «отказался»: профиль предлагает его дать.
+    #:
+    #: Удаление учётной записи (C3) эти поля **оставляет**: после обезличивания строка
+    #: уже ни о ком, а время и редакция объясняют, на каком основании шла обработка, пока
+    #: человек был.
+    pd_consent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True),
+                                                           nullable=True)
+    pd_consent_edition: Mapped[str] = mapped_column(String(64), default="",
+                                                    server_default="")
+    #: Принятие оферты — регистрацией; редакция рядом, по той же причине.
+    terms_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True),
+                                                               nullable=True)
+    terms_edition: Mapped[str] = mapped_column(String(64), default="", server_default="")
 
 
 class Membership(Base):

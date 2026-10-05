@@ -25,6 +25,7 @@ from app.routers import (
     holdings,
     integrator,
     jobs,
+    legal,
     organizations,
     projects,
     share,
@@ -34,7 +35,7 @@ from app.routers import (
 #: устройства фреймворка, а список роутеров — часть самого продукта.
 ROUTERS = [admin.router, apikeys.router, audit.router, auth.router, billing.router,
            client_errors.router, comments.router, holdings.router, integrator.router, jobs.router,
-           organizations.router, projects.router, share.router]
+           legal.router, organizations.router, projects.router, share.router]
 
 #: Изменяющие маршруты, которые журнал **не** пишут — каждый с причиной.
 NOT_LOGGED: dict[str, str] = {
@@ -53,6 +54,9 @@ NOT_LOGGED: dict[str, str] = {
     "POST /api/v1/holdings/{holding_id}/consolidate": "анализ без записи",
     "POST /api/v1/integrator/consolidate": "анализ без записи",
     "PATCH /api/v1/auth/me": "профиль пользователя, а не данные организации",
+    # Согласие на обработку ПД (L5) хранится в самой учётной записи — время и редакция;
+    # это отношение человека с оператором, а не событие организации.
+    "POST /api/v1/auth/pd-consent": "согласие записано в учётной записи — время и редакция",
     # Демо-вход (L2) — посетитель сайта, а не человек организации: тысяча визитов
     # утопила бы журнал демо-организации, а изменить он не может ничего (DEMO_ALLOWED).
     "POST /api/v1/auth/demo": "вход посетителя в публичное демо",

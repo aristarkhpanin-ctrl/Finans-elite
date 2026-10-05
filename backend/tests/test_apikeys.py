@@ -71,7 +71,7 @@ def test_only_the_owner_of_the_organization_issues_keys(client, register):
                          headers=owner).json()
     token = client.post("/api/v1/auth/activate",
                         json={"token": invite["invite_token"],
-                              "password": "kollega-parol7"}).json()["access_token"]
+                              "password": "kollega-parol7", "pd_consent": True}).json()["access_token"]
     editor = {"Authorization": f"Bearer {token}"}
 
     r = client.post(f"/api/v1/organizations/{org}/api-keys", json={"name": "Свой"},

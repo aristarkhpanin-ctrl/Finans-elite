@@ -15,7 +15,7 @@ from fastapi import (
 )
 from sqlalchemy.orm import Session
 
-from .. import crud, error_tracking, girbo, totp, usage
+from .. import crud, error_tracking, girbo, legal, totp, usage
 from ..database import get_db
 from ..db_models import User, UserSession
 from ..deps import account_blocked_detail, current_session, current_user
@@ -109,11 +109,19 @@ def _issue_token(db: Session, user: User, request: Request,
 )
 def register(body: RegisterRequest, request: Request,
              db: Session = Depends(get_db)) -> TokenResponse:
-    """Регистрация: создаёт пользователя, его организацию и членство (owner)."""
+    """Регистрация: создаёт пользователя, его организацию и членство (owner).
+
+    Согласие на обработку ПД — отдельной отметкой (L5): без него отказ с причиной.
+    Проверяется **первым** — без согласия незачем разбирать и пароль.
+    """
+    if not body.pd_consent:
+        raise HTTPException(status_code=422, detail=legal.CONSENT_REQUIRED)
     _check_password(body.password, body.email)
     if crud.get_user_by_email(db, body.email) is not None:
         raise HTTPException(status_code=409, detail="Email уже зарегистрирован")
     user = crud.create_user(db, body.email, body.full_name, hash_password(body.password))
+    legal.record_consent(user, terms=True)
+    db.commit()
     org = crud.create_organization(db, body.organization_name)
     crud.add_membership(db, org.id, user.id, role="owner")
     crud.log_action(db, org.id, user, "org.create", entity_type="organization",
@@ -250,9 +258,13 @@ def _user_out(user: User) -> UserOut:
     его дописали: ровно так однажды разошлись два переноса показателей. Разница вышла бы
     незаметной — экран читает профиль после сохранения и увидел бы прежнее значение.
     """
+    consent = user.pd_consent_at
     return UserOut(id=user.id, email=user.email, full_name=user.full_name,
                    is_staff=user.is_staff, comment_emails=user.comment_emails,
-                   is_demo=user.is_demo)
+                   is_demo=user.is_demo,
+                   pd_consent_at=(consent if consent is None or consent.tzinfo
+                                  else consent.replace(tzinfo=timezone.utc)),
+                   pd_consent_edition=user.pd_consent_edition)
 
 
 @router.get("/me", response_model=UserOut)
@@ -280,6 +292,22 @@ def _check_password(password: str, email: str = "") -> None:
             detail=(f"Этот пароль встречается в известных утечках ({count:,} раз(а)) — "
                     "его подберут по словарю. Придумайте другой").replace(",", " "),
         )
+
+
+@router.post("/pd-consent", response_model=UserOut)
+def give_pd_consent(user: User = Depends(current_user),
+                    db: Session = Depends(get_db)) -> UserOut:
+    """Дать согласие на обработку ПД из профиля (L5).
+
+    У учётных записей, заведённых до L5, согласие **не записано** — это неизвестность, а
+    не отказ, и профиль предлагает его дать. Повтор обновляет время и редакцию: человек
+    согласился с текущим текстом, и записано должно быть именно это. Оферта здесь не
+    принимается — её принимали регистрацией.
+    """
+    legal.record_consent(user, terms=False)
+    db.commit()
+    db.refresh(user)
+    return _user_out(user)
 
 
 @router.post("/activate", response_model=TokenResponse)
@@ -322,6 +350,11 @@ def activate(body: ActivateRequest, request: Request,
     # без кода из приложения — то есть второй фактор, выключаемый первым же письмом.
     # Приглашения это не касается: пароля ещё нет, значит нет и второго фактора.
     _second_factor(db, user, body.totp_code)
+    # Приглашённый — новый человек: его согласие на обработку ПД нигде ещё не записано
+    # (L5). Сбросу пароля оно не нужно — учётная запись уже живёт.
+    invite = user_id is not None
+    if invite and user.pd_consent_at is None and not body.pd_consent:
+        raise HTTPException(status_code=422, detail=legal.CONSENT_REQUIRED)
     # Проверка пароля **после** разбора ссылки: адрес человека известен только отсюда, а
     # без него не работает правило «пароль не повторяет вашу почту». Недействительная
     # ссылка при этом называется первой — это более крупная беда, чем слабый пароль.
@@ -329,6 +362,9 @@ def activate(body: ActivateRequest, request: Request,
     crud.set_password(db, user, hash_password(body.password))
     if body.full_name:
         crud.set_full_name(db, user, body.full_name)
+    if invite and user.pd_consent_at is None:
+        legal.record_consent(user, terms=True)
+        db.commit()
     # Ссылка, ушедшая в ящик (и только туда), доказывает, что ящик человека: достать её
     # больше неоткуда. Ссылка, выданная администратору на руки, не доказывает ничего —
     # он вправе передать её мессенджером, и признак в подписанном токене их различает.

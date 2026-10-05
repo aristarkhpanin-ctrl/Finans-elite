@@ -248,7 +248,7 @@ def test_suspending_the_issuer_kills_the_key(client, register, db_session):
                          headers=owner).json()
     token = client.post("/api/v1/auth/activate",
                         json={"token": invite["invite_token"],
-                              "password": "kollega-parol7"}).json()["access_token"]
+                              "password": "kollega-parol7", "pd_consent": True}).json()["access_token"]
     admin = {"Authorization": f"Bearer {token}"}
     # Ключ выпускает владелец, но от имени коллеги — через crud, как это будет выглядеть
     # у любого администратора с правом на ключи.

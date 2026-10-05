@@ -23,6 +23,8 @@ async function register(page: Page, product: "business" | "audit" = "business"):
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Пароль").fill(PASSWORD);
   await page.getByLabel("Название организации").fill("ООО «Клавиши»");
+  // Согласие на обработку ПД — отдельной отметкой (L5): без неё регистрации нет.
+  await page.getByRole("checkbox", { name: /согласие на обработку/ }).check();
   await page.getByRole("button", { name: /Создать аккаунт/ }).click();
   await expect(page.getByRole("heading", { name: product === "audit" ? "Дела" : "Проекты" }))
     .toBeVisible();

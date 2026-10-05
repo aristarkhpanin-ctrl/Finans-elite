@@ -170,14 +170,14 @@ def test_password_reset_link_closes_all_previous_sessions(client, register, db_s
                          json={"email": "к@e.ru", "full_name": "К", "role": "editor"},
                          headers=owner).json()
     client.post("/api/v1/auth/activate",
-                json={"token": member["invite_token"], "password": "secret123"})
+                json={"token": member["invite_token"], "password": "secret123", "pd_consent": True})
     old = _headers(_login(client, email="к@e.ru"))
     assert client.get("/api/v1/projects", headers=old).status_code == 200
 
     link = client.post(f"/api/v1/organizations/{org}/members/{member['user_id']}/access-link",
                        headers=owner).json()
     client.post("/api/v1/auth/activate",
-                json={"token": link["token"], "password": "another123"})
+                json={"token": link["token"], "password": "another123", "pd_consent": True})
     assert client.get("/api/v1/projects", headers=old).status_code == 401
 
 

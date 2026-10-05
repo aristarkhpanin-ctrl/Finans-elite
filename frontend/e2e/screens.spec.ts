@@ -211,6 +211,8 @@ async function register(page: Page, org: string, product: "business" | "audit" =
   await page.getByLabel("Email").fill(`screens-${stamp()}@example.test`);
   await page.getByLabel("Пароль").fill("screens-pass-123");
   await page.getByLabel("Название организации").fill(org);
+  // Согласие на обработку ПД — отдельной отметкой (L5): без неё регистрации нет.
+  await page.getByRole("checkbox", { name: /согласие на обработку/ }).check();
   await page.getByRole("button", { name: /Создать аккаунт/ }).click();
   await expect(page.getByRole("heading", { name: product === "audit" ? "Дела" : "Проекты" }))
     .toBeVisible();
@@ -736,6 +738,60 @@ test("матрица скриншотов «Финанс-Аудита»", async 
       await p.goto(`/audit/${demo.id}`);
       await expect(p.getByText("Не удалось выполнить анализ")).toBeVisible({ timeout: 15_000 });
     }));
+  } finally {
+    writeGallery();
+  }
+});
+
+/**
+ * Публичные страницы (пакет L, L4–L5): главная, тарифы, документы и план по ссылке — то,
+ * что видит человек **без входа**. Съёмщик, детектор вылета и `axe-core` — те же.
+ */
+test("матрица публичных страниц", async ({ page, browser }) => {
+  mkdirSync(OUT, { recursive: true });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  try {
+    const guest = await (await browser.newContext()).newPage();
+    await guest.emulateMedia({ reducedMotion: "reduce" });
+    await capture(guest, "public", "home", async (p) => {
+      await p.goto("/");
+      await expect(p.getByText(/бесплатный и без срока/)).toBeVisible();
+    });
+    await capture(guest, "public", "pricing", async (p) => {
+      await p.goto("/pricing");
+      await expect(p.getByText("Команда").first()).toBeVisible();
+    });
+    await capture(guest, "public", "legal-index", async (p) => {
+      await p.goto("/legal");
+      await expect(p.getByRole("link", { name: "Политика обработки персональных данных" }))
+        .toBeVisible();
+    });
+    for (const doc of ["offer", "privacy", "consent", "requisites"]) {
+      await capture(guest, "public", `legal-${doc}`, async (p) => {
+        await p.goto(`/legal/${doc}`);
+        await expect(p.locator(".legal-doc__section").first()).toBeVisible();
+      });
+    }
+
+    // План по ссылке: снимок проекта у посетителя без входа (L4).
+    await register(page, "ООО «Ссылка»");
+    const headers = await authHeaders(page);
+    const pid = await projectFromTemplate(page.request, headers, "Завод для банка");
+    const created = await page.request.post(`/api/v1/projects/${pid}/share-links`,
+      { headers, data: { label: "Сбербанк, кредитный комитет" } });
+    expect(created.ok()).toBeTruthy();
+    const link = await created.json();
+    await capture(guest, "public", "shared-plan", async (p) => {
+      await p.goto(link.path);
+      await expect(p.getByText("Копия для: Сбербанк, кредитный комитет")).toBeVisible();
+    });
+    await capture(page, "results", "share-dialog", async (p) => {
+      await p.goto(`/projects/${pid}/results`);
+      await p.getByRole("button", { name: "Поделиться" }).click();
+      await expect(p.getByRole("dialog")).toBeVisible();
+      await expect(p.getByText("Сбербанк, кредитный комитет", { exact: true })).toBeVisible();
+    });
+    await guest.context().close();
   } finally {
     writeGallery();
   }

@@ -243,7 +243,7 @@ def test_account_block_acts_on_all_organizations_at_once(client, db_session, reg
                 json={"email": "общий@e.ru", "full_name": "Общий", "role": "editor"},
                 headers=b)
     client.post("/api/v1/auth/activate",
-                json={"token": member["invite_token"], "password": "secret123"})
+                json={"token": member["invite_token"], "password": "secret123", "pd_consent": True})
     token = client.post("/api/v1/auth/login",
                         json={"email": "общий@e.ru", "password": "secret123"}
                         ).json()["access_token"]
@@ -271,7 +271,7 @@ def test_blocked_account_cannot_log_in_and_is_told_why(client, db_session, regis
                          json={"email": "к@e.ru", "full_name": "К", "role": "editor"},
                          headers=owner).json()
     client.post("/api/v1/auth/activate",
-                json={"token": member["invite_token"], "password": "secret123"})
+                json={"token": member["invite_token"], "password": "secret123", "pd_consent": True})
     client.post(f"/api/v1/admin/users/{member['user_id']}/block",
                 json={"reason": "по заявлению"}, headers=staff)
 
@@ -311,7 +311,7 @@ def test_unblocking_returns_access(client, db_session, register):
                          json={"email": "к@e.ru", "full_name": "К", "role": "editor"},
                          headers=owner).json()
     client.post("/api/v1/auth/activate",
-                json={"token": member["invite_token"], "password": "secret123"})
+                json={"token": member["invite_token"], "password": "secret123", "pd_consent": True})
     client.post(f"/api/v1/admin/users/{member['user_id']}/block",
                 json={"reason": "ошибка"}, headers=staff)
     client.delete(f"/api/v1/admin/users/{member['user_id']}/block", headers=staff)

@@ -37,7 +37,7 @@ def _member(client, owner, db, email="k@e.ru", role="editor") -> dict:
     crud.mark_email_verified(db, crud.get_user_by_email(db, email))
     token = client.post("/api/v1/auth/activate",
                         json={"token": invite["invite_token"],
-                              "password": "kollega-parol7"}).json()["access_token"]
+                              "password": "kollega-parol7", "pd_consent": True}).json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -391,7 +391,7 @@ def test_an_unverified_address_still_gets_no_informational_letter(client, regist
                          headers=owner).json()
     token = client.post("/api/v1/auth/activate",
                         json={"token": invite["invite_token"],
-                              "password": "kollega-parol7"}).json()["access_token"]
+                              "password": "kollega-parol7", "pd_consent": True}).json()["access_token"]
     _say(client, {"Authorization": f"Bearer {token}"}, pid, "Вопрос")
     mail.clear_outbox()
 

@@ -76,8 +76,10 @@ function stored(): Product {
 export function productFromPath(pathname: string): Product {
   if (pathname === "/audit" || pathname.startsWith("/audit/")) return "audit";
   if (pathname.startsWith("/projects") || pathname.startsWith("/holdings")) return "business";
-  // План по ссылке (L4) — всегда бизнес-план: посетителю чужая память о продукте ни к чему.
-  if (pathname.startsWith("/s/")) return "business";
+  // План по ссылке (L4) и публичные страницы (L5) — витрина «Финанс-Элит»: посетителю
+  // чужая память о продукте ни к чему.
+  if (pathname.startsWith("/s/") || pathname === "/" || pathname === "/pricing"
+      || pathname === "/legal" || pathname.startsWith("/legal/")) return "business";
   return stored();
 }
 

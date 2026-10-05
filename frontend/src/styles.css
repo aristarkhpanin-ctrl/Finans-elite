@@ -291,6 +291,22 @@
 
 /* ---------- 2. База ---------- */
 
+/* Satoshi — из сборки, а не с api.fontshare.com (L5): внешний запрос со всех страниц
+   передавал адрес посетителя зарубежному сервису до всякого согласия. Лицензия —
+   src/assets/fonts/README.md. */
+@font-face {
+  font-family: 'Satoshi'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('./assets/fonts/satoshi-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Satoshi'; font-style: normal; font-weight: 500; font-display: swap;
+  src: url('./assets/fonts/satoshi-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Satoshi'; font-style: normal; font-weight: 700; font-display: swap;
+  src: url('./assets/fonts/satoshi-700.woff2') format('woff2');
+}
+
 * { box-sizing: border-box; }
 
 html, body, #root { height: 100%; margin: 0; }
@@ -894,7 +910,12 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
 .auth-submit:hover:not(:disabled) { background: var(--primary-hover); }
 .auth-submit:disabled { opacity: 0.8; cursor: default; }
 .auth-legal { font: 400 11.5px/1.5 var(--font-ui); color: var(--subtle); text-align: center; margin-top: 2px; }
-.auth-legal span { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
+.auth-legal a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
+/* Согласие на обработку ПД (L5) — своя отметка; ссылка на текст открывается рядом, не
+   уводя с заполненной формы. */
+.auth-remember.auth-consent { align-items: flex-start; margin: 2px 0 2px; }
+.auth-consent input { margin-top: 2px; flex: none; }
+.auth-consent a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
 .auth-divider { height: 1px; background: var(--border); margin: 24px 0 18px; }
 .auth-switch {
   display: flex; align-items: center; justify-content: center; gap: 7px;
@@ -2637,7 +2658,9 @@ button.hint-badge:focus-visible { outline: 2px solid var(--accent); outline-offs
   font: 600 11px var(--font-mono); color: var(--subtle); background: var(--surface-2);
   border: 1px solid var(--border); padding: 4px 9px; border-radius: 9999px; white-space: nowrap;
 }
-.export-group { display: flex; gap: 3px; padding: 3px; background: var(--seg-bg); border-radius: 9px; }
+/* Переносится: шестая кнопка («Поделиться», L4) выталкивала группу за край телефона на
+   73px — нашла матрица публичных страниц. */
+.export-group { display: flex; flex-wrap: wrap; gap: 3px; padding: 3px; background: var(--seg-bg); border-radius: 9px; }
 .export-group button {
   appearance: none; border: none; cursor: pointer; display: inline-flex; align-items: center;
   font: 600 12px var(--font-ui); padding: 7px 12px; border-radius: 7px;
@@ -4267,6 +4290,14 @@ button.leg-toggle:focus-visible { outline: 2px solid var(--accent); outline-offs
 .share-row__who { font: 600 13px var(--font-ui); color: var(--text); overflow-wrap: anywhere; }
 .share-row__meta { font: 400 12px/1.5 var(--font-ui); color: var(--muted); margin-top: 2px; }
 
+.shared-head {
+  display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
+  gap: 12px 20px;
+}
+.shared-head__title { flex: 1 1 320px; min-width: 0; }
+.shared-head__title h1 { overflow-wrap: anywhere; }
+.shared-head__for { font: 500 13.5px/1.45 var(--font-ui); color: var(--muted); overflow-wrap: anywhere; }
+.shared-head__actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .shared-kicker { font: 600 11.5px var(--font-ui); color: var(--muted); margin-bottom: 2px; }
 .shared-terms {
   margin: 14px 0 4px; padding: 12px 14px; border: 1px solid var(--border);
@@ -4281,4 +4312,103 @@ button.leg-toggle:focus-visible { outline: 2px solid var(--accent); outline-offs
 @media (max-width: 640px) {
   .share-form__row { grid-template-columns: minmax(0, 1fr); }
   .share-row { align-items: flex-start; flex-direction: column; }
+}
+
+/* ============================================================
+   25. ПУБЛИЧНЫЕ СТРАНИЦЫ (L5): главная, тарифы, документы — без входа
+   ============================================================ */
+.pub-head { flex-wrap: wrap; height: auto; min-height: 60px; padding: 10px 32px; row-gap: 8px; }
+.pub-nav { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+.pub-nav__item {
+  font: 600 13.5px var(--font-ui); color: var(--muted); padding: 8px 10px; border-radius: 8px;
+}
+.pub-nav__item:hover { color: var(--text); background: var(--surface-2); text-decoration: none; }
+.pub-nav__item--active { color: var(--text); text-decoration: underline; text-underline-offset: 4px; }
+.pub-nav__btn { text-decoration: none; }
+.pub-nav__btn:hover { text-decoration: none; }
+
+.pub-hero { padding: 16px 0 8px; max-width: 780px; }
+.pub-hero__title { font: 500 34px/1.15 var(--font-display); letter-spacing: -0.03em; margin: 0 0 12px; }
+.pub-hero__lead { font: 400 15.5px/1.6 var(--font-ui); color: var(--muted); margin: 0; }
+.pub-hero__actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 20px 0 6px; }
+.pub-hero__actions .btn { text-decoration: none; }
+
+.pub-products { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 26px; }
+.pub-product {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px;
+}
+.pub-product__name { font: 600 18px var(--font-display); margin: 0 0 8px; }
+.pub-product__head { font: 600 14.5px/1.45 var(--font-ui); color: var(--text); margin-bottom: 6px; }
+.pub-product__lead { font: 400 13px/1.55 var(--font-ui); color: var(--muted); margin: 0 0 12px; }
+.pub-product__feats { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.pub-product__feats li { display: grid; gap: 2px; border-left: 3px solid var(--primary); padding-left: 10px; }
+.pub-product__feats b { font: 600 13px var(--font-ui); color: var(--text); }
+.pub-product__feats span { font: 400 12.5px/1.5 var(--font-ui); color: var(--muted); }
+.pub-more { margin-top: 26px; max-width: 780px; }
+.pub-more__list { margin: 0; padding-left: 18px; display: grid; gap: 6px; font: 400 13.5px/1.6 var(--font-ui); color: var(--muted); }
+
+.pub-plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 8px; }
+.pub-plan {
+  display: grid; gap: 6px; align-content: start; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 14px; padding: 18px;
+}
+.pub-plan__name { font: 600 15px var(--font-ui); color: var(--text); }
+.pub-plan__price { font: 600 22px var(--font-display); color: var(--text); }
+.pub-plan__price span { font: 400 13px var(--font-ui); color: var(--muted); }
+.pub-plan__annual, .pub-plan__quota, .pub-plan__note { font: 400 12.5px/1.5 var(--font-ui); color: var(--muted); }
+
+/* Подвал — по краю содержимого (`.content`: 1180px с полями 32px), а не по краю окна. */
+.pub-foot {
+  border-top: 1px solid var(--border); display: grid; gap: 8px;
+  padding: 18px max(32px, calc((100% - 1180px) / 2 + 32px)) 26px;
+}
+.pub-foot__links { display: flex; gap: 6px 16px; flex-wrap: wrap; }
+.pub-foot__links a, .auth-docs a, .legal-doc__more a {
+  font: 500 12.5px var(--font-ui); color: var(--muted); text-decoration: underline; text-underline-offset: 2px;
+}
+.pub-foot__note { font: 400 12px/1.5 var(--font-ui); color: var(--muted); max-width: 780px; }
+.auth-docs { display: flex; gap: 4px 12px; flex-wrap: wrap; justify-content: center; margin-top: 14px; }
+
+.legal-draft {
+  --subtle: var(--muted);
+  background: var(--warn-bg); border: 1px solid var(--warn-border); color: var(--warn-text);
+  border-radius: 11px; padding: 10px 14px; font: 500 13px/1.5 var(--font-ui); margin: 10px 0;
+}
+.legal-missing {
+  border: 1px dashed var(--border-strong); border-radius: 11px; padding: 10px 14px;
+  font: 400 13px/1.5 var(--font-ui); color: var(--muted); margin: 10px 0;
+}
+.legal-doc { max-width: 780px; }
+.legal-doc__edition { font: 500 12.5px var(--font-ui); color: var(--muted); }
+.legal-doc__section { margin-top: 20px; }
+.legal-doc__section h2 { font: 600 16px/1.35 var(--font-ui); margin: 0 0 8px; }
+.legal-doc__section p { font: 400 14px/1.65 var(--font-ui); color: var(--text); margin: 0 0 10px; }
+.legal-doc__more { display: flex; gap: 6px 16px; flex-wrap: wrap; margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--border); }
+.legal-index { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 12px; max-width: 780px; }
+.legal-index li { display: grid; gap: 2px; padding: 12px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.legal-index a { font: 600 15px var(--font-ui); }
+.legal-index span { font: 400 13px/1.5 var(--font-ui); color: var(--muted); }
+/* Ссылка посреди текста отличается не только цветом (WCAG 1.4.1, `link-in-text-block` —
+   нашёл `axe-core` в матрице публичных страниц): цвет ссылки и текста рядом различим не
+   для всех. */
+.page-sub a, .pub-more__list a, .pub-plan__note a, .shared-foot a {
+  text-decoration: underline; text-underline-offset: 2px;
+}
+
+@media (max-width: 864px) {
+  .pub-products { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 1023px) {
+  .pub-foot { padding: 16px 24px 22px; }
+}
+@media (max-width: 640px) {
+  .pub-head { padding: 10px 16px; }
+  .pub-theme { order: 1; margin-left: auto; }
+  /* Разделы и обе кнопки — одной строкой: на 402px четыре пункта в обычных полях не
+     помещались, и «Регистрация» уходила третьей строкой. */
+  .pub-nav { order: 2; width: 100%; margin-left: 0; gap: 4px; }
+  .pub-nav__item { padding: 8px 6px; font-size: 13px; }
+  .pub-nav__btn { padding: 0 12px; font-size: 13px; }
+  .pub-foot { padding: 16px 16px 22px; }
+  .pub-hero__title { font-size: 26px; }
 }

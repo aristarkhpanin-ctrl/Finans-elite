@@ -129,6 +129,12 @@ def build_export(db: Session, user: User) -> dict:
                 s for s in crud.list_user_thread_subscriptions(db, user.id)
                 if s.muted_at is not None]),
             "сотрудник_платформы": bool(user.is_staff),
+            # Согласие на обработку ПД (L5): когда и с какой редакцией текста. Пусто —
+            # учётная запись заведена до того, как платформа стала его спрашивать.
+            "согласие_на_обработку_пд": _iso(user.pd_consent_at),
+            "редакция_согласия": user.pd_consent_edition or None,
+            "оферта_принята": _iso(user.terms_accepted_at),
+            "редакция_оферты": user.terms_edition or None,
             "доступ_заблокирован": _iso(user.blocked_at),
             "причина_блокировки": user.block_reason or None,
         },

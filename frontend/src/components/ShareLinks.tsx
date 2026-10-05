@@ -172,7 +172,9 @@ export function ShareLinks({ open, onClose, projectId }: {
                 <div className="share-row__meta">
                   {linkState(link)} · версия «{link.version_label}» · {linkOpens(link)}
                 </div>
-                <div className="share-row__meta">открыл {link.created_by} {day(link.created_at)}</div>
+                <div className="share-row__meta">
+                  отправитель — {link.created_by}, {day(link.created_at)}
+                </div>
               </div>
               {link.state === "active" && (
                 <Button variant="ghost" loading={revoke.isPending && revoke.variables === link.id}

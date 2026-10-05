@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { activateInvite } from "../api/auth";
+import { activationKind } from "../api/legal";
 import { httpDetail, httpStatus, setToken } from "../api/client";
 import { Button, Field } from "../components/ui";
 import { usePageTitle } from "../pageTitle";
@@ -26,9 +27,15 @@ export function ActivatePage() {
   const [repeat, setRepeat] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // Приглашённый — новый человек, и его согласие на обработку ПД ещё нигде не записано
+  // (L5); сбросу пароля оно не нужно. Вид ссылки читается из токена — для подписи
+  // экрана, а не для доступа: проверяет его сервер.
+  const invite = activationKind(token) === "invite";
+  const [consent, setConsent] = useState(false);
 
   const mismatch = repeat.length > 0 && password !== repeat;
-  const canSubmit = token && password.length >= 8 && password === repeat && !busy;
+  const canSubmit = token && password.length >= 8 && password === repeat && !busy
+    && (!invite || consent);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -37,7 +44,7 @@ export function ActivatePage() {
     setError("");
     try {
       const { access_token } = await activateInvite({
-        token, password, full_name: fullName.trim(),
+        token, password, full_name: fullName.trim(), pd_consent: invite && consent,
       });
       // Токен кладём тем же помощником, что и вход: ключ хранилища знает клиент,
       // и второе место, где он записан руками, однажды с ним разойдётся.
@@ -74,10 +81,11 @@ export function ActivatePage() {
 
   return (
     <div className="auth-card" role="main">
-      <h1 className="auth-title">Задайте пароль</h1>
+      <h1 className="auth-title">{invite ? "Задайте пароль" : "Задайте новый пароль"}</h1>
       <p className="page-sub" style={{ marginBottom: 18 }}>
-        Вас пригласили в организацию. Придумайте пароль — после этого вы сразу
-        окажетесь внутри.
+        {invite
+          ? "Вас пригласили в организацию. Придумайте пароль — после этого вы сразу окажетесь внутри."
+          : "Придумайте новый пароль. Прежние входы в учётную запись закроются — войти снова придётся и на других устройствах."}
       </p>
 
       <form onSubmit={submit}>
@@ -90,6 +98,18 @@ export function ActivatePage() {
                onChange={(e) => setRepeat(e.target.value)} />
 
         {mismatch && <div className="field-note field-note--warn">Пароли не совпадают.</div>}
+        {invite && (
+          <label className="auth-remember auth-consent" style={{ marginTop: 10 }}>
+            <input type="checkbox" checked={consent} disabled={busy}
+                   onChange={(e) => setConsent(e.target.checked)} />
+            <span>
+              Даю{" "}
+              <Link to="/legal/consent" target="_blank" rel="noopener">
+                согласие на обработку персональных данных
+              </Link>
+            </span>
+          </label>
+        )}
         {error && <div className="error" role="alert">{error}</div>}
 
         <Button type="submit" disabled={!canSubmit} loading={busy}

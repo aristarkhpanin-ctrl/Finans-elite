@@ -4,7 +4,7 @@
 def _register(client, email="user@e.ru"):
     return client.post("/api/v1/auth/register", json={
         "email": email, "password": "secret123", "full_name": "Иван",
-        "organization_name": "Орг",
+        "organization_name": "Орг", "pd_consent": True
     })
 
 
@@ -85,7 +85,7 @@ def test_invited_user_can_activate_and_work(client, register):
     assert token
 
     r = client.post("/api/v1/auth/activate",
-                    json={"token": token, "password": "newpass123", "full_name": "Аналитик"})
+                    json={"token": token, "password": "newpass123", "full_name": "Аналитик", "pd_consent": True})
     assert r.status_code == 200
     headers = {"Authorization": f"Bearer {r.json()['access_token']}"}
 
@@ -116,7 +116,7 @@ def test_access_token_cannot_activate(client, register):
     owner = register(email="own3@e.ru", org="Орг П3")
     access = owner["Authorization"].split(" ", 1)[1]
     r = client.post("/api/v1/auth/activate",
-                    json={"token": access, "password": "whatever123"})
+                    json={"token": access, "password": "whatever123", "pd_consent": True})
     assert r.status_code == 400
 
 
@@ -129,9 +129,9 @@ def test_activation_is_single_use(client, register):
     owner = register(email="own4@e.ru", org="Орг П4")
     token = _invite(client, owner, email="n4@e.ru")
     assert client.post("/api/v1/auth/activate",
-                       json={"token": token, "password": "pervyi-parol7"}).status_code == 200
+                       json={"token": token, "password": "pervyi-parol7", "pd_consent": True}).status_code == 200
     r = client.post("/api/v1/auth/activate",
-                    json={"token": token, "password": "vtoroy-parol7"})
+                    json={"token": token, "password": "vtoroy-parol7", "pd_consent": True})
     assert r.status_code == 409
     # старый пароль в силе, новый не сработал
     assert client.post("/api/v1/auth/login",
@@ -190,12 +190,12 @@ def test_short_password_rejected_everywhere(client, register):
     """Одно правило длины на все три двери: регистрация, активация, смена."""
     assert client.post("/api/v1/auth/register", json={
         "email": "short@e.ru", "password": "1234", "full_name": "",
-        "organization_name": "Орг"}).status_code == 422
+        "organization_name": "Орг", "pd_consent": True}).status_code == 422
 
     owner = register(email="own7@e.ru", org="Орг П7")
     token = _invite(client, owner, email="n7@e.ru")
     assert client.post("/api/v1/auth/activate",
-                       json={"token": token, "password": "1234"}).status_code == 422
+                       json={"token": token, "password": "1234", "pd_consent": True}).status_code == 422
     assert client.post("/api/v1/auth/password",
                        json={"current_password": "secret123", "new_password": "1234"},
                        headers=owner).status_code == 422
@@ -206,7 +206,7 @@ def test_short_password_rejected_everywhere(client, register):
 def _member(client, owner, email: str, role: str = "analyst") -> str:
     """Завести участника с паролем; вернуть его user_id."""
     token = _invite(client, owner, email=email, role=role)
-    r = client.post("/api/v1/auth/activate", json={"token": token, "password": "pervyi-parol7"})
+    r = client.post("/api/v1/auth/activate", json={"token": token, "password": "pervyi-parol7", "pd_consent": True})
     assert r.status_code == 200
     me = client.get("/api/v1/auth/me",
                     headers={"Authorization": f"Bearer {r.json()['access_token']}"})
@@ -253,7 +253,7 @@ def test_admin_issues_reset_link_and_member_regains_access(client, register):
     assert r.status_code == 200 and r.json()["kind"] == "reset"
 
     a = client.post("/api/v1/auth/activate",
-                    json={"token": r.json()["token"], "password": "vtoroy-parol7"})
+                    json={"token": r.json()["token"], "password": "vtoroy-parol7", "pd_consent": True})
     assert a.status_code == 200
     assert client.post("/api/v1/auth/login",
                        json={"email": "res-m@e.ru", "password": "vtoroy-parol7"}).status_code == 200
@@ -268,9 +268,9 @@ def test_reset_link_is_single_use(client, register):
     uid = _member(client, owner, "once-m@e.ru")
     token = _link(client, owner, uid).json()["token"]
     assert client.post("/api/v1/auth/activate",
-                       json={"token": token, "password": "vtoroy-parol7"}).status_code == 200
+                       json={"token": token, "password": "vtoroy-parol7", "pd_consent": True}).status_code == 200
     r = client.post("/api/v1/auth/activate",
-                    json={"token": token, "password": "tretiy-parol7"})
+                    json={"token": token, "password": "tretiy-parol7", "pd_consent": True})
     assert r.status_code == 409
     assert client.post("/api/v1/auth/login",
                        json={"email": "once-m@e.ru", "password": "vtoroy-parol7"}).status_code == 200
@@ -290,7 +290,7 @@ def test_reset_link_dies_when_the_user_changes_password_himself(client, register
                        headers=headers).status_code == 204
 
     r = client.post("/api/v1/auth/activate",
-                    json={"token": token, "password": "perehvat-parol7"})
+                    json={"token": token, "password": "perehvat-parol7", "pd_consent": True})
     assert r.status_code == 409
 
 
@@ -329,7 +329,7 @@ def test_access_link_reissues_an_invitation_when_there_is_no_password(client, re
     r = _link(client, owner, uid)
     assert r.status_code == 200 and r.json()["kind"] == "invite"
     assert client.post("/api/v1/auth/activate",
-                       json={"token": r.json()["token"], "password": "svezhiy-parol7"}
+                       json={"token": r.json()["token"], "password": "svezhiy-parol7", "pd_consent": True}
                        ).status_code == 200
 
 
@@ -339,7 +339,7 @@ def test_access_link_requires_member_manage(client, register):
     uid = _member(client, owner, "perm-m@e.ru", role="viewer")
     token = _invite(client, owner, email="perm-v@e.ru", role="viewer")
     viewer = client.post("/api/v1/auth/activate",
-                         json={"token": token, "password": "nabludatel7"}).json()
+                         json={"token": token, "password": "nabludatel7", "pd_consent": True}).json()
     headers = {"Authorization": f"Bearer {viewer['access_token']}"}
     r = client.post(
         f"/api/v1/organizations/{_org(client, owner)}/members/{uid}/access-link",

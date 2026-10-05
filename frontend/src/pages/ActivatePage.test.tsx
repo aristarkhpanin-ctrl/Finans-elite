@@ -53,6 +53,11 @@ function show(search = "?token=abc") {
 
 const fill = (label: string, value: string) =>
   fireEvent.change(screen.getByLabelText(label), { target: { value } });
+const consent = () => fireEvent.click(screen.getByRole("checkbox", { name: /согласие/ }));
+
+/** Токен сброса пароля: вид ссылки экран читает из него (L5). */
+const RESET = "eyJhbGciOiJIUzI1NiJ9." + btoa(JSON.stringify({ sub: "u1", typ: "reset" }))
+  .replace(/=+$/, "") + ".sig";
 
 describe("Активация приглашения", () => {
   it("без кода в ссылке объясняет, что делать", () => {
@@ -68,10 +73,11 @@ describe("Активация приглашения", () => {
     fill("Как вас зовут", "Аналитик");
     fill("Пароль", "newpass123");
     fill("Пароль ещё раз", "newpass123");
+    consent();
     fireEvent.click(screen.getByText("Задать пароль и войти"));
 
     await waitFor(() => expect(activateInvite).toHaveBeenCalledWith({
-      token: "abc", password: "newpass123", full_name: "Аналитик",
+      token: "abc", password: "newpass123", full_name: "Аналитик", pd_consent: true,
     }));
     expect(setToken).toHaveBeenCalledWith("T");
   });
@@ -94,11 +100,36 @@ describe("Активация приглашения", () => {
     expect(activateInvite).not.toHaveBeenCalled();
   });
 
+  it("без отдельной отметки согласия приглашение не отправляется", () => {
+    // Приглашённый — новый человек: его согласие на обработку ПД нигде ещё не записано.
+    show();
+    fill("Пароль", "newpass123");
+    fill("Пароль ещё раз", "newpass123");
+    const submit = screen.getByText("Задать пароль и войти").closest("button")!;
+    expect(submit.disabled).toBe(true);
+    expect((screen.getByRole("checkbox", { name: /согласие/ }) as HTMLInputElement).checked)
+      .toBe(false);
+  });
+
+  it("сброс пароля называет себя сбросом и согласия не спрашивает", async () => {
+    activateInvite.mockResolvedValue({ access_token: "T", token_type: "bearer" });
+    show("?token=" + RESET);
+    expect(screen.getByRole("heading", { name: "Задайте новый пароль" })).toBeTruthy();
+    expect(screen.queryByRole("checkbox")).toBeNull();
+    fill("Пароль", "newpass123");
+    fill("Пароль ещё раз", "newpass123");
+    fireEvent.click(screen.getByText("Задать пароль и войти"));
+    await waitFor(() => expect(activateInvite).toHaveBeenCalledWith({
+      token: RESET, password: "newpass123", full_name: "", pd_consent: false,
+    }));
+  });
+
   it("использованное приглашение объясняется, а не показывается общей ошибкой", async () => {
     activateInvite.mockRejectedValue(httpError(409));
     show();
     fill("Пароль", "newpass123");
     fill("Пароль ещё раз", "newpass123");
+    consent();
     fireEvent.click(screen.getByText("Задать пароль и войти"));
     await waitFor(() => expect(screen.getByRole("alert").textContent)
       .toContain("уже активировано"));
@@ -109,6 +140,7 @@ describe("Активация приглашения", () => {
     show();
     fill("Пароль", "newpass123");
     fill("Пароль ещё раз", "newpass123");
+    consent();
     fireEvent.click(screen.getByText("Задать пароль и войти"));
     await waitFor(() => expect(screen.getByRole("alert").textContent)
       .toContain("пригласить вас заново"));

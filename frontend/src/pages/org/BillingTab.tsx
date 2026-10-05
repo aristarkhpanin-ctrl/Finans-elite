@@ -5,24 +5,8 @@ import { changePlan, checkout, disableAutoRenew, getPlans, getQuote, getSubscrip
          type CheckoutQuote, type Plan, type Subscription } from "../../api/org";
 import { useToast } from "../../components/Toast";
 import { Button, ErrorState, Modal, Skeleton } from "../../components/ui";
-import { plural } from "../../format";
+import { gift, monthCount, price, rub } from "../../planText";
 import { BillingDocuments } from "./BillingDocuments";
-
-/** Сумма в рублях: «2 900 ₽». */
-const rub = (n: number) => `${n.toLocaleString("ru-RU")} ₽`;
-
-/** «1 месяц», «2 месяца», «12 месяцев». */
-const monthCount = (n: number) => `${n} ${plural(n, "месяц", "месяца", "месяцев")}`;
-
-/**
- * Подарок за оплату года — словами владельца: «2 месяца в подарок». Сумму считает сервер
- * (цена × (12 − подарок)); экран только называет, сколько месяцев подарено.
- */
-const gift = (n: number) => `${monthCount(n)} в подарок`;
-
-/** Цена тарифа. «По запросу» — не ноль: ноль на экране читается как «бесплатно». */
-const price = (p: { price_rub: number; price_on_request: boolean }) =>
-  p.price_on_request ? "По запросу" : p.price_rub === 0 ? "Бесплатно" : rub(p.price_rub);
 
 /** Платный тариф оплачивается в продукте (а не назначается платформой и не бесплатен). */
 const payable = (p: Plan) => p.price_rub > 0 && !p.price_on_request;

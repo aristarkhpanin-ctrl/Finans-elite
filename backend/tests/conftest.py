@@ -62,7 +62,7 @@ def register(client):
     def _register(email: str = "owner@e.ru", org: str = "Орг") -> dict:
         token = client.post("/api/v1/auth/register", json={
             "email": email, "password": "secret123", "full_name": "Владелец",
-            "organization_name": org,
+            "organization_name": org, "pd_consent": True
         }).json()["access_token"]
         return {"Authorization": f"Bearer {token}"}
     return _register

@@ -28,7 +28,7 @@ def _member(client, owner, email="k@e.ru", role="editor") -> dict:
 def _activate(client, invite: dict, password="kollega-parol7") -> dict:
     token = client.post("/api/v1/auth/activate",
                         json={"token": invite["invite_token"],
-                              "password": password}).json()["access_token"]
+                              "password": password, "pd_consent": True}).json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
 
 

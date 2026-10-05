@@ -6,6 +6,7 @@ import { changePassword, deleteMyAccount, disableTotp, downloadMyData, enableTot
          reissueRecoveryCodes, revokeAllSessions, revokeSession, startTotpSetup,
          updateProfile, type TotpSetup } from "../../api/auth";
 import { httpDetail, httpStatus } from "../../api/client";
+import { getLegalIndex, givePdConsent } from "../../api/legal";
 import { useAuth } from "../../auth/AuthContext";
 import { useToast } from "../../components/Toast";
 import { Button, Chip, Field, Loading, Modal } from "../../components/ui";
@@ -121,6 +122,7 @@ export function ProfileTab() {
 
       <EmailVerificationBlock />
       <CommentEmailsBlock />
+      {!user?.is_demo && <ConsentBlock />}
       <MyDataBlock />
       <UsageBlock />
     </div>
@@ -263,6 +265,59 @@ function UsageBlock() {
       <ul className="mnotes">
         {data.excluded.map((x) => <li key={x}>{x}</li>)}
       </ul>
+    </div>
+  );
+}
+
+/**
+ * Согласие на обработку персональных данных (L5): когда дано и какой редакции.
+ *
+ * У учётных записей, заведённых до того, как платформа стала его спрашивать, согласие
+ * **не записано** — это неизвестность, а не отказ, и блок предлагает его дать, а не
+ * делает вид, что оно было. Сменилась редакция документов — сказано и это: человек
+ * соглашался с другим текстом. Отзыв — письмом или удалением учётной записи; отдельной
+ * кнопки «отозвать» нет, потому что без согласия и без договора вести учётную запись
+ * нельзя, и такая кнопка обещала бы то, чего не делает.
+ */
+function ConsentBlock() {
+  const { user, refresh } = useAuth();
+  const toast = useToast();
+  const { data: index } = useQuery({ queryKey: ["legal"], queryFn: getLegalIndex,
+                                     staleTime: 5 * 60_000 });
+  const give = useMutation({
+    mutationFn: givePdConsent,
+    onSuccess: async () => {
+      await refresh();
+      toast("Согласие записано", { kind: "success" });
+    },
+    onError: (e: unknown) => toast(httpDetail(e) ?? "Не удалось записать согласие",
+                                   { kind: "error" }),
+  });
+  if (!user) return null;
+  const given = user.pd_consent_at;
+  const stale = given && index && index.edition !== user.pd_consent_edition;
+  return (
+    <div className="audit-block">
+      <h2 className="audit-block__title">Согласие на обработку персональных данных</h2>
+      <p className="page-sub" style={{ marginTop: 0 }}>
+        {given
+          ? `Дано ${new Date(given).toLocaleDateString("ru-RU")}, редакция текста — «${user.pd_consent_edition}».`
+          : "Не записано: учётная запись заведена до того, как платформа стала его спрашивать."}
+        {stale && ` С тех пор документы обновлены — действующая редакция «${index.edition}».`}
+      </p>
+      {/* Документы открываются рядом, новой вкладкой, — не уводя из профиля. */}
+      <p className="page-sub">
+        Текст — <a href="/legal/consent" target="_blank" rel="noopener">согласие</a>,
+        порядок обработки — <a href="/legal/privacy" target="_blank" rel="noopener">политика</a>.
+        Отозвать согласие можно письмом на адрес из{" "}
+        <a href="/legal/requisites" target="_blank" rel="noopener">реквизитов</a> или
+        удалением учётной записи ниже.
+      </p>
+      {(!given || stale) && (
+        <Button variant="ghost" onClick={() => give.mutate()} loading={give.isPending}>
+          {given ? "Согласиться с действующей редакцией" : "Дать согласие"}
+        </Button>
+      )}
     </div>
   );
 }

@@ -44,8 +44,18 @@ vi.mock("../../api/auth", async (orig) => ({
 
 const toast = vi.fn();
 vi.mock("../../components/Toast", () => ({ useToast: () => toast }));
+const refresh = vi.fn();
+let consentAt: string | null = null;
 vi.mock("../../auth/AuthContext", () => ({
-  useAuth: () => ({ user: { id: "u1", email: "o@e.ru", full_name: "Владелец" } }),
+  useAuth: () => ({ user: { id: "u1", email: "o@e.ru", full_name: "Владелец",
+                            pd_consent_at: consentAt, pd_consent_edition: consentAt ? "2026-10-15" : "" },
+                    refresh }),
+}));
+const getLegalIndex = vi.fn();
+const givePdConsent = vi.fn();
+vi.mock("../../api/legal", () => ({
+  getLegalIndex: () => getLegalIndex(),
+  givePdConsent: () => givePdConsent(),
 }));
 
 const session = (over: Partial<SessionRow> = {}): SessionRow => ({
@@ -57,6 +67,11 @@ const session = (over: Partial<SessionRow> = {}): SessionRow => ({
 afterEach(cleanup);
 beforeEach(() => {
   vi.clearAllMocks();
+  consentAt = null;
+  getLegalIndex.mockResolvedValue({ edition: "2026-10-15", draft: false, draft_note: "",
+                                    documents: [] });
+  givePdConsent.mockResolvedValue({});
+  refresh.mockResolvedValue(undefined);
   getSessions.mockResolvedValue([
     session({ id: "s1", current: true }),
     session({ id: "s2", device: "Safari · iPhone", ip: "198.51.100.4", current: false }),
@@ -277,4 +292,32 @@ it("при включённом сборе перечисляет события
   show();
   expect(await screen.findByText("посчитал проект")).toBeTruthy();
   expect(screen.getByText("зарегистрировался")).toBeTruthy();
+});
+
+
+/**
+ * Согласие на обработку ПД (L5). У учётной записи, заведённой раньше, оно **не записано** —
+ * это неизвестность, а не отказ, и блок предлагает его дать; сменилась редакция — сказано.
+ */
+it("согласие, которого нет, предлагается дать — и записывается", async () => {
+  show();
+  const block = (await screen.findByRole("heading", { name: "Согласие на обработку персональных данных" }))
+    .closest(".audit-block") as HTMLElement;
+  expect(within(block).getByText(/Не записано: учётная запись заведена до того/)).toBeTruthy();
+  fireEvent.click(within(block).getByRole("button", { name: "Дать согласие" }));
+  await waitFor(() => expect(givePdConsent).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(refresh).toHaveBeenCalled());
+});
+
+it("данное согласие называет дату и редакцию, а сменившуюся редакцию — отдельно", async () => {
+  consentAt = "2026-10-04T10:00:00Z";
+  getLegalIndex.mockResolvedValue({ edition: "2026-11-01", draft: false, draft_note: "",
+                                    documents: [] });
+  show();
+  const block = (await screen.findByRole("heading", { name: "Согласие на обработку персональных данных" }))
+    .closest(".audit-block") as HTMLElement;
+  expect(within(block).getByText(/редакция текста — «2026-10-15»/)).toBeTruthy();
+  expect(await within(block).findByText(/действующая редакция «2026-11-01»/)).toBeTruthy();
+  expect(within(block).getByRole("button", { name: "Согласиться с действующей редакцией" }))
+    .toBeTruthy();
 });

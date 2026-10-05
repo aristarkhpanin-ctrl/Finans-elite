@@ -642,9 +642,12 @@ def seed(client: _Client, *, passwords: dict[str, str] | None = None,
     notes: list[str] = []
 
     # 1. Владелец регистрируется — организация создаётся вместе с ним (как на экране).
+    # Отметка согласия на обработку ПД (L5) — та же, что ставит человек: учётные записи
+    # демо вымышлены, а дорога регистрации у всех одна.
     token = anon.call("POST", "/auth/register", {
         "email": owner_account.email, "password": pw[owner_account.email],
-        "full_name": owner_account.full_name, "organization_name": org_name})["access_token"]
+        "full_name": owner_account.full_name, "organization_name": org_name,
+        "pd_consent": True})["access_token"]
     owner = _Api(client, token)
     org_id = next(o["id"] for o in owner.call("GET", "/organizations")
                   if o["name"] == org_name)
@@ -656,7 +659,7 @@ def seed(client: _Client, *, passwords: dict[str, str] | None = None,
         "role": analyst_account.role})
     analyst_token = anon.call("POST", "/auth/activate", {
         "token": invite["invite_token"], "password": pw[analyst_account.email],
-        "full_name": analyst_account.full_name})["access_token"]
+        "full_name": analyst_account.full_name, "pd_consent": True})["access_token"]
     analyst = _Api(client, analyst_token, org_id)
 
     # 3. Оператор платформы (если заведён) назначает тарифы — как по оплаченному счёту.
@@ -792,7 +795,7 @@ def seed_public(client: _Client, *, mark_demo: Callable[[str, str], None]) -> Se
         "role": PUBLIC_VISITOR.role})
     anon.call("POST", "/auth/activate", {
         "token": invite["invite_token"], "password": passwords[PUBLIC_VISITOR.email],
-        "full_name": PUBLIC_VISITOR.full_name})
+        "full_name": PUBLIC_VISITOR.full_name, "pd_consent": True})
     mark_demo(report.org_id, PUBLIC_VISITOR.email)
     report.accounts = list(PUBLIC_ACCOUNTS)
     report.notes.append("Пароли учётных записей публичного демо случайные и нигде не "

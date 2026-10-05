@@ -32,7 +32,7 @@ def _login(client, email: str, password: str = "secret123") -> dict:
 def _activate(client, member: dict, password: str = "secret123") -> dict:
     """Приглашённый заводит пароль и получает рабочий доступ."""
     client.post("/api/v1/auth/activate",
-                json={"token": member["invite_token"], "password": password})
+                json={"token": member["invite_token"], "password": password, "pd_consent": True})
     return _login(client, member["email"])
 
 

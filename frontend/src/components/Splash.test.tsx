@@ -13,7 +13,12 @@ vi.mock("./CubeHero", () => ({ CubeHero: () => <div data-testid="cube" /> }));
  */
 
 afterEach(cleanup);
-beforeEach(() => localStorage.clear());
+beforeEach(() => {
+  localStorage.clear();
+  // Сплеш общего раздела следует последнему выбранному продукту. Корень «/» с пакета L —
+  // витрина «Финанс-Элит» со своим продуктом, поэтому адрес окна — общий раздел.
+  window.history.replaceState(null, "", "/organization");
+});
 
 const wordmark = () => document.querySelector(".splash__wordmark")!.textContent;
 

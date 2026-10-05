@@ -22,6 +22,8 @@ async function register(page: Page, product: "business" | "audit"): Promise<stri
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Пароль").fill("smoke-pass-123");
   await page.getByLabel("Название организации").fill("ООО «Дымовая»");
+  // Согласие на обработку ПД — отдельной отметкой (L5): без неё регистрации нет.
+  await page.getByRole("checkbox", { name: /согласие на обработку/ }).check();
   await page.getByRole("button", { name: /Создать аккаунт/ }).click();
   return email;
 }
@@ -99,6 +101,19 @@ test("«Финанс-Аудит»: регистрация → дело → от�
   await page.getByLabel("Название версии").fill("Дымовая версия");
   await page.getByRole("button", { name: "Сохранить версию" }).click();
   await expect(page.getByText("Дымовая версия")).toBeVisible();
+});
+
+test("публичные страницы: главная → тарифы → оферта — без входа", async ({ page }) => {
+  // Шов L5: маршруты вне каркаса и публичные ответы сервера (каталог тарифов, документы).
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await page.getByRole("link", { name: "Тарифы" }).first().click();
+  await expect(page.getByRole("heading", { name: "Тарифы", level: 1 })).toBeVisible();
+  await expect(page.getByText("Команда").first()).toBeVisible();
+  await page.getByRole("link", { name: "Оферта" }).first().click();
+  await expect(page.getByRole("heading", { name: "Оферта", level: 1 })).toBeVisible();
+  // Пока владелец не утвердил редакцию, текст называет себя черновиком — над текстом.
+  await expect(page.getByText(/юристом не проверен/)).toBeVisible();
 });
 
 test("выход возвращает на вход того же продукта", async ({ page }) => {

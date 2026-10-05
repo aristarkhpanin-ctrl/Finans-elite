@@ -54,6 +54,11 @@
             "title": "Password",
             "type": "string"
           },
+          "pd_consent": {
+            "default": false,
+            "title": "Pd Consent",
+            "type": "boolean"
+          },
           "token": {
             "title": "Token",
             "type": "string"
@@ -7828,6 +7833,136 @@
         "title": "Lease",
         "type": "object"
       },
+      "LegalDocBrief": {
+        "properties": {
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "title",
+          "summary"
+        ],
+        "title": "LegalDocBrief",
+        "type": "object"
+      },
+      "LegalDocOut": {
+        "properties": {
+          "draft": {
+            "title": "Draft",
+            "type": "boolean"
+          },
+          "draft_note": {
+            "default": "",
+            "title": "Draft Note",
+            "type": "string"
+          },
+          "edition": {
+            "title": "Edition",
+            "type": "string"
+          },
+          "missing": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing",
+            "type": "array"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/LegalSectionOut"
+            },
+            "title": "Sections",
+            "type": "array"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "title",
+          "summary",
+          "edition",
+          "draft",
+          "sections"
+        ],
+        "title": "LegalDocOut",
+        "type": "object"
+      },
+      "LegalIndexOut": {
+        "description": "Список документов и их редакция. ``draft`` — тексты не утверждены владельцем.",
+        "properties": {
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/LegalDocBrief"
+            },
+            "title": "Documents",
+            "type": "array"
+          },
+          "draft": {
+            "title": "Draft",
+            "type": "boolean"
+          },
+          "draft_note": {
+            "default": "",
+            "title": "Draft Note",
+            "type": "string"
+          },
+          "edition": {
+            "title": "Edition",
+            "type": "string"
+          }
+        },
+        "required": [
+          "edition",
+          "draft",
+          "documents"
+        ],
+        "title": "LegalIndexOut",
+        "type": "object"
+      },
+      "LegalSectionOut": {
+        "properties": {
+          "heading": {
+            "title": "Heading",
+            "type": "string"
+          },
+          "paragraphs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Paragraphs",
+            "type": "array"
+          }
+        },
+        "required": [
+          "heading",
+          "paragraphs"
+        ],
+        "title": "LegalSectionOut",
+        "type": "object"
+      },
       "LineDetailItemOut": {
         "description": "Слагаемое строки отчёта (drill-down): источник и его помесячный ряд.",
         "properties": {
@@ -11991,6 +12126,11 @@
           "password": {
             "title": "Password",
             "type": "string"
+          },
+          "pd_consent": {
+            "default": false,
+            "title": "Pd Consent",
+            "type": "boolean"
           }
         },
         "required": [
@@ -16389,6 +16529,23 @@
             "default": false,
             "title": "Is Staff",
             "type": "boolean"
+          },
+          "pd_consent_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pd Consent At"
+          },
+          "pd_consent_edition": {
+            "default": "",
+            "title": "Pd Consent Edition",
+            "type": "string"
           }
         },
         "required": [
@@ -20821,9 +20978,36 @@
         ]
       }
     },
+    "/api/v1/auth/pd-consent": {
+      "post": {
+        "description": "Дать согласие на обработку ПД из профиля (L5).\n\nУ учётных записей, заведённых до L5, согласие **не записано** — это неизвестность, а\nне отказ, и профиль предлагает его дать. Повтор обновляет время и редакцию: человек\nсогласился с текущим текстом, и записано должно быть именно это. Оферта здесь не\nпринимается — её принимали регистрацией.",
+        "operationId": "give_pd_consent_api_v1_auth_pd_consent_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Give Pd Consent",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/auth/register": {
       "post": {
-        "description": "Регистрация: создаёт пользователя, его организацию и членство (owner).",
+        "description": "Регистрация: создаёт пользователя, его организацию и членство (owner).\n\nСогласие на обработку ПД — отдельной отметкой (L5): без него отказ с причиной.\nПроверяется **первым** — без согласия незачем разбирать и пароль.",
         "operationId": "register_api_v1_auth_register_post",
         "requestBody": {
           "content": {
@@ -22264,6 +22448,71 @@
         "summary": "Consolidate Projects",
         "tags": [
           "integrator"
+        ]
+      }
+    },
+    "/api/v1/legal": {
+      "get": {
+        "description": "Список документов и редакция. Пока редакция не утверждена — «черновик».",
+        "operationId": "legal_index_api_v1_legal_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LegalIndexOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Legal Index",
+        "tags": [
+          "legal"
+        ]
+      }
+    },
+    "/api/v1/legal/{slug}": {
+      "get": {
+        "description": "Документ с реквизитами продавца; незаданное помечено и перечислено в ``missing``.",
+        "operationId": "legal_doc_api_v1_legal__slug__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LegalDocOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Legal Doc",
+        "tags": [
+          "legal"
         ]
       }
     },

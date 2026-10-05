@@ -59,7 +59,7 @@ def demo(client, register, db_session):
         "email": "visitor@demo.test", "full_name": "Посетитель", "role": "viewer"}).json()
     client.post("/api/v1/auth/activate", json={
         "token": invite["invite_token"], "password": "Posetitel-Demo-2026",
-        "full_name": "Посетитель"})
+        "full_name": "Посетитель", "pd_consent": True})
     visitor = crud.get_user_by_email(db_session, "visitor@demo.test")
     crud.mark_demo(db_session, org_id, visitor.id)
     token = client.post("/api/v1/auth/demo").json()["access_token"]

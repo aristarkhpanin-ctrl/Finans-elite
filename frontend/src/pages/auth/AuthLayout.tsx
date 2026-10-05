@@ -3,6 +3,7 @@ import type { InputHTMLAttributes, ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { CubeHero } from "../../components/CubeHero";
 import { IconEye, IconEyeOff } from "../../components/icons";
+import { LEGAL_NAV } from "../../components/PublicLayout";
 import { applyProduct, currentProduct, PRODUCTS, type Product } from "../../components/product";
 import { getTheme, toggleTheme } from "../../components/theme";
 
@@ -18,7 +19,7 @@ import { getTheme, toggleTheme } from "../../components/theme";
  * бизнес-плана — то есть вход в другой продукт.
  */
 
-interface BrandCopy {
+export interface BrandCopy {
   headline: string;
   lead: string;
   features: Array<[string, string]>;
@@ -26,7 +27,7 @@ interface BrandCopy {
   chips: string[];
 }
 
-const BRAND: Record<Product, BrandCopy> = {
+export const BRAND: Record<Product, BrandCopy> = {
   business: {
     headline: "Финансовая модель бизнеса — за вечер, а не за месяц.",
     lead: "Помесячный расчёт отчётов, показателей эффективности и оценки стоимости. "
@@ -221,6 +222,12 @@ export function AuthLayout({
                   {switchAction}
                 </Link>
               </div>
+              {/* Документы (L5) — и на входе: оферту и политику читают до регистрации. */}
+              <nav className="auth-docs" aria-label="Документы">
+                <Link to="/">О сервисе</Link>
+                <Link to="/pricing">Тарифы</Link>
+                {LEGAL_NAV.map(([to, label]) => <Link key={to} to={to}>{label}</Link>)}
+              </nav>
             </>
           )}
         </div>

@@ -167,7 +167,7 @@ def test_forgot_password_link_actually_works(client, register, post):
     token = letter.text.split("token=")[1].split()[0]
 
     r = client.post("/api/v1/auth/activate",
-                    json={"token": token, "password": "novyi-parol7"})
+                    json={"token": token, "password": "novyi-parol7", "pd_consent": True})
     assert r.status_code == 200
     assert client.post("/api/v1/auth/login",
                        json={"email": "owner@e.ru", "password": "novyi-parol7"}
@@ -234,13 +234,13 @@ def test_the_reset_link_does_not_bypass_the_second_factor(client, register, db_s
     token = letter.text.split("token=")[1].split()[0]
 
     refused = client.post("/api/v1/auth/activate",
-                          json={"token": token, "password": "novyi-parol7"})
+                          json={"token": token, "password": "novyi-parol7", "pd_consent": True})
     assert refused.status_code == 428             # «нужен код», а не «вы не вошли»
 
     user = crud.get_user_by_email(db_session, "owner@e.ru")
     ok = client.post("/api/v1/auth/activate",
                      json={"token": token, "password": "novyi-parol7",
-                           "totp_code": totp.code_at(user.totp_secret)})
+                           "totp_code": totp.code_at(user.totp_secret), "pd_consent": True})
     assert ok.status_code == 200
 
 
@@ -273,7 +273,7 @@ def test_the_first_login_ever_is_not_a_new_device(client, post):
     """Регистрация — не повод сообщать человеку, что он только что зарегистрировался."""
     client.post("/api/v1/auth/register",
                 json={"email": "new@e.ru", "full_name": "Н", "password": "secret123",
-                      "organization_name": "Орг"})
+                      "organization_name": "Орг", "pd_consent": True})
     assert post() == []
 
 
