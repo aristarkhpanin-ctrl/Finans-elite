@@ -18,14 +18,17 @@ LEAF_CODES = [code for code, _ in CASHFLOW_LINES if code not in _COMPUTED]
 
 
 def actualize_cashflow(plan: Statement, actual_until: int,
-                       actuals: dict[str, list[Decimal]], n: int):
-    """Вернуть ``(actualized, variance)`` — актуализированный Кэш-фло и рассогласование."""
+                       actuals: dict[str, list[Decimal | None]], n: int):
+    """Вернуть ``(actualized, variance)`` — актуализированный Кэш-фло и рассогласование.
+
+    ``None`` в ряду факта — «факта за месяц нет»: месяц остаётся плановым (L7).
+    """
     leaves = {code: list(plan[code]) for code in LEAF_CODES}
     for code, values in actuals.items():
         if code not in leaves:
             raise ValueError(f"Строка {code} не является фактически задаваемой строкой Кэш-фло")
         for t, v in enumerate(values):
-            if 0 <= t <= actual_until and t < n:
+            if v is not None and 0 <= t <= actual_until and t < n:
                 leaves[code][t] = D(v)
 
     actualized = build_cashflow(leaves, n)

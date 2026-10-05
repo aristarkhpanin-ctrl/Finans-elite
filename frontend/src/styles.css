@@ -2639,6 +2639,30 @@ button.hint-badge:focus-visible { outline: 2px solid var(--accent); outline-offs
 /* Легенда факта */
 .fact-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; }
 .fact-legend__item { display: inline-flex; align-items: center; gap: 6px; font: 500 11.5px var(--font-ui); color: var(--muted); }
+/* Факт ДДС из Excel или 1С (L7): строка импорта над сеткой и окно сопоставления статей. */
+.fact-import {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px 16px;
+  flex-wrap: wrap; margin-bottom: 14px; padding: 12px 14px;
+  border: 1px solid var(--border); border-radius: 11px; background: var(--surface);
+}
+.fact-import__text { flex: 1 1 320px; min-width: 0; font: 400 12.5px/1.5 var(--font-ui); color: var(--muted); }
+.fact-import__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.cfi-notes { margin: 0 0 10px; padding-left: 18px; font: 400 12.5px/1.55 var(--font-ui); color: var(--muted); }
+.cfi-list { display: grid; gap: 2px; max-height: 52vh; overflow-y: auto; padding-right: 4px; }
+.cfi-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 10px;
+  padding: 6px 0; border-top: 1px solid var(--border);
+}
+.cfi-row:first-child { border-top: none; }
+.cfi-row .field { margin: 0; }
+.cfi-source { font: 600 11px var(--font-ui); color: var(--muted); padding-bottom: 10px; white-space: nowrap; }
+.cfi-source--hint { color: var(--warn-text); }
+.cfi-source--none { color: var(--danger-text); }
+.cfi-report__title { font: 600 13.5px var(--font-ui); color: var(--text); margin-bottom: 8px; }
+@media (max-width: 640px) {
+  .cfi-row { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .cfi-source { padding-bottom: 4px; }
+}
 
 /* ============================================================
    14. РЕЗУЛЬТАТЫ (макеты «Этапы 12–14»): каркас, сводка,

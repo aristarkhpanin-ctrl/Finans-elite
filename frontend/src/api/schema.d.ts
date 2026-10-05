@@ -3513,6 +3513,12 @@ export interface components {
          *     ``actual_until`` — индекс последнего актуализированного месяца (``-1`` — актуализация
          *     отсутствует). ``actuals`` — фактические значения листовых строк Кэш-фло
          *     (код → ряд по месяцам); применяются к периодам ``t <= actual_until``.
+         *
+         *     **Пустая ячейка — «факта нет»** (``None``), а не ноль и не ошибка (пакет L, L7): месяц
+         *     остаётся плановым. Вкладка «Факт» прямо показывает заполненность «N из M ячеек», а
+         *     сохранение частично заполненного факта отклонялось целиком — пустую строку модель не
+         *     принимала. Ноль вместо пропуска был бы хуже отказа: «поступлений не было» — другое
+         *     утверждение, чем «факт за месяц ещё не внесён».
          */
         "Actualization-Input": {
             /**
@@ -3522,7 +3528,11 @@ export interface components {
             actual_until: number;
             /** Actuals */
             actuals?: {
-                [key: string]: (number | string)[];
+                [key: string]: (number | string | null)[];
+            };
+            /** Mapping */
+            mapping?: {
+                [key: string]: string;
             };
         };
         /**
@@ -3532,6 +3542,12 @@ export interface components {
          *     ``actual_until`` — индекс последнего актуализированного месяца (``-1`` — актуализация
          *     отсутствует). ``actuals`` — фактические значения листовых строк Кэш-фло
          *     (код → ряд по месяцам); применяются к периодам ``t <= actual_until``.
+         *
+         *     **Пустая ячейка — «факта нет»** (``None``), а не ноль и не ошибка (пакет L, L7): месяц
+         *     остаётся плановым. Вкладка «Факт» прямо показывает заполненность «N из M ячеек», а
+         *     сохранение частично заполненного факта отклонялось целиком — пустую строку модель не
+         *     принимала. Ноль вместо пропуска был бы хуже отказа: «поступлений не было» — другое
+         *     утверждение, чем «факт за месяц ещё не внесён».
          */
         "Actualization-Output": {
             /**
@@ -3541,7 +3557,11 @@ export interface components {
             actual_until: number;
             /** Actuals */
             actuals?: {
-                [key: string]: string[];
+                [key: string]: (string | null)[];
+            };
+            /** Mapping */
+            mapping?: {
+                [key: string]: string;
             };
         };
         /**
@@ -9440,7 +9460,8 @@ export interface components {
             /**
              * @default {
              *       "actual_until": -1,
-             *       "actuals": {}
+             *       "actuals": {},
+             *       "mapping": {}
              *     }
              */
             actualization: components["schemas"]["Actualization-Input"];
@@ -9583,7 +9604,8 @@ export interface components {
             /**
              * @default {
              *       "actual_until": -1,
-             *       "actuals": {}
+             *       "actuals": {},
+             *       "mapping": {}
              *     }
              */
             actualization: components["schemas"]["Actualization-Output"];

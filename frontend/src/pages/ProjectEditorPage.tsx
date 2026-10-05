@@ -310,7 +310,7 @@ export function ProjectEditorPage() {
                      onChange={(business_plan) => setModel({ ...model, business_plan })} />
       )}
       {tab === "actual" && (
-        <ActualizationTab n={n} actualization={model.actualization}
+        <ActualizationTab n={n} start={model.header.start_date} actualization={model.actualization}
                           onChange={(actualization) => setModel({ ...model, actualization })} />
       )}
 

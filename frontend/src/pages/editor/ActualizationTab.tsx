@@ -1,28 +1,32 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import type { Actualization } from "../../api/model";
 import type { CalcResponse } from "../../api/calc";
+import {
+  downloadCashflowTemplate, FACT_LINES, parseCashflowRows, readCashflowXlsx, type ParsedSheet,
+} from "../../cashflowXlsx";
 import { ESelect } from "../../components/EditorField";
-import { IconChart } from "../../components/icons";
+import { IconChart, IconDownload, IconUpload } from "../../components/icons";
+import { useToast } from "../../components/Toast";
 import { Button, Switch } from "../../components/ui";
+import { CashflowImport } from "./CashflowImport";
 
 interface Props {
   n: number;
+  /** Дата старта модели: по ней месяцы выгрузки ДДС ложатся на месяцы горизонта. */
+  start: string;
   actualization: Actualization;
   onChange: (a: Actualization) => void;
 }
 
-/** Строки Кэш-фло для ввода факта: [код, подпись, приток?]. */
-const LINES: Array<[string, string, boolean]> = [
-  ["C1", "Поступления от продаж", true],
-  ["C2", "Затраты на материалы", false],
-  ["C5", "Общие издержки", false],
-  ["C6", "Затраты на персонал", false],
-  ["C12", "Налоги", false],
-  ["C14", "Приобретение активов", false],
-];
+/**
+ * Строки для ввода факта: основные — всегда, остальные потоки кэш-фло — когда в них
+ * уже есть факт (например, после импорта ДДС), иначе загруженное было бы невидимо.
+ */
+const BASE = new Set(["C1", "C2", "C5", "C6", "C12", "C14"]);
 
-const num = (v: string | undefined): number | null => {
+const num = (v: string | null | undefined): number | null => {
   if (v === undefined || v === "") return null;
   const x = Number(String(v).replace(",", "."));
   return Number.isFinite(x) ? x : null;
@@ -36,23 +40,50 @@ const fmtInt = (v: number): string => {
 };
 
 /** Вкладка «Факт» (макет «Этап 11»): актуализация Кэш-фло план/факт. */
-export function ActualizationTab({ n, actualization, onChange }: Props) {
+export function ActualizationTab({ n, start, actualization, onChange }: Props) {
   const { id = "" } = useParams();
   const qc = useQueryClient();
+  const toast = useToast();
   const calc = qc.getQueryData<CalcResponse>(["calc", id]);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [sheet, setSheet] = useState<ParsedSheet | null>(null);
 
   const enabled = actualization.actual_until >= 0;
   const until = Math.min(Math.max(actualization.actual_until, 0), n - 1);
   const actuals = actualization.actuals ?? {};
+  const LINES: Array<[string, string, boolean]> = FACT_LINES
+    .filter((l) => BASE.has(l.code) || (actuals[l.code] ?? []).some((v) => v !== null && v !== ""))
+    .map((l) => [l.code, l.label, l.inflow]);
+
+  // Факт ДДС из Excel или 1С (L7): файл разбирается на клиенте, сопоставление статей
+  // человек видит до загрузки.
+  const onImportFile = async (file: File) => {
+    try {
+      const parsed = parseCashflowRows(await readCashflowXlsx(file), start, n);
+      if (parsed.error) {
+        toast("Файл не разобран", { kind: "warn", sub: parsed.error });
+        return;
+      }
+      if (parsed.articles.length === 0) {
+        toast("В файле нет статей с суммами за месяцы горизонта", { kind: "warn" });
+        return;
+      }
+      setSheet(parsed);
+    } catch {
+      toast("Не удалось прочитать файл — нужен XLSX", { kind: "error" });
+    }
+  };
 
   const planOf = (code: string): string[] | null => {
     const ln = calc?.cashflow.lines.find((l) => l.code === code);
     return ln ? ln.values : null;
   };
 
+  // Пустая ячейка — «факт ещё не внесён» (null): месяц остаётся плановым, а не нулевым.
   const setActual = (code: string, month: number, val: string) => {
     const cur = actuals[code] ?? [];
-    const next = Array.from({ length: n }, (_, k) => (k === month ? val : cur[k] ?? ""));
+    const next = Array.from({ length: n }, (_, k) =>
+      k === month ? (val.trim() === "" ? null : val) : cur[k] ?? null);
     onChange({ ...actualization, actuals: { ...actuals, [code]: next } });
   };
 
@@ -61,7 +92,7 @@ export function ActualizationTab({ n, actualization, onChange }: Props) {
   const filledCells = LINES.reduce((s, [code]) => {
     const vals = actuals[code] ?? [];
     let c = 0;
-    for (let t = 0; t <= until; t++) if (vals[t] !== undefined && vals[t] !== "") c++;
+    for (let t = 0; t <= until; t++) if (vals[t] !== undefined && vals[t] !== null && vals[t] !== "") c++;
     return s + c;
   }, 0);
   const pct = totalCells ? Math.round((filledCells / totalCells) * 100) : 0;
@@ -139,6 +170,43 @@ export function ActualizationTab({ n, actualization, onChange }: Props) {
             </p>
           )}
 
+          <div className="fact-import">
+            <div className="fact-import__text">
+              Факт ДДС из Excel или 1С: статьи по строкам, месяцы по колонкам — выгрузка
+              «Анализ движения денежных средств» подходит как есть. Пустая ячейка — факта
+              нет, месяц остаётся плановым.
+            </div>
+            <div className="fact-import__actions">
+              <Button variant="ghost" onClick={async () => {
+                try {
+                  await downloadCashflowTemplate(start, n);
+                  toast("Шаблон XLSX скачан", { kind: "success" });
+                } catch {
+                  toast("Не удалось сформировать шаблон", { kind: "error" });
+                }
+              }}>
+                <IconDownload size={15} />
+                <span style={{ marginLeft: 6 }}>Шаблон XLSX</span>
+              </Button>
+              <Button variant="ghost" onClick={() => fileRef.current?.click()}>
+                <IconUpload size={15} />
+                <span style={{ marginLeft: 6 }}>Загрузить из Excel или 1С</span>
+              </Button>
+            </div>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".xlsx"
+              aria-label="Файл с фактом ДДС"
+              style={{ display: "none" }}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void onImportFile(f);
+                e.target.value = "";
+              }}
+            />
+          </div>
+
           <div className="mgrid-wrap fe-scroll">
             <div className="mgrid-inner">
               <div className="mgrid-row">
@@ -171,11 +239,11 @@ export function ActualizationTab({ n, actualization, onChange }: Props) {
                   return (
                     <div key={t} className={"fact-cell" + (off ? " fact-cell--off" : "")}>
                       <span className="fact-cell__plan">{planV !== null ? fmtInt(planV) : "—"}</span>
+                      {/* Без заполнителя «0»: пустая ячейка — не ноль, а «факта нет». */}
                       <input
                         className="fact-cell__input"
                         inputMode="decimal"
                         disabled={off}
-                        placeholder={off ? "" : "0"}
                         value={vals[t] ?? ""}
                         onChange={(e) => setActual(code, t, e.target.value)}
                         title={`${label} · М${t + 1}`}
@@ -183,7 +251,7 @@ export function ActualizationTab({ n, actualization, onChange }: Props) {
                       <span
                         className={
                           "fact-cell__dev" +
-                          (dev === null ? "" : dev >= 0 ? " fact-cell__dev--good" : " fact-cell__dev--bad")
+                          (dev === null ? "" : better(dev, inflow) ? " fact-cell__dev--good" : " fact-cell__dev--bad")
                         }
                       >
                         {dev !== null && dev !== 0 ? (dev > 0 ? "+" : "") + fmtInt(dev) : ""}
@@ -210,7 +278,7 @@ export function ActualizationTab({ n, actualization, onChange }: Props) {
                     <div
                       className={
                         "fact-total" +
-                        (hasDev ? (devSum >= 0 ? " fact-cell__dev--good" : " fact-cell__dev--bad") : "")
+                        (hasDev ? (better(devSum, inflow) ? " fact-cell__dev--good" : " fact-cell__dev--bad") : "")
                       }
                     >
                       {hasDev ? (devSum > 0 ? "+" : "") + fmtInt(devSum) : "—"}
@@ -228,7 +296,7 @@ export function ActualizationTab({ n, actualization, onChange }: Props) {
             </span>
             <span className="fact-legend__item">
               <span style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>0</span>
-              ввод факта
+              ввод факта; пусто — факта нет, месяц плановый
             </span>
             <span className="fact-legend__item">
               <span className="fact-cell__dev--good" style={{ fontFamily: "var(--font-mono)", fontSize: 10 }}>+12</span>
@@ -241,6 +309,18 @@ export function ActualizationTab({ n, actualization, onChange }: Props) {
           </div>
         </div>
       )}
+      {sheet && (
+        <CashflowImport sheet={sheet} actualization={actualization} n={n}
+                        onApply={onChange} onClose={() => setSheet(null)} />
+      )}
     </div>
   );
+}
+
+/**
+ * Лучше ли плана: у поступления — больше, у выплаты — меньше. Раньше любое превышение
+ * красилось зелёным, и перерасход по зарплате выглядел удачей (L7).
+ */
+export function better(dev: number, inflow: boolean): boolean {
+  return inflow ? dev >= 0 : dev <= 0;
 }

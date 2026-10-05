@@ -265,7 +265,10 @@ export interface ProjectHeader {
 
 export interface Actualization {
   actual_until: number;
-  actuals: Record<string, string[]>;
+  /** Пустая ячейка — `null`: «факт ещё не внесён», месяц остаётся плановым (L7). */
+  actuals: Record<string, (string | null)[]>;
+  /** Статья выгрузки ДДС → строка Кэш-фло; "" — «не загружать». Память импорта (L7). */
+  mapping?: Record<string, string>;
 }
 
 export type VatBasis = "shipment" | "payment";
