@@ -339,7 +339,8 @@ def business_plan_docx(project_id: str,
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     review = run_review(ReviewContext(model=model, result=result))
     content = build_business_plan_docx(model, result, build_opinion(review, result),
-                                       project_name=project.name)
+                                       project_name=project.name,
+                                       logo=crud.get_logo(db, org_id))
     # Выгрузка пишется в журнал, а расчёт — нет: «посчитать» открывает экран результатов
     # при каждом заходе и утопил бы журнал, а документ уносят наружу, и это событие.
     crud.log_action(db, org_id, actor, "project.export", entity_type="project",

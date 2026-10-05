@@ -23,6 +23,8 @@ from calc_core.reports.statements import Statement
 from calc_core.review.text import fmt_num, fmt_pct, fmt_rub
 from calc_core.version import ENGINE_VERSION
 
+from .branding import Logo, docx_size
+
 #: MIME-тип документа Word (для Response и проверок в тестах).
 DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
@@ -476,14 +478,25 @@ def _add_statements(doc: Document, model: ProjectModel, result: CalcResult) -> N
                          get(result.profit_use, "flow"), labels)
 
 
+def add_logo(doc, logo: Logo | None) -> None:
+    """Логотип организации над заголовком титула (L9): документ отдают клиенту под своим
+    именем. Нет логотипа — титул как прежде, с маркой платформы в подписи."""
+    if logo is None:
+        return
+    width, height = docx_size(logo)
+    doc.add_picture(BytesIO(logo.data), width=width, height=height)
+
+
 def build_business_plan_docx(model: ProjectModel, result: CalcResult, opinion: str,
                              *, project_name: str, today: date | None = None,
                              shared_for: str | None = None,
-                             shared_until: date | None = None) -> bytes:
+                             shared_until: date | None = None,
+                             logo: Logo | None = None) -> bytes:
     """Собрать документ бизнес-плана (структура Q3) и вернуть содержимое ``.docx``."""
     doc = Document()
 
     # Титул
+    add_logo(doc, logo)
     doc.add_heading(project_name or model.header.name, level=0)
     doc.add_paragraph("Бизнес-план")
     doc.add_paragraph(

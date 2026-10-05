@@ -393,6 +393,8 @@ class SharedPlanOut(BaseModel):
     #: пусто, если второй валюты в модели нет.
     foreign_code: str = ""
     discount_rate_annual_foreign: str = "0"
+    #: Логотип отправителя (L9), data URL; ``None`` — у организации его нет.
+    organization_logo: Optional[str] = None
     notes: list[str]
     result: CalcResponse
 
@@ -1452,6 +1454,46 @@ class BenchmarkIn(MoneyModel):
 class BenchmarkOut(BenchmarkIn):
     id: str
     updated_at: datetime
+
+
+class OrgLogoIn(BaseModel):
+    """Логотип организации (L9) — файлом в base64. Тип определяется по содержимому файла,
+    а не по имени: его задаёт отправитель.
+
+    Предел строки с запасом выше предела файла: точный отказ («больше 256 КБ — сколько
+    именно») даёт сервер после разбора, а этот лишь не даёт прислать мегабайты.
+    """
+
+    data_base64: str = Field(
+        min_length=1, max_length=4 * 256 * 1024,
+        json_schema_extra={"contentEncoding": "base64",
+                           "contentMediaType": "image/png, image/jpeg"})
+
+
+class OrgLogoOut(BaseModel):
+    """Логотип организации и правила, по которым он принят (L9).
+
+    ``present = False`` — логотипа нет, документы выходят с маркой платформы. ``rules`` —
+    с сервера: экран их показывает, а не пересказывает своими словами.
+    """
+
+    present: bool = False
+    #: Название организации — подпись картинки на бланке (``alt``): экрану печати не
+    #: нужно ради неё спрашивать отдельно, чья это организация.
+    organization: str = ""
+    mime: Optional[str] = None
+    #: «PNG» | «JPEG».
+    kind: Optional[str] = None
+    size: Optional[int] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
+    updated_at: Optional[datetime] = None
+    updated_by: str = ""
+    #: Готовый адрес для ``<img src>`` (data URL): картинка мала, отдельный запрос со
+    #: своим входом стоил бы дороже.
+    data_url: Optional[str] = None
+    max_bytes: int = 256 * 1024
+    rules: list[str] = []
 
 
 class ProductStateOut(BaseModel):

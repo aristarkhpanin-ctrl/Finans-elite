@@ -25,11 +25,14 @@ import { downloadBusinessPlanDocx, downloadCsv, downloadPdf, downloadXlsx, state
 import { Comments } from "../components/Comments";
 import { plural } from "../format";
 import { usePageTitle } from "../pageTitle";
+import { usePrintBrand } from "../api/branding";
 
 export function ProjectResultsPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+  // Логотип организации на бланке печати (L9); нет — марка платформы.
+  const brand = usePrintBrand();
   const [tab, setTab] = useState<string>("summary");
   const [printMode, setPrintMode] = useState(false);
   // Режим печати прячет кнопку, которая его открыла: фокус уходит на панель печати, а по
@@ -339,7 +342,7 @@ export function ProjectResultsPage() {
       </div>
 
       <PrintReport data={data} title={title || "Результаты"} model={projectQuery.data?.model}
-                   period={printPeriod} />
+                   period={printPeriod} brand={brand} />
     </div>
   );
 }

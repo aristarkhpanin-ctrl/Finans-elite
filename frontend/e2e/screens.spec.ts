@@ -218,6 +218,9 @@ async function register(page: Page, org: string, product: "business" | "audit" =
     .toBeVisible();
 }
 
+/** Логотип организации для кадра «Оформление» (L9): PNG 160×48, зелёный куб и полоса. */
+const LOGO_PNG = "iVBORw0KGgoAAAANSUhEUgAAAKAAAAAwCAIAAAAZy+Y5AAAAiklEQVR42u3YQQ0AIAwEwerggwASxKEOd2CijxJmcw7mdzH3KrWj1AIwYMCAAQMGDBgwYAEWYMCAAQMGDBgwYMACLMCAAQMGDBgwYMBfA7c+LHGAAQMGDBgwYMCAARtgqw3smvBkCbAAAwYMGDBgwIABAxZgAQYMGDBgwIABAwYswAIMGDBgwA93Ac8AxVCBiKykAAAAAElFTkSuQmCC";
+
 /** Почта на прогон: база живёт между запусками. */
 const stamp = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
@@ -403,7 +406,11 @@ test("матрица скриншотов P13", async ({ page, browser }) => {
       await expect(p.getByText("Дочерний склад").first()).toBeVisible();
       await p.waitForTimeout(400);
     });
-    for (const tab of ["members", "billing"] as const) {
+    // Логотип (L9): кадр «Оформление» показывает лист с картинкой, а не пустоту.
+    const logo = await page.request.put(`/api/v1/organizations/${headers["X-Organization-Id"]}/logo`,
+                                        { headers, data: { data_base64: LOGO_PNG } });
+    expect(logo.ok()).toBeTruthy();
+    for (const tab of ["members", "branding", "billing"] as const) {
       await capture(page, "org", tab, async (p) => {
         await p.goto(`/organization?tab=${tab}`);
         // Заголовок страницы, а не шапка: в шапке имя организации на планшете скрыто.

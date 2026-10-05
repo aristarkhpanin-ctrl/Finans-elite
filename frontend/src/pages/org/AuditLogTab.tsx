@@ -43,6 +43,8 @@ const ACTION: Record<string, string> = {
   "billing.auto_renew_charged": "Автопродление: оплата списана",
   "billing.auto_renew_failed": "Автопродление: списание не прошло",
   "org.requisites_update": "Изменены реквизиты организации",
+  "org.logo_set": "Поставлен логотип организации",
+  "org.logo_remove": "Убран логотип организации",
   "billing.invoice": "Выставлен счёт на оплату",
   "billing.act_issued": "Сформирован акт",
   "billing.document_download": "Скачан документ об оплате",

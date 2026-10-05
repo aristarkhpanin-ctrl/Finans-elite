@@ -34,7 +34,8 @@ from audit_core.summary import CaseSummary
 from audit_core.valuation import Valuation
 from calc_core.review.text import fmt_num, fmt_pct
 
-from .docgen import DOCX_MIME, _fmt_money, _shrink_table
+from .branding import Logo
+from .docgen import DOCX_MIME, _fmt_money, _shrink_table, add_logo
 
 __all__ = ["DOCX_MIME", "build_audit_docx"]
 
@@ -504,7 +505,7 @@ def _add_registry_source(doc: Document, reg) -> None:
 
 
 def build_audit_docx(review: CaseReview, *, subject_name: str,
-                     today: date | None = None) -> bytes:
+                     today: date | None = None, logo: Logo | None = None) -> bytes:
     """Собрать документ заключения по разбору дела и вернуть содержимое ``.docx``.
 
     На вход — весь разбор (`review_case`), а не отдельные слои: документ обязан
@@ -519,6 +520,7 @@ def build_audit_docx(review: CaseReview, *, subject_name: str,
     procedures = review.procedures
     doc = Document()
 
+    add_logo(doc, logo)
     doc.add_heading(subject_name or "Субъект анализа", level=0)
     doc.add_paragraph("Заключение по анализу финансового состояния")
     meta = [f"Периодов в анализе: {result.n}"]

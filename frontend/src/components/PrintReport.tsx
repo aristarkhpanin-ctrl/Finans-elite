@@ -185,17 +185,28 @@ function TablePage({
   );
 }
 
+/** Логотип организации на бланке (L9): документ отдают клиенту под её именем. */
+export interface PrintBrand {
+  /** data URL картинки — с сервера, уже без метаданных файла. */
+  src: string;
+  /** Название организации — для подписи картинки. */
+  name: string;
+}
+
 export function PrintReport({
   data,
   title,
   model,
   period,
+  brand,
 }: {
   data: CalcResponse;
   title: string;
   model?: ProjectModel;
   /** Период отчётов — как на экране; не задан — по горизонту, как и там. */
   period?: Period;
+  /** Логотип организации; нет — бланк с маркой платформы, как прежде. */
+  brand?: PrintBrand | null;
 }) {
   const m = data.metrics;
   const v = data.valuation;
@@ -278,20 +289,27 @@ export function PrintReport({
       <div className="pr-paper">
         <div className="pr-pagenum">стр. 1 / {total}</div>
         <div className="pr-band">
-          <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-            <div className="pr-logo">
-              <span />
-              <span />
-              <span />
+          {brand ? (
+            <img className="pr-orglogo" src={brand.src} alt={`Логотип «${brand.name}»`} />
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+              <div className="pr-logo">
+                <span />
+                <span />
+                <span />
+              </div>
+              <div>
+                <div className="pr-brand">Финанс-Элит</div>
+                <div className="pr-brand-sub">финансовое моделирование предприятия</div>
+              </div>
             </div>
-            <div>
-              <div className="pr-brand">Финанс-Элит</div>
-              <div className="pr-brand-sub">финансовое моделирование предприятия</div>
-            </div>
-          </div>
+          )}
           <div style={{ textAlign: "right" }}>
             <div className="pr-dockind">Отчёт по финансовой модели</div>
             <div className="pr-docdate">Сформировано {dateStr}</div>
+            {/* Под логотипом организации марка платформы не пропадает, а уходит в
+                подпись: чем сделан расчёт, читателю знать нужно. */}
+            {brand && <div className="pr-docdate">подготовлено в Финанс-Элит</div>}
           </div>
         </div>
 

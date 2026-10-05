@@ -574,7 +574,7 @@ def download_report(subject_id: str,
     # включая находки, оценку, риски и списки «что не посчитано».
     content = build_audit_docx(review_case(crud.load_audit_model(subject),
                                            benchmarks=_benchmarks(db, org_id)),
-                               subject_name=subject.name)
+                               subject_name=subject.name, logo=crud.get_logo(db, org_id))
     # Выгрузка документа — вынос данных за пределы системы, и для 152-ФЗ это событие
     # важнее половины правок: именно так отчётность цели покидает контур.
     crud.log_action(db, org_id, actor, "case.export", entity_type="case",

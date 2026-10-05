@@ -10,11 +10,11 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
-from .. import billing, crud, mail, org_data, support_access, usage
+from .. import billing, branding, crud, mail, org_data, support_access, usage
 from ..access import restriction_for
 from ..activity import build_activity
 from ..database import get_db
-from ..db_models import User
+from ..db_models import OrgBranding, User
 from ..deps import current_user, require_membership, require_org_permission
 from ..mail import Sent, access_link_letter, invite_letter, mail_enabled
 from ..overview import build_overview
@@ -38,6 +38,8 @@ from ..schemas import (
     OrganizationMembershipOut,
     OrganizationOut,
     OrgDeletionPlanOut,
+    OrgLogoIn,
+    OrgLogoOut,
     OverviewOut,
     PasswordConfirmIn,
     ProductStateOut,
@@ -414,6 +416,63 @@ def replace_benchmarks(body: list[BenchmarkIn],
     crud.log_action(db, org_id, actor, "benchmarks.replace", entity_type="organization",
                     entity_id=org_id, details=f"строк: {len(rows)}")
     return [_benchmark_out(b) for b in saved]
+
+
+def _logo_out(db: Session, org_id: str, row: OrgBranding | None) -> OrgLogoOut:
+    rules = list(branding.RULES)
+    org = crud.get_organization(db, org_id)
+    name = org.name if org else ""
+    if row is None:
+        return OrgLogoOut(organization=name, rules=rules)
+    logo = branding.Logo(data=row.logo, mime=row.logo_mime, width=row.logo_width,
+                         height=row.logo_height)
+    when = row.updated_at
+    if when is not None and when.tzinfo is None:       # SQLite отдаёт наивное время
+        when = when.replace(tzinfo=timezone.utc)
+    return OrgLogoOut(present=True, organization=name, mime=logo.mime,
+                      kind=branding.KINDS[logo.mime],
+                      size=len(logo.data), width=logo.width, height=logo.height,
+                      updated_at=when, updated_by=row.updated_by, data_url=logo.data_url,
+                      rules=rules)
+
+
+@router.get("/{org_id}/logo", response_model=OrgLogoOut)
+def read_logo(org_id: str = Depends(require_membership),
+              db: Session = Depends(get_db)) -> OrgLogoOut:
+    """Логотип организации (L9) — его видят все участники: он стоит на их документах."""
+    return _logo_out(db, org_id, crud.get_branding(db, org_id))
+
+
+@router.put("/{org_id}/logo", response_model=OrgLogoOut)
+def set_logo(body: OrgLogoIn,
+             org_id: str = Depends(require_org_permission(Perm.ORG_MANAGE)),
+             actor: User = Depends(current_user),
+             db: Session = Depends(get_db)) -> OrgLogoOut:
+    """Поставить логотип (право `org.manage`): он подписывает документы организации, и
+    ставит его тот же, кто отвечает за неё.
+
+    Отказ называет причину словами (`branding.LogoError`): «не тот формат» человек с SVG
+    прочёл бы как придирку, а не как довод.
+    """
+    try:
+        logo = branding.accept(branding.decode(body.data_base64))
+    except branding.LogoError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    row = crud.set_logo(db, org_id, logo, by=actor.email)
+    crud.log_action(db, org_id, actor, "org.logo_set", entity_type="organization",
+                    entity_id=org_id, details=branding.describe(logo))
+    return _logo_out(db, org_id, row)
+
+
+@router.delete("/{org_id}/logo", status_code=status.HTTP_204_NO_CONTENT)
+def remove_logo(org_id: str = Depends(require_org_permission(Perm.ORG_MANAGE)),
+                actor: User = Depends(current_user),
+                db: Session = Depends(get_db)) -> None:
+    """Убрать логотип: документы снова выходят с маркой платформы. Убирать нечего — тишина,
+    и в журнале ничего не появляется."""
+    if crud.delete_logo(db, org_id):
+        crud.log_action(db, org_id, actor, "org.logo_remove", entity_type="organization",
+                        entity_id=org_id)
 
 
 @router.get("/{org_id}/overview", response_model=OverviewOut)

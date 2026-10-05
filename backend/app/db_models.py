@@ -16,6 +16,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Integer,
+    LargeBinary,
     String,
     UniqueConstraint,
     text,
@@ -534,6 +535,34 @@ class IndustryBenchmark(Base):
     source: Mapped[str] = mapped_column(String(255), default="")
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now,
                                                  onupdate=_now)
+
+
+class OrgBranding(Base):
+    """Оформление организации (L9): логотип на титуле документов и в шапке печати.
+
+    **Это не файловое хранилище** — одна картинка на организацию, в базе, строкой
+    организации (``app.branding`` — почему так и каковы правила). Строка есть — логотип
+    есть; нет строки — документы выходят с маркой платформы. Уходит вместе с
+    организацией и до того попадает в её выгрузку; человеку не принадлежит.
+
+    Байты хранятся **после вычистки метаданных**: что пришло с автором и местом съёмки,
+    то в документы третьих лиц не попадёт.
+    """
+
+    __tablename__ = "org_branding"
+
+    organization_id: Mapped[str] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), primary_key=True
+    )
+    logo: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    #: image/png | image/jpeg — по сигнатуре файла, а не по имени.
+    logo_mime: Mapped[str] = mapped_column(String(32), nullable=False)
+    logo_width: Mapped[int] = mapped_column(Integer, nullable=False)
+    logo_height: Mapped[int] = mapped_column(Integer, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now,
+                                                 onupdate=_now)
+    #: Кто загрузил — почтой, «надгробием»: ответ обязан пережить уход человека.
+    updated_by: Mapped[str] = mapped_column(String(320), default="")
 
 
 class ShareLink(Base):

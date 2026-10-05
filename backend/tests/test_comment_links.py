@@ -205,12 +205,45 @@ def test_a_letter_without_links_does_not_carry_the_caveat(client, register, monk
 
 # --- Хранилища нет, и это решение ---
 
+#: Где платформа всё же принимает байты, — и почему это не хранилище. Каждая строка
+#: отвечает на три вопроса памятки (OPEN-DECISIONS §6) для своего узкого случая.
+STORED_BYTES = {
+    ("put", "/api/v1/organizations/{org_id}/logo"):
+        "логотип организации (L9): где — в базе, строкой организации, картинка одна; "
+        "кто платит — предел 256 КБ; что при удалении — уходит вместе с организацией и "
+        "до того попадает в её выгрузку",
+}
+
+
 def test_the_platform_stores_no_files_at_all():
     """Перечень-тест против тихого появления хранилища: пока на три вопроса памятки
     (где байты, кто платит, что при удалении) нет ответа, маршрута загрузки быть не
-    должно. Первый же `POST .../files` здесь и остановится."""
+    должно. Первый же `POST .../files` здесь и остановится.
+
+    Байты в теле запроса (поле base64 или не-JSON тело) принимают только маршруты из
+    :data:`STORED_BYTES`, и у каждого названы ответы на те же три вопроса: исключение,
+    которое не назвало себя, выглядело бы как начало хранилища «заодно».
+    """
     from app.main import app
 
-    uploads = [path for path in app.openapi()["paths"]
+    schema = app.openapi()
+    uploads = [path for path in schema["paths"]
                if "upload" in path or path.endswith("/files")]
     assert uploads == [], uploads
+
+    components = schema["components"]["schemas"]
+
+    def takes_bytes(body: dict | None) -> bool:
+        if not body:
+            return False
+        content = body.get("content", {})
+        if set(content) - {"application/json"}:
+            return True                          # multipart, octet-stream и прочее
+        ref = content.get("application/json", {}).get("schema", {})
+        target = components.get(ref.get("$ref", "").rsplit("/", 1)[-1], ref)
+        return any(prop.get("contentEncoding") == "base64"
+                   for prop in target.get("properties", {}).values())
+
+    taking = {(method, path) for path, ops in schema["paths"].items()
+              for method, op in ops.items() if takes_bytes(op.get("requestBody"))}
+    assert taking == set(STORED_BYTES), taking

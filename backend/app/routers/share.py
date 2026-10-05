@@ -197,6 +197,7 @@ def shared_plan(token: str, db: Session = Depends(get_db)) -> SharedPlanOut:
         foreign_code=(model.environment.currencies[1].code
                       if len(model.environment.currencies) > 1 else ""),
         discount_rate_annual_foreign=str(model.settings.discount_rate_annual_foreign),
+        organization_logo=opened.logo.data_url if opened.logo else None,
         notes=notes, result=to_response(result))
 
 
@@ -213,7 +214,7 @@ def shared_docx(token: str, db: Session = Depends(get_db)) -> Response:
     expires = share_links.aware(opened.link.expires_at)
     content = build_business_plan_docx(
         model, result, build_opinion(review, result), project_name=opened.project.name,
-        shared_for=opened.link.label, shared_until=expires.date())
+        shared_for=opened.link.label, shared_until=expires.date(), logo=opened.logo)
     filename = quote(f"{opened.project.name}.docx")
     return Response(content=content, media_type=DOCX_MIME, headers={
         "Content-Disposition":

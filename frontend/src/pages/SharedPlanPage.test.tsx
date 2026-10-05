@@ -83,6 +83,17 @@ describe("план по ссылке", () => {
     expect(document.title).toContain("Кофейня у вокзала");
   });
 
+  it("логотип отправителя — над названием плана, без логотипа — ничего лишнего", async () => {
+    getSharedPlan.mockResolvedValue({ ...shared, organization_logo: "data:image/png;base64,AAAA" });
+    show();
+    expect(await screen.findByRole("img", { name: "Логотип «ООО «Ромашка»»" })).toBeTruthy();
+    cleanup();
+    getSharedPlan.mockResolvedValue(shared);
+    show();
+    await screen.findByRole("heading", { level: 1, name: "Кофейня у вокзала" });
+    expect(screen.queryByRole("img", { name: /Логотип/ })).toBeNull();
+  });
+
   it("бизнес-план скачивается по той же ссылке", async () => {
     getSharedPlan.mockResolvedValue(shared);
     downloadSharedBusinessPlan.mockResolvedValue(undefined);

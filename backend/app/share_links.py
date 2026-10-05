@@ -26,6 +26,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from . import crud
+from .branding import Logo
 from .database import as_tenant
 from .db_models import AuditLogEntry, Project, ProjectVersion, ShareLink
 from .timefmt import day_utc
@@ -95,6 +96,9 @@ class Opened:
     version: ProjectVersion
     project: Project
     org_name: str
+    #: Логотип отправителя (L9): план по ссылке — документ его организации. Читается в
+    #: тех же дверях арендатора, что и снимок: под RLS вне них он вернул бы пустоту молча.
+    logo: Logo | None = None
 
 
 def find(db: Session, token: str) -> ShareLink | None:
@@ -129,7 +133,8 @@ def open_shared(db: Session, token: str, *, what: str) -> Opened | tuple[int, st
         crud.log_action(db, link.organization_id, visitor, "share.open",
                         entity_type="share_link",
                         entity_id=link.id, entity_name=link.label, details=what)
-        return Opened(link=link, version=version, project=project, org_name=org.name)
+        return Opened(link=link, version=version, project=project, org_name=org.name,
+                      logo=crud.get_logo(db, link.organization_id))
 
 
 def opens(db: Session, org_id: str, link_ids: list[str]) -> dict[str, tuple[int, datetime | None]]:

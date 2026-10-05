@@ -2474,6 +2474,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizations/{org_id}/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Logo
+         * @description Логотип организации (L9) — его видят все участники: он стоит на их документах.
+         */
+        get: operations["read_logo_api_v1_organizations__org_id__logo_get"];
+        /**
+         * Set Logo
+         * @description Поставить логотип (право `org.manage`): он подписывает документы организации, и
+         *     ставит его тот же, кто отвечает за неё.
+         *
+         *     Отказ называет причину словами (`branding.LogoError`): «не тот формат» человек с SVG
+         *     прочёл бы как придирку, а не как довод.
+         */
+        put: operations["set_logo_api_v1_organizations__org_id__logo_put"];
+        post?: never;
+        /**
+         * Remove Logo
+         * @description Убрать логотип: документы снова выходят с маркой платформы. Убирать нечего — тишина,
+         *     и в журнале ничего не появляется.
+         */
+        delete: operations["remove_logo_api_v1_organizations__org_id__logo_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizations/{org_id}/members": {
         parameters: {
             query?: never;
@@ -8673,6 +8706,66 @@ export interface components {
              */
             projects: number;
         };
+        /**
+         * OrgLogoIn
+         * @description Логотип организации (L9) — файлом в base64. Тип определяется по содержимому файла,
+         *     а не по имени: его задаёт отправитель.
+         *
+         *     Предел строки с запасом выше предела файла: точный отказ («больше 256 КБ — сколько
+         *     именно») даёт сервер после разбора, а этот лишь не даёт прислать мегабайты.
+         */
+        OrgLogoIn: {
+            /** Data Base64 */
+            data_base64: string;
+        };
+        /**
+         * OrgLogoOut
+         * @description Логотип организации и правила, по которым он принят (L9).
+         *
+         *     ``present = False`` — логотипа нет, документы выходят с маркой платформы. ``rules`` —
+         *     с сервера: экран их показывает, а не пересказывает своими словами.
+         */
+        OrgLogoOut: {
+            /** Data Url */
+            data_url?: string | null;
+            /** Height */
+            height?: number | null;
+            /** Kind */
+            kind?: string | null;
+            /**
+             * Max Bytes
+             * @default 262144
+             */
+            max_bytes: number;
+            /** Mime */
+            mime?: string | null;
+            /**
+             * Organization
+             * @default
+             */
+            organization: string;
+            /**
+             * Present
+             * @default false
+             */
+            present: boolean;
+            /**
+             * Rules
+             * @default []
+             */
+            rules: string[];
+            /** Size */
+            size?: number | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /**
+             * Updated By
+             * @default
+             */
+            updated_by: string;
+            /** Width */
+            width?: number | null;
+        };
         /** OrganizationCreate */
         OrganizationCreate: {
             /** Name */
@@ -11221,6 +11314,8 @@ export interface components {
             notes: string[];
             /** Organization */
             organization: string;
+            /** Organization Logo */
+            organization_logo?: string | null;
             /** Project Name */
             project_name: string;
             result: components["schemas"]["CalcResponse"];
@@ -17172,6 +17267,101 @@ export interface operations {
                 content: {
                     "application/json": unknown;
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_logo_api_v1_organizations__org_id__logo_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgLogoOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_logo_api_v1_organizations__org_id__logo_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrgLogoIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgLogoOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_logo_api_v1_organizations__org_id__logo_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

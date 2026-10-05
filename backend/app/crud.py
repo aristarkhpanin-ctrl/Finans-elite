@@ -18,6 +18,7 @@ from audit_core import AuditSubjectModel
 from calc_core import ProjectModel
 
 from . import apikeys
+from .branding import Logo
 from .comments import ThreadState
 from .database import as_tenant
 from .db_models import (
@@ -36,6 +37,7 @@ from .db_models import (
     IndustryBenchmark,
     Membership,
     Organization,
+    OrgBranding,
     Payment,
     Project,
     ProjectVersion,
@@ -792,6 +794,45 @@ def replace_benchmarks(db: Session, org_id: str,
     db.add_all(saved)
     db.commit()
     return list_benchmarks(db, org_id)
+
+
+def get_branding(db: Session, org_id: str) -> OrgBranding | None:
+    """Оформление организации (L9). Фильтр по организации — и под RLS, и без неё."""
+    return db.scalar(select(OrgBranding).where(OrgBranding.organization_id == org_id))
+
+
+def get_logo(db: Session, org_id: str) -> Logo | None:
+    """Логотип для документа: ``None`` — документ выходит с маркой платформы."""
+    row = get_branding(db, org_id)
+    if row is None:
+        return None
+    return Logo(data=row.logo, mime=row.logo_mime, width=row.logo_width,
+                height=row.logo_height)
+
+
+def set_logo(db: Session, org_id: str, logo: Logo, *, by: str) -> OrgBranding:
+    """Поставить логотип. Картинка одна: новая заменяет прежнюю."""
+    row = get_branding(db, org_id)
+    if row is None:
+        row = OrgBranding(organization_id=org_id)
+        db.add(row)
+    row.logo, row.logo_mime = logo.data, logo.mime
+    row.logo_width, row.logo_height = logo.width, logo.height
+    row.updated_by = by
+    row.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def delete_logo(db: Session, org_id: str) -> bool:
+    """Убрать логотип. ``False`` — убирать было нечего."""
+    row = get_branding(db, org_id)
+    if row is None:
+        return False
+    db.delete(row)
+    db.commit()
+    return True
 
 
 def list_checklists(db: Session, org_id: str) -> list[AuditChecklist]:

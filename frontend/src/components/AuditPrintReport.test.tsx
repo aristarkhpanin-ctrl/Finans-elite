@@ -91,6 +91,15 @@ const paper = (over: Partial<AuditAnalysis> = {}) =>
                            industry="Перевозки" standard="rsbu" />);
 
 describe("Печатное заключение", () => {
+  it("с логотипом организации заключение выходит под её именем (L9)", () => {
+    render(<AuditPrintReport analysis={analysis()} name="ООО «Цель»" industry="Перевозки"
+                             standard="rsbu"
+                             brand={{ src: "data:image/jpeg;base64,AAAA", name: "Аудит-Партнёр" }} />);
+    expect(screen.getByRole("img", { name: "Логотип «Аудит-Партнёр»" })).toBeTruthy();
+    expect(screen.getByText("подготовлено в Финанс-Аудит")).toBeTruthy();
+    expect(screen.queryByText("Анализ фактической отчётности")).toBeNull();
+  });
+
   it("три листа и реквизиты дела в шапке", () => {
     paper();
     // Вывод · находки · показатели. Номер листа считается, а не пишется руками.

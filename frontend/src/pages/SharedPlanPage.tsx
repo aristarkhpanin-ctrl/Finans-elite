@@ -118,6 +118,14 @@ export function SharedPlanPage() {
                   «копия для кого» — главное, что посетитель должен прочесть целиком. */}
               <div className="shared-head">
                 <div className="shared-head__title">
+                  {/* План — документ организации-отправителя (L9): её логотип, на белом,
+                      как на титуле документа. */}
+                  {shared.organization_logo && (
+                    <div className="shared-logo">
+                      <img src={shared.organization_logo}
+                           alt={`Логотип «${shared.organization}»`} />
+                    </div>
+                  )}
                   <div className="shared-kicker">Бизнес-план · {shared.organization}</div>
                   <h1>{shared.project_name}</h1>
                   <div className="shared-head__for">Копия для: {shared.shared_for}</div>

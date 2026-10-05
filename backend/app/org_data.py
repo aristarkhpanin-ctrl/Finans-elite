@@ -26,6 +26,7 @@
 """
 from __future__ import annotations
 
+import base64
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
@@ -90,6 +91,7 @@ def build_export(db: Session, org: Organization) -> dict:
         log_total = crud.count_audit_log(db, org_id)
         log = crud.list_audit_log(db, org_id, limit=MAX_EXPORT_LOG)
         members = crud.list_members(db, org_id)
+        brand = crud.get_branding(db, org_id)
 
     about = [
         "Здесь всё, что платформа хранит для этой организации: состав, подписки и "
@@ -98,8 +100,10 @@ def build_export(db: Session, org: Organization) -> dict:
         "Результатов расчётов внутри нет: они не хранятся, а считаются из модели — и "
         "будут посчитаны заново, где бы модель ни открыли. Отчёты в виде таблиц и "
         "документов выгружаются с экранов проектов и дел.",
-        "Файлов внутри нет, потому что платформа их не хранит вовсе: в обсуждениях "
-        "сохранены только ссылки на вашу комнату данных, а не сами материалы.",
+        "Файлов внутри нет, потому что платформа их не хранит: в обсуждениях сохранены "
+        "только ссылки на вашу комнату данных, а не сами материалы. Единственная "
+        "картинка — логотип организации: он хранится в базе вместе с ней и лежит здесь "
+        "в base64, уже без метаданных файла (их вычищают при загрузке).",
         "Секретов ключей доступа к API и ссылок для просмотра внутри нет: платформа "
         "хранит лишь их отпечатки и показать сам секрет не может — ни вам, ни себе.",
         "Учётные записи участников здесь не выгружаются — они принадлежат людям, а не "
@@ -200,6 +204,15 @@ def build_export(db: Session, org: Organization) -> dict:
              "автор": c.author_email}
             for c in checklists
         ],
+        "логотип": None if brand is None else {
+            "тип": brand.logo_mime,
+            "размер_байт": len(brand.logo),
+            "ширина_px": brand.logo_width,
+            "высота_px": brand.logo_height,
+            "загружен": _iso(brand.updated_at),
+            "загрузил": brand.updated_by or None,
+            "данные_base64": base64.b64encode(brand.logo).decode("ascii"),
+        },
         "ключи_доступа": [
             {"имя": k.name, "видимая_часть": apikeys.masked(k.prefix),
              "завёл": k.created_by, "создан": _iso(k.created_at),

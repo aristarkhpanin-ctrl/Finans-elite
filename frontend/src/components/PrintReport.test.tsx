@@ -112,3 +112,20 @@ describe("печать", () => {
     expect(sheetColumns(container)[0][11]).toBe("М12");
   });
 });
+
+describe("логотип организации (L9)", () => {
+  it("с логотипом бланк выходит под именем организации, марка платформы — подписью", () => {
+    const { getByRole, getByText, queryByText } = render(
+      <PrintReport data={result(12)} title="Склад"
+                   brand={{ src: "data:image/png;base64,AAAA", name: "ООО «Ромашка»" }} />);
+    expect(getByRole("img", { name: "Логотип «ООО «Ромашка»»" })).toBeTruthy();
+    expect(getByText("подготовлено в Финанс-Элит")).toBeTruthy();
+    expect(queryByText("финансовое моделирование предприятия")).toBeNull();
+  });
+
+  it("без логотипа — марка платформы, как прежде", () => {
+    const { container, getByText } = render(<PrintReport data={result(12)} title="Склад" />);
+    expect(container.querySelector(".pr-orglogo")).toBeNull();
+    expect(getByText("Финанс-Элит")).toBeTruthy();
+  });
+});

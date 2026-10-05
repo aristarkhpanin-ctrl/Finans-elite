@@ -9515,6 +9515,137 @@
         "title": "OrgDeletionPlanOut",
         "type": "object"
       },
+      "OrgLogoIn": {
+        "description": "Логотип организации (L9) — файлом в base64. Тип определяется по содержимому файла,\nа не по имени: его задаёт отправитель.\n\nПредел строки с запасом выше предела файла: точный отказ («больше 256 КБ — сколько\nименно») даёт сервер после разбора, а этот лишь не даёт прислать мегабайты.",
+        "properties": {
+          "data_base64": {
+            "contentEncoding": "base64",
+            "contentMediaType": "image/png, image/jpeg",
+            "maxLength": 1048576,
+            "minLength": 1,
+            "title": "Data Base64",
+            "type": "string"
+          }
+        },
+        "required": [
+          "data_base64"
+        ],
+        "title": "OrgLogoIn",
+        "type": "object"
+      },
+      "OrgLogoOut": {
+        "description": "Логотип организации и правила, по которым он принят (L9).\n\n``present = False`` — логотипа нет, документы выходят с маркой платформы. ``rules`` —\nс сервера: экран их показывает, а не пересказывает своими словами.",
+        "properties": {
+          "data_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Url"
+          },
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
+          },
+          "max_bytes": {
+            "default": 262144,
+            "title": "Max Bytes",
+            "type": "integer"
+          },
+          "mime": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mime"
+          },
+          "organization": {
+            "default": "",
+            "title": "Organization",
+            "type": "string"
+          },
+          "present": {
+            "default": false,
+            "title": "Present",
+            "type": "boolean"
+          },
+          "rules": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Rules",
+            "type": "array"
+          },
+          "size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "updated_by": {
+            "default": "",
+            "title": "Updated By",
+            "type": "string"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width"
+          }
+        },
+        "title": "OrgLogoOut",
+        "type": "object"
+      },
       "OrganizationCreate": {
         "properties": {
           "name": {
@@ -13879,6 +14010,17 @@
           "organization": {
             "title": "Organization",
             "type": "string"
+          },
+          "organization_logo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Logo"
           },
           "project_name": {
             "title": "Project Name",
@@ -24222,6 +24364,149 @@
           }
         ],
         "summary": "Export Organization",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/api/v1/organizations/{org_id}/logo": {
+      "delete": {
+        "description": "Убрать логотип: документы снова выходят с маркой платформы. Убирать нечего — тишина,\nи в журнале ничего не появляется.",
+        "operationId": "remove_logo_api_v1_organizations__org_id__logo_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Remove Logo",
+        "tags": [
+          "organizations"
+        ]
+      },
+      "get": {
+        "description": "Логотип организации (L9) — его видят все участники: он стоит на их документах.",
+        "operationId": "read_logo_api_v1_organizations__org_id__logo_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrgLogoOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Logo",
+        "tags": [
+          "organizations"
+        ]
+      },
+      "put": {
+        "description": "Поставить логотип (право `org.manage`): он подписывает документы организации, и\nставит его тот же, кто отвечает за неё.\n\nОтказ называет причину словами (`branding.LogoError`): «не тот формат» человек с SVG\nпрочёл бы как придирку, а не как довод.",
+        "operationId": "set_logo_api_v1_organizations__org_id__logo_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrgLogoIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrgLogoOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set Logo",
         "tags": [
           "organizations"
         ]

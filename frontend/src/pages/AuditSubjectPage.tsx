@@ -62,6 +62,7 @@ import { GirboImport } from "../components/GirboImport";
 import type { GirboApplyResult } from "../girboImport";
 import { fmtMoney } from "../format";
 import { usePageTitle } from "../pageTitle";
+import { usePrintBrand } from "../api/branding";
 
 type Tab = "summary" | "subject" | "input" | "reports" | "ratios" | "trends" | "diagnostics"
   | "flags" | "earnings" | "obligations" | "procedures" | "valuation" | "risk" | "planfact"
@@ -163,6 +164,8 @@ export function AuditSubjectPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const toast = useToast();
+  // Логотип организации на бланке печати (L9); нет — марка платформы.
+  const brand = usePrintBrand();
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["audit-subject", id],
     queryFn: () => getAuditSubject(id),
@@ -407,7 +410,7 @@ export function AuditSubjectPage() {
         </div>
         <AuditPrintReport analysis={analysis.data} name={name}
                           industry={m.industry ?? ""}
-                          standard={m.reporting_standard ?? "rsbu"} />
+                          standard={m.reporting_standard ?? "rsbu"} brand={brand} />
       </div>
     );
   }

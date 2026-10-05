@@ -46,6 +46,7 @@ from .db_models import (
     IndustryBenchmark,
     Membership,
     Organization,
+    OrgBranding,
     Payment,
     Project,
     ProjectVersion,
@@ -259,7 +260,7 @@ def delete_account(db: Session, user: User) -> DeletionPlan:
 PURGED_WITH_ORGANIZATION = (
     ShareLink, ProjectVersion, AuditSubjectVersion, AnalysisJob, Project, AuditSubject,
     AuditGroup, Holding, IndustryBenchmark, AuditChecklist, Comment, ApiKey, SupportGrant,
-    Subscription, Payment, AuditLogEntry, Membership,
+    OrgBranding, Subscription, Payment, AuditLogEntry, Membership,
 )
 
 #: Таблицы с ``organization_id``, которые уходом клиента **не стираются**, — каждая

@@ -8,6 +8,7 @@ import { ProfileTab } from "./org/ProfileTab";
 import { MembersTab } from "./org/MembersTab";
 import { ActivityTab } from "./org/ActivityTab";
 import { BenchmarksTab } from "./org/BenchmarksTab";
+import { BrandingTab } from "./org/BrandingTab";
 import { ChecklistsTab } from "./org/ChecklistsTab";
 import { ApiKeysTab } from "./org/ApiKeysTab";
 import { SupportAccessTab } from "./org/SupportAccessTab";
@@ -20,6 +21,7 @@ const TABS = [
   ["members", "Участники"],
   ["activity", "Активность"],
   ["profile", "Профиль"],
+  ["branding", "Оформление"],
   ["benchmarks", "Ориентиры"],
   ["checklists", "Чек-листы"],
   ["apikeys", "Ключи API"],
@@ -57,7 +59,7 @@ export function OrganizationPage() {
       <div className="page-head">
         <div style={{ minWidth: 0 }}>
           <h1 className="page-title">{org?.name ?? "Организация"}</h1>
-          <div className="page-sub">Участники, роли, отраслевые ориентиры, тариф и оплата.</div>
+          <div className="page-sub">Участники, роли, оформление документов, отраслевые ориентиры, тариф и оплата.</div>
         </div>
       </div>
 
@@ -101,6 +103,10 @@ export function OrganizationPage() {
             </div>
           </div>)}
       {tab === "profile" && <ProfileTab />}
+      {/* Логотип видят все: он стоит на их документах. Ставит тот, кто отвечает за
+          организацию, — документы уходят от её имени. */}
+      {tab === "branding" && <BrandingTab orgId={currentOrgId} orgName={org?.name ?? "организация"}
+                                          canManage={canManageOrg} />}
       {/* Ориентиры принадлежат организации, а не делу: одна и та же медиана фонда
           читается во всех делах, и вести её в каждом значило бы её размножить. */}
       {tab === "benchmarks" && <BenchmarksTab orgId={currentOrgId} canManage={canManageOrg} />}

@@ -1835,6 +1835,7 @@ h2 { font: 600 17px/1.25 var(--font-ui); letter-spacing: -0.01em; margin: 0 0 12
   padding-bottom: 14px; border-bottom: 2px solid var(--ink);
 }
 .ap-brand { font: 700 16px var(--font-ui); letter-spacing: -0.01em; }
+.ap-orglogo { display: block; max-width: 200px; max-height: 44px; object-fit: contain; margin-bottom: 4px; }
 .ap-brand-sub { font: 500 10.5px var(--font-ui); color: var(--muted); margin-top: 1px; }
 .ap-dockind {
   font: 700 11px var(--font-ui); letter-spacing: 0.06em;
@@ -3000,6 +3001,8 @@ button.fin2-label:focus-visible { outline: 2px solid var(--accent); outline-offs
 }
 .pr-pagenum { position: absolute; top: 18px; right: 22px; font: 600 10px var(--font-mono); color: var(--faint); }
 .pr-band { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding-bottom: 18px; border-bottom: 2px solid var(--ink); }
+/* Логотип организации (L9) вместо марки платформы: вписан в полосу, пропорции свои. */
+.pr-orglogo { display: block; max-width: 200px; max-height: 44px; object-fit: contain; }
 .pr-logo { width: 32px; height: 32px; border-radius: 8px; background: var(--accent); display: flex; align-items: flex-end; justify-content: center; gap: 2.5px; padding: 7px; flex: none; }
 .pr-logo span { width: 3.5px; border-radius: 1px; background: #fff; }
 .pr-logo span:nth-child(1) { height: 7px; opacity: 0.55; }
@@ -4211,6 +4214,21 @@ button.leg-toggle:focus-visible { outline: 2px solid var(--accent); outline-offs
     content: attr(data-label) ": "; color: var(--muted);
   }
 }
+
+/* Оформление организации (L9): логотип на листе — как он ляжет на титул документа. */
+.brand-preview { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+.brand-preview__paper {
+  background: #FFFFFF; border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 16px; display: flex; align-items: center; justify-content: center;
+  min-width: 120px; min-height: 64px; max-width: 100%;
+}
+.brand-preview__img { display: block; max-width: min(220px, 100%); max-height: 80px; object-fit: contain; }
+.brand-meta { font: 400 12px/1.5 var(--font-ui); color: var(--muted); }
+.shared-logo {
+  display: inline-flex; background: #FFFFFF; border: 1px solid var(--border);
+  border-radius: 8px; padding: 6px 10px; margin-bottom: 8px; max-width: 100%;
+}
+.shared-logo img { display: block; max-width: min(200px, 100%); max-height: 44px; object-fit: contain; }
 
 /* Входы в учётную запись (C1): список действующих сеансов в профиле. */
 .sess-list { display: flex; flex-direction: column; gap: 2px; margin-bottom: 12px; }

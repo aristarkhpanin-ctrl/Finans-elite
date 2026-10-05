@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import type { AuditAnalysis, ReportingStandard } from "../api/audit";
 import { REPORTING_STANDARDS } from "../api/audit";
 import { fmtDateOnly, plural } from "../format";
+import type { PrintBrand } from "./PrintReport";
 import { ScrollRegion } from "./ui";
 
 /**
@@ -99,11 +100,14 @@ export function AuditPrintReport({
   name,
   industry,
   standard,
+  brand,
 }: {
   analysis: AuditAnalysis;
   name: string;
   industry: string;
   standard: ReportingStandard;
+  /** Логотип организации (L9); нет — бланк с маркой платформы, как прежде. */
+  brand?: PrintBrand | null;
 }) {
   const last = analysis.n - 1;
   const at = (code: string, from: AuditAnalysis["balance"]) =>
@@ -122,10 +126,17 @@ export function AuditPrintReport({
   const sheets: React.ReactNode[] = [
     <>
         <header className="ap-band">
-          <div>
-            <div className="ap-brand">Финанс-Аудит</div>
-            <div className="ap-brand-sub">Анализ фактической отчётности</div>
-          </div>
+          {brand ? (
+            <div>
+              <img className="ap-orglogo" src={brand.src} alt={`Логотип «${brand.name}»`} />
+              <div className="ap-brand-sub">подготовлено в Финанс-Аудит</div>
+            </div>
+          ) : (
+            <div>
+              <div className="ap-brand">Финанс-Аудит</div>
+              <div className="ap-brand-sub">Анализ фактической отчётности</div>
+            </div>
+          )}
           <div style={{ textAlign: "right" }}>
             <div className="ap-dockind">
               Заключение{req.number && ` № ${req.number}`}
