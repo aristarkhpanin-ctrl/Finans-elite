@@ -29,14 +29,16 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 #: Имя GUC-переменной арендатора для RLS (см. миграцию d5e8f1a2c3b4).
 _TENANT_GUC = "app.current_org_id"
+#: Где сеанс работы с базой помнит своего арендатора (``Session.info``).
+_TENANT_KEY = "rls_tenant"
 
 
 @event.listens_for(engine, "checkout")
 def _reset_tenant_on_checkout(dbapi_conn, _record, _proxy):
-    """Сбрасывать арендатора при выдаче соединения из пула (защита от «залипшего» GUC).
+    """Сбрасывать арендатора соединения при выдаче из пула (защита от «залипшего» GUC).
 
-    Только PostgreSQL: незаданный/пустой GUC → RLS не покажет ни одной строки, пока
-    запрос явно не выставит арендатора через :func:`set_tenant`.
+    Арендатор теперь живёт в транзакции (:func:`_tenant_on_begin`) и с ней же кончается;
+    сброс оставлен на случай, если кто-то выставит его на всё соединение мимо двери.
     """
     if engine.dialect.name != "postgresql":
         return
@@ -47,19 +49,44 @@ def _reset_tenant_on_checkout(dbapi_conn, _record, _proxy):
         cur.close()
 
 
+def _apply_tenant(connection, org_id: str) -> None:
+    """Арендатор — на **текущую транзакцию** (``set_config(…, true)`` = ``SET LOCAL``)."""
+    connection.execute(text("SELECT set_config(:name, :val, true)"),
+                       {"name": _TENANT_GUC, "val": org_id})
+
+
+@event.listens_for(Session, "after_begin")
+def _tenant_on_begin(session: Session, _transaction, connection) -> None:
+    """Каждая транзакция сеанса начинается с его арендатора (L11).
+
+    Раньше арендатор ставился на **соединение** — один раз, при входе запроса. Но сеанс
+    после каждого ``commit`` возвращает соединение в пул, следующая операция берёт его
+    заново, а пул при выдаче сбрасывает арендатора: всё, что запрос делал после первой
+    записи, шло **без организации** — и под ролью без прав суперпользователя RLS
+    отказывал (журнал не писался, чтение возвращало пустоту). Регистрация не проходила
+    вовсе. Суперпользователь, которым приложение подключалось в `docker-compose.yml`,
+    обходит RLS всегда, поэтому этого не видел ни один прогон.
+    """
+    if connection.dialect.name != "postgresql":
+        return
+    _apply_tenant(connection, session.info.get(_TENANT_KEY, ""))
+
+
 def set_tenant(db: Session, org_id: str) -> None:
-    """Выставить арендатора для RLS на текущее соединение (PostgreSQL). На SQLite — no-op."""
-    if db.bind is not None and db.bind.dialect.name == "postgresql":
-        db.execute(text("SELECT set_config(:name, :val, false)"),
-                   {"name": _TENANT_GUC, "val": org_id})
+    """Выставить арендатора сеанса для RLS (PostgreSQL). На SQLite — запоминается, но
+    ни на что не влияет: RLS там нет.
+
+    Арендатор принадлежит **сеансу** (запросу), а не соединению: он переживает ``commit``
+    и заново ставится в начале каждой транзакции (:func:`_tenant_on_begin`).
+    """
+    db.info[_TENANT_KEY] = org_id
+    if db.in_transaction() and db.get_bind().dialect.name == "postgresql":
+        _apply_tenant(db.connection(), org_id)
 
 
 def current_tenant(db: Session) -> str:
-    """Кто сейчас выставлен арендатором (пустая строка = никто). На SQLite — всегда ''."""
-    if db.bind is not None and db.bind.dialect.name == "postgresql":
-        return db.execute(text("SELECT coalesce(current_setting(:name, true), '')"),
-                          {"name": _TENANT_GUC}).scalar_one()
-    return ""
+    """Арендатор сеанса (пустая строка — никто)."""
+    return db.info.get(_TENANT_KEY, "")
 
 
 @contextmanager

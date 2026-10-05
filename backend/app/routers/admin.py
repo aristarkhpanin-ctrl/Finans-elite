@@ -760,8 +760,8 @@ def export_usage(months: int = 12, staff: User = Depends(require_staff),
     )
 
 
-def _access_or_403(db: Session, org_id: str):
-    """Живой грант клиента — или 403 с **названной** причиной (F4).
+def _access_or_403(db: Session, org_id: str) -> str:
+    """Основание доступа по живому гранту клиента — или 403 с **названной** причиной (F4).
 
     Единственная дверь к содержимому моделей: и список, и сама модель спрашивают её,
     а не проверяют условие по месту. Проверка, скопированная в три маршрута, однажды
@@ -770,12 +770,14 @@ def _access_or_403(db: Session, org_id: str):
     now = datetime.now(timezone.utc)
     with as_tenant(db, org_id):
         grants = crud.list_support_grants(db, org_id)
-    refusal = support_access.refusal_for(grants, now, fmt_when=_when_ru)
-    if refusal is not None:
-        raise HTTPException(status_code=403, detail=refusal.reason)
-    grant = support_access.live_grant(grants, now)
-    assert grant is not None                      # refusal_for уже это проверил
-    return grant
+        refusal = support_access.refusal_for(grants, now, fmt_when=_when_ru)
+        if refusal is not None:
+            raise HTTPException(status_code=403, detail=refusal.reason)
+        grant = support_access.live_grant(grants, now)
+        assert grant is not None                  # refusal_for уже это проверил
+        # Основание — словами и **внутри двери** (L11): грант под RLS, и строка базы,
+        # тронутая после записи в журнал, перечитывалась бы уже без арендатора.
+        return _grant_note(grant)
 
 
 def _when_ru(moment: datetime) -> str:
@@ -817,7 +819,9 @@ def list_org_projects(org_id: str, staff: User = Depends(require_staff),
                         entity_type="organization", entity_id=org_id,
                         entity_name=org.name,
                         details=f"сотрудник платформы, проектов: {len(rows)}")
-    return [StaffEntityOut(id=p.id, name=p.name, updated_at=p.updated_at) for p in rows]
+        # Ответ собирается в дверях организации: после записи в журнал строки
+        # перечитываются, а вне двери RLS их не покажет (L11).
+        return [StaffEntityOut(id=p.id, name=p.name, updated_at=p.updated_at) for p in rows]
 
 
 @router.get("/organizations/{org_id}/projects/{project_id}", response_model=StaffModelOut)
@@ -831,7 +835,7 @@ def read_org_project(org_id: str, project_id: str, staff: User = Depends(require
     у визита в карточку.
     """
     _org_or_404(db, org_id)
-    grant = _access_or_403(db, org_id)
+    note = _access_or_403(db, org_id)
     with as_tenant(db, org_id):
         project = crud.get_project(db, org_id, project_id)
         if project is None:
@@ -839,8 +843,8 @@ def read_org_project(org_id: str, project_id: str, staff: User = Depends(require
         crud.log_action(db, org_id, staff, "support.project_view", entity_type="project",
                         entity_id=project.id, entity_name=project.name,
                         details="сотрудник платформы смотрел модель")
-    return StaffModelOut(id=project.id, name=project.name, updated_at=project.updated_at,
-                         model=project.model, note=_grant_note(grant))
+        return StaffModelOut(id=project.id, name=project.name, updated_at=project.updated_at,
+                             model=project.model, note=note)
 
 
 @router.get("/organizations/{org_id}/audit-subjects", response_model=list[StaffEntityOut])
@@ -855,7 +859,7 @@ def list_org_subjects(org_id: str, staff: User = Depends(require_staff),
                         entity_type="organization", entity_id=org_id,
                         entity_name=org.name,
                         details=f"сотрудник платформы, дел: {len(rows)}")
-    return [StaffEntityOut(id=s.id, name=s.name, updated_at=s.updated_at) for s in rows]
+        return [StaffEntityOut(id=s.id, name=s.name, updated_at=s.updated_at) for s in rows]
 
 
 @router.get("/organizations/{org_id}/audit-subjects/{subject_id}",
@@ -864,7 +868,7 @@ def read_org_subject(org_id: str, subject_id: str, staff: User = Depends(require
                      db: Session = Depends(get_db)) -> StaffModelOut:
     """Модель дела клиента. Правила те же — грант, запись в журнал, только чтение."""
     _org_or_404(db, org_id)
-    grant = _access_or_403(db, org_id)
+    note = _access_or_403(db, org_id)
     with as_tenant(db, org_id):
         subject = crud.get_audit_subject(db, org_id, subject_id)
         if subject is None:
@@ -872,8 +876,8 @@ def read_org_subject(org_id: str, subject_id: str, staff: User = Depends(require
         crud.log_action(db, org_id, staff, "support.case_view", entity_type="audit_subject",
                         entity_id=subject.id, entity_name=subject.name,
                         details="сотрудник платформы смотрел отчётность")
-    return StaffModelOut(id=subject.id, name=subject.name, updated_at=subject.updated_at,
-                         model=subject.model, note=_grant_note(grant))
+        return StaffModelOut(id=subject.id, name=subject.name, updated_at=subject.updated_at,
+                             model=subject.model, note=note)
 
 
 @router.get("/jobs", response_model=StaffJobsOut)

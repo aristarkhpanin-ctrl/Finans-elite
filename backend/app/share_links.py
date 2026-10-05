@@ -92,12 +92,20 @@ def refusal(kind: str, link: ShareLink | None = None) -> str:
 
 @dataclass
 class Opened:
+    """Открытый снимок — **значениями**, а не строками базы (L11).
+
+    Снимок читается в дверях организации-отправителя, а показывается уже вне их: строка
+    базы, тронутая после выхода (а любая запись в журнал или событие её «просрочивает»),
+    перечитывалась бы без арендатора, и под RLS её не нашлось бы. Поэтому наружу едут
+    модель, подписи и логотип, прочитанные внутри двери.
+    """
+
     link: ShareLink
-    version: ProjectVersion
-    project: Project
+    model: dict
+    version_label: str
+    project_name: str
     org_name: str
-    #: Логотип отправителя (L9): план по ссылке — документ его организации. Читается в
-    #: тех же дверях арендатора, что и снимок: под RLS вне них он вернул бы пустоту молча.
+    #: Логотип отправителя (L9): план по ссылке — документ его организации.
     logo: Logo | None = None
 
 
@@ -133,7 +141,8 @@ def open_shared(db: Session, token: str, *, what: str) -> Opened | tuple[int, st
         crud.log_action(db, link.organization_id, visitor, "share.open",
                         entity_type="share_link",
                         entity_id=link.id, entity_name=link.label, details=what)
-        return Opened(link=link, version=version, project=project, org_name=org.name,
+        return Opened(link=link, model=dict(version.model), version_label=version.label,
+                      project_name=project.name, org_name=org.name,
                       logo=crud.get_logo(db, link.organization_id))
 
 

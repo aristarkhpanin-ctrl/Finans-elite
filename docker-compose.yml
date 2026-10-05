@@ -19,7 +19,10 @@
 # переопределяются переменными окружения / файлом .env.
 x-backend-env: &backend-env
   APP_ENV: ${APP_ENV:-development}
-  DATABASE_URL: postgresql+psycopg://finans:${POSTGRES_PASSWORD:-finans}@db:5432/finans
+  # Приложение подключается ролью без прав суперпользователя (L11): суперпользователь
+  # обходит RLS всегда, и изоляция организаций в базе стояла бы на бумаге. Роль
+  # заводит сервис db-setup; суперпользователь finans остаётся для обслуживания.
+  DATABASE_URL: postgresql+psycopg://finans_app:${APP_DB_PASSWORD:-finans_app}@db:5432/finans
   JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
   JWT_TTL_SECONDS: ${JWT_TTL_SECONDS:-86400}
   CORS_ORIGINS: ${CORS_ORIGINS:-}
@@ -75,6 +78,9 @@ x-backend-env: &backend-env
   SELLER_EMAIL: ${SELLER_EMAIL:-}
   SELLER_PHONE: ${SELLER_PHONE:-}
   LEGAL_DOCS_EDITION: ${LEGAL_DOCS_EDITION:-}
+  # Резервные копии (L11): API читает отметки службы копирования для «Готовности».
+  BACKUP_DIR: ${BACKUP_DIR:-/backups}
+  RESTORE_CHECK_DAYS: ${RESTORE_CHECK_DAYS:-7}
 
 services:
   db:
@@ -91,6 +97,49 @@ services:
       timeout: 3s
       retries: 10
 
+  # Роль приложения в базе (L11): идемпотентно при каждом старте — заводит finans_app,
+  # если её нет, и передаёт ей владение базой и таблицами. Годится и для новой базы, и
+  # для уже работающей; API, воркер и планировщик ждут его завершения.
+  db-setup:
+    image: postgres:16-alpine
+    command: ["sh", "-c", "psql -q -v app_password=\"$$APP_DB_PASSWORD\" -f /ops/app-role.sql"]
+    environment:
+      PGHOST: db
+      PGUSER: finans
+      PGPASSWORD: ${POSTGRES_PASSWORD:-finans}
+      PGDATABASE: finans
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:-finans_app}
+    volumes:
+      - ./ops/db/app-role.sql:/ops/app-role.sql:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Резервные копии (L11): pg_dump раз в сутки, хранение BACKUP_KEEP_DAYS дней, раз в
+  # RESTORE_CHECK_DAYS дней — проверка восстановления в отдельной базе. Делается
+  # суперпользователем: роль приложения под RLS видит только «свою» организацию, и копия
+  # от её имени была бы пустой. Копии лежат в томе backups на этом же сервере — вынести
+  # копию за его пределы (docs/HOSTING-CHECKLIST.md).
+  backup:
+    image: postgres:16-alpine
+    command: ["sh", "/ops/backup/backup.sh", "loop"]
+    environment:
+      PGHOST: db
+      PGUSER: finans
+      PGPASSWORD: ${POSTGRES_PASSWORD:-finans}
+      PGDATABASE: finans
+      BACKUP_DIR: /backups
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+      BACKUP_HOUR_UTC: ${BACKUP_HOUR_UTC:-1}
+      RESTORE_CHECK_DAYS: ${RESTORE_CHECK_DAYS:-7}
+    volumes:
+      - backups:/backups
+      - ./ops/backup:/ops/backup:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
     healthcheck:
@@ -102,6 +151,8 @@ services:
   api:
     build: ./backend
     environment: *backend-env
+    volumes:
+      - backups:/backups:ro
     healthcheck:
       test: ["CMD", "python", "-c",
              "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
@@ -112,6 +163,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      db-setup:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
 
@@ -122,6 +175,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      db-setup:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
 
@@ -136,6 +191,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      db-setup:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
 
@@ -149,3 +206,4 @@ services:
 
 volumes:
   pgdata:
+  backups:

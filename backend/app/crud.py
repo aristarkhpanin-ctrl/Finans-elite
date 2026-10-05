@@ -1302,6 +1302,11 @@ def log_action(db: Session, org_id: str, user, action: str, *, entity_type: str 
 
     Длинные поля обрезаются до размера колонки, а не роняют запрос: имя дела задаёт
     пользователь, и слишком длинное имя не повод потерять запись о его удалении.
+
+    **Запись идёт в дверях своей организации** (L11): журнал под RLS, а пишут его и там,
+    где арендатора у запроса ещё нет — регистрация заводит организацию и тут же пишет о
+    ней. Без двери такая запись под ролью без прав суперпользователя отклонялась, и
+    регистрация не проходила вовсе.
     """
     key = db.info.get("via_api_key")
     entry = AuditLogEntry(
@@ -1316,8 +1321,9 @@ def log_action(db: Session, org_id: str, user, action: str, *, entity_type: str 
         via_key=(f"{key.name} ({apikeys.masked(key.prefix)})"[:255]
                  if key is not None else ""),
     )
-    db.add(entry)
-    db.commit()
+    with as_tenant(db, org_id):
+        db.add(entry)
+        db.commit()
     return entry
 
 

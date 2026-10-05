@@ -158,3 +158,88 @@ def test_the_script_uses_the_same_function_and_fails_on_problems(tmp_path):
     r = subprocess.run([sys.executable, "scripts/check_readiness.py"], cwd=root, env=env,
                        capture_output=True, text=True, timeout=120)
     assert r.returncode == 1 and "Почта" in r.stdout
+
+
+# --- Изоляция организаций в базе (L11) ---
+
+def test_sqlite_has_no_rls_and_says_so(db_session, clean_env):
+    """В разработке (SQLite) политик нет — это «выключено», а не поломка; в продакшене
+    та же картина — проблема: изоляцию держит один фильтр приложения."""
+    item = _items(db_session)["rls"]
+    assert item.status == "off" and "фильтр приложения" in item.impact
+    clean_env.setenv("APP_ENV", "production")
+    clean_env.setenv("JWT_SECRET", "x" * 40)
+    item = _items(db_session)["rls"]
+    assert item.status == "problem" and "PostgreSQL" in item.how
+
+
+# --- Резервные копии (L11) ---
+
+def _marks(folder: Path, **marks: dict[str, str]) -> None:
+    for name, fields in marks.items():
+        (folder / name).write_text("\n".join(f"{k}={v}" for k, v in fields.items()) + "\n")
+
+
+def _backups(folder: Path, clean_env, **marks) -> readiness.ReadinessItem:
+    clean_env.setenv("BACKUP_DIR", str(folder))
+    _marks(folder, **marks)
+    return readiness._backups(NOW)
+
+
+OK = {"at": "2026-09-20T01:00:05Z", "file": "finans-20260920T010000Z.dump",
+      "bytes": "3145728", "revision": "d1f3a5c7e9b4"}
+CHECKED = {"at": "2026-09-18T01:00:09Z", "file": "finans-20260918T010000Z.dump",
+           "revision": "d1f3a5c7e9b4", "organizations": "12", "users": "40"}
+
+
+def test_backups_in_order_name_the_copy_and_the_restore_check(tmp_path, clean_env):
+    item = _backups(tmp_path, clean_env, LAST_OK=OK, LAST_RESTORE_CHECK=CHECKED)
+    assert item.status == "ok" and not item.impact
+    assert "20.09.2026 01:00 UTC (3,0 МБ)" in item.state
+    assert "проверено 18.09.2026 (организаций: 12)" in item.state
+    assert "за его пределы" in item.state           # копии на том же сервере — названо
+
+
+def test_no_backup_directory_is_a_problem_only_in_production(db_session, clean_env):
+    clean_env.delenv("BACKUP_DIR", raising=False)
+    assert readiness._backups(NOW).status == "off"
+    clean_env.setenv("APP_ENV", "production")
+    item = readiness._backups(NOW)
+    assert item.status == "problem" and "потеря данных" in item.impact
+
+
+def test_a_failed_attempt_after_the_last_copy_is_named_with_its_reason(tmp_path, clean_env):
+    item = _backups(tmp_path, clean_env, LAST_OK=OK, LAST_RESTORE_CHECK=CHECKED,
+                    LAST_ERROR={"at": "2026-09-20T09:00:00Z", "error": "диск заполнен"})
+    assert item.status == "problem" and "диск заполнен" in item.state
+    assert "предыдущая копия — 20.09.2026 01:00 UTC" in item.state
+
+
+def test_an_old_copy_means_the_service_stopped(tmp_path, clean_env):
+    stale = {**OK, "at": "2026-09-18T23:00:00Z"}
+    item = _backups(tmp_path, clean_env, LAST_OK=stale, LAST_RESTORE_CHECK=CHECKED)
+    assert item.status == "problem" and "37 ч назад" in item.state
+
+
+def test_a_copy_never_restored_is_hope_not_a_copy(tmp_path, clean_env):
+    item = _backups(tmp_path, clean_env, LAST_OK=OK)
+    assert item.status == "problem" and "ни разу не проверялось" in item.state
+    assert "backup.sh check" in item.how
+
+
+def test_a_failed_restore_check_is_named(tmp_path, clean_env):
+    item = _backups(tmp_path, clean_env, LAST_OK=OK, LAST_RESTORE_CHECK=CHECKED,
+                    LAST_RESTORE_ERROR={"at": "2026-09-19T01:00:00Z",
+                                        "error": "копия не разворачивается"})
+    assert item.status == "problem" and "копия не разворачивается" in item.state
+
+
+def test_a_stale_restore_check_is_named_with_the_plan(tmp_path, clean_env):
+    old = {**CHECKED, "at": "2026-09-01T01:00:00Z"}
+    item = _backups(tmp_path, clean_env, LAST_OK=OK, LAST_RESTORE_CHECK=old)
+    assert item.status == "problem" and "19 дн. назад (раз в 7 дн. по плану)" in item.state
+
+
+def test_no_copies_yet(tmp_path, clean_env):
+    item = _backups(tmp_path, clean_env)
+    assert item.status == "problem" and item.state == "копий ещё не было"

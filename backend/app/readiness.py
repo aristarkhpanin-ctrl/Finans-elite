@@ -22,6 +22,7 @@ import os
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -38,6 +39,7 @@ from . import (
     usage,
 )
 from .billing import PaymentProvider
+from .env import env, env_int
 
 OK, OFF, PROBLEM = "ok", "off", "problem"
 
@@ -240,6 +242,154 @@ def _database(db: Session) -> ReadinessItem:
     return ReadinessItem("database", title, OK, f"ревизия {version}")
 
 
+_BACKUPS_TITLE = "Резервные копии"
+#: Копия старше этого — служба копирования стоит: копия раз в сутки плюс запас.
+BACKUP_STALE_HOURS = 26
+
+
+def _read_mark(path: Path) -> dict[str, str] | None:
+    """Отметка службы копирования: строки ``ключ=значение``. Нет файла — ``None``."""
+    try:
+        text_ = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    return dict(line.split("=", 1) for line in text_.splitlines() if "=" in line)
+
+
+def _mark_time(mark: dict[str, str] | None) -> datetime | None:
+    if not mark or not mark.get("at"):
+        return None
+    try:
+        return datetime.strptime(mark["at"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+
+
+def restore_check_days() -> int:
+    """Как часто проверяется восстановление (``RESTORE_CHECK_DAYS``, по умолчанию 7) — та
+    же переменная, что у службы копирования: один источник на оба места."""
+    days = env_int("RESTORE_CHECK_DAYS", 7)
+    return days if days > 0 else 7
+
+
+def _backups(now: datetime) -> ReadinessItem:
+    """Резервные копии базы (L11): когда была последняя и проверено ли восстановление.
+
+    Судится по **отметкам службы копирования** в её каталоге (сервис ``backup`` в
+    `docker-compose.yml`, каталог подключён к API только для чтения): «Готовность»
+    ничего не копирует и в базу ради этого не ходит. Нет каталога в продакшене —
+    проблема: не видно, делаются ли копии, а без них сбой диска — потеря данных всех
+    клиентов. Копия, которую ни разу не разворачивали, — тоже проблема.
+    """
+    title = _BACKUPS_TITLE
+    run = "docker compose exec backup sh /ops/backup/backup.sh"
+    directory = env("BACKUP_DIR")
+    if not directory:
+        return ReadinessItem("backups", title, PROBLEM if _production() else OFF,
+                             "каталог копий не подключён к сервису API (BACKUP_DIR)",
+                             "не видно, делаются ли копии; без них сбой диска — потеря "
+                             "данных всех клиентов",
+                             "сервис backup и том backups в docker-compose.yml, "
+                             "BACKUP_DIR=/backups у API")
+    folder = Path(directory)
+    if not folder.is_dir():
+        return ReadinessItem("backups", title, PROBLEM, f"каталога копий {directory} нет",
+                             "не видно, делаются ли копии",
+                             "подключить том backups к API (docker-compose.yml)")
+    ok, failed = _read_mark(folder / "LAST_OK"), _read_mark(folder / "LAST_ERROR")
+    checked = _read_mark(folder / "LAST_RESTORE_CHECK")
+    check_failed = _read_mark(folder / "LAST_RESTORE_ERROR")
+    ok_at, failed_at = _mark_time(ok), _mark_time(failed)
+    checked_at, check_failed_at = _mark_time(checked), _mark_time(check_failed)
+    how_copy = f"{run} once — копия сейчас; журнал службы — docker compose logs backup"
+    if ok is None or ok_at is None:
+        reason = f"; последняя попытка: {failed.get('error', '')}" if failed else ""
+        return ReadinessItem("backups", title, PROBLEM, "копий ещё не было" + reason,
+                             "сбой диска сейчас — потеря данных всех клиентов", how_copy)
+    if failed_at is not None and failed_at > ok_at:
+        return ReadinessItem(
+            "backups", title, PROBLEM,
+            f"последняя попытка {failed_at:%d.%m.%Y %H:%M} UTC не удалась: "
+            f"{failed.get('error', '') if failed else ''}; предыдущая копия — "
+            f"{ok_at:%d.%m.%Y %H:%M} UTC",
+            "новые данные не защищены копией", how_copy)
+    hours = int((now - ok_at).total_seconds() // 3600)
+    if hours >= BACKUP_STALE_HOURS:
+        return ReadinessItem("backups", title, PROBLEM,
+                             f"последняя копия {hours} ч назад — служба копирования стоит",
+                             "данные за это время не защищены копией", how_copy)
+    days = restore_check_days()
+    how_check = f"{run} check — развернуть последнюю копию и прочитать"
+    if checked is None or checked_at is None:
+        return ReadinessItem("backups", title, PROBLEM,
+                             "восстановление из копии ни разу не проверялось",
+                             "копия, которую ни разу не разворачивали, — надежда, а не "
+                             "копия", how_check)
+    if check_failed_at is not None and check_failed_at > checked_at:
+        return ReadinessItem(
+            "backups", title, PROBLEM,
+            f"проверка восстановления {check_failed_at:%d.%m.%Y} не прошла: "
+            f"{check_failed.get('error', '') if check_failed else ''}",
+            "из последней копии данные, возможно, не восстановить", how_check)
+    if (now - checked_at).days > days:
+        return ReadinessItem("backups", title, PROBLEM,
+                             f"восстановление проверялось {(now - checked_at).days} дн. "
+                             f"назад (раз в {days} дн. по плану)",
+                             "свежие копии не проверены", how_check)
+    size = int(ok.get("bytes") or 0)
+    mb = f"{size / 1_048_576:.1f}".replace(".", ",")
+    return ReadinessItem(
+        "backups", title, OK,
+        f"последняя копия {ok_at:%d.%m.%Y %H:%M} UTC ({mb} МБ), восстановление "
+        f"проверено {checked_at:%d.%m.%Y} (организаций: {checked.get('organizations', '?')}); "
+        "копии на этом же сервере — вынесите копию за его пределы "
+        "(docs/HOSTING-CHECKLIST.md)")
+
+
+_RLS_TITLE = "Изоляция организаций в базе (RLS)"
+
+
+def _rls(db: Session) -> ReadinessItem:
+    """Действуют ли политики RLS на приложение (L11).
+
+    Политики применяются только к роли **без** прав суперпользователя: суперпользователь
+    и роль с BYPASSRLS обходят их всегда, даже с FORCE. В `docker-compose.yml` до L11
+    приложение подключалось суперпользователем образа postgres — и вторая стена изоляции
+    организаций стояла на бумаге: держал только фильтр приложения. Здесь проверяется
+    роль, которой подключено само приложение, а не то, что написано в настройке.
+    """
+    title = _RLS_TITLE
+    if db.bind is None or db.bind.dialect.name != "postgresql":
+        if _production():
+            return ReadinessItem("rls", title, PROBLEM, "база не PostgreSQL — политик RLS нет",
+                                 "изоляцию организаций держит только фильтр приложения",
+                                 "PostgreSQL и роль приложения (docker-compose.yml)")
+        return ReadinessItem("rls", title, OFF, "SQLite (разработка): политик RLS нет",
+                             "изоляцию организаций держит только фильтр приложения",
+                             "в продакшене — PostgreSQL и роль приложения")
+    role, superuser, bypass = db.execute(text(
+        "SELECT current_user, rolsuper, rolbypassrls FROM pg_roles "
+        "WHERE rolname = current_user")).one()
+    policies = int(db.execute(text(
+        "SELECT count(*) FROM pg_policies WHERE schemaname = 'public'")).scalar_one())
+    if superuser or bypass:
+        right = "суперпользователь" if superuser else "право BYPASSRLS"
+        return ReadinessItem(
+            "rls", title, PROBLEM,
+            f"приложение подключено ролью «{role}» ({right}) — политики RLS к нему не "
+            "применяются",
+            "изоляцию организаций держит только фильтр приложения: ошибка в нём открыла "
+            "бы данные одной организации другой",
+            "подключать приложение ролью без прав суперпользователя: ops/db/app-role.sql "
+            "(в docker-compose.yml — сервис db-setup и DATABASE_URL с finans_app)")
+    if not policies:
+        return ReadinessItem("rls", title, PROBLEM, "политик RLS в базе нет",
+                             "изоляцию организаций держит только фильтр приложения",
+                             "alembic upgrade head — политики заводят миграции")
+    return ReadinessItem("rls", title, OK,
+                         f"роль «{role}» без права обходить RLS, политик: {policies}")
+
+
 def _safe(key: str, title: str, fn: Callable[[], ReadinessItem]) -> ReadinessItem:
     """Пункт, который не удалось проверить, — проблема с причиной, а не «в порядке»."""
     try:
@@ -304,6 +454,8 @@ def check(db: Session, *, provider: PaymentProvider,
     moment = now or datetime.now(timezone.utc)
     return [
         _safe("database", "База данных", lambda: _database(db)),
+        _safe("rls", _RLS_TITLE, lambda: _rls(db)),
+        _safe("backups", _BACKUPS_TITLE, lambda: _backups(moment)),
         _safe("mail", "Почта", _mail),
         _safe("public_url", "Публичный адрес", _public_url),
         _safe("scheduler", "Планировщик", lambda: _scheduler(db, moment)),

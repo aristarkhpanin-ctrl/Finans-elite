@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -107,3 +108,127 @@ def test_superuser_note_role_matters(clean):
         _set_org(c, "orgB")            # арендатор B, но…
         # …суперпользователь всё равно видит проект A (RLS его не касается).
         assert c.execute(text("SELECT id FROM projects")).scalars().all() == ["pa"]
+
+
+# --- Приложение под настоящим RLS (пакет L, L11) ---
+#
+# Политики выше проверялись сами по себе. Ниже — то, как с ними живёт приложение: под
+# ролью без прав суперпользователя (как в docker-compose.yml с L11) выяснилось, что
+# арендатор терялся после первого commit запроса, а журнал без арендатора у запроса не
+# писался вовсе — и регистрация не проходила. Суперпользователь, которым приложение
+# подключалось до L11, обходит RLS всегда, поэтому этого не видел ни один прогон.
+
+
+def _app_session(engine_url: str):
+    """Сеанс приложения под ролью app_tenant: каждое новое соединение — от её имени."""
+    from sqlalchemy import event
+    from sqlalchemy.orm import sessionmaker
+
+    eng = create_engine(engine_url, future=True, poolclass=NullPool)
+
+    @event.listens_for(eng, "connect")
+    def _as_app(dbapi_conn, _record):
+        cur = dbapi_conn.cursor()
+        cur.execute("SET ROLE app_tenant")
+        cur.close()
+
+    return sessionmaker(bind=eng)(), eng
+
+
+def test_the_tenant_survives_commits(clean):
+    """После commit сеанс берёт новое соединение — арендатор обязан прийти вместе с ним."""
+    from app.database import set_tenant
+
+    db, eng = _app_session(PG_URL)
+    try:
+        set_tenant(db, "orgA")
+        db.execute(_INSERT_PROJECT, {"id": "p1", "org": "orgA"})
+        db.commit()
+        db.execute(_INSERT_PROJECT, {"id": "p2", "org": "orgA"})   # вторая запись запроса
+        db.commit()
+        assert sorted(db.execute(text("SELECT id FROM projects")).scalars()) == ["p1", "p2"]
+    finally:
+        db.close()
+        eng.dispose()
+
+
+def test_the_journal_is_written_without_a_request_tenant(clean):
+    """Регистрация заводит организацию и тут же пишет о ней — арендатора у запроса ещё
+    нет. Запись идёт в дверях своей организации и видна ей одной."""
+    from app import crud
+    from app.database import set_tenant
+
+    db, eng = _app_session(PG_URL)
+    try:
+        crud.log_action(db, "orgA", None, "org.create", entity_type="organization",
+                        entity_id="orgA", entity_name="orgA")
+        set_tenant(db, "orgA")
+        assert db.execute(text("SELECT count(*) FROM audit_log")).scalar_one() == 1
+        set_tenant(db, "orgB")
+        assert db.execute(text("SELECT count(*) FROM audit_log")).scalar_one() == 0
+    finally:
+        db.close()
+        eng.dispose()
+
+
+@pytest.mark.skipif(shutil.which("psql") is None, reason="нужен клиент psql")
+def test_the_app_role_script_hands_the_database_to_a_plain_role(pg_engine):
+    """`ops/db/app-role.sql`: роль без прав суперпользователя, владелец базы и таблиц —
+    и повторный прогон ничего не ломает (скрипт идёт при каждом старте установки)."""
+    from sqlalchemy.engine import make_url
+
+    scratch = "finans_role_check"
+    url = make_url(PG_URL)
+    with pg_engine.connect().execution_options(isolation_level="AUTOCOMMIT") as c:
+        c.execute(text(f"DROP DATABASE IF EXISTS {scratch}"))
+        c.execute(text(f"CREATE DATABASE {scratch}"))
+    target = url.set(database=scratch)
+    try:
+        subprocess.run(["alembic", "upgrade", "head"], cwd=_BACKEND, check=True,
+                       env={**os.environ,
+                            "DATABASE_URL": target.render_as_string(hide_password=False)})
+        env = {**os.environ, "PGHOST": url.host or "localhost", "PGPORT": str(url.port or 5432),
+               "PGUSER": url.username or "", "PGPASSWORD": url.password or "",
+               "PGDATABASE": scratch}
+        script = _BACKEND.parent / "ops" / "db" / "app-role.sql"
+        for _ in range(2):                                   # идемпотентность
+            subprocess.run(["psql", "-q", "-v", "app_password=проверка", "-f", str(script)],
+                           check=True, env=env)
+        eng = create_engine(target, future=True, poolclass=NullPool)
+        with eng.connect() as c:
+            assert c.execute(text(
+                "SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname = 'finans_app'"
+            )).one() == (False, False)
+            foreign = c.execute(text(
+                "SELECT count(*) FROM pg_tables WHERE schemaname = 'public' "
+                "AND tableowner <> 'finans_app'")).scalar_one()
+            assert foreign == 0
+            assert c.execute(text(
+                "SELECT pg_get_userbyid(datdba) FROM pg_database WHERE datname = :d"),
+                {"d": scratch}).scalar_one() == "finans_app"
+        eng.dispose()
+    finally:
+        with pg_engine.connect().execution_options(isolation_level="AUTOCOMMIT") as c:
+            c.execute(text(f"DROP DATABASE IF EXISTS {scratch}"))
+
+
+def test_readiness_names_a_role_that_bypasses_rls(clean):
+    """Суперпользователь — проблема «Готовности»; роль без прав — в порядке, с числом
+    политик. Проверяется роль, которой подключено приложение, а не настройка."""
+    from sqlalchemy.orm import sessionmaker
+
+    from app import readiness
+
+    su = sessionmaker(bind=create_engine(PG_URL, future=True, poolclass=NullPool))()
+    try:
+        item = readiness._rls(su)
+        assert item.status == "problem" and "суперпользователь" in item.state
+    finally:
+        su.close()
+    db, eng = _app_session(PG_URL)
+    try:
+        item = readiness._rls(db)
+        assert item.status == "ok" and "app_tenant" in item.state, item
+    finally:
+        db.close()
+        eng.dispose()

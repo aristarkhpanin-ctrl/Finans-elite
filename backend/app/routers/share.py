@@ -163,7 +163,7 @@ def _opened(db: Session, token: str, what: str) -> share_links.Opened:
 
 def _model(opened: share_links.Opened) -> ProjectModel:
     try:
-        return ProjectModel.model_validate(opened.version.model)
+        return ProjectModel.model_validate(opened.model)
     except ValueError as exc:
         raise HTTPException(status_code=410, detail=(
             "План по этой ссылке больше не открывается: формат модели с тех пор изменился. "
@@ -188,7 +188,7 @@ def shared_plan(token: str, db: Session = Depends(get_db)) -> SharedPlanOut:
                      "и числа могли сдвинуться относительно отправленных.")
     notes.append(WHO_OPENED)
     return SharedPlanOut(
-        project_name=opened.project.name, version_label=opened.version.label,
+        project_name=opened.project_name, version_label=opened.version_label,
         shared_for=link.label, organization=opened.org_name,
         created_at=share_links.aware(link.created_at),
         expires_at=share_links.aware(link.expires_at), engine_then=link.engine_version,
@@ -213,9 +213,9 @@ def shared_docx(token: str, db: Session = Depends(get_db)) -> Response:
     review = run_review(ReviewContext(model=model, result=result))
     expires = share_links.aware(opened.link.expires_at)
     content = build_business_plan_docx(
-        model, result, build_opinion(review, result), project_name=opened.project.name,
+        model, result, build_opinion(review, result), project_name=opened.project_name,
         shared_for=opened.link.label, shared_until=expires.date(), logo=opened.logo)
-    filename = quote(f"{opened.project.name}.docx")
+    filename = quote(f"{opened.project_name}.docx")
     return Response(content=content, media_type=DOCX_MIME, headers={
         "Content-Disposition":
             f"attachment; filename=\"business-plan.docx\"; filename*=UTF-8''{filename}"})
