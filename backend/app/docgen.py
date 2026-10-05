@@ -354,6 +354,17 @@ def _add_subscription_base(doc: Document, result: CalcResult) -> None:
     )
 
 
+def _confirmation_words(choice) -> str:
+    """Подтверждение пункта словами (L6): кем и когда — или прямо «не подтверждено».
+    Пустая клетка читалась бы как «подтверждать нечего»."""
+    if choice.confirmed and choice.confirmation:
+        c = choice.confirmation
+        return f"{c.by}, {c.on:%d.%m.%Y}. {c.basis}"
+    if choice.confirmation_stale:
+        return choice.confirmation_stale
+    return "Не подтверждено."
+
+
 def _add_methodology(doc: Document, model: ProjectModel, result: CalcResult) -> None:
     """Методические допущения расчёта (SPEC §22) — раздел для того, кто их подтверждает.
 
@@ -378,15 +389,17 @@ def _add_methodology(doc: Document, model: ProjectModel, result: CalcResult) -> 
     doc.add_paragraph(
         f"Задействовано развилок: {len(engaged)} из {len(report.choices)} "
         f"(остальные в этой модели не возникают — см. методику, §22).")
-    table = doc.add_table(rows=1 + len(engaged), cols=3)
+    table = doc.add_table(rows=1 + len(engaged), cols=4)
     table.style = "Table Grid"
-    for j, h in enumerate(["Вопрос методики", "Принятая трактовка", "Открыто к сверке"]):
+    for j, h in enumerate(["Вопрос методики", "Принятая трактовка", "Открыто к сверке",
+                           "Подтверждение"]):
         table.rows[0].cells[j].text = h
     for i, choice in enumerate(engaged):
         row = table.rows[i + 1].cells
         row[0].text = f"{choice.number}. {choice.title} ({choice.spec})"
         row[1].text = choice.chosen
         row[2].text = choice.open_question
+        row[3].text = _confirmation_words(choice)
     _shrink_table(table, 8.5)
 
     # Расхождения — **отдельным заголовком, а не колонкой в таблице выше**: «мы ещё не

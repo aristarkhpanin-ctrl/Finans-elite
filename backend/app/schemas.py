@@ -424,6 +424,15 @@ class ReviewResponse(BaseModel):
 
 # --- Карта методических трактовок (SPEC §22) ---
 
+class ConfirmationOut(BaseModel):
+    """Подтверждение трактовки человеком (L6): кем, когда, на каком основании."""
+
+    by: str
+    on: date
+    basis: str
+    document: str = ""
+
+
 class ChoiceOut(BaseModel):
     """Одна методическая развилка расчёта: что выбрано и живёт ли это в модели."""
 
@@ -443,6 +452,12 @@ class ChoiceOut(BaseModel):
     # Где движок считает **не так**, как требует предлагаемая норма. Отдельно от
     # open_question: «ещё не договорились» и «считаем иначе» — разные утверждения.
     divergence: str = ""
+    # Отпечаток открытого вопроса — его записывают вместе с подтверждением (L6).
+    fingerprint: str = ""
+    # Действующее подтверждение человеком; None — пункт не подтверждён.
+    confirmation: Optional[ConfirmationOut] = None
+    # Почему записанное подтверждение не засчитано (вопрос изменился после него).
+    confirmation_stale: str = ""
 
 
 class MethodologyResponse(BaseModel):
@@ -465,6 +480,8 @@ class MethodologyResponse(BaseModel):
     needs_human_count: int = 0
     # Сколько пунктов расходятся с предлагаемой нормой **в этой модели**.
     divergence_count: int = 0
+    # Сколько пунктов без действующего подтверждения — то, что держит версию 0.x (L6).
+    open_count: int = 0
 
 
 def methodology_response(report) -> "MethodologyResponse":
@@ -479,11 +496,17 @@ def methodology_response(report) -> "MethodologyResponse":
             controls=c.controls, open_question=c.open_question, engaged=c.engaged,
             silent_because=c.silent_because, evidence=c.evidence,
             resolution=c.resolution, proposed_basis=c.proposed_basis,
-            divergence=c.divergence,
+            divergence=c.divergence, fingerprint=c.fingerprint,
+            confirmation=(ConfirmationOut(by=c.confirmation.by, on=c.confirmation.on,
+                                          basis=c.confirmation.basis,
+                                          document=c.confirmation.document)
+                          if c.confirmed and c.confirmation else None),
+            confirmation_stale=c.confirmation_stale,
         ) for c in report.choices],
         engaged_count=len(report.engaged),
         needs_human_count=len(report.needs_human),
         divergence_count=len(report.divergences),
+        open_count=len(report.open),
     )
 
 

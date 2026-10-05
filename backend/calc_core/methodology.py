@@ -43,10 +43,21 @@ SPEC §22 с тех пор, как движок начали писать. Ка�
 (``proposed_basis``) написано для того, чтобы человеку осталось прочитать и согласиться
 или возразить, а не искать норму заново. Ничего оно не подтверждает: ``confirmed``
 по-прежнему ложно, и версия ядра остаётся `0.x` — гейт не ослаблен.
+
+**Подтверждение — запись, а не флажок** (пакет L, L6). Бухгалтер или аудитор читает пакет
+для проверки (``docs/METHODOLOGY-REVIEW-PACKET.md``, его собирает
+:mod:`calc_core.methodology_packet` из этого же кода) и подписывает решение по пункту;
+подписанное записывается в :data:`CONFIRMATIONS` — кем, когда, на каком основании и
+**какой именно вопрос** (``fingerprint``). Изменился вопрос или предлагаемое основание —
+отпечаток не сходится, и подтверждение **не засчитывается**, а называет себя устаревшим:
+человек подтверждал не этот текст. Гейт ``1.0`` проверяет подтверждения, а не сам список:
+пока хоть один пункт не подтверждён действующей записью, версия ядра остаётся `0.x`.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import hashlib
+from dataclasses import dataclass, field, replace
+from datetime import date
 from decimal import Decimal
 
 from .engine import run
@@ -65,6 +76,34 @@ RESOLUTIONS: dict[str, str] = {
     "judgement": "требует профессионального суждения: нормы, которая бы решила, нет",
     "presentation": "вопрос представления — числа от ответа не меняются",
 }
+
+
+@dataclass(frozen=True)
+class Confirmation:
+    """Подтверждение трактовки человеком (L6): кто, когда, на каком основании и что именно.
+
+    Записывается в :data:`CONFIRMATIONS` по подписанному пакету для проверки — правкой
+    кода с ревью, как и любое утверждение продукта о себе. Подтверждение **без имени**
+    не бывает: «подтверждено» без того, кто подтвердил, — это та самая ложь, ради которой
+    версия ядра держится предварительной.
+    """
+
+    #: Кто подтвердил: ФИО и квалификация («Иванова А. А., аттестат аудитора № …»).
+    by: str
+    #: Когда подписано решение.
+    on: date
+    #: Чем обосновано: норма или профессиональное суждение — словами подписавшего.
+    basis: str
+    #: Отпечаток вопроса, который подтверждали (:func:`question_fingerprint`). Вопрос с
+    #: тех пор изменился — подтверждение не засчитывается.
+    fingerprint: str
+    #: Где лежит подписанный пакет: номер, дата, хранилище.
+    document: str = ""
+
+
+#: Подтверждения трактовок — по подписанному пакету для проверки. **Пусто: ни один пункт
+#: не подтверждён.** Ключ — ``Choice.id``; лишний ключ (пункта нет) роняет тест.
+CONFIRMATIONS: dict[str, Confirmation] = {}
 
 
 @dataclass(frozen=True)
@@ -105,6 +144,42 @@ class Choice:
     #: утонуло бы в первом. Расхождение здесь **называется, а не чинится**: правка меняет
     #: числа и требует своего бампа версии с осознанным ревью golden-диффа.
     divergence: str = ""
+    #: Отпечаток открытого вопроса: записывается вместе с подтверждением и сверяется с
+    #: ним (:func:`question_fingerprint`).
+    fingerprint: str = ""
+    #: Действующее подтверждение человеком. ``None`` — пункт не подтверждён.
+    confirmation: Confirmation | None = None
+    #: Почему записанное подтверждение **не засчитано** (вопрос изменился после него).
+    #: Пусто — засчитано или записи нет вовсе.
+    confirmation_stale: str = ""
+
+    @property
+    def confirmed(self) -> bool:
+        return self.confirmation is not None and not self.confirmation_stale
+
+
+def question_fingerprint(choice: Choice) -> str:
+    """Отпечаток того, **что именно** подтверждают: пункт, способ закрытия, открытый
+    вопрос и предлагаемое основание. Модель в него не входит — подтверждается трактовка,
+    а не числа одного проекта."""
+    text = "\n".join((choice.id, choice.resolution, choice.open_question,
+                      choice.proposed_basis))
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
+
+
+def _with_confirmation(choice: Choice,
+                       registry: dict[str, Confirmation] | None = None) -> Choice:
+    """Приложить к пункту его отпечаток и подтверждение — или причину, по которой
+    записанное подтверждение не засчитано."""
+    registry = CONFIRMATIONS if registry is None else registry
+    fp = question_fingerprint(choice)
+    record = registry.get(choice.id)
+    stale = ""
+    if record is not None and record.fingerprint != fp:
+        stale = (f"Подтверждение от {record.on:%d.%m.%Y} ({record.by}) не действует: с тех "
+                 "пор изменился вопрос или предлагаемое основание — подписавший читал "
+                 "другой текст. Нужно подтвердить заново.")
+    return replace(choice, fingerprint=fp, confirmation=record, confirmation_stale=stale)
 
 
 @dataclass
@@ -113,8 +188,8 @@ class MethodologyMap:
 
     engine_version: str
     choices: list[Choice]
-    #: Подтверждены ли трактовки (и потому зафиксирована ли версия ядра). Всегда `False`,
-    #: пока подтверждение не сделано человеком: см. :func:`methodology_map`.
+    #: Подтверждены ли **все** трактовки действующими записями (:data:`CONFIRMATIONS`).
+    #: Только тогда версия ядра вправе стать `1.x`: см. :func:`methodology_map`.
     confirmed: bool = False
     #: Почему версия предварительная — текстом, а не молчанием.
     note: str = ""
@@ -136,6 +211,11 @@ class MethodologyMap:
         return [c for c in self.choices if c.resolution == "judgement"]
 
     @property
+    def open(self) -> list[Choice]:
+        """Пункты без действующего подтверждения — то, что держит версию `0.x`."""
+        return [c for c in self.choices if not c.confirmed]
+
+    @property
     def divergences(self) -> list[Choice]:
         """Пункты, где движок считает **не так**, как требует предлагаемая норма.
 
@@ -153,6 +233,14 @@ PRELIMINARY_NOTE = (
     "Версия расчётного ядра предварительная (0.x): перечисленные трактовки реализованы, "
     "но не подтверждены на реальных проектах профессиональным суждением бухгалтера или "
     "аудитора. Подтверждение — работа человека; платформа за него его не делает."
+)
+
+#: Когда подтверждены все пункты. Утверждение о трактовках, а не о безошибочности: числа
+#: модели по-прежнему отвечают допущениям того, кто её заполнял.
+CONFIRMED_NOTE = (
+    "Трактовки расчёта подтверждены профессиональным суждением: кем, когда и на каком "
+    "основании — у каждого пункта. Подтверждены трактовки, а не допущения модели: их "
+    "отвечает тот, кто её заполнял."
 )
 
 #: Оговорка к классификации. Едет вместе с ней: «закрывается ссылкой на норму» без этой
@@ -180,7 +268,7 @@ def methodology_map(model: ProjectModel, result: CalcResult) -> MethodologyMap:
     Порядок — как в SPEC §22: читателю карты и читателю методики не приходится
     сопоставлять два разных списка.
     """
-    choices = [
+    choices = [_with_confirmation(c) for c in (
         _i24(model, result),
         _vat(model, result),
         _fx(model, result),
@@ -189,9 +277,13 @@ def methodology_map(model: ProjectModel, result: CalcResult) -> MethodologyMap:
         _ratios(model, result),
         _loss_carryforward(model, result),
         _inventory(model, result),
-    ]
+    )]
+    # Подтверждено — только когда **каждый** пункт подтверждён действующей записью:
+    # гейт `1.0` проверяет подтверждения, а не то, что список кончился.
+    confirmed = all(c.confirmed for c in choices)
     return MethodologyMap(engine_version=result.engine_version, choices=choices,
-                          confirmed=False, note=PRELIMINARY_NOTE,
+                          confirmed=confirmed,
+                          note=CONFIRMED_NOTE if confirmed else PRELIMINARY_NOTE,
                           classification_note=CLASSIFICATION_NOTE)
 
 

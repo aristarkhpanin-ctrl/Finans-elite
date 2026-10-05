@@ -106,7 +106,7 @@ it("расхождение с нормой стоит отдельным бло�
       proposed_basis: "п. 2.1 ст. 283 НК РФ: не более 50% базы.",
       divergence: "Пул покрывает базу целиком, без ограничения в 50%.",
     }],
-  } as Partial<MethodologyResponse>));
+  } as unknown as Partial<MethodologyResponse>));
   show();
 
   expect(await screen.findByText(/Где расчёт расходится с нормой/)).toBeTruthy();
@@ -132,7 +132,7 @@ it("способ закрытия назван рядом с вопросом �
         evidence: {}, resolution: "judgement", proposed_basis: "", divergence: "",
       },
     ],
-  } as Partial<MethodologyResponse>));
+  } as unknown as Partial<MethodologyResponse>));
   show();
 
   expect(await screen.findByText("есть норма — проверить")).toBeTruthy();
@@ -146,4 +146,35 @@ it("без расхождений блока нет вовсе — пустая 
   show();
   await screen.findByText(/Момент признания НДС/);
   expect(screen.queryByText(/Где расчёт расходится с нормой/)).toBeNull();
+});
+
+
+/**
+ * Подтверждение человеком (L6): кем и когда — или прямо «не подтверждено»; устаревшее —
+ * словами сервера. Пустое место читалось бы как «подтверждать нечего».
+ */
+it("у пункта видно, кто его подтвердил, — или что не подтвердил никто", async () => {
+  const card = {
+    number: 2, title: "Момент признания НДС", spec: "SPEC §11", chosen: "По отгрузке.",
+    controls: [], open_question: "Срок возмещения.", engaged: true, silent_because: "",
+    evidence: {}, resolution: "citable", proposed_basis: "", divergence: "",
+  };
+  getMethodology.mockResolvedValue(answer({
+    open_count: 2,
+    choices: [
+      { ...card, id: "vat.basis", fingerprint: "6870d2f62142", confirmation_stale: "",
+        confirmation: { by: "Иванова А. А., аудитор", on: "2026-11-02",
+                        basis: "Основание проверено.", document: "" } },
+      { ...card, id: "fx.revaluation", number: 3, title: "Курсовая разница",
+        fingerprint: "7cd49c334d1a", confirmation: null,
+        confirmation_stale: "Подтверждение от 01.10.2026 не действует: изменился вопрос." },
+      { ...card, id: "ratios.averaging", number: 6, title: "База коэффициентов",
+        fingerprint: "455f48cb718b", confirmation: null, confirmation_stale: "" },
+    ],
+  } as unknown as Partial<MethodologyResponse>));
+  show();
+  expect(await screen.findByText(/Иванова А\. А\., аудитор, 02\.11\.2026\./)).toBeTruthy();
+  expect(screen.getByText(/не действует: изменился вопрос/)).toBeTruthy();
+  expect(screen.getByText("455f48cb718b")).toBeTruthy();
+  expect(document.body.textContent).toContain("Подтверждено человеком: 1 из 3");
 });

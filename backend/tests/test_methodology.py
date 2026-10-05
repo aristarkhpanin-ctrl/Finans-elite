@@ -7,11 +7,17 @@
 from __future__ import annotations
 
 import re
+from datetime import date
 from decimal import Decimal
 from pathlib import Path
 
-from calc_core import ENGINE_VERSION, run
-from calc_core.methodology import RESOLUTIONS, methodology_map
+from calc_core import ENGINE_VERSION, methodology, run
+from calc_core.methodology import (
+    RESOLUTIONS,
+    Confirmation,
+    methodology_map,
+    question_fingerprint,
+)
 from calc_core.samples import build_sample_project, build_showcase_project
 
 SPEC = Path(__file__).resolve().parents[2] / "docs" / "CALC-ENGINE-SPEC.md"
@@ -64,17 +70,19 @@ def test_the_map_does_not_confirm_anything_by_itself():
     assert "не подтверждены" in report.note
 
 
-def test_the_engine_version_stays_preliminary_while_questions_are_open():
-    """Пока в §22 есть хоть один открытый пункт, `engine_version` — `0.x`.
+def test_the_engine_version_stays_preliminary_until_every_point_is_confirmed():
+    """Пока хоть один пункт не подтверждён действующей записью, `engine_version` — `0.x`.
 
     Фиксация `1.0` это утверждение «трактовки подтверждены», и сделать его вправе
-    человек, а не очередной коммит. Тест не даёт цифре уехать молча.
+    человек, а не очередной коммит. Гейт проверяет **подтверждения** (L6), а не то, что
+    список кончился: список может и не кончиться — у вопроса бывает подтверждённый ответ.
     """
     report = _map(build_sample_project())
     assert report.choices, "открытых вопросов не осталось — фиксация 1.0 обсуждается людьми"
-    assert ENGINE_VERSION.startswith("0."), (
-        "версия ядра перестала быть предварительной, а открытые методические вопросы "
-        "в SPEC §22 остались: либо закрыть их, либо вернуть 0.x")
+    if not report.confirmed:
+        assert ENGINE_VERSION.startswith("0."), (
+            "версия ядра перестала быть предварительной, а подтверждены не все пункты: "
+            + ", ".join(c.id for c in report.open))
 
 
 # --- Задействованность ---
@@ -433,3 +441,64 @@ def test_the_document_prints_the_divergence_under_its_own_heading():
     assert "Где расчёт расходится с нормой" in text
     assert "выше нормы 50%" in text and "283" in text
     assert "предложение" in text                  # и оговорка едет рядом
+
+
+
+# --- Подтверждение человеком (L6) ---
+
+def _confirm(choice, *, fingerprint=None):
+    return Confirmation(by="Иванова А. А., аттестат аудитора № 0000", on=date(2026, 11, 2),
+                        basis="Прочитано, с предложенным основанием согласна.",
+                        fingerprint=fingerprint or question_fingerprint(choice))
+
+
+def test_a_confirmation_counts_only_for_the_question_it_was_given_for(monkeypatch):
+    """Подтверждали один текст — изменился вопрос, и подтверждение не засчитывается, а
+    называет себя устаревшим: подписавший читал другое."""
+    vat = _by_id(_map(build_sample_project()), "vat.basis")
+    monkeypatch.setattr(methodology, "CONFIRMATIONS", {"vat.basis": _confirm(vat)})
+    fresh = _by_id(_map(build_sample_project()), "vat.basis")
+    assert fresh.confirmed and fresh.confirmation.by.startswith("Иванова")
+
+    monkeypatch.setattr(methodology, "CONFIRMATIONS",
+                        {"vat.basis": _confirm(vat, fingerprint="000000000000")})
+    stale = _by_id(_map(build_sample_project()), "vat.basis")
+    assert not stale.confirmed
+    assert "не действует" in stale.confirmation_stale and "02.11.2026" in stale.confirmation_stale
+
+
+def test_one_confirmation_does_not_lift_the_version(monkeypatch):
+    vat = _by_id(_map(build_sample_project()), "vat.basis")
+    monkeypatch.setattr(methodology, "CONFIRMATIONS", {"vat.basis": _confirm(vat)})
+    report = _map(build_sample_project())
+    assert report.confirmed is False and len(report.open) == len(report.choices) - 1
+    assert report.note == methodology.PRELIMINARY_NOTE
+
+
+def test_all_points_confirmed_lift_the_map(monkeypatch):
+    report = _map(build_sample_project())
+    monkeypatch.setattr(methodology, "CONFIRMATIONS",
+                        {c.id: _confirm(c) for c in report.choices})
+    confirmed = _map(build_sample_project())
+    assert confirmed.confirmed is True and confirmed.open == []
+    assert confirmed.note == methodology.CONFIRMED_NOTE
+
+
+def test_the_fingerprint_is_about_the_question_not_the_model():
+    """Подтверждается трактовка, а не числа одного проекта: у разных моделей отпечаток
+    одного пункта один и тот же."""
+    a = {c.id: c.fingerprint for c in _map(build_sample_project()).choices}
+    b = {c.id: c.fingerprint for c in _map(build_showcase_project()).choices}
+    assert a == b and all(len(f) == 12 for f in a.values())
+
+
+def test_every_recorded_confirmation_is_real_and_current():
+    """Запись в реестре — утверждение продукта о себе: пункт существует, у подтверждения
+    есть подписавший и основание, а вопрос с тех пор не изменился. Устаревшая запись —
+    падающий тест: её надо пересмотреть, а не держать молча незасчитанной."""
+    report = _map(build_sample_project())
+    by_id = {c.id: c for c in report.choices}
+    for choice_id, record in methodology.CONFIRMATIONS.items():
+        assert choice_id in by_id, f"подтверждение пункта, которого нет: {choice_id}"
+        assert record.by.strip() and record.basis.strip(), choice_id
+        assert not by_id[choice_id].confirmation_stale, by_id[choice_id].confirmation_stale

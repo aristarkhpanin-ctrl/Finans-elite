@@ -5290,6 +5290,21 @@
             "title": "Chosen",
             "type": "string"
           },
+          "confirmation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConfirmationOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "confirmation_stale": {
+            "default": "",
+            "title": "Confirmation Stale",
+            "type": "string"
+          },
           "controls": {
             "default": [],
             "items": {
@@ -5312,6 +5327,11 @@
             "additionalProperties": true,
             "title": "Evidence",
             "type": "object"
+          },
+          "fingerprint": {
+            "default": "",
+            "title": "Fingerprint",
+            "type": "string"
           },
           "id": {
             "title": "Id",
@@ -5721,6 +5741,36 @@
           }
         },
         "title": "Company",
+        "type": "object"
+      },
+      "ConfirmationOut": {
+        "description": "Подтверждение трактовки человеком (L6): кем, когда, на каком основании.",
+        "properties": {
+          "basis": {
+            "title": "Basis",
+            "type": "string"
+          },
+          "by": {
+            "title": "By",
+            "type": "string"
+          },
+          "document": {
+            "default": "",
+            "title": "Document",
+            "type": "string"
+          },
+          "on": {
+            "format": "date",
+            "title": "On",
+            "type": "string"
+          }
+        },
+        "required": [
+          "by",
+          "on",
+          "basis"
+        ],
+        "title": "ConfirmationOut",
         "type": "object"
       },
       "ConsolidateRequest": {
@@ -8536,6 +8586,11 @@
             "default": "",
             "title": "Note",
             "type": "string"
+          },
+          "open_count": {
+            "default": 0,
+            "title": "Open Count",
+            "type": "integer"
           }
         },
         "required": [

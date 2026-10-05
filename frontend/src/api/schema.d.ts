@@ -6346,6 +6346,12 @@ export interface components {
         ChoiceOut: {
             /** Chosen */
             chosen: string;
+            confirmation?: components["schemas"]["ConfirmationOut"] | null;
+            /**
+             * Confirmation Stale
+             * @default
+             */
+            confirmation_stale: string;
             /**
              * Controls
              * @default []
@@ -6365,6 +6371,11 @@ export interface components {
             evidence?: {
                 [key: string]: unknown;
             };
+            /**
+             * Fingerprint
+             * @default
+             */
+            fingerprint: string;
             /** Id */
             id: string;
             /** Number */
@@ -6655,6 +6666,26 @@ export interface components {
              *     }
              */
             starting_balance: components["schemas"]["StartingBalance-Output"];
+        };
+        /**
+         * ConfirmationOut
+         * @description Подтверждение трактовки человеком (L6): кем, когда, на каком основании.
+         */
+        ConfirmationOut: {
+            /** Basis */
+            basis: string;
+            /** By */
+            by: string;
+            /**
+             * Document
+             * @default
+             */
+            document: string;
+            /**
+             * On
+             * Format: date
+             */
+            on: string;
         };
         /** ConsolidateRequest */
         ConsolidateRequest: {
@@ -8165,6 +8196,11 @@ export interface components {
              * @default
              */
             note: string;
+            /**
+             * Open Count
+             * @default 0
+             */
+            open_count: number;
         };
         /**
          * MetricChangeOut

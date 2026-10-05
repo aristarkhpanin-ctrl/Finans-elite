@@ -59,7 +59,9 @@ export function MethodologyTab({ projectId }: { projectId: string }) {
           <div className="mth-head__sub">
             Задействовано развилок: <b>{engaged.length}</b> из {data.choices.length};
             профессионального суждения ждут <b>{data.needs_human_count}</b> — остальные
-            закрываются нормой или не о числах. Движок расчёта v{data.engine_version}.
+            закрываются нормой или не о числах. Подтверждено человеком:{" "}
+            <b>{data.choices.length - data.open_count}</b> из {data.choices.length}.
+            Движок расчёта v{data.engine_version}.
           </div>
         </div>
         {/* Версия предварительная — и это не техническая мелочь, а утверждение о
@@ -129,6 +131,7 @@ function ChoiceCard({ c }: { c: MethodologyChoice }) {
           <span className="mth-card__open-l">Предлагаемое основание:</span> {c.proposed_basis}
         </div>
       )}
+      <ConfirmationLine c={c} />
       {c.controls.length > 0 && (
         <div className="mth-card__controls">
           {c.controls.map((f) => <code key={f}>{f}</code>)}
@@ -143,6 +146,34 @@ function ChoiceCard({ c }: { c: MethodologyChoice }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Подтверждение пункта человеком (L6) — кем, когда, на каком основании; устаревшее —
+ * своими словами с сервера; отсутствующее — прямо «не подтверждено». Пустое место
+ * читалось бы как «подтверждать нечего».
+ */
+function ConfirmationLine({ c }: { c: MethodologyChoice }) {
+  if (c.confirmation) {
+    const on = new Date(c.confirmation.on + "T00:00:00").toLocaleDateString("ru-RU");
+    return (
+      <div className="mth-card__confirm mth-card__confirm--ok">
+        <span className="mth-card__open-l">Подтверждено:</span> {c.confirmation.by}, {on}.{" "}
+        {c.confirmation.basis}
+      </div>
+    );
+  }
+  if (c.confirmation_stale) {
+    return (
+      <div className="mth-card__confirm mth-card__confirm--stale">{c.confirmation_stale}</div>
+    );
+  }
+  return (
+    <div className="mth-card__confirm">
+      <span className="mth-card__open-l">Не подтверждено</span> — трактовку ещё не проверил
+      бухгалтер или аудитор. Отпечаток вопроса: <code>{c.fingerprint}</code>.
     </div>
   );
 }
