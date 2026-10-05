@@ -4194,9 +4194,22 @@ button.leg-toggle:focus-visible { outline: 2px solid var(--accent); outline-offs
 .mbar { display: block; height: 8px; border-radius: 4px; background: var(--primary); min-width: 0; }
 .mnotes { margin: 0; padding-left: 18px; font: 400 12px/1.7 var(--font-ui); color: var(--muted); }
 
+/* Активация по неделям (L8): шесть колонок — неделя, пришло, посчитали, доля, медиана и
+   полоса доли (последняя, как у соседних таблиц, на телефоне прячется). */
+.mgrid__row--act {
+  grid-template-columns: minmax(90px, 120px) minmax(64px, 110px) minmax(84px, 150px)
+                         minmax(80px, 110px) minmax(72px, 110px) 1fr;
+}
+.mgrid__note { display: block; font-size: 11.5px; color: var(--muted); }
+
 @media (max-width: 700px) {
-  .mgrid__row { grid-template-columns: 1fr 1fr; }
+  .mgrid__row, .mgrid__row--act { grid-template-columns: 1fr 1fr; }
   .mgrid__row > :last-child { display: none; }
+  /* В две колонки шапка не над своими числами: подпись едет в саму ячейку. */
+  .mgrid__row--act.mgrid__row--head { display: none; }
+  .mgrid__row--act > [data-label]::before {
+    content: attr(data-label) ": "; color: var(--muted);
+  }
 }
 
 /* Входы в учётную запись (C1): список действующих сеансов в профиле. */

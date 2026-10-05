@@ -462,6 +462,45 @@ it("когорта без пришедших не выдаётся за кого
   expect(screen.getByText("не измеряется")).toBeTruthy();
 });
 
+// --- L8: активация по неделям ---
+
+it("без событий активация названа неизмеряемой, а не таблицей нулей", async () => {
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Сводка" }));
+  expect(await screen.findByText("Активация не измеряется.")).toBeTruthy();
+  expect(screen.queryByRole("table", { name: "Активация по неделям регистрации" })).toBeNull();
+});
+
+it("незавершённая неделя не выдаёт долю пока посчитавших за окончательную", async () => {
+  getPlatformMetrics.mockResolvedValue(metrics({
+    activation: {
+      days: 7, signed_up: 3, activated: 2, share: 2 / 3, median_hours: 0.25,
+      staff_excluded: 0, unmarked_orgs: 0, first_event_at: "2026-09-01T00:00:00Z",
+      weeks: [
+        { week: "2026-08-24", signed_up: null, activated: 0, share: null,
+          median_hours: null, complete: false, partial: false },
+        { week: "2026-09-14", signed_up: 3, activated: 2, share: 2 / 3,
+          median_hours: 2, complete: true, partial: false },
+        { week: "2026-09-28", signed_up: 2, activated: 1, share: null,
+          median_hours: null, complete: false, partial: false },
+      ],
+    },
+  }));
+  show();
+  fireEvent.click(await screen.findByRole("button", { name: "Сводка" }));
+  const table = await screen.findByRole("table", { name: "Активация по неделям регистрации" });
+  const row = (label: string) => within(table).getByText(label).closest('[role="row"]');
+  // Неделя без записанных событий — «не измеряется», а не ноль пришедших.
+  expect(row("24.08–30.08")?.textContent).toContain("не измеряется");
+  expect(row("14.09–20.09")?.textContent).toContain("67%");
+  expect(row("14.09–20.09")?.textContent).toContain("2 ч");
+  // Посчитавших «пока» — и доли нет: семь дней прошли не у всех.
+  expect(row("28.09–04.10")?.textContent).toContain("1 пока");
+  expect(row("28.09–04.10")?.textContent).toContain("не завершена");
+  // Итог — по завершённым неделям; медиана в минутах, а не «0,3 ч».
+  expect(screen.getByText(/посчитали 2 из 3/).textContent).toContain("медиана 15 мин");
+});
+
 // --- F8: отток ---
 
 it("отток показан двумя картинами рядом, а не одним числом", async () => {
@@ -507,7 +546,7 @@ it("невыполненный скрипт назван причиной, а н
   }));
   show();
   fireEvent.click(await screen.findByRole("button", { name: "Сводка" }));
-  expect(await screen.findByText(/не измеряется/)).toBeTruthy();
+  expect(await screen.findByText(/Уход по окончании периода не измеряется/)).toBeTruthy();
   expect(screen.getByText(/expire_subscriptions/)).toBeTruthy();
 });
 

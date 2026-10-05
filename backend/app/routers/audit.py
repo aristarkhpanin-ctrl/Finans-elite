@@ -278,6 +278,15 @@ def _benchmarks(db: Session, org_id: str) -> list[Benchmark]:
             for b in crud.list_benchmarks(db, org_id)]
 
 
+def _has_reporting(model: AuditSubjectModel) -> bool:
+    """Есть ли что разбирать: хоть один период и хоть одно ненулевое значение в нём.
+
+    Только признак для события пользования (L8) — само число в событие не уходит."""
+    return model.n > 0 and any(
+        v != 0 for table in (model.balance, model.income)
+        for row in table.values() for v in row[: model.n])
+
+
 @router.post("/subjects/{subject_id}/analyze", response_model=AuditAnalysisOut)
 def analyze_subject(subject_id: str,
                     org_id: str = Depends(require_permission(Perm.PROJECT_CALCULATE, product="audit")),
@@ -291,13 +300,15 @@ def analyze_subject(subject_id: str,
     считаются там, где их показывают: `…/risk`, документ, выгрузка.
     """
     subject = _require(db, org_id, subject_id)
+    model = crud.load_audit_model(subject)
     # Конвейер один на экран и на документ (`audit_core.pipeline`): вторая копия
     # порядка слоёв однажды уже разошлась с первой и молчала о находках.
-    r = review_case(crud.load_audit_model(subject), deep=False,
-                    benchmarks=_benchmarks(db, org_id))
+    r = review_case(model, deep=False, benchmarks=_benchmarks(db, org_id))
     # Разбор дела журнал не пишет (это чтение результата) — событие пишет: без него
-    # «пользуются ли вторым продуктом» отвечать нечем.
-    usage.record(db, event="case.analyze", org_id=org_id)
+    # «пользуются ли вторым продуктом» отвечать нечем. Признак отчётности (L8): разбор
+    # зовёт каждое открытие дела, и открытие пустого — ещё не расчёт своей модели.
+    usage.record(db, event="case.analyze", org_id=org_id,
+                 context={"reporting": "filled" if _has_reporting(model) else "empty"})
     return audit_analysis_response(r.result, r.opinion, r.issues, r.flags, r.earnings,
                                    r.obligations, r.procedures, r.summary, r.valuation,
                                    r.risk, r.plan_fact, r.benchmark, r.requisites)

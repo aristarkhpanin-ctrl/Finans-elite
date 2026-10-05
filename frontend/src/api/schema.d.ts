@@ -3473,6 +3473,81 @@ export interface components {
             totp_code: string;
         };
         /**
+         * ActivationOut
+         * @description Активация по недельным когортам (L8) и итог по завершённым неделям окна.
+         */
+        ActivationOut: {
+            /**
+             * Activated
+             * @default 0
+             */
+            activated: number;
+            /**
+             * Days
+             * @default 7
+             */
+            days: number;
+            /** First Event At */
+            first_event_at?: string | null;
+            /** Median Hours */
+            median_hours?: number | null;
+            /** Share */
+            share?: number | null;
+            /**
+             * Signed Up
+             * @default 0
+             */
+            signed_up: number;
+            /**
+             * Staff Excluded
+             * @default 0
+             */
+            staff_excluded: number;
+            /**
+             * Unmarked Orgs
+             * @default 0
+             */
+            unmarked_orgs: number;
+            /**
+             * Weeks
+             * @default []
+             */
+            weeks: components["schemas"]["ActivationWeekOut"][];
+        };
+        /**
+         * ActivationWeekOut
+         * @description Неделя регистрации (L8): сколько пришло и сколько посчитали за семь дней.
+         *
+         *     ``signed_up = None`` — неделя **не измеряется** (события не записывались). При
+         *     ``complete = False`` доля и медиана — ``None``: у части пришедших семь дней ещё не
+         *     прошли, и ``activated`` — сколько посчитали **пока**.
+         */
+        ActivationWeekOut: {
+            /**
+             * Activated
+             * @default 0
+             */
+            activated: number;
+            /**
+             * Complete
+             * @default false
+             */
+            complete: boolean;
+            /** Median Hours */
+            median_hours?: number | null;
+            /**
+             * Partial
+             * @default false
+             */
+            partial: boolean;
+            /** Share */
+            share?: number | null;
+            /** Signed Up */
+            signed_up?: number | null;
+            /** Week */
+            week: string;
+        };
+        /**
          * ActivityOut
          * @description Сводка активности организации. ``notes`` едут вместе с числами.
          *
@@ -9039,6 +9114,17 @@ export interface components {
          *     застал, читается ровно как ноль событий.
          */
         PlatformMetricsOut: {
+            /**
+             * @default {
+             *       "activated": 0,
+             *       "days": 7,
+             *       "signed_up": 0,
+             *       "staff_excluded": 0,
+             *       "unmarked_orgs": 0,
+             *       "weeks": []
+             *     }
+             */
+            activation: components["schemas"]["ActivationOut"];
             /**
              * Active Organizations
              * @default {}

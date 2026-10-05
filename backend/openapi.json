@@ -76,6 +76,142 @@
         "title": "ActivateRequest",
         "type": "object"
       },
+      "ActivationOut": {
+        "description": "Активация по недельным когортам (L8) и итог по завершённым неделям окна.",
+        "properties": {
+          "activated": {
+            "default": 0,
+            "title": "Activated",
+            "type": "integer"
+          },
+          "days": {
+            "default": 7,
+            "title": "Days",
+            "type": "integer"
+          },
+          "first_event_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Event At"
+          },
+          "median_hours": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Hours"
+          },
+          "share": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Share"
+          },
+          "signed_up": {
+            "default": 0,
+            "title": "Signed Up",
+            "type": "integer"
+          },
+          "staff_excluded": {
+            "default": 0,
+            "title": "Staff Excluded",
+            "type": "integer"
+          },
+          "unmarked_orgs": {
+            "default": 0,
+            "title": "Unmarked Orgs",
+            "type": "integer"
+          },
+          "weeks": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ActivationWeekOut"
+            },
+            "title": "Weeks",
+            "type": "array"
+          }
+        },
+        "title": "ActivationOut",
+        "type": "object"
+      },
+      "ActivationWeekOut": {
+        "description": "Неделя регистрации (L8): сколько пришло и сколько посчитали за семь дней.\n\n``signed_up = None`` — неделя **не измеряется** (события не записывались). При\n``complete = False`` доля и медиана — ``None``: у части пришедших семь дней ещё не\nпрошли, и ``activated`` — сколько посчитали **пока**.",
+        "properties": {
+          "activated": {
+            "default": 0,
+            "title": "Activated",
+            "type": "integer"
+          },
+          "complete": {
+            "default": false,
+            "title": "Complete",
+            "type": "boolean"
+          },
+          "median_hours": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Hours"
+          },
+          "partial": {
+            "default": false,
+            "title": "Partial",
+            "type": "boolean"
+          },
+          "share": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Share"
+          },
+          "signed_up": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signed Up"
+          },
+          "week": {
+            "title": "Week",
+            "type": "string"
+          }
+        },
+        "required": [
+          "week"
+        ],
+        "title": "ActivationWeekOut",
+        "type": "object"
+      },
       "ActivityOut": {
         "description": "Сводка активности организации. ``notes`` едут вместе с числами.\n\nБез них сводка читается как отчёт о людях: «заходил — пусто» превращается в «не\nработает», а «действий 0» — в «бездельничает». Ни того, ни другого платформа не знает.",
         "properties": {
@@ -10071,6 +10207,17 @@
       "PlatformMetricsOut": {
         "description": "Сводка платформы (B3).\n\n``notes`` — не украшение и не примечание мелким шрифтом: там сказано, чего эти числа\n**не** значат (счётчика расчётов нет, отметка присутствия ведётся не с первого дня,\nжурнал начинается с первой записи). Без них ноль за период, которого журнал не\nзастал, читается ровно как ноль событий.",
         "properties": {
+          "activation": {
+            "$ref": "#/components/schemas/ActivationOut",
+            "default": {
+              "activated": 0,
+              "days": 7,
+              "signed_up": 0,
+              "staff_excluded": 0,
+              "unmarked_orgs": 0,
+              "weeks": []
+            }
+          },
           "active_organizations": {
             "additionalProperties": {
               "type": "integer"

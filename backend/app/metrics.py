@@ -19,6 +19,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
+from statistics import median
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -39,6 +40,14 @@ from .usage import collecting as usage_collecting
 #: Окна активности. Семь дней отвечают на вопрос «пользуются ли сейчас», тридцать —
 #: «не ушли ли». Одно окно вместо двух заставило бы выбирать между этими вопросами.
 ACTIVE_WINDOWS = (7, 30)
+
+#: Окно активации (L8): за сколько дней после регистрации организация должна посчитать
+#: свою модель, чтобы считаться активированной. Неделя — за неё человек либо увидел
+#: результат, либо ушёл, и это общепринятая мера: с чужими её сравнивают.
+ACTIVATION_DAYS = 7
+#: Сколько недель-когорт в ряду. Квартал: тренд виден, а когорты, пришедшие при другом
+#: продукте, с нынешними не смешиваются.
+ACTIVATION_WEEKS = 12
 
 
 @dataclass(frozen=True)
@@ -130,6 +139,53 @@ class RetentionPoint:
     returned: int | None = None
 
 
+@dataclass(frozen=True)
+class ActivationWeek:
+    """Неделя регистрации (L8): сколько организаций пришло и сколько за неделю посчитали.
+
+    ``None`` здесь — названный пробел, а не ноль:
+
+    - ``signed_up is None`` — **не измеряется**: неделя прошла, когда события не
+      записывались (раньше начала сбора или после его выключения);
+    - ``share``/``median_hours`` ``None`` при ``complete=False`` — у части пришедших семь
+      дней ещё не прошли, и доля может вырасти; ``activated`` тогда — сколько посчитали
+      **пока**. При ``signed_up == 0`` делить не на что.
+    """
+
+    #: Понедельник недели (UTC), ISO-дата: «2026-09-28».
+    week: str
+    signed_up: int | None = None
+    activated: int = 0
+    share: float | None = None
+    #: Медиана часов от регистрации до первого расчёта — **по активировавшимся**: кто не
+    #: посчитал за неделю, в неё не входит, и его видно по доле рядом.
+    median_hours: float | None = None
+    #: У всех пришедших за неделю прошли семь дней — доля окончательная.
+    complete: bool = False
+    #: Сбор событий начался посреди недели: регистрации до его начала не видны.
+    partial: bool = False
+
+
+@dataclass
+class Activation:
+    """Активация по недельным когортам (L8) плюс итог по завершённым неделям окна."""
+
+    days: int = ACTIVATION_DAYS
+    weeks: list[ActivationWeek] = field(default_factory=list)
+    #: Итог по **завершённым** неделям окна: незавершённые его только занизили бы.
+    signed_up: int = 0
+    activated: int = 0
+    share: float | None = None
+    median_hours: float | None = None
+    #: Служебные организации с регистрацией в окне — не посчитаны, но названы.
+    staff_excluded: int = 0
+    #: Организации, у которых за неделю после регистрации был только разбор дела без
+    #: признака отчётности (записан до L8): пустое ли дело, не видно — в активацию не взяты.
+    unmarked_orgs: int = 0
+    #: Первое событие пользования на платформе: раньше него «не измеряется».
+    first_event_at: datetime | None = None
+
+
 @dataclass
 class RevenuePoint:
     """Выручка одного месяца: сколько пришло и сколькими платежами.
@@ -211,6 +267,8 @@ class PlatformMetrics:
     revenue: list[RevenuePoint] = field(default_factory=list)
     #: Отток (F8) — две картины рядом, а не одно число.
     churn: Churn = field(default_factory=Churn)
+    #: Активация по недельным когортам (L8) — только по событиям.
+    activation: Activation = field(default_factory=Activation)
     #: Собираются ли события пользования (E2) — чтобы экран не гадал, почему пусто.
     usage_collected: bool = False
     notes: list[str] = field(default_factory=list)
@@ -406,6 +464,130 @@ def retention(db: Session, now: datetime, months: int) -> list[RetentionPoint]:
     return out
 
 
+def staff_organizations(db: Session) -> frozenset[str]:
+    """Служебные организации (L8): у которых **все** участники — сотрудники платформы.
+
+    Их заводят для проверки, а не для работы: посчитанные, они выглядели бы самыми
+    быстрыми клиентами — сотрудник знает продукт и считает в первую же минуту. Признак
+    «владелец — сотрудник» был бы хуже: пилот, который платформа завела и куда пригласила
+    клиента, — клиентский. Организация без участников служебной не считается: «все из
+    пустого множества» не говорит ничего.
+    """
+    members: dict[str, list[bool]] = {}
+    for org_id, is_staff in db.execute(
+            select(Membership.organization_id, User.is_staff)
+            .join(User, User.id == Membership.user_id)):
+        members.setdefault(org_id, []).append(bool(is_staff))
+    return frozenset(org for org, flags in members.items() if flags and all(flags))
+
+
+def _week_start(stamp: datetime) -> datetime:
+    """Понедельник недели, полночь UTC: недели считаются по UTC, как и месяцы сводки."""
+    day = stamp.astimezone(timezone.utc).date()
+    monday = day - timedelta(days=day.weekday())
+    return datetime(monday.year, monday.month, monday.day, tzinfo=timezone.utc)
+
+
+def _is_calculation(event: str, context: dict | None) -> bool | None:
+    """Считается ли событие расчётом своей модели (L8).
+
+    Расчёт проекта — открытие его результатов: этот экран зовёт расчёт, и туда приходят
+    специально. Разбор дела зовёт **каждое открытие** дела, поэтому засчитывается только
+    разбор дела с отчётностью. ``None`` — разбор, записанный до появления признака:
+    пустое это было дело или нет, из события не видно.
+    """
+    if event == "project.calculate":
+        return True
+    if event != "case.analyze":
+        return False
+    reporting = (context or {}).get("reporting")
+    if reporting is None:
+        return None
+    return reporting == "filled"
+
+
+def activation(db: Session, now: datetime, *, collecting: bool,
+               weeks: int = ACTIVATION_WEEKS) -> Activation:
+    """Активация по недельным когортам регистрации — **только по событиям** (L8).
+
+    Когорта — организации, зарегистрированные за неделю (событие ``signup``);
+    активированная — посчитавшая свою модель за :data:`ACTIVATION_DAYS` дней после
+    регистрации. Первый расчёт нигде больше не хранится: у проекта есть дата
+    **последнего** расчёта, и «когда посчитали впервые» из неё не вывести. Поэтому только
+    события — и где их нет, «не измеряется», а не ноль.
+
+    Неделя **не измеряется**, если прошла без записи событий: раньше первого события
+    платформы или — когда сбор сейчас выключен — после последнего (когда именно его
+    выключили, не видно, а нули там читались бы как «никто не приходил»).
+
+    Демо и служебные организации не считаются: первых смотрят посетители сайта, вторые
+    заводят для проверки. Служебные при этом **названы числом** — молча выброшенное
+    выглядит как неизмеренное.
+    """
+    demo = demo_scope(db).organizations
+    staff = staff_organizations(db)
+    signups: dict[str, datetime] = {}
+    calculations: dict[str, list[datetime]] = {}
+    unmarked: dict[str, list[datetime]] = {}
+    first: datetime | None = None
+    last: datetime | None = None
+    for org_id, event, context, created in db.execute(
+            select(UsageEvent.organization_id, UsageEvent.event, UsageEvent.context,
+                   UsageEvent.created_at)):
+        if org_id in demo:
+            continue
+        stamp = created if created.tzinfo else created.replace(tzinfo=timezone.utc)
+        first = stamp if first is None or stamp < first else first
+        last = stamp if last is None or stamp > last else last
+        if event == "signup":
+            if org_id not in signups or stamp < signups[org_id]:
+                signups[org_id] = stamp
+            continue
+        counted = _is_calculation(event, context)
+        if counted:
+            calculations.setdefault(org_id, []).append(stamp)
+        elif counted is None:
+            unmarked.setdefault(org_id, []).append(stamp)
+
+    window = timedelta(days=ACTIVATION_DAYS)
+    this_week = _week_start(now)
+    starts = [this_week - timedelta(weeks=k) for k in reversed(range(weeks))]
+    out = Activation(first_event_at=first)
+    done: list[float] = []
+    for start in starts:
+        end = start + timedelta(days=7)
+        label = start.date().isoformat()
+        measured = (first is not None and first < end
+                    and (collecting or (last is not None and start <= last)))
+        if not measured:
+            out.weeks.append(ActivationWeek(week=label))
+            continue
+        assert first is not None                       # measured ровно это и означает
+        cohort = [(org, at) for org, at in signups.items() if start <= at < end]
+        out.staff_excluded += sum(1 for org, _ in cohort if org in staff)
+        cohort = [(org, at) for org, at in cohort if org not in staff]
+        delays: list[float] = []
+        for org, at in cohort:
+            reached = [c for c in calculations.get(org, ()) if at <= c <= at + window]
+            if reached:
+                delays.append((min(reached) - at).total_seconds() / 3600)
+            elif any(at <= c <= at + window for c in unmarked.get(org, ())):
+                out.unmarked_orgs += 1
+        complete = end + window <= now
+        out.weeks.append(ActivationWeek(
+            week=label, signed_up=len(cohort), activated=len(delays),
+            share=(len(delays) / len(cohort)) if complete and cohort else None,
+            median_hours=median(delays) if complete and delays else None,
+            complete=complete, partial=first > start))
+        if complete:
+            out.signed_up += len(cohort)
+            out.activated += len(delays)
+            done.extend(delays)
+    out.share = out.activated / out.signed_up if out.signed_up else None
+    out.median_hours = median(done) if done else None
+    return out
+
+
 def revenue_by_month(db: Session, now: datetime, months: int) -> list[RevenuePoint]:
     """Выручка платформы по месяцам (F2).
 
@@ -574,6 +756,7 @@ def build_platform_metrics(db: Session, *, totals: TenantTotals, now: datetime |
         churn=churn(db, now, months, totals=totals),
         usage_collected=usage_collecting(),
     )
+    metrics.activation = activation(db, now, collecting=metrics.usage_collected)
     metrics.notes = _notes(metrics, totals)
     if demo.organizations:
         metrics.notes.append(
@@ -637,6 +820,7 @@ def _notes(metrics: PlatformMetrics, totals: TenantTotals) -> list[str]:
             "оператор — назначением тарифа; прямые переводы мимо продукта платформа не "
             "видит.")
     notes.extend(_churn_notes(metrics.churn, totals))
+    notes.extend(_activation_notes(metrics.activation, collecting=metrics.usage_collected))
     if not metrics.usage_collected:
         notes.append(
             "События пользования не собираются (`USAGE_EVENTS` выключен), поэтому "
@@ -705,6 +889,53 @@ def _churn_notes(data: Churn, totals: TenantTotals) -> list[str]:
         "Назначение тарифа платформой (оплата по счёту) в отток не входит ни в одну "
         "сторону: это её действие, а не решение клиента. Прекращение такой оплаты видно "
         "по окончании периода — на общих основаниях.")
+    return notes
+
+
+def _activation_notes(data: Activation, *, collecting: bool) -> list[str]:
+    """Чего нет в числах активации (L8). Каждый её пропуск выглядел бы нулём."""
+    notes = [
+        f"Активация — организация посчитала свою модель за {data.days} дней после "
+        "регистрации: открыла результаты проекта или разобрала дело с отчётностью. "
+        "Проект из шаблона и демо-дело считаются — это модель организации, и результат "
+        "она увидела; открытие пустого дела расчётом не считается.",
+        "Медиана — время от регистрации до первого расчёта **у активировавшихся**: кто не "
+        "посчитал за неделю, в неё не входит, и его видно по доле рядом.",
+        "Когорта — регистрации: новая учётная запись с новой организацией. Организацию, "
+        "которую завёл уже зарегистрированный человек, в когорты не берём — продукт он уже "
+        "знал. Демо и служебные организации (все участники — сотрудники платформы) не "
+        "считаются. Недели — с понедельника по UTC, как и месяцы сводки.",
+    ]
+    first = _as_utc(data.first_event_at)
+    if first is None:
+        notes.append(
+            "Активация **не измеряется**: событий пользования не записано ни одного, а "
+            "первый расчёт больше нигде не хранится — у проекта есть только дата "
+            "последнего.")
+        return notes
+    notes.append(
+        f"События пишутся с {first.strftime('%d.%m.%Y')}: недели раньше — «не "
+        "измеряется», неделя начала сбора неполная — регистрации до него не видны.")
+    if any(w.signed_up is not None and not w.complete for w in data.weeks):
+        notes.append(
+            f"Последние недели не завершены: у части пришедших {data.days} дней ещё не "
+            "прошли. Доля и медиана появятся, когда пройдут, — пока видно, сколько уже "
+            "посчитали; итог считается только по завершённым неделям.")
+    if not collecting:
+        notes.append(
+            "Сбор событий сейчас выключен: недели после последнего записанного события — "
+            "«не измеряется». Кто посчитал после выключения, не виден, и доля последних "
+            "измеренных недель может быть занижена.")
+    if data.staff_excluded:
+        notes.append(
+            f"Служебных организаций с регистрацией в окне — {data.staff_excluded}; они не "
+            "посчитаны: сотрудник знает продукт и считает в первую минуту, и такая "
+            "«активация» выглядела бы лучшей на платформе.")
+    if data.unmarked_orgs:
+        notes.append(
+            f"У {data.unmarked_orgs} организаций за неделю после регистрации был только "
+            "разбор дела, записанный до того, как событие стало отмечать наличие "
+            "отчётности: пустое ли было дело, не видно, и в активацию они не взяты.")
     return notes
 
 

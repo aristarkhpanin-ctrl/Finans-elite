@@ -23,6 +23,7 @@ import {
   searchStaffUsers,
   suspendOrganization,
   unblockUser,
+  type PlatformMetrics,
   type StaffAccess,
   type StaffUser,
 } from "../api/admin";
@@ -1159,6 +1160,120 @@ function unmeasured(value: number | null | undefined) {
   return value == null ? <span className="muted">не измеряется</span> : value;
 }
 
+/** Время до первого расчёта — в единицах, которыми его называют: «0,1 ч» никто не скажет. */
+function fmtHours(hours: number): string {
+  const one = (v: number) => (Math.round(v * 10) / 10).toLocaleString("ru-RU");
+  if (hours < 1) return `${Math.max(1, Math.round(hours * 60))} мин`;
+  if (hours < 48) return `${one(hours)} ч`;
+  return `${one(hours / 24)} дн.`;
+}
+
+/** «2026-09-28» → «28.09–04.10»: неделя с понедельника, по UTC, как считает сервер. */
+function weekLabel(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const start = new Date(Date.UTC(y, m - 1, d));
+  const end = new Date(start.getTime() + 6 * 86_400_000);
+  const dm = (x: Date) =>
+    `${String(x.getUTCDate()).padStart(2, "0")}.${String(x.getUTCMonth() + 1).padStart(2, "0")}`;
+  return `${dm(start)}–${dm(end)}`;
+}
+
+/**
+ * Активация по недельным когортам (L8): какая доля зарегистрировавшихся за неделю
+ * посчитала свою модель в первые семь дней и сколько на это ушло.
+ *
+ * Три состояния недели, и ни одно не рисуется нулём чужого смысла: **не измеряется**
+ * (события не записывались), **не завершена** (семь дней прошли не у всех — доли ещё
+ * нет, посчитавших показываем «пока»), завершена. Итог — только по завершённым неделям.
+ */
+function ActivationSection({ data }: { data: PlatformMetrics }) {
+  const a = data.activation;
+  const days = a?.days ?? 7;
+  const weeks = a?.weeks ?? [];
+  const measured = weeks.some((w) => w.signed_up != null);
+  const pct = (share: number) => `${Math.round(share * 100)}%`;
+  return (
+    <>
+      <h2 className="adm-h2" style={{ marginTop: 24 }}>Активация за {days} дней</h2>
+      <div className="page-sub" style={{ marginTop: 0 }}>
+        Какая доля зарегистрировавшихся за неделю посчитала свою модель в первые {days} дней
+        и сколько на это ушло. Только по событиям пользования; медиана — по посчитавшим.
+      </div>
+      {!a || !measured ? (
+        <div className="page-sub">
+          <b>Активация не измеряется.</b>{" "}
+          {data.usage_collected
+            ? "События собираются, но ни одной недели с ними ещё не прошло."
+            : "Событий пользования нет, а первый расчёт больше нигде не хранится — у "
+              + "проекта есть только дата последнего."}
+        </div>
+      ) : (
+        <>
+          <div className="adm-cards" style={{ marginBottom: 12, maxWidth: 420 }}>
+            <div className="adm-card">
+              <div className="adm-card__label">Итог по завершённым неделям</div>
+              <div className="adm-card__value">{a.share == null ? "—" : pct(a.share)}</div>
+              <div className="adm-sub">
+                {a.signed_up
+                  ? <>посчитали {a.activated} из {a.signed_up}
+                      {a.median_hours != null && <> · медиана {fmtHours(a.median_hours)}</>}</>
+                  : "завершённых недель с регистрациями ещё нет"}
+              </div>
+            </div>
+          </div>
+          <div className="mgrid" role="table" aria-label="Активация по неделям регистрации">
+            <div className="mgrid__row mgrid__row--act mgrid__row--head" role="row">
+              <div role="columnheader">Неделя</div>
+              <div role="columnheader">Пришло</div>
+              <div role="columnheader">Посчитали за {days} дн.</div>
+              <div role="columnheader">Доля</div>
+              <div role="columnheader">Медиана</div>
+              <div role="columnheader" aria-hidden="true" />
+            </div>
+            {weeks.map((w) => (
+              <div className="mgrid__row mgrid__row--act" role="row" key={w.week}>
+                <div role="rowheader">
+                  {weekLabel(w.week)}
+                  {w.partial && <span className="mgrid__note">неполная: сбор начат в середине</span>}
+                </div>
+                {/* `data-label` — подпись колонки для телефона, где шапка не над числами. */}
+                {w.signed_up == null ? (
+                  <>
+                    <div role="cell" data-label="Пришло">{unmeasured(null)}</div>
+                    <div role="cell" data-label="Посчитали">—</div>
+                    <div role="cell" data-label="Доля">—</div>
+                    <div role="cell" data-label="Медиана">—</div>
+                  </>
+                ) : (
+                  <>
+                    <div role="cell" data-label="Пришло">{w.signed_up}</div>
+                    {/* Незавершённая неделя: посчитавших может стать больше — «пока». */}
+                    <div role="cell" data-label="Посчитали">
+                      {w.complete ? w.activated : `${w.activated} пока`}
+                    </div>
+                    <div role="cell" data-label="Доля">
+                      {!w.complete ? <span className="muted">не завершена</span>
+                        : w.share == null ? "—" : pct(w.share)}
+                    </div>
+                    <div role="cell" data-label="Медиана">
+                      {w.complete && w.median_hours != null ? fmtHours(w.median_hours) : "—"}
+                    </div>
+                  </>
+                )}
+                <div role="cell" aria-hidden="true">
+                  <span className="mbar" style={{
+                    width: w.complete && w.share != null ? pct(w.share) : "0%",
+                  }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
 /**
  * Сводка платформы (B3): сколько клиентов, кто из них жив, чем пользуются.
  *
@@ -1402,6 +1517,8 @@ function MetricsTab() {
           </div>
         ))}
       </div>
+
+      <ActivationSection data={data} />
 
       <h2 className="adm-h2" style={{ marginTop: 24 }}>Удержание</h2>
       {!data.usage_collected ? (

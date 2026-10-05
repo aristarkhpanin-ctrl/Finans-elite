@@ -28,6 +28,7 @@ from __future__ import annotations
 import csv
 import io
 from datetime import datetime, timedelta, timezone
+from typing import Any
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Response
@@ -51,6 +52,8 @@ from ..metrics import (
 )
 from ..plans import PRODUCTS, get_plan, is_valid_plan
 from ..schemas import (
+    ActivationOut,
+    ActivationWeekOut,
     AuditLogPage,
     ChurnOut,
     ChurnPointOut,
@@ -529,6 +532,18 @@ def _metrics(db: Session, *, months: int, days: int) -> PlatformMetrics:
                                   since_days=days)
 
 
+def _activation_out(m: PlatformMetrics) -> ActivationOut:
+    a = m.activation
+    return ActivationOut(
+        days=a.days,
+        weeks=[ActivationWeekOut(week=w.week, signed_up=w.signed_up, activated=w.activated,
+                                 share=w.share, median_hours=w.median_hours,
+                                 complete=w.complete, partial=w.partial) for w in a.weeks],
+        signed_up=a.signed_up, activated=a.activated, share=a.share,
+        median_hours=a.median_hours, staff_excluded=a.staff_excluded,
+        unmarked_orgs=a.unmarked_orgs, first_event_at=a.first_event_at)
+
+
 @router.get("/metrics", response_model=PlatformMetricsOut)
 def read_metrics(months: int = 12, days: int = 30, staff: User = Depends(require_staff),
                  db: Session = Depends(get_db)) -> PlatformMetricsOut:
@@ -573,9 +588,40 @@ def read_metrics(months: int = 12, days: int = 30, staff: User = Depends(require
                     for c in m.churn.months],
             expiry_logged=m.churn.expiry_logged,
             unnamed_plan_changes=m.churn.unnamed_plan_changes),
+        activation=_activation_out(m),
         usage_collected=m.usage_collected,
         notes=list(m.notes),
     )
+
+
+def _hours(value: float | None) -> str:
+    return "—" if value is None else f"{value:.1f}".replace(".", ",")
+
+
+def _write_activation(writer: Any, m: PlatformMetrics) -> None:
+    """Активация (L8) в файле. Неизмеренная и незавершённая неделя уезжают **словом**:
+    пустая ячейка читается как ноль, а «доля пока» — как окончательная."""
+    a = m.activation
+    writer.writerow(["Неделя (с понедельника)", "Зарегистрировались",
+                     f"Посчитали за {a.days} дн.", "Доля", "Медиана до расчёта, ч",
+                     "Состояние"])
+    for w in a.weeks:
+        if w.signed_up is None:
+            writer.writerow([w.week, "не измеряется", "—", "—", "—",
+                             "события не записывались"])
+            continue
+        if not w.complete:
+            state = f"не завершена: {a.days} дней прошли не у всех, посчитавших пока"
+            writer.writerow([w.week, w.signed_up, w.activated, "не завершена",
+                             "не завершена", state])
+            continue
+        state = "неполная: сбор начат посреди недели" if w.partial else "завершена"
+        writer.writerow([w.week, w.signed_up, w.activated,
+                         "—" if w.share is None else f"{round(w.share * 100)}%",
+                         _hours(w.median_hours), state])
+    writer.writerow(["Итог по завершённым неделям", a.signed_up, a.activated,
+                     "—" if a.share is None else f"{round(a.share * 100)}%",
+                     _hours(a.median_hours), ""])
 
 
 @router.get("/metrics.csv")
@@ -631,6 +677,9 @@ def export_metrics(months: int = 12, days: int = 30, staff: User = Depends(requi
             point.payers, point.stopped,
             "—" if point.rate is None else f"{round(point.rate * 100)}%",
         ])
+
+    writer.writerow([])
+    _write_activation(writer, m)
 
     writer.writerow([])
     writer.writerow(["Продукт", "Тариф", "Организаций"])

@@ -2840,6 +2840,38 @@ class ChurnOut(BaseModel):
     unnamed_plan_changes: int = 0
 
 
+class ActivationWeekOut(BaseModel):
+    """Неделя регистрации (L8): сколько пришло и сколько посчитали за семь дней.
+
+    ``signed_up = None`` — неделя **не измеряется** (события не записывались). При
+    ``complete = False`` доля и медиана — ``None``: у части пришедших семь дней ещё не
+    прошли, и ``activated`` — сколько посчитали **пока**.
+    """
+
+    week: str
+    signed_up: Optional[int] = None
+    activated: int = 0
+    share: Optional[float] = None
+    #: Медиана часов до первого расчёта — по активировавшимся.
+    median_hours: Optional[float] = None
+    complete: bool = False
+    partial: bool = False
+
+
+class ActivationOut(BaseModel):
+    """Активация по недельным когортам (L8) и итог по завершённым неделям окна."""
+
+    days: int = 7
+    weeks: list[ActivationWeekOut] = []
+    signed_up: int = 0
+    activated: int = 0
+    share: Optional[float] = None
+    median_hours: Optional[float] = None
+    staff_excluded: int = 0
+    unmarked_orgs: int = 0
+    first_event_at: Optional[datetime] = None
+
+
 class PlatformMetricsOut(BaseModel):
     """Сводка платформы (B3).
 
@@ -2869,6 +2901,8 @@ class PlatformMetricsOut(BaseModel):
     revenue: list[RevenuePointOut] = []
     #: Отток (F8) — две картины рядом, а не одно число.
     churn: ChurnOut = ChurnOut()
+    #: Активация по недельным когортам (L8) — только по событиям пользования.
+    activation: ActivationOut = ActivationOut()
     #: Собираются ли события пользования (E2) — чтобы экран не гадал, почему пусто.
     usage_collected: bool = False
     notes: list[str] = []
