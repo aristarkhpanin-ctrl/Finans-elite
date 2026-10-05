@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from calc_core.metrics import (
     annual_to_monthly,
+    has_investment,
     investment_graph,
     irr_annual,
     npv,
@@ -9,6 +10,7 @@ from calc_core.metrics import (
     profitability_index,
 )
 from calc_core.money import ONE
+from calc_core.reports.result import build_investment_metrics
 
 
 def test_annual_to_monthly_compounds_back():
@@ -32,6 +34,95 @@ def test_irr_simple():
 
 def test_irr_none_when_no_sign_change():
     assert irr_annual([Decimal(10), Decimal(20)]) is None
+
+
+def test_irr_is_none_when_there_was_no_investment():
+    """IRR — норма доходности **на вложенное**. Поток, который начинается с прихода
+    (действующий бизнес на своём обороте), вложения не содержит, и числа у такой
+    доходности нет.
+
+    Найдено на отраслевом шаблоне «магазин у дома» (D4): бисекция возвращала границу
+    интервала — «−100% годовых» под прибыльным магазином. Неверное число хуже честного
+    «не определена»: его читают.
+    """
+    profitable_shop = [Decimal(4_265_733), Decimal(-4_742_662)] + [Decimal(1_100_000)] * 22
+    assert irr_annual(profitable_shop) is None
+
+    # А поток с вложением на старте по-прежнему считается.
+    with_investment = [Decimal(-1000)] + [Decimal(200)] * 12
+    assert irr_annual(with_investment) is not None
+
+
+def test_irr_survives_a_negative_last_month():
+    """Отрицательный последний месяц — квартальная уплата налогов, покупка, выкуп лизинга —
+    не прячет доходность прибыльного проекта (пакет J, найдено на демо-данных).
+
+    Раньше бисекция требовала смены знака NPV на концах отрезка [−99%; 1000%] в месяц, а
+    на нижнем конце NPV решает последний месяц (множитель 100^t): у такого потока минус
+    был на обоих концах, и под NPV > 0 печаталось «IRR не определена».
+    """
+    flow = [Decimal(-1000)] + [Decimal(150)] * 10 + [Decimal(-60)]
+    irr = irr_annual(flow)
+    assert irr is not None
+    monthly = (ONE + irr) ** (ONE / 12) - ONE
+    assert abs(npv(flow, monthly)) < Decimal("1e-6")
+    # Выбран переход «+ → −» (ниже корня вложение окупается, выше — нет), а не след хвоста
+    # на ставках около −100% в месяц.
+    assert npv(flow, monthly - Decimal("0.001")) > 0 > npv(flow, monthly + Decimal("0.001"))
+    assert monthly > 0
+
+
+def test_irr_of_a_losing_project_with_negative_tail_is_negative_not_missing():
+    """Эталон `sample_project`: вложили ~272 тыс., за год вернули ~130 тыс., последний
+    месяц в минусе. Доходность такого проекта глубоко отрицательна — и это число, а не
+    «не определена»: NPV < 0 и PI < 1 рядом с прочерком читались бы как «не посчитали»."""
+    flow = [Decimal(-228337), Decimal(-43906)] + [Decimal(4050)] * 4 \
+        + [Decimal(23950)] * 5 + [Decimal(-6107)]
+    irr = irr_annual(flow)
+    assert irr is not None and irr < 0
+    monthly = (ONE + irr) ** (ONE / 12) - ONE
+    assert abs(npv(flow, monthly)) < Decimal("1e-6")
+
+
+def test_irr_takes_the_highest_break_even_rate_among_several():
+    """Поток с тремя корнями — месячные 4%, 15% и 40% (NPV = −(y−1,04)(y−1,15)(y−1,4)/y³,
+    y = 1 + r). Переходов «+ → −» два, 4% и 40%; правило — **наибольший**: самая высокая
+    ставка, при которой вложение ещё окупается. Такие потоки неоднозначны по природе,
+    и однозначный ответ для них — MIRR, которая печатается рядом."""
+    flow = [Decimal(-1), Decimal("3.59"), Decimal("-4.262"), Decimal("1.6744")]
+    irr = irr_annual(flow)
+    assert irr is not None
+    monthly = (ONE + irr) ** (ONE / 12) - ONE
+    assert abs(monthly - Decimal("0.4")) < Decimal("1e-12")
+
+
+def test_irr_agrees_with_npv_sign_under_a_small_negative_tail():
+    """Свойство, ради которого IRR и печатают рядом с NPV: доходность выше ставки ⟺ NPV
+    по этой ставке положителен. Проверяется на потоках «вложение → притоки → небольшой
+    отрицательный хвост» (хвост меньше половины притока месяца)."""
+    import random
+
+    rng = random.Random(20260928)
+    for _ in range(60):
+        n = rng.randint(4, 40)
+        c = Decimal(rng.randint(50, 400))
+        flow = [Decimal(-rng.randint(500, 5000))] + [c] * (n - 2) \
+            + [-Decimal(rng.randint(1, int(c) // 2))]
+        irr = irr_annual(flow)
+        for rate in (Decimal(0), Decimal("0.01"), Decimal("0.02")):
+            value = npv(flow, rate)
+            if irr is None:
+                assert value < 0, (flow, rate)
+                continue
+            monthly = (ONE + irr) ** (ONE / 12) - ONE
+            if abs(monthly - rate) > Decimal("1e-9"):
+                assert (monthly > rate) == (value > 0), (flow, rate, irr)
+
+
+def test_irr_is_none_when_the_investment_never_pays_back():
+    """Вложение, за которым только расходы: NPV отрицателен при любой ставке — корня нет,
+    и «не определена» здесь правда, а не прочерк на месте числа."""
+    assert irr_annual([Decimal(-100), Decimal(-10), Decimal(-5)]) is None
 
 
 def test_payback():
@@ -73,3 +164,67 @@ def test_profitability_index_basic():
 
 def test_profitability_index_none_without_investment():
     assert profitability_index(Decimal(20), Decimal(0)) is None
+
+
+def test_the_whole_return_family_refuses_together():
+    """IRR, MIRR, ARR и PI отказываются **одним условием**, а не каждая по-своему.
+
+    До 0.9.43 отказывалась только IRR, и у прибыльного действующего магазина рядом с
+    «IRR не определена» стояли «PI 43,9», «ARR 2995%» и «MIRR 182%». Пользователь,
+    получивший два противоположных ответа на один вопрос, верит тому, который больше
+    нравится, — и это худший из возможных исходов для показателя.
+    """
+    shop = [Decimal(4_265_733), Decimal(-4_742_662)] + [Decimal(1_100_000)] * 22
+    m = build_investment_metrics(shop, annual_to_monthly(Decimal("0.18")))
+
+    assert (m.irr_annual, m.mirr_annual, m.arr_annual, m.pi) == (None, None, None, None)
+    # Отказ назван, а не оставлен прочерком: «—» читается как ноль.
+    assert m.no_return_metrics_note and "действующий бизнес" in m.no_return_metrics_note
+    # NPV и потребность в капитале считаются как обычно — они вложения не требуют.
+    assert m.npv > 0 and m.pv_investments > 0
+
+
+def test_a_project_with_an_investment_keeps_all_four():
+    """Тишина правила — половина его смысла: обычный проект показателей не теряет."""
+    project = [Decimal(-1000)] + [Decimal(200)] * 24
+    m = build_investment_metrics(project, annual_to_monthly(Decimal("0.18")))
+    assert None not in (m.irr_annual, m.mirr_annual, m.arr_annual, m.pi)
+    assert m.no_return_metrics_note is None
+
+
+def test_has_investment_looks_at_the_first_non_zero_month():
+    """Нули в начале горизонта — не приток: проект, стартующий в третьем месяце, вложение
+    содержит, и показателей терять не должен."""
+    assert has_investment([Decimal(0), Decimal(0), Decimal(-100), Decimal(300)])
+    assert not has_investment([Decimal(0), Decimal(50), Decimal(-100)])
+    assert not has_investment([Decimal(0), Decimal(0)])          # потока нет вовсе
+
+
+def test_pi_without_the_flow_keeps_its_old_contract():
+    """Поток — необязательный аргумент: вызов без него проверяет только знаменатель
+    (так PI зовут в местах, где чистого потока под рукой нет)."""
+    assert profitability_index(Decimal(20), Decimal(100)) == Decimal("1.2")
+    assert profitability_index(Decimal(20), Decimal(100), [Decimal(50)]) is None
+
+
+def test_the_reason_reaches_the_document():
+    """Правило дома: пробел называется, а не оставляется прочерком. В бизнес-плане это
+    особенно важно — спросить автора документа нельзя."""
+    from datetime import date
+    from io import BytesIO
+
+    from docx import Document
+
+    from app.docgen import build_business_plan_docx
+    from calc_core import run
+    from calc_core.review import ReviewContext, run_review
+    from calc_core.review.opinion import build_opinion
+    from calc_core.templates import INDUSTRY_TEMPLATES
+
+    model = INDUSTRY_TEMPLATES["retail"].build()     # действующий магазин: приток с t=0
+    result = run(model)
+    assert result.metrics.no_return_metrics_note                      # предпосылка теста
+    opinion = build_opinion(run_review(ReviewContext(model=model, result=result)), result)
+    doc = Document(BytesIO(build_business_plan_docx(
+        model, result, opinion, project_name="Магазин", today=date(2026, 7, 1))))
+    assert "действующий бизнес" in "\n".join(p.text for p in doc.paragraphs)

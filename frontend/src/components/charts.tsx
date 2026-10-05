@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
 import { fmtAxis, fmtMoney } from "../format";
 
@@ -56,6 +56,7 @@ export function axisLayer(
 ): ReactNode[] {
   const kids: ReactNode[] = [];
   const ticks = 4;
+  const step = (max - min) / ticks;
   for (let k = 0; k <= ticks; k++) {
     const v = min + ((max - min) * k) / ticks;
     const y = f.y0 - ((v - min) / (max - min || 1)) * f.ih;
@@ -71,7 +72,7 @@ export function axisLayer(
         strokeWidth={zero && zeroEmph ? 1.4 : 1}
       />,
       <text key={`gl${k}`} x={f.x0 - 8} y={y + 3.5} textAnchor="end" style={{ font: AXIS_FONT, fill: "var(--subtle)" }}>
-        {fmtAxis(v)}
+        {fmtAxis(v, step)}
       </text>,
     );
   }
@@ -95,11 +96,59 @@ export function axisLayer(
   return kids;
 }
 
+/**
+ * Ширина графика — по месту, а не константой макета. Геометрия «Этапа 15» задана под
+ * настольную карточку, и `meet` вписывал её в карточку телефона целиком: график 1100×240
+ * становился полосой высотой ~70px с подписями в 3px (матрица скриншотов P13, G15). Теперь
+ * ширина `viewBox` — ширина места, и подписи остаются своего размера. Не уже
+ * `CHART_MIN_W`: у́же подписи оси X налезают друг на друга. Пока ширина неизвестна (среда
+ * без раскладки, как в юнит-тестах), остаётся геометрия макета.
+ */
+export const CHART_MIN_W = 360;
+
+export function fitWidth(p: P, width: number | null): P {
+  return width ? { ...p, w: Math.max(CHART_MIN_W, width) } : p;
+}
+
+/** Ширина элемента: сразу при монтировании (без кадра в чужой геометрии) и при каждом
+ *  изменении — поворот телефона, открытое меню, смена колонок сетки. */
+export function useChartWidth<T extends HTMLElement>(): [(el: T | null) => void, number | null] {
+  const [width, setWidth] = useState<number | null>(null);
+  const observer = useRef<ResizeObserver | null>(null);
+  const ref = useCallback((el: T | null) => {
+    observer.current?.disconnect();
+    observer.current = null;
+    if (!el) return;
+    const measure = (w: number) => {
+      if (w > 0) setWidth(Math.round(w));
+    };
+    measure(el.getBoundingClientRect().width);
+    if (typeof ResizeObserver === "undefined") return;
+    observer.current = new ResizeObserver((entries) => measure(entries[0]?.contentRect.width ?? 0));
+    observer.current.observe(el);
+  }, []);
+  return [ref, width];
+}
+
+/**
+ * Рисунок графика. Для экранного диктора он скрыт (пакет K, K5): подписи осей и значения
+ * внутри SVG зачитывались бы россыпью — «8,4м 12м 0 М1 М2…». Имя графику даёт контейнер
+ * (`chartA11y`), а числа диктор берёт из таблиц отчётов, где они есть целиком.
+ */
 export const Svg = ({ p, children }: { p: P; children: ReactNode }) => (
-  <svg width="100%" height="100%" viewBox={`0 0 ${p.w} ${p.h}`} preserveAspectRatio="xMidYMid meet" style={{ display: "block" }}>
+  <svg width="100%" height="100%" viewBox={`0 0 ${p.w} ${p.h}`} preserveAspectRatio="xMidYMid meet"
+       style={{ display: "block" }} aria-hidden="true" focusable="false">
     {children}
   </svg>
 );
+
+/**
+ * Имя графика для диктора: контейнер — изображение с подписью. Подпись обязательна у
+ * каждого графика (prop `label` без умолчания): забытая подпись не пройдёт сборку.
+ */
+export function chartA11y(label: string, empty = false) {
+  return { role: "img", "aria-label": empty ? `${label}: нет данных` : label } as const;
+}
 
 export function EmptyChart({ p }: { p: P }) {
   const f = frame(p);
@@ -165,19 +214,23 @@ function TipCard({ tip }: { tip: LocalTip }) {
 
 /** Простой линейный график (значение по точкам-меткам) с ховером. */
 export function SimpleLineChart({
+  label,
   points,
   height = 260,
   valueLabel = "Значение",
 }: {
+  /** Имя графика для диктора (K5). */
+  label: string;
   points: Array<{ label: string; value: number }>;
   height?: number;
   valueLabel?: string;
 }) {
   const { tip, mkTip, clearTip } = useLocalTip();
-  const p: P = { w: 900, h: 240, mL: 52, mR: 16, mT: 16, mB: 26 };
+  const [host, width] = useChartWidth<HTMLDivElement>();
+  const p = fitWidth({ w: 900, h: 240, mL: 52, mR: 16, mT: 16, mB: 26 }, width);
   const f = frame(p);
   const n = points.length;
-  if (n === 0) return <EmptyChart p={p} />;
+  if (n === 0) return <div {...chartA11y(label, true)}><EmptyChart p={p} /></div>;
   const vals = points.map((d) => d.value);
   let min = Math.min(0, ...vals);
   let max = Math.max(0, ...vals);
@@ -211,7 +264,7 @@ export function SimpleLineChart({
       />,
     );
   return (
-    <div data-chart-host style={{ position: "relative", height }}>
+    <div ref={host} data-chart-host {...chartA11y(label)} style={{ position: "relative", height }}>
       <Svg p={p}>{kids}</Svg>
       {tip && <TipCard tip={tip} />}
     </div>
@@ -231,12 +284,15 @@ export interface Series {
  * Легенда-toggle реализуется снаружи (передаётся отфильтрованный список серий).
  */
 export function MultiLineChart({
+  label,
   series,
   labels,
   selectedKey,
   height = 280,
   yUnit = "млн ₽",
 }: {
+  /** Имя графика для диктора (K5). */
+  label: string;
   series: Series[];
   labels: string[];
   selectedKey?: string;
@@ -244,10 +300,11 @@ export function MultiLineChart({
   yUnit?: string;
 }) {
   const { tip, mkTip, clearTip } = useLocalTip();
-  const p: P = { w: 900, h: 260, mL: 48, mR: 16, mT: 22, mB: 28 };
+  const [host, width] = useChartWidth<HTMLDivElement>();
+  const p = fitWidth({ w: 900, h: 260, mL: 48, mR: 16, mT: 22, mB: 28 }, width);
   const f = frame(p);
   const nx = labels.length;
-  if (series.length === 0 || nx === 0) return <EmptyChart p={p} />;
+  if (series.length === 0 || nx === 0) return <div {...chartA11y(label, true)}><EmptyChart p={p} /></div>;
   const all = series.flatMap((s) => s.values);
   let min = Math.min(0, ...all);
   let max = Math.max(0, ...all);
@@ -320,7 +377,7 @@ export function MultiLineChart({
       />,
     );
   return (
-    <div data-chart-host style={{ position: "relative", height }}>
+    <div ref={host} data-chart-host {...chartA11y(label)} style={{ position: "relative", height }}>
       <Svg p={p}>{kids}</Svg>
       {tip && <TipCard tip={tip} />}
     </div>
@@ -333,16 +390,20 @@ export function MultiLineChart({
  * Значения бинов — в млн (передаются уже поделёнными).
  */
 export function HistogramChart({
+  label,
   bins,
   height = 260,
 }: {
+  /** Имя графика для диктора (K5). */
+  label: string;
   bins: Array<{ from: number; to: number; count: number }>;
   height?: number;
 }) {
   const { tip, mkTip, clearTip } = useLocalTip();
-  const p: P = { w: 900, h: 240, mL: 44, mR: 16, mT: 16, mB: 30 };
+  const [host, width] = useChartWidth<HTMLDivElement>();
+  const p = fitWidth({ w: 900, h: 240, mL: 44, mR: 16, mT: 16, mB: 30 }, width);
   const f = frame(p);
-  if (bins.length === 0) return <EmptyChart p={p} />;
+  if (bins.length === 0) return <div {...chartA11y(label, true)}><EmptyChart p={p} /></div>;
   const lo = bins[0].from;
   const hi = bins[bins.length - 1].to;
   const maxCount = Math.max(...bins.map((b) => b.count)) || 1;
@@ -411,7 +472,7 @@ export function HistogramChart({
     ),
   );
   return (
-    <div data-chart-host style={{ position: "relative", height }}>
+    <div ref={host} data-chart-host {...chartA11y(label)} style={{ position: "relative", height }}>
       <Svg p={p}>{kids}</Svg>
       {tip && <TipCard tip={tip} />}
     </div>
@@ -420,19 +481,23 @@ export function HistogramChart({
 
 /** Простой столбчатый график (± бары) с ховером. */
 export function SimpleBarChart({
+  label,
   items,
   height = 250,
   valueLabel = "Значение",
 }: {
+  /** Имя графика для диктора (K5). */
+  label: string;
   items: Array<{ label: string; value: number }>;
   height?: number;
   valueLabel?: string;
 }) {
   const { tip, mkTip, clearTip } = useLocalTip();
-  const p: P = { w: 900, h: 240, mL: 52, mR: 16, mT: 16, mB: 30 };
+  const [host, width] = useChartWidth<HTMLDivElement>();
+  const p = fitWidth({ w: 900, h: 240, mL: 52, mR: 16, mT: 16, mB: 30 }, width);
   const f = frame(p);
   const n = items.length;
-  if (n === 0) return <EmptyChart p={p} />;
+  if (n === 0) return <div {...chartA11y(label, true)}><EmptyChart p={p} /></div>;
   const vals = items.map((d) => d.value);
   let min = Math.min(0, ...vals);
   let max = Math.max(0, ...vals);
@@ -468,7 +533,7 @@ export function SimpleBarChart({
     );
   });
   return (
-    <div data-chart-host style={{ position: "relative", height }}>
+    <div ref={host} data-chart-host {...chartA11y(label)} style={{ position: "relative", height }}>
       <Svg p={p}>{kids}</Svg>
       {tip && <TipCard tip={tip} />}
     </div>

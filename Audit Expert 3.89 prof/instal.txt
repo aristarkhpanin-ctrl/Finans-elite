@@ -1,7 +1,0 @@
-1.HASP_HL_driver
-2.prog (Audit Expert 3.89)
-3.crack (instal)
-4.Crack (pe719emu_nt)
-5.перезагрузить
-
-Все работает

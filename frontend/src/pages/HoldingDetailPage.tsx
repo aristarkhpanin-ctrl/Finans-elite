@@ -12,11 +12,13 @@ import {
   type ConsolidateResponse,
 } from "../api/holdings";
 import { listProjects } from "../api/projects";
+import { ReleaseNote } from "../components/ReleaseNote";
 import { EPercentField, ESelect } from "../components/EditorField";
 import { IconTrash } from "../components/icons";
 import { useToast } from "../components/Toast";
-import { Button, ErrorState, Loading, Modal } from "../components/ui";
+import { Button, ErrorState, Loading, Modal, ScrollRegion } from "../components/ui";
 import { fmtMillions, fmtTable, percent } from "../format";
+import { usePageTitle } from "../pageTitle";
 
 const roleColor = (r: string) => (r === "parent" ? "var(--primary)" : "var(--info)");
 
@@ -33,6 +35,7 @@ export function HoldingDetailPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const holdingQuery = useQuery({ queryKey: ["holding", id], queryFn: () => getHolding(id) });
+  usePageTitle("Холдинг", holdingQuery.data?.name);
   const projectsQuery = useQuery({ queryKey: ["projects"], queryFn: listProjects });
 
   const invalidate = () => {
@@ -80,7 +83,9 @@ export function HoldingDetailPage() {
     },
   });
 
-  if (holdingQuery.isError) return <ErrorState text="Не удалось загрузить холдинг." />;
+  if (holdingQuery.isError) {
+    return <ErrorState text="Не удалось загрузить холдинг." onRetry={() => void holdingQuery.refetch()} />;
+  }
   if (holdingQuery.isLoading || !holdingQuery.data) return <Loading />;
 
   const holding = holdingQuery.data;
@@ -155,7 +160,8 @@ export function HoldingDetailPage() {
                 </span>
                 <div className="member-role-sel">
                   <ESelect
-                    label=""
+                    label={`Роль в холдинге: ${projectName(m.project_id)}`}
+                    hideLabel
                     value={m.role}
                     onChange={(role) => patchRole.mutate({ pid: m.project_id, role })}
                     options={HOLDING_ROLES}
@@ -319,12 +325,15 @@ function ConsolidatedBudget({ result, rate }: { result: ConsolidateResponse; rat
           </div>
         </div>
       </div>
+      {/* Сводный NPV включает закрытие расчётов проектов (пакет K): сумма, состав и
+          проекты, у которых оно выключено, — та же оговорка, что у каждого проекта. */}
+      <ReleaseNote release={result.working_capital_release} />
 
       {/* Таблица вклада: показатель | проекты | группа */}
       <div className="terms-head" style={{ marginTop: 18 }}>
         Вклад проектов
       </div>
-      <div className="contrib-wrap fe-scroll">
+      <ScrollRegion className="contrib-wrap fe-scroll" label="Вклад проектов">
         <div className="contrib-row contrib-row--head">
           <div className="contrib-label">Показатель</div>
           {per.map((p) => (
@@ -351,7 +360,7 @@ function ConsolidatedBudget({ result, rate }: { result: ConsolidateResponse; rat
             </div>
           </div>
         ))}
-      </div>
+      </ScrollRegion>
     </div>
   );
 }

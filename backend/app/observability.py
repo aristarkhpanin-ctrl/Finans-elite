@@ -11,7 +11,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import re
 import time
 import uuid
@@ -21,6 +20,9 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from calc_core.engine.errors import InvariantError
+
+from .env import env
+from .error_tracking import redact
 
 #: Идентификатор текущего запроса (для логов). Обновляется middleware на каждый запрос.
 request_id_var: ContextVar[str] = ContextVar("request_id", default="-")
@@ -54,7 +56,7 @@ def configure_logging() -> None:
     Конфигурируется именно наш логгер, а не root — чтобы не мешать окружению (uvicorn,
     тестовому захвату логов).
     """
-    level = os.getenv("LOG_LEVEL", "INFO").upper()
+    level = env("LOG_LEVEL", "INFO").upper()
     handler = logging.StreamHandler()
     handler.addFilter(_RequestIdFilter())
     handler.setFormatter(
@@ -77,7 +79,9 @@ def setup_observability(app: FastAPI) -> None:
         try:
             response = await call_next(request)
             duration_ms = (time.perf_counter() - start) * 1000
-            log.info("%s %s → %s (%.0f ms)", request.method, request.url.path,
+            # Путь — через ту же вычистку, что и отчёт об ошибке: секрет ссылки для
+            # банка (L4) стоит прямо в адресе, и лог доступа раздавал бы живые ссылки.
+            log.info("%s %s → %s (%.0f ms)", request.method, redact(request.url.path),
                      response.status_code, duration_ms)
             response.headers["X-Request-ID"] = rid
             return response
@@ -87,7 +91,13 @@ def setup_observability(app: FastAPI) -> None:
     @app.exception_handler(InvariantError)
     async def on_invariant_error(request: Request, exc: InvariantError):
         # Баг методики: баланс не сошёлся. Громкий лог с контекстом ядра и трассировкой.
-        log.error("Нарушение инварианта расчёта на %s: %s", request.url.path, exc, exc_info=exc)
+        log.error("Нарушение инварианта расчёта на %s: %s", redact(request.url.path), exc,
+                  exc_info=exc)
+        # В трекер (G7) ошибка уходит **этой записью**: интеграция логирования отправляет
+        # записи уровня ERROR с трассировкой как события. Понизить её до warning или
+        # убрать ``exc_info`` значило бы заглушить самую важную ошибку методики — тест
+        # держит «ровно одно событие» (явная отправка рядом дала бы то же одно: повтор
+        # того же исключения трекер отбрасывает).
         return JSONResponse(
             status_code=500,
             content={

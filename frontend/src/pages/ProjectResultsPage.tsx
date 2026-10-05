@@ -1,47 +1,58 @@
 import { useQuery } from "@tanstack/react-query";
 import { httpDetail } from "../api/client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { defaultPeriod, type Period } from "../aggregate";
+import { efficiencyCards, foreignCards, valuationCards } from "../metricCards";
 import { calculateProject } from "../api/calc";
 import { getProject } from "../api/projects";
-import { HintBadge } from "../components/EditorField";
 import { IconPrint } from "../components/icons";
 import { PlanFactView } from "../components/PlanFactView";
-import { PrintReport } from "../components/PrintReport";
+import { printPageCount, PrintReport } from "../components/PrintReport";
+import { ReleaseNote } from "../components/ReleaseNote";
+import { ReviewBanner } from "../components/ReviewBanner";
 import { RatiosView } from "../components/RatiosView";
 import { ResultCharts } from "../components/ResultCharts";
-import { GRANDS, StatementTable, SUBTOTALS } from "../components/StatementTable";
+import {
+  CalcWarnings, isStatementTab, MetricCards, RESULT_TAB_LABELS, ResultTabs, StatementPanel, SummaryExtras,
+} from "../components/ResultBlocks";
+import { ShareLinks } from "../components/ShareLinks";
+import { StatementTable } from "../components/StatementTable";
 import { SummaryView } from "../components/SummaryView";
 import { useToast } from "../components/Toast";
-import { Button, Skeleton } from "../components/ui";
-import { downloadCsv, downloadPdf, downloadXlsx, statementsToCsv } from "../export";
-import { fmtMillions, fmtRatio, percent } from "../format";
-
-const STATEMENTS = [
-  ["income", "Прибыли и убытки"],
-  ["cashflow", "Кэш-фло"],
-  ["balance", "Баланс"],
-  ["profit_use", "Использование прибыли"],
-] as const;
-
-type StatementKey = (typeof STATEMENTS)[number][0];
-
-const TAB_LABELS: Record<string, string> = {
-  summary: "Сводка",
-  income: "Прибыли и убытки",
-  cashflow: "Кэш-фло",
-  balance: "Баланс",
-  ratios: "Коэффициенты",
-  charts: "Графики",
-  plan_fact: "План-факт",
-};
+import { Button, ErrorState, Skeleton } from "../components/ui";
+import { downloadBusinessPlanDocx, downloadCsv, downloadPdf, downloadXlsx, statementsToCsv } from "../export";
+import { Comments } from "../components/Comments";
+import { plural } from "../format";
+import { usePageTitle } from "../pageTitle";
+import { usePrintBrand } from "../api/branding";
 
 export function ProjectResultsPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+  // Логотип организации на бланке печати (L9); нет — марка платформы.
+  const brand = usePrintBrand();
   const [tab, setTab] = useState<string>("summary");
   const [printMode, setPrintMode] = useState(false);
+  // Режим печати прячет кнопку, которая его открыла: фокус уходит на панель печати, а по
+  // выходе возвращается на «Печать» — иначе он падал в никуда, и следующий Tab начинался
+  // с начала страницы (найдено клавиатурным обходом, пакет J). Esc — выход, как у модалок.
+  const printBarRef = useRef<HTMLDivElement>(null);
+  const printOpenRef = useRef<HTMLButtonElement>(null);
+  const wasPrinting = useRef(false);
+  useEffect(() => {
+    if (printMode) printBarRef.current?.querySelector("button")?.focus();
+    else if (wasPrinting.current) printOpenRef.current?.focus();
+    wasPrinting.current = printMode;
+    if (!printMode) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setPrintMode(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [printMode]);
+  // Период отображения отчётов (пакет №6): null → авто по горизонту (defaultPeriod).
+  const [period, setPeriod] = useState<Period | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["calc", id],
@@ -51,7 +62,7 @@ export function ProjectResultsPage() {
   const projectQuery = useQuery({ queryKey: ["project", id], queryFn: () => getProject(id) });
 
   const title = projectQuery.data?.name ?? "";
-  const isStatement = STATEMENTS.some(([k]) => k === tab);
+  usePageTitle("Результаты", title);
 
   const header = (
     <div className="rhead">
@@ -60,7 +71,7 @@ export function ProjectResultsPage() {
           ←<span style={{ marginLeft: 6 }}>Редактор</span>
         </button>
         <div style={{ minWidth: 0 }}>
-          <div className="rhead__title">Результаты</div>
+          <h1 className="rhead__title">Результаты</h1>
           {title && <div className="rhead__sub">{title}</div>}
         </div>
       </div>
@@ -101,9 +112,30 @@ export function ProjectResultsPage() {
             >
               PDF
             </button>
-            <button type="button" onClick={() => setPrintMode(true)}>
+            <button
+              type="button"
+              title="Документ бизнес-плана: заключение, показатели, разделы и отчёты"
+              onClick={async () => {
+                toast("Готовим бизнес-план…", { kind: "info" });
+                try {
+                  await downloadBusinessPlanDocx(id, `${title || "business-plan"}.docx`);
+                  toast("Бизнес-план (DOCX) скачан", { kind: "success" });
+                } catch {
+                  toast("Не удалось сформировать бизнес-план", { kind: "error" });
+                }
+              }}
+            >
+              Бизнес-план
+            </button>
+            <button type="button" ref={printOpenRef} onClick={() => setPrintMode(true)}>
               <IconPrint size={15} />
               <span style={{ marginLeft: 6 }}>Печать</span>
+            </button>
+            {/* Ссылка для инвестора или банка (L4): снимок плана без входа — вместо DOCX
+                по почте, о судьбе которого потом не знает никто. */}
+            <button type="button" title="Открыть план по ссылке инвестору или банку"
+                    onClick={() => setShareOpen(true)}>
+              Поделиться
             </button>
           </div>
         )}
@@ -141,12 +173,8 @@ export function ProjectResultsPage() {
     return (
       <div className="screen-only">
         {header}
-        <div className="error-state" style={{ marginTop: 24, padding: "48px 24px" }}>
-          <div className="error-state__ico">!</div>
-          <div className="error-state__title">Ошибка расчёта</div>
-          <div className="page-sub" style={{ maxWidth: 480, textAlign: "center" }}>
-            {detail}
-          </div>
+        <ErrorState text="Ошибка расчёта" style={{ marginTop: 24, padding: "48px 24px" }} sub={detail}
+                    actions={
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
             <Button variant="ghost" onClick={() => navigate(`/projects/${id}`)}>
               ← К редактору
@@ -157,7 +185,7 @@ export function ProjectResultsPage() {
               </Button>
             )}
           </div>
-        </div>
+                    } />
       </div>
     );
   }
@@ -167,93 +195,26 @@ export function ProjectResultsPage() {
   const m = data.metrics;
   const val = data.valuation;
   const discountRate = projectQuery.data?.model.settings.discount_rate_annual;
-  const rate = discountRate ? Number(discountRate) : null;
-  const irr = m.irr_annual !== null && m.irr_annual !== undefined ? Number(m.irr_annual) : null;
-  const npv = Number(m.npv);
 
   const tabs = ["summary", "income", "cashflow", "balance", "ratios", "charts"];
+  if (data.user_tables.length > 0) tabs.push("tables");
   if (data.actualized_cashflow) tabs.push("plan_fact");
 
-  const effCards: Array<{ label: string; value: string; sub: string; tone: string; hint: string }> = [
-    {
-      label: "NPV",
-      value: fmtMillions(m.npv, { sign: true, digits: 1 }),
-      sub: npv > 0 ? "Создаёт стоимость" : npv < 0 ? "Разрушает стоимость" : "На грани",
-      tone: npv > 0 ? "good" : npv < 0 ? "bad" : "warn",
-      hint: "Чистая приведённая стоимость — сумма дисконтированных денежных потоков. Положительная — проект создаёт стоимость.",
-    },
-    {
-      label: "IRR",
-      value: irr !== null ? percent(m.irr_annual, 1) : "—",
-      sub:
-        irr === null
-          ? "Не определена"
-          : rate !== null
-            ? irr >= rate
-              ? `Выше ставки ${percent(discountRate, 0)}`
-              : `Ниже ставки ${percent(discountRate, 0)}`
-            : "Годовая доходность",
-      tone: irr === null ? "" : rate === null || irr >= rate ? "good" : "bad",
-      hint: "Внутренняя норма доходности — ставка, при которой NPV = 0. Сравнивается со ставкой дисконтирования.",
-    },
-    {
-      label: "PI",
-      value: m.pi ? fmtRatio(m.pi, 2) : "—",
-      sub: m.pi == null ? "—" : Number(m.pi) >= 1 ? "> 1 — эффективно" : "< 1 — неэффективно",
-      tone: m.pi == null ? "" : Number(m.pi) >= 1 ? "good" : "bad",
-      hint: "Индекс прибыльности — отношение дисконтированных притоков к вложениям.",
-    },
-    {
-      label: "Срок окупаемости",
-      value: m.pb_months != null ? `${m.pb_months} мес` : "> горизонта",
-      sub: m.pb_months != null ? "В пределах горизонта" : "Не окупается",
-      tone: m.pb_months != null ? "good" : "bad",
-      hint: "Месяц, когда накопленный денежный поток становится положительным.",
-    },
-    {
-      label: "Дисконт. окупаемость",
-      value: m.dpb_months != null ? `${m.dpb_months} мес` : "—",
-      sub: m.dpb_months != null ? "По дисконт. потоку" : "Не достигается",
-      tone: m.dpb_months != null ? "good" : m.pb_months != null ? "warn" : "bad",
-      hint: "То же по дисконтированному потоку — учитывает стоимость денег во времени.",
-    },
-    {
-      label: "Потребность в финанс.",
-      value: m.peak_financing_need ? fmtMillions(m.peak_financing_need, { digits: 1 }) : "—",
-      sub: m.pv_investments
-        ? `PV инвестиций ${fmtMillions(m.pv_investments, { digits: 1 })}`
-        : "Максимальный дефицит",
-      tone: "",
-      hint: "Приведённая пиковая потребность в деньгах до выхода проекта в плюс.",
-    },
-  ];
+  // Интерпретация показателей (знак, сравнение со ставкой, «не определено») вынесена
+  // в чистый модуль `metricCards.ts` — там же её тесты.
+  const effCards = efficiencyCards(m, discountRate);
+  const valCards = valuationCards(val);
 
-  const valCards: Array<{ label: string; value: string; hint: string }> = [
-    { label: "Чистые активы", value: fmtMillions(val.net_assets, { digits: 1 }), hint: "Активы минус обязательства на конец горизонта." },
-    { label: "Модель Гордона", value: val.gordon_value ? fmtMillions(val.gordon_value, { digits: 1 }) : "—", hint: "Капитализация бессрочного потока: CF·(1+g)/(r−g). Не считается при g ≥ ставки." },
-    { label: "DDM", value: val.dividend_value ? fmtMillions(val.dividend_value, { digits: 1 }) : "—", hint: "Капитализация дивидендов по модели Гордона." },
-    { label: "По мультипликатору", value: val.earnings_multiple_value ? fmtMillions(val.earnings_multiple_value, { digits: 1 }) : "—", hint: "Годовая чистая прибыль × заданный множитель (P/E-подход)." },
-    { label: "Ликвидационная", value: val.liquidation_value ? fmtMillions(val.liquidation_value, { digits: 1 }) : "—", hint: "Возвратная стоимость активов при ликвидации минус обязательства." },
-  ];
+  // Показатели во второй валюте (gap 1.4): поток пересчитан по курсу, дисконт — своей ставкой.
+  const mf = data.metrics_foreign;
+  const foreignCode = projectQuery.data?.model.environment.currencies?.[1]?.code ?? "вал.";
+  const foreignRate = projectQuery.data?.model.settings.discount_rate_annual_foreign;
+  const fxCards = foreignCards(mf, foreignCode, foreignRate);
 
-  const statementView = (key: StatementKey) => (
-    <>
-      <div className="report-head">
-        <div style={{ minWidth: 0 }}>
-          <div className="report-head__title">{TAB_LABELS[key] ?? STATEMENTS.find(([k]) => k === key)?.[1]}</div>
-          <div className="report-head__sub">Помесячный отчёт · {data.n} мес · суммы в ₽</div>
-        </div>
-        <div className="report-switch">
-          {STATEMENTS.map(([k, label]) => (
-            <button key={k} type="button" className={tab === k ? "on" : ""} onClick={() => setTab(k)}>
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-      <StatementTable statement={data[key]} n={data.n} subtotals={SUBTOTALS[key]} grands={GRANDS[key]} />
-    </>
-  );
+  // Печать — в том же периоде, что отчёты на экране; число страниц считает та же функция,
+  // что раскладывает листы, — «5 страниц» у 24-месячного проекта были бы неправдой.
+  const printPeriod = period ?? defaultPeriod(data.n);
+  const pages = printPageCount(data, printPeriod);
 
   return (
     <div className={printMode ? "print-mode" : ""}>
@@ -261,11 +222,12 @@ export function ProjectResultsPage() {
         <div style={{ minWidth: 0 }}>
           <div className="print-toolbar__title">Печатная версия · PDF (A4, альбом)</div>
           <div className="print-toolbar__sub">
-            5 страниц: титул и сводка + 4 финансовых отчёта · печать-дружественные цвета,
+            {pages} {plural(pages, "страница", "страницы", "страниц")}: титул и сводка + 4
+            финансовых отчёта · период — как на экране · печать-дружественные цвета,
             аккуратные переносы.
           </div>
         </div>
-        <div className="print-toolbar__actions">
+        <div className="print-toolbar__actions" ref={printBarRef}>
           <Button variant="ghost" onClick={() => setPrintMode(false)}>
             ← К результатам
           </Button>
@@ -295,85 +257,92 @@ export function ProjectResultsPage() {
           </div>
         )}
 
-        <div className="rsection-label">Показатели эффективности</div>
-        <div className="metric-grid">
-          {effCards.map((c) => (
-            <div key={c.label} className="metric-card2">
-              <div className="metric-card2__top">
-                <span className="metric-card2__label">{c.label}</span>
-                <HintBadge text={c.hint} />
-              </div>
-              <div className={"metric-card2__value" + (c.tone ? ` metric-card2__value--${c.tone}` : "")}>
-                {c.value}
-              </div>
-              <div className="metric-card2__sub">{c.sub}</div>
-            </div>
-          ))}
-        </div>
+        <h2 className="rsection-label">Показатели эффективности</h2>
+        <MetricCards cards={effCards} />
+        {m.no_return_metrics_note && (
+          // Четыре прочерка подряд без причины читаются как «не посчитали». Причина
+          // приходит с сервера — второй её копией экран разошёлся бы с документом.
+          <div className="field-note" style={{ marginTop: 8 }}>{m.no_return_metrics_note}</div>
+        )}
+        <ReleaseNote release={data.working_capital_release} />
 
-        <div className="rsection-label">Оценка бизнеса</div>
-        <div className="metric-grid metric-grid--val">
-          {valCards.map((c) => (
-            <div key={c.label} className="metric-card2">
-              <div className="metric-card2__top">
-                <span className="metric-card2__label" style={{ fontSize: 11.5 }}>
-                  {c.label}
-                </span>
-                <HintBadge text={c.hint} />
-              </div>
-              <div className="metric-card2__value" style={{ fontSize: 17 }}>
-                {c.value}
-              </div>
-            </div>
-          ))}
-        </div>
+        {fxCards.length > 0 && (
+          <>
+            <h2 className="rsection-label">Показатели во второй валюте ({foreignCode})</h2>
+            <MetricCards cards={fxCards} compact />
+          </>
+        )}
 
-        <div className="etabs-wrap" style={{ margin: "20px 0", borderTop: "1px solid var(--border)", background: "none", padding: 0 }}>
-          <div className="etabs fe-scroll">
-            {tabs.map((key) => (
-              <button
-                key={key}
-                type="button"
-                className={"etab" + (tab === key || (isStatement && key === tab) ? " etab--active" : "")}
-                onClick={() => setTab(key)}
-              >
-                {TAB_LABELS[key]}
-              </button>
-            ))}
-          </div>
-        </div>
+        <h2 className="rsection-label">Оценка бизнеса</h2>
+        <MetricCards cards={valCards} compact />
+
+        {tab === "summary" && <ReviewBanner projectId={id} />}
+
+        {tab === "summary" && <SummaryExtras data={data} />}
+
+        <ResultTabs tabs={tabs} active={tab} onSelect={setTab} />
 
         {tab === "summary" && (
           <>
             <SummaryView result={data} discountRate={discountRate} />
-            {data.warnings.length > 0 && (
-              <div className="warn-block">
-                <div className="warn-block__head">
-                  <span style={{ color: "var(--warn)" }}>⚠</span>Замечания по расчёту
-                </div>
-                {data.warnings.map((w, i) => (
-                  <div key={i} className="warn-block__row">
-                    <span className="warn-banner__dot" />
-                    <span className="warn-block__text">{w}</span>
-                    <span className="level-chip level-chip--warn">предупр.</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            <CalcWarnings warnings={data.warnings} />
           </>
         )}
-        {isStatement && statementView(tab as StatementKey)}
+        {isStatementTab(tab) && (
+          <StatementPanel data={data} which={tab} period={period} onPeriod={setPeriod} onWhich={setTab} />
+        )}
         {tab === "ratios" && <RatiosView ratios={data.ratios} breakEven={data.break_even} n={data.n} />}
         {tab === "charts" && <ResultCharts result={data} />}
+        {tab === "tables" && data.user_tables.map((t) => (
+          <div key={t.id} style={{ marginBottom: 22 }}>
+            <div className="report-head">
+              <div style={{ minWidth: 0 }}>
+                <div className="report-head__title">{t.name || "Таблица"}</div>
+                <div className="report-head__sub">Таблица пользователя · формулы над результатом</div>
+              </div>
+            </div>
+            {t.rows.some((r) => r.error) && (
+              <div className="warn-banner" style={{ marginBottom: 12 }}>
+                <span className="warn-banner__ico">⚠</span>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div className="warn-banner__title">Ошибки формул</div>
+                  {t.rows.filter((r) => r.error).map((r, i) => (
+                    <div key={i} className="warn-banner__item">
+                      <span className="warn-banner__dot" />
+                      {r.name}: {r.error}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <StatementTable
+              title={t.name || "Таблица"}
+              statement={{ lines: t.rows.map((r, i) => ({ code: String(i + 1), label: r.name, values: r.values })) }}
+              n={data.n}
+              subtotals={new Set()}
+            />
+          </div>
+        ))}
         {tab === "plan_fact" && data.actualized_cashflow && (
           <PlanFactView
             result={data}
             factUntil={projectQuery.data?.model.actualization.actual_until ?? data.n - 1}
           />
         )}
+
+        {/* Обсуждение — **рядом с числами** и привязано к тому разделу, который сейчас
+            открыт: вопрос «откуда такая себестоимость» без места через месяц не
+            прочитать. Подпись раздела уходит вместе с репликой (D3). */}
+        <div style={{ marginTop: 20 }}>
+          <Comments subject={{ kind: "project", id }} anchor={`report:${tab}`}
+                    anchorLabel={RESULT_TAB_LABELS[tab] ?? tab}
+                    title={`Обсуждение: ${RESULT_TAB_LABELS[tab] ?? tab}`} />
+        </div>
+        <ShareLinks open={shareOpen} onClose={() => setShareOpen(false)} projectId={id} />
       </div>
 
-      <PrintReport data={data} title={title || "Результаты"} model={projectQuery.data?.model} />
+      <PrintReport data={data} title={title || "Результаты"} model={projectQuery.data?.model}
+                   period={printPeriod} brand={brand} />
     </div>
   );
 }

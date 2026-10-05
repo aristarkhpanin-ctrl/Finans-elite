@@ -5,11 +5,16 @@ import {
   type DirectCostLine,
   type FixedCostLine,
   type OperatingPlan,
+  type OtherFlow,
+  type StaffPosition,
 } from "../../api/model";
+import { useRef, useState } from "react";
 import { EField, ESelect } from "../../components/EditorField";
-import { IconBox, IconTrash } from "../../components/icons";
+import { IconBox, IconDownload, IconTrash, IconUpload } from "../../components/icons";
 import { MonthlyGrid } from "../../components/MonthlyGrid";
-import { Button, CountChip, Switch } from "../../components/ui";
+import { useToast } from "../../components/Toast";
+import { Button, CountChip, Modal, Switch } from "../../components/ui";
+import { type CostsImport, downloadCostsTemplate, parseCostsXlsx } from "../../costsXlsx";
 
 interface Props {
   n: number;
@@ -21,6 +26,21 @@ interface Props {
 export function CostsTab({ n, operating, onChange }: Props) {
   const direct = operating.direct_costs;
   const fixed = operating.fixed_costs;
+
+  // Импорт издержек и персонала из Excel (G13): отчёт — модалкой, а не тостом: в нём
+  // созданные статьи с умолчаниями, которые стоит проверить, и строки, что не применены.
+  const fileRef = useRef<HTMLInputElement>(null);
+  const toast = useToast();
+  const [report, setReport] = useState<CostsImport | null>(null);
+  const onImportFile = async (file: File) => {
+    try {
+      const res = await parseCostsXlsx(file, operating, n);
+      if (res.changed) onChange(res.operating);
+      setReport(res);
+    } catch {
+      toast("Не удалось прочитать файл — нужен XLSX по шаблону", { kind: "error" });
+    }
+  };
 
   const addDirect = () =>
     onChange({
@@ -47,16 +67,109 @@ export function CostsTab({ n, operating, onChange }: Props) {
 
   const delayErr = (v: number) => (v < 0 ? "Не может быть отрицательным" : "");
 
+  // --- Прочие поступления/выплаты (вне основной деятельности) ---
+  const otherInc = operating.other_income ?? [];
+  const otherExp = operating.other_expenses ?? [];
+  const setOther = (key: "other_income" | "other_expenses", rows: OtherFlow[]) =>
+    onChange({ ...operating, [key]: rows });
+  const addOther = (key: "other_income" | "other_expenses") =>
+    setOther(key, [...(key === "other_income" ? otherInc : otherExp),
+                   { name: key === "other_income" ? "Поступление" : "Выплата", amount: [] }]);
+  const updOther = (key: "other_income" | "other_expenses", i: number, patch: Partial<OtherFlow>) => {
+    const rows = key === "other_income" ? otherInc : otherExp;
+    setOther(key, rows.map((r, k) => (k === i ? { ...r, ...patch } : r)));
+  };
+  const rmOther = (key: "other_income" | "other_expenses", i: number) => {
+    const rows = key === "other_income" ? otherInc : otherExp;
+    setOther(key, rows.filter((_, k) => k !== i));
+  };
+
+  // --- План персонала (штат) ---
+  const staff = operating.staff ?? [];
+  const setStaff = (rows: StaffPosition[]) => onChange({ ...operating, staff: rows });
+  const addStaff = () =>
+    setStaff([...staff, { name: "Должность", monthly_salary: "0", headcount: "1",
+                          start_month: 0, function: "staff_admin" }]);
+  const updStaff = (i: number, patch: Partial<StaffPosition>) =>
+    setStaff(staff.map((s, k) => (k === i ? { ...s, ...patch } : s)));
+  const rmStaff = (i: number) => setStaff(staff.filter((_, k) => k !== i));
+  const num = (v: string | undefined) => {
+    const x = Number(String(v ?? "").replace(",", "."));
+    return Number.isFinite(x) ? x : 0;
+  };
+  const fot = staff.reduce((s, p) => s + num(p.monthly_salary) * num(p.headcount ?? "1"), 0);
+
   return (
     <div>
       <div className="tab-head">
         <div style={{ minWidth: 0 }}>
-          <div className="tab-head__title">Издержки — прямые и постоянные</div>
+          <h2 className="tab-head__title">Издержки — прямые и постоянные</h2>
           <div className="tab-head__sub">
             Себестоимость и операционные расходы по месяцам. Горизонт: {n} мес.
           </div>
         </div>
+        {/* Книга из трёх листов (G13): прямые, постоянные, персонал. Статьи — по имени:
+            найденное обновляется, недостающее создаётся с названными умолчаниями. */}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Button variant="ghost" onClick={async () => {
+            try {
+              await downloadCostsTemplate("Издержки-шаблон.xlsx", operating, n);
+              toast("Шаблон XLSX скачан", { kind: "success",
+                                            sub: "листы: прямые, постоянные, персонал" });
+            } catch {
+              toast("Не удалось сформировать шаблон", { kind: "error" });
+            }
+          }}>
+            <IconDownload size={15} />
+            <span style={{ marginLeft: 6 }}>Шаблон XLSX</span>
+          </Button>
+          <Button variant="ghost" onClick={() => fileRef.current?.click()}>
+            <IconUpload size={15} />
+            <span style={{ marginLeft: 6 }}>Импорт XLSX</span>
+          </Button>
+        </div>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".xlsx"
+          style={{ display: "none" }}
+          aria-label="Файл XLSX с издержками и персоналом"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (file) void onImportFile(file);
+          }}
+        />
       </div>
+
+      <Modal open={report !== null} onClose={() => setReport(null)} title="Импорт из Excel"
+             sub={report?.changed ? "Модель обновлена — сохраните проект" : "Модель не изменилась"}
+             maxWidth={560}
+             actions={<Button onClick={() => setReport(null)}>Понятно</Button>}>
+        {report?.sheets.map((sh) => (
+          <div key={sh.sheet} className="field-note" style={{ marginBottom: 10 }}>
+            <b>{sh.sheet}.</b>{" "}
+            {sh.absent ? "Листа нет в файле — раздел не тронут." : (
+              <>
+                {sh.updated.length > 0 && <>Обновлено: {sh.updated.join(", ")}. </>}
+                {sh.created.length > 0 && (
+                  <>Создано: {sh.created.join(", ")}. <i>Проверьте умолчания:</i> {sh.defaults} </>
+                )}
+                {sh.updated.length + sh.created.length === 0 && sh.problems.length === 0 &&
+                  "Строк со статьями нет."}
+                {sh.problems.length > 0 && (
+                  <ul className="mnotes" style={{ margin: "6px 0 0" }}>
+                    {sh.problems.map((m) => <li key={m}>{m}</li>)}
+                  </ul>
+                )}
+              </>
+            )}
+          </div>
+        ))}
+        <div className="page-sub" style={{ marginTop: 4 }}>
+          Статьи модели, которых нет в файле, не удаляются: импорт дописывает и правит.
+        </div>
+      </Modal>
 
       {/* ─── Прямые ─── */}
       <div className="csec">
@@ -274,6 +387,128 @@ export function CostsTab({ n, operating, onChange }: Props) {
             <button type="button" className="add-row" onClick={addFixed}>
               ＋&nbsp;&nbsp;Добавить ещё статью
             </button>
+          </div>
+        )}
+      </div>
+
+      {/* План персонала (штат) */}
+      <div className="res-lib" style={{ marginTop: 24 }}>
+        <div className="res-lib__head">
+          <div className="res-lib__title">
+            План персонала{staff.length > 0 && ` · ФОТ ≈ ${fot.toLocaleString("ru-RU")} ₽/мес`}
+          </div>
+          <Button variant="ghost" onClick={addStaff}>＋&nbsp;&nbsp;Должность</Button>
+        </div>
+        {staff.length === 0 ? (
+          <p className="muted" style={{ fontSize: 12.5, margin: 0 }}>
+            Штат: должности с окладом, численностью и периодом занятости. Разворачивается в
+            затраты на персонал (адм./произв./маркетинг) с взносами с ФОТ и инфляцией зарплаты.
+          </p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {staff.map((p, i) => (
+              <div className="line-card" key={i}>
+                <div className="line-card__head">
+                  <div className="line-card__idx">{i + 1}</div>
+                  <div className="line-card__name">
+                    <input value={p.name} placeholder="Должность"
+                           onChange={(e) => updStaff(i, { name: e.target.value })} />
+                  </div>
+                  <button type="button" className="line-card__del" title="Удалить должность"
+                          onClick={() => rmStaff(i)}>
+                    <IconTrash size={15} />
+                  </button>
+                </div>
+                <div className="afields-grid">
+                  <EField label="Оклад" prefix="₽" suffix="/ мес"
+                          value={p.monthly_salary}
+                          onChange={(v) => updStaff(i, { monthly_salary: v })} />
+                  <EField label="Численность" suffix="чел."
+                          value={p.headcount ?? "1"}
+                          onChange={(v) => updStaff(i, { headcount: v })} />
+                  <EField label="Месяц начала" prefix="М"
+                          value={p.start_month ?? 0}
+                          onChange={(v) => updStaff(i, { start_month: parseInt(v || "0", 10) || 0 })} />
+                  <EField label="Месяц окончания" prefix="М"
+                          note="Пусто — до конца горизонта"
+                          value={p.end_month ?? ""}
+                          onChange={(v) => updStaff(i, { end_month: v === "" ? null : parseInt(v, 10) || 0 })} />
+                  <ESelect label="Функция" value={p.function ?? "staff_admin"}
+                           onChange={(v) => updStaff(i, { function: v as CostFunction })}
+                           options={[["staff_admin", "Административный"],
+                                     ["staff_production", "Производственный"],
+                                     ["staff_marketing", "Маркетинговый"]]} />
+                  <EField label="Задержка выплаты" suffix="мес."
+                          note="→ Кредиторская задолженность"
+                          value={p.payment_delay_months ?? 0}
+                          onChange={(v) => updStaff(i, { payment_delay_months: parseInt(v || "0", 10) || 0 })} />
+                </div>
+              </div>
+            ))}
+            <button type="button" className="add-row" onClick={addStaff}>
+              ＋&nbsp;&nbsp;Добавить должность
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Прочие поступления и выплаты (вне основной деятельности) */}
+      <div className="res-lib" style={{ marginTop: 24 }}>
+        <div className="res-lib__head">
+          <div className="res-lib__title">Прочие поступления и выплаты</div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Button variant="ghost" onClick={() => addOther("other_income")}>＋&nbsp;&nbsp;Поступление</Button>
+            <Button variant="ghost" onClick={() => addOther("other_expenses")}>＋&nbsp;&nbsp;Выплата</Button>
+          </div>
+        </div>
+        {otherInc.length === 0 && otherExp.length === 0 ? (
+          <p className="muted" style={{ fontSize: 12.5, margin: 0 }}>
+            Разовые/нерегулярные суммы вне основной деятельности: субсидии, штрафы, компенсации.
+            Поступление → прочие доходы (I20); выплата → прочие издержки (I21) либо «из прибыли» (I24).
+          </p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {otherInc.map((r, i) => (
+              <div className="line-card" key={`inc-${i}`}>
+                <div className="line-card__head">
+                  <span className="prop-chip prop-chip--profit">поступление</span>
+                  <div className="line-card__name">
+                    <input value={r.name} placeholder="Название"
+                           onChange={(e) => updOther("other_income", i, { name: e.target.value })} />
+                  </div>
+                  <button type="button" className="line-card__del" title="Удалить"
+                          onClick={() => rmOther("other_income", i)}>
+                    <IconTrash size={15} />
+                  </button>
+                </div>
+                <MonthlyGrid n={n} rows={[{ key: `oi-${i}`, title: "Сумма, ₽", values: r.amount,
+                                            onChange: (amount) => updOther("other_income", i, { amount }) }]} />
+              </div>
+            ))}
+            {otherExp.map((r, i) => (
+              <div className="line-card" key={`exp-${i}`}>
+                <div className="line-card__head">
+                  <span className="prop-chip prop-chip--cur">выплата</span>
+                  <div className="line-card__name">
+                    <input value={r.name} placeholder="Название"
+                           onChange={(e) => updOther("other_expenses", i, { name: e.target.value })} />
+                  </div>
+                  <button type="button" className="line-card__del" title="Удалить"
+                          onClick={() => rmOther("other_expenses", i)}>
+                    <IconTrash size={15} />
+                  </button>
+                </div>
+                <MonthlyGrid n={n} rows={[{ key: `oe-${i}`, title: "Сумма, ₽", values: r.amount,
+                                            onChange: (amount) => updOther("other_expenses", i, { amount }) }]} />
+                <div style={{ marginTop: 10 }}>
+                  <Switch
+                    label="Из прибыли (невычитаемая, не уменьшает налоговую базу)"
+                    checked={r.from_profit ?? false}
+                    onChange={(from_profit) => updOther("other_expenses", i, { from_profit })}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

@@ -1,0 +1,233 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { addComment, deleteComment, getComments, getThreadSubscription, resolveComment,
+         setThreadSubscription, type Comment, type Subject } from "../api/comments";
+import { httpDetail } from "../api/client";
+import { clearDraft, draftKey, readDraft, writeDraft, DRAFT_NOTE }
+  from "../commentDraft";
+import { useAuth } from "../auth/AuthContext";
+import { useToast } from "./Toast";
+import { Button } from "./ui";
+
+/**
+ * Обсуждение рядом с числами (D3) — одна панель на оба продукта.
+ *
+ * Реплика привязана к **месту**: вкладке, строке отчёта, продукту. «Обсуждение проекта»
+ * без места — это чат, из которого через месяц не понять, о какой строке шла речь;
+ * поэтому подпись места уходит на сервер вместе с репликой и остаётся при ней, даже
+ * если объект потом переименуют.
+ *
+ * Правки текста здесь нет и не будет: отредактированная реплика, на которую уже
+ * ответили, переписывает историю. Удалить свою можно — на её месте остаётся
+ * «надгробие», потому что пропавшая без следа строка читается как не сказанная никогда.
+ */
+export function Comments({ subject, anchor = "", anchorLabel = "", title = "Обсуждение" }: {
+  subject: Subject;
+  /** Место внутри сущности; пусто — общее обсуждение. */
+  anchor?: string;
+  /** Подпись места **на момент написания** — уходит вместе с репликой. */
+  anchorLabel?: string;
+  title?: string;
+}) {
+  const qc = useQueryClient();
+  const toast = useToast();
+  const { user } = useAuth();
+  // Черновик живёт в браузере (F9): набранный текст пропадал при закрытии вкладки, а
+  // страж несохранённого ввода его не ловит — он про модель, а не про эту панель.
+  const draft = draftKey(subject.kind, subject.id, anchor);
+  const [text, setText] = useState(() => readDraft(draft));
+  // «Черновик остался» показывается только там, где он **был восстановлен**: строка,
+  // висящая при каждом наборе, превращается в шум и перестаёт читаться.
+  const [restored, setRestored] = useState(() => readDraft(draft) !== "");
+
+  useEffect(() => { writeDraft(draft, text); }, [draft, text]);
+
+  const key = ["comments", subject.kind, subject.id, anchor];
+  const { data, isLoading } = useQuery({
+    queryKey: key,
+    queryFn: () => getComments(subject, anchor || undefined),
+  });
+  const refresh = () => qc.invalidateQueries({ queryKey: key });
+
+  const say = useMutation({
+    mutationFn: () => addComment(subject, text.trim(), anchor, anchorLabel),
+    onSuccess: (created) => {
+      setText("");
+      // Отправленное черновиком уже не является.
+      clearDraft(draft);
+      setRestored(false);
+      refresh();
+      // Нераспознанное упоминание называется вслух: «позвал, и никто не пришёл» —
+      // худший вид тишины.
+      if (created.unknown_mentions.length > 0) {
+        toast(`В организации нет: ${created.unknown_mentions.join(", ")}. `
+              + "Упоминание не сработало.", { kind: "error" });
+      } else if (created.notified.length > 0) {
+        toast(created.mail.attempted
+          ? `Позвали: ${created.notified.join(", ")} — письмо отправлено.`
+          : `Позвали: ${created.notified.join(", ")}. Писем платформа не отправляет — `
+            + "скажите им сами.", { kind: "success" });
+      } else if (created.followed.length > 0) {
+        // Кому уедет реплика — знать стоит: это меняет то, как её пишут. Часто это не
+        // мешает: следующие письма об этой ветке придержит пауза, и всплывать эта
+        // строка будет не чаще, чем уходят сами письма.
+        toast(created.mail.attempted
+          ? `Участникам обсуждения уйдёт письмо: ${created.followed.join(", ")}.`
+          : `Участники обсуждения: ${created.followed.join(", ")}. Писем платформа не `
+            + "отправляет — скажите им сами.", { kind: "success" });
+      }
+    },
+    onError: (e: unknown) => toast(httpDetail(e) ?? "Не удалось отправить реплику",
+                                   { kind: "error" }),
+  });
+  const toggle = useMutation({
+    mutationFn: ({ id, resolved }: { id: string; resolved: boolean }) =>
+      resolveComment(id, resolved),
+    onSuccess: refresh,
+    onError: (e: unknown) => toast(httpDetail(e) ?? "Не удалось изменить", { kind: "error" }),
+  });
+  const remove = useMutation({
+    mutationFn: (id: string) => deleteComment(id),
+    onSuccess: refresh,
+    onError: (e: unknown) => toast(httpDetail(e) ?? "Не удалось удалить", { kind: "error" }),
+  });
+
+  // Письма об этой ветке (OPEN-DECISIONS §5). Состояние спрашивается у сервера, а смысл
+  // отписки приходит оттуда же: вторая формулировка на клиенте разошлась бы с тем, что
+  // платформа делает на самом деле, — и разошлась бы именно там, где человек проверяет,
+  // сработало ли «не пишите мне».
+  const subKey = ["comment-subscription", subject.kind, subject.id, anchor];
+  const { data: sub } = useQuery({
+    queryKey: subKey,
+    queryFn: () => getThreadSubscription(subject, anchor),
+  });
+  const mute = useMutation({
+    mutationFn: (muted: boolean) => setThreadSubscription(subject, anchor, muted),
+    onSuccess: (r) => { qc.setQueryData(subKey, r); toast(r.note, { kind: "success" }); },
+    onError: (e: unknown) => toast(httpDetail(e) ?? "Не удалось изменить",
+                                   { kind: "error" }),
+  });
+
+  const rows = data ?? [];
+  const open = rows.filter((c) => !c.resolved && !c.deleted).length;
+
+  return (
+    <div className="cmt">
+      <div className="cmt__head">
+        <span className="cmt__title">{title}</span>
+        {rows.length > 0 && (
+          <span className="cmt__count">
+            {open > 0 ? `${open} открыто из ${rows.length}` : `${rows.length} — все закрыты`}
+          </span>
+        )}
+      </div>
+      {anchorLabel && <div className="cmt__anchor">{anchorLabel}</div>}
+
+      {isLoading ? (
+        <div className="mnote">Загружаем…</div>
+      ) : rows.length === 0 ? (
+        <div className="mnote">Обсуждения пока нет. Спросите здесь — вопрос останется
+          рядом с числами, а не в переписке.</div>
+      ) : (
+        <div className="cmt__list">
+          {rows.map((c) => (
+            <CommentRow key={c.id} c={c} mine={c.author_email === user?.email}
+                        onResolve={(resolved) => toggle.mutate({ id: c.id, resolved })}
+                        onDelete={() => remove.mutate(c.id)} />
+          ))}
+        </div>
+      )}
+
+      <textarea
+        className="input cmt__input"
+        rows={3}
+        aria-label="Новая реплика"
+        placeholder="Что обсуждаем? Упомянуть коллегу — @почта@компании.ру"
+        value={text}
+        disabled={say.isPending}
+        onChange={(e) => { setText(e.target.value); setRestored(false); }}
+      />
+      {/* Обещание держится буквально: черновик локальный, и сказать об этом надо до
+          того, как человек сядет за другой компьютер. */}
+      {restored && <div className="cmt__hint">{DRAFT_NOTE}</div>}
+      <div className="cmt__foot">
+        {/* Упоминание зовёт посмотреть, но не открывает доступ: обещать иное значило бы
+            подменять права на проект строкой в тексте. */}
+        <span className="cmt__hint">
+          Упоминание зовёт коллегу посмотреть, но прав на проект не даёт.
+        </span>
+        <Button onClick={() => say.mutate()} loading={say.isPending}
+                disabled={!text.trim()}>Отправить</Button>
+      </div>
+      {sub && (
+        <div className="cmt__foot">
+          {/* Отписка живёт и здесь, не только в письме: человек, которому письма
+              мешают, обычно смотрит на само обсуждение, а не ищет старую рассылку. */}
+          <span className="cmt__hint">{sub.note}</span>
+          <button type="button" className="cmt-act" disabled={mute.isPending}
+                  onClick={() => mute.mutate(!sub.muted)}>
+            {sub.muted ? "Писать мне об этом обсуждении"
+                       : "Не писать мне об этом обсуждении"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CommentRow({ c, mine, onResolve, onDelete }: {
+  c: Comment; mine: boolean; onResolve: (resolved: boolean) => void; onDelete: () => void;
+}) {
+  const when = new Date(c.created_at).toLocaleString("ru-RU",
+    { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  return (
+    <div className={"cmt-row" + (c.resolved ? " cmt-row--done" : "")
+                    + (c.deleted ? " cmt-row--gone" : "")}>
+      <div className="cmt-row__head">
+        <span className="cmt-row__who">{c.author_name || c.author_email}</span>
+        <span className="cmt-row__when">{when}</span>
+        {/* Подпись места — та, что была на момент написания: объект могли переименовать. */}
+        {c.anchor_label && <span className="cmt-row__where">{c.anchor_label}</span>}
+        {c.resolved && (
+          <span className="status-chip status-chip--ok">
+            закрыл {c.resolved_by || "—"}
+          </span>
+        )}
+      </div>
+      <div className="cmt-row__body">{c.body}</div>
+      {c.links.length > 0 && (
+        <div className="cmt-row__links">
+          {c.links.map((url) => (
+            // `rel` здесь не украшение: без `noreferrer` чужая система увидит, с какой
+            // страницы пришли (а в адресе — идентификатор проекта), без `noopener`
+            // открытая вкладка сможет увести исходную на свою страницу.
+            <a key={url} href={url} target="_blank" rel="noreferrer noopener"
+               className="cmt-link" title={url}>{url}</a>
+          ))}
+          {/* Оговорка приходит с сервера и стоит **рядом со ссылкой**: обещание
+              «файл не у нас» в документации, которую не откроют, — не обещание. */}
+          <div className="cmt-row__note">{c.links_note}</div>
+        </div>
+      )}
+      {c.unsupported_links.length > 0 && (
+        <div className="cmt-row__note">
+          Ссылкой не стало: {c.unsupported_links.join(", ")}. Ссылкой считается только
+          http(s) — остальное у коллеги не откроется.
+        </div>
+      )}
+      {!c.deleted && (
+        <div className="cmt-row__acts">
+          <button type="button" className="cmt-act"
+                  onClick={() => onResolve(!c.resolved)}>
+            {c.resolved ? "Открыть заново" : "Вопрос снят"}
+          </button>
+          {mine && (
+            <button type="button" className="cmt-act cmt-act--danger" onClick={onDelete}>
+              Удалить
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

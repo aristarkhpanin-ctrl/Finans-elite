@@ -4,7 +4,7 @@ import { useState } from "react";
 import { runWhatIf, SENSITIVITY_PARAMS, type ScenarioIn } from "../../api/analysis";
 import { ESelect } from "../../components/EditorField";
 import { IconTrash } from "../../components/icons";
-import { Button, Modal, Switch } from "../../components/ui";
+import { Button, Modal, ScrollRegion, Switch } from "../../components/ui";
 import { fmtMillions, fmtRatio, percent } from "../../format";
 
 const paramLabel = (p: string) => SENSITIVITY_PARAMS.find(([k]) => k === p)?.[1] ?? p;
@@ -45,7 +45,7 @@ export function WhatIfTab({ projectId }: { projectId: string }) {
     <div>
       <div className="an-head">
         <div style={{ minWidth: 0 }}>
-          <div className="an-head__title">What-If · сценарии</div>
+          <h2 className="an-head__title">What-If · сценарии</h2>
           <div className="an-head__sub">
             Корректировки параметров → сравнение ключевых показателей по сценариям.
           </div>
@@ -76,6 +76,7 @@ export function WhatIfTab({ projectId }: { projectId: string }) {
               type="button"
               className="scn-del"
               title="Удалить сценарий"
+              aria-label={`Удалить сценарий «${s.name}»`}
               onClick={() => setScenarios(scenarios.filter((_, k) => k !== i))}
             >
               ✕
@@ -91,7 +92,14 @@ export function WhatIfTab({ projectId }: { projectId: string }) {
         </button>
       </div>
 
-      <Button loading={run.isPending} onClick={() => run.mutate()}>
+      {/* Без сценариев сравнивать не с чем: базовый вариант сам с собой — не сравнение.
+          Пустой список называет это, а не молчит рядом с активной кнопкой (пакет I). */}
+      {scenarios.length === 0 && (
+        <div className="field-note" style={{ marginBottom: 10 }}>
+          Сценариев нет — добавьте хотя бы один, чтобы было с чем сравнивать базовый вариант.
+        </div>
+      )}
+      <Button loading={run.isPending} disabled={scenarios.length === 0} onClick={() => run.mutate()}>
         {run.isPending ? "Сравнение…" : "Сравнить"}
       </Button>
 
@@ -115,7 +123,7 @@ export function WhatIfTab({ projectId }: { projectId: string }) {
           <div className="terms-head" style={{ marginTop: 20 }}>
             Сравнение сценариев
           </div>
-          <div className="cmp-tbl fe-scroll">
+          <ScrollRegion className="cmp-tbl fe-scroll" label="Сравнение сценариев">
             <div className="cmp-row cmp-row--head">
               <div className="cmp-col-name">Сценарий</div>
               <div className="cmp-col-bar">NPV</div>
@@ -157,7 +165,7 @@ export function WhatIfTab({ projectId }: { projectId: string }) {
                 </div>
               );
             })}
-          </div>
+          </ScrollRegion>
           <div className="cmp-legend">
             <span>
               <span className="cmp-legend__sw" style={{ background: "var(--good)" }} />
@@ -199,8 +207,9 @@ export function WhatIfTab({ projectId }: { projectId: string }) {
         {draft && (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <div className="field" style={{ marginBottom: 0 }}>
-              <label>Название сценария</label>
+              <label htmlFor="whatif-scenario-name">Название сценария</label>
               <input
+                id="whatif-scenario-name"
                 className="input"
                 value={draft.name}
                 autoFocus
@@ -215,7 +224,8 @@ export function WhatIfTab({ projectId }: { projectId: string }) {
               <div key={k} style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <ESelect
-                    label=""
+                    label={`Параметр корректировки ${k + 1}`}
+                    hideLabel
                     value={a.param}
                     onChange={(v) =>
                       setDraft({
@@ -232,6 +242,7 @@ export function WhatIfTab({ projectId }: { projectId: string }) {
                     <input
                       className="efield__input"
                       inputMode="decimal"
+                      aria-label={`Множитель корректировки ${k + 1}`}
                       value={a.factor}
                       onChange={(e) =>
                         setDraft({

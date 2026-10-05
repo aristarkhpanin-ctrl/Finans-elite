@@ -1,0 +1,28 @@
+{
+ "content": [
+  {
+   "id": 3676094,
+   "inn": "<strong>7439006499</strong>",
+   "shortName": "К/Х \"РОМАШКА\"",
+   "ogrn": "1027401909490",
+   "statusCode": "ACTIVE",
+   "statusDate": "2002-11-29",
+   "okved2": "01.11.1",
+   "bfo": {
+    "period": "2025",
+    "actualBfoDate": "2026-03-31",
+    "gainSum": 450,
+    "knd": "0710096",
+    "hasAz": false,
+    "hasKs": false,
+    "actualCorrectionNumber": 0,
+    "actualCorrectionDate": "2026-03-31",
+    "isCb": false,
+    "bfoPeriodTypes": [
+     12
+    ]
+   }
+  }
+ ],
+ "totalElements": 1
+}

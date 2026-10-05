@@ -1,0 +1,227 @@
+[
+ {
+  "id": 13689471,
+  "period": "2021",
+  "knd": "0710096",
+  "actualCorrectionNumber": 0,
+  "actualBfoDate": "2022-03-16",
+  "published": true,
+  "typeCorrections": [
+   {
+    "type": 12,
+    "correction": {
+     "knd": "0710096",
+     "periodType": 12,
+     "correctionVersion": 0,
+     "datePresent": "2022-03-16T00:00:00",
+     "balance": {
+      "id": 41190773,
+      "okud": "0710001",
+      "current1250": 375.0,
+      "previous1250": 125.0,
+      "beforePrevious1250": 80.0,
+      "current1300": 375.0,
+      "previous1300": 125.0,
+      "beforePrevious1300": 80.0,
+      "current1600": 375.0,
+      "previous1600": 125.0,
+      "beforePrevious1600": 80.0,
+      "current1700": 375.0,
+      "previous1700": 125.0,
+      "beforePrevious1700": 80.0
+     },
+     "financialResult": {
+      "id": 41190773,
+      "okud": "0710002",
+      "current2350": 194.0,
+      "previous2350": 189.0,
+      "current2400": 250.0,
+      "previous2400": 45.0,
+      "current2110": 444.0,
+      "previous2110": 234.0
+     }
+    }
+   }
+  ]
+ },
+ {
+  "id": 24482955,
+  "period": "2024",
+  "knd": "0710096",
+  "actualCorrectionNumber": 0,
+  "actualBfoDate": "2025-03-27",
+  "published": true,
+  "typeCorrections": [
+   {
+    "type": 12,
+    "correction": {
+     "knd": "0710096",
+     "periodType": 12,
+     "correctionVersion": 0,
+     "datePresent": "2025-03-27T00:00:00",
+     "balance": {
+      "id": 51825426,
+      "okud": "0710001",
+      "current1250": 126.0,
+      "previous1250": 56.0,
+      "beforePrevious1250": 33.0,
+      "current1300": 126.0,
+      "previous1300": 56.0,
+      "beforePrevious1300": 33.0,
+      "current1600": 126.0,
+      "previous1600": 56.0,
+      "beforePrevious1600": 33.0,
+      "current1700": 126.0,
+      "previous1700": 56.0,
+      "beforePrevious1700": 33.0
+     },
+     "financialResult": {
+      "id": 51825426,
+      "okud": "0710002",
+      "current2350": 130.0,
+      "previous2350": 137.0,
+      "current2400": 70.0,
+      "previous2400": 23.0,
+      "current2110": 200.0,
+      "previous2110": 160.0
+     }
+    }
+   }
+  ]
+ },
+ {
+  "id": 18617212,
+  "period": "2022",
+  "knd": "0710096",
+  "actualCorrectionNumber": 0,
+  "actualBfoDate": "2023-03-29",
+  "published": true,
+  "typeCorrections": [
+   {
+    "type": 12,
+    "correction": {
+     "knd": "0710096",
+     "periodType": 12,
+     "correctionVersion": 0,
+     "datePresent": "2023-03-29T00:00:00",
+     "balance": {
+      "id": 45854842,
+      "okud": "0710001",
+      "current1250": 33.0,
+      "previous1250": 375.0,
+      "beforePrevious1250": 125.0,
+      "current1300": 33.0,
+      "previous1300": 375.0,
+      "beforePrevious1300": 125.0,
+      "current1600": 33.0,
+      "previous1600": 375.0,
+      "beforePrevious1600": 125.0,
+      "current1700": 33.0,
+      "previous1700": 375.0,
+      "beforePrevious1700": 125.0
+     },
+     "financialResult": {
+      "id": 45854842,
+      "okud": "0710002",
+      "current2350": 378.0,
+      "previous2350": 194.0,
+      "current2400": -342.0,
+      "previous2400": 250.0,
+      "current2110": 36.0,
+      "previous2110": 444.0
+     }
+    }
+   }
+  ]
+ },
+ {
+  "id": 21472439,
+  "period": "2023",
+  "knd": "0710096",
+  "actualCorrectionNumber": 0,
+  "actualBfoDate": "2024-03-26",
+  "published": true,
+  "typeCorrections": [
+   {
+    "type": 12,
+    "correction": {
+     "knd": "0710096",
+     "periodType": 12,
+     "correctionVersion": 0,
+     "datePresent": "2024-03-26T00:00:00",
+     "balance": {
+      "id": 48732231,
+      "okud": "0710001",
+      "current1250": 56.0,
+      "previous1250": 33.0,
+      "beforePrevious1250": 375.0,
+      "current1300": 56.0,
+      "previous1300": 33.0,
+      "beforePrevious1300": 375.0,
+      "current1600": 56.0,
+      "previous1600": 33.0,
+      "beforePrevious1600": 375.0,
+      "current1700": 56.0,
+      "previous1700": 33.0,
+      "beforePrevious1700": 375.0
+     },
+     "financialResult": {
+      "id": 48732231,
+      "okud": "0710002",
+      "current2350": 137.0,
+      "previous2350": 378.0,
+      "current2400": 23.0,
+      "previous2400": -342.0,
+      "current2110": 160.0,
+      "previous2110": 36.0
+     }
+    }
+   }
+  ]
+ },
+ {
+  "id": 29652179,
+  "period": "2025",
+  "knd": "0710096",
+  "actualCorrectionNumber": 0,
+  "actualBfoDate": "2026-03-31",
+  "published": true,
+  "typeCorrections": [
+   {
+    "type": 12,
+    "correction": {
+     "knd": "0710096",
+     "periodType": 12,
+     "correctionVersion": 0,
+     "datePresent": "2026-03-31T17:06:48",
+     "balance": {
+      "id": 57070321,
+      "okud": "0710001",
+      "current1250": 124.0,
+      "previous1250": 126.0,
+      "beforePrevious1250": 56.0,
+      "current1300": 124.0,
+      "previous1300": 126.0,
+      "beforePrevious1300": 56.0,
+      "current1600": 124.0,
+      "previous1600": 126.0,
+      "beforePrevious1600": 56.0,
+      "current1700": 124.0,
+      "previous1700": 126.0,
+      "beforePrevious1700": 56.0
+     },
+     "financialResult": {
+      "id": 57070321,
+      "okud": "0710002",
+      "current2350": 326.0,
+      "previous2350": 130.0,
+      "current2400": 124.0,
+      "previous2400": 70.0,
+      "current2110": 450.0,
+      "previous2110": 200.0
+     }
+    }
+   }
+  ]
+ }
+]

@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  input,button{font-family:inherit;}
+  input::placeholder{color:inherit;opacity:.4;}
+  a{color:#C77DFF;}
+  a:hover{color:#D69AFF;}
+  .fa-scroll::-webkit-scrollbar{height:9px;width:9px;}
+  .fa-scroll::-webkit-scrollbar-thumb{background:rgba(140,120,170,.4);border-radius:5px;border:2px solid transparent;background-clip:padding-box;}
+  @keyframes fa-pulse{from{opacity:.45}to{opacity:1}}
+  @keyframes fa-fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes fa-scan{0%{transform:translateY(-120%)}100%{transform:translateY(460%)}}
+  @keyframes fa-spin{to{transform:rotate(360deg)}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:11px;min-width:0;">
+      <div style="{{ s.barCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="30px,30px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Стиль-гайд · Финанс Аудит</span>
+        <span style="{{ s.barSub }}">сканер отчётности · неоновый фиолет · обе темы</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Свет</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тьма</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}" data-screen-label="Стиль-гайд">
+
+      <div style="{{ s.hero }}">
+        <div style="{{ s.heroScan }}"></div>
+        <div style="{{ s.heroText }}">
+          <div style="{{ s.eyebrow }}"><span style="{{ s.eyebrowDot }}"></span>DESIGN SYSTEM · ФИНАНС АУДИТ V1</div>
+          <h1 style="{{ s.display }}">Отчётность просвечивается насквозь</h1>
+          <p style="{{ s.heroSub }}">Сканирующая эстетика на фиолетовом неоне: свечение показывает, что система смотрит внутрь цифр. Один акцент отвечает за действие и норму, коралл и янтарь — за риск. Вопрос продукта один: выгодно ли покупать эту фирму.</p>
+          <div style="{{ s.ctaRow }}">
+            <button style="{{ s.btnPrimary }}" style-hover="{{ s.btnPrimaryHover }}">Запустить скан</button>
+            <button style="{{ s.btnGhost }}" style-hover="{{ s.btnGhostHover }}">Документация</button>
+          </div>
+        </div>
+        <div style="{{ s.heroCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" style="width:100%;height:100%" hint-size="100%,100%"></dc-import></div>
+      </div>
+
+      <div style="{{ s.body }}">
+
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">01 · ПАЛИТРА</div>
+          <div style="{{ s.secTitle }}">Почти монохром, весь цвет — у смысла</div>
+          <div style="{{ s.secLead }}">Нейтральные уведены в фиолет, поверхности почти чёрные. Неон #C77DFF только на действии, активном состоянии, кольце фокуса и grand-итоге. Коралл и янтарь — исключительно риск и внимание.</div>
+          <div style="{{ s.swGroupLabel }}">Поверхности и нейтральные</div>
+          <div style="{{ s.swatchGrid }}">
+            <sc-for list="{{ neutralSwatches }}" as="w" hint-placeholder-count="8"><div style="{{ w.cardStyle }}"><div style="{{ w.chipStyle }}"></div><div style="{{ s.swMeta }}"><div style="{{ s.swName }}">{{ w.name }}</div><div style="{{ s.swHex }}">{{ w.hex }}</div></div></div></sc-for>
+          </div>
+          <div style="{{ s.swGroupLabel }}">Акцент и семантика</div>
+          <div style="{{ s.swatchGrid }}">
+            <sc-for list="{{ accentSwatches }}" as="w" hint-placeholder-count="6"><div style="{{ w.cardStyle }}"><div style="{{ w.chipStyle }}"></div><div style="{{ s.swMeta }}"><div style="{{ s.swName }}">{{ w.name }}</div><div style="{{ s.swHex }}">{{ w.hex }}</div></div></div></sc-for>
+          </div>
+        </div>
+
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">02 · ТИПОГРАФИКА</div>
+          <div style="{{ s.secTitle }}">Satoshi для вердикта, Inter для работы</div>
+          <div style="{{ s.secLead }}">Дисплейный гротеск с тугим трекингом — вердикты и заголовки. Inter ведёт весь UI. Числа моноширинные: в аудите цифру читают в столбик.</div>
+          <div style="{{ s.typeCard }}">
+            <div style="{{ s.typeRow }}"><span style="{{ s.typeTag }}">display · 52</span><span style="{{ s.typeDisplay }}">Покупать с дисконтом</span></div>
+            <div style="{{ s.typeRow }}"><span style="{{ s.typeTag }}">heading · 30</span><span style="{{ s.typeHeading }}">Качество прибыли</span></div>
+            <div style="{{ s.typeRow }}"><span style="{{ s.typeTag }}">subhead · 20</span><span style="{{ s.typeSub }}">Сверка с банковской выпиской</span></div>
+            <div style="{{ s.typeRow }}"><span style="{{ s.typeTag }}">body · 15</span><span style="{{ s.typeBody }}">Прибыль подтверждена на 11 из 12 месяцев; 42 млн ₽ прочих доходов не имеют подтверждения.</span></div>
+            <div style="{{ s.typeRow }}"><span style="{{ s.typeTag }}">eyebrow · 11</span><span style="{{ s.typeEyebrow }}">РИСК-СКАН ЗАВЕРШЁН</span></div>
+            <div style="{{ s.typeRow }}"><span style="{{ s.typeTag }}">mono · число</span><span style="{{ s.typeMono }}">1 240 000 000 ₽ · 4.6× EBITDA</span></div>
+          </div>
+        </div>
+
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">03 · КНОПКИ И ПОЛЯ</div>
+          <div style="{{ s.secTitle }}">Острые формы, свечение только на действии</div>
+          <div style="{{ s.secLead }}">Кнопки 4px, поля 8px. Неоновая заливка — рубильник; на тёмной теме у неё лёгкий glow, на светлой его нет. Фокус всегда виден кольцом.</div>
+          <div style="{{ s.ctrlCard }}">
+            <div style="{{ s.ctrlRow }}">
+              <button style="{{ s.btnPrimary }}" style-hover="{{ s.btnPrimaryHover }}">Основное</button>
+              <button style="{{ s.btnGhost }}" style-hover="{{ s.btnGhostHover }}">Вторичное</button>
+              <button style="{{ s.btnDanger }}" style-hover="{{ s.btnDangerHover }}">Отклонить сделку</button>
+              <a style="{{ s.textLink }}">Открыть источник →</a>
+            </div>
+            <div style="{{ s.ctrlRow }}">
+              <input style="{{ s.input }}" style-focus="{{ s.inputFocus }}" placeholder="ИНН или название фирмы">
+              <div style="{{ s.segDemo }}"><button style="{{ s.segDemoActive }}">Отчёт</button><button style="{{ s.segDemoOff }}">Проверка</button><button style="{{ s.segDemoOff }}">Δ</button></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">04 · ПОВЕРХНОСТИ</div>
+          <div style="{{ s.secTitle }}">Глубина стопкой, не тенями</div>
+          <div style="{{ s.secLead }}">Void → Ink → Iris → Amethyst. На тёмной теме иерархия только цветом поверхности; тень допускается лишь на светлой.</div>
+          <div style="{{ s.surfStack }}">
+            <div style="{{ s.surf0 }}">Void · канва
+              <div style="{{ s.surf1 }}">Ink · карта / навбар
+                <div style="{{ s.surf2 }}">Iris · контейнер
+                  <div style="{{ s.surf3 }}">Amethyst · активный</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">05 · ТАБЛИЦА И СВЕРКА</div>
+          <div style="{{ s.secTitle }}">Отчёт против проверки — в одной строке</div>
+          <div style="{{ s.secLead }}">Две колонки значений: как в отчёте и как подтверждено. Расхождение видно в строке, а не в тултипе. Grand-итог — неон, отрицательное — коралл в скобках.</div>
+          <div style="{{ s.tbl }}">
+            <div style="{{ s.tblHead }}"><div style="{{ s.tblHCell }}">Строка</div><div style="{{ s.tblHNum }}">Отчёт</div><div style="{{ s.tblHNum }}">Проверка</div><div style="{{ s.tblHNum }}">Δ</div></div>
+            <sc-for list="{{ tableRows }}" as="r" hint-placeholder-count="5">
+            <div style="{{ r.rowStyle }}"><div style="{{ s.tblLabel }}">{{ r.label }}</div><sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="3"><div style="{{ c.style }}">{{ c.text }}</div></sc-for></div>
+            </sc-for>
+          </div>
+          <div style="{{ s.swGroupLabel }}">Тепловая карта · маржа по кварталам</div>
+          <div style="{{ s.heatWrap }}">
+            <sc-for list="{{ heatCells }}" as="h" hint-placeholder-count="20"><div style="{{ h.style }}">{{ h.text }}</div></sc-for>
+          </div>
+        </div>
+
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">06 · ЧИПЫ И СТАТУСЫ</div>
+          <div style="{{ s.secTitle }}">Словарь состояний проверки</div>
+          <div style="{{ s.secLead }}">Шесть значений и ни одного лишнего: сходится, расхождение, концентрация, нет данных, в работе, критично.</div>
+          <div style="{{ s.chipRow }}">
+            <sc-for list="{{ chips }}" as="c" hint-placeholder-count="6"><span style="{{ c.style }}"><span style="{{ c.dotStyle }}"></span>{{ c.label }}</span></sc-for>
+          </div>
+        </div>
+
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">07 · ШКАЛА РИСКА И ГРАФИКИ</div>
+          <div style="{{ s.secTitle }}">Норма — внимание — риск, всегда в этом порядке</div>
+          <div style="{{ s.secLead }}">Шкала риска — единственное место, где три цвета стоят рядом. Палитра серий: неон и его оттенки плюс один коралл для «хуже нормы».</div>
+          <div style="{{ s.chartCard }}">
+            <div style="{{ s.riskLabel }}">Профиль риска по 24 процедурам</div>
+            <div style="{{ s.riskBar }}"><div style="{{ s.riskGood }}"></div><div style="{{ s.riskWarn }}"></div><div style="{{ s.riskBad }}"></div></div>
+            <div style="{{ s.riskLegend }}"><span style="{{ s.riskL1 }}">норма 46%</span><span style="{{ s.riskL2 }}">внимание 26%</span><span style="{{ s.riskL3 }}">риск 28%</span></div>
+            <div style="{{ s.chartBox }}">{{ chartDemo }}</div>
+            <div style="{{ s.legendRow }}"><sc-for list="{{ chartLegend }}" as="l" hint-placeholder-count="4"><span style="{{ l.style }}"><span style="{{ l.dotStyle }}"></span>{{ l.label }}</span></sc-for></div>
+          </div>
+        </div>
+
+        <div style="{{ s.section }}">
+          <div style="{{ s.secEyebrow }}">08 · ФИРМЕННЫЙ КУБ</div>
+          <div style="{{ s.secTitle }}">Тот же объект, что у «Финанс-Элит» — фиолетовое свечение</div>
+          <div style="{{ s.secLead }}">Куб связывает два продукта в одну семью: геометрия и анимация не меняются, меняется только свет. Полная сцена — витрины и момент завершения скана; компакт — пустые состояния и вердикты; мини — навигация.</div>
+          <div style="{{ s.cubeRow }}">
+            <div style="{{ s.cubeCell }}"><div style="{{ s.cubeBoxLg }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" style="width:100%;height:100%" hint-size="170px,170px"></dc-import></div><div style="{{ s.cubeCap }}">полная сцена · вход / скан завершён</div></div>
+            <div style="{{ s.cubeCell }}"><div style="{{ s.cubeBoxMd }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" style="width:100%;height:100%" hint-size="120px,120px"></dc-import></div><div style="{{ s.cubeCap }}">компакт · пустые состояния / вердикт</div></div>
+            <div style="{{ s.cubeCell }}"><div style="{{ s.cubeBoxSm }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="64px,64px"></dc-import></div><div style="{{ s.cubeCap }}">мини · навигация</div></div>
+          </div>
+        </div>
+
+        <div style="height:10px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { theme:'dark', device:'desktop' };
+
+  // ===== CANONICAL FINANS-AUDIT TOKENS — copy this whole THEME() into every screen =====
+  THEME(){
+    const dark={
+      pageBg:'#000000', bg:'#000000', surface:'#0E0B14', surface2:'#171122', surface3:'#241A38', sk:'#171122',
+      border:'#2B2140', borderStrong:'#4B3A6E', gridLine:'#191324',
+      text:'#F2E8FF', muted:'#9C8FB5', subtle:'#6A5C86',
+      primary:'#C77DFF', primaryHover:'#D69AFF', primaryText:'#17061F', accent:'#C77DFF',
+      primaryBg:'rgba(199,125,255,0.15)', primarySoft:'rgba(199,125,255,0.09)',
+      good:'#C77DFF', goodBg:'rgba(199,125,255,0.15)', goodBorder:'rgba(199,125,255,0.34)',
+      danger:'#F0796E', dangerHover:'#F4988F', dangerBg:'rgba(240,121,110,0.15)', dangerBorder:'rgba(240,121,110,0.34)',
+      warn:'#E0A23A', warnBg:'rgba(224,162,58,0.16)', warnBorder:'rgba(224,162,58,0.32)',
+      info:'#B9A6E8', infoBg:'rgba(185,166,232,0.15)',
+      ring:'rgba(199,125,255,0.40)',
+      shadow:'0 30px 70px -34px rgba(0,0,0,.9)', glow:'0 0 18px rgba(199,125,255,.35)',
+      barBg:'#0A0710', segBg:'#0A0710', segActiveBg:'#241A38', headerBg:'#0E0B14',
+      heat:['rgba(199,125,255,0.42)','rgba(199,125,255,0.30)','rgba(199,125,255,0.18)','rgba(224,162,58,0.24)','rgba(240,121,110,0.30)'],
+      heatText:['#0C0714','#0C0714','#F2E8FF','#E0A23A','#F0796E']
+    };
+    const light={
+      pageBg:'#F2EDFA', bg:'#FAF7FE', surface:'#FFFFFF', surface2:'#F4EEFA', surface3:'#E8DEF4', sk:'#EDE6F6',
+      border:'#DED2EC', borderStrong:'#C2B0D6', gridLine:'#EDE6F6',
+      text:'#1B1523', muted:'#4E4459', subtle:'#756884',
+      primary:'#C77DFF', primaryHover:'#B968F5', primaryText:'#17061F', accent:'#7A2BC4',
+      primaryBg:'#EEE0FB', primarySoft:'#F6EFFD',
+      good:'#7A2BC4', goodBg:'#EEE0FB', goodBorder:'#D9BFF0',
+      danger:'#C0473B', dangerHover:'#A53A30', dangerBg:'#FAE7E4', dangerBorder:'#EECFCA',
+      warn:'#B07A12', warnBg:'#FBF0D8', warnBorder:'#ECDDB4',
+      info:'#6B5E8C', infoBg:'#EDE9F6',
+      ring:'rgba(199,125,255,0.34)',
+      shadow:'0 18px 44px -22px rgba(40,20,60,.22), 0 2px 6px rgba(40,20,60,.05)', glow:'none',
+      barBg:'#FFFFFF', segBg:'#EDE6F6', segActiveBg:'#FFFFFF', headerBg:'#FFFFFF',
+      heat:['#D9BFF0','#E6D4F6','#F1E7FA','#FBF0D8','#F7DED9'],
+      heatText:['#3A1D5A','#3A1D5A','#4E4459','#8A5E0C','#A53A30']
+    };
+    return this.state.theme==='dark'?dark:light;
+  }
+
+  DIM(){
+    const d=this.state.device;
+    if(d==='mobile') return {frame:402, radius:26, pad:16, gap:26, heroPad:'26px 18px 22px', heroDir:'column', cube:150, h1:30, secTitle:19, cols:2, heatCols:5, tblFont:11.5};
+    if(d==='tablet') return {frame:864, radius:30, pad:22, gap:44, heroPad:'34px 26px 30px', heroDir:'row', cube:210, h1:40, secTitle:23, cols:4, heatCols:5, tblFont:12};
+    return {frame:1180, radius:30, pad:28, gap:58, heroPad:'46px 34px 42px', heroDir:'row', cube:290, h1:52, secTitle:27, cols:4, heatCols:5, tblFont:12.5};
+  }
+
+  setLight=()=>this.setState({theme:'light'});
+  setDark=()=>this.setState({theme:'dark'});
+  setDesktop=()=>this.setState({device:'desktop'});
+  setTablet=()=>this.setState({device:'tablet'});
+  setMobile=()=>this.setState({device:'mobile'});
+
+  segBtn(active,t){
+    return 'height:28px;padding:0 12px;border:0;border-radius:7px;cursor:pointer;font:'+(active?'600':'500')+' 11.5px/1 Inter,sans-serif;letter-spacing:-.01em;'+
+      (active?('background:'+t.segActiveBg+';color:'+t.text+';'):('background:transparent;color:'+t.subtle+';'));
+  }
+
+  swatch(t,name,hex,dark){
+    return {
+      name, hex,
+      cardStyle:'display:flex;flex-direction:column;gap:7px;padding:9px;border:1px solid '+t.border+';border-radius:12px;background:'+t.surface+';',
+      chipStyle:'height:44px;border-radius:8px;background:'+hex+';'+(dark?'border:1px solid rgba(255,255,255,.10);':'border:1px solid rgba(0,0,0,.08);')
+    };
+  }
+
+  row(t,label,rep,chk,delta,kind){
+    const num='text-align:right;font:400 '+this.DIM().tblFont+'px/1.35 JetBrains Mono,monospace;letter-spacing:-.01em;padding:10px 14px;';
+    const col=kind==='bad'?t.danger:(kind==='warn'?t.warn:t.text);
+    const isTotal=kind==='total';
+    return {
+      label,
+      rowStyle:'display:grid;grid-template-columns:1.7fr 1fr 1fr .9fr;'+(isTotal?('background:'+t.primarySoft+';'):('border-bottom:1px solid '+t.gridLine+';')),
+      cells:[
+        {text:rep, style:num+'color:'+(isTotal?t.muted:t.text)+';'},
+        {text:chk, style:num+'color:'+(isTotal?t.primary:col)+';'+(isTotal?'font-weight:500;':'')},
+        {text:delta, style:num+'color:'+(isTotal?t.primary:col)+';'+(isTotal?'font-weight:500;':'')}
+      ]
+    };
+  }
+
+  heat(t){
+    const head=['','Q1','Q2','Q3','Q4'];
+    const rows=[
+      ['2023',['24.8',0],['23.9',1],['23.1',2],['22.6',2]],
+      ['2024',['22.9',2],['22.4',2],['21.8',3],['21.2',3]],
+      ['2025',['21.6',3],['20.4',4],['19.8',4],['19.1',4]]
+    ];
+    const out=[];
+    const hcap='padding:7px 0;text-align:center;font:400 9.5px/1 JetBrains Mono,monospace;color:'+t.subtle+';';
+    head.forEach(h=>out.push({text:h, style:hcap}));
+    rows.forEach(r=>{
+      out.push({text:r[0], style:'display:flex;align-items:center;font:400 9.5px/1 JetBrains Mono,monospace;color:'+t.muted+';'});
+      r.slice(1).forEach(c=>out.push({
+        text:c[0],
+        style:'padding:11px 0;text-align:center;border-radius:5px;background:'+t.heat[c[1]]+';font:500 11px/1 JetBrains Mono,monospace;color:'+t.heatText[c[1]]+';'
+      }));
+    });
+    return out;
+  }
+
+  chart(t){
+    const series=[
+      {c:t.primary, pts:'0,74 60,66 120,70 180,52 240,44 300,38 360,30'},
+      {c:t.info,    pts:'0,84 60,80 120,76 180,72 240,66 300,62 360,58'},
+      {c:t.danger,  pts:'0,58 60,64 120,62 180,74 240,82 300,88 360,96'}
+    ];
+    return React.createElement('svg',{viewBox:'0 0 360 110',preserveAspectRatio:'none',style:{width:'100%',height:'100%',display:'block'}},
+      [0,1,2,3].map(i=>React.createElement('line',{key:'g'+i,x1:0,x2:360,y1:14+i*30,y2:14+i*30,stroke:t.gridLine,strokeWidth:1})),
+      series.map((sr,i)=>React.createElement('polyline',{key:'s'+i,points:sr.pts,fill:'none',stroke:sr.c,strokeWidth:i===0?2.4:1.6,strokeLinejoin:'round',strokeLinecap:'round'}))
+    );
+  }
+
+  renderVals(){
+    const t=this.THEME(), d=this.DIM(), dark=this.state.theme==='dark';
+    const mono='JetBrains Mono,ui-monospace,monospace';
+    const disp="Satoshi,Inter,sans-serif";
+    const card='border:1px solid '+t.border+';border-radius:16px;background:'+t.surface+';'+(dark?'':'box-shadow:'+t.shadow+';');
+    const s={
+      page:'min-height:100vh;background:'+t.pageBg+';display:flex;flex-direction:column;align-items:center;padding:0 0 60px;',
+      bar:'position:sticky;top:0;z-index:20;width:100%;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:12px 20px;background:'+t.barBg+';border-bottom:1px solid '+t.border+';',
+      barCube:'width:30px;height:30px;flex:none;',
+      barTitle:'font:600 13px/1.2 Inter,sans-serif;letter-spacing:-.015em;color:'+t.text+';',
+      barSub:'font:400 10.5px/1.2 '+mono+';color:'+t.subtle+';',
+      barLabel:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+      seg:'display:flex;gap:2px;padding:3px;border-radius:9px;background:'+t.segBg+';border:1px solid '+t.border+';',
+      segLight:this.segBtn(!dark,t), segDark:this.segBtn(dark,t),
+      segDesktop:this.segBtn(this.state.device==='desktop',t),
+      segTablet:this.segBtn(this.state.device==='tablet',t),
+      segMobile:this.segBtn(this.state.device==='mobile',t),
+      stage:'width:100%;display:flex;justify-content:center;padding:26px 18px 0;',
+      frame:'width:100%;max-width:'+d.frame+'px;border:1px solid '+t.border+';border-radius:'+d.radius+'px;background:'+t.bg+';overflow:hidden;'+(dark?'':'box-shadow:'+t.shadow+';'),
+
+      hero:'position:relative;display:flex;flex-direction:'+d.heroDir+';align-items:center;gap:'+(d.heroDir==='row'?'34px':'22px')+';padding:'+d.heroPad+';overflow:hidden;background:'+(dark?'radial-gradient(ellipse 70% 90% at 22% 40%, rgba(199,125,255,.16) 0%, rgba(123,63,228,.05) 44%, transparent 76%)':'linear-gradient(160deg,'+t.primarySoft+' 0%, '+t.bg+' 62%)')+';',
+      heroScan:'position:absolute;left:0;right:0;top:0;height:80px;pointer-events:none;background:linear-gradient(to bottom,transparent,'+(dark?'rgba(199,125,255,.10)':'rgba(199,125,255,.14)')+',transparent);animation:fa-scan 8s linear infinite;',
+      heroText:'position:relative;flex:1;min-width:0;',
+      heroCube:'position:relative;flex:none;width:'+d.cube+'px;height:'+d.cube+'px;',
+      eyebrow:'display:flex;align-items:center;gap:7px;font:500 10px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:'+t.accent+';margin-bottom:14px;',
+      eyebrowDot:'width:5px;height:5px;border-radius:50%;background:'+t.primary+';'+(dark?'box-shadow:0 0 8px rgba(199,125,255,.9);':'')+'animation:fa-pulse 2.2s ease-in-out infinite alternate;',
+      display:'margin:0;font:500 '+d.h1+'px/1.06 '+disp+';letter-spacing:-.028em;color:'+t.text+';max-width:15ch;',
+      heroSub:'margin:16px 0 0;font:400 14px/1.62 Inter,sans-serif;color:'+t.muted+';max-width:54ch;text-wrap:pretty;',
+      ctaRow:'display:flex;flex-wrap:wrap;gap:10px;margin-top:24px;',
+
+      btnPrimary:'height:40px;padding:0 20px;border:0;border-radius:4px;background:'+t.primary+';color:'+t.primaryText+';font:600 13px/1 Inter,sans-serif;letter-spacing:-.01em;cursor:pointer;'+(dark?'box-shadow:'+t.glow+';':''),
+      btnPrimaryHover:'background:'+t.primaryHover+';',
+      btnGhost:'height:40px;padding:0 20px;border:1px solid '+t.borderStrong+';border-radius:4px;background:transparent;color:'+t.text+';font:500 13px/1 Inter,sans-serif;letter-spacing:-.01em;cursor:pointer;',
+      btnGhostHover:'border-color:'+t.primary+';color:'+t.accent+';',
+      btnDanger:'height:40px;padding:0 20px;border:1px solid '+t.dangerBorder+';border-radius:4px;background:'+t.dangerBg+';color:'+t.danger+';font:500 13px/1 Inter,sans-serif;cursor:pointer;',
+      btnDangerHover:'background:'+t.danger+';color:'+(dark?'#17061F':'#FFFFFF')+';',
+      textLink:'font:500 13px/1 Inter,sans-serif;color:'+t.accent+';text-decoration:none;cursor:pointer;border-bottom:1px solid transparent;',
+      input:'flex:1;min-width:200px;height:42px;padding:0 14px;border:1.5px solid '+t.border+';border-radius:8px;background:'+(dark?t.pageBg:t.surface)+';color:'+t.text+';font:400 13.5px/1 Inter,sans-serif;outline:none;',
+      inputFocus:'border-color:'+t.primary+';box-shadow:0 0 0 3px '+t.ring+';',
+      segDemo:'display:flex;gap:2px;padding:3px;border-radius:9px;background:'+t.surface2+';border:1px solid '+t.border+';',
+      segDemoActive:'height:32px;padding:0 15px;border:0;border-radius:7px;background:'+t.primary+';color:'+t.primaryText+';font:600 12px/1 Inter,sans-serif;cursor:pointer;',
+      segDemoOff:'height:32px;padding:0 15px;border:0;border-radius:7px;background:transparent;color:'+t.subtle+';font:500 12px/1 Inter,sans-serif;cursor:pointer;',
+
+      body:'display:flex;flex-direction:column;gap:'+d.gap+'px;padding:'+d.gap+'px '+d.pad+'px;',
+      section:'display:flex;flex-direction:column;gap:12px;',
+      secEyebrow:'font:500 9.5px/1 Inter,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:'+t.subtle+';',
+      secTitle:'font:500 '+d.secTitle+'px/1.16 '+disp+';letter-spacing:-.022em;color:'+t.text+';',
+      secLead:'font:400 13px/1.66 Inter,sans-serif;color:'+t.muted+';max-width:70ch;text-wrap:pretty;margin-bottom:6px;',
+      swGroupLabel:'font:500 9.5px/1 Inter,sans-serif;letter-spacing:.13em;text-transform:uppercase;color:'+t.subtle+';margin-top:8px;',
+      swatchGrid:'display:grid;grid-template-columns:repeat('+d.cols+',minmax(0,1fr));gap:10px;',
+      swMeta:'display:flex;flex-direction:column;gap:3px;padding:0 2px 2px;',
+      swName:'font:500 11px/1.2 Inter,sans-serif;color:'+t.text+';',
+      swHex:'font:400 10px/1.2 '+mono+';color:'+t.subtle+';',
+
+      typeCard:card+'padding:20px;display:flex;flex-direction:column;gap:16px;',
+      typeRow:'display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;',
+      typeTag:'flex:none;width:104px;font:400 9.5px/1.2 '+mono+';color:'+t.subtle+';',
+      typeDisplay:'font:500 '+(d.frame<500?30:52)+'px/1.04 '+disp+';letter-spacing:-.03em;color:'+t.text+';',
+      typeHeading:'font:500 '+(d.frame<500?22:30)+'px/1.1 '+disp+';letter-spacing:-.024em;color:'+t.text+';',
+      typeSub:'font:500 20px/1.25 Inter,sans-serif;letter-spacing:-.018em;color:'+t.text+';',
+      typeBody:'font:400 15px/1.6 Inter,sans-serif;color:'+t.muted+';max-width:56ch;',
+      typeEyebrow:'font:500 11px/1 Inter,sans-serif;letter-spacing:.15em;text-transform:uppercase;color:'+t.accent+';',
+      typeMono:'font:500 15px/1.3 '+mono+';letter-spacing:-.015em;color:'+t.text+';',
+
+      ctrlCard:card+'padding:20px;display:flex;flex-direction:column;gap:16px;',
+      ctrlRow:'display:flex;align-items:center;gap:12px;flex-wrap:wrap;',
+
+      surfStack:'padding:18px;border-radius:16px;border:1px solid '+t.border+';background:'+t.pageBg+';font:500 11px/1 '+mono+';color:'+t.muted+';',
+      surf0:'padding:14px;border-radius:14px;background:'+t.pageBg+';border:1px dashed '+t.border+';',
+      surf1:'margin-top:12px;padding:14px;border-radius:14px;background:'+t.surface+';border:1px solid '+t.border+';color:'+t.text+';',
+      surf2:'margin-top:12px;padding:14px;border-radius:12px;background:'+t.surface2+';border:1px solid '+t.border+';',
+      surf3:'margin-top:12px;padding:14px;border-radius:10px;background:'+t.surface3+';color:'+t.text+';',
+
+      tbl:'border:1px solid '+t.border+';border-radius:16px;background:'+t.surface+';overflow:hidden;',
+      tblHead:'display:grid;grid-template-columns:1.7fr 1fr 1fr .9fr;background:'+t.surface2+';border-bottom:1px solid '+t.border+';',
+      tblHCell:'padding:11px 14px;font:500 9.5px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.muted+';',
+      tblHNum:'padding:11px 14px;text-align:right;font:500 9.5px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.muted+';',
+      tblLabel:'padding:10px 14px;font:400 '+d.tblFont+'px/1.35 Inter,sans-serif;color:'+t.text+';',
+      heatWrap:'display:grid;grid-template-columns:52px repeat(4,minmax(0,1fr));gap:5px;padding:16px;border:1px solid '+t.border+';border-radius:16px;background:'+t.surface+';',
+
+      chipRow:'display:flex;flex-wrap:wrap;gap:9px;',
+      chartCard:card+'padding:20px;display:flex;flex-direction:column;gap:10px;',
+      riskLabel:'font:500 9.5px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+      riskBar:'display:flex;height:9px;border-radius:5px;overflow:hidden;background:'+t.surface2+';',
+      riskGood:'width:46%;background:'+t.primary+';'+(dark?'box-shadow:0 0 14px rgba(199,125,255,.7);':''),
+      riskWarn:'width:26%;background:'+t.warn+';',
+      riskBad:'width:28%;background:'+t.danger+';',
+      riskLegend:'display:flex;gap:18px;flex-wrap:wrap;margin-bottom:8px;',
+      riskL1:'font:400 10.5px/1 '+mono+';color:'+t.accent+';',
+      riskL2:'font:400 10.5px/1 '+mono+';color:'+t.warn+';',
+      riskL3:'font:400 10.5px/1 '+mono+';color:'+t.danger+';',
+      chartBox:'height:160px;border-radius:12px;background:'+(dark?t.pageBg:t.surface2)+';border:1px solid '+t.border+';padding:10px;',
+      legendRow:'display:flex;flex-wrap:wrap;gap:16px;',
+
+      cubeRow:'display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end;',
+      cubeCell:'display:flex;flex-direction:column;gap:10px;align-items:center;',
+      cubeBoxLg:'width:170px;height:170px;border-radius:16px;border:1px solid '+t.border+';background:'+t.pageBg+';',
+      cubeBoxMd:'width:120px;height:120px;border-radius:14px;border:1px solid '+t.border+';background:'+t.pageBg+';',
+      cubeBoxSm:'width:64px;height:64px;border-radius:12px;border:1px solid '+t.border+';background:'+t.pageBg+';',
+      cubeCap:'font:400 10px/1.4 '+mono+';color:'+t.subtle+';text-align:center;max-width:170px;'
+    };
+
+    const chipStyle=(bg,bd,c)=>'display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;background:'+bg+';border:1px solid '+bd+';font:500 11px/1.3 '+mono+';color:'+c+';';
+    const dot=c=>'width:5px;height:5px;border-radius:50%;background:'+c+';';
+
+    return {
+      s,
+      setLight:this.setLight, setDark:this.setDark,
+      setDesktop:this.setDesktop, setTablet:this.setTablet, setMobile:this.setMobile,
+      neutralSwatches:[
+        this.swatch(t,'Void · канва',t.pageBg,dark),
+        this.swatch(t,'Ink · карта',t.surface,dark),
+        this.swatch(t,'Iris · контейнер',t.surface2,dark),
+        this.swatch(t,'Amethyst · активный',t.surface3,dark),
+        this.swatch(t,'Граница',t.border,dark),
+        this.swatch(t,'Граница сильная',t.borderStrong,dark),
+        this.swatch(t,'Текст',t.text,dark),
+        this.swatch(t,'Приглушённый',t.muted,dark)
+      ],
+      accentSwatches:[
+        this.swatch(t,'Neon Violet · действие',t.primary,dark),
+        this.swatch(t,'Hover',t.primaryHover,dark),
+        this.swatch(t,'Deep Violet · текст',t.accent,dark),
+        this.swatch(t,'Риск · коралл',t.danger,dark),
+        this.swatch(t,'Внимание · янтарь',t.warn,dark),
+        this.swatch(t,'Инфо',t.info,dark)
+      ],
+      tableRows:[
+        this.row(t,'Выручка','1 842','1 842','0','ok'),
+        this.row(t,'Прочие доходы','61','19','(−42)','bad'),
+        this.row(t,'Дебиторская задолженность','402','402','конц.','warn'),
+        this.row(t,'Кредиты и займы','831','831','0','ok'),
+        this.row(t,'EBITDA после нормализации','292','268','−8.2%','total')
+      ],
+      heatCells:this.heat(t),
+      chips:[
+        {label:'сходится', style:chipStyle(t.goodBg,t.goodBorder,t.accent), dotStyle:dot(t.primary)},
+        {label:'расхождение', style:chipStyle(t.dangerBg,t.dangerBorder,t.danger), dotStyle:dot(t.danger)},
+        {label:'концентрация', style:chipStyle(t.warnBg,t.warnBorder,t.warn), dotStyle:dot(t.warn)},
+        {label:'нет данных', style:chipStyle('transparent',t.border,t.subtle), dotStyle:dot(t.subtle)},
+        {label:'в работе', style:chipStyle(t.infoBg,t.border,t.info), dotStyle:dot(t.info)},
+        {label:'критично', style:chipStyle(t.danger,t.danger,dark?'#17061F':'#FFFFFF'), dotStyle:dot(dark?'#17061F':'#FFFFFF')}
+      ],
+      chartDemo:this.chart(t),
+      chartLegend:[
+        {label:'EBITDA норм.', style:'display:inline-flex;align-items:center;gap:7px;font:400 11px/1 '+mono+';color:'+t.muted+';', dotStyle:dot(t.primary)},
+        {label:'Отраслевая норма', style:'display:inline-flex;align-items:center;gap:7px;font:400 11px/1 '+mono+';color:'+t.muted+';', dotStyle:dot(t.info)},
+        {label:'Долговая нагрузка', style:'display:inline-flex;align-items:center;gap:7px;font:400 11px/1 '+mono+';color:'+t.muted+';', dotStyle:dot(t.danger)}
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

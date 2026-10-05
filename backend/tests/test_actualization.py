@@ -73,3 +73,51 @@ def test_actualization_api_invalid_line_422(client, auth_headers):
     pid = client.post("/api/v1/projects", json={"name": "Факт", "model": sample},
                       headers=auth_headers).json()["id"]
     assert client.post(f"/api/v1/projects/{pid}/calculate", headers=auth_headers).status_code == 422
+
+
+# --- Пропуски факта и сохранённое сопоставление (пакет L, L7) ---
+
+def test_a_missing_fact_month_keeps_the_plan():
+    """Пустая ячейка — «факт ещё не внесён», а не ноль: месяц остаётся плановым."""
+    plan = run(build_sample_project())
+    m = build_sample_project()
+    m.actualization.actual_until = 2
+    m.actualization.actuals = {"C1": [Decimal(200000), None, Decimal(150000)]}
+    r = run(m)
+    assert r.actualized_cashflow["C1"][0] == Decimal(200000)
+    assert r.actualized_cashflow["C1"][1] == plan.cashflow["C1"][1]
+    assert r.actualized_cashflow["C1"][2] == Decimal(150000)
+
+
+def test_a_blank_cell_is_accepted_as_missing():
+    """Вкладка «Факт» хранит незаполненную ячейку пустой строкой, и сохранение частично
+    заполненного факта отклонялось целиком (422) — найдено при подготовке импорта ДДС."""
+    from calc_core.models import ProjectModel
+
+    data = build_sample_project().model_dump(mode="json")
+    data["actualization"] = {"actual_until": 2, "actuals": {"C1": ["200000", "", " "]}}
+    model = ProjectModel.model_validate(data)
+    assert model.actualization.actuals["C1"] == [Decimal(200000), None, None]
+
+
+def test_the_saved_mapping_does_not_touch_the_numbers():
+    """Сопоставление статей выгрузки — память импорта, а не часть расчёта."""
+    m = build_sample_project()
+    m.actualization.actual_until = 1
+    m.actualization.actuals = {"C1": [Decimal(200000), Decimal(180000)]}
+    plain = run(m)
+    m.actualization.mapping = {"оплата от покупателей": "C1", "прочее": ""}
+    assert run(m).actualized_cashflow["C29"] == plain.actualized_cashflow["C29"]
+
+
+def test_the_api_saves_a_partially_filled_fact(client, auth_headers):
+    model = client.get("/api/v1/sample").json()
+    pid = client.post("/api/v1/projects", headers=auth_headers,
+                      json={"name": "Факт", "model": model}).json()["id"]
+    model["actualization"] = {"actual_until": 2, "actuals": {"C1": ["100000", "", "120000"]},
+                              "mapping": {"оплата от покупателей": "C1"}}
+    r = client.put(f"/api/v1/projects/{pid}", headers=auth_headers, json={"model": model})
+    assert r.status_code == 200, r.text
+    saved = client.get(f"/api/v1/projects/{pid}", headers=auth_headers).json()["model"]
+    assert saved["actualization"]["actuals"]["C1"][1] is None
+    assert saved["actualization"]["mapping"] == {"оплата от покупателей": "C1"}

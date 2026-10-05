@@ -24,12 +24,18 @@ const ASSET_FIELDS: Array<[keyof StartingBalance, string, string]> = [
   ["receivables", "Дебиторская задолженность", "#C77DFF"],
   ["raw_materials", "Запас сырья", "var(--warn)"],
   ["finished_goods", "Запас готовой продукции", "var(--border-strong)"],
+  ["prepaid_expenses", "Выданные авансы", "#5EB98A"],
 ];
 
 const LIAB_FIELDS: Array<[keyof StartingBalance, string, string]> = [
   ["payables", "Кредиторская задолженность", "var(--warn)"],
+  ["advances_received", "Полученные авансы", "#E08AAE"],
+  ["short_term_debt", "Краткосрочные займы", "#C77DFF"],
   ["debt", "Долгосрочные займы", "#5E93FF"],
   ["paid_in_capital", "Акционерный капитал", "var(--primary)"],
+  ["preferred_capital", "Привилегированные акции", "#9D7AEA"],
+  ["reserves", "Резервные фонды", "#4FB0A0"],
+  ["additional_capital", "Добавочный капитал", "#C99A4A"],
   ["retained_earnings", "Нераспределённая прибыль", "var(--info)"],
 ];
 

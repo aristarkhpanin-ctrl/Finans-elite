@@ -5,3 +5,13 @@ dist-ssr/
 .env
 .vite/
 *.tsbuildinfo
+
+# Сквозные тесты (Playwright): артефакты прогона — скриншоты, трассы, отчёт.
+/test-results/
+/playwright-report/
+/blob-report/
+/.playwright/
+
+# Матрица скриншотов P13 (G15, `npm run screens`): снимки и галерея — для просмотра,
+# не для репозитория (под две сотни PNG).
+/screens/

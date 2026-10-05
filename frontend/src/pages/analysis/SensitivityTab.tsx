@@ -4,7 +4,7 @@ import { useState } from "react";
 import { runSensitivity, SENSITIVITY_PARAMS, type SensitivityResponse } from "../../api/analysis";
 import { CAT, MultiLineChart, type Series } from "../../components/charts";
 import { ESelect } from "../../components/EditorField";
-import { Button } from "../../components/ui";
+import { Button, ScrollRegion } from "../../components/ui";
 import { fmtMillions, percent } from "../../format";
 
 const DEFAULT_FACTORS = "0.8, 0.9, 1.0, 1.1, 1.2";
@@ -66,7 +66,7 @@ export function SensitivityTab({ projectId }: { projectId: string }) {
     <div>
       <div className="an-head">
         <div style={{ minWidth: 0 }}>
-          <div className="an-head__title">Анализ чувствительности</div>
+          <h2 className="an-head__title">Анализ чувствительности</h2>
           <div className="an-head__sub">
             Как меняется NPV при отклонении одного параметра · остальные зафиксированы на базе.
           </div>
@@ -78,9 +78,10 @@ export function SensitivityTab({ projectId }: { projectId: string }) {
           <ESelect label="Параметр" value={param} onChange={setParam} options={SENSITIVITY_PARAMS} />
         </div>
         <div className="cfg-field" style={{ flex: 1.3, minWidth: 240 }}>
-          <label className="efield__label">Коэффициенты</label>
+          <label className="efield__label" htmlFor="sens-factors">Коэффициенты</label>
           {editing ? (
             <input
+              id="sens-factors"
               className="input"
               style={{ height: 42, fontFamily: "var(--font-mono)" }}
               autoFocus
@@ -90,13 +91,20 @@ export function SensitivityTab({ projectId }: { projectId: string }) {
               onKeyDown={(e) => e.key === "Enter" && setEditing(false)}
             />
           ) : (
-            <div className="coeff-box" onClick={() => setEditing(true)} title="Клик — редактировать множители">
+            <button
+              type="button"
+              id="sens-factors"
+              className="coeff-box"
+              onClick={() => setEditing(true)}
+              title="Клик — редактировать множители"
+              aria-label={`Коэффициенты ${factors.map(fmtCoeff).join(", ")} — изменить`}
+            >
               {factors.map((f, i) => (
                 <span key={i} className="coeff-chip">
                   {fmtCoeff(f)}
                 </span>
               ))}
-            </div>
+            </button>
           )}
         </div>
         <Button className="run-btn" loading={run.isPending} onClick={() => run.mutate()}>
@@ -107,7 +115,7 @@ export function SensitivityTab({ projectId }: { projectId: string }) {
       {run.isIdle && (
         <div className="setup-ph">
           <div className="setup-ph__ico">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
               <path d="M4 19V5M4 19h16M8 15l3-3 3 1 4-5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
@@ -151,22 +159,27 @@ export function SensitivityTab({ projectId }: { projectId: string }) {
             <div className="chart-card2__sub">Выделена выбранная переменная · ось Y — млн ₽</div>
             <div className="chart-legend" style={{ marginTop: 10 }}>
               {SENSITIVITY_PARAMS.map(([key, label], i) => (
-                <span
+                // Переключатель серии — кнопка с состоянием (K5): `span` со щелчком был
+                // доступен только мыши, а скрытая серия отличалась лишь бледностью.
+                <button
+                  type="button"
                   key={key}
                   className={"leg-toggle" + (hidden.has(key) ? " leg-toggle--off" : "")}
+                  aria-pressed={!hidden.has(key)}
                   onClick={() => toggleLegend(key)}
                 >
                   <span className="leg-toggle__dot" style={{ background: CAT[i % CAT.length] }} />
                   {label}
-                </span>
+                </button>
               ))}
             </div>
             <div style={{ marginTop: 6 }}>
-              <MultiLineChart series={series} labels={labels} selectedKey={hidden.has(param) ? undefined : param} />
+              <MultiLineChart label="Чувствительность NPV к параметрам, млн ₽" series={series}
+                              labels={labels} selectedKey={hidden.has(param) ? undefined : param} />
             </div>
           </div>
 
-          <div className="sens-table">
+          <ScrollRegion className="sens-table" label="Таблица чувствительности NPV">
             <div className="sens-row sens-row--head">
               <div className="sens-col-coeff">Коэффициент</div>
               <div className="sens-col-num">NPV, млн ₽</div>
@@ -214,7 +227,7 @@ export function SensitivityTab({ projectId }: { projectId: string }) {
                 </div>
               );
             })}
-          </div>
+          </ScrollRegion>
         </>
       )}
     </div>

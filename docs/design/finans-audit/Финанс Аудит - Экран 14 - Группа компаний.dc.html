@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  input,button{font-family:inherit;}
+  a{color:#C77DFF;}
+  a:hover{color:#D69AFF;}
+  @keyframes fa-pulse{from{opacity:.4}to{opacity:1}}
+  @keyframes fa-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes fa-grow-x{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+</style>
+</helmet>
+
+<div style="{{ s.page }}">
+
+  <div style="{{ s.bar }}">
+    <div style="display:flex;align-items:center;gap:11px;min-width:0;">
+      <div style="{{ s.barCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="30px,30px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+        <span style="{{ s.barTitle }}">Экран 14 · Группа компаний</span>
+        <span style="{{ s.barSub }}">структура · консолидация · связанные стороны</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Тема</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segLight }}" onClick="{{ setLight }}">Свет</button><button style="{{ s.segDark }}" onClick="{{ setDark }}">Тьма</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Устройство</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segDesktop }}" onClick="{{ setDesktop }}">Desktop</button><button style="{{ s.segTablet }}" onClick="{{ setTablet }}">Tablet</button><button style="{{ s.segMobile }}" onClick="{{ setMobile }}">Mobile</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><span style="{{ s.barLabel }}">Раздел</span>
+        <div style="{{ s.seg }}"><button style="{{ s.segTree }}" onClick="{{ setTree }}">Структура</button><button style="{{ s.segCons }}" onClick="{{ setCons }}">Консолидация</button><button style="{{ s.segRel }}" onClick="{{ setRel }}">Связанные стороны</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ s.stage }}">
+    <div style="{{ s.frame }}" data-screen-label="Экран 14 — Группа компаний">
+
+      <div style="{{ s.nav }}">
+        <div style="{{ s.navLeft }}">
+          <div style="{{ s.navCube }}"><dc-import name="Cube Hero (Audit)" backdrop="transparent" show-environment="{{ false }}" show-orbit="{{ false }}" style="width:100%;height:100%" hint-size="24px,24px"></dc-import></div>
+          <span style="{{ s.navBrand }}">Финанс&nbsp;Аудит</span>
+          <div style="{{ s.navTabs }}">
+            <sc-for list="{{ navTabs }}" as="n" hint-placeholder-count="6"><span style="{{ n.style }}">{{ n.label }}</span></sc-for>
+          </div>
+        </div>
+        <div style="{{ s.navRight }}">
+          <span style="{{ s.navCase }}">ДЕЛО A-2417</span>
+          <button style="{{ s.btnPrimarySm }}" style-hover="{{ s.btnPrimaryHover }}">{{ ctaLabel }}</button>
+        </div>
+      </div>
+
+      <div style="{{ s.subhead }}">
+        <div style="min-width:0;">
+          <div style="{{ s.h1 }}">{{ title }}</div>
+          <div style="{{ s.h1Sub }}">{{ subtitle }}</div>
+        </div>
+        <div style="{{ s.subheadRight }}">
+          <sc-for list="{{ headMetrics }}" as="m" hint-placeholder-count="3"><div style="{{ s.headMetric }}"><div style="{{ s.headMetricLabel }}">{{ m.label }}</div><div style="{{ m.valueStyle }}">{{ m.value }}</div></div></sc-for>
+        </div>
+      </div>
+
+      <sc-if value="{{ isTree }}" hint-placeholder-val="{{ true }}">
+      <div style="{{ s.main }}">
+        <div style="{{ s.col }}">
+
+          <div style="{{ s.panel }}">
+            <div style="{{ s.panelHead }}"><span style="{{ s.panelTitle }}">Кто входит в группу</span><span style="{{ s.panelMeta }}">по данным ЕГРЮЛ на 20.08.2026</span></div>
+            <div style="{{ s.treeHead }}">
+              <div style="{{ s.thName }}">Компания</div>
+              <div style="{{ s.thCol }}">Доля</div>
+              <div style="{{ s.thCol }}">Выручка</div>
+              <div style="{{ s.thCol }}">EBITDA</div>
+              <div style="{{ s.thCol }}">Долг</div>
+            </div>
+            <div style="{{ s.tree }}">
+              <sc-for list="{{ tree }}" as="c" hint-placeholder-count="6">
+              <div style="{{ c.rowStyle }}" style-hover="{{ s.treeHover }}">
+                <div style="{{ c.nameCellStyle }}">
+                  <span style="{{ c.markStyle }}">{{ c.mark }}</span>
+                  <span style="{{ s.treeBody }}">
+                    <span style="{{ c.nameStyle }}">{{ c.name }}</span>
+                    <span style="{{ s.treeRole }}">{{ c.role }}</span>
+                  </span>
+                </div>
+                <div style="{{ c.shareStyle }}">{{ c.share }}</div>
+                <div style="{{ c.numStyle }}">{{ c.revenue }}</div>
+                <div style="{{ c.numStyle }}">{{ c.ebitda }}</div>
+                <div style="{{ c.debtStyle }}">{{ c.debt }}</div>
+              </div>
+              </sc-for>
+            </div>
+            <div style="{{ s.treeFoot }}">Суммы по каждой компании — из её собственной отчётности, без исключения внутригрупповых оборотов. Сводная картина — в разделе «Консолидация».</div>
+          </div>
+
+          <div style="{{ s.panel }}">
+            <div style="{{ s.panelHead }}"><span style="{{ s.panelTitle }}">Что проверено по каждой компании</span><span style="{{ s.panelMeta }}">6 компаний · 24 процедуры</span></div>
+            <div style="{{ s.covList }}">
+              <sc-for list="{{ coverage }}" as="cv" hint-placeholder-count="6">
+              <div style="{{ s.covRow }}">
+                <span style="{{ s.covName }}">{{ cv.name }}</span>
+                <div style="{{ s.covTrack }}"><div style="{{ cv.fillStyle }}"></div></div>
+                <span style="{{ cv.valueStyle }}">{{ cv.value }}</span>
+                <span style="{{ cv.chipStyle }}">{{ cv.state }}</span>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <div style="{{ s.aside }}">
+          <div style="{{ s.cardWarn }}">
+            <div style="{{ s.warnEyebrow }}">ГЛАВНАЯ НАХОДКА</div>
+            <div style="{{ s.warnBig }}">386 млн ₽</div>
+            <div style="{{ s.warnLead }}">Пятая часть выручки цели — оборот с собственными дочерними обществами. Во внешний рынок уходит 1 456 млн ₽, а не 1 842, как показывает отчётность цели.</div>
+          </div>
+          <div style="{{ s.card }}">
+            <div style="{{ s.cardHead }}">Структура владения</div>
+            <sc-for list="{{ ownership }}" as="o" hint-placeholder-count="4">
+            <div style="{{ s.kvRow }}"><span style="{{ s.kvKey }}">{{ o.key }}</span><span style="{{ o.valueStyle }}">{{ o.value }}</span></div>
+            </sc-for>
+          </div>
+          <div style="{{ s.card }}">
+            <div style="{{ s.cardHead }}">Не вошли в группу</div>
+            <sc-for list="{{ outside }}" as="o" hint-placeholder-count="2">
+            <div style="{{ s.noteRow }}"><span style="{{ o.dotStyle }}"></span><span style="{{ s.noteText }}">{{ o.text }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isCons }}" hint-placeholder-val="{{ false }}">
+      <div style="{{ s.main }}">
+        <div style="{{ s.col }}">
+
+          <div style="{{ s.panel }}">
+            <div style="{{ s.panelHead }}"><span style="{{ s.panelTitle }}">Свод по группе</span><span style="{{ s.panelMeta }}">млн ₽ · 2025 · внутригрупповые обороты исключены</span></div>
+            <div style="{{ s.consWrap }}">
+              <div style="{{ s.consHead }}">
+                <div style="{{ s.chFirst }}">Показатель</div>
+                <div style="{{ s.chCol }}">Цель</div>
+                <div style="{{ s.chCol }}">Дочерние</div>
+                <div style="{{ s.chCol }}">Исключения</div>
+                <div style="{{ s.chColLast }}">Группа</div>
+              </div>
+              <sc-for list="{{ consRows }}" as="r" hint-placeholder-count="8">
+              <div style="{{ r.rowStyle }}">
+                <div style="{{ r.labelStyle }}">{{ r.label }}</div>
+                <div style="{{ r.aStyle }}">{{ r.a }}</div>
+                <div style="{{ r.bStyle }}">{{ r.b }}</div>
+                <div style="{{ r.cStyle }}">{{ r.c }}</div>
+                <div style="{{ r.dStyle }}">{{ r.d }}</div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="{{ s.panel }}">
+            <div style="{{ s.panelHead }}"><span style="{{ s.panelTitle }}">Внутригрупповые обороты, которые исключены</span><span style="{{ s.panelMeta }}">млн ₽ · подтверждены встречной сверкой</span></div>
+            <div style="{{ s.elimList }}">
+              <sc-for list="{{ elims }}" as="e" hint-placeholder-count="4">
+              <div style="{{ s.elimRow }}">
+                <span style="{{ s.elimBody }}">
+                  <span style="{{ s.elimName }}">{{ e.name }}</span>
+                  <span style="{{ s.elimMeta }}">{{ e.meta }}</span>
+                </span>
+                <span style="{{ s.elimSum }}">{{ e.sum }}</span>
+                <span style="{{ e.chipStyle }}">{{ e.state }}</span>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <div style="{{ s.aside }}">
+          <div style="{{ s.cardAccent }}">
+            <div style="{{ s.cardHead }}">Долг группы к EBITDA</div>
+            <div style="{{ s.asideBig }}">2,7×</div>
+            <div style="{{ s.asideLead }}">Против 3,1× по отчётности цели. Группа в целом выглядит устойчивее, но её долг на 94 млн ₽ больше — часть кредитов сидит на дочерних обществах.</div>
+          </div>
+          <div style="{{ s.card }}">
+            <div style="{{ s.cardHead }}">Как считали</div>
+            <sc-for list="{{ consNotes }}" as="n" hint-placeholder-count="4">
+            <div style="{{ s.noteRow }}"><span style="{{ n.dotStyle }}"></span><span style="{{ s.noteText }}">{{ n.text }}</span></div>
+            </sc-for>
+          </div>
+          <div style="{{ s.card }}">
+            <div style="{{ s.cardHead }}">Выгрузка</div>
+            <div style="{{ s.exportLead }}">Свод по группе выгружается в Excel вместе с расшифровкой каждого исключения.</div>
+            <button style="{{ s.btnGhostSm }}" style-hover="{{ s.btnGhostHover }}">Скачать XLSX · 6 листов</button>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isRel }}" hint-placeholder-val="{{ false }}">
+      <div style="{{ s.main }}">
+        <div style="{{ s.col }}">
+
+          <div style="{{ s.panel }}">
+            <div style="{{ s.panelHead }}"><span style="{{ s.panelTitle }}">Сделки со связанными сторонами</span><span style="{{ s.panelMeta }}">2025 · млн ₽ · сопоставлено с рынком</span></div>
+            <div style="{{ s.relList }}">
+              <sc-for list="{{ related }}" as="r" hint-placeholder-count="5">
+              <div style="{{ r.cardStyle }}">
+                <div style="{{ s.relTop }}">
+                  <span style="{{ s.relBody }}">
+                    <span style="{{ s.relName }}">{{ r.name }}</span>
+                    <span style="{{ s.relKind }}">{{ r.kind }}</span>
+                  </span>
+                  <span style="{{ r.chipStyle }}">{{ r.verdict }}</span>
+                </div>
+                <div style="{{ s.relNums }}">
+                  <div style="{{ s.relCell }}"><span style="{{ s.relCellLabel }}">Сумма за год</span><span style="{{ s.relCellVal }}">{{ r.sum }}</span></div>
+                  <div style="{{ s.relCell }}"><span style="{{ s.relCellLabel }}">Рыночный уровень</span><span style="{{ s.relCellVal }}">{{ r.market }}</span></div>
+                  <div style="{{ s.relCell }}"><span style="{{ s.relCellLabel }}">Отклонение</span><span style="{{ r.deltaStyle }}">{{ r.delta }}</span></div>
+                  <div style="{{ s.relCell }}"><span style="{{ s.relCellLabel }}">Влияние на EBITDA</span><span style="{{ r.impactStyle }}">{{ r.impact }}</span></div>
+                </div>
+                <div style="{{ s.relNote }}">{{ r.note }}</div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <div style="{{ s.aside }}">
+          <div style="{{ s.cardWarn }}">
+            <div style="{{ s.warnEyebrow }}">ИТОГО ПО СВЯЗАННЫМ</div>
+            <div style="{{ s.warnBig }}">−31 млн ₽</div>
+            <div style="{{ s.warnLead }}">Нерыночные условия занижают EBITDA цели на 31 млн ₽ в год. После сделки эти договоры либо перезаключаются по рынку, либо расходы растут.</div>
+          </div>
+          <div style="{{ s.card }}">
+            <div style="{{ s.cardHead }}">Не раскрыто в отчётности</div>
+            <sc-for list="{{ undisclosed }}" as="u" hint-placeholder-count="3">
+            <div style="{{ s.noteRow }}"><span style="{{ u.dotStyle }}"></span><span style="{{ s.noteText }}">{{ u.text }}</span></div>
+            </sc-for>
+          </div>
+          <div style="{{ s.cardAccent }}">
+            <div style="{{ s.cardHead }}">В заключение</div>
+            <div style="{{ s.asideLead }}">Две находки по связанным сторонам уже в реестре флагов: поручительства на 180 млн ₽ и аренда складов у ИП собственника.</div>
+            <button style="{{ s.btnPrimary }}" style-hover="{{ s.btnPrimaryHover }}">Открыть реестр флагов</button>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:960}}">
+class Component extends DCLogic {
+  state = { theme:'dark', device:'desktop', view:'tree' };
+
+  THEME(){
+    const dark={
+      pageBg:'#000000', bg:'#000000', surface:'#0E0B14', surface2:'#171122', surface3:'#241A38', sk:'#171122',
+      border:'#2B2140', borderStrong:'#4B3A6E', gridLine:'#191324',
+      text:'#F2E8FF', muted:'#9C8FB5', subtle:'#6A5C86',
+      primary:'#C77DFF', primaryHover:'#D69AFF', primaryText:'#17061F', accent:'#C77DFF',
+      primaryBg:'rgba(199,125,255,0.15)', primarySoft:'rgba(199,125,255,0.09)',
+      goodBg:'rgba(199,125,255,0.15)', goodBorder:'rgba(199,125,255,0.34)',
+      danger:'#F0796E', dangerBg:'rgba(240,121,110,0.15)', dangerBorder:'rgba(240,121,110,0.34)',
+      warn:'#E0A23A', warnBg:'rgba(224,162,58,0.16)', warnBorder:'rgba(224,162,58,0.32)',
+      info:'#B9A6E8', infoBg:'rgba(185,166,232,0.15)',
+      ring:'rgba(199,125,255,0.40)',
+      shadow:'0 30px 70px -34px rgba(0,0,0,.9)', glow:'0 0 18px rgba(199,125,255,.35)',
+      barBg:'#0A0710', segBg:'#0A0710', segActiveBg:'#241A38', headerBg:'#0E0B14'
+    };
+    const light={
+      pageBg:'#F2EDFA', bg:'#FAF7FE', surface:'#FFFFFF', surface2:'#F4EEFA', surface3:'#E8DEF4', sk:'#EDE6F6',
+      border:'#DED2EC', borderStrong:'#C2B0D6', gridLine:'#EDE6F6',
+      text:'#1B1523', muted:'#4E4459', subtle:'#756884',
+      primary:'#C77DFF', primaryHover:'#B968F5', primaryText:'#17061F', accent:'#7A2BC4',
+      primaryBg:'#EEE0FB', primarySoft:'#F6EFFD',
+      goodBg:'#EEE0FB', goodBorder:'#D9BFF0',
+      danger:'#C0473B', dangerBg:'#FAE7E4', dangerBorder:'#EECFCA',
+      warn:'#B07A12', warnBg:'#FBF0D8', warnBorder:'#ECDDB4',
+      info:'#6B5E8C', infoBg:'#EDE9F6',
+      ring:'rgba(199,125,255,0.34)',
+      shadow:'0 18px 44px -22px rgba(40,20,60,.22), 0 2px 6px rgba(40,20,60,.05)', glow:'none',
+      barBg:'#FFFFFF', segBg:'#EDE6F6', segActiveBg:'#FFFFFF', headerBg:'#FFFFFF'
+    };
+    return this.state.theme==='dark'?dark:light;
+  }
+
+  DIM(){
+    const d=this.state.device;
+    if(d==='mobile') return {frame:402, radius:26, pad:16, h1:22, mainCols:'1fr', tabsShown:2, compact:true, treeName:'1fr', treeCol:'46px', consLabel:'112px', relCols:'repeat(2,minmax(0,1fr))'};
+    if(d==='tablet') return {frame:864, radius:30, pad:20, h1:26, mainCols:'1fr', tabsShown:5, compact:false, treeName:'1fr', treeCol:'74px', consLabel:'188px', relCols:'repeat(4,minmax(0,1fr))'};
+    return {frame:1180, radius:30, pad:24, h1:30, mainCols:'1fr 300px', tabsShown:6, compact:false, treeName:'1fr', treeCol:'82px', consLabel:'214px', relCols:'repeat(4,minmax(0,1fr))'};
+  }
+
+  setLight=()=>this.setState({theme:'light'});
+  setDark=()=>this.setState({theme:'dark'});
+  setDesktop=()=>this.setState({device:'desktop'});
+  setTablet=()=>this.setState({device:'tablet'});
+  setMobile=()=>this.setState({device:'mobile'});
+  setTree=()=>this.setState({view:'tree'});
+  setCons=()=>this.setState({view:'cons'});
+  setRel=()=>this.setState({view:'rel'});
+
+  segBtn(active,t){
+    return 'height:28px;padding:0 12px;border:0;border-radius:7px;cursor:pointer;font:'+(active?'600':'500')+' 11.5px/1 Inter,sans-serif;letter-spacing:-.01em;'+
+      (active?('background:'+t.segActiveBg+';color:'+t.text+';'):('background:transparent;color:'+t.subtle+';'));
+  }
+
+  renderVals(){
+    const t=this.THEME(), d=this.DIM(), dark=this.state.theme==='dark', v=this.state.view;
+    const mono='JetBrains Mono,ui-monospace,monospace';
+    const disp='Satoshi,Inter,sans-serif';
+    const card='border:1px solid '+t.border+';border-radius:16px;background:'+t.surface+';'+(dark?'':'box-shadow:'+t.shadow+';');
+    const chip=(bg,bd,c)=>'display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;background:'+bg+';border:1px solid '+bd+';font:500 10px/1.3 '+mono+';color:'+c+';white-space:nowrap;';
+    const tcols=d.treeName+' repeat(4,'+d.treeCol+')';
+    const ccols=d.consLabel+' repeat(4,minmax(0,1fr))';
+
+    const s={
+      page:'min-height:100vh;background:'+t.pageBg+';display:flex;flex-direction:column;align-items:center;padding:0 0 60px;',
+      bar:'position:sticky;top:0;z-index:20;width:100%;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:12px 20px;background:'+t.barBg+';border-bottom:1px solid '+t.border+';',
+      barCube:'width:30px;height:30px;flex:none;',
+      barTitle:'font:600 13px/1.2 Inter,sans-serif;letter-spacing:-.015em;color:'+t.text+';',
+      barSub:'font:400 10.5px/1.2 '+mono+';color:'+t.subtle+';',
+      barLabel:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+      seg:'display:flex;gap:2px;padding:3px;border-radius:9px;background:'+t.segBg+';border:1px solid '+t.border+';',
+      segLight:this.segBtn(!dark,t), segDark:this.segBtn(dark,t),
+      segDesktop:this.segBtn(this.state.device==='desktop',t),
+      segTablet:this.segBtn(this.state.device==='tablet',t),
+      segMobile:this.segBtn(this.state.device==='mobile',t),
+      segTree:this.segBtn(v==='tree',t), segCons:this.segBtn(v==='cons',t), segRel:this.segBtn(v==='rel',t),
+      stage:'width:100%;display:flex;justify-content:center;padding:26px 18px 0;',
+      frame:'width:100%;max-width:'+d.frame+'px;border:1px solid '+t.border+';border-radius:'+d.radius+'px;background:'+t.bg+';overflow:hidden;'+(dark?'':'box-shadow:'+t.shadow+';'),
+
+      nav:'display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 '+d.pad+'px;background:'+t.headerBg+';border-bottom:1px solid '+t.border+';',
+      navLeft:'display:flex;align-items:center;gap:11px;min-width:0;',
+      navCube:'width:24px;height:24px;flex:none;',
+      navBrand:'font:600 12.5px/1 Inter,sans-serif;letter-spacing:-.01em;color:'+t.text+';white-space:nowrap;',
+      navTabs:'display:'+(d.frame<500?'none':'flex')+';align-items:center;gap:2px;',
+      navRight:'display:flex;align-items:center;gap:10px;flex:none;',
+      navCase:'display:'+(d.frame<500?'none':'inline')+';font:500 10px/1 '+mono+';letter-spacing:.06em;color:'+t.subtle+';',
+
+      subhead:'display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:18px '+d.pad+'px;border-bottom:1px solid '+t.border+';',
+      h1:'font:500 '+d.h1+'px/1.14 '+disp+';letter-spacing:-.028em;color:'+t.text+';',
+      h1Sub:'margin-top:7px;font:400 12px/1.5 Inter,sans-serif;color:'+t.muted+';max-width:66ch;',
+      subheadRight:'display:flex;align-items:flex-start;gap:'+(d.compact?16:22)+'px;flex-wrap:wrap;',
+      headMetric:'display:flex;flex-direction:column;gap:6px;',
+      headMetricLabel:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.subtle+';',
+
+      main:'display:grid;grid-template-columns:'+d.mainCols+';gap:'+(d.compact?14:18)+'px;padding:'+(d.compact?16:20)+'px '+d.pad+'px;align-items:start;',
+      col:'display:flex;flex-direction:column;gap:'+(d.compact?14:18)+'px;min-width:0;',
+      aside:'display:flex;flex-direction:column;gap:'+(d.compact?14:18)+'px;min-width:0;',
+      panel:card+'padding:'+(d.compact?14:18)+'px;display:flex;flex-direction:column;gap:14px;min-width:0;animation:fa-fade .3s ease-out both;',
+      panelHead:'display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;',
+      panelTitle:'font:500 '+(d.compact?14:15.5)+'px/1.2 '+disp+';letter-spacing:-.02em;color:'+t.text+';',
+      panelMeta:'font:400 10.5px/1.3 '+mono+';color:'+t.subtle+';',
+
+      treeHead:'display:grid;grid-template-columns:'+tcols+';padding:0 0 8px;border-bottom:1px solid '+t.border+';',
+      thName:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.muted+';',
+      thCol:'text-align:right;font:500 9px/1 Inter,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:'+t.muted+';',
+      tree:'display:flex;flex-direction:column;',
+      treeHover:'background:'+t.surface2+';',
+      treeBody:'display:flex;flex-direction:column;gap:3px;min-width:0;',
+      treeRole:'font:400 '+(d.compact?9.5:10)+'px/1.3 '+mono+';color:'+t.subtle+';',
+      treeFoot:'padding-top:12px;border-top:1px solid '+t.border+';font:400 11px/1.55 Inter,sans-serif;color:'+t.subtle+';',
+
+      covList:'display:flex;flex-direction:column;gap:10px;',
+      covRow:'display:grid;grid-template-columns:1fr '+(d.compact?'56px':'128px')+' 44px '+(d.compact?'70px':'92px')+';gap:'+(d.compact?8:12)+'px;align-items:center;',
+      covName:'font:400 '+(d.compact?11:12)+'px/1.4 Inter,sans-serif;color:'+t.text+';min-width:0;',
+      covTrack:'height:6px;border-radius:999px;background:'+t.surface3+';overflow:hidden;',
+
+      consWrap:'min-width:0;',
+      consHead:'display:grid;grid-template-columns:'+ccols+';padding:8px 0;border-top:1px solid '+t.border+';border-bottom:1px solid '+t.border+';',
+      chFirst:'font:500 9px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:'+t.muted+';',
+      chCol:'text-align:right;font:500 9px/1 Inter,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:'+t.muted+';',
+      chColLast:'text-align:right;font:600 9px/1 Inter,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:'+t.accent+';',
+
+      elimList:'display:flex;flex-direction:column;gap:1px;',
+      elimRow:'display:flex;align-items:center;gap:'+(d.compact?10:14)+'px;padding:10px 0;border-bottom:1px solid '+t.gridLine+';',
+      elimBody:'flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;',
+      elimName:'font:400 '+(d.compact?11.5:12.5)+'px/1.35 Inter,sans-serif;color:'+t.text+';',
+      elimMeta:'font:400 10px/1.35 '+mono+';color:'+t.subtle+';',
+      elimSum:'flex:none;font:500 12px/1 '+mono+';color:'+t.text+';',
+
+      relList:'display:flex;flex-direction:column;gap:'+(d.compact?12:14)+'px;',
+      relTop:'display:flex;align-items:flex-start;justify-content:space-between;gap:12px;',
+      relBody:'display:flex;flex-direction:column;gap:4px;min-width:0;',
+      relName:'font:500 '+(d.compact?13:14)+'px/1.3 Inter,sans-serif;letter-spacing:-.01em;color:'+t.text+';',
+      relKind:'font:400 10px/1.3 '+mono+';color:'+t.subtle+';',
+      relNums:'display:grid;grid-template-columns:'+d.relCols+';gap:'+(d.compact?8:12)+'px;margin-top:13px;padding-top:12px;border-top:1px solid '+t.border+';',
+      relCell:'display:flex;flex-direction:column;gap:5px;min-width:0;',
+      relCellLabel:'font:500 8.5px/1.2 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:'+t.subtle+';',
+      relCellVal:'font:400 12px/1 '+mono+';color:'+t.text+';',
+      relNote:'margin-top:12px;font:400 11.5px/1.6 Inter,sans-serif;color:'+t.muted+';',
+
+      cardAccent:'padding:16px;border:1px solid '+t.goodBorder+';border-radius:16px;background:'+t.goodBg+';display:flex;flex-direction:column;gap:11px;',
+      card:card+'padding:16px;display:flex;flex-direction:column;gap:11px;',
+      cardWarn:'padding:16px;border:1px solid '+t.warnBorder+';border-radius:16px;background:'+t.warnBg+';display:flex;flex-direction:column;gap:10px;',
+      cardHead:'font:500 9.5px/1 Inter,sans-serif;letter-spacing:.13em;text-transform:uppercase;color:'+t.subtle+';',
+      asideBig:'font:500 '+(d.compact?26:30)+'px/1 '+mono+';letter-spacing:-.03em;color:'+t.accent+';',
+      asideLead:'font:400 11.5px/1.6 Inter,sans-serif;color:'+t.muted+';',
+      warnEyebrow:'font:500 9px/1 '+mono+';letter-spacing:.12em;color:'+t.warn+';',
+      warnBig:'font:500 '+(d.compact?24:27)+'px/1 '+mono+';letter-spacing:-.03em;color:'+t.warn+';',
+      warnLead:'font:400 11.5px/1.55 Inter,sans-serif;color:'+t.muted+';',
+      exportLead:'font:400 11.5px/1.6 Inter,sans-serif;color:'+t.muted+';',
+
+      kvRow:'display:flex;align-items:baseline;justify-content:space-between;gap:10px;',
+      kvKey:'font:400 11.5px/1.4 Inter,sans-serif;color:'+t.muted+';',
+      noteRow:'display:flex;align-items:flex-start;gap:9px;',
+      noteText:'font:400 11.5px/1.55 Inter,sans-serif;color:'+t.muted+';',
+
+      btnPrimary:'height:38px;padding:0 16px;border:0;border-radius:4px;background:'+t.primary+';color:'+t.primaryText+';font:600 12px/1 Inter,sans-serif;cursor:pointer;'+(dark?'box-shadow:'+t.glow+';':''),
+      btnPrimarySm:'height:32px;padding:0 13px;border:0;border-radius:4px;background:'+t.primary+';color:'+t.primaryText+';font:600 11.5px/1 Inter,sans-serif;cursor:pointer;white-space:nowrap;'+(dark?'box-shadow:'+t.glow+';':''),
+      btnPrimaryHover:'background:'+t.primaryHover+';',
+      btnGhostSm:'height:32px;padding:0 13px;border:1px solid '+t.border+';border-radius:4px;background:transparent;color:'+t.text+';font:500 11.5px/1 Inter,sans-serif;cursor:pointer;',
+      btnGhostHover:'border-color:'+t.borderStrong+';background:'+t.surface2+';'
+    };
+
+    const tabs=['Обзор','Сверка','Флаги','Группа','Оценка','Заключение'].slice(0,d.tabsShown).map(label=>{
+      const on=label==='Группа';
+      return {label, style:'padding:16px 11px;font:'+(on?'500':'400')+' 12px/1 Inter,sans-serif;letter-spacing:-.01em;color:'+(on?t.text:t.muted)+';cursor:pointer;white-space:nowrap;'+(on?'box-shadow:inset 0 -2px 0 '+t.primary+';':'')};
+    });
+
+    const node=(name,role,share,revenue,ebitda,debt,level,kind)=>({
+      name, role, share, revenue, ebitda, debt,
+      mark:level===0?'◆':'└',
+      rowStyle:'display:grid;grid-template-columns:'+tcols+';gap:8px;align-items:center;padding:'+(d.compact?10:12)+'px 8px;margin:0 -8px;border-radius:8px;border-bottom:1px solid '+t.gridLine+';transition:background .14s;cursor:pointer;',
+      nameCellStyle:'display:flex;align-items:center;gap:9px;min-width:0;padding-left:'+(level*(d.compact?12:20))+'px;',
+      markStyle:'flex:none;font:400 '+(level===0?12:11)+'px/1 '+mono+';color:'+(level===0?t.primary:t.subtle)+';',
+      nameStyle:'font:'+(level===0?'500':'400')+' '+(d.compact?11.5:12.5)+'px/1.3 Inter,sans-serif;letter-spacing:-.01em;color:'+t.text+';',
+      shareStyle:'text-align:right;font:'+(level===0?'500':'400')+' '+(d.compact?10:11)+'px/1 '+mono+';color:'+(kind==='assoc'?t.warn:(level===0?t.accent:t.muted))+';',
+      numStyle:'text-align:right;font:400 '+(d.compact?10:11)+'px/1 '+mono+';color:'+t.muted+';',
+      debtStyle:'text-align:right;font:400 '+(d.compact?10:11)+'px/1 '+mono+';color:'+(kind==='debt'?t.danger:t.muted)+';'
+    });
+
+    const cov=(name,value,pct,state,kind)=>({
+      name, value, state,
+      fillStyle:'height:100%;width:'+pct+'%;border-radius:999px;background:'+(kind==='bad'?t.danger:(kind==='warn'?t.warn:t.primary))+';transform-origin:left center;animation:fa-grow-x .5s cubic-bezier(.22,1,.36,1) both;',
+      valueStyle:'text-align:right;font:500 10.5px/1 '+mono+';color:'+(kind==='bad'?t.danger:(kind==='warn'?t.warn:t.accent))+';',
+      chipStyle:'justify-self:end;'+(kind==='bad'?chip(t.dangerBg,t.dangerBorder,t.danger):(kind==='warn'?chip(t.warnBg,t.warnBorder,t.warn):chip(t.goodBg,t.goodBorder,t.accent)))
+    });
+
+    const consRow=(label,a,b,c,dd,kind)=>({
+      label, a, b, c, d:dd,
+      rowStyle:'display:grid;grid-template-columns:'+ccols+';padding:'+(kind==='total'?11:9)+'px 0;'+(kind==='total'?'border-top:1px solid '+t.borderStrong+';':'border-bottom:1px solid '+t.gridLine+';')+'align-items:baseline;',
+      labelStyle:'font:'+(kind==='total'?'600':'400')+' '+(d.compact?11:12)+'px/1.4 Inter,sans-serif;color:'+t.text+';',
+      aStyle:'text-align:right;font:'+(kind==='total'?'500':'400')+' '+(d.compact?10.5:11.5)+'px/1.4 '+mono+';color:'+t.muted+';',
+      bStyle:'text-align:right;font:'+(kind==='total'?'500':'400')+' '+(d.compact?10.5:11.5)+'px/1.4 '+mono+';color:'+t.muted+';',
+      cStyle:'text-align:right;font:400 '+(d.compact?10.5:11.5)+'px/1.4 '+mono+';color:'+t.danger+';',
+      dStyle:'text-align:right;font:'+(kind==='total'?'600':'500')+' '+(d.compact?10.5:11.5)+'px/1.4 '+mono+';color:'+(kind==='total'?t.accent:t.text)+';'
+    });
+
+    const elim=(name,meta,sum,state,kind)=>({
+      name, meta, sum, state,
+      chipStyle:'flex:none;'+(kind==='warn'?chip(t.warnBg,t.warnBorder,t.warn):chip(t.goodBg,t.goodBorder,t.accent))
+    });
+
+    const rel=(name,kind,sum,market,delta,impact,verdict,note,tone)=>({
+      name, kind, sum, market, delta, impact, verdict, note,
+      cardStyle:'padding:'+(d.compact?14:16)+'px;border:1px solid '+(tone==='bad'?t.dangerBorder:(tone==='warn'?t.warnBorder:t.border))+';border-radius:14px;background:'+(tone==='bad'?t.dangerBg:(tone==='warn'?t.warnBg:t.surface2))+';',
+      chipStyle:tone==='bad'?chip(t.dangerBg,t.dangerBorder,t.danger):(tone==='warn'?chip(t.warnBg,t.warnBorder,t.warn):chip(t.goodBg,t.goodBorder,t.accent)),
+      deltaStyle:'font:500 12px/1 '+mono+';color:'+(tone==='ok'?t.muted:(tone==='bad'?t.danger:t.warn))+';',
+      impactStyle:'font:500 12px/1 '+mono+';color:'+(tone==='ok'?t.muted:t.danger)+';'
+    });
+
+    const dot=(c)=>'flex:none;width:5px;height:5px;margin-top:6px;border-radius:50%;background:'+c+';';
+
+    return {
+      s,
+      setLight:this.setLight, setDark:this.setDark,
+      setDesktop:this.setDesktop, setTablet:this.setTablet, setMobile:this.setMobile,
+      setTree:this.setTree, setCons:this.setCons, setRel:this.setRel,
+      isTree:v==='tree', isCons:v==='cons', isRel:v==='rel',
+      navTabs:tabs,
+      ctaLabel:v==='cons'?'Выгрузить свод':'Обновить из ЕГРЮЛ',
+      title:v==='tree'?'Структура группы':(v==='cons'?'Консолидированная картина':'Связанные стороны'),
+      subtitle:v==='tree'?'ООО «Сибтранс-Логистика» и пять связанных обществ · собственник владеет группой через два уровня'
+        :(v==='cons'?'Свод по группе после исключения внутригрупповых оборотов · сравнение с отчётностью цели'
+        :'Сделки с обществами и лицами, которые контролируются тем же собственником'),
+      headMetrics:[
+        {label:'Компаний в группе', value:'6', kind:'text'},
+        {label:'Внутригрупповой оборот', value:'386 млн ₽', kind:'warn'},
+        {label:v==='rel'?'Влияние на EBITDA':'Долг группы', value:v==='rel'?'−31 млн ₽':'925 млн ₽', kind:v==='rel'?'bad':'text'}
+      ].map(m=>({
+        label:m.label, value:m.value,
+        valueStyle:'font:500 15px/1 '+mono+';letter-spacing:-.02em;color:'+(m.kind==='bad'?t.danger:(m.kind==='warn'?t.warn:t.text))+';'
+      })),
+
+      tree:[
+        node('ООО «Сибтранс-Логистика»','цель проверки · грузоперевозки','100%','1 842','268','831',0,'target'),
+        node('ООО «Сибтранс-Авто»','автопарк 340 машин','100%','412','58','142',1,'debt'),
+        node('ООО «СТЛ-Терминал»','складской терминал, 18 тыс. м²','75%','196','28','72',1,'debt'),
+        node('ООО «Транс-Ремонт»','обслуживание техники','51%','88','7','—',1,'sub'),
+        node('ООО «СТЛ-Экспедиция»','экспедирование, создано в 2025','100%','46','3','—',1,'sub'),
+        node('АО «Логистик-Финанс»','лизинг · ассоциированная','25%','—','—','—',1,'assoc')
+      ],
+      coverage:[
+        cov('ООО «Сибтранс-Логистика»','18 / 24',75,'основная'),
+        cov('ООО «Сибтранс-Авто»','14 / 24',58,'основная'),
+        cov('ООО «СТЛ-Терминал»','11 / 24',46,'частично','warn'),
+        cov('ООО «Транс-Ремонт»','6 / 24',25,'мало данных','warn'),
+        cov('ООО «СТЛ-Экспедиция»','4 / 24',17,'нет истории','bad'),
+        cov('АО «Логистик-Финанс»','2 / 24',8,'нет доступа','bad')
+      ],
+      ownership:[
+        {key:'Конечный собственник', value:'Соколов А. В.'},
+        {key:'Доля в цели', value:'92% напрямую'},
+        {key:'Через холдинг', value:'8% · АО «СТЛ-Групп»'},
+        {key:'Уровней владения', value:'2'}
+      ].map(o=>({key:o.key, value:o.value, valueStyle:'flex:none;font:500 11.5px/1.4 '+mono+';color:'+t.text+';'})),
+      outside:[
+        {text:'ИП Соколов А. В. — арендодатель складов. Формально не общество, но контролируется тем же лицом.', dotStyle:dot(t.warn)},
+        {text:'ООО «Транс-Гарант» ликвидировано в 2024 году, часть договоров переведена на цель без документов.', dotStyle:dot(t.danger)}
+      ],
+
+      consRows:[
+        consRow('Выручка','1 842','742','(386)','2 198'),
+        consRow('Себестоимость продаж','(1 448)','(602)','386','(1 664)'),
+        consRow('EBITDA','268','96','(18)','346'),
+        consRow('Активы','2 640','918','(402)','3 156'),
+        consRow('Дебиторская задолженность','402','148','(186)','364'),
+        consRow('Долг и займы','831','214','(120)','925'),
+        consRow('Денежные средства','96','38','—','134'),
+        consRow('Долг за вычетом денежных средств','735','176','(120)','791','total')
+      ],
+      elims:[
+        elim('Перевозки для «СТЛ-Терминал»','цель → дочернее · услуги перевозки','226','сверено'),
+        elim('Аренда автопарка у «Сибтранс-Авто»','цель ← дочернее · аренда техники','108','сверено'),
+        elim('Ремонт техники «Транс-Ремонтом»','цель ← дочернее · подряд','52','сверено'),
+        elim('Внутригрупповые займы','цель → дочерние · процентные','120','ставка ниже рынка','warn')
+      ],
+      consNotes:[
+        {text:'Внутригрупповые обороты исключены по встречной сверке: сумма у продавца и покупателя совпала по всем четырём позициям.', dotStyle:dot(t.primary)},
+        {text:'«Транс-Ремонт» консолидирован полностью (51%), миноритарная доля 12 млн ₽ вычтена при расчёте цены.', dotStyle:dot(t.primary)},
+        {text:'«Логистик-Финанс» учтён по методу долевого участия — 25% без контроля, в свод не входит.', dotStyle:dot(t.primary)},
+        {text:'Данные «СТЛ-Экспедиции» — за 9 месяцев: общество создано в апреле 2025 года.', dotStyle:dot(t.warn)}
+      ],
+
+      related:[
+        rel('ИП Соколов А. В.','аренда складских помещений','84','69','+22% к рынку','−15','нерыночная',
+          'Собственник сдаёт цели собственные склады по ставке выше рыночной на 22%. Договор до 2031 года без права досрочного расторжения — после сделки покупатель наследует эти условия.','bad'),
+        rel('АО «Логистик-Финанс»','лизинг седельных тягачей','156','142','+10% к рынку','−14','нерыночная',
+          'Лизинг оформлен через ассоциированную компанию собственника. Удорожание 10% — на границе допустимого, но 25% доли остаются у продавца и после сделки.','warn'),
+        rel('ООО «СТЛ-Групп»','управленческие услуги','36','36','по рынку','—','по рынку',
+          'Управляющая компания холдинга. Стоимость соответствует рынку, объём услуг подтверждён актами и табелями.','ok'),
+        rel('Поручительства за «СТЛ-Терминал»','забалансовое обязательство','180','—','не раскрыто','риск','не раскрыта',
+          'Цель поручилась по кредиту дочернего общества на 180 млн ₽. В пояснениях к отчётности обязательство не раскрыто — обнаружено в реестре залогов ФНП.','bad'),
+        rel('Займы дочерним обществам','процентные займы внутри группы','120','120','ставка 4% против 16%','−2','нерыночная',
+          'Займы выданы под 4% годовых при рыночных 16%. Внутри группы это перекладывание денег, но при выделении цели из группы недополученный процент станет реальным.','warn')
+      ],
+      undisclosed:[
+        {text:'Поручительства на 180 млн ₽ — нет в пояснениях к отчётности, найдены в реестре ФНП.', dotStyle:dot(t.danger)},
+        {text:'Договор аренды с ИП собственника не указан в перечне сделок со связанными сторонами.', dotStyle:dot(t.danger)},
+        {text:'Долю в «Логистик-Финанс» продавец в переписке называл «портфельной инвестицией».', dotStyle:dot(t.warn)}
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

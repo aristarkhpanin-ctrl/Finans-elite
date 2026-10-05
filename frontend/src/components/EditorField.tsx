@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import type { ReactNode } from "react";
 import { fracToPct, pctToFrac } from "../format";
 
@@ -8,21 +8,38 @@ import { fracToPct, pctToFrac } from "../format";
  * подсказка «?» с CSS-тултипом, ошибка под полем.
  */
 
-export function HintBadge({ text }: { text: string }) {
+/**
+ * Подсказка «?» (пакет K, K5): кнопка «Подсказка» с описанием — текстом подсказки. Прежде
+ * это был `span` с `tabIndex` и `aria-label`, а у безролевого элемента имя не
+ * поддерживается: диктор читал «?», и сама подсказка ему не доставалась. Подсказка видна
+ * в фокусе и при наведении; полю она же — описание (`aria-describedby`).
+ */
+export function HintBadge({ text, id }: { text: string; id?: string }) {
+  const own = useId();
+  const tipId = id ?? own;
   return (
     <span className="hint-wrap">
-      <span className="hint-badge" tabIndex={0} aria-label={text}>
+      <button type="button" className="hint-badge" aria-label="Подсказка" aria-describedby={tipId}>
         ?
-      </span>
-      <span className="hint-tip" role="tooltip">
+      </button>
+      <span className="hint-tip" role="tooltip" id={tipId}>
         {text}
       </span>
     </span>
   );
 }
 
+/**
+ * Подпись, подсказка и ошибка поля связаны с самим полем (H6): `<label htmlFor>` даёт ему
+ * имя, подсказка и ошибка — описание (`aria-describedby`), а не часть имени. Без связи
+ * поле звалось по заполнителю («0»), а селект был безымянным — `axe-core` в матрице P13
+ * нашёл 21 такой селект. Подпись **не бывает пустой**: где её не видно (строка таблицы, где
+ * смысл задаёт колонка), она скрыта (`hideLabel`), но есть.
+ */
 function FieldShell({
+  id,
   label,
+  hideLabel,
   hint,
   error,
   note,
@@ -30,7 +47,9 @@ function FieldShell({
   labelRight,
   children,
 }: {
+  id: string;
   label: string;
+  hideLabel?: boolean;
   hint?: string;
   error?: string;
   note?: string;
@@ -38,23 +57,39 @@ function FieldShell({
   labelRight?: ReactNode;
   children: ReactNode;
 }) {
+  const visible = !hideLabel;
   return (
     <div className={"efield" + (full ? " efield--full" : "")}>
-      {(label || hint || labelRight) && (
+      {!visible && <label className="sr-only" htmlFor={id}>{label}</label>}
+      {(visible || hint || labelRight) && (
         <div className="efield__labelrow">
-          {label && <label className="efield__label">{label}</label>}
-          {hint && <HintBadge text={hint} />}
+          {visible && <label className="efield__label" htmlFor={id}>{label}</label>}
+          {hint && <HintBadge text={hint} id={`${id}-hint`} />}
           {labelRight}
         </div>
       )}
       {children}
-      {error ? <div className="efield__err">{error}</div> : note && <div className="field-note">{note}</div>}
+      {error ? <div className="efield__err" id={`${id}-err`}>{error}</div> : note && <div className="field-note">{note}</div>}
     </div>
   );
 }
 
+/**
+ * Связи поля с подписью, подсказкой, ошибкой и единицами — одни на ввод и выбор. Единица
+ * («% / год», «₽») — часть описания: без неё диктор слышал «15» и только потом, отдельным
+ * текстом, «% / год» (пакет K, K5).
+ */
+function controlProps(id: string, hint?: string, error?: string, unit?: boolean) {
+  const describedBy = [unit ? `${id}-unit` : "", hint ? `${id}-hint` : "", error ? `${id}-err` : ""]
+    .filter(Boolean).join(" ");
+  return { id, "aria-describedby": describedBy || undefined, "aria-invalid": error ? true : undefined };
+}
+
 export interface EFieldProps {
+  /** Подпись поля — всегда; скрыть её можно (`hideLabel`), опустить нельзя. */
   label: string;
+  /** Подпись только для экранного диктора: смысл поля на экране задаёт колонка/строка. */
+  hideLabel?: boolean;
   value: string | number;
   onChange: (v: string) => void;
   suffix?: string;
@@ -77,6 +112,7 @@ export interface EFieldProps {
 
 export function EField({
   label,
+  hideLabel,
   value,
   onChange,
   suffix,
@@ -91,11 +127,14 @@ export function EField({
   placeholder,
   disabled,
 }: EFieldProps) {
+  const id = useId();
   return (
-    <FieldShell label={label} hint={hint} error={error} note={note} full={full} labelRight={labelRight}>
+    <FieldShell id={id} label={label} hideLabel={hideLabel} hint={hint} error={error} note={note}
+                full={full} labelRight={labelRight}>
       <div className={"efield__box" + (error ? " efield__box--error" : "")}>
-        {prefix && <span className="efield__prefix">{prefix}</span>}
+        {prefix && <span className="efield__prefix" id={suffix ? undefined : `${id}-unit`}>{prefix}</span>}
         <input
+          {...controlProps(id, hint, error, !!(prefix || suffix))}
           className={"efield__input" + (text || date ? " efield__input--text" : "")}
           type={date ? "date" : "text"}
           inputMode={text || date ? undefined : "decimal"}
@@ -104,7 +143,7 @@ export function EField({
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
         />
-        {suffix && <span className="efield__suffix">{suffix}</span>}
+        {suffix && <span className="efield__suffix" id={`${id}-unit`}>{suffix}</span>}
       </div>
     </FieldShell>
   );
@@ -112,6 +151,7 @@ export function EField({
 
 export function ESelect({
   label,
+  hideLabel,
   value,
   onChange,
   options,
@@ -121,6 +161,7 @@ export function ESelect({
   disabled,
 }: {
   label: string;
+  hideLabel?: boolean;
   value: string;
   onChange: (v: string) => void;
   options: [string, string][];
@@ -129,10 +170,12 @@ export function ESelect({
   full?: boolean;
   disabled?: boolean;
 }) {
+  const id = useId();
   return (
-    <FieldShell label={label} hint={hint} error={error} full={full}>
+    <FieldShell id={id} label={label} hideLabel={hideLabel} hint={hint} error={error} full={full}>
       <div className={"efield__box" + (error ? " efield__box--error" : "")}>
         <select
+          {...controlProps(id, hint, error)}
           className="efield__select"
           value={value}
           disabled={disabled}
@@ -144,7 +187,7 @@ export function ESelect({
             </option>
           ))}
         </select>
-        <span className="efield__chev">▾</span>
+        <span className="efield__chev" aria-hidden="true">▾</span>
       </div>
     </FieldShell>
   );

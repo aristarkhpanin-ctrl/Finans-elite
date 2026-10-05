@@ -68,6 +68,23 @@ class _SlidingWindow:
 _store = _SlidingWindow()
 
 
+def allow(bucket: str, key: str, limit: int, window_seconds: float) -> bool:
+    """Ограничение по **произвольному ключу**, а не по адресу клиента.
+
+    Нужно там, где защищаемое принадлежит не тому, кто просит: письмо «забыли пароль»
+    уходит владельцу ящика, и ограничение по IP значило бы, что завалить чужой ящик
+    можно с десяти адресов. Ключом здесь служит сама учётная запись.
+
+    Возвращает «можно ли», а не бросает 429: вызывающий обязан ответить **одинаково**
+    для существующего и несуществующего адреса, и отдельный статус выдал бы, что адрес
+    существует.
+    """
+    if not _enabled():
+        return True
+    allowed, _ = _store.check(f"{bucket}:{key}", limit, window_seconds)
+    return allowed
+
+
 def rate_limit(bucket: str, limit: int, window_seconds: float):
     """FastAPI-зависимость: не более ``limit`` запросов за окно с одного IP.
 

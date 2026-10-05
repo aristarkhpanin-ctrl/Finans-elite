@@ -1,0 +1,943 @@
+"""Сводка платформы: сколько у нас клиентов и что они делают (B3).
+
+**Второй системы учёта не заводим.** Числа собираются из того, что уже есть: таблиц
+организаций, пользователей, членства и подписок — и из журнала действий. Счётчики,
+заведённые «под метрики», начинают жить своей жизнью: расходятся с данными, и разбирать
+потом приходится не бизнес, а расхождение.
+
+Отсюда же и главное ограничение, которое здесь важнее самих цифр: **платформа умеет
+считать не всё, и об этом сказано в самом ответе**. Счётчика расчётов нет; отметка
+присутствия появилась не с первого дня; журнал начинается с первой записи, а не с начала
+времён. Каждая такая граница едет вместе с числом (``notes``) — иначе ноль до её начала
+читается как «ничего не происходило».
+
+Группировка по месяцам делается **в Python, а не в SQL**: у SQLite это ``strftime``, у
+PostgreSQL — ``to_char``, и диалектный запрос прошёл бы тесты (SQLite) и упал бы в
+продакшене (PostgreSQL) — или, что хуже, посчитал бы иначе и молча.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
+from statistics import median
+
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
+from .billing import is_paid_plan, parse_plan_change
+from .billing_period import GRACE_DAYS, days_overdue
+from .db_models import (
+    Membership,
+    Organization,
+    Payment,
+    Subscription,
+    UsageEvent,
+    User,
+)
+from .plans import DEFAULT_PLAN, PRODUCT_NAME, get_plan
+from .usage import collecting as usage_collecting
+
+#: Окна активности. Семь дней отвечают на вопрос «пользуются ли сейчас», тридцать —
+#: «не ушли ли». Одно окно вместо двух заставило бы выбирать между этими вопросами.
+ACTIVE_WINDOWS = (7, 30)
+
+#: Окно активации (L8): за сколько дней после регистрации организация должна посчитать
+#: свою модель, чтобы считаться активированной. Неделя — за неё человек либо увидел
+#: результат, либо ушёл, и это общепринятая мера: с чужими её сравнивают.
+ACTIVATION_DAYS = 7
+#: Сколько недель-когорт в ряду. Квартал: тренд виден, а когорты, пришедшие при другом
+#: продукте, с нынешними не смешиваются.
+ACTIVATION_WEEKS = 12
+
+
+@dataclass(frozen=True)
+class MonthPoint:
+    """Сколько появилось за месяц. Накопленный итог не хранится: его считает тот, кто
+    рисует, и хранить обе величины значило бы завести возможность их расхождения."""
+
+    period: str          # «2026-09»
+    organizations: int
+    users: int
+
+
+@dataclass(frozen=True)
+class PlanSlice:
+    product: str
+    plan_code: str
+    plan_name: str
+    organizations: int
+
+
+@dataclass(frozen=True)
+class ChurnRecord:
+    """Одна запись журнала об уходе, собранная обходом арендаторов.
+
+    Организация названа, потому что отток считается **организациями**: одна и та же
+    компания может просрочить подписку на оба продукта в один месяц, и сложить эти
+    строки значило бы потерять одного клиента дважды.
+    """
+
+    organization_id: str
+    action: str
+    at: datetime
+    details: str
+
+
+@dataclass
+class TenantTotals:
+    """Итоги, собранные обходом арендаторов (их считает служебный роутер).
+
+    Живут отдельным типом, потому что собираются иначе, чем всё остальное: проекты, дела
+    и журнал под RLS, и платформа входит в каждую организацию по очереди — обхода
+    изоляции у неё нет (B1). ``organizations_scanned`` говорит, по скольким организациям
+    свод построен: усечённый обход обязан назвать себя, иначе неполная сумма выглядит
+    как измеренная.
+    """
+
+    projects: int = 0
+    cases: int = 0
+    calculated: int = 0
+    exports: int = 0
+    first_log_at: datetime | None = None
+    organizations_scanned: int = 0
+    organizations_total: int = 0
+    #: Сколько организаций дошло до шага воронки (E3). Считается при том же обходе
+    #: арендаторов, что и объёмы: второй обход ради тех же чисел был бы вдвое дороже и
+    #: однажды разошёлся бы с первым.
+    with_entities: int = 0
+    with_calculation: int = 0
+    with_export: int = 0
+    #: Записи журнала об уходе (F8) — тем же обходом, что и объёмы.
+    churn_records: list[ChurnRecord] = field(default_factory=list)
+    #: Когда по платформе впервые появилась запись каждого вида. Раньше этой даты ряд
+    #: показывает «не измеряется»: ноль там означал бы «не уходили», а не «не записывали».
+    first_churn_at: dict[str, datetime] = field(default_factory=dict)
+
+
+@dataclass
+class FunnelStep:
+    """Шаг воронки активации: сколько организаций дошло и какая доля от начала."""
+
+    key: str
+    label: str
+    organizations: int = 0
+    #: Доля от первого шага. ``None`` — считать не от чего (нет ни одной организации).
+    share: float | None = None
+
+
+@dataclass
+class RetentionPoint:
+    """Когорта: сколько из пришедших в этот месяц вернулись позже.
+
+    ``returned`` = ``None`` означает «**не измеряется**», а не ноль: удержание считается
+    по событиям пользования (E2), и в месяцы, когда сбор был выключен, знать его неоткуда.
+    Ноль здесь читался бы как «все ушли» — это другое утверждение.
+    """
+
+    month: str
+    arrived: int = 0
+    returned: int | None = None
+
+
+@dataclass(frozen=True)
+class ActivationWeek:
+    """Неделя регистрации (L8): сколько организаций пришло и сколько за неделю посчитали.
+
+    ``None`` здесь — названный пробел, а не ноль:
+
+    - ``signed_up is None`` — **не измеряется**: неделя прошла, когда события не
+      записывались (раньше начала сбора или после его выключения);
+    - ``share``/``median_hours`` ``None`` при ``complete=False`` — у части пришедших семь
+      дней ещё не прошли, и доля может вырасти; ``activated`` тогда — сколько посчитали
+      **пока**. При ``signed_up == 0`` делить не на что.
+    """
+
+    #: Понедельник недели (UTC), ISO-дата: «2026-09-28».
+    week: str
+    signed_up: int | None = None
+    activated: int = 0
+    share: float | None = None
+    #: Медиана часов от регистрации до первого расчёта — **по активировавшимся**: кто не
+    #: посчитал за неделю, в неё не входит, и его видно по доле рядом.
+    median_hours: float | None = None
+    #: У всех пришедших за неделю прошли семь дней — доля окончательная.
+    complete: bool = False
+    #: Сбор событий начался посреди недели: регистрации до его начала не видны.
+    partial: bool = False
+
+
+@dataclass
+class Activation:
+    """Активация по недельным когортам (L8) плюс итог по завершённым неделям окна."""
+
+    days: int = ACTIVATION_DAYS
+    weeks: list[ActivationWeek] = field(default_factory=list)
+    #: Итог по **завершённым** неделям окна: незавершённые его только занизили бы.
+    signed_up: int = 0
+    activated: int = 0
+    share: float | None = None
+    median_hours: float | None = None
+    #: Служебные организации с регистрацией в окне — не посчитаны, но названы.
+    staff_excluded: int = 0
+    #: Организации, у которых за неделю после регистрации был только разбор дела без
+    #: признака отчётности (записан до L8): пустое ли дело, не видно — в активацию не взяты.
+    unmarked_orgs: int = 0
+    #: Первое событие пользования на платформе: раньше него «не измеряется».
+    first_event_at: datetime | None = None
+
+
+@dataclass
+class RevenuePoint:
+    """Выручка одного месяца: сколько пришло и сколькими платежами.
+
+    Считается **по дате платежа**, а не по периоду, за который платили: второе — это
+    признание выручки, и оно требует учётной политики, которой у платформы нет. Говорить
+    «выручка за март», имея в виду «деньги, пришедшие в марте», можно только назвав это.
+    """
+
+    month: str
+    rub: int = 0
+    payments: int = 0
+
+
+@dataclass(frozen=True)
+class ChurnPoint:
+    """Отток одного месяца — **двумя картинами рядом** (F8).
+
+    Журнал отвечает «что записано как случившееся», платежи — «кто платил и перестал».
+    У картин разные пропуски, и свести их в одно число нельзя: среднее между «не
+    запускали скрипт» и «денег не приходило» не значит ничего.
+
+    ``None`` в ``expired`` и ``downgraded`` — «**не измеряется**», а не ноль: месяц
+    раньше первой записи такого вида либо записи есть, но прежний тариф в них не назван.
+    """
+
+    month: str
+    #: Не продлили оплаченный период (`billing.overdue`).
+    expired: int | None = None
+    #: Ушли на бесплатный сами (`billing.plan_change` с названным прежним платным).
+    downgraded: int | None = None
+    #: Платили в этом месяце — организаций (успешные платежи).
+    payers: int = 0
+    #: Из них перестали: последний успешный платёж пришёлся на этот месяц, а
+    #: оплаченного периода с льготным сроком у организации больше нет.
+    stopped: int = 0
+    #: ``stopped / payers``. ``None`` — делить не на что (платящих в месяце не было).
+    rate: float | None = None
+
+
+@dataclass
+class Churn:
+    """Отток по месяцам плюс то, чего в этих числах нет."""
+
+    months: list[ChurnPoint] = field(default_factory=list)
+    #: Проводили ли сверку неоплаты хоть раз — планировщик или
+    #: ``scripts/expire_subscriptions.py``. Нет — значит уход по
+    #: окончании периода не измеряется вовсе, и это надо сказать, а не показать ноль.
+    expiry_logged: bool = False
+    #: Записи о смене тарифа, в которых прежний тариф не назван (сделаны до F8).
+    unnamed_plan_changes: int = 0
+
+
+@dataclass
+class PlatformMetrics:
+    generated_at: datetime
+    since_days: int
+    organizations: int = 0
+    users: int = 0
+    active_users: dict[int, int] = field(default_factory=dict)
+    active_organizations: dict[int, int] = field(default_factory=dict)
+    #: Участники, у которых отметки присутствия нет вовсе. Это «неизвестно», а не
+    #: «не работают»: до появления отметки (A3) присутствие не записывалось.
+    members_without_mark: int = 0
+    projects: int = 0
+    cases: int = 0
+    projects_calculated: int = 0
+    exports: int = 0
+    growth: list[MonthPoint] = field(default_factory=list)
+    plans: list[PlanSlice] = field(default_factory=list)
+    #: Воронка активации. Считается **всегда**: три первых шага доступны из журнала и
+    #: дат расчёта, событий для них не требуется.
+    funnel: list[FunnelStep] = field(default_factory=list)
+    #: Удержание по когортам. Пусто, если сбор событий не велся: график из воздуха
+    #: хуже отсутствующего.
+    retention: list[RetentionPoint] = field(default_factory=list)
+    #: Выручка по месяцам — **только успешные** платежи (F2). Неуспешные видны в
+    #: карточке клиента: там это разговор, здесь это не деньги.
+    revenue: list[RevenuePoint] = field(default_factory=list)
+    #: Отток (F8) — две картины рядом, а не одно число.
+    churn: Churn = field(default_factory=Churn)
+    #: Активация по недельным когортам (L8) — только по событиям.
+    activation: Activation = field(default_factory=Activation)
+    #: Собираются ли события пользования (E2) — чтобы экран не гадал, почему пусто.
+    usage_collected: bool = False
+    notes: list[str] = field(default_factory=list)
+
+
+def _month(value: datetime) -> str:
+    return f"{value.year:04d}-{value.month:02d}"
+
+
+def _months_back(now: datetime, months: int) -> list[str]:
+    """Подписи месяцев по возрастанию, включая текущий.
+
+    Месяцы, в которые ничего не появилось, **остаются в ряду с нулём**: выброшенный
+    пустой месяц превращает провал в графике в ровную линию — то есть врёт ровно там,
+    где смотреть интереснее всего.
+    """
+    out: list[str] = []
+    year, month = now.year, now.month
+    for _ in range(months):
+        out.append(f"{year:04d}-{month:02d}")
+        month -= 1
+        if month == 0:
+            year, month = year - 1, 12
+    return list(reversed(out))
+
+
+def _as_utc(value: datetime | None) -> datetime | None:
+    """SQLite отдаёт наивное время; сравнивать его с осведомлённым — ошибка времени
+    выполнения, а не расхождение чисел, поэтому приводим в одном месте."""
+    if value is None:
+        return None
+    return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+
+
+@dataclass(frozen=True)
+class DemoScope:
+    """Что сводка не считает (L2): демо-организации и людей, кроме них нигде не
+    состоящих. Демо смотрят посетители сайта, а не клиенты: посчитанное, оно выглядело бы
+    самой активной организацией платформы — отметка присутствия демо-входа обновляется
+    каждым посетителем."""
+
+    organizations: frozenset[str] = frozenset()
+    users: frozenset[str] = frozenset()
+
+
+def demo_scope(db: Session) -> DemoScope:
+    orgs = frozenset(db.execute(select(Organization.id).where(
+        Organization.is_demo.is_(True))).scalars())
+    if not orgs:
+        return DemoScope()
+    member_of: dict[str, set[str]] = {}
+    for user_id, org_id in db.execute(select(Membership.user_id, Membership.organization_id)):
+        member_of.setdefault(user_id, set()).add(org_id)
+    flagged = set(db.execute(select(User.id).where(User.is_demo.is_(True))).scalars())
+    only_demo = {u for u, o in member_of.items() if o <= orgs}
+    return DemoScope(organizations=orgs, users=frozenset(only_demo | flagged))
+
+
+def monthly_growth(db: Session, now: datetime, months: int = 12) -> list[MonthPoint]:
+    """Сколько организаций и пользователей появлялось по месяцам (без демо, L2)."""
+    periods = _months_back(now, months)
+    orgs: dict[str, int] = {p: 0 for p in periods}
+    users: dict[str, int] = {p: 0 for p in periods}
+    demo = demo_scope(db)
+    for org_id, created in db.execute(select(Organization.id, Organization.created_at)):
+        if org_id in demo.organizations:
+            continue
+        key = _month(_as_utc(created) or now)
+        if key in orgs:
+            orgs[key] += 1
+    for user_id, created in db.execute(select(User.id, User.created_at)):
+        if user_id in demo.users:
+            continue
+        key = _month(_as_utc(created) or now)
+        if key in users:
+            users[key] += 1
+    return [MonthPoint(period=p, organizations=orgs[p], users=users[p]) for p in periods]
+
+
+def plan_slices(db: Session) -> list[PlanSlice]:
+    """Сколько организаций на каком тарифе — по каждому продукту.
+
+    Считаются **оформленные подписки**: организация без подписки работает на тарифе по
+    умолчанию, но приписать её к нему здесь значило бы смешать «выбрал бесплатный» с
+    «не выбирал ничего» — разные разговоры с клиентом (то же различие, что и в карточке).
+    """
+    demo = demo_scope(db)
+    rows = db.execute(
+        select(Subscription.product, Subscription.plan_code, func.count())
+        .where(Subscription.organization_id.notin_(demo.organizations))
+        .group_by(Subscription.product, Subscription.plan_code)
+    ).all()
+    out = [
+        PlanSlice(product=product, plan_code=code,
+                  plan_name=get_plan(code, product).name, organizations=int(count))
+        for product, code, count in rows
+    ]
+    return sorted(out, key=lambda s: (s.product, s.plan_code))
+
+
+def _organizations(db: Session, demo: DemoScope) -> int:
+    total = int(db.scalar(select(func.count()).select_from(Organization)) or 0)
+    return total - len(demo.organizations)
+
+
+def _activity(db: Session, now: datetime) -> tuple[dict[int, int], dict[int, int], int]:
+    """Активные пользователи и организации по окнам + участники без отметки.
+
+    Активность читается из ``Membership.last_seen_at`` — той же отметки, что видит
+    администратор организации (A3). Второй источник дал бы два разных ответа на вопрос
+    «работает ли человек», и оба выглядели бы одинаково правдоподобно.
+    """
+    demo = demo_scope(db)
+    rows = [(user_id, org_id, _as_utc(seen)) for user_id, org_id, seen in
+            db.execute(select(Membership.user_id, Membership.organization_id,
+                              Membership.last_seen_at)).all()
+            if org_id not in demo.organizations]
+    without_mark = sum(1 for _, _, seen in rows if seen is None)
+    users: dict[int, int] = {}
+    orgs: dict[int, int] = {}
+    for days in ACTIVE_WINDOWS:
+        edge = now - timedelta(days=days)
+        fresh = [(user_id, org_id) for user_id, org_id, seen in rows
+                 if seen is not None and seen >= edge]
+        # Человек считается один раз, даже если работал в трёх организациях: иначе
+        # «активных пользователей» окажется больше, чем пользователей.
+        users[days] = len({user_id for user_id, _ in fresh})
+        orgs[days] = len({org_id for _, org_id in fresh})
+    return users, orgs, without_mark
+
+
+def activation_funnel(db: Session, totals: TenantTotals) -> list[FunnelStep]:
+    """Воронка активации: зарегистрировался → завёл → посчитал → выгрузил → оплатил.
+
+    Считается **из уже существующего**: организации, их проекты и дела, даты последнего
+    расчёта и записи журнала о выгрузках. Событий (E2) для этого не нужно — поэтому
+    воронка есть и в установках, где сбор выключен.
+
+    Шага «открыл результаты» в ней нет намеренно: отдельного маршрута у этого экрана не
+    существует, он зовёт расчёт, и шаг был бы вторым именем предыдущего.
+    """
+    demo = demo_scope(db)
+    organizations = _organizations(db, demo)
+    paid = int(db.scalar(
+        select(func.count(func.distinct(Subscription.organization_id)))
+        .where(Subscription.plan_code != DEFAULT_PLAN,
+               Subscription.organization_id.notin_(demo.organizations))) or 0)
+    steps = [
+        FunnelStep("signup", "Завели организацию", organizations),
+        FunnelStep("created", "Завели проект или дело", totals.with_entities),
+        FunnelStep("calculated", "Посчитали хотя бы раз", totals.with_calculation),
+        FunnelStep("exported", "Выгрузили документ", totals.with_export),
+        FunnelStep("paid", "Перешли на платный тариф", paid),
+    ]
+    base = steps[0].organizations
+    for step in steps:
+        step.share = (step.organizations / base) if base else None
+    return steps
+
+
+def retention(db: Session, now: datetime, months: int) -> list[RetentionPoint]:
+    """Удержание по когортам месяца регистрации — **только по событиям** (E2).
+
+    До появления событий это не считалось вовсе: отметка присутствия хранит одно
+    последнее значение, и «вернулся ли человек через неделю» из неё не выводится. Там,
+    где событий нет, стоит ``None`` — «не измеряется», а не ноль: ноль читался бы как
+    «все ушли».
+    """
+    demo = demo_scope(db)
+    rows = [row for row in db.execute(select(UsageEvent.organization_id, UsageEvent.event,
+                                             UsageEvent.created_at)).all()
+            if row[0] not in demo.organizations]
+    if not rows:
+        return []
+    arrived: dict[str, str] = {}          # организация → месяц первого события
+    seen: dict[str, set[str]] = {}        # организация → месяцы, когда была активность
+    for org_id, event, created in rows:
+        stamp = created if created.tzinfo else created.replace(tzinfo=timezone.utc)
+        month = _month(stamp)
+        seen.setdefault(org_id, set()).add(month)
+        if event == "signup":
+            arrived[org_id] = month
+        elif org_id not in arrived or month < arrived[org_id]:
+            arrived.setdefault(org_id, month)
+    out: list[RetentionPoint] = []
+    for month in _months_back(now, months):
+        cohort = [org for org, first in arrived.items() if first == month]
+        if not cohort:
+            out.append(RetentionPoint(month=month, arrived=0, returned=None))
+            continue
+        came_back = sum(1 for org in cohort if any(m > month for m in seen.get(org, ())))
+        out.append(RetentionPoint(month=month, arrived=len(cohort), returned=came_back))
+    return out
+
+
+def staff_organizations(db: Session) -> frozenset[str]:
+    """Служебные организации (L8): у которых **все** участники — сотрудники платформы.
+
+    Их заводят для проверки, а не для работы: посчитанные, они выглядели бы самыми
+    быстрыми клиентами — сотрудник знает продукт и считает в первую же минуту. Признак
+    «владелец — сотрудник» был бы хуже: пилот, который платформа завела и куда пригласила
+    клиента, — клиентский. Организация без участников служебной не считается: «все из
+    пустого множества» не говорит ничего.
+    """
+    members: dict[str, list[bool]] = {}
+    for org_id, is_staff in db.execute(
+            select(Membership.organization_id, User.is_staff)
+            .join(User, User.id == Membership.user_id)):
+        members.setdefault(org_id, []).append(bool(is_staff))
+    return frozenset(org for org, flags in members.items() if flags and all(flags))
+
+
+def _week_start(stamp: datetime) -> datetime:
+    """Понедельник недели, полночь UTC: недели считаются по UTC, как и месяцы сводки."""
+    day = stamp.astimezone(timezone.utc).date()
+    monday = day - timedelta(days=day.weekday())
+    return datetime(monday.year, monday.month, monday.day, tzinfo=timezone.utc)
+
+
+def _is_calculation(event: str, context: dict | None) -> bool | None:
+    """Считается ли событие расчётом своей модели (L8).
+
+    Расчёт проекта — открытие его результатов: этот экран зовёт расчёт, и туда приходят
+    специально. Разбор дела зовёт **каждое открытие** дела, поэтому засчитывается только
+    разбор дела с отчётностью. ``None`` — разбор, записанный до появления признака:
+    пустое это было дело или нет, из события не видно.
+    """
+    if event == "project.calculate":
+        return True
+    if event != "case.analyze":
+        return False
+    reporting = (context or {}).get("reporting")
+    if reporting is None:
+        return None
+    return reporting == "filled"
+
+
+def activation(db: Session, now: datetime, *, collecting: bool,
+               weeks: int = ACTIVATION_WEEKS) -> Activation:
+    """Активация по недельным когортам регистрации — **только по событиям** (L8).
+
+    Когорта — организации, зарегистрированные за неделю (событие ``signup``);
+    активированная — посчитавшая свою модель за :data:`ACTIVATION_DAYS` дней после
+    регистрации. Первый расчёт нигде больше не хранится: у проекта есть дата
+    **последнего** расчёта, и «когда посчитали впервые» из неё не вывести. Поэтому только
+    события — и где их нет, «не измеряется», а не ноль.
+
+    Неделя **не измеряется**, если прошла без записи событий: раньше первого события
+    платформы или — когда сбор сейчас выключен — после последнего (когда именно его
+    выключили, не видно, а нули там читались бы как «никто не приходил»).
+
+    Демо и служебные организации не считаются: первых смотрят посетители сайта, вторые
+    заводят для проверки. Служебные при этом **названы числом** — молча выброшенное
+    выглядит как неизмеренное.
+    """
+    demo = demo_scope(db).organizations
+    staff = staff_organizations(db)
+    signups: dict[str, datetime] = {}
+    calculations: dict[str, list[datetime]] = {}
+    unmarked: dict[str, list[datetime]] = {}
+    first: datetime | None = None
+    last: datetime | None = None
+    for org_id, event, context, created in db.execute(
+            select(UsageEvent.organization_id, UsageEvent.event, UsageEvent.context,
+                   UsageEvent.created_at)):
+        if org_id in demo:
+            continue
+        stamp = created if created.tzinfo else created.replace(tzinfo=timezone.utc)
+        first = stamp if first is None or stamp < first else first
+        last = stamp if last is None or stamp > last else last
+        if event == "signup":
+            if org_id not in signups or stamp < signups[org_id]:
+                signups[org_id] = stamp
+            continue
+        counted = _is_calculation(event, context)
+        if counted:
+            calculations.setdefault(org_id, []).append(stamp)
+        elif counted is None:
+            unmarked.setdefault(org_id, []).append(stamp)
+
+    window = timedelta(days=ACTIVATION_DAYS)
+    this_week = _week_start(now)
+    starts = [this_week - timedelta(weeks=k) for k in reversed(range(weeks))]
+    out = Activation(first_event_at=first)
+    done: list[float] = []
+    for start in starts:
+        end = start + timedelta(days=7)
+        label = start.date().isoformat()
+        measured = (first is not None and first < end
+                    and (collecting or (last is not None and start <= last)))
+        if not measured:
+            out.weeks.append(ActivationWeek(week=label))
+            continue
+        assert first is not None                       # measured ровно это и означает
+        cohort = [(org, at) for org, at in signups.items() if start <= at < end]
+        out.staff_excluded += sum(1 for org, _ in cohort if org in staff)
+        cohort = [(org, at) for org, at in cohort if org not in staff]
+        delays: list[float] = []
+        for org, at in cohort:
+            reached = [c for c in calculations.get(org, ()) if at <= c <= at + window]
+            if reached:
+                delays.append((min(reached) - at).total_seconds() / 3600)
+            elif any(at <= c <= at + window for c in unmarked.get(org, ())):
+                out.unmarked_orgs += 1
+        complete = end + window <= now
+        out.weeks.append(ActivationWeek(
+            week=label, signed_up=len(cohort), activated=len(delays),
+            share=(len(delays) / len(cohort)) if complete and cohort else None,
+            median_hours=median(delays) if complete and delays else None,
+            complete=complete, partial=first > start))
+        if complete:
+            out.signed_up += len(cohort)
+            out.activated += len(delays)
+            done.extend(delays)
+    out.share = out.activated / out.signed_up if out.signed_up else None
+    out.median_hours = median(done) if done else None
+    return out
+
+
+def revenue_by_month(db: Session, now: datetime, months: int) -> list[RevenuePoint]:
+    """Выручка платформы по месяцам (F2).
+
+    Суммируются **успешные** платежи: `pending` — это ещё не деньги, `canceled` — уже не
+    деньги. Группировка в Python, как и рост: помесячная свёртка на диалекте SQL прошла
+    бы тесты на SQLite и разошлась бы с PostgreSQL молча.
+
+    Пустой месяц остаётся в ряду с нулём — пропуск читался бы как потерянные данные.
+    """
+    window = _months_back(now, months)
+    totals: dict[str, RevenuePoint] = {m: RevenuePoint(month=m) for m in window}
+    earliest = window[0]
+    for payment in db.scalars(select(Payment).where(Payment.status == "succeeded")):
+        stamp = _as_utc(payment.created_at)
+        month = _month(stamp) if stamp else ""
+        if month < earliest or month not in totals:
+            continue
+        totals[month].rub += int(payment.amount_rub or 0)
+        totals[month].payments += 1
+    return [totals[m] for m in window]
+
+
+def _covered(first_at: datetime | None, month: str) -> bool:
+    """Застал ли ряд этот месяц. ``None`` первой записи — не застал вовсе."""
+    stamp = _as_utc(first_at)
+    return stamp is not None and month >= _month(stamp)
+
+
+def churn(db: Session, now: datetime, months: int, *, totals: TenantTotals) -> Churn:
+    """Отток по месяцам — **двумя картинами, которые не сводятся в одну** (F8).
+
+    Определение записано заранее и не меняется (OPEN-DECISIONS §1): отток — организация,
+    у которой **была платная** подписка и не стало. Триал, не ставший платным, — воронка,
+    а не отток; смешать их значит получить число, которым нельзя пользоваться.
+
+    **Картина 1 — журнал**: что записано как случившееся. Не продлили оплаченный период
+    (`billing.overdue`, запись оставляет скрипт эксплуатации) и ушли на бесплатный сами
+    (`billing.plan_change`, у которой назван прежний тариф). Записей нет — значит **не
+    измеряется**, и ряд говорит это словом, а не нулём: скрипт запускает эксплуатация, и
+    его молчание ничего не говорит о клиентах.
+
+    **Картина 2 — платежи**: кто платил и перестал. Последний успешный платёж пришёлся
+    на месяц, а оплаченного периода с льготным сроком у организации больше нет.
+
+    Делить одну картину на другую нельзя, и здесь этого нет: доля считается **внутри**
+    платежей (перестали / платили). Журнал записывает уходы, но не население, и частное
+    от деления «записанных уходов» на «плативших» было бы ровно тем сведением двух картин
+    в одно число, от которого метрику и уберегали.
+
+    Считается **организациями**, а не подписками: клиент, отказавшийся от одного продукта
+    и оставшийся на другом, ушедшим не считается. Иначе картины считали бы разные единицы
+    (платёж один на организацию) и перестали бы быть сравнимыми.
+    """
+    window = _months_back(now, months)
+    expired: dict[str, set[str]] = {m: set() for m in window}
+    downgraded: dict[str, set[str]] = {m: set() for m in window}
+    unreadable: dict[str, set[str]] = {m: set() for m in window}
+    unnamed = 0
+
+    for record in totals.churn_records:
+        stamp = _as_utc(record.at)
+        month = _month(stamp) if stamp else ""
+        if month not in expired:
+            continue
+        if record.action == "billing.overdue":
+            expired[month].add(record.organization_id)
+            continue
+        parsed = parse_plan_change(record.details)
+        if parsed is None:
+            # Прежний тариф не назван (запись сделана до F8): уход это или переключение
+            # бесплатного на бесплатный — из неё не видно, и гадать метрика не станет.
+            unnamed += 1
+            unreadable[month].add(record.organization_id)
+            continue
+        _, was, became = parsed
+        if is_paid_plan(was) and not is_paid_plan(became):
+            downgraded[month].add(record.organization_id)
+
+    payers, stopped = _payment_churn(db, now, window)
+    first_overdue = totals.first_churn_at.get("billing.overdue")
+    first_change = totals.first_churn_at.get("billing.plan_change")
+
+    points: list[ChurnPoint] = []
+    for month in window:
+        left: int | None = len(expired[month]) if _covered(first_overdue, month) else None
+        if not _covered(first_change, month):
+            went_free: int | None = None
+        elif not downgraded[month] and unreadable[month]:
+            # Записи в месяце есть, но читаемых среди них нет: ноль сказал бы «никто не
+            # уходил сам», а правда — «по этим записям не видно».
+            went_free = None
+        else:
+            went_free = len(downgraded[month])
+        paid_count, left_count = len(payers[month]), len(stopped[month])
+        points.append(ChurnPoint(
+            month=month, expired=left, downgraded=went_free,
+            payers=paid_count, stopped=left_count,
+            rate=(left_count / paid_count) if paid_count else None))
+    return Churn(months=points, expiry_logged=first_overdue is not None,
+                 unnamed_plan_changes=unnamed)
+
+
+def _payment_churn(db: Session, now: datetime,
+                   window: list[str]) -> tuple[dict[str, set[str]], dict[str, set[str]]]:
+    """«Платил и перестал» — вторая картина оттока, целиком из платежей и подписок.
+
+    Уход отнесён к месяцу **последнего платежа**, а не к месяцу, когда кончился
+    оплаченный период: «перестал платить» — это про платёж, которого не было, и датировать
+    его можно только последним, который был.
+
+    «Перестал» проверяется по подписке, а не по календарю от даты платежа: оплату за
+    несколько периодов сразу (оплата по счёту, F1) числом месяцев платформа в платеже не
+    хранит, зато ``current_period_end`` его уже учёл — и организация внутри оплаченного
+    периода ушедшей не считается, сколько бы месяцев назад она ни платила.
+    """
+    payers: dict[str, set[str]] = {m: set() for m in window}
+    last_paid: dict[str, str] = {}
+    for org_id, created in db.execute(
+            select(Payment.organization_id, Payment.created_at)
+            .where(Payment.status == "succeeded")):
+        stamp = _as_utc(created)
+        if stamp is None:
+            continue
+        month = _month(stamp)
+        if month in payers:
+            payers[month].add(org_id)
+        if month > last_paid.get(org_id, ""):
+            last_paid[org_id] = month
+    # Организации, у которых оплаченный период (с льготным сроком) ещё идёт хоть по
+    # одному продукту: они платят, и ушедшими их называть нечем.
+    paying_now = {
+        org_id for org_id, end in db.execute(
+            select(Subscription.organization_id, Subscription.current_period_end))
+        if end is not None and days_overdue(end, now) <= GRACE_DAYS
+    }
+    stopped: dict[str, set[str]] = {m: set() for m in window}
+    for org_id, month in last_paid.items():
+        if month in stopped and org_id not in paying_now:
+            stopped[month].add(org_id)
+    return payers, stopped
+
+
+def build_platform_metrics(db: Session, *, totals: TenantTotals, now: datetime | None = None,
+                           months: int = 12, since_days: int = 30) -> PlatformMetrics:
+    """Собрать сводку платформы. ``totals`` приходит снаружи — см. :class:`TenantTotals`."""
+    now = now or datetime.now(timezone.utc)
+    active_users, active_orgs, without_mark = _activity(db, now)
+    demo = demo_scope(db)
+    metrics = PlatformMetrics(
+        generated_at=now,
+        since_days=since_days,
+        organizations=_organizations(db, demo),
+        users=int(db.scalar(select(func.count()).select_from(User)) or 0) - len(demo.users),
+        active_users=active_users,
+        active_organizations=active_orgs,
+        members_without_mark=without_mark,
+        projects=totals.projects,
+        cases=totals.cases,
+        projects_calculated=totals.calculated,
+        exports=totals.exports,
+        growth=monthly_growth(db, now, months),
+        plans=plan_slices(db),
+        funnel=activation_funnel(db, totals),
+        retention=retention(db, now, months),
+        revenue=revenue_by_month(db, now, months),
+        churn=churn(db, now, months, totals=totals),
+        usage_collected=usage_collecting(),
+    )
+    metrics.activation = activation(db, now, collecting=metrics.usage_collected)
+    metrics.notes = _notes(metrics, totals)
+    if demo.organizations:
+        metrics.notes.append(
+            f"Демо-организации ({len(demo.organizations)}) и их учётные записи в сводке не "
+            "считаются: их смотрят посетители сайта, а не клиенты, и отметка присутствия "
+            "демо-входа обновляется каждым посетителем.")
+    return metrics
+
+
+def _notes(metrics: PlatformMetrics, totals: TenantTotals) -> list[str]:
+    """Чего эти числа **не** значат. Едет вместе с ними — в ответ, на экран и в файл.
+
+    Оговорка, оставленная в документации, до того, кто смотрит на график, не доходит;
+    а неназванный пробел читается как благополучие: ноль выгрузок за период, которого
+    журнал не застал, выглядит ровно как ноль выгрузок.
+    """
+    notes = [
+        f"«Считали» — сколько проектов открывали с расчётом за {metrics.since_days} дн., "
+        "а не сколько было расчётов: счётчика расчётов платформа не ведёт.",
+        "Выгрузки — документы «Элит» и «Аудита»; выгрузка журнала организации сюда не "
+        "входит.",
+    ]
+    if metrics.members_without_mark:
+        notes.append(
+            f"У {metrics.members_without_mark} участников отметки присутствия нет вовсе — "
+            "это «неизвестно», а не «не работают»: отметка ведётся не с первого дня.")
+    first_log = _as_utc(totals.first_log_at)
+    if first_log is None:
+        notes.append("Журнал действий пуст: выгрузки считать не из чего.")
+    else:
+        notes.append(
+            f"Журнал ведётся с {first_log.strftime('%d.%m.%Y')} — за более ранние даты "
+            "выгрузок не видно, и ноль там означает «не записывали».")
+    if totals.organizations_scanned < totals.organizations_total:
+        notes.append(
+            f"Объёмы и выгрузки посчитаны по {totals.organizations_scanned} организациям "
+            f"из {totals.organizations_total}: обход арендаторов ограничен.")
+    if not metrics.plans:
+        notes.append("Подписок никто не оформлял: все работают на тарифе по умолчанию.")
+    else:
+        # Пока подписка не кончалась, «оформлена» и «действует» были одним и тем же.
+        # Теперь это разные вещи, и срез по тарифам отвечает на первый вопрос, не на второй.
+        notes.append(
+            "Срез по тарифам считает **оформленные** подписки, включая те, у которых "
+            "оплаченный период уже закончился: «на каком тарифе организация» и «платит "
+            "ли она сейчас» — разные вопросы, и второй этот срез не задаёт.")
+    notes.append(
+        "Воронка активации отвечает «дошла ли организация до шага **когда-нибудь**», а не "
+        "«за период»: дошла в прошлом году — тоже дошла.")
+    if any(point.rub for point in metrics.revenue):
+        notes.append(
+            "Выручка — это **деньги, пришедшие в месяце**, а не выручка периода, за "
+            "который платили: признание по периодам требует учётной политики, которой у "
+            "платформы нет. Считаются только успешные платежи; возвратов платформа не "
+            "учитывает вовсе — механизма возврата в продукте нет, и вычесть их неоткуда. "
+            "Тариф «по запросу» суммы не имеет и в выручку не попадает.")
+    else:
+        notes.append(
+            "Успешных платежей за окно не было: ноль здесь означает «денег не приходило», "
+            "а не «не считали». Оплата по счёту попадает сюда, только если её провёл "
+            "оператор — назначением тарифа; прямые переводы мимо продукта платформа не "
+            "видит.")
+    notes.extend(_churn_notes(metrics.churn, totals))
+    notes.extend(_activation_notes(metrics.activation, collecting=metrics.usage_collected))
+    if not metrics.usage_collected:
+        notes.append(
+            "События пользования не собираются (`USAGE_EVENTS` выключен), поэтому "
+            "удержание **не измеряется**: отметка присутствия хранит только последнее "
+            "значение, и «вернулся ли человек через неделю» из неё не выводится. Пустой "
+            "график здесь честнее нарисованного.")
+    elif not metrics.retention:
+        notes.append(
+            "События собираются, но когорт ещё нет: удержание появится, когда пройдёт "
+            "хотя бы один месяц после первых регистраций.")
+    else:
+        notes.append(
+            "Удержание считается по событиям пользования и только с того момента, как их "
+            "начали собирать: у месяцев до этого стоит «не измеряется», а не ноль.")
+    return notes
+
+
+def _churn_notes(data: Churn, totals: TenantTotals) -> list[str]:
+    """Чего нет в числах оттока. Половина работы этого пункта — здесь.
+
+    Отток — метрика, которой пользуются, чтобы принимать решения о продукте, и каждый её
+    пропуск читается как благополучие: ноль ушедших выглядит ровно как «никто не уходит».
+    """
+    notes = [
+        "Отток — организация, у которой **была платная** подписка и не стало. Триал, не "
+        "ставший платным, сюда не входит: это воронка, а не отток, и смешать их значит "
+        "получить число, которым нельзя пользоваться.",
+        "Две картины оттока **не сводятся в одно число**: журнал отвечает «что записано "
+        "как случившееся», платежи — «кто платил и перестал». Пропуски у них разные, и "
+        "среднее между ними не значило бы ничего.",
+        "Считается организациями, а не подписками: клиент, отказавшийся от одного "
+        "продукта и оставшийся на другом, ушедшим не считается — иначе картины считали "
+        "бы разные единицы (платёж один на организацию) и перестали бы быть сравнимыми.",
+    ]
+    if not data.expiry_logged:
+        notes.append(
+            "Уход по окончании оплаченного периода **не измеряется**: записей "
+            "`billing.overdue` в журнале нет вовсе — сверку неоплаты ни разу не "
+            "проводили: ни планировщик (процесс beat не запущен), ни вручную "
+            "`scripts/expire_subscriptions.py`. Ноль здесь означал бы «никто не "
+            "уходит», а это другое утверждение.")
+    else:
+        first = _as_utc(totals.first_churn_at.get("billing.overdue"))
+        assert first is not None      # expiry_logged ровно это и означает
+        notes.append(
+            f"Уход по окончании периода виден с {first.strftime('%m.%Y')} — раньше стоит "
+            "«не измеряется»: запись оставляет сверка неоплаты (планировщик или скрипт "
+            "эксплуатации), и до её первого запуска её неоткуда было взять.")
+    if data.unnamed_plan_changes:
+        notes.append(
+            f"В {data.unnamed_plan_changes} записях о смене тарифа прежний тариф не "
+            "назван (сделаны до того, как журнал стал его писать): ушла организация с "
+            "платного или переключила бесплатный на бесплатный — из них не видно. В "
+            "отток они не взяты, а месяц, где других записей нет, показывает «не "
+            "измеряется».")
+    notes.append(
+        "«Платил и перестал» отнесён к месяцу **последнего платежа**, а не к месяцу, "
+        "когда кончился оплаченный период. Последние месяцы ещё могут вырасти: у части "
+        "плативших оплаченный период с льготным сроком не истёк, и ушедшими они пока не "
+        "считаются.")
+    notes.append(
+        "Организация, **закрывшая себя** (выгрузка и удаление), из обеих картин исчезает: "
+        "её журнал и её платежи удаляются вместе с ней. Факт закрытия остаётся в "
+        "служебном журнале, но платила ли она — оттуда не видно.")
+    notes.append(
+        "Назначение тарифа платформой (оплата по счёту) в отток не входит ни в одну "
+        "сторону: это её действие, а не решение клиента. Прекращение такой оплаты видно "
+        "по окончании периода — на общих основаниях.")
+    return notes
+
+
+def _activation_notes(data: Activation, *, collecting: bool) -> list[str]:
+    """Чего нет в числах активации (L8). Каждый её пропуск выглядел бы нулём."""
+    notes = [
+        f"Активация — организация посчитала свою модель за {data.days} дней после "
+        "регистрации: открыла результаты проекта или разобрала дело с отчётностью. "
+        "Проект из шаблона и демо-дело считаются — это модель организации, и результат "
+        "она увидела; открытие пустого дела расчётом не считается.",
+        "Медиана — время от регистрации до первого расчёта **у активировавшихся**: кто не "
+        "посчитал за неделю, в неё не входит, и его видно по доле рядом.",
+        "Когорта — регистрации: новая учётная запись с новой организацией. Организацию, "
+        "которую завёл уже зарегистрированный человек, в когорты не берём — продукт он уже "
+        "знал. Демо и служебные организации (все участники — сотрудники платформы) не "
+        "считаются. Недели — с понедельника по UTC, как и месяцы сводки.",
+    ]
+    first = _as_utc(data.first_event_at)
+    if first is None:
+        notes.append(
+            "Активация **не измеряется**: событий пользования не записано ни одного, а "
+            "первый расчёт больше нигде не хранится — у проекта есть только дата "
+            "последнего.")
+        return notes
+    notes.append(
+        f"События пишутся с {first.strftime('%d.%m.%Y')}: недели раньше — «не "
+        "измеряется», неделя начала сбора неполная — регистрации до него не видны.")
+    if any(w.signed_up is not None and not w.complete for w in data.weeks):
+        notes.append(
+            f"Последние недели не завершены: у части пришедших {data.days} дней ещё не "
+            "прошли. Доля и медиана появятся, когда пройдут, — пока видно, сколько уже "
+            "посчитали; итог считается только по завершённым неделям.")
+    if not collecting:
+        notes.append(
+            "Сбор событий сейчас выключен: недели после последнего записанного события — "
+            "«не измеряется». Кто посчитал после выключения, не виден, и доля последних "
+            "измеренных недель может быть занижена.")
+    if data.staff_excluded:
+        notes.append(
+            f"Служебных организаций с регистрацией в окне — {data.staff_excluded}; они не "
+            "посчитаны: сотрудник знает продукт и считает в первую минуту, и такая "
+            "«активация» выглядела бы лучшей на платформе.")
+    if data.unmarked_orgs:
+        notes.append(
+            f"У {data.unmarked_orgs} организаций за неделю после регистрации был только "
+            "разбор дела, записанный до того, как событие стало отмечать наличие "
+            "отчётности: пустое ли было дело, не видно, и в активацию они не взяты.")
+    return notes
+
+
+def product_label(product: str) -> str:
+    return PRODUCT_NAME.get(product, product)

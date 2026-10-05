@@ -1,35 +1,25 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { MouseEvent } from "react";
 import { NavLink, Outlet, matchPath, useLocation, useNavigate } from "react-router-dom";
 import { createOrganization, roleLabel } from "../api/org";
 import { useAuth } from "../auth/AuthContext";
+import { initials } from "../format";
 import { CubeHero } from "./CubeHero";
+import { applyProduct, PRODUCTS, productFromPath } from "./product";
+import { LOGIN_NOTICE_KEY } from "../pages/LoginPage";
+import { httpDetail } from "../api/client";
+import { RestrictionBanner } from "./RestrictionBanner";
 import { useToast } from "./Toast";
 import { getTheme, toggleTheme, type Theme } from "./theme";
-import { Button, Field, Modal } from "./ui";
+import { Button, Field, Modal, useDialogFocus } from "./ui";
 
 /**
  * Каркас приложения (макет «Этап 3»): шапка с куб-маркой и навигацией,
  * орг-селектор с меню, тумблер темы, user-меню, мобильный drawer.
  */
 
-/** Инициалы из названия/имени: «Финмодель Консалтинг» → «ФК». */
-function initials(name: string | null | undefined, fallback = "•"): string {
-  const words = (name ?? "").trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return fallback;
-  return words
-    .slice(0, 2)
-    .map((w) => w[0]!.toUpperCase())
-    .join("");
-}
-
 /** Палитра аватаров организаций в списке (цикл из макета). */
 const ORG_AVATAR_BG = ["", "#5E93FF", "#C77DFF"];
-
-const NAV = [
-  ["/projects", "Проекты"],
-  ["/holdings", "Холдинги"],
-  ["/organization", "Организация"],
-] as const;
 
 const PROJECT_MODES = [
   ["", "Редактор"],
@@ -37,13 +27,27 @@ const PROJECT_MODES = [
   ["/analysis", "Анализ"],
 ] as const;
 
+/** Ссылка «к содержимому»: фокус на `main`, адрес не трогается (см. разметку). */
+function skipToContent(e: MouseEvent<HTMLAnchorElement>) {
+  e.preventDefault();
+  const main = document.getElementById("content");
+  main?.focus();
+  main?.scrollIntoView({ block: "start" });
+}
+
 export function Layout() {
   const { user, organizations, currentOrgId, selectOrg, logout } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const toast = useToast();
   const [theme, setTheme] = useState<Theme>(getTheme());
-  const [open, setOpen] = useState<null | "org" | "user" | "mobile">(null);
+  const [open, setOpen] = useState<null | "org" | "user" | "mobile" | "product">(null);
+
+  // Активный продукт (по маршруту) → тема (зелёная/фиолетовая) + шапка/навигация.
+  const product = PRODUCTS[productFromPath(pathname)];
+  useEffect(() => {
+    applyProduct(product.id);
+  }, [product.id]);
   const [createOpen, setCreateOpen] = useState(false);
   const [newOrgName, setNewOrgName] = useState("");
   const [creating, setCreating] = useState(false);
@@ -61,10 +65,29 @@ export function Layout() {
     setDrawerOrgList(false);
   }, [pathname]);
 
+  // Примечание входа (C2) — один раз и в рабочей области: на экране входа его прочесть
+  // не успевают, страница сменяется через мгновение.
   useEffect(() => {
-    if (!open) return;
+    const notice = sessionStorage.getItem(LOGIN_NOTICE_KEY);
+    if (!notice) return;
+    sessionStorage.removeItem(LOGIN_NOTICE_KEY);
+    toast(notice, { kind: "warn" });
+  }, [toast]);
+
+  // Выдвижная панель — диалог (пакет I): фокус внутрь, Tab по кругу, Esc и возврат на
+  // кнопку — тот же хук, что у модалки. Её Esc обрабатывает он, а не обработчик меню ниже.
+  const drawerRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(open === "mobile", drawerRef, () => setOpen(null));
+
+  useEffect(() => {
+    if (!open || open === "mobile") return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(null);
+      if (e.key !== "Escape") return;
+      // Фокус — на кнопку, открывшую меню (она одна в шапке говорит «развёрнуто»):
+      // пункт меню исчезает вместе с ним, и без этого фокус падал бы на <body>.
+      const trigger = document.querySelector<HTMLElement>('.shell-header [aria-expanded="true"]');
+      setOpen(null);
+      trigger?.focus();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
@@ -90,9 +113,10 @@ export function Layout() {
       const org = await createOrganization(name);
       selectOrg(org.id);
       window.location.reload();
-    } catch {
+    } catch (err: unknown) {
       setCreating(false);
-      toast("Не удалось создать организацию", { kind: "error" });
+      // Отказ сервера содержательный (демо-вход, предел организаций) — его словами.
+      toast(httpDetail(err) ?? "Не удалось создать организацию", { kind: "error" });
     }
   }
 
@@ -113,21 +137,80 @@ export function Layout() {
 
   return (
     <div className="app">
+      {/* Первая остановка табуляции (пакет K, K5): шапка с продуктом, организациями и
+          меню повторяется на каждой странице, и без обхода её проходят клавишей Tab
+          заново (WCAG 2.4.1). Видна только в фокусе. Переход — фокусом, а не адресом:
+          «#content» в строке адреса роутер принял бы за смену страницы. */}
+      <a href="#content" className="skip-link" onClick={skipToContent}>
+        Перейти к содержимому
+      </a>
       <header className="shell-header">
         <div className="shell-left">
-          <NavLink to="/projects" className="shell-brand" style={{ textDecoration: "none" }}>
+          <NavLink to={product.home} className="shell-brand" style={{ textDecoration: "none" }}>
             <div className="shell-mark">
-              <CubeHero backdrop="transparent" showEnvironment={false} showOrbit={false} pointerTilt={false} />
+              {/* Куб-марка следует продукту: зелёный (Финанс-Элит) / фиолетовый (Финанс-Аудит). */}
+              <CubeHero accent={product.cubeAccent} backdrop="transparent" showEnvironment={false} showOrbit={false} pointerTilt={false} />
             </div>
             <span className="shell-word">
-              Финанс<span>-Элит</span>
+              Финанс<span>{product.brand}</span>
             </span>
           </NavLink>
+
+          <div className="shell-prodwrap" style={{ position: "relative" }}>
+            <button
+              type="button"
+              className="prod-switch"
+              onClick={() => setOpen(open === "product" ? null : "product")}
+              aria-expanded={open === "product"}
+              title="Переключить продукт"
+              aria-label={`Продукт: ${product.id === "audit" ? "Аудит" : "Бизнес-план"}`}
+            >
+              <span>{product.id === "audit" ? "Аудит" : "Бизнес-план"}</span>
+              <span className="shell-chev" aria-hidden="true">▾</span>
+            </button>
+            {open === "product" && (
+              <div className="menu menu--product">
+                <div className="menu__head">Продукт</div>
+                <button
+                  aria-pressed={product.id === "business"}
+                  type="button"
+                  className={"menu__item" + (product.id === "business" ? " menu__item--active" : "")}
+                  onClick={() => { setOpen(null); navigate(PRODUCTS.business.home); }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="menu__name">Финанс-Элит</div>
+                    <div className="menu__role">Бизнес-план и прогноз</div>
+                  </div>
+                  {product.id === "business" && <span className="menu__check" aria-hidden="true">✓</span>}
+                </button>
+                <button
+                  aria-pressed={product.id === "audit"}
+                  type="button"
+                  className={"menu__item" + (product.id === "audit" ? " menu__item--active" : "")}
+                  onClick={() => { setOpen(null); navigate(PRODUCTS.audit.home); }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="menu__name">Финанс-Аудит</div>
+                    <div className="menu__role">Анализ фактической отчётности</div>
+                  </div>
+                  {product.id === "audit" && <span className="menu__check" aria-hidden="true">✓</span>}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* У продукта с рейлом навигация живёт в рейле, и в шапке её нет вовсе:
+              спрятанная разметка осталась бы во втором экземпляре — для скринридера
+              и для поиска по странице это два одинаковых меню. */}
+          {!product.rail && (
           <nav className="shell-nav">
-            {NAV.map(([to, label]) => (
+            {product.nav.map(([to, label]) => (
               <NavLink
                 key={to}
                 to={to}
+                // Пункт, под которым вложен другой пункт меню, подсвечивается только на
+                // самом себе — иначе «Дела» и «Группа» горели бы одновременно.
+                end={product.nav.some(([other]) => other !== to && other.startsWith(to + "/"))}
                 className={({ isActive }) =>
                   "shell-nav__item" + (isActive ? " shell-nav__item--active" : "")
                 }
@@ -136,6 +219,7 @@ export function Layout() {
               </NavLink>
             ))}
           </nav>
+          )}
         </div>
 
         <div className="shell-right">
@@ -149,15 +233,16 @@ export function Layout() {
                     onClick={() => setOpen(open === "org" ? null : "org")}
                     aria-expanded={open === "org"}
                   >
-                    <div className="org-avatar">{initials(currentOrg.name)}</div>
+                    <div className="org-avatar" aria-hidden="true">{initials(currentOrg.name)}</div>
                     <span className="shell-orgname">{currentOrg.name}</span>
-                    <span className="shell-chev">▾</span>
+                    <span className="shell-chev" aria-hidden="true">▾</span>
                   </button>
                   {open === "org" && (
                     <div className="menu menu--org">
                       <div className="menu__head">Организации</div>
                       {orgMenu.map((o) => (
                         <button
+                          aria-pressed={o.active}
                           key={o.id}
                           type="button"
                           className={"menu__item" + (o.active ? " menu__item--active" : "")}
@@ -165,6 +250,7 @@ export function Layout() {
                         >
                           <div
                             className="org-avatar org-avatar--30"
+                            aria-hidden="true"
                             style={o.avatarBg ? { background: o.avatarBg, color: "#fff" } : undefined}
                           >
                             {initials(o.name)}
@@ -173,7 +259,7 @@ export function Layout() {
                             <div className="menu__name">{o.name}</div>
                             <div className="menu__role">{roleLabel(o.role)}</div>
                           </div>
-                          {o.active && <span className="menu__check">✓</span>}
+                          {o.active && <span className="menu__check" aria-hidden="true">✓</span>}
                         </button>
                       ))}
                       <div className="menu__div" />
@@ -186,7 +272,7 @@ export function Layout() {
                           setCreateOpen(true);
                         }}
                       >
-                        <span className="menu__ico">＋</span>Создать организацию
+                        <span className="menu__ico" aria-hidden="true">＋</span>Создать организацию
                       </button>
                       <button
                         type="button"
@@ -196,14 +282,14 @@ export function Layout() {
                           navigate("/organization");
                         }}
                       >
-                        <span className="menu__ico">⚙</span>Управление организацией
+                        <span className="menu__ico" aria-hidden="true">⚙</span>Управление организацией
                       </button>
                     </div>
                   )}
                 </>
               ) : (
                 <div className="shell-orgbtn shell-orgbtn--static">
-                  <div className="org-avatar">{initials(currentOrg.name)}</div>
+                  <div className="org-avatar" aria-hidden="true">{initials(currentOrg.name)}</div>
                   <span className="shell-orgname">{currentOrg.name}</span>
                 </div>
               )}
@@ -214,9 +300,10 @@ export function Layout() {
             type="button"
             className="icon-btn38"
             title="Переключить тему"
+            aria-label={theme === "dark" ? "Включить светлую тему" : "Включить тёмную тему"}
             onClick={() => setTheme(toggleTheme())}
           >
-            <span style={{ fontSize: theme === "dark" ? 15 : 14 }}>{theme === "dark" ? "☀" : "☾"}</span>
+            <span aria-hidden="true" style={{ fontSize: theme === "dark" ? 15 : 14 }}>{theme === "dark" ? "☀" : "☾"}</span>
           </button>
 
           {user && (
@@ -226,15 +313,16 @@ export function Layout() {
                 className="shell-userbtn"
                 onClick={() => setOpen(open === "user" ? null : "user")}
                 aria-expanded={open === "user"}
+                aria-label={`Меню учётной записи: ${user.email}`}
               >
-                <div className="user-avatar">{initials(user.full_name || user.email)}</div>
+                <div className="user-avatar" aria-hidden="true">{initials(user.full_name || user.email)}</div>
                 <span className="shell-useremail">{user.email}</span>
-                <span className="shell-chev">▾</span>
+                <span className="shell-chev" aria-hidden="true">▾</span>
               </button>
               {open === "user" && (
                 <div className="menu menu--user">
                   <div style={{ display: "flex", alignItems: "center", gap: 11, padding: 9 }}>
-                    <div className="user-avatar user-avatar--lg">{initials(user.full_name || user.email)}</div>
+                    <div className="user-avatar user-avatar--lg" aria-hidden="true">{initials(user.full_name || user.email)}</div>
                     <div style={{ minWidth: 0 }}>
                       {user.full_name && <div className="menu__uname">{user.full_name}</div>}
                       <div className="menu__umail">{user.email}</div>
@@ -246,21 +334,40 @@ export function Layout() {
                     className="menu__link"
                     onClick={() => setTheme(toggleTheme())}
                   >
-                    <span className="menu__ico">◐</span>Сменить тему
+                    <span className="menu__ico" aria-hidden="true">◐</span>Сменить тему
                     <span style={{ marginLeft: "auto", font: "600 11px var(--font-ui)", color: "var(--subtle)" }}>
                       {themeLabel}
                     </span>
                   </button>
+                  {/* Служебный раздел платформы (B1). Пункт показывается только
+                      сотруднику — но показ не даёт прав: их проверяет сервер на каждом
+                      служебном запросе. */}
+                  {user.is_staff && (
+                    <>
+                      <div className="menu__div" />
+                      <button
+                        type="button"
+                        className="menu__link"
+                        onClick={() => {
+                          setOpen(null);
+                          navigate("/admin");
+                        }}
+                      >
+                        <span className="menu__ico" aria-hidden="true">◈</span>Платформа
+                      </button>
+                    </>
+                  )}
                   <div className="menu__div" />
                   <button type="button" className="menu__link menu__link--danger" onClick={doLogout}>
-                    <span className="menu__ico">⇥</span>Выйти
+                    <span className="menu__ico" aria-hidden="true">⇥</span>Выйти
                   </button>
                 </div>
               )}
             </div>
           )}
 
-          <button type="button" className="icon-btn38 shell-burger-btn" title="Меню" onClick={() => setOpen("mobile")}>
+          <button type="button" className="icon-btn38 shell-burger-btn" title="Меню" aria-label="Меню"
+                  aria-expanded={open === "mobile"} onClick={() => setOpen("mobile")}>
             <div className="shell-burger">
               <span />
               <span />
@@ -270,15 +377,17 @@ export function Layout() {
         </div>
       </header>
 
-      {(open === "org" || open === "user") && <div className="menu-overlay" onClick={() => setOpen(null)} />}
+      {(open === "org" || open === "user" || open === "product") && (
+        <div className="menu-overlay" onClick={() => setOpen(null)} />
+      )}
 
       {open === "mobile" && (
         <>
           <div className="drawer-overlay" onClick={() => setOpen(null)} />
-          <div className="drawer" role="dialog" aria-label="Меню">
+          <div className="drawer" role="dialog" aria-modal="true" aria-label="Меню" ref={drawerRef} tabIndex={-1}>
             <div className="drawer__head">
               <span className="shell-word">
-                Финанс<span>-Элит</span>
+                Финанс<span>{product.brand}</span>
               </span>
               <button type="button" className="icon-btn38" onClick={() => setOpen(null)} aria-label="Закрыть">
                 <span style={{ fontSize: 15, color: "var(--muted)" }}>✕</span>
@@ -293,7 +402,7 @@ export function Layout() {
                   onClick={() => multi && setDrawerOrgList((v) => !v)}
                   style={multi ? undefined : { cursor: "default" }}
                 >
-                  <div className="org-avatar">{initials(currentOrg.name)}</div>
+                  <div className="org-avatar" aria-hidden="true">{initials(currentOrg.name)}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="menu__name">{currentOrg.name}</div>
                     <div className="menu__role">
@@ -301,7 +410,7 @@ export function Layout() {
                       {multi && " · сменить"}
                     </div>
                   </div>
-                  {multi && <span className="shell-chev">▾</span>}
+                  {multi && <span className="shell-chev" aria-hidden="true">▾</span>}
                 </button>
                 {drawerOrgList &&
                   orgMenu
@@ -323,8 +432,28 @@ export function Layout() {
               </>
             )}
 
+            <div className="drawer__label">Продукт</div>
+            <button
+              aria-pressed={product.id === "business"}
+              type="button"
+              className={"drawer__item" + (product.id === "business" ? " drawer__item--active" : "")}
+              onClick={() => navigate(PRODUCTS.business.home)}
+            >
+              <span className={"drawer__dot" + (product.id === "business" ? "" : " drawer__dot--off")} />
+              Финанс-Элит · Бизнес-план
+            </button>
+            <button
+              aria-pressed={product.id === "audit"}
+              type="button"
+              className={"drawer__item" + (product.id === "audit" ? " drawer__item--active" : "")}
+              onClick={() => navigate(PRODUCTS.audit.home)}
+            >
+              <span className={"drawer__dot" + (product.id === "audit" ? "" : " drawer__dot--off")} />
+              Финанс-Аудит · Аудит
+            </button>
+
             <div className="drawer__label">Навигация</div>
-            {NAV.map(([to, label]) => (
+            {product.nav.map(([to, label]) => (
               <NavLink
                 key={to}
                 to={to}
@@ -355,15 +484,28 @@ export function Layout() {
               </>
             )}
 
+            {/* Служебный раздел — и в узком окне: сотрудник платформы разбирает
+                обращения не только за большим экраном. */}
+            {user?.is_staff && (
+              <>
+                <div className="drawer__label">Платформа</div>
+                <button type="button" className="drawer__item"
+                        onClick={() => { setOpen(null); navigate("/admin"); }}>
+                  <span className="drawer__dot drawer__dot--off" />
+                  Клиенты и тарифы
+                </button>
+              </>
+            )}
+
             <div className="menu__div" />
             <button type="button" className="drawer__item" onClick={() => setTheme(toggleTheme())}>
-              <span style={{ marginRight: 10 }}>{theme === "dark" ? "☀" : "☾"}</span>
+              <span aria-hidden="true" style={{ marginRight: 10 }}>{theme === "dark" ? "☀" : "☾"}</span>
               Тема: {themeLabel}
             </button>
 
             {user && (
               <div className="drawer__user">
-                <div className="user-avatar user-avatar--lg">{initials(user.full_name || user.email)}</div>
+                <div className="user-avatar user-avatar--lg" aria-hidden="true">{initials(user.full_name || user.email)}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   {user.full_name && <div className="menu__uname">{user.full_name}</div>}
                   <div className="menu__umail">{user.email}</div>
@@ -410,9 +552,41 @@ export function Layout() {
         </form>
       </Modal>
 
-      <main className="content">
-        <Outlet />
-      </main>
+      <div className="shell-body">
+        {product.rail && (
+          <nav className="rail" aria-label="Разделы продукта">
+            {product.rail.map((section) => (
+              <div className="rail__section" key={section.title}>
+                <div className="rail__title">{section.title}</div>
+                {section.items.map(([to, label]) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    end={section.items.some(([o]) => o !== to && o.startsWith(to + "/"))}
+                    title={label}
+                    className={({ isActive }) =>
+                      "rail__item" + (isActive ? " rail__item--active" : "")
+                    }
+                  >
+                    <span className="rail__ico" aria-hidden="true">
+                      {label.slice(0, 1)}
+                    </span>
+                    <span className="rail__label">{label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            ))}
+          </nav>
+        )}
+        <main className="content" id="content" tabIndex={-1}>
+          {/* Режим чтения и выгрузки — над содержимым и на каждом экране: отказ,
+              объяснённый один раз на странице тарифа, до того, кто нажимает
+              «Сохранить» на третьей вкладке редактора, не доходит. */}
+          <RestrictionBanner org={currentOrg} product={product.id}
+                             onRegister={() => { logout(); navigate("/register"); }} />
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import {
   duplicateProject,
   listProjects,
   listTemplates,
+  type TemplateInfo,
 } from "../api/projects";
 import type { ProjectSummary } from "../api/types";
 import { CubeHero } from "../components/CubeHero";
@@ -21,8 +22,9 @@ import {
   IconTrash,
 } from "../components/icons";
 import { useToast } from "../components/Toast";
-import { Button, Modal, Skeleton } from "../components/ui";
+import { Button, ErrorState, Modal, Skeleton } from "../components/ui";
 import { fmtMillions, percent } from "../format";
+import { usePageTitle } from "../pageTitle";
 
 /** Вид списка (localStorage). */
 const VIEW_KEY = "fe_projects_view";
@@ -54,6 +56,8 @@ function plural(n: number, one: string, few: string, many: string): string {
 type Status = { text: string; dot: string; cls: string };
 
 function statusOf(p: ProjectSummary): Status {
+  // Финализация имеет приоритет: правка модели снимает её на бэкенде, так что «Изменён» тут не бывает.
+  if (p.status === "finalized") return { text: "Финализирован", dot: "✓", cls: "status-chip status-chip--good" };
   if (!p.last_calc) return { text: "Черновик", dot: "○", cls: "status-chip status-chip--warn" };
   if (p.is_stale) return { text: "Изменён", dot: "●", cls: "status-chip status-chip--info" };
   return { text: "Рассчитан", dot: "●", cls: "status-chip" };
@@ -76,6 +80,7 @@ function dateText(p: ProjectSummary): string {
 }
 
 export function ProjectsPage() {
+  usePageTitle("Проекты");
   const qc = useQueryClient();
   const navigate = useNavigate();
   const toast = useToast();
@@ -84,6 +89,8 @@ export function ProjectsPage() {
   const [view, setView] = useState<View>(() => (localStorage.getItem(VIEW_KEY) as View) || "cards");
   const [creatingTpl, setCreatingTpl] = useState<string | null>(null);
   const [created, setCreated] = useState<{ id: string; name: string } | null>(null);
+  /** Шаблон, который человек рассматривает: сначала оговорки, потом создание (D4). */
+  const [preview, setPreview] = useState<TemplateInfo | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const { data, isLoading, isError, refetch } = useQuery({ queryKey: ["projects"], queryFn: listProjects });
@@ -200,14 +207,9 @@ export function ProjectsPage() {
       )}
 
       {isError && (
-        <div className="error-state" style={{ padding: "56px 24px" }}>
-          <div className="error-state__ico">!</div>
-          <div className="error-state__title">Не удалось загрузить проекты</div>
-          <div className="page-sub" style={{ maxWidth: 380, textAlign: "center" }}>
-            Проверьте соединение и попробуйте снова. Если ошибка повторяется — обратитесь в поддержку.
-          </div>
-          <Button onClick={() => refetch()}>↻&nbsp;&nbsp;Повторить</Button>
-        </div>
+        <ErrorState text="Не удалось загрузить проекты" style={{ padding: "56px 24px" }}
+                    sub="Проверьте соединение и попробуйте снова. Если ошибка повторяется — обратитесь в поддержку."
+                    actions={<Button onClick={() => refetch()}>↻&nbsp;&nbsp;Повторить</Button>} />
       )}
 
       {data && (
@@ -221,8 +223,14 @@ export function ProjectsPage() {
               </div>
               <div className="onboard__title">Создайте первый проект</div>
               <div className="onboard__sub">
-                Начните с пустой модели или выберите готовый шаблон ниже — он заполнит структуру за
-                вас, останется ввести цифры.
+                Мастер спросит, что вы планируете, предложит основу и покажет допущения шаблона
+                до создания. Или начните сразу — с пустой модели или шаблона ниже.
+              </div>
+              {/* Первый проект — мастером (G12): он спрашивает цель и дату старта и
+                  показывает оговорку шаблона до создания. Быстрое создание ниже остаётся —
+                  для второго и следующих проектов. */}
+              <div style={{ marginTop: 14 }}>
+                <Button onClick={() => navigate("/projects/onboarding")}>Начать с мастера</Button>
               </div>
             </div>
           )}
@@ -230,10 +238,11 @@ export function ProjectsPage() {
           <div className="create-card">
             <div className="create-card__row">
               <div style={{ flex: 1, minWidth: 0 }}>
-                <label className="auth-label" style={{ display: "block", marginBottom: 7 }}>
+                <label className="auth-label" htmlFor="new-project-name" style={{ display: "block", marginBottom: 7 }}>
                   Название нового проекта
                 </label>
                 <input
+                  id="new-project-name"
                   className="input"
                   style={{ width: "100%" }}
                   placeholder="Напр. «Завод полимерной упаковки»"
@@ -261,13 +270,17 @@ export function ProjectsPage() {
                         type="button"
                         className="tpl-card"
                         disabled={fromTemplate.isPending || create.isPending}
-                        onClick={() => fromTemplate.mutate({ id: tpl.id, name: tpl.name })}
+                        // Сначала показываем, что шаблон о себе говорит: числа в нём
+                        // выдуманы, и строить на них, не прочитав оговорку, — худший
+                        // способ начать (D4).
+                        onClick={() => setPreview(tpl)}
                       >
                         <div className="tpl-card__top">
                           <div className={`tpl-card__ico tpl-card__ico--${meta.n}`}>{meta.icon}</div>
                           {meta.badge && <span className="tpl-badge">{meta.badge}</span>}
                         </div>
                         <div className="tpl-card__name">{tpl.name}</div>
+                        {tpl.industry && <div className="tpl-card__ind">{tpl.industry}</div>}
                         <div className="tpl-card__desc">{tpl.description}</div>
                         <div className="tpl-card__foot">
                           {busy ? (
@@ -276,7 +289,7 @@ export function ProjectsPage() {
                               <span className="tpl-card__use">Создаём…</span>
                             </>
                           ) : (
-                            <span className="tpl-card__use">Использовать →</span>
+                            <span className="tpl-card__use">Посмотреть →</span>
                           )}
                         </div>
                       </button>
@@ -302,12 +315,13 @@ export function ProjectsPage() {
                   </div>
                   <div className="view-toggle">
                     <button
+                      aria-pressed={view === "cards"}
                       type="button"
                       title="Карточки"
                       className={"view-toggle__btn" + (view === "cards" ? " view-toggle__btn--active" : "")}
                       onClick={() => setViewPersist("cards")}
                     >
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                         <rect x="3" y="3" width="8" height="8" rx="1.5" />
                         <rect x="13" y="3" width="8" height="8" rx="1.5" />
                         <rect x="3" y="13" width="8" height="8" rx="1.5" />
@@ -315,12 +329,13 @@ export function ProjectsPage() {
                       </svg>
                     </button>
                     <button
+                      aria-pressed={view === "rows"}
                       type="button"
                       title="Список"
                       className={"view-toggle__btn" + (view === "rows" ? " view-toggle__btn--active" : "")}
                       onClick={() => setViewPersist("rows")}
                     >
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                         <rect x="3" y="4" width="18" height="3" rx="1.5" />
                         <rect x="3" y="10.5" width="18" height="3" rx="1.5" />
                         <rect x="3" y="17" width="18" height="3" rx="1.5" />
@@ -458,6 +473,41 @@ export function ProjectsPage() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* Что шаблон о себе говорит. Показывается **до** создания проекта: числа в нём
+          выдуманы, и человек обязан прочитать это там, где увидит цифры. */}
+      <Modal
+        open={preview !== null}
+        onClose={() => setPreview(null)}
+        title={preview?.name ?? ""}
+        sub={preview?.industry}
+        maxWidth={520}
+        actions={
+          <>
+            <Button variant="ghost" onClick={() => setPreview(null)}>Отмена</Button>
+            <Button
+              loading={fromTemplate.isPending}
+              onClick={() => {
+                if (preview) fromTemplate.mutate({ id: preview.id, name: preview.name });
+                setPreview(null);
+              }}
+            >
+              Создать проект
+            </Button>
+          </>
+        }
+      >
+        <div className="page-sub" style={{ marginTop: 0 }}>{preview?.description}</div>
+        {preview?.shows && (
+          <div className="field-note" style={{ marginBottom: 10 }}>
+            <b>Что показывает:</b> {preview.shows}
+          </div>
+        )}
+        <div className="tpl-assume__head">Допущения шаблона</div>
+        <ul className="mnotes">
+          {(preview?.assumptions ?? []).map((a: string) => <li key={a}>{a}</li>)}
+        </ul>
       </Modal>
 
       {created && (

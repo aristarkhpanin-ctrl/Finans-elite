@@ -37,11 +37,13 @@ def _staff_model(rate: str, n: int = 1) -> ProjectModel:
 
 
 def test_payroll_contribution_loads_staff_cost():
-    """ЗП 1000 + взносы 30% = 1300 в начислении (I13/I16) и в выплате (C6); баланс сходится."""
-    r = run(_staff_model("0.30"))
-    assert r.income["I13"] == [D(1300)]
-    assert r.income["I16"] == [D(1300)]
-    assert r.cashflow["C6"] == [D(1300)]
+    """ЗП 1000 + взносы 30% = 1300 в начислении (I13/I16) каждого месяца; в кассе (C6) —
+    зарплата сразу, взносы в следующем месяце (п. 3 ст. 431, 0.9.54); баланс сходится."""
+    r = run(_staff_model("0.30", n=3))
+    assert r.income["I13"] == [D(1300)] * 3
+    assert r.income["I16"] == [D(1300)] * 3
+    assert r.cashflow["C6"] == [D(1000), D(1300), D(1300)]
+    assert r.balance["B21"] == [D(300)] * 3    # взносы текущего месяца — до уплаты
     assert _balanced(r)
 
 

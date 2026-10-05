@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
-import type { ButtonHTMLAttributes, CSSProperties, InputHTMLAttributes, ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef } from "react";
+import type { ButtonHTMLAttributes, CSSProperties, InputHTMLAttributes, ReactNode, RefObject } from "react";
 import { createPortal } from "react-dom";
 
 /* ─── Кнопка ─────────────────────────────────────────────────────────────── */
@@ -83,14 +83,22 @@ export function Field({
   suffix?: ReactNode;
 }) {
   const inputCls = ["input", error ? "input--error" : "", className ?? ""].filter(Boolean).join(" ");
+  // Идентификатор генерируется, если его не передали: без него htmlFor пуст, подпись
+  // ни с чем не связана, и скринридер читает поле как безымянное. Передают id почти
+  // нигде, так что «по умолчанию не связано» означало «не связано никогда».
+  const auto = useId();
+  const id = props.id ?? auto;
+  const hintId = `${id}-hint`;
   return (
     <div className="field">
-      <label htmlFor={props.id}>
-        {label}
-        {hint && <Hint text={hint} />}
-      </label>
+      {/* Подсказка вынесена из <label> намеренно: внутри него её текст попадал в
+          **имя** поля, и скринридер читал «Пароль Не короче 8 символов» как название.
+          Подсказка — это описание, поэтому она связана через aria-describedby. */}
+      <label htmlFor={id}>{label}</label>
+      {hint && <Hint text={hint} id={hintId} />}
       <InputWrap prefix={prefix} suffix={suffix}>
-        <input className={inputCls} {...props} />
+        <input className={inputCls} {...props} id={id}
+               aria-describedby={hint ? hintId : props["aria-describedby"]} />
       </InputWrap>
       {error ? (
         <span className="field-error">{error}</span>
@@ -125,14 +133,17 @@ export function NumberField({
   disabled?: boolean;
 }) {
   const inputCls = ["input", error ? "input--error" : ""].filter(Boolean).join(" ");
+  // Та же связка, что у Field: подпись — имя поля, подсказка — его описание (H6).
+  const id = useId();
+  const hintId = `${id}-hint`;
   return (
     <div className="field">
-      <label>
-        {label}
-        {hint && <Hint text={hint} />}
-      </label>
+      <label htmlFor={id}>{label}</label>
+      {hint && <Hint text={hint} id={hintId} />}
       <InputWrap prefix={prefix} suffix={suffix}>
         <input
+          id={id}
+          aria-describedby={hint ? hintId : undefined}
           className={inputCls}
           type="number"
           step={step}
@@ -165,14 +176,19 @@ export function SelectField({
   hint?: string;
   disabled?: boolean;
 }) {
+  // Та же связка, что у Field: без htmlFor подпись ни с чем не связана, и скринридер
+  // читает селект безымянным — а подсказка, оставленная внутри <label>, попадала бы
+  // в имя поля вместо описания.
+  const id = useId();
+  const hintId = `${id}-hint`;
   return (
     <div className="field">
-      <label>
-        {label}
-        {hint && <Hint text={hint} />}
-      </label>
+      <label htmlFor={id}>{label}</label>
+      {hint && <Hint text={hint} id={hintId} />}
       <select
         className="select"
+        id={id}
+        aria-describedby={hint ? hintId : undefined}
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
@@ -279,9 +295,9 @@ export function CountChip({ children }: { children: ReactNode }) {
 }
 
 /** Маленькая подсказка «?» с нативным тултипом (title). */
-export function Hint({ text }: { text: string }) {
+export function Hint({ text, id }: { text: string; id?: string }) {
   return (
-    <span className="hint" title={text} aria-label={text} role="img">
+    <span className="hint" id={id} title={text} aria-label={text} role="img">
       ?
     </span>
   );
@@ -355,11 +371,42 @@ export function MetricCard({
   );
 }
 
+/* ─── Область с прокруткой (H6) ─────────────────────────────────────────── */
+
+/**
+ * Область со своей прокруткой — таблица шире экрана. Колесом и пальцем её крутят и так,
+ * а стрелками — только в фокусе: без `tabIndex` таблица, в которой нечего нажать, с
+ * клавиатуры была недостижима (`axe-core`, матрица P13). Имя обязательно: «область»
+ * без имени диктор так и читает — «область».
+ */
+export function ScrollRegion({ label, className, style, children }: {
+  label: string;
+  className: string;
+  style?: CSSProperties;
+  children: ReactNode;
+}) {
+  return (
+    <div className={`${className} scroll-region`} style={style} role="region" aria-label={label} tabIndex={0}>
+      {children}
+    </div>
+  );
+}
+
 /* ─── Состояния данных (Р9) ──────────────────────────────────────────────── */
 
-/** Единообразное состояние загрузки страницы. */
+/**
+ * Единообразное состояние загрузки страницы — карточкой с крутилкой, как «Прогоняем ревью…», а не голым словом в углу:
+ * матрица состояний P13 (H5) показала, что редактор и холдинг при медленном ответе
+ * выглядели пустой страницей со словом «Загрузка…». `role="status"` — её прочтёт и
+ * экранный диктор.
+ */
 export function Loading({ text = "Загрузка…" }: { text?: string }) {
-  return <p className="muted">{text}</p>;
+  return (
+    <div className="load-card" role="status">
+      <span className="save-spinner" aria-hidden="true" />
+      <div className="load-card__title">{text}</div>
+    </div>
+  );
 }
 
 /** Скелетон-строка/блок (пульс). */
@@ -394,27 +441,118 @@ export function EmptyState({
   );
 }
 
-/** Единообразное состояние ошибки загрузки (иконка «!», текст, retry). */
+/**
+ * Единообразное состояние ошибки загрузки (иконка «!», текст, retry) — **всегда**
+ * карточкой. Без обработчика повтора раньше выходила мелкая красная строка в углу, и
+ * упавший редактор выглядел пустой страницей (матрица состояний P13, H5); кнопка
+ * «Повторить» — там, где есть что повторить.
+ */
 export function ErrorState({
   text = "Не удалось загрузить данные.",
   onRetry,
+  sub,
+  actions,
+  style,
 }: {
   text?: string;
   onRetry?: () => void;
+  /** Пояснение под заголовком: причина с сервера, что делать дальше. */
+  sub?: ReactNode;
+  /** Свои выходы вместо «Повторить» — например, «← К редактору». */
+  actions?: ReactNode;
+  style?: CSSProperties;
 }) {
-  if (!onRetry) return <p className="error">{text}</p>;
+  // Одна карточка на все экраны (пакет I): копии разметки жили на шести страницах, и ни
+  // в одной не было `role="alert"` — диктор о сбое не узнавал. Перечень-тест
+  // `a11yMarkup.test.ts` не даёт завести седьмую.
   return (
-    <div className="error-state">
-      <div className="error-state__ico">!</div>
+    <div className="error-state" role="alert" style={style}>
+      <div className="error-state__ico" aria-hidden="true">!</div>
       <div className="error-state__title">{text}</div>
-      <Button variant="ghost" onClick={onRetry}>
-        Повторить
-      </Button>
+      {sub && <div className="page-sub" style={{ maxWidth: 480, textAlign: "center" }}>{sub}</div>}
+      {actions ?? (onRetry && (
+        <Button variant="ghost" onClick={onRetry}>
+          Повторить
+        </Button>
+      ))}
     </div>
   );
 }
 
 /* ─── Модальное окно (Р8) ────────────────────────────────────────────────── */
+
+/** Что в модалке получает фокус с клавиатуры — для удержания Tab внутри неё. */
+const FOCUSABLE = [
+  "a[href]", "button:not([disabled])", "input:not([disabled]):not([type=hidden])",
+  "select:not([disabled])", "textarea:not([disabled])", '[tabindex]:not([tabindex="-1"])',
+].join(",");
+
+/**
+ * Tab по кругу внутри модалки: `aria-modal` обещает, что страница под затемнением
+ * недоступна, и фокус, ушедший туда табуляцией, это обещание нарушал бы.
+ */
+function trapTab(e: KeyboardEvent, node: HTMLElement) {
+  const items = [...node.querySelectorAll<HTMLElement>(FOCUSABLE)];
+  const active = document.activeElement;
+  if (items.length === 0) {
+    e.preventDefault();
+    node.focus();
+    return;
+  }
+  const first = items[0];
+  const last = items[items.length - 1];
+  if (!node.contains(active)) {
+    e.preventDefault();
+    (e.shiftKey ? last : first).focus();
+  } else if (e.shiftKey && (active === first || active === node)) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && active === last) {
+    e.preventDefault();
+    first.focus();
+  }
+}
+
+/**
+ * Поведение диалога с клавиатуры — одно на модалку и выдвижную панель (H6, пакет I):
+ * фокус внутрь при открытии (поле с `autoFocus` не перебивается), Tab по кругу внутри,
+ * Esc закрывает, фокус возвращается туда, откуда открыли. Панель на телефоне была
+ * объявлена диалогом, но фокус в неё не переходил и табуляцией уходил на страницу под ней.
+ */
+export function useDialogFocus(open: boolean, ref: RefObject<HTMLElement | null>, onClose: () => void) {
+  // Кто был в фокусе **до** открытия. Запоминается при отрисовке, а не в эффекте:
+  // `autoFocus` поля внутри срабатывает раньше эффектов, и эффект запомнил бы само поле.
+  const opener = useMemo(
+    () => (open ? (document.activeElement as HTMLElement | null) : null),
+    [open],
+  );
+  // `onClose` почти всегда стрелочная функция — новая на каждой перерисовке владельца, а
+  // владелец перерисовывается на каждую букву в поле модалки. В зависимостях эффекта она
+  // перезапускала бы фокус и отнимала его у поля после первой же буквы (H6).
+  const closeRef = useRef(onClose);
+  useEffect(() => {
+    closeRef.current = onClose;
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    const node = ref.current;
+    // Поле с `autoFocus` уже взяло фокус — не перебивать; иначе фокус на сам диалог,
+    // чтобы Esc и Tab работали сразу.
+    if (node && !node.contains(document.activeElement)) node.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeRef.current();
+      else if (e.key === "Tab" && node) trapTab(e, node);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      // Фокус — туда, откуда открыли: иначе после Esc он падает на <body>, и человек с
+      // клавиатуры начинает обход страницы с самого начала.
+      if (opener?.isConnected) opener.focus();
+    };
+  }, [open, opener, ref]);
+}
 
 export function Modal({
   open,
@@ -434,21 +572,7 @@ export function Modal({
   maxWidth?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    // Фокус внутрь модалки, чтобы Esc и таб-навигация работали сразу
-    const prev = document.activeElement as HTMLElement | null;
-    ref.current?.focus();
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      prev?.focus?.();
-    };
-  }, [open, onClose]);
+  useDialogFocus(open, ref, onClose);
 
   if (!open) return null;
   return createPortal(

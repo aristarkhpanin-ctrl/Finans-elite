@@ -21,14 +21,26 @@ class Perm(str, Enum):
     PROJECT_UPDATE = "project.update"
     PROJECT_DELETE = "project.delete"
     PROJECT_CALCULATE = "project.calculate"
+    #: Написать реплику в обсуждении проекта или дела (D3). Есть у **всех** ролей,
+    #: включая viewer: обсуждение затевают ради того, кто смотрит и спрашивает, —
+    #: инвестора, руководителя, приглашённого эксперта. Читать обсуждение позволяет
+    #: право на саму сущность (project.read): комментарий цитирует её числа.
+    COMMENT_WRITE = "comment.write"
+    #: Закрыть ссылку для инвестора или банка (L4). Отдельно от ``project.update``, хотя
+    #: выдаётся тем же ролям: закрыть дверь наружу — действие безопасности, и режим
+    #: чтения при неоплате (B2) его не запирает — по тому же доводу, по какому открыто
+    #: отозвать доступ у уволенного. Открыть ссылку — правка (снимок версии), закрыть —
+    #: нет.
+    SHARE_CLOSE = "share.close"
     MEMBER_READ = "member.read"
     MEMBER_MANAGE = "member.manage"
     ORG_MANAGE = "org.manage"
     BILLING_MANAGE = "billing.manage"
 
 
-_VIEWER = {Perm.PROJECT_READ, Perm.PROJECT_CALCULATE, Perm.MEMBER_READ}
-_ANALYST = _VIEWER | {Perm.PROJECT_CREATE, Perm.PROJECT_UPDATE}
+_VIEWER = {Perm.PROJECT_READ, Perm.PROJECT_CALCULATE, Perm.MEMBER_READ,
+           Perm.COMMENT_WRITE}
+_ANALYST = _VIEWER | {Perm.PROJECT_CREATE, Perm.PROJECT_UPDATE, Perm.SHARE_CLOSE}
 _EDITOR = _ANALYST | {Perm.PROJECT_DELETE}
 _ADMIN = _EDITOR | {Perm.MEMBER_MANAGE}
 _OWNER = _ADMIN | {Perm.ORG_MANAGE, Perm.BILLING_MANAGE}

@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { getJob, submitMonteCarloAsync, SENSITIVITY_PARAMS, type UncertainParamIn } from "../../api/analysis";
+import { httpDetail } from "../../api/client";
 import { CAT, HistogramChart } from "../../components/charts";
 import { CubeHero } from "../../components/CubeHero";
 import { ESelect } from "../../components/EditorField";
@@ -88,7 +89,9 @@ export function MonteCarloTab({ projectId }: { projectId: string }) {
   const d = job.data?.status === "success" ? job.data.result : undefined;
   const failed = job.data?.status === "failure";
   const running = submit.isPending || (jobId != null && !d && !failed);
-  const idle = jobId == null && !submit.isPending;
+  // Приглашение «Запустите симуляцию» — только пока не запускали: рядом с ошибкой оно
+  // говорило бы, что ничего не произошло (матрица состояний, пакет I).
+  const idle = jobId == null && !submit.isPending && !submit.isError;
   const errored = submit.isError || failed;
   const start = () => submit.mutate();
 
@@ -113,7 +116,7 @@ export function MonteCarloTab({ projectId }: { projectId: string }) {
     <div>
       <div className="an-head">
         <div style={{ minWidth: 0 }}>
-          <div className="an-head__title">Монте-Карло</div>
+          <h2 className="an-head__title">Монте-Карло</h2>
           <div className="an-head__sub">
             Случайные прогоны при заданных распределениях параметров → распределение NPV.
           </div>
@@ -122,8 +125,9 @@ export function MonteCarloTab({ projectId }: { projectId: string }) {
 
       <div className="cfg-card">
         <div className="cfg-field" style={{ width: 150 }}>
-          <label className="efield__label">Итераций</label>
+          <label className="efield__label" htmlFor="mc-iterations">Итераций</label>
           <input
+            id="mc-iterations"
             className="input"
             style={{ height: 42, fontFamily: "var(--font-mono)" }}
             inputMode="numeric"
@@ -132,8 +136,9 @@ export function MonteCarloTab({ projectId }: { projectId: string }) {
           />
         </div>
         <div className="cfg-field" style={{ width: 130 }}>
-          <label className="efield__label">Seed</label>
+          <label className="efield__label" htmlFor="mc-seed">Seed</label>
           <input
+            id="mc-seed"
             className="input"
             style={{ height: 42, fontFamily: "var(--font-mono)" }}
             inputMode="numeric"
@@ -163,27 +168,32 @@ export function MonteCarloTab({ projectId }: { projectId: string }) {
           <div className="mc-row" key={i}>
             <div className="mc-col-param">
               <span className="dot-label" style={{ background: CAT[i % CAT.length] }} />
-              <ESelect label="" value={r.param} onChange={(v) => upd(i, { param: v })} options={SENSITIVITY_PARAMS} />
+              <ESelect label={`Параметр ${i + 1}`} hideLabel value={r.param}
+                       onChange={(v) => upd(i, { param: v })} options={SENSITIVITY_PARAMS} />
             </div>
             <div className="mc-col-dist">
-              <ESelect label="" value={r.kind} onChange={(v) => upd(i, { kind: v as Kind })} options={DIST_OPTIONS} />
+              <ESelect label={`Распределение параметра ${i + 1}`} hideLabel value={r.kind}
+                       onChange={(v) => upd(i, { kind: v as Kind })} options={DIST_OPTIONS} />
             </div>
             <div className="mc-col-fields">
               {FIELDS[r.kind].map((fl) => (
-                <div className="mc-field" key={fl.key}>
+                // Подпись оборачивает поле — так она его имя: «0.8» из значения
+                // поля именем не было (H6).
+                <label className="mc-field" key={fl.key}>
                   <span className="mc-field__label">{fl.label}</span>
                   <input
                     inputMode="decimal"
                     value={r[fl.key]}
                     onChange={(e) => upd(i, { [fl.key]: e.target.value } as Partial<Row>)}
                   />
-                </div>
+                </label>
               ))}
               <button
                 type="button"
                 className="scn-del"
                 style={{ alignSelf: "flex-end" }}
                 title="Удалить параметр"
+                aria-label={`Удалить параметр ${i + 1}`}
                 onClick={() => setRows(rows.filter((_, k) => k !== i))}
               >
                 ✕
@@ -196,7 +206,7 @@ export function MonteCarloTab({ projectId }: { projectId: string }) {
       {idle && (
         <div className="setup-ph">
           <div className="setup-ph__ico">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
               <path d="M3 3v18h18M7 14l3-4 3 3 5-7" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
@@ -231,7 +241,10 @@ export function MonteCarloTab({ projectId }: { projectId: string }) {
           <div style={{ minWidth: 0 }}>
             <div className="an-err__title">Не удалось выполнить симуляцию</div>
             <div className="an-err__sub">
-              {(failed && job.data?.error) || "Проверьте распределения параметров и повторите."}
+              {/* Причину называет сервер — как у соседних вкладок анализа; догадка — только
+                  когда причины нет. */}
+              {(failed && job.data?.error) || httpDetail(submit.error)
+                || "Проверьте распределения параметров и повторите."}
             </div>
             <Button variant="ghost" onClick={start}>
               Повторить
@@ -273,6 +286,7 @@ export function MonteCarloTab({ projectId }: { projectId: string }) {
             </div>
             <div style={{ marginTop: 6 }}>
               <HistogramChart
+                label="Распределение NPV по итерациям Монте-Карло, млн ₽"
                 bins={d.histogram.map((b) => ({ from: Number(b.from) / 1e6, to: Number(b.to) / 1e6, count: b.count }))}
               />
             </div>

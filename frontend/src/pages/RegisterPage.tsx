@@ -1,17 +1,33 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { httpStatus } from "../api/client";
-import { useNavigate } from "react-router-dom";
+import { httpDetail, httpStatus } from "../api/client";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { IconBuilding, IconLock, IconMail, IconUser } from "../components/icons";
-import { AuthLayout, AuthPasswordField, AuthField, AuthSubmit, isEmailValid } from "./auth/AuthLayout";
+import { PRODUCTS } from "../components/product";
+import {
+  AuthLayout, AuthPasswordField, AuthField, AuthSubmit, isEmailValid, useAuthProduct,
+} from "./auth/AuthLayout";
+import { usePageTitle } from "../pageTitle";
 
 const REDIRECT_DELAY_MS = 1600;
 const MIN_PASSWORD = 8;
 
+/** Регистрация одна на платформу; называется только то, ради чего пришли. */
+const LEAD: Record<string, string> = {
+  business: "Зарегистрируйтесь — и создайте организацию для своих финансовых моделей.",
+  audit: "Зарегистрируйтесь — и создайте организацию для дел о фирмах-целях.",
+};
+
 export function RegisterPage() {
   const { register } = useAuth();
   const navigate = useNavigate();
+  const product = useAuthProduct();
+  usePageTitle("Регистрация");
   const [form, setForm] = useState({ full_name: "", email: "", password: "", organization_name: "" });
+  // Согласие на обработку ПД — **отдельная отметка**, не входящая в принятие оферты
+  // (ч. 1 ст. 9 152-ФЗ в ред. с 1.09.2025). По умолчанию снята: поставленная заранее
+  // галочка — не согласие, а его имитация.
+  const [consent, setConsent] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [submitted, setSubmitted] = useState(false);
   const [shakeKey, setShakeKey] = useState(0);
@@ -45,6 +61,9 @@ export function RegisterPage() {
       : "",
     organization_name:
       show("organization_name") && !form.organization_name.trim() ? "Укажите название организации" : "",
+    consent: submitted && !consent
+      ? "Без согласия на обработку персональных данных зарегистрироваться нельзя"
+      : "",
   };
 
   function hasBlockingErrors(): boolean {
@@ -54,7 +73,8 @@ export function RegisterPage() {
       !isEmailValid(form.email) ||
       !form.password ||
       form.password.length < MIN_PASSWORD ||
-      !form.organization_name.trim()
+      !form.organization_name.trim() ||
+      !consent
     );
   }
 
@@ -68,14 +88,22 @@ export function RegisterPage() {
     }
     setBusy(true);
     try {
-      await register(form);
+      await register({ ...form, pd_consent: consent });
       setSuccess(true);
-      timer.current = window.setTimeout(() => navigate("/projects"), REDIRECT_DELAY_MS);
+      // Новая организация ведёт в тот продукт, из которого пришли на регистрацию:
+      // «Аудит» с зелёного списка проектов начинался бы не с того экрана.
+      timer.current = window.setTimeout(
+        () => navigate(PRODUCTS[product].home), REDIRECT_DELAY_MS);
     } catch (err: unknown) {
       setServerError(
         httpStatus(err) === 409
           ? "Этот email уже зарегистрирован"
-          : "Не удалось создать аккаунт. Попробуйте ещё раз.",
+          // Отказ по паролю сервер называет словами («слишком известен», «подряд идущие
+          // клавиши», «повторяет ваш адрес»). Заменять их общим «не удалось» значило бы
+          // отправить человека перебирать варианты вслепую — и он придёт к «Parol1234!».
+          : httpStatus(err) === 422 && httpDetail(err)
+            ? httpDetail(err)!
+            : "Не удалось создать аккаунт. Попробуйте ещё раз.",
       );
       setBusy(false);
     }
@@ -83,8 +111,9 @@ export function RegisterPage() {
 
   return (
     <AuthLayout
+      product={product}
       title="Создать аккаунт"
-      subtitle="Зарегистрируйтесь — и создайте организацию для своих финансовых моделей."
+      subtitle={LEAD[product]}
       serverError={serverError}
       onDismissError={() => setServerError("")}
       success={
@@ -154,9 +183,31 @@ export function RegisterPage() {
           onChange={set("organization_name")}
           onBlur={blur("organization_name")}
         />
+        <label className="auth-remember auth-consent">
+          <input type="checkbox" checked={consent} disabled={busy}
+                 aria-invalid={errors.consent ? true : undefined}
+                 aria-describedby={errors.consent ? "consent-error" : undefined}
+                 onChange={(e) => setConsent(e.target.checked)} />
+          <span>
+            Даю{" "}
+            <Link to="/legal/consent" target="_blank" rel="noopener">
+              согласие на обработку персональных данных
+            </Link>
+          </span>
+        </label>
+        {errors.consent && (
+          <span className="field-error" id="consent-error">{errors.consent}</span>
+        )}
         <AuthSubmit busy={busy} idleText="Создать аккаунт" busyText="Создаём…" />
+        {/* Оферта принимается регистрацией (для оплаты — оплатой), и об этом сказано
+            здесь, рядом с кнопкой; согласие на обработку ПД — отдельной отметкой выше. */}
         <div className="auth-legal">
-          Создавая аккаунт, вы принимаете <span>Условия</span> и <span>Политику конфиденциальности</span>.
+          Создавая аккаунт, вы принимаете условия{" "}
+          <Link to="/legal/offer" target="_blank" rel="noopener">оферты</Link>. Как
+          обрабатываются данные — в{" "}
+          <Link to="/legal/privacy" target="_blank" rel="noopener">
+            политике обработки персональных данных
+          </Link>.
         </div>
       </form>
     </AuthLayout>

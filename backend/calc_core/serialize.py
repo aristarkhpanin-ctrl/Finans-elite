@@ -50,9 +50,16 @@ def statement_to_dict(stmt: Statement, places: int = MONEY_PLACES) -> dict[str, 
 
 
 def metrics_to_dict(m: InvestmentMetrics) -> dict[str, object]:
+    # Причина отказа от норм доходности — ключом **только когда она есть**: у обычного
+    # проекта его нет, и снимок не сдвигается (как budget/participants выше).
+    note = {"no_return_metrics_note": m.no_return_metrics_note} \
+        if m.no_return_metrics_note else {}
     return {
+        **note,
         "npv": _money(m.npv),
         "irr_annual": _ratio(m.irr_annual),
+        "mirr_annual": _ratio(m.mirr_annual),
+        "arr_annual": _ratio(m.arr_annual),
         "pi": _ratio(m.pi),
         "pb_months": m.pb_months,
         "dpb_months": m.dpb_months,
@@ -89,6 +96,69 @@ def valuation_to_dict(v: BusinessValuation) -> dict[str, Optional[str]]:
     }
 
 
+def budget_to_dict(budget) -> dict[str, object]:
+    return {
+        "stages": [
+            {"id": s.id, "name": s.name, "kind": s.kind, "start_month": s.start_month,
+             "finish_month": s.finish_month, "cost": _money(s.cost),
+             "actual_start_month": s.actual_start_month,
+             "actual_finish_month": s.actual_finish_month,
+             "actual_cost": _money(s.actual_cost),
+             "cost_variance": _money(s.cost_variance),
+             "schedule_variance_months": s.schedule_variance_months}
+            for s in budget.stages
+        ],
+        "monthly": [_money(v) for v in budget.monthly],
+        "total": _money(budget.total),
+        "actual_total": _money(budget.actual_total),
+    }
+
+
+def product_margins_to_dict(pm) -> dict[str, object]:
+    return {
+        "products": [
+            {"product_id": p.product_id, "name": p.name, "revenue": _money(p.revenue),
+             "bom_cost": _money(p.bom_cost), "piece_wages": _money(p.piece_wages),
+             "margin": _money(p.margin), "margin_share": _ratio(p.margin_share)}
+            for p in pm.products
+        ],
+        "unallocated_direct": _money(pm.unallocated_direct),
+    }
+
+
+def division_margins_to_dict(items) -> list[dict[str, object]]:
+    return [
+        {"division_id": d.division_id, "name": d.name, "revenue": _money(d.revenue),
+         "bom_cost": _money(d.bom_cost), "piece_wages": _money(d.piece_wages),
+         "margin": _money(d.margin), "margin_share": _ratio(d.margin_share),
+         "product_count": d.product_count}
+        for d in items
+    ]
+
+
+def subscription_base_to_dict(items) -> list[dict[str, object]]:
+    return [
+        {"product_id": s.product_id, "name": s.name,
+         "base": [_money(v) for v in s.base],
+         "new": [_money(v) for v in s.new],
+         "churned": [_money(v) for v in s.churned]}
+        for s in items
+    ]
+
+
+def participants_to_dict(items) -> list[dict[str, object]]:
+    return [
+        {"id": p.id, "name": p.name, "kind": p.kind,
+         "invested": _money(p.invested), "withdrawn": _money(p.withdrawn),
+         "npv": _money(p.npv), "irr_annual": _ratio(p.irr_annual),
+         "terminal_value": _money(p.terminal_value),
+         "npv_with_terminal": _money(p.npv_with_terminal),
+         "irr_with_terminal_annual": _ratio(p.irr_with_terminal_annual),
+         "flow": [_money(v) for v in p.flow]}
+        for p in items
+    ]
+
+
 def result_to_dict(result: CalcResult) -> dict[str, object]:
     """Полный канонический снимок результата расчёта (для golden-master и сравнения)."""
     snapshot: dict[str, object] = {
@@ -104,6 +174,57 @@ def result_to_dict(result: CalcResult) -> dict[str, object]:
         "valuation": valuation_to_dict(result.valuation),
         "warnings": list(result.warnings),
     }
+    if result.budget.stages:
+        snapshot["budget"] = budget_to_dict(result.budget)
+    if result.product_margins.products:
+        snapshot["product_margins"] = product_margins_to_dict(result.product_margins)
+    if result.division_margins:
+        snapshot["division_margins"] = division_margins_to_dict(result.division_margins)
+    if result.subscription_base:
+        snapshot["subscription_base"] = subscription_base_to_dict(result.subscription_base)
+    if result.participants:
+        snapshot["participants"] = participants_to_dict(result.participants)
+    if result.user_tables:
+        snapshot["user_tables"] = [
+            {"id": t.id, "name": t.name,
+             "rows": [{"name": r.name, "values": [_money(v) for v in r.values],
+                       "error": r.error} for r in t.rows]}
+            for t in result.user_tables
+        ]
+    if result.metrics_foreign is not None:
+        snapshot["metrics_foreign"] = metrics_to_dict(result.metrics_foreign)
+    # Закрытие расчётов на конец горизонта (K4) — отдельным блоком: сумма и состав. Поток
+    # проекта — без него и только там, где он не равен C13 + C20 (есть лизинг или
+    # депозиты): иначе он ничего не добавляет к снимку. Сравнение — в копейках: закрытие,
+    # прибавленное к последнему месяцу и вычтенное обратно, оставляет шум в 30-м знаке.
+    release = result.working_capital_release
+    if release is not None:
+        snapshot["working_capital_release"] = {
+            "enabled": release.enabled, "month": release.month,
+            "total": _money(release.total),
+            "items": {item.code: _money(item.amount) for item in release.items},
+        }
+    # Взгляд банка (L1) — отдельным блоком и только при долге: у проекта без займов и
+    # лизинга его нет, и снимок такого проекта не сдвигается.
+    debt = result.debt_service
+    if debt is not None:
+        snapshot["debt_service"] = {
+            "min_dscr": _ratio(debt.min_dscr), "min_dscr_year": debt.min_dscr_year,
+            "years": [{
+                "label": y.label, "months": y.months, "cfads": _money(y.cfads),
+                "interest": _money(y.interest), "principal": _money(y.principal),
+                "lease": _money(y.lease), "service": _money(y.service),
+                "dscr": _ratio(y.dscr), "shortfall": _money(y.shortfall),
+                "net_debt": _money(y.net_debt), "ebitda": _money(y.ebitda),
+                "leverage": _ratio(y.leverage),
+            } for y in debt.years],
+        }
+    flow = list(result.project_flow)
+    if release is not None and release.enabled and flow:
+        flow[release.month] -= release.total
+    pre = [a + b for a, b in zip(result.cashflow["C13"], result.cashflow["C20"], strict=True)]
+    if flow and [_money(v) for v in flow] != [_money(v) for v in pre]:
+        snapshot["project_flow"] = [_money(v) for v in flow]
     if result.actualized_cashflow is not None:
         snapshot["actualized_cashflow"] = statement_to_dict(result.actualized_cashflow)
     if result.cashflow_variance is not None:

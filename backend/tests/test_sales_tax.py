@@ -51,5 +51,6 @@ def test_sales_tax_is_deductible_for_profit_tax():
     assert r.income["I3"] == [D(50)]
     assert r.income["I27"] == [D(190)]   # 20% от 950
     assert r.income["I28"] == [D(760)]   # 950 − 190
-    assert r.cashflow["C12"] == [D(240)]  # 50 (с продаж) + 190 (на прибыль)
+    assert r.cashflow["C12"] == [D(50)]   # налог с продаж — в месяце начисления,
+    assert r.balance["B21"] == [D(190)]   # налог на прибыль — в следующем (ст. 287)
     assert _balanced(r)

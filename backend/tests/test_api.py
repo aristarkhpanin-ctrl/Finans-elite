@@ -46,6 +46,21 @@ def test_templates_list_and_calculate():
     assert client.get("/api/v1/templates/nope").status_code == 404
 
 
+def test_the_catalog_tells_the_horizon_and_whether_the_business_already_runs():
+    """Мастер первого проекта (G12) не меняет горизонт шаблона — движок дополнил бы ряды
+    нулями, — поэтому называет его; «действующий бизнес» ищет шаблоны с остатками на
+    старте. Оба признака — из самой модели шаблона, а не подписью рядом."""
+    for item in client.get("/api/v1/templates").json():
+        model = client.get(f"/api/v1/templates/{item['id']}").json()
+        assert item["duration_months"] == model["header"]["duration_months"], item["id"]
+        opening = model["company"]["starting_balance"]
+        assert item["existing_business"] == any(float(v) != 0 for v in opening.values()), \
+            item["id"]
+    by_id = {t["id"]: t for t in client.get("/api/v1/templates").json()}
+    assert by_id["retail"]["existing_business"] is True          # «Действующая точка»
+    assert by_id["cafe"]["existing_business"] is False
+
+
 def test_calculate_roundtrip():
     sample = client.get("/api/v1/sample").json()
     r = client.post("/api/v1/calculate", json=sample)

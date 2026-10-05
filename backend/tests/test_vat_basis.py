@@ -37,7 +37,9 @@ def _balanced(r) -> bool:
 
 def _credit_sale_model(basis: VatBasis) -> ProjectModel:
     """2 мес.: отгрузка 1000 ₽ нетто в t0, оплата (с НДS 20%) в t1; налог на прибыль 0."""
-    n = 2
+    # Три месяца: НДС платится в месяце, следующем за признанием (0.9.51), и признание
+    # «по оплате» (t1) без третьего месяца ушло бы за горизонт.
+    n = 3
     return ProjectModel(
         header=ProjectHeader(name="vat", start_date=date(2026, 1, 1), duration_months=n),
         settings=ProjectSettings(
@@ -48,7 +50,7 @@ def _credit_sale_model(basis: VatBasis) -> ProjectModel:
         operating_plan=OperatingPlan(
             products=[Product(id="p1", name="Товар")],
             sales=[SalesLine(
-                product_id="p1", volume=[D(10), D(0)], price=[D(100), D(100)],
+                product_id="p1", volume=[D(10), D(0), D(0)], price=[D(100)] * n,
                 payment=PaymentTerms(payment_delay_months=1),  # деньги через месяц
             )],
         ),
@@ -57,20 +59,22 @@ def _credit_sale_model(basis: VatBasis) -> ProjectModel:
 
 
 def test_shipment_basis_pays_vat_at_shipment():
-    """По отгрузке: НДС 200 в бюджет сразу (t0), деньги уходят раньше выручки."""
+    """По отгрузке: НДС 200 признан в t0 (отгрузка) и уплачен в следующем месяце — в t1,
+    в том же, когда приходят деньги покупателя; до уплаты — задолженность B21."""
     r = run(_credit_sale_model(VatBasis.SHIPMENT))
-    assert r.cashflow["C12"] == [D(200), D(0)]      # НДС к уплате в t0
-    assert r.balance["B21"] == [D(0), D(0)]         # отложенного НДС нет
-    assert r.balance["B1"] == [D(-200), D(1000)]    # касса уходит в минус в t0
+    assert r.cashflow["C12"] == [D(0), D(200), D(0)]     # срок — месяц после отгрузки
+    assert r.balance["B21"] == [D(200), D(0), D(0)]      # признан, срок не наступил
+    assert r.balance["B1"] == [D(0), D(1000), D(1000)]
     assert _balanced(r)
 
 
 def test_payment_basis_defers_vat_until_cash():
-    """По оплате: НДС 200 в бюджет в t1 (по факту денег); в t0 — отложен в B21."""
+    """По оплате: НДС 200 признан в t1 (по факту денег) и уплачен в t2; в t0 — отложенный
+    исходящий НДС, в t1 — признанный к уплате, оба в B21."""
     r = run(_credit_sale_model(VatBasis.PAYMENT))
-    assert r.cashflow["C12"] == [D(0), D(200)]      # НДС к уплате по получению денег
-    assert r.balance["B21"] == [D(200), D(0)]       # отложенный исходящий НДС в t0
-    assert r.balance["B1"] == [D(0), D(1000)]       # касса не уходит в минус
+    assert r.cashflow["C12"] == [D(0), D(0), D(200)]     # срок — месяц после денег
+    assert r.balance["B21"] == [D(200), D(200), D(0)]
+    assert r.balance["B1"] == [D(0), D(1200), D(1000)]
     assert _balanced(r)
 
 
